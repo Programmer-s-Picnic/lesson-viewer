@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Programmer's Picnic – Lesson Viewer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Pyodide -->
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+
+  <!-- CodeMirror 5 (syntax highlighting for Python) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+
+  <!-- jsPDF for "Download as PDF" -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    :root {
+      --bg-body: #fff7e6;
+      --bg-container: #fffaf0;
+      --text-main: #3a2a1a;
+      --accent-strong: #b35a00;
+      --accent-med: #a14c00;
+      --accent-soft: #8c3f00;
+      --border-soft: #f3c26b;
+      --section-bg: #fff3d1;
+      --code-bg: #fff1c9;
+      --slide-bg: #fffaf0;
+      --output-bg: #0f172a;
+      --output-text: #e5e7eb;
+    }
+
+    body.dark {
+      --bg-body: #020617;
+      --bg-container: #020617;
+      --text-main: #e5e7eb;
+      --accent-strong: #f97316;
+      --accent-med: #fb923c;
+      --accent-soft: #fed7aa;
+      --border-soft: #ea580c;
+      --section-bg: #020617;
+      --code-bg: #020617;
+      --slide-bg: #020617;
+      --output-bg: #020617;
+      --output-text: #e5e7eb;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg-body);
+      font-family: system-ui, sans-serif;
+      color: var(--text-main);
+    }
+
+    .page {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 10px;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .top-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--accent-strong);
+    }
+
+    .top-controls button {
+      padding: 6px 10px;
+      margin-left: 8px;
+      background: #ffcc73;
+      border: 1px solid #b57400;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    .top-controls button:hover {
+      background: #ffdb9b;
+    }
+
+    .layout {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .sidebar {
+      width: 230px;
+      background: var(--bg-container);
+      border-radius: 12px;
+      border: 1px solid var(--border-soft);
+      padding: 10px;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+      position: sticky;
+      top: 10px;
+      max-height: calc(100vh - 30px);
+      overflow-y: auto;
+    }
+
+    .sidebar h2 {
+      font-size: 1rem;
+      margin-top: 0;
+      color: var(--accent-med);
+    }
+
+    .lesson-link {
+      display: block;
+      padding: 6px 8px;
+      margin-bottom: 4px;
+      border-radius: 8px;
+      text-decoration: none;
+      color: var(--text-main);
+      font-size: 0.9rem;
+      border: 1px solid transparent;
+      cursor: pointer;
+    }
+
+    .lesson-link:hover {
+      background: #fffbeb;
+      border-color: var(--border-soft);
+    }
+
+    .lesson-link.active {
+      background: #ffcc73;
+      border-color: #b57400;
+      font-weight: 600;
+    }
+
+    .container {
+      flex: 1;
+      padding: 16px;
+      background: var(--bg-container);
+      border-radius: 16px;
+      border: 1px solid var(--border-soft);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    }
+
+    h1 {
+      color: var(--accent-strong);
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    h2 {
+      color: var(--accent-med);
+      margin-top: 24px;
+    }
+
+    h3 {
+      color: var(--accent-soft);
+      margin-top: 18px;
+    }
+
+    .section-box {
+      margin-top: 12px;
+      padding: 12px;
+      background: var(--section-bg);
+      border-radius: 10px;
+      border: 1px solid var(--border-soft);
+    }
+
+    pre {
+      position: relative;
+      background: var(--code-bg);
+      padding: 12px;
+      white-space: pre-wrap;
+      border-radius: 10px;
+      border: 1px dashed var(--border-soft);
+      font-size: 0.9rem;
+      overflow-x: auto;
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      background: #ffd27f;
+      border: 1px solid #bb7a00;
+      padding: 3px 7px;
+      font-size: 0.7rem;
+      border-radius: 6px;
