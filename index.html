@@ -74,7 +74,7 @@
             cursor: pointer;
         }
 
-        /* SVG Slide Styling */
+        /* SVG Slide Styling + Animation */
         .slide-svg-wrapper {
             background: #fffaf0;
             border: 1px solid #e0a850;
@@ -82,11 +82,16 @@
             padding: 10px;
             border-radius: 10px;
             text-align: center;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeUp 0.6s forwards;
         }
 
-        .slide-svg-wrapper svg {
-            max-width: 100%;
-            height: auto;
+        @keyframes fadeUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         /* Pyodide editor */
@@ -103,7 +108,8 @@
         }
 
         #runBtn,
-        #shareBtn {
+        #shareBtn,
+        #testBtn {
             padding: 8px 15px;
             margin-right: 5px;
             background: #ffcc73;
@@ -123,13 +129,23 @@
             margin-top: 12px;
             font-size: 0.9rem;
         }
+
+        #testMsg {
+            margin-top: 6px;
+            font-weight: bold;
+        }
     </style>
-    <link rel="icon" href="https://blogger.googleusercontent.com/img/a/AVvXsEhlfwIqq3YYxj6LMFr4E7IKN2bYIor-bFpbUXBT3Jthp8PKmRdWozV3hEk2xcj3kPrJ9WBIkXCr4lw5MTAz0AE5b0lPhQ2ReNbCmMOumP4zLTEOb7GY6s4YWcgcCfzltJVmQcgCObeQNRvn_SWPa_2c6cROZUOBHhRJB20PaV-peuA3GTSafM8JxgaYu5M=s257" type="image/x-icon">
+
+    <link rel="icon"
+        href="https://blogger.googleusercontent.com/img/a/AVvXsEhlfwIqq3YYxj6LMFr4E7IKN2bYIor-bFpbUXBT3Jthp8PKmRdWozV3hEk2xcj3kPrJ9WBIkXCr4lw5MTAz0AE5b0lPhQ2ReNbCmMOumP4zLTEOb7GY6s4YWcgcCfzltJVmQcgCObeQNRvn_SWPa_2c6cROZUOBHhRJB20PaV-peuA3GTSafM8JxgaYu5M=s257"
+        type="image/x-icon">
 
 </head>
 
 <body>
-      <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjKZh_J8AdV63isiRIrqvs8BDD7HRxhkoDBOAAmdMuQBifJagPd2d_PcHoBNl68VKUm-0OoRKAjWzF2Rom68mEXj8m1a2jt_jUzveClmUl-S8VqSar8ub-yKAis7thLjsLcYjhhSdtVrdp9nLkJZgg_D6yjFEMa7_Vy6wtjnnpi65LoM_5MHgb_cbmv-DY/s320/Programmer's%20Picnic.png" class="avatar"/>
+    <!-- Optional logo (you already had this) -->
+    <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjKZh_J8AdV63isiRIrqvs8BDD7HRxhkoDBOAAmdMuQBifJagPd2d_PcHoBNl68VKUm-0OoRKAjWzF2Rom68mEXj8m1a2jt_jUzveClmUl-S8VqSar8ub-yKAis7thLjsLcYjhhSdtVrdp9nLkJZgg_D6yjFEMa7_Vy6wtjnnpi65LoM_5MHgb_cbmv-DY/s320/Programmer's%20Picnic.png"
+        class="avatar" />
 
     <div class="container">
 
@@ -146,10 +162,12 @@
         <div id="editor" contenteditable="true">print("Welcome to Programmer's Picnic!")</div>
 
         <button id="runBtn">▶ Run Code</button>
+        <button id="testBtn">🧠 Test Code</button>
         <button id="shareBtn">🔗 Share Code</button>
 
         <h3>Output:</h3>
         <div id="output"></div>
+        <p id="testMsg"></p>
 
         <div style="margin-top:25px;text-align:center;font-size:0.8rem;opacity:.75;color:#5a3a1a;">
             Powered by Pyodide + JSON Lessons • Programmer’s Picnic • Saffron Theme 🌼
@@ -162,6 +180,8 @@
         const url = new URL(window.location.href);
         const lessonURL = url.searchParams.get("json");
         const contentEl = document.getElementById("content");
+
+        let lessonData = null;  // global to hold loaded JSON
 
         if (!lessonURL) {
             contentEl.innerHTML = "<p style='color:red;'>Error: Missing ?json= URL.</p>";
@@ -186,8 +206,10 @@
 
         /* ------------------------- Render Lesson ------------------------- */
         function renderLesson(lesson) {
+            lessonData = lesson;  // keep for quiz & tests
+
             contentEl.innerHTML = `
-                <h2>${lesson.title}</h2>
+                <h2>${escapeHTML(lesson.title)}</h2>
 
                 <div class="section-box">
                     <h3>Video Script</h3>
@@ -202,41 +224,108 @@
                 <div class="section-box">
                     <h3>Practice Problems</h3>
                     <ul>
-                        ${lesson.practiceProblems.map(p => `<li>${escapeHTML(p)}</li>`).join("")}
+                        ${(lesson.practiceProblems || []).map(p => `<li>${escapeHTML(p)}</li>`).join("")}
                     </ul>
                 </div>
 
                 <div class="section-box">
                     <h3>Homework</h3>
                     <ul>
-                        ${lesson.homework.map(p => `<li>${escapeHTML(p)}</li>`).join("")}
+                        ${(lesson.homework || []).map(p => `<li>${escapeHTML(p)}</li>`).join("")}
                     </ul>
+                </div>
+
+                <div class="section-box" id="quizBox" style="display:none;">
+                    <h3>Quick Quiz</h3>
+                    <div id="quizQuestions"></div>
+                    <button onclick="submitQuiz()">Submit Quiz</button>
+                    <p id="quizResult" style="margin-top:8px;font-weight:bold;"></p>
                 </div>
 
                 <div class="section-box">
                     <h3>Slides</h3>
-                    ${lesson.slidesSVG
+                    ${(lesson.slidesSVG || [])
                         .map(svg => `<div class="slide-svg-wrapper">${svg}</div>`)
                         .join("")}
                 </div>
 
-                <div class="section-box">
+                <div class="section-box" id="sampleCodeBox" style="display:none;">
                     <h3>Sample Code</h3>
-                    <pre>${escapeHTML(lesson.codeExamples[0])}</pre>
+                    <pre id="sampleCodePre"></pre>
                 </div>
             `;
+
+            // optional: show first code example if present
+            if (lesson.codeExamples && lesson.codeExamples.length) {
+                const box = document.getElementById("sampleCodeBox");
+                const pre = document.getElementById("sampleCodePre");
+                box.style.display = "block";
+                pre.textContent = lesson.codeExamples[0];
+            }
+
+            // If quiz present, render it
+            if (lesson.quiz && lesson.quiz.length) {
+                renderQuiz(lesson.quiz);
+            }
+
+            // If coding challenge present, preload instructions
+            if (lesson.codingChallenge && lesson.codingChallenge.instructions) {
+                document.getElementById("editor").innerText =
+                    lesson.codingChallenge.instructions;
+            }
 
             addCopyButtons();
         }
 
-        /* ------------------------- Fetch Lesson JSON ------------------------- */
-        fetch(lessonURL)
-            .then(res => res.json())
-            .then(lesson => renderLesson(lesson))
-            .catch(err => {
-                contentEl.innerHTML = "<p style='color:red;'>Failed to load JSON.</p>";
-                console.error(err);
+        /* ------------------------- Quiz Rendering ------------------------- */
+        function renderQuiz(quiz) {
+            const box = document.getElementById("quizBox");
+            const container = document.getElementById("quizQuestions");
+            box.style.display = "block";
+
+            container.innerHTML = quiz.map((q, i) => `
+                <div style="margin-bottom:10px;">
+                    <strong>${escapeHTML(q.question)}</strong><br>
+                    ${q.options.map((opt, j) =>
+                `<label><input type="radio" name="q${i}" value="${j}"> ${escapeHTML(opt)}</label><br>`
+            ).join("")}
+                </div>
+            `).join("");
+        }
+
+        function submitQuiz() {
+            if (!lessonData || !lessonData.quiz) return;
+
+            let score = 0;
+            lessonData.quiz.forEach((q, i) => {
+                const chosen = document.querySelector(`input[name="q${i}"]:checked`);
+                if (chosen && parseInt(chosen.value, 10) === q.correct) {
+                    score++;
+                }
             });
+
+            const resultEl = document.getElementById("quizResult");
+            resultEl.innerText = `You scored ${score}/${lessonData.quiz.length} 🎯`;
+
+            // Perfect score → XP + badge
+            if (score === lessonData.quiz.length) {
+                if (lessonData.rewardXP) awardXP(lessonData.rewardXP);
+                if (lessonData.badge) awardBadge(lessonData.badge);
+            }
+        }
+
+        window.submitQuiz = submitQuiz; // for inline onclick
+
+        /* ------------------------- Fetch Lesson JSON ------------------------- */
+        if (lessonURL) {
+            fetch(lessonURL)
+                .then(res => res.json())
+                .then(lesson => renderLesson(lesson))
+                .catch(err => {
+                    contentEl.innerHTML = "<p style='color:red;'>Failed to load JSON.</p>";
+                    console.error(err);
+                });
+        }
 
         /* ------------------------- Pyodide ------------------------- */
         let pyodideReady = false;
@@ -245,7 +334,7 @@
         async function loadPy() {
             pyodide = await loadPyodide();
 
-            // Redirect stdout
+            // Redirect stdout to #output (this is what makes print() visible)
             pyodide.setStdout({
                 batched: (msg) => {
                     const out = document.getElementById("output");
@@ -279,20 +368,54 @@
             try {
                 let result = await pyodide.runPythonAsync(code);
 
+                // Printed output already handled by setStdout; this is for expression results
                 if (result !== undefined) {
-                    out.innerText += result;
+                    out.innerText += String(result);
                 }
             } catch (err) {
                 out.innerText += "Error: " + err;
             }
         };
 
-        /* Share button */
+        /* ------------------------- Test Code (very simple auto-check) ------------------------- */
+        document.getElementById("testBtn").onclick = async function () {
+            const msgEl = document.getElementById("testMsg");
+            msgEl.innerText = "";
+
+            if (!pyodideReady) {
+                msgEl.innerText = "Pyodide still loading...";
+                return;
+            }
+            if (!lessonData || !lessonData.codingChallenge || !lessonData.codingChallenge.solution) {
+                msgEl.innerText = "No coding challenge configured for this lesson.";
+                return;
+            }
+
+            const userCode = document.getElementById("editor").innerText;
+
+            try {
+                // Naive approach: compare returned values (works best if solution uses `return`, not `print`)
+                let userResult = await pyodide.runPythonAsync(userCode);
+                let expectedResult = await pyodide.runPythonAsync(lessonData.codingChallenge.solution);
+
+                if (String(userResult).trim() === String(expectedResult).trim()) {
+                    msgEl.innerText = "Correct! ✔ XP awarded!";
+                    if (lessonData.rewardXP) awardXP(lessonData.rewardXP);
+                    if (lessonData.badge) awardBadge(lessonData.badge);
+                } else {
+                    msgEl.innerText = "Output/return value doesn't match expected solution ❌ Try again!";
+                }
+            } catch (err) {
+                msgEl.innerText = "Error while running code ❌: " + err;
+            }
+        };
+
+        /* ------------------------- Share button ------------------------- */
         document.getElementById("shareBtn").onclick = function () {
             const code = encodeURIComponent(document.getElementById("editor").innerText);
             const shareURL =
                 window.location.origin + window.location.pathname +
-                "?json=" + lessonURL + "&code=" + code;
+                "?json=" + encodeURIComponent(lessonURL) + "&code=" + code;
 
             navigator.clipboard.writeText(shareURL);
             alert("Shareable link copied!");
@@ -302,6 +425,36 @@
         const sharedCode = url.searchParams.get("code");
         if (sharedCode) {
             document.getElementById("editor").innerText = decodeURIComponent(sharedCode);
+        }
+
+        /* ------------------------- Gamification (XP, streak, badges) ------------------------- */
+        const XP_KEY = "pp_dsa_xp";
+        const STREAK_KEY = "pp_dsa_streak";
+        const LAST_ACTIVE_KEY = "pp_dsa_last";
+
+        let totalXP = parseInt(localStorage.getItem(XP_KEY) || "0", 10);
+        let streak = parseInt(localStorage.getItem(STREAK_KEY) || "0", 10);
+        let lastActive = localStorage.getItem(LAST_ACTIVE_KEY);
+        const today = new Date().toDateString();
+
+        if (lastActive !== today) {
+            streak++;
+            localStorage.setItem(STREAK_KEY, String(streak));
+            localStorage.setItem(LAST_ACTIVE_KEY, today);
+        }
+
+        function awardXP(xp) {
+            totalXP += xp;
+            localStorage.setItem(XP_KEY, String(totalXP));
+            // index.html sidebar will show updated XP & streak
+        }
+
+        function awardBadge(badge) {
+            let badges = JSON.parse(localStorage.getItem("ppBadges") || "[]");
+            if (!badges.includes(badge)) {
+                badges.push(badge);
+                localStorage.setItem("ppBadges", JSON.stringify(badges));
+            }
         }
     </script>
 
