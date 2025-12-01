@@ -27,18 +27,25 @@
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
         }
 
-        h1 {
-            color: #b35a00;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
         .section-box {
             margin-top: 12px;
             padding: 12px;
             background: #fff3d1;
             border-radius: 10px;
             border: 1px solid #f1b14b;
+        }
+
+        .slide-svg-wrapper {
+            text-align: center;
+            margin: 12px 0;
+            padding: 10px;
+            border: 1px solid #e0a850;
+            border-radius: 10px;
+            background: #fffdf5;
+        }
+
+        .slide-code-box pre {
+            margin-top: 12px;
         }
 
         pre {
@@ -62,19 +69,6 @@
             cursor: pointer;
         }
 
-        .slide-svg-wrapper {
-            text-align: center;
-            margin: 12px 0;
-            padding: 10px;
-            border: 1px solid #e0a850;
-            border-radius: 10px;
-            background: #fffdf5;
-        }
-
-        .slide-code-box {
-            margin-top: 10px;
-        }
-
         #editor {
             width: 100%;
             height: 220px;
@@ -86,19 +80,6 @@
             overflow-y: auto;
         }
 
-        button {
-            background: #ffcc73;
-            border: 1px solid #b57400;
-            border-radius: 8px;
-            padding: 8px 12px;
-            margin: 6px;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background: #ffdb9b;
-        }
-
         #output {
             background: #0f172a;
             color: #e5e7eb;
@@ -106,6 +87,15 @@
             border-radius: 10px;
             white-space: pre-wrap;
             min-height: 120px;
+        }
+
+        button {
+            background: #ffcc73;
+            border: 1px solid #b57400;
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin: 6px;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -133,10 +123,6 @@
         <div id="output"></div>
         <p id="testMsg" style="font-weight:bold;"></p>
 
-        <div style="text-align:center;font-size:0.8rem;margin-top:25px;opacity:.75;">
-            Powered by Pyodide + JSON Lessons • Programmer’s Picnic 🌼
-        </div>
-
     </div><!-- container -->
 
     <script>
@@ -147,12 +133,8 @@
 
         async function loadPy() {
             pyodide = await loadPyodide();
-            pyodide.setStdout({
-                batched: (msg) => { document.getElementById("output").innerText += msg; }
-            });
-            pyodide.setStderr({
-                batched: (msg) => { document.getElementById("output").innerText += "Error: " + msg; }
-            });
+            pyodide.setStdout({ batched: msg => output.innerText += msg });
+            pyodide.setStderr({ batched: msg => output.innerText += "Error: " + msg });
             pyodideReady = true;
         }
         loadPy();
@@ -188,16 +170,11 @@
                 <div class='section-box' id='slidesSection' style='display:none;'>
                     <h3>Slides</h3>
                     <div id='slideViewer'></div>
-                    <div style="text-align:center;margin-top:10px;">
+                    <div style="text-align:center;">
                         <button id='prevSlideBtn'>⬅ Prev</button>
                         <span id='slideCounter'></span>
                         <button id='nextSlideBtn'>Next ➡</button>
                     </div>
-                </div>
-
-                <div class="section-box" style="text-align:center;">
-                    <button onclick='goPrevLesson()'>⬅ Previous Lesson</button>
-                    <button onclick='goNextLesson()'>Next Lesson ➡</button>
                 </div>
             `;
 
@@ -209,33 +186,22 @@
 
         function renderQuiz(quiz) {
             document.getElementById("quizBox").style.display = "block";
-            document.getElementById("quizQuestions").innerHTML = quiz
-                .map((q, i) => `
+            document.getElementById("quizQuestions").innerHTML =
+                quiz.map((q, i) => `
                     <strong>${q.question}</strong><br>
                     ${q.options.map((op, j) => `
                         <label><input type='radio' name='q${i}' value='${j}'> ${op}</label><br>
                     `).join("")}
-                    <br>
-                `).join("");
+                `).join("<br>");
         }
 
-        function submitQuiz() {
-            let score = 0;
-            lessonData.quiz.forEach((q, i) => {
-                const ans = document.querySelector(`input[name="q${i}"]:checked`);
-                if (ans && parseInt(ans.value) === q.correct) score++;
-            });
-            document.getElementById("quizResult").innerText =
-                `Score: ${score}/${lessonData.quiz.length}`;
-        }
-
-        /* Slides System ----------------------------------*/
+        /* Slides */
         let currentSlide = 0;
 
         function setupSlides() {
             document.getElementById("slidesSection").style.display = "block";
-            document.getElementById("prevSlideBtn").onclick = () => changeSlide(-1);
-            document.getElementById("nextSlideBtn").onclick = () => changeSlide(+1);
+            prevSlideBtn.onclick = () => changeSlide(-1);
+            nextSlideBtn.onclick = () => changeSlide(+1);
             renderSlide();
         }
 
@@ -247,39 +213,23 @@
 
         function renderSlide() {
             const svg = lessonData.slidesSVG[currentSlide];
-            const code = (lessonData.slideCodes && lessonData.slideCodes[currentSlide])
-                ? `<pre>${lessonData.slideCodes[currentSlide]}</pre>`
-                : "";
+            const codes = lessonData.slideCodes?.[currentSlide] || [];
 
-            document.getElementById("slideViewer").innerHTML = `
+            let codeHTML = "";
+            codes.forEach(code => {
+                codeHTML += `<pre>${code}</pre>`;
+            });
+
+            slideViewer.innerHTML = `
                 <div class='slide-svg-wrapper'>${svg}</div>
-                <div class='slide-code-box'>${code}</div>
+                <div class='slide-code-box'>${codeHTML}</div>
             `;
 
-            document.getElementById("slideCounter").innerText =
-                `${currentSlide + 1} / ${lessonData.slidesSVG.length}`;
-
+            slideCounter.innerText = `${currentSlide + 1} / ${lessonData.slidesSVG.length}`;
             addCopyButtons();
         }
 
-        /* Lesson Navigation */
-        function getLessonId() {
-            return parseInt(lessonURL.match(/lesson-(\d+)\.json/)[1]);
-        }
-        function openLesson(id) {
-            const base = lessonURL.split("lesson-")[0];
-            window.location.href = `?json=${base}lesson-${id}.json`;
-        }
-        function goPrevLesson() {
-            const id = getLessonId();
-            if (id > 1) openLesson(id - 1);
-        }
-        function goNextLesson() {
-            const id = getLessonId();
-            openLesson(id + 1);
-        }
-
-        /* Copy Code Buttons */
+        /* Copy Buttons */
         function addCopyButtons() {
             document.querySelectorAll("pre").forEach(pre => {
                 if (pre.querySelector(".copy-btn")) return;
@@ -292,51 +242,36 @@
             });
         }
 
-        /* Run & Test Code */
+        /* Code Runner */
         runBtn.onclick = async () => {
-            const out = document.getElementById("output");
-            out.innerText = "";
-            if (!pyodideReady) {
-                out.innerText = "Loading Pyodide...";
-                return;
-            }
-            try {
-                await pyodide.runPythonAsync(editor.innerText);
-            } catch (err) {
-                out.innerText = "Error: " + err;
-            }
+            output.innerText = "";
+            if (!pyodideReady) return output.innerText = "Loading Pyodide...";
+            try { await pyodide.runPythonAsync(editor.innerText); }
+            catch (err) { output.innerText = "Error: " + err; }
         };
 
         testBtn.onclick = async () => {
-            const msg = document.getElementById("testMsg");
-            msg.innerText = "";
-            if (!lessonData.codingChallenge)
-                return msg.innerText = "No challenge.";
-
+            if (!lessonData.codingChallenge) return testMsg.innerText = "No challenge.";
             try {
                 const userOut = await pyodide.runPythonAsync(editor.innerText);
                 const expOut = await pyodide.runPythonAsync(lessonData.codingChallenge.solution);
-
-                msg.innerText = (String(userOut).trim() === String(expOut).trim())
+                testMsg.innerText = (String(userOut).trim() === String(expOut).trim())
                     ? "Correct! ✔"
                     : "Incorrect ❌";
-            } catch (err) {
-                msg.innerText = "Error: " + err;
             }
+            catch (err) { testMsg.innerText = "Error: " + err; }
         };
 
-        /* Share Code */
         shareBtn.onclick = () => {
             const code = encodeURIComponent(editor.innerText);
-            const link = `${window.location.pathname}?json=${lessonURL}&code=${code}`;
-            navigator.clipboard.writeText(link);
+            navigator.clipboard.writeText(`${window.location.pathname}?json=${lessonURL}&code=${code}`);
             alert("Share link copied!");
         };
 
-        /* Load shared code if present */
         const shared = url.searchParams.get("code");
         if (shared) editor.innerText = decodeURIComponent(shared);
     </script>
+
 </body>
 
 </html>
