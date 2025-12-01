@@ -8,6 +8,9 @@
 
     <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
 
+    <!-- ✅ Markdown Renderer -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
     <style>
         body {
             margin: 0;
@@ -146,17 +149,27 @@
 
         function renderLesson(lesson) {
             const c = document.getElementById("content");
+
             c.innerHTML = `
                 <h2>${lesson.title}</h2>
 
-                <div class='section-box'><h3>Video Script</h3><pre>${lesson.videoScript}</pre></div>
-                <div class='section-box'><h3>Blog Article</h3><pre>${lesson.blogArticle}</pre></div>
+                <div class='section-box'>
+                    <h3>Video Script</h3>
+                    <pre>${lesson.videoScript}</pre>
+                </div>
 
-                <div class='section-box'><h3>Practice Problems</h3>
+                <div class='section-box'>
+                    <h3>Blog Article</h3>
+                    <div id="blogArticleBox"></div>
+                </div>
+
+                <div class='section-box'>
+                    <h3>Practice Problems</h3>
                     <ul>${lesson.practiceProblems.map(p => `<li>${p}</li>`).join("")}</ul>
                 </div>
 
-                <div class='section-box'><h3>Homework</h3>
+                <div class='section-box'>
+                    <h3>Homework</h3>
                     <ul>${lesson.homework.map(p => `<li>${p}</li>`).join("")}</ul>
                 </div>
 
@@ -178,6 +191,10 @@
                 </div>
             `;
 
+            /* Render Markdown Blog Article */
+            document.getElementById("blogArticleBox").innerHTML =
+                marked.parse(lesson.blogArticle);
+
             if (lesson.quiz) renderQuiz(lesson.quiz);
             if (lesson.slidesSVG) setupSlides();
 
@@ -195,7 +212,6 @@
                 `).join("<br>");
         }
 
-        /* Slides */
         let currentSlide = 0;
 
         function setupSlides() {
@@ -229,7 +245,6 @@
             addCopyButtons();
         }
 
-        /* Copy Buttons */
         function addCopyButtons() {
             document.querySelectorAll("pre").forEach(pre => {
                 if (pre.querySelector(".copy-btn")) return;
@@ -242,7 +257,6 @@
             });
         }
 
-        /* Code Runner */
         runBtn.onclick = async () => {
             output.innerText = "";
             if (!pyodideReady) return output.innerText = "Loading Pyodide...";
@@ -255,9 +269,10 @@
             try {
                 const userOut = await pyodide.runPythonAsync(editor.innerText);
                 const expOut = await pyodide.runPythonAsync(lessonData.codingChallenge.solution);
-                testMsg.innerText = (String(userOut).trim() === String(expOut).trim())
-                    ? "Correct! ✔"
-                    : "Incorrect ❌";
+                testMsg.innerText =
+                    (String(userOut).trim() === String(expOut).trim())
+                        ? "Correct! ✔"
+                        : "Incorrect ❌";
             }
             catch (err) { testMsg.innerText = "Error: " + err; }
         };
