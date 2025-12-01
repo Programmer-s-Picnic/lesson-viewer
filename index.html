@@ -33,16 +33,6 @@
             margin-bottom: 20px;
         }
 
-        h2 {
-            color: #a14c00;
-            margin-top: 28px;
-        }
-
-        h3 {
-            color: #8c3f00;
-            margin-top: 18px;
-        }
-
         .section-box {
             margin-top: 12px;
             padding: 12px;
@@ -73,21 +63,16 @@
         }
 
         .slide-svg-wrapper {
-            opacity: 0;
-            transform: translateY(15px);
-            animation: fadeUp .5s forwards;
             text-align: center;
             margin: 12px 0;
             padding: 10px;
             border: 1px solid #e0a850;
             border-radius: 10px;
+            background: #fffdf5;
         }
 
-        @keyframes fadeUp {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .slide-code-box {
+            margin-top: 10px;
         }
 
         #editor {
@@ -160,113 +145,148 @@
         const lessonURL = url.searchParams.get("json");
         let lessonData = null;
 
-        /* Load Pyodide */
         async function loadPy() {
             pyodide = await loadPyodide();
-            pyodide.setStdout({ batched: (msg) => { document.getElementById("output").innerText += msg; } });
-            pyodide.setStderr({ batched: (msg) => { document.getElementById("output").innerText += "Error: " + msg; } });
+            pyodide.setStdout({
+                batched: (msg) => { document.getElementById("output").innerText += msg; }
+            });
+            pyodide.setStderr({
+                batched: (msg) => { document.getElementById("output").innerText += "Error: " + msg; }
+            });
             pyodideReady = true;
         }
         loadPy();
 
-        /* Load Lesson JSON */
         fetch(lessonURL).then(r => r.json()).then(data => {
             lessonData = data;
             renderLesson(data);
         });
 
-        /* Render Lesson */
         function renderLesson(lesson) {
             const c = document.getElementById("content");
             c.innerHTML = `
-        <h2>${lesson.title}</h2>
-        <div class='section-box'><h3>Video Script</h3><pre>${lesson.videoScript}</pre></div>
-        <div class='section-box'><h3>Blog Article</h3><pre>${lesson.blogArticle}</pre></div>
-        <div class='section-box'><h3>Practice Problems</h3><ul>${lesson.practiceProblems.map(p => `<li>${p}</li>`).join("")
-                }</ul></div>
-        <div class='section-box'><h3>Homework</h3><ul>${lesson.homework.map(p => `<li>${p}</li>`).join("")
-                }</ul></div>
+                <h2>${lesson.title}</h2>
 
-        <div class='section-box' id='quizBox' style='display:none;'>
-            <h3>Quick Quiz</h3>
-            <div id='quizQuestions'></div>
-            <button onclick='submitQuiz()'>Submit Quiz</button>
-            <p id='quizResult'></p>
-        </div>
+                <div class='section-box'><h3>Video Script</h3><pre>${lesson.videoScript}</pre></div>
+                <div class='section-box'><h3>Blog Article</h3><pre>${lesson.blogArticle}</pre></div>
 
-        <div class='section-box' id='slidesSection' style='display:none;'>
-            <h3>Slides</h3>
-            <div id='slideViewer'></div>
-            <div style="text-align:center;">
-                <button id='prevSlideBtn'>⬅ Prev</button>
-                <span id='slideCounter'></span>
-                <button id='nextSlideBtn'>Next ➡</button>
-            </div>
-        </div>
+                <div class='section-box'><h3>Practice Problems</h3>
+                    <ul>${lesson.practiceProblems.map(p => `<li>${p}</li>`).join("")}</ul>
+                </div>
 
-        <div class="section-box" style="text-align:center;">
-            <button onclick='goPrevLesson()'>⬅ Previous Lesson</button>
-            <button onclick='goNextLesson()'>Next Lesson ➡</button>
-        </div>
-    `;
+                <div class='section-box'><h3>Homework</h3>
+                    <ul>${lesson.homework.map(p => `<li>${p}</li>`).join("")}</ul>
+                </div>
+
+                <div class='section-box' id='quizBox' style='display:none;'>
+                    <h3>Quick Quiz</h3>
+                    <div id='quizQuestions'></div>
+                    <button onclick='submitQuiz()'>Submit Quiz</button>
+                    <p id='quizResult'></p>
+                </div>
+
+                <div class='section-box' id='slidesSection' style='display:none;'>
+                    <h3>Slides</h3>
+                    <div id='slideViewer'></div>
+                    <div style="text-align:center;margin-top:10px;">
+                        <button id='prevSlideBtn'>⬅ Prev</button>
+                        <span id='slideCounter'></span>
+                        <button id='nextSlideBtn'>Next ➡</button>
+                    </div>
+                </div>
+
+                <div class="section-box" style="text-align:center;">
+                    <button onclick='goPrevLesson()'>⬅ Previous Lesson</button>
+                    <button onclick='goNextLesson()'>Next Lesson ➡</button>
+                </div>
+            `;
 
             if (lesson.quiz) renderQuiz(lesson.quiz);
-            if (lesson.slidesSVG) setupSlides(lesson.slidesSVG);
+            if (lesson.slidesSVG) setupSlides();
 
             addCopyButtons();
         }
 
-        /* Quiz */
         function renderQuiz(quiz) {
             document.getElementById("quizBox").style.display = "block";
-            document.getElementById("quizQuestions").innerHTML = quiz.map((q, i) => `
-        <strong>${q.question}</strong><br>
-        ${q.options.map((op, j) => `
-            <label><input type='radio' name='q${i}' value='${j}'> ${op}</label><br>
-        `).join("")}<br>
-    `).join("");
+            document.getElementById("quizQuestions").innerHTML = quiz
+                .map((q, i) => `
+                    <strong>${q.question}</strong><br>
+                    ${q.options.map((op, j) => `
+                        <label><input type='radio' name='q${i}' value='${j}'> ${op}</label><br>
+                    `).join("")}
+                    <br>
+                `).join("");
         }
 
         function submitQuiz() {
             let score = 0;
             lessonData.quiz.forEach((q, i) => {
                 const ans = document.querySelector(`input[name="q${i}"]:checked`);
-                if (ans && parseInt(ans.value) == q.correct) score++;
+                if (ans && parseInt(ans.value) === q.correct) score++;
             });
-            document.getElementById("quizResult").innerText = `Score: ${score}/${lessonData.quiz.length}`;
+            document.getElementById("quizResult").innerText =
+                `Score: ${score}/${lessonData.quiz.length}`;
         }
 
-        /* Slides */
-        let slides = [], currentSlide = 0;
-        function setupSlides(arr) {
-            slides = arr; currentSlide = 0;
+        /* Slides System ----------------------------------*/
+        let currentSlide = 0;
+
+        function setupSlides() {
             document.getElementById("slidesSection").style.display = "block";
             document.getElementById("prevSlideBtn").onclick = () => changeSlide(-1);
             document.getElementById("nextSlideBtn").onclick = () => changeSlide(+1);
             renderSlide();
         }
-        function changeSlide(d) { currentSlide = (currentSlide + d + slides.length) % slides.length; renderSlide(); }
+
+        function changeSlide(d) {
+            const total = lessonData.slidesSVG.length;
+            currentSlide = (currentSlide + d + total) % total;
+            renderSlide();
+        }
+
         function renderSlide() {
-            document.getElementById("slideViewer").innerHTML =
-                `<div class='slide-svg-wrapper'>${slides[currentSlide]}</div>`;
+            const svg = lessonData.slidesSVG[currentSlide];
+            const code = (lessonData.slideCodes && lessonData.slideCodes[currentSlide])
+                ? `<pre>${lessonData.slideCodes[currentSlide]}</pre>`
+                : "";
+
+            document.getElementById("slideViewer").innerHTML = `
+                <div class='slide-svg-wrapper'>${svg}</div>
+                <div class='slide-code-box'>${code}</div>
+            `;
+
             document.getElementById("slideCounter").innerText =
-                `${currentSlide + 1} / ${slides.length}`;
+                `${currentSlide + 1} / ${lessonData.slidesSVG.length}`;
+
+            addCopyButtons();
         }
 
         /* Lesson Navigation */
-        function getLessonId() { return parseInt(lessonURL.match(/lesson-(\d+)\.json/)[1]); }
+        function getLessonId() {
+            return parseInt(lessonURL.match(/lesson-(\d+)\.json/)[1]);
+        }
         function openLesson(id) {
             const base = lessonURL.split("lesson-")[0];
             window.location.href = `?json=${base}lesson-${id}.json`;
         }
-        function goPrevLesson() { const id = getLessonId(); if (id > 1) openLesson(id - 1); }
-        function goNextLesson() { const id = getLessonId(); openLesson(id + 1); }
+        function goPrevLesson() {
+            const id = getLessonId();
+            if (id > 1) openLesson(id - 1);
+        }
+        function goNextLesson() {
+            const id = getLessonId();
+            openLesson(id + 1);
+        }
 
-        /* Copy Button for code blocks */
+        /* Copy Code Buttons */
         function addCopyButtons() {
             document.querySelectorAll("pre").forEach(pre => {
+                if (pre.querySelector(".copy-btn")) return;
+
                 const b = document.createElement("button");
-                b.className = "copy-btn"; b.innerText = "Copy";
+                b.className = "copy-btn";
+                b.innerText = "Copy";
                 b.onclick = () => navigator.clipboard.writeText(pre.innerText);
                 pre.appendChild(b);
             });
@@ -277,22 +297,32 @@
             const out = document.getElementById("output");
             out.innerText = "";
             if (!pyodideReady) {
-                out.innerText = "Loading Pyodide..."; return;
+                out.innerText = "Loading Pyodide...";
+                return;
             }
-            try { await pyodide.runPythonAsync(editor.innerText); }
-            catch (err) { out.innerText = "Error: " + err; }
+            try {
+                await pyodide.runPythonAsync(editor.innerText);
+            } catch (err) {
+                out.innerText = "Error: " + err;
+            }
         };
 
         testBtn.onclick = async () => {
             const msg = document.getElementById("testMsg");
             msg.innerText = "";
-            if (!lessonData.codingChallenge) return msg.innerText = "No challenge.";
+            if (!lessonData.codingChallenge)
+                return msg.innerText = "No challenge.";
+
             try {
                 const userOut = await pyodide.runPythonAsync(editor.innerText);
                 const expOut = await pyodide.runPythonAsync(lessonData.codingChallenge.solution);
+
                 msg.innerText = (String(userOut).trim() === String(expOut).trim())
-                    ? "Correct! ✔" : "Incorrect ❌";
-            } catch (err) { msg.innerText = "Error: " + err; }
+                    ? "Correct! ✔"
+                    : "Incorrect ❌";
+            } catch (err) {
+                msg.innerText = "Error: " + err;
+            }
         };
 
         /* Share Code */
@@ -303,11 +333,10 @@
             alert("Share link copied!");
         };
 
-        /* Load shared code */
+        /* Load shared code if present */
         const shared = url.searchParams.get("code");
         if (shared) editor.innerText = decodeURIComponent(shared);
     </script>
-
 </body>
 
 </html>
