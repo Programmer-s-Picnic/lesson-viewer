@@ -39,6 +39,25 @@
             border: 1px solid #f1b14b;
         }
 
+        .correct {
+            color: green;
+            font-weight: bold;
+        }
+
+        .wrong {
+            color: red;
+            font-weight: bold;
+        }
+
+        .explanation {
+            margin-top: 5px;
+            padding: 8px;
+            background: #fff8dd;
+            border-left: 4px solid #d4a400;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
         .slide-svg-wrapper {
             text-align: center;
             margin: 12px 0;
@@ -202,24 +221,39 @@
 
             document.getElementById("quizQuestions").innerHTML =
                 quiz.map((q, i) => `
-                    <strong>${q.question}</strong><br>
-                    ${q.options.map((op, j) =>
-                    `<label><input type='radio' name='q${i}' value='${j}'> ${op}</label><br>`
-                ).join("")}
-                    <br>
+                    <div class="quiz-item" id="quiz-${i}">
+                        <strong>${q.question}</strong><br>
+                        ${q.options.map((op, j) =>
+                            `<label><input type='radio' name='q${i}' value='${j}'> ${op}</label><br>`
+                        ).join("")}
+                        <div class="explanation" id="exp-${i}" style="display:none;"></div>
+                        <br>
+                    </div>
                 `).join("");
 
             document.getElementById("submitQuizBtn").onclick = submitQuiz;
         }
 
+        /* ------------------ Submit Quiz WITH Explanations ------------------ */
         function submitQuiz() {
             let score = 0;
 
             lessonData.quiz.forEach((q, i) => {
                 const chosen = document.querySelector(`input[name="q${i}"]:checked`);
+                const expBox = document.getElementById(`exp-${i}`);
+
                 if (chosen && parseInt(chosen.value) === q.correct) {
                     score++;
+                    expBox.innerHTML = `<span class='correct'>Correct!</span><br>${q.explanation}`;
+                } else {
+                    expBox.innerHTML = `
+                        <span class='wrong'>Incorrect</span><br>
+                        Correct answer: <b>${q.options[q.correct]}</b><br>
+                        ${q.explanation}
+                    `;
                 }
+
+                expBox.style.display = "block";
             });
 
             document.getElementById("quizResult").innerText =
