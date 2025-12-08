@@ -439,21 +439,21 @@
             { id: 17, title: "Greedy Algorithms", difficulty: "medium", category: "algorithms" },
             { id: 18, title: "Dynamic Programming", difficulty: "hard", category: "advanced" },
             { id: 19, title: "Advanced Graph Algorithms", difficulty: "hard", category: "advanced" },
-            { id: 20, title: "Practice Problem Sets", difficulty: "medium", category: "advanced" }
-            , {
-
-                id: 21, title: "Linear Search",
-                difficulty: "easy", category: "advanced",
+            { id: 20, title: "Practice Problem Sets", difficulty: "medium", category: "advanced" },
+            {
+                id: 21,
+                title: "Linear Search",
+                difficulty: "easy",
+                category: "algorithms"
             }
-
         ];
 
         /* ------------------------------------------
            State
         ------------------------------------------ */
         let searchQuery = "";
-        let difficultyFilter = "all"; // all | easy | medium | hard
-        let categoryFilter = "all"; // all | foundations | linear | nonlinear | algorithms | advanced
+        let difficultyFilter = "all";
+        let categoryFilter = "all";
 
         const COMPLETED_KEY = "pp_dsa_completed_lessons";
         const RECENT_KEY = "pp_dsa_recent_lessons";
@@ -486,8 +486,8 @@
             localStorage.setItem(RECENT_KEY, JSON.stringify(ids));
         }
 
-        let completedLessons = loadCompleted();  // array of ids
-        let recentLessons = loadRecent();        // array of ids, most recent first
+        let completedLessons = loadCompleted();
+        let recentLessons = loadRecent();
 
         /* ------------------------------------------
            Helpers
@@ -598,7 +598,7 @@
 
             <div class="button-row">
               <a class="button" href="${viewerURL}" target="_parent"
-                 data-lesson-id="${lesson.id}" onclick="handleOpenLesson(${lesson.id})">
+                 data-lesson-id="${lesson.id}" onclick="handleOpenLesson(${lesson.id}); sendAnalytics(${lesson.id}, 'open_from_card');">
                 Open Lesson →
               </a>
               <button class="button secondary" onclick="toggleDone(${lesson.id})">
@@ -616,7 +616,7 @@
         function renderProgress() {
             const total = LESSONS.length;
             const done = completedLessons.length;
-            const pct = Math.round((done / total) * 100);
+            const pct = total ? Math.round((done / total) * 100) : 0;
             progressTextEl.textContent = `${done} / ${total} lessons marked complete (${pct}%)`;
         }
 
@@ -632,7 +632,7 @@
                 const jsonURL = `${JSON_BASE}lesson-${lesson.id}.json`;
                 const viewerURL = `${VIEWER_BASE}${encodeURIComponent(jsonURL)}`;
                 const li = document.createElement("li");
-                li.innerHTML = `<a class="recent-link" href="${viewerURL}" target="_blank">Lesson ${lesson.id}: ${lesson.title}</a>`;
+                li.innerHTML = `<a class="recent-link" href="${viewerURL}" target="_blank" onclick="sendAnalytics(${lesson.id}, 'open_from_recent');">Lesson ${lesson.id}: ${lesson.title}</a>`;
                 recentListEl.appendChild(li);
             });
         }
@@ -641,7 +641,6 @@
            Event handlers
         ------------------------------------------ */
         function handleOpenLesson(id) {
-            // Update recent list: move id to front
             recentLessons = [id, ...recentLessons.filter(x => x !== id)].slice(0, 10);
             saveRecent(recentLessons);
             renderRecent();
@@ -658,9 +657,16 @@
             renderRecent();
         }
 
-        // Make functions global for inline handlers
+        // simple analytics hook (ready to wire to GA / Plausible later)
+        function sendAnalytics(id, action) {
+            try {
+                console.log("PP-DSA Analytics:", { lessonId: id, action, ts: Date.now() });
+            } catch (e) { }
+        }
+
         window.handleOpenLesson = handleOpenLesson;
         window.toggleDone = toggleDone;
+        window.sendAnalytics = sendAnalytics;
 
         const searchInputEl = document.getElementById("searchInput");
         searchInputEl.addEventListener("input", () => {
@@ -693,11 +699,12 @@
         startBtn.addEventListener("click", () => {
             let targetLesson = LESSONS.find(l => !completedLessons.includes(l.id));
             if (!targetLesson) {
-                targetLesson = LESSONS[0]; // if all done, start from beginning
+                targetLesson = LESSONS[0];
             }
             const jsonURL = `${JSON_BASE}lesson-${targetLesson.id}.json`;
             const viewerURL = `${VIEWER_BASE}${encodeURIComponent(jsonURL)}`;
             handleOpenLesson(targetLesson.id);
+            sendAnalytics(targetLesson.id, "start_course");
             window.open(viewerURL, "_blank");
         });
 

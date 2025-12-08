@@ -121,6 +121,107 @@
         .correct {
             color: lightgreen;
         }
+
+        .lesson-meta-panel h3 {
+            margin-top: 0;
+        }
+
+        .meta-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .meta-chip {
+            padding: 3px 8px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            background: #ffe7b3;
+            border: 1px solid #f1b14b;
+        }
+
+        .xp-chip {
+            background: #dcfce7;
+            border-color: #16a34a;
+            color: #166534;
+            font-weight: 600;
+        }
+
+        .badge-chip {
+            background: #fee2e2;
+            border-color: #ef4444;
+            color: #b91c1c;
+            font-weight: 600;
+        }
+
+        .keyword-chip {
+            background: #fff;
+            border-style: dashed;
+        }
+
+        .quiz-item {
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 8px;
+            background: #fff8dd;
+            border: 1px solid #f3c26b;
+        }
+
+        .quiz-item.correct {
+            border-color: #16a34a;
+            background: #dcfce7;
+        }
+
+        .quiz-item.wrong {
+            border-color: #ef4444;
+            background: #fee2e2;
+        }
+
+        .explanation {
+            margin-top: 4px;
+            font-size: 0.85rem;
+        }
+
+        .nav-lessons .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn-nav {
+            flex: 1;
+            padding: 8px 10px;
+            border-radius: 999px;
+            border: 1px solid #b57400;
+            background: #ffcc73;
+            font-size: 0.9rem;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-nav[disabled] {
+            opacity: 0.5;
+            cursor: default;
+            background: #ffeac0;
+        }
+
+        .slide-svg-wrapper {
+            margin-bottom: 8px;
+            animation: fadeInSlide 0.3s ease-out;
+        }
+
+        @keyframes fadeInSlide {
+            from {
+                opacity: 0;
+                transform: translateY(4px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
     </style>
 </head>
 
@@ -151,28 +252,108 @@
     </div>
 
     <script>
+        const MAX_LESSON_ID = 21;
+        const MIN_LESSON_ID = 1;
+
         /* ------------------ Pyodide ------------------ */
         let pyodide = null, pyodideReady = false;
 
         async function loadPy() {
-            pyodide = await loadPyodide();
-            pyodide.setStdout({ batched: msg => output.innerText += msg });
-            pyodide.setStderr({ batched: msg => output.innerText += "Error: " + msg });
-            pyodideReady = true;
+            try {
+                pyodide = await loadPyodide();
+                pyodide.setStdout({ batched: msg => output.innerText += msg });
+                pyodide.setStderr({ batched: msg => output.innerText += "Error: " + msg });
+                pyodideReady = true;
+            } catch (e) {
+                output.innerText = "Failed to load Pyodide: " + e;
+            }
         }
         loadPy();
 
-        /* ------------------ Load Lesson JSON ------------------ */
+        /* ------------------ URL + Lesson Loading ------------------ */
         const url = new URL(window.location.href);
         const lessonURL = url.searchParams.get("json");
         let lessonData = null;
 
-        fetch(lessonURL)
-            .then(r => r.json())
-            .then(data => {
-                lessonData = data;
-                renderLesson(data);
-            });
+        if (lessonURL) {
+            fetch(lessonURL)
+                .then(r => r.json())
+                .then(data => {
+                    lessonData = data;
+                    renderLesson(data);
+                })
+                .catch(err => {
+                    document.getElementById("content").innerHTML =
+                        "<p>Failed to load lesson JSON.</p><pre>" + err + "</pre>";
+                });
+        } else {
+            document.getElementById("content").innerHTML =
+                "<p>No JSON URL provided.</p>";
+        }
+
+        /* ------------------ Render Helpers ------------------ */
+        function renderMeta(lesson) {
+            const chips = [];
+
+            if (lesson.duration) {
+                chips.push(`<span class="meta-chip">⏱ ${lesson.duration}</span>`);
+            }
+            if (lesson.difficulty) {
+                chips.push(`<span class="meta-chip">🎯 Difficulty: ${lesson.difficulty}</span>`);
+            }
+            if (lesson.category) {
+                chips.push(`<span class="meta-chip">📂 ${lesson.category}</span>`);
+            }
+            if (lesson.rewardXP) {
+                chips.push(`<span class="meta-chip xp-chip">⭐ ${lesson.rewardXP} XP</span>`);
+            }
+            if (lesson.badge) {
+                chips.push(`<span class="meta-chip badge-chip">🏅 ${lesson.badge}</span>`);
+            }
+
+            let keywordHTML = "";
+            if (Array.isArray(lesson.keywords) && lesson.keywords.length > 0) {
+                keywordHTML = `
+                    <div style="margin-top:8px;">
+                        ${lesson.keywords.map(k => `<span class="meta-chip keyword-chip">#${k}</span>`).join("")}
+                    </div>
+                `;
+            }
+
+            if (!chips.length && !keywordHTML) return "";
+
+            return `
+                <div class="section-box lesson-meta-panel">
+                    <h3>Lesson Meta</h3>
+                    <div class="meta-chips">
+                        ${chips.join("")}
+                    </div>
+                    ${keywordHTML}
+                </div>
+            `;
+        }
+
+        function renderNav(lesson) {
+            const id = lesson.id;
+            if (!id) return "";
+
+            const prevId = id > MIN_LESSON_ID ? id - 1 : null;
+            const nextId = id < MAX_LESSON_ID ? id + 1 : null;
+
+            return `
+                <div class="section-box nav-lessons">
+                    <h3>Continue Learning</h3>
+                    <div class="nav-buttons">
+                        <button class="btn-nav" ${prevId ? `onclick="goToLesson(${prevId})"` : "disabled"}>
+                            ⬅ ${prevId ? `Lesson ${prevId}` : "No previous"}
+                        </button>
+                        <button class="btn-nav" ${nextId ? `onclick="goToLesson(${nextId})"` : "disabled"}>
+                            ${nextId ? `Lesson ${nextId} ➡` : "Last lesson"}
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
 
         /* ------------------ Render Lesson ------------------ */
         function renderLesson(lesson) {
@@ -181,11 +362,13 @@
             c.innerHTML = `
                 <h2>${lesson.title}</h2>
 
+                ${renderMeta(lesson)}
+
                 ${renderVideosSection(lesson.youtubeVideos)}
 
                 <div class='section-box'>
                     <h3>Video Script</h3>
-                    <pre>${lesson.videoScript}</pre>
+                    <pre>${lesson.videoScript || "No video script provided."}</pre>
                 </div>
 
                 <div class='section-box'>
@@ -193,15 +376,17 @@
                     <div id="blogArticleBox"></div>
                 </div>
 
+                ${Array.isArray(lesson.practiceProblems) ? `
                 <div class='section-box'>
                     <h3>Practice Problems</h3>
                     <ul>${lesson.practiceProblems.map(p => `<li>${p}</li>`).join("")}</ul>
-                </div>
+                </div>` : ""}
 
+                ${Array.isArray(lesson.homework) ? `
                 <div class='section-box'>
                     <h3>Homework</h3>
                     <ul>${lesson.homework.map(p => `<li>${p}</li>`).join("")}</ul>
-                </div>
+                </div>` : ""}
 
                 <div class='section-box' id='quizBox' style='display:none;'>
                     <h3>Quick Quiz</h3>
@@ -219,33 +404,35 @@
                         <button id='nextSlideBtn'>Next ➡</button>
                     </div>
                 </div>
+
+                ${renderNav(lesson)}
             `;
 
             document.getElementById("blogArticleBox").innerHTML =
-                marked.parse(lesson.blogArticle);
+                lesson.blogArticle ? marked.parse(lesson.blogArticle) : "<p>No article provided.</p>";
 
-            if (lesson.quiz) renderQuiz(lesson.quiz);
-            if (lesson.slidesSVG) setupSlides();
+            if (Array.isArray(lesson.quiz) && lesson.quiz.length) renderQuiz(lesson.quiz);
+            if (Array.isArray(lesson.slidesSVG) && lesson.slidesSVG.length) setupSlides();
 
             addCopyButtons();
         }
 
-        /* ------------------ NEW: Videos Section ------------------ */
+        /* ------------------ Videos Section ------------------ */
         function renderVideosSection(videos) {
-            if (!videos || videos.length === 0) return "";
+            if (!Array.isArray(videos) || videos.length === 0) return "";
 
             return `
                 <div class='section-box'>
                     <h3>Videos</h3>
                     ${videos.map(v => `
-                        <div class='video-block'>
+                        <div class='video-block' style="margin-bottom:16px;">
                             <h4>${v.title}</h4>
                             <iframe src="https://www.youtube.com/embed/${v.videoId}" allowfullscreen></iframe>
 
-                            <p>${v.description}</p>
+                            <p>${v.description || ""}</p>
 
                             <div>
-                                ${v.tags.map(t => `<span class='tag'>${t}</span>`).join("")}
+                                ${Array.isArray(v.tags) ? v.tags.map(t => `<span class='tag'>${t}</span>`).join("") : ""}
                             </div>
 
                             ${v.chapters?.length ? `
@@ -283,7 +470,6 @@
                     `<label><input type='radio' name='q${i}' value='${j}'> ${op}</label><br>`
                 ).join("")}
                         <div class="explanation" id="exp-${i}" style="display:none;"></div>
-                        <br>
                     </div>
                 `).join("");
 
@@ -291,28 +477,53 @@
         }
 
         function submitQuiz() {
-            let score = 0;
+            const quiz = (lessonData && Array.isArray(lessonData.quiz)) ? lessonData.quiz : null;
+            const resultEl = document.getElementById("quizResult");
+            if (!quiz || !quiz.length) {
+                if (resultEl) {
+                    resultEl.innerText = "No quiz for this lesson.";
+                }
+                return;
+            }
 
-            lessonData.quiz.forEach((q, i) => {
+            let score = 0;
+            let attempted = 0;
+
+            quiz.forEach((q, i) => {
                 const chosen = document.querySelector(`input[name="q${i}"]:checked`);
                 const expBox = document.getElementById(`exp-${i}`);
-
-                if (chosen && parseInt(chosen.value) === q.correct) {
-                    score++;
-                    expBox.innerHTML = `<span class='correct'>Correct!</span><br>${q.explanation}`;
-                } else {
-                    expBox.innerHTML = `
-                        <span class='wrong'>Incorrect</span><br>
-                        Correct answer: <b>${q.options[q.correct]}</b><br>
-                        ${q.explanation}
-                    `;
+                const questionDiv = document.getElementById(`quiz-${i}`);
+                if (questionDiv) {
+                    questionDiv.classList.remove("correct", "wrong");
                 }
 
-                expBox.style.display = "block";
+                if (chosen) attempted++;
+
+                const explanation = q.explanation || "";
+
+                if (chosen && parseInt(chosen.value, 10) === q.correct) {
+                    score++;
+                    if (expBox) {
+                        expBox.innerHTML = `<span class='correct'>Correct!</span>${explanation ? "<br>" + explanation : ""}`;
+                        expBox.style.display = "block";
+                    }
+                    if (questionDiv) questionDiv.classList.add("correct");
+                } else {
+                    if (expBox) {
+                        expBox.innerHTML = `
+                        <span class='wrong'>Incorrect</span><br>
+                        Correct answer: <b>${q.options[q.correct]}</b>${explanation ? "<br>" + explanation : ""}
+                    `;
+                        expBox.style.display = "block";
+                    }
+                    if (questionDiv) questionDiv.classList.add("wrong");
+                }
             });
 
-            document.getElementById("quizResult").innerText =
-                `Score: ${score}/${lessonData.quiz.length}`;
+            if (resultEl) {
+                resultEl.innerText =
+                    `Score: ${score}/${quiz.length} · Attempted: ${attempted}/${quiz.length}`;
+            }
         }
 
         /* ------------------ Slides ------------------ */
@@ -329,13 +540,15 @@
             const total = lessonData.slidesSVG.length;
             currentSlide = (currentSlide + n + total) % total;
             renderSlide();
+            window.scrollTo({ top: 0, behavior: "smooth" });
         }
 
         function renderSlide() {
             const svg = lessonData.slidesSVG[currentSlide];
             const codes = lessonData.slideCodes?.[currentSlide] || [];
 
-            const slideHTML = `  <div class='slide-svg-wrapper'>${svg}</div>
+            const slideHTML = `
+                <div class='slide-svg-wrapper'>${svg}</div>
                 <div class='slide-code-box'>
                     ${codes.map(code => `<pre>${code}</pre>`).join("")}
                 </div>
@@ -366,7 +579,7 @@
         runBtn.onclick = async () => {
             output.innerText = "";
             if (!pyodideReady) {
-                output.innerText = "Loading Pyodide...";
+                output.innerText = "Loading Pyodide... please wait.";
                 return;
             }
             try {
@@ -378,8 +591,12 @@
 
         /* ------------------ Test Code ------------------ */
         testBtn.onclick = async () => {
-            if (!lessonData.codingChallenge) {
-                testMsg.innerText = "No challenge.";
+            if (!lessonData || !lessonData.codingChallenge) {
+                testMsg.innerText = "No coding challenge for this lesson.";
+                return;
+            }
+            if (!pyodideReady) {
+                testMsg.innerText = "Pyodide is still loading. Try again in a few seconds.";
                 return;
             }
             try {
@@ -407,6 +624,17 @@
         const shared = url.searchParams.get("code");
         if (shared) editor.innerText = decodeURIComponent(shared);
 
+        /* ------------------ Lesson Navigation ------------------ */
+        function goToLesson(id) {
+            if (!lessonURL) return;
+            const newJson = lessonURL.replace(/lesson-\d+\.json/, `lesson-${id}.json`);
+            const newUrl = new URL(window.location.href);
+            newUrl.searchParams.set("json", newJson);
+            newUrl.searchParams.delete("code");
+            window.location.href = newUrl.toString();
+        }
+
+        window.goToLesson = goToLesson;
     </script>
 
 </body>
