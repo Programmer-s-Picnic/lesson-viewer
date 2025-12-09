@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Programmer's Picnic Whiteboard v4</title>
+<title>Programmer's Picnic Whiteboard v5</title>
 
 <style>
     body {
@@ -152,7 +152,7 @@ const canvas = document.getElementById("whiteboard");
 const ctx = canvas.getContext("2d");
 const boardWrapper = document.getElementById("board-wrapper");
 
-// Toolbar elements
+// Toolbar
 const penBtn = document.getElementById("penBtn");
 const eraserBtn = document.getElementById("eraserBtn");
 const highlighterBtn = document.getElementById("highlighterBtn");
@@ -178,18 +178,25 @@ let painting = false;
 let startX = 0;
 let startY = 0;
 
-let currentObject = null;     // active drawing object (pen/highlighter/shape)
+let currentObject = null;     // active drawing object
 let objects = [];             // scene graph
 let history = [];
 let redoStack = [];
 
 let editingTextOverlay = null;
 
-// selection state
+// selection / resize
 let selectedIndex = -1;
 let draggingSelected = false;
 let dragOffsetX = 0;
 let dragOffsetY = 0;
+
+let resizingSelected = false;
+let resizeHandleCorner = null;
+let resizeOriginalBox = null;
+let resizeOriginalObj = null;
+
+const HANDLE_RADIUS = 7;
 
 // ---- Resize canvas ----
 function resizeCanvas() {
@@ -218,6 +225,9 @@ function loadStateFromSnapshot(snapshot) {
     } catch(e) {
         objects = [];
     }
+    selectedIndex = -1;
+    draggingSelected = false;
+    resizingSelected = false;
     redrawAll();
 }
 
@@ -307,9 +317,7 @@ function drawObject(obj) {
         const y = obj.h >= 0 ? obj.y : obj.y + obj.h;
         const w = Math.abs(obj.w);
         const h = Math.abs(obj.h);
-        if (obj.fill) {
-            ctx.fillRect(x, y, w, h);
-        }
+        if (obj.fill) ctx.fillRect(x, y, w, h);
         ctx.strokeRect(x, y, w, h);
     }
 
@@ -446,31 +454,72 @@ function pointInObject(obj, x, y) {
                y >= box.y && y <= box.y + box.h;
     }
 
-    // highlighter intentionally NOT selectable
+    // highlighter not selectable
     return false;
 }
 
 function hitTest(x, y) {
     for (let i = objects.length - 1; i >= 0; i--) {
         const obj = objects[i];
-        if (obj.type === "highlighter") continue; // non-selectable
+        if (obj.type === "highlighter") continue;
         if (pointInObject(obj, x, y)) return i;
     }
     return -1;
 }
 
-// ---- Selection outline ----
+// ---- Selection outline & handles ----
+function getHandlePositions(box) {
+    return [
+        { x: box.x,         y: box.y,         corner: "tl" },
+        { x: box.x + box.w, y: box.y,         corner: "tr" },
+        { x: box.x + box.w, y: box.y + box.h, corner: "br" },
+        { x: box.x,         y: box.y + box.h, corner: "bl" }
+    ];
+}
+
 function drawSelectionOutline() {
     if (selectedIndex < 0 || selectedIndex >= objects.length) return;
-
     const obj = objects[selectedIndex];
     const box = getBoundingBox(obj);
+    if (box.w === 0 && box.h === 0) return;
+
+    // Soft glow box
     ctx.save();
-    ctx.setLineDash([6, 4]);
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = "#1976d2";
-    ctx.strokeRect(box.x - 3, box.y - 3, box.w + 6, box.h + 6);
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = "rgba(25,118,210,0.9)";
+    ctx.shadowColor = "rgba(25,118,210,0.4)";
+    ctx.shadowBlur = 8;
+    ctx.strokeRect(box.x - 4, box.y - 4, box.w + 8, box.h + 8);
     ctx.restore();
+
+    // Circular handles
+    const handles = getHandlePositions(box);
+    ctx.save();
+    handles.forEach(h => {
+        ctx.beginPath();
+        ctx.arc(h.x, h.y, HANDLE_RADIUS, 0, Math.PI * 2);
+        ctx.fillStyle = "#ffffff";
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#1976d2";
+        ctx.stroke();
+    });
+    ctx.restore();
+}
+
+function hitTestHandle(x, y) {
+    if (selectedIndex < 0 || selectedIndex >= objects.length) return null;
+    const obj = objects[selectedIndex];
+    const box = getBoundingBox(obj);
+    const handles = getHandlePositions(box);
+    for (let h of handles) {
+        const dx = x - h.x;
+        const dy = y - h.y;
+        if (dx*dx + dy*dy <= HANDLE_RADIUS*HANDLE_RADIUS) {
+            return h.corner;
+        }
+    }
+    return null;
 }
 
 // ---- Tool UI ----
@@ -493,21 +542,14 @@ function setActiveTool(tool) {
     if (tool === "select") selectBtn.classList.add("active");
 
     updateFillToggleButton();
-    if (tool === "select") {
-        canvas.style.cursor = "default";
-    } else {
-        canvas.style.cursor = "crosshair";
-    }
+    canvas.style.cursor = (tool === "select") ? "default" : "crosshair";
 }
 
 // Fill toggle button
 function updateFillToggleButton() {
     fillToggleBtn.textContent = fillMode ? "🔳" : "🔲";
-    if (fillMode) {
-        fillToggleBtn.classList.add("active");
-    } else {
-        fillToggleBtn.classList.remove("active");
-    }
+    if (fillMode) fillToggleBtn.classList.add("active");
+    else fillToggleBtn.classList.remove("active");
 }
 updateFillToggleButton();
 
@@ -526,18 +568,27 @@ function getPos(evt) {
 }
 
 // ---- Text overlay ----
-function createTextOverlay(x, y) {
+function createTextOverlay(x, y, existingObj = null, index = null) {
     finishTextEdit();
 
     const textarea = document.createElement("textarea");
     textarea.className = "text-input-overlay";
     textarea.style.left = x + "px";
     textarea.style.top = y + "px";
-    textarea.style.color = colorPicker.value;
 
-    const baseSize = 10;
-    const fontSize = baseSize + parseInt(sizePicker.value || "4", 10);
-    textarea.style.fontSize = fontSize + "px";
+    let fontSize;
+    if (existingObj) {
+        textarea.value = existingObj.text || "";
+        fontSize = existingObj.size || 18;
+        textarea.style.fontSize = fontSize + "px";
+        textarea.style.color = existingObj.color || "#000000";
+        colorPicker.value = existingObj.color || colorPicker.value;
+    } else {
+        const baseSize = 10;
+        fontSize = baseSize + parseInt(sizePicker.value || "4", 10);
+        textarea.style.fontSize = fontSize + "px";
+        textarea.style.color = colorPicker.value;
+    }
 
     boardWrapper.appendChild(textarea);
     textarea.focus();
@@ -553,14 +604,27 @@ function createTextOverlay(x, y) {
         finishTextEdit();
     });
 
-    editingTextOverlay = { element: textarea, x, y, fontSize };
+    editingTextOverlay = {
+        element: textarea,
+        x,
+        y,
+        fontSize,
+        mode: existingObj ? "edit" : "new",
+        index
+    };
 }
 
 function finishTextEdit() {
     if (!editingTextOverlay) return;
-    const { element, x, y, fontSize } = editingTextOverlay;
+
+    const { element, x, y, fontSize, mode, index } = editingTextOverlay;
     const text = element.value.trim();
-    if (text) {
+    element.remove();
+    editingTextOverlay = null;
+
+    if (!text) return;
+
+    if (mode === "new") {
         const obj = {
             type: "text",
             x,
@@ -572,9 +636,16 @@ function finishTextEdit() {
         objects.push(obj);
         saveState();
         redrawAll();
+    } else if (mode === "edit" && index != null && objects[index]) {
+        const obj = objects[index];
+        obj.text = text;
+        obj.x = x;
+        obj.y = y;
+        obj.size = fontSize;
+        obj.color = colorPicker.value; // allow recolor
+        saveState();
+        redrawAll();
     }
-    element.remove();
-    editingTextOverlay = null;
 }
 
 // ---- Move selected object ----
@@ -594,10 +665,8 @@ function moveSelectedObject(targetX, targetY) {
             p.y += dy;
         });
     } else if (obj.type === "line") {
-        obj.x1 += dx;
-        obj.y1 += dy;
-        obj.x2 += dx;
-        obj.y2 += dy;
+        obj.x1 += dx; obj.y1 += dy;
+        obj.x2 += dx; obj.y2 += dy;
     } else if (obj.type === "rect") {
         obj.x += dx;
         obj.y += dy;
@@ -610,6 +679,89 @@ function moveSelectedObject(targetX, targetY) {
     }
 }
 
+// ---- Resize selected object ----
+function startResize(corner) {
+    if (selectedIndex < 0 || selectedIndex >= objects.length) return;
+    resizeHandleCorner = corner;
+    resizeOriginalObj = JSON.parse(JSON.stringify(objects[selectedIndex]));
+    resizeOriginalBox = getBoundingBox(resizeOriginalObj);
+    resizingSelected = true;
+}
+
+function applyResizeAtPointer(x, y) {
+    if (!resizingSelected || !resizeOriginalObj || !resizeOriginalBox) return;
+    if (resizeOriginalBox.w === 0 || resizeOriginalBox.h === 0) return;
+
+    const obox = resizeOriginalBox;
+    let fixedX, fixedY;
+
+    if (resizeHandleCorner === "tl") {
+        fixedX = obox.x + obox.w; fixedY = obox.y + obox.h;
+    } else if (resizeHandleCorner === "tr") {
+        fixedX = obox.x; fixedY = obox.y + obox.h;
+    } else if (resizeHandleCorner === "br") {
+        fixedX = obox.x; fixedY = obox.y;
+    } else if (resizeHandleCorner === "bl") {
+        fixedX = obox.x + obox.w; fixedY = obox.y;
+    } else {
+        return;
+    }
+
+    const minSize = 10;
+    const newX1 = Math.min(fixedX, x);
+    const newY1 = Math.min(fixedY, y);
+    const newW = Math.max(minSize, Math.abs(fixedX - x));
+    const newH = Math.max(minSize, Math.abs(fixedY - y));
+
+    const scaleX = newW / obox.w;
+    const scaleY = newH / obox.h;
+    const avgScale = (scaleX + scaleY) / 2;
+
+    const obj0 = resizeOriginalObj;
+    const obj = objects[selectedIndex];
+
+    function tx(px) { return newX1 + (px - obox.x) * scaleX; }
+    function ty(py) { return newY1 + (py - obox.y) * scaleY; }
+
+    if (obj0.type === "pen" || obj0.type === "highlighter") {
+        obj.points = obj0.points.map(p => ({ x: tx(p.x), y: ty(p.y) }));
+        obj.size = obj0.size * avgScale;
+    } else if (obj0.type === "line") {
+        obj.x1 = tx(obj0.x1);
+        obj.y1 = ty(obj0.y1);
+        obj.x2 = tx(obj0.x2);
+        obj.y2 = ty(obj0.y2);
+        obj.size = obj0.size * avgScale;
+    } else if (obj0.type === "rect") {
+        const bx = obj0.x;
+        const by = obj0.y;
+        const bw = obj0.w;
+        const bh = obj0.h;
+        obj.x = tx(bx);
+        obj.y = ty(by);
+        obj.w = bw * scaleX;
+        obj.h = bh * scaleY;
+        obj.size = obj0.size * avgScale;
+        obj.fill = obj0.fill;
+        obj.color = obj0.color;
+    } else if (obj0.type === "circle") {
+        obj.x = tx(obj0.x);
+        obj.y = ty(obj0.y);
+        obj.radius = obj0.radius * avgScale;
+        obj.size = obj0.size * avgScale;
+        obj.color = obj0.color;
+        obj.fill = obj0.fill;
+    } else if (obj0.type === "text") {
+        obj.x = tx(obj0.x);
+        obj.y = ty(obj0.y);
+        obj.size = obj0.size * avgScale;
+        obj.text = obj0.text;
+        obj.color = obj0.color;
+    }
+
+    redrawAll();
+}
+
 // ---- Pointer events ----
 function pointerDown(e) {
     e.preventDefault();
@@ -617,17 +769,27 @@ function pointerDown(e) {
     const x = pos.x;
     const y = pos.y;
 
-    // text tool
+    // Text tool: create new text
     if (currentTool === "text") {
         createTextOverlay(x, y);
         return;
     }
 
-    // select tool
+    // Select tool: hit-test handles first, then objects
     if (currentTool === "select") {
+        if (selectedIndex !== -1) {
+            const corner = hitTestHandle(x, y);
+            if (corner) {
+                startResize(corner);
+                canvas.style.cursor = "nwse-resize";
+                return;
+            }
+        }
         const idx = hitTest(x, y);
         selectedIndex = idx;
         draggingSelected = idx !== -1;
+        resizingSelected = false;
+        resizeHandleCorner = null;
         if (draggingSelected) {
             const box = getBoundingBox(objects[idx]);
             dragOffsetX = x - box.x;
@@ -660,11 +822,11 @@ function pointerDown(e) {
         currentObject = {
             type: "highlighter",
             color: color,
-            size: size * 1.8, // slightly thicker
+            size: size * 1.8,
             points: [{ x, y }]
         };
     } else {
-        currentObject = null; // shapes will be constructed in move
+        currentObject = null; // shapes created in move
     }
 }
 
@@ -673,17 +835,24 @@ function pointerMove(e) {
     const x = pos.x;
     const y = pos.y;
 
-    // select hover / drag
+    // select mode: resize or drag
     if (currentTool === "select") {
+        if (resizingSelected) {
+            applyResizeAtPointer(x, y);
+            return;
+        }
         if (draggingSelected) {
             moveSelectedObject(x, y);
             redrawAll();
             return;
-        } else {
-            const idx = hitTest(x, y);
-            canvas.style.cursor = (idx !== -1) ? "move" : "default";
-            return;
         }
+        const idx = hitTest(x, y);
+        if (idx !== -1) {
+            canvas.style.cursor = "move";
+        } else {
+            canvas.style.cursor = "default";
+        }
+        return;
     }
 
     if (!painting) return;
@@ -751,6 +920,15 @@ function pointerMove(e) {
 
 function pointerUp(e) {
     if (currentTool === "select") {
+        if (resizingSelected) {
+            resizingSelected = false;
+            resizeHandleCorner = null;
+            resizeOriginalBox = null;
+            resizeOriginalObj = null;
+            canvas.style.cursor = "default";
+            saveState();
+            return;
+        }
         if (draggingSelected) {
             draggingSelected = false;
             canvas.style.cursor = "default";
@@ -796,6 +974,26 @@ canvas.addEventListener("touchmove", pointerMove, { passive: false });
 canvas.addEventListener("touchend", pointerUp, { passive: false });
 canvas.addEventListener("touchcancel", pointerUp, { passive: false });
 
+// ---- Double-click to edit text ----
+canvas.addEventListener("dblclick", (e) => {
+    e.preventDefault();
+    const pos = getPos(e);
+    const x = pos.x;
+    const y = pos.y;
+
+    // find topmost text under cursor
+    for (let i = objects.length - 1; i >= 0; i--) {
+        const obj = objects[i];
+        if (obj.type !== "text") continue;
+        if (pointInObject(obj, x, y)) {
+            selectedIndex = i;
+            redrawAll();
+            createTextOverlay(obj.x, obj.y, obj, i);
+            return;
+        }
+    }
+});
+
 // ---- Buttons ----
 penBtn.onclick = () => setActiveTool("pen");
 eraserBtn.onclick = () => setActiveTool("eraser");
@@ -818,6 +1016,7 @@ clearBtn.onclick = () => {
     objects = [];
     selectedIndex = -1;
     draggingSelected = false;
+    resizingSelected = false;
     saveState();
     redrawAll();
 };
@@ -855,6 +1054,7 @@ jsonFileInput.addEventListener("change", (e) => {
                 redoStack = [];
                 selectedIndex = -1;
                 draggingSelected = false;
+                resizingSelected = false;
                 redrawAll();
                 try {
                     localStorage.setItem("pp_whiteboard_scene", history[0]);
