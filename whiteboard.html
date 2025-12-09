@@ -132,4 +132,755 @@
 
     <div class="label">History</div>
     <button class="tool-btn" id="undoBtn" title="Undo (Ctrl+Z)">↩️</button>
-    <button class
+    <button class="tool-btn" id="redoBtn" title="Redo (Ctrl+Y)">↪️</button>
+
+    <div class="label">JSON</div>
+    <button class="tool-btn" id="saveJsonBtn" title="Save as JSON">💾</button>
+    <button class="tool-btn" id="loadJsonBtn" title="Load JSON">📂</button>
+
+    <button class="tool-btn" id="clearBtn" title="Clear Board">🗑️</button>
+
+    <input type="file" id="jsonFileInput" accept="application/json" style="display:none;">
+</div>
+
+<div id="board-wrapper">
+    <canvas id="whiteboard"></canvas>
+</div>
+
+<script>
+const canvas = document.getElementById("whiteboard");
+const ctx = canvas.getContext("2d");
+const boardWrapper = document.getElementById("board-wrapper");
+
+// Toolbar elements
+const penBtn = document.getElementById("penBtn");
+const eraserBtn = document.getElementById("eraserBtn");
+const highlighterBtn = document.getElementById("highlighterBtn");
+const lineBtn = document.getElementById("lineBtn");
+const rectBtn = document.getElementById("rectBtn");
+const circleBtn = document.getElementById("circleBtn");
+const textBtn = document.getElementById("textBtn");
+const selectBtn = document.getElementById("selectBtn");
+const fillToggleBtn = document.getElementById("fillToggleBtn");
+const colorPicker = document.getElementById("colorPicker");
+const sizePicker = document.getElementById("sizePicker");
+const undoBtn = document.getElementById("undoBtn");
+const redoBtn = document.getElementById("redoBtn");
+const clearBtn = document.getElementById("clearBtn");
+const saveJsonBtn = document.getElementById("saveJsonBtn");
+const loadJsonBtn = document.getElementById("loadJsonBtn");
+const jsonFileInput = document.getElementById("jsonFileInput");
+
+let currentTool = "pen"; // 'pen' | 'eraser' | 'highlighter' | 'line' | 'rect' | 'circle' | 'text' | 'select'
+let fillMode = false;
+let painting = false;
+
+let startX = 0;
+let startY = 0;
+
+let currentObject = null;     // active drawing object (pen/highlighter/shape)
+let objects = [];             // scene graph
+let history = [];
+let redoStack = [];
+
+let editingTextOverlay = null;
+
+// selection state
+let selectedIndex = -1;
+let draggingSelected = false;
+let dragOffsetX = 0;
+let dragOffsetY = 0;
+
+// ---- Resize canvas ----
+function resizeCanvas() {
+    const toolbarWidth = document.getElementById("toolbar").offsetWidth;
+    canvas.width = window.innerWidth - toolbarWidth;
+    canvas.height = window.innerHeight;
+    redrawAll();
+}
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
+
+// ---- History (Undo/Redo) using JSON snapshots ----
+function saveState() {
+    const snapshot = JSON.stringify(objects);
+    history.push(snapshot);
+    if (history.length > 100) history.shift();
+    redoStack = [];
+    try {
+        localStorage.setItem("pp_whiteboard_scene", snapshot);
+    } catch(e) {}
+}
+
+function loadStateFromSnapshot(snapshot) {
+    try {
+        objects = JSON.parse(snapshot) || [];
+    } catch(e) {
+        objects = [];
+    }
+    redrawAll();
+}
+
+function undo() {
+    if (history.length > 1) {
+        const last = history.pop();
+        redoStack.push(last);
+        const prev = history[history.length - 1];
+        loadStateFromSnapshot(prev);
+    }
+}
+
+function redo() {
+    if (redoStack.length > 0) {
+        const snap = redoStack.pop();
+        history.push(snap);
+        loadStateFromSnapshot(snap);
+    }
+}
+
+// Try to load from localStorage on first load
+(function initFromLocalStorage() {
+    const saved = localStorage.getItem("pp_whiteboard_scene");
+    if (saved) {
+        history = [saved];
+        redoStack = [];
+        loadStateFromSnapshot(saved);
+    } else {
+        objects = [];
+        saveState();
+    }
+})();
+
+// ---- Draw objects ----
+function redrawAll() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    objects.forEach(drawObject);
+    drawSelectionOutline();
+}
+
+function drawObject(obj) {
+    ctx.save();
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    if (obj.type === "pen") {
+        ctx.strokeStyle = obj.eraser ? "#ffffff" : obj.color;
+        ctx.lineWidth = obj.size;
+        ctx.beginPath();
+        if (obj.points.length > 0) {
+            ctx.moveTo(obj.points[0].x, obj.points[0].y);
+            for (let i = 1; i < obj.points.length; i++) {
+                ctx.lineTo(obj.points[i].x, obj.points[i].y);
+            }
+        }
+        ctx.stroke();
+    }
+
+    if (obj.type === "highlighter") {
+        ctx.globalAlpha = 0.35;
+        ctx.strokeStyle = obj.color;
+        ctx.lineWidth = obj.size;
+        ctx.beginPath();
+        if (obj.points.length > 0) {
+            ctx.moveTo(obj.points[0].x, obj.points[0].y);
+            for (let i = 1; i < obj.points.length; i++) {
+                ctx.lineTo(obj.points[i].x, obj.points[i].y);
+            }
+        }
+        ctx.stroke();
+    }
+
+    if (obj.type === "line") {
+        ctx.strokeStyle = obj.color;
+        ctx.lineWidth = obj.size;
+        ctx.beginPath();
+        ctx.moveTo(obj.x1, obj.y1);
+        ctx.lineTo(obj.x2, obj.y2);
+        ctx.stroke();
+    }
+
+    if (obj.type === "rect") {
+        ctx.strokeStyle = obj.color;
+        ctx.fillStyle = obj.color;
+        ctx.lineWidth = obj.size;
+        const x = obj.w >= 0 ? obj.x : obj.x + obj.w;
+        const y = obj.h >= 0 ? obj.y : obj.y + obj.h;
+        const w = Math.abs(obj.w);
+        const h = Math.abs(obj.h);
+        if (obj.fill) {
+            ctx.fillRect(x, y, w, h);
+        }
+        ctx.strokeRect(x, y, w, h);
+    }
+
+    if (obj.type === "circle") {
+        ctx.strokeStyle = obj.color;
+        ctx.fillStyle = obj.color;
+        ctx.lineWidth = obj.size;
+        ctx.beginPath();
+        ctx.arc(obj.x, obj.y, obj.radius, 0, Math.PI * 2);
+        if (obj.fill) ctx.fill();
+        ctx.stroke();
+    }
+
+    if (obj.type === "text") {
+        ctx.fillStyle = obj.color;
+        const fontSize = obj.size || 18;
+        ctx.font = fontSize + "px system-ui, sans-serif";
+        ctx.textBaseline = "top";
+        const lines = obj.text.split("\n");
+        const lineHeight = fontSize * 1.3;
+        lines.forEach((line, index) => {
+            ctx.fillText(line, obj.x, obj.y + index * lineHeight);
+        });
+    }
+
+    ctx.restore();
+}
+
+// ---- Bounding boxes & hit-testing ----
+function getBoundingBox(obj) {
+    if (obj.type === "pen" || obj.type === "highlighter") {
+        if (!obj.points || obj.points.length === 0) {
+            return { x: 0, y: 0, w: 0, h: 0 };
+        }
+        let minX = obj.points[0].x;
+        let minY = obj.points[0].y;
+        let maxX = obj.points[0].x;
+        let maxY = obj.points[0].y;
+        for (let p of obj.points) {
+            if (p.x < minX) minX = p.x;
+            if (p.y < minY) minY = p.y;
+            if (p.x > maxX) maxX = p.x;
+            if (p.y > maxY) maxY = p.y;
+        }
+        return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+    }
+
+    if (obj.type === "line") {
+        const x = Math.min(obj.x1, obj.x2);
+        const y = Math.min(obj.y1, obj.y2);
+        const w = Math.abs(obj.x2 - obj.x1);
+        const h = Math.abs(obj.y2 - obj.y1);
+        return { x, y, w, h };
+    }
+
+    if (obj.type === "rect") {
+        const x = obj.w >= 0 ? obj.x : obj.x + obj.w;
+        const y = obj.h >= 0 ? obj.y : obj.y + obj.h;
+        const w = Math.abs(obj.w);
+        const h = Math.abs(obj.h);
+        return { x, y, w, h };
+    }
+
+    if (obj.type === "circle") {
+        return { x: obj.x - obj.radius, y: obj.y - obj.radius, w: obj.radius * 2, h: obj.radius * 2 };
+    }
+
+    if (obj.type === "text") {
+        const fontSize = obj.size || 18;
+        ctx.save();
+        ctx.font = fontSize + "px system-ui, sans-serif";
+        const lines = obj.text.split("\n");
+        const lineHeight = fontSize * 1.3;
+        let maxWidth = 0;
+        lines.forEach(line => {
+            const w = ctx.measureText(line).width;
+            if (w > maxWidth) maxWidth = w;
+        });
+        ctx.restore();
+        return { x: obj.x, y: obj.y, w: maxWidth, h: lines.length * lineHeight };
+    }
+
+    return { x: 0, y: 0, w: 0, h: 0 };
+}
+
+function pointInPenStroke(obj, x, y) {
+    if (!obj.points || obj.points.length < 2) return false;
+    ctx.save();
+    ctx.beginPath();
+    ctx.lineWidth = obj.size;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.moveTo(obj.points[0].x, obj.points[0].y);
+    for (let i = 1; i < obj.points.length; i++) {
+        ctx.lineTo(obj.points[i].x, obj.points[i].y);
+    }
+    const hit = ctx.isPointInStroke(x, y);
+    ctx.restore();
+    return hit;
+}
+
+function pointInObject(obj, x, y) {
+    if (obj.type === "pen") {
+        return pointInPenStroke(obj, x, y);
+    }
+
+    if (obj.type === "line") {
+        ctx.save();
+        ctx.beginPath();
+        ctx.lineWidth = obj.size;
+        ctx.moveTo(obj.x1, obj.y1);
+        ctx.lineTo(obj.x2, obj.y2);
+        const hit = ctx.isPointInStroke(x, y);
+        ctx.restore();
+        return hit;
+    }
+
+    if (obj.type === "rect") {
+        const box = getBoundingBox(obj);
+        return x >= box.x && x <= box.x + box.w &&
+               y >= box.y && y <= box.y + box.h;
+    }
+
+    if (obj.type === "circle") {
+        const dx = x - obj.x;
+        const dy = y - obj.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        return dist <= obj.radius + obj.size / 2;
+    }
+
+    if (obj.type === "text") {
+        const box = getBoundingBox(obj);
+        return x >= box.x && x <= box.x + box.w &&
+               y >= box.y && y <= box.y + box.h;
+    }
+
+    // highlighter intentionally NOT selectable
+    return false;
+}
+
+function hitTest(x, y) {
+    for (let i = objects.length - 1; i >= 0; i--) {
+        const obj = objects[i];
+        if (obj.type === "highlighter") continue; // non-selectable
+        if (pointInObject(obj, x, y)) return i;
+    }
+    return -1;
+}
+
+// ---- Selection outline ----
+function drawSelectionOutline() {
+    if (selectedIndex < 0 || selectedIndex >= objects.length) return;
+
+    const obj = objects[selectedIndex];
+    const box = getBoundingBox(obj);
+    ctx.save();
+    ctx.setLineDash([6, 4]);
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "#1976d2";
+    ctx.strokeRect(box.x - 3, box.y - 3, box.w + 6, box.h + 6);
+    ctx.restore();
+}
+
+// ---- Tool UI ----
+function clearActiveTools() {
+    document.querySelectorAll(".tool-btn")
+        .forEach(btn => btn.classList.remove("active"));
+}
+
+function setActiveTool(tool) {
+    currentTool = tool;
+    clearActiveTools();
+
+    if (tool === "pen") penBtn.classList.add("active");
+    if (tool === "eraser") eraserBtn.classList.add("active");
+    if (tool === "highlighter") highlighterBtn.classList.add("active");
+    if (tool === "line") lineBtn.classList.add("active");
+    if (tool === "rect") rectBtn.classList.add("active");
+    if (tool === "circle") circleBtn.classList.add("active");
+    if (tool === "text") textBtn.classList.add("active");
+    if (tool === "select") selectBtn.classList.add("active");
+
+    updateFillToggleButton();
+    if (tool === "select") {
+        canvas.style.cursor = "default";
+    } else {
+        canvas.style.cursor = "crosshair";
+    }
+}
+
+// Fill toggle button
+function updateFillToggleButton() {
+    fillToggleBtn.textContent = fillMode ? "🔳" : "🔲";
+    if (fillMode) {
+        fillToggleBtn.classList.add("active");
+    } else {
+        fillToggleBtn.classList.remove("active");
+    }
+}
+updateFillToggleButton();
+
+// ---- Coordinate helper ----
+function getPos(evt) {
+    const rect = canvas.getBoundingClientRect();
+    let clientX, clientY;
+    if (evt.touches && evt.touches[0]) {
+        clientX = evt.touches[0].clientX;
+        clientY = evt.touches[0].clientY;
+    } else {
+        clientX = evt.clientX;
+        clientY = evt.clientY;
+    }
+    return { x: clientX - rect.left, y: clientY - rect.top };
+}
+
+// ---- Text overlay ----
+function createTextOverlay(x, y) {
+    finishTextEdit();
+
+    const textarea = document.createElement("textarea");
+    textarea.className = "text-input-overlay";
+    textarea.style.left = x + "px";
+    textarea.style.top = y + "px";
+    textarea.style.color = colorPicker.value;
+
+    const baseSize = 10;
+    const fontSize = baseSize + parseInt(sizePicker.value || "4", 10);
+    textarea.style.fontSize = fontSize + "px";
+
+    boardWrapper.appendChild(textarea);
+    textarea.focus();
+
+    textarea.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            finishTextEdit();
+        }
+    });
+
+    textarea.addEventListener("blur", () => {
+        finishTextEdit();
+    });
+
+    editingTextOverlay = { element: textarea, x, y, fontSize };
+}
+
+function finishTextEdit() {
+    if (!editingTextOverlay) return;
+    const { element, x, y, fontSize } = editingTextOverlay;
+    const text = element.value.trim();
+    if (text) {
+        const obj = {
+            type: "text",
+            x,
+            y,
+            text,
+            color: colorPicker.value,
+            size: fontSize
+        };
+        objects.push(obj);
+        saveState();
+        redrawAll();
+    }
+    element.remove();
+    editingTextOverlay = null;
+}
+
+// ---- Move selected object ----
+function moveSelectedObject(targetX, targetY) {
+    if (selectedIndex < 0 || selectedIndex >= objects.length) return;
+    const obj = objects[selectedIndex];
+    const box = getBoundingBox(obj);
+
+    const newX = targetX - dragOffsetX;
+    const newY = targetY - dragOffsetY;
+    const dx = newX - box.x;
+    const dy = newY - box.y;
+
+    if (obj.type === "pen" || obj.type === "highlighter") {
+        obj.points.forEach(p => {
+            p.x += dx;
+            p.y += dy;
+        });
+    } else if (obj.type === "line") {
+        obj.x1 += dx;
+        obj.y1 += dy;
+        obj.x2 += dx;
+        obj.y2 += dy;
+    } else if (obj.type === "rect") {
+        obj.x += dx;
+        obj.y += dy;
+    } else if (obj.type === "circle") {
+        obj.x += dx;
+        obj.y += dy;
+    } else if (obj.type === "text") {
+        obj.x += dx;
+        obj.y += dy;
+    }
+}
+
+// ---- Pointer events ----
+function pointerDown(e) {
+    e.preventDefault();
+    const pos = getPos(e);
+    const x = pos.x;
+    const y = pos.y;
+
+    // text tool
+    if (currentTool === "text") {
+        createTextOverlay(x, y);
+        return;
+    }
+
+    // select tool
+    if (currentTool === "select") {
+        const idx = hitTest(x, y);
+        selectedIndex = idx;
+        draggingSelected = idx !== -1;
+        if (draggingSelected) {
+            const box = getBoundingBox(objects[idx]);
+            dragOffsetX = x - box.x;
+            dragOffsetY = y - box.y;
+            canvas.style.cursor = "grabbing";
+        } else {
+            canvas.style.cursor = "default";
+        }
+        redrawAll();
+        return;
+    }
+
+    // drawing tools
+    painting = true;
+    startX = x;
+    startY = y;
+
+    const color = colorPicker.value;
+    const size = parseInt(sizePicker.value, 10) || 4;
+
+    if (currentTool === "pen" || currentTool === "eraser") {
+        currentObject = {
+            type: "pen",
+            eraser: currentTool === "eraser",
+            color: currentTool === "eraser" ? "#ffffff" : color,
+            size: size,
+            points: [{ x, y }]
+        };
+    } else if (currentTool === "highlighter") {
+        currentObject = {
+            type: "highlighter",
+            color: color,
+            size: size * 1.8, // slightly thicker
+            points: [{ x, y }]
+        };
+    } else {
+        currentObject = null; // shapes will be constructed in move
+    }
+}
+
+function pointerMove(e) {
+    const pos = getPos(e);
+    const x = pos.x;
+    const y = pos.y;
+
+    // select hover / drag
+    if (currentTool === "select") {
+        if (draggingSelected) {
+            moveSelectedObject(x, y);
+            redrawAll();
+            return;
+        } else {
+            const idx = hitTest(x, y);
+            canvas.style.cursor = (idx !== -1) ? "move" : "default";
+            return;
+        }
+    }
+
+    if (!painting) return;
+    e.preventDefault();
+
+    const color = colorPicker.value;
+    const size = parseInt(sizePicker.value, 10) || 4;
+
+    if (currentTool === "pen" || currentTool === "eraser" || currentTool === "highlighter") {
+        if (!currentObject) return;
+        currentObject.points.push({ x, y });
+        redrawAll();
+        drawObject(currentObject);
+    } else {
+        // shapes preview
+        let tempObj = null;
+
+        if (currentTool === "line") {
+            tempObj = {
+                type: "line",
+                x1: startX,
+                y1: startY,
+                x2: x,
+                y2: y,
+                color,
+                size
+            };
+        }
+
+        if (currentTool === "rect") {
+            tempObj = {
+                type: "rect",
+                x: startX,
+                y: startY,
+                w: x - startX,
+                h: y - startY,
+                color,
+                size,
+                fill: fillMode
+            };
+        }
+
+        if (currentTool === "circle") {
+            const dx = x - startX;
+            const dy = y - startY;
+            const radius = Math.sqrt(dx*dx + dy*dy);
+            tempObj = {
+                type: "circle",
+                x: startX,
+                y: startY,
+                radius,
+                color,
+                size,
+                fill: fillMode
+            };
+        }
+
+        if (tempObj) {
+            currentObject = tempObj;
+            redrawAll();
+            drawObject(tempObj);
+        }
+    }
+}
+
+function pointerUp(e) {
+    if (currentTool === "select") {
+        if (draggingSelected) {
+            draggingSelected = false;
+            canvas.style.cursor = "default";
+            saveState();
+        }
+        return;
+    }
+
+    if (!painting) return;
+    e.preventDefault();
+    painting = false;
+
+    if (currentTool === "pen" || currentTool === "eraser" || currentTool === "highlighter") {
+        if (currentObject && currentObject.points.length > 1) {
+            objects.push(currentObject);
+            saveState();
+            redrawAll();
+        }
+        currentObject = null;
+    } else if (currentTool === "line" ||
+               currentTool === "rect" ||
+               currentTool === "circle") {
+        if (currentObject) {
+            objects.push(currentObject);
+            saveState();
+            redrawAll();
+            currentObject = null;
+        }
+    }
+}
+
+// Mouse
+canvas.addEventListener("mousedown", pointerDown);
+canvas.addEventListener("mousemove", pointerMove);
+canvas.addEventListener("mouseup", pointerUp);
+canvas.addEventListener("mouseleave", (e) => {
+    if (painting) pointerUp(e);
+});
+
+// Touch
+canvas.addEventListener("touchstart", pointerDown, { passive: false });
+canvas.addEventListener("touchmove", pointerMove, { passive: false });
+canvas.addEventListener("touchend", pointerUp, { passive: false });
+canvas.addEventListener("touchcancel", pointerUp, { passive: false });
+
+// ---- Buttons ----
+penBtn.onclick = () => setActiveTool("pen");
+eraserBtn.onclick = () => setActiveTool("eraser");
+highlighterBtn.onclick = () => setActiveTool("highlighter");
+lineBtn.onclick = () => setActiveTool("line");
+rectBtn.onclick = () => setActiveTool("rect");
+circleBtn.onclick = () => setActiveTool("circle");
+textBtn.onclick = () => setActiveTool("text");
+selectBtn.onclick = () => setActiveTool("select");
+
+fillToggleBtn.onclick = () => {
+    fillMode = !fillMode;
+    updateFillToggleButton();
+};
+
+undoBtn.onclick = undo;
+redoBtn.onclick = redo;
+
+clearBtn.onclick = () => {
+    objects = [];
+    selectedIndex = -1;
+    draggingSelected = false;
+    saveState();
+    redrawAll();
+};
+
+// ---- JSON Save / Load ----
+saveJsonBtn.onclick = () => {
+    const dataStr = JSON.stringify(objects, null, 2);
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "whiteboard-scene.json";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+};
+
+loadJsonBtn.onclick = () => {
+    jsonFileInput.click();
+};
+
+jsonFileInput.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        try {
+            const data = JSON.parse(ev.target.result);
+            if (Array.isArray(data)) {
+                objects = data;
+                history = [JSON.stringify(objects)];
+                redoStack = [];
+                selectedIndex = -1;
+                draggingSelected = false;
+                redrawAll();
+                try {
+                    localStorage.setItem("pp_whiteboard_scene", history[0]);
+                } catch(e) {}
+            } else {
+                alert("Invalid JSON format: expected an array of objects.");
+            }
+        } catch (err) {
+            alert("Error parsing JSON file.");
+        }
+    };
+    reader.readAsText(file);
+});
+
+// ---- Keyboard Shortcuts ----
+document.addEventListener("keydown", (e) => {
+    if (e.ctrlKey && (e.key === "z" || e.key === "Z")) {
+        e.preventDefault();
+        undo();
+    }
+    if (e.ctrlKey && (e.key === "y" || e.key === "Y")) {
+        e.preventDefault();
+        redo();
+    }
+});
+</script>
+
+</body>
+</html>
