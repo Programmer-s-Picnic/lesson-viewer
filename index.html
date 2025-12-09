@@ -13,7 +13,6 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
     <style>
-        /* ------------------ GLOBAL STYLE ------------------ */
         body {
             margin: 0;
             padding: 0;
@@ -115,15 +114,73 @@
             white-space: pre-wrap;
         }
 
-        .correct {
-            color: lightgreen;
-        }
-
         .wrong {
             color: #FF7F7F;
         }
 
-        /* ------------------ NAV ------------------ */
+        .correct {
+            color: lightgreen;
+        }
+
+        .lesson-meta-panel h3 {
+            margin-top: 0;
+        }
+
+        .meta-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .meta-chip {
+            padding: 3px 8px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            background: #ffe7b3;
+            border: 1px solid #f1b14b;
+        }
+
+        .xp-chip {
+            background: #dcfce7;
+            border-color: #16a34a;
+            color: #166534;
+            font-weight: 600;
+        }
+
+        .badge-chip {
+            background: #fee2e2;
+            border-color: #ef4444;
+            color: #b91c1c;
+            font-weight: 600;
+        }
+
+        .keyword-chip {
+            background: #fff;
+            border-style: dashed;
+        }
+
+        .quiz-item {
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 8px;
+            background: #fff8dd;
+            border: 1px solid #f3c26b;
+        }
+
+        .quiz-item.correct {
+            border-color: #16a34a;
+            background: #dcfce7;
+        }
+
+        .quiz-item.wrong {
+            border-color: #ef4444;
+            background: #fee2e2;
+        }
+
+        .explanation {
+            margin-top: 4px;
+            font-size: 0.85rem;
+        }
 
         .nav-lessons .nav-buttons {
             display: flex;
@@ -149,8 +206,6 @@
             background: #ffeac0;
         }
 
-        /* ------------------ SLIDES ------------------ */
-
         .slide-svg-wrapper {
             margin-bottom: 8px;
             animation: fadeInSlide 0.3s ease-out;
@@ -167,48 +222,23 @@
                 transform: translateY(0);
             }
         }
-
-        .slide-title {
-            font-size: 1.3rem;
-            font-weight: bold;
-            margin-bottom: 10px;
-            color: #8a4b08;
-        }
-
-        .slide-controls {
-            text-align: center;
-            margin-top: 10px;
-        }
-
-        .slide-btn {
-            padding: 6px 14px;
-            margin: 0 4px;
-            font-size: 0.95rem;
-            color: #4b2800;
-            border-radius: 999px;
-            border: 1px solid #e9a02b;
-            background: linear-gradient(135deg, #ffe5a5, #fbb03b);
-            cursor: pointer;
-            font-weight: 600;
-        }
-
-        .slide-btn:hover {
-            background: linear-gradient(135deg, #fff3c9, #f5a12b);
-        }
     </style>
 </head>
 
 <body>
 
     <div class="container">
+
         <h1>Programmer’s Picnic — Lesson Viewer</h1>
+
         <div id="content">
-            <p>Loading lesson...</p>
+            <p>Loading lesson content...</p>
         </div>
 
         <hr style="margin:30px 0;">
 
         <h2>Python Playground (Pyodide)</h2>
+
         <div id="editor" contenteditable="true">print("Welcome!")</div>
 
         <button id="runBtn">▶ Run Code</button>
@@ -218,9 +248,13 @@
         <h3>Output:</h3>
         <div id="output"></div>
         <p id="testMsg" style="font-weight:bold;"></p>
+
     </div>
 
     <script>
+        const MAX_LESSON_ID = 22;
+        const MIN_LESSON_ID = 1;
+
         /* ------------------ Pyodide ------------------ */
         let pyodide = null, pyodideReady = false;
 
@@ -236,7 +270,7 @@
         }
         loadPy();
 
-        /* ------------------ URL + JSON LOADING ------------------ */
+        /* ------------------ URL + Lesson Loading ------------------ */
         const url = new URL(window.location.href);
         const lessonURL = url.searchParams.get("json");
         let lessonData = null;
@@ -250,140 +284,284 @@
                 })
                 .catch(err => {
                     document.getElementById("content").innerHTML =
-                        "<p>Error loading lesson JSON.</p><pre>" + err + "</pre>";
+                        "<p>Failed to load lesson JSON.</p><pre>" + err + "</pre>";
                 });
         } else {
-            document.getElementById("content").innerHTML = "<p>No JSON provided.</p>";
+            document.getElementById("content").innerHTML =
+                "<p>No JSON URL provided.</p>";
         }
 
-        /* ------------------ RENDER META ------------------ */
+        /* ------------------ Render Helpers ------------------ */
         function renderMeta(lesson) {
             const chips = [];
 
-            if (lesson.duration) chips.push(`<span class="meta-chip">⏱ ${lesson.duration}</span>`);
-            if (lesson.difficulty) chips.push(`<span class="meta-chip">🎯 Difficulty: ${lesson.difficulty}</span>`);
-            if (lesson.category) chips.push(`<span class="meta-chip">📂 ${lesson.category}</span>`);
-            if (lesson.rewardXP) chips.push(`<span class="meta-chip xp-chip">⭐ ${lesson.rewardXP} XP</span>`);
-            if (lesson.badge) chips.push(`<span class="meta-chip badge-chip">🏅 ${lesson.badge}</span>`);
+            if (lesson.duration) {
+                chips.push(`<span class="meta-chip">⏱ ${lesson.duration}</span>`);
+            }
+            if (lesson.difficulty) {
+                chips.push(`<span class="meta-chip">🎯 Difficulty: ${lesson.difficulty}</span>`);
+            }
+            if (lesson.category) {
+                chips.push(`<span class="meta-chip">📂 ${lesson.category}</span>`);
+            }
+            if (lesson.rewardXP) {
+                chips.push(`<span class="meta-chip xp-chip">⭐ ${lesson.rewardXP} XP</span>`);
+            }
+            if (lesson.badge) {
+                chips.push(`<span class="meta-chip badge-chip">🏅 ${lesson.badge}</span>`);
+            }
 
             let keywordHTML = "";
-            if (Array.isArray(lesson.keywords))
-                keywordHTML = `<div>${lesson.keywords.map(k => `<span class="meta-chip keyword-chip">#${k}</span>`).join("")}</div>`;
+            if (Array.isArray(lesson.keywords) && lesson.keywords.length > 0) {
+                keywordHTML = `
+                    <div style="margin-top:8px;">
+                        ${lesson.keywords.map(k => `<span class="meta-chip keyword-chip">#${k}</span>`).join("")}
+                    </div>
+                `;
+            }
+
+            if (!chips.length && !keywordHTML) return "";
 
             return `
-    <div class="section-box">
-        <h3>Lesson Meta</h3>
-        <div class="meta-chips">${chips.join("")}</div>
-        ${keywordHTML}
-    </div>`;
+                <div class="section-box lesson-meta-panel">
+                    <h3>Lesson Meta</h3>
+                    <div class="meta-chips">
+                        ${chips.join("")}
+                    </div>
+                    ${keywordHTML}
+                </div>
+            `;
         }
 
-        /* ------------------ RENDER VIDEOS ------------------ */
-        function renderVideosSection(videos) {
-            if (!Array.isArray(videos)) return "";
+        function renderNav(lesson) {
+            const id = lesson.id;
+            if (!id) return "";
+
+            const prevId = id > MIN_LESSON_ID ? id - 1 : null;
+            const nextId = id < MAX_LESSON_ID ? id + 1 : null;
 
             return `
-    <div class="section-box">
-        <h3>Videos</h3>
-        ${videos.map(v => `
-            <div>
-                <h4>${v.title}</h4>
-                <iframe src="https://www.youtube.com/embed/${v.videoId}" allowfullscreen></iframe>
-                <p>${v.description || ""}</p>
-                ${(v.tags || []).map(t => `<span class='tag'>${t}</span>`).join("")}
-            </div>
-        `).join("")}
-    </div>`;
+                <div class="section-box nav-lessons">
+                    <h3>Continue Learning</h3>
+                    <div class="nav-buttons">
+                        <button class="btn-nav" ${prevId ? `onclick="goToLesson(${prevId})"` : "disabled"}>
+                            ⬅ ${prevId ? `Lesson ${prevId}` : "No previous"}
+                        </button>
+                        <button class="btn-nav" ${nextId ? `onclick="goToLesson(${nextId})"` : "disabled"}>
+                            ${nextId ? `Lesson ${nextId} ➡` : "Last lesson"}
+                        </button>
+                    </div>
+                </div>
+            `;
         }
 
-        /* ------------------ MAIN LESSON RENDER ------------------ */
+        /* ------------------ Render Lesson ------------------ */
         function renderLesson(lesson) {
             const c = document.getElementById("content");
 
             c.innerHTML = `
-        <h2>${lesson.title}</h2>
-        ${renderMeta(lesson)}
-        ${renderVideosSection(lesson.youtubeVideos)}
+                <h2>${lesson.title}</h2>
 
-        <!-- Article -->
-        <div class="section-box">
-            <h3>Blog Article</h3>
-            <div id="blogArticleBox"></div>
-        </div>
+                ${renderMeta(lesson)}
 
-        <!-- Slides -->
-        <div id="slidesSection" class="section-box" style="display:none;">
-            <h3>Slides</h3>
-            <div id="slideViewer"></div>
+                ${renderVideosSection(lesson.youtubeVideos)}
 
-            <div class="slide-controls">
-                <button id="prevSlideBtn" type="button" class="slide-btn">⬅ Prev</button>
-                <span id="slideCounter"></span>
-                <button id="nextSlideBtn" type="button" class="slide-btn">Next ➡</button>
-            </div>
-        </div>
-    `;
+                <div class='section-box'>
+                    <h3>Video Script</h3>
+                    <pre>${lesson.videoScript || "No video script provided."}</pre>
+                </div>
+
+                <div class='section-box'>
+                    <h3>Blog Article</h3>
+                    <div id="blogArticleBox"></div>
+                </div>
+
+                ${Array.isArray(lesson.practiceProblems) ? `
+                <div class='section-box'>
+                    <h3>Practice Problems</h3>
+                    <ul>${lesson.practiceProblems.map(p => `<li>${p}</li>`).join("")}</ul>
+                </div>` : ""}
+
+                ${Array.isArray(lesson.homework) ? `
+                <div class='section-box'>
+                    <h3>Homework</h3>
+                    <ul>${lesson.homework.map(p => `<li>${p}</li>`).join("")}</ul>
+                </div>` : ""}
+
+                <div class='section-box' id='quizBox' style='display:none;'>
+                    <h3>Quick Quiz</h3>
+                    <div id='quizQuestions'></div>
+                    <button id="submitQuizBtn">Submit Quiz</button>
+                    <p id='quizResult'></p>
+                </div>
+
+                <div class='section-box' id='slidesSection' style='display:none;'>
+                    <h3>Slides</h3>
+                    <div id='slideViewer'></div>
+                    <div style="text-align:center;">
+                        <button id='prevSlideBtn'>⬅ Prev</button>
+                        <span id='slideCounter'></span>
+                        <button id='nextSlideBtn'>Next ➡</button>
+                    </div>
+                </div>
+
+                ${renderNav(lesson)}
+            `;
 
             document.getElementById("blogArticleBox").innerHTML =
-                lesson.blogArticle ? marked.parse(lesson.blogArticle) : "<p>No article.</p>";
+                lesson.blogArticle ? marked.parse(lesson.blogArticle) : "<p>No article provided.</p>";
 
-            if (Array.isArray(lesson.slides) && lesson.slides.length)
-                setupSlides();
-        }
-
-        /* ------------------ SLIDE SYSTEM (OPTION B) ------------------ */
-        let currentSlide = 0;
-
-        function setupSlides() {
-            const section = document.getElementById("slidesSection");
-            section.style.display = "block";
-
-            const prev = document.getElementById("prevSlideBtn");
-            const next = document.getElementById("nextSlideBtn");
-
-            prev.addEventListener("click", (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                changeSlide(-1);
-            });
-
-            next.addEventListener("click", (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                changeSlide(1);
-            });
-
-            // Keyboard slide navigation
-            document.addEventListener("keydown", (e) => {
-                if (e.key === "ArrowLeft") changeSlide(-1);
-                if (e.key === "ArrowRight") changeSlide(1);
-            });
-
-            renderSlide();
-        }
-
-        function changeSlide(n) {
-            const total = lessonData.slides.length;
-            currentSlide = (currentSlide + n + total) % total;
-            renderSlide();
-        }
-
-        function renderSlide() {
-            const slide = lessonData.slides[currentSlide];
-
-            document.getElementById("slideViewer").innerHTML = `
-        <div class="slide-title">${slide.title || ""}</div>
-        <div class="slide-svg-wrapper">${slide.svg}</div>
-        ${(slide.code || []).map(c => `<pre>${c}</pre>`).join("")}
-    `;
-
-            document.getElementById("slideCounter").innerText =
-                `${currentSlide + 1} / ${lessonData.slides.length}`;
+            if (Array.isArray(lesson.quiz) && lesson.quiz.length) renderQuiz(lesson.quiz);
+            if (Array.isArray(lesson.slidesSVG) && lesson.slidesSVG.length) setupSlides();
 
             addCopyButtons();
         }
 
-        /* ------------------ COPY BUTTONS ------------------ */
+        /* ------------------ Videos Section ------------------ */
+        function renderVideosSection(videos) {
+            if (!Array.isArray(videos) || videos.length === 0) return "";
+
+            return `
+                <div class='section-box'>
+                    <h3>Videos</h3>
+                    ${videos.map(v => `
+                        <div class='video-block' style="margin-bottom:16px;">
+                            <h4>${v.title}</h4>
+                            <iframe src="https://www.youtube.com/embed/${v.videoId}" allowfullscreen></iframe>
+
+                            <p>${v.description || ""}</p>
+
+                            <div>
+                                ${Array.isArray(v.tags) ? v.tags.map(t => `<span class='tag'>${t}</span>`).join("") : ""}
+                            </div>
+
+                            ${v.chapters?.length ? `
+                                <table>
+                                    ${v.chapters.map(ch => `
+                                        <tr><td>${ch.time}</td><td>${ch.title}</td></tr>
+                                    `).join("")}
+                                </table>
+                            ` : ""}
+
+                            ${v.shorts?.length ? `
+                                <h5>Shorts</h5>
+                                ${v.shorts.map(s => `
+                                    <div class='short-item'>
+                                        🎬 <b>${s.title}</b> — <code>${s.id}</code>
+                                    </div>
+                                `).join("")}
+                            ` : ""}
+                        </div>
+                    `).join("")}
+                </div>
+            `;
+        }
+
+        /* ------------------ Quiz Rendering ------------------ */
+        function renderQuiz(quiz) {
+            const box = document.getElementById("quizBox");
+            box.style.display = "block";
+
+            document.getElementById("quizQuestions").innerHTML =
+                quiz.map((q, i) => `
+                    <div class="quiz-item" id="quiz-${i}">
+                        <strong>${q.question}</strong><br>
+                        ${q.options.map((op, j) =>
+                    `<label><input type='radio' name='q${i}' value='${j}'> ${op}</label><br>`
+                ).join("")}
+                        <div class="explanation" id="exp-${i}" style="display:none;"></div>
+                    </div>
+                `).join("");
+
+            document.getElementById("submitQuizBtn").onclick = submitQuiz;
+        }
+
+        function submitQuiz() {
+            const quiz = (lessonData && Array.isArray(lessonData.quiz)) ? lessonData.quiz : null;
+            const resultEl = document.getElementById("quizResult");
+            if (!quiz || !quiz.length) {
+                if (resultEl) {
+                    resultEl.innerText = "No quiz for this lesson.";
+                }
+                return;
+            }
+
+            let score = 0;
+            let attempted = 0;
+
+            quiz.forEach((q, i) => {
+                const chosen = document.querySelector(`input[name="q${i}"]:checked`);
+                const expBox = document.getElementById(`exp-${i}`);
+                const questionDiv = document.getElementById(`quiz-${i}`);
+                if (questionDiv) {
+                    questionDiv.classList.remove("correct", "wrong");
+                }
+
+                if (chosen) attempted++;
+
+                const explanation = q.explanation || "";
+
+                if (chosen && parseInt(chosen.value, 10) === q.correct) {
+                    score++;
+                    if (expBox) {
+                        expBox.innerHTML = `<span class='correct'>Correct!</span>${explanation ? "<br>" + explanation : ""}`;
+                        expBox.style.display = "block";
+                    }
+                    if (questionDiv) questionDiv.classList.add("correct");
+                } else {
+                    if (expBox) {
+                        expBox.innerHTML = `
+                        <span class='wrong'>Incorrect</span><br>
+                        Correct answer: <b>${q.options[q.correct]}</b>${explanation ? "<br>" + explanation : ""}
+                    `;
+                        expBox.style.display = "block";
+                    }
+                    if (questionDiv) questionDiv.classList.add("wrong");
+                }
+            });
+
+            if (resultEl) {
+                resultEl.innerText =
+                    `Score: ${score}/${quiz.length} · Attempted: ${attempted}/${quiz.length}`;
+            }
+        }
+
+        /* ------------------ Slides ------------------ */
+        let currentSlide = 0;
+
+        function setupSlides() {
+            document.getElementById("slidesSection").style.display = "block";
+            prevSlideBtn.onclick = () => changeSlide(-1);
+            nextSlideBtn.onclick = () => changeSlide(+1);
+            renderSlide();
+        }
+
+        function changeSlide(n) {
+            const total = lessonData.slidesSVG.length;
+            currentSlide = (currentSlide + n + total) % total;
+            renderSlide();
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+
+        function renderSlide() {
+            const svg = lessonData.slidesSVG[currentSlide];
+            const codes = lessonData.slideCodes?.[currentSlide] || [];
+
+            const slideHTML = `
+                <div class='slide-svg-wrapper'>${svg}</div>
+                <div class='slide-code-box'>
+                    ${codes.map(code => `<pre>${code}</pre>`).join("")}
+                </div>
+            `;
+
+            document.getElementById("slideViewer").innerHTML = slideHTML;
+            document.getElementById("slideCounter").innerText =
+                `${currentSlide + 1} / ${lessonData.slidesSVG.length}`;
+
+            addCopyButtons();
+        }
+
+        /* ------------------ Copy Buttons ------------------ */
         function addCopyButtons() {
             document.querySelectorAll("pre").forEach(pre => {
                 if (pre.querySelector(".copy-btn")) return;
@@ -392,15 +570,16 @@
                 btn.className = "copy-btn";
                 btn.innerText = "Copy";
                 btn.onclick = () => navigator.clipboard.writeText(pre.innerText);
+
                 pre.appendChild(btn);
             });
         }
 
-        /* ------------------ PYODIDE RUN ------------------ */
+        /* ------------------ Run Code ------------------ */
         runBtn.onclick = async () => {
             output.innerText = "";
             if (!pyodideReady) {
-                output.innerText = "Loading Pyodide...";
+                output.innerText = "Loading Pyodide... please wait.";
                 return;
             }
             try {
@@ -410,7 +589,31 @@
             }
         };
 
-        /* ------------------ SHARE ------------------ */
+        /* ------------------ Test Code ------------------ */
+        testBtn.onclick = async () => {
+            if (!lessonData || !lessonData.codingChallenge) {
+                testMsg.innerText = "No coding challenge for this lesson.";
+                return;
+            }
+            if (!pyodideReady) {
+                testMsg.innerText = "Pyodide is still loading. Try again in a few seconds.";
+                return;
+            }
+            try {
+                const userOut = await pyodide.runPythonAsync(editor.innerText);
+                const expected = await pyodide.runPythonAsync(
+                    lessonData.codingChallenge.solution
+                );
+                testMsg.innerText =
+                    String(userOut).trim() === String(expected).trim()
+                        ? "Correct! ✔"
+                        : "Incorrect ❌";
+            } catch (err) {
+                testMsg.innerText = "Error: " + err;
+            }
+        };
+
+        /* ------------------ Share Code ------------------ */
         shareBtn.onclick = () => {
             const code = encodeURIComponent(editor.innerText);
             const link = `${window.location.pathname}?json=${lessonURL}&code=${code}`;
@@ -418,6 +621,20 @@
             alert("Share link copied!");
         };
 
+        const shared = url.searchParams.get("code");
+        if (shared) editor.innerText = decodeURIComponent(shared);
+
+        /* ------------------ Lesson Navigation ------------------ */
+        function goToLesson(id) {
+            if (!lessonURL) return;
+            const newJson = lessonURL.replace(/lesson-\d+\.json/, `lesson-${id}.json`);
+            const newUrl = new URL(window.location.href);
+            newUrl.searchParams.set("json", newJson);
+            newUrl.searchParams.delete("code");
+            window.location.href = newUrl.toString();
+        }
+
+        window.goToLesson = goToLesson;
     </script>
 
 </body>
