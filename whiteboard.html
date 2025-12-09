@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Programmer's Picnic Whiteboard v3</title>
+
+<style>
+    body {
+        margin: 0;
+        height: 100vh;
+        display: flex;
+        background: #f5f5f5;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    #toolbar {
+        width: 90px;
+        background: #ffffff;
+        border-right: 2px solid #e0e0e0;
+        padding: 10px 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        align-items: center;
+        box-shadow: 2px 0 6px rgba(0,0,0,0.06);
+        box-sizing: border-box;
+    }
+
+    .tool-btn {
+        width: 60px;
+        height: 60px;
+        border-radius: 14px;
+        border: 1px solid #b0bec5;
+        background: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 24px;
+        transition: 0.2s;
+        box-sizing: border-box;
+    }
+
+    .tool-btn:hover {
+        background: #eceff1;
+    }
+
+    .tool-btn.active {
+        background: #e3f2fd;
+        border-color: #1976d2;
+        box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.25);
+    }
+
+    #colorPicker,
+    #sizePicker {
+        width: 60px;
+    }
+
+    #sizePicker {
+        writing-mode: bt-lr;
+    }
+
+    .label {
+        font-size: 11px;
+        color: #546e7a;
+        text-align: center;
+    }
+
+    #board-wrapper {
+        flex: 1;
+        position: relative;
+        display: flex;
+    }
+
+    canvas {
+        flex: 1;
+        background: #ffffff;
+        cursor: crosshair;
+        touch-action: none;
+        display: block;
+    }
+
+    .text-input-overlay {
+        position: absolute;
+        min-width: 80px;
+        min-height: 24px;
+        padding: 4px 6px;
+        border: 1px solid #1976d2;
+        border-radius: 4px;
+        font-family: inherit;
+        font-size: 14px;
+        resize: both;
+        overflow: hidden;
+        background: #ffffff;
+        box-shadow: 0 0 0 2px rgba(25,118,210,0.25);
+        outline: none;
+        box-sizing: border-box;
+        white-space: pre-wrap;
+    }
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+    <div class="label">Draw</div>
+    <button class="tool-btn active" id="penBtn" title="Pen (Freehand)">✏️</button>
+    <button class="tool-btn" id="eraserBtn" title="Eraser">🧽</button>
+
+    <div class="label">Shapes</div>
+    <button class="tool-btn" id="lineBtn" title="Line">📏</button>
+    <button class="tool-btn" id="rectBtn" title="Rectangle">◻️</button>
+    <button class="tool-btn" id="circleBtn" title="Circle">⚪</button>
+
+    <div class="label">Text</div>
+    <button class="tool-btn" id="textBtn" title="Text Tool">🅣</button>
+
+    <div class="label">Fill</div>
+    <button class="tool-btn" id="fillToggleBtn" title="Toggle Fill">🔲</button>
+
+    <div class="label">Color</div>
+    <input type="color" id="colorPicker" value="#000000">
+
+    <div class="label">Size</div>
+    <input type="range" id="sizePicker" min="1" max="40" value="4">
+
+    <div class="label">History</div>
+    <button class="tool-btn" id="undoBtn" title="Undo (Ctrl+Z)">↩️</button>
+    <button class="tool-btn" id="redoBtn" title="Redo (Ctrl+Y)">↪️</button>
+
+    <div class="label">JSON</div>
+    <button class="tool-btn" id="saveJsonBtn" title="Save as JSON">💾</button>
+    <button class="tool-btn" id="loadJsonBtn" title="Load JSON">📂</button>
+
+    <button class="tool-btn" id="clearBtn" title="Clear Board">🗑️</button>
+
+    <input type="file" id="jsonFileInput" accept="application/json" style="display:none;">
+</div>
+
+<div id="board-wrapper">
+    <canvas id="whiteboard"></canvas>
+</div>
+
+<script>
+const canvas = document.getElementById("whiteboard");
+const ctx = canvas.getContext("2d");
+const boardWrapper = document.getElementById("board-wrapper");
+
+// Toolbar elements
+const penBtn = document.getElementById("penBtn");
+const eraserBtn = document.getElementById("eraserBtn");
+const lineBtn = document.getElementById("lineBtn");
+const rectBtn = document.getElementById("rectBtn");
+const circleBtn = document.getElementById("circleBtn");
+const textBtn = document.getElementById("textBtn");
+const fillToggleBtn = document.getElementById("fillToggleBtn");
+const colorPicker = document.getElementById("colorPicker");
+const sizePicker = document.getElementById("sizePicker");
+const undoBtn = document.getElementById("undoBtn");
+const redoBtn = document.getElementById("redoBtn");
+const clearBtn = document.getElementById("clearBtn");
+const saveJsonBtn = document.getElementById("saveJsonBtn");
+const loadJsonBtn = document.getElementById("loadJsonBtn");
+const jsonFileInput = document.getElementById("jsonFileInput");
+
+let currentTool = "pen"; // 'pen' | 'eraser' | 'line' | 'rect' | 'circle' | 'text'
+let fillMode = false;
+let painting = false;
+
+let startX = 0;
+let startY = 0;
+
+let currentObject = null; // for pen/eraser and shape preview
+
+let objects = []; // scene graph objects
+let history = [];
+let redoStack = [];
+
+let editingTextOverlay = null; // { element, x, y }
+
+// Resize canvas
+function resizeCanvas() {
+    const toolbarWidth = document.getElementById("toolbar").offsetWidth;
+    canvas.width = window.innerWidth - toolbarWidth;
+    canvas.height = window.innerHeight;
+    redrawAll();
+}
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
+
+// ---- History (Undo/Redo) using JSON snapshots ----
+function saveState() {
+    const snapshot = JSON.stringify(objects);
+    history.push(snapshot);
+    if (history.length > 100) history.shift();
+    redoStack = [];
+    try {
+        localStorage.setItem("pp_whiteboard_scene", snapshot);
+    } catch(e) {}
+}
+
+function loadStateFromSnapshot(snapshot) {
+    try {
+        objects = JSON.parse(snapshot) || [];
+    } catch(e) {
+        objects = [];
+    }
+    redrawAll();
+}
+
+function undo() {
+    if (history.length > 1) {
+        const last = history.pop();
+        redoStack.push(last);
+        const prev = history[history.length - 1];
+        loadStateFromSnapshot(prev);
+    }
+}
+
+function redo() {
+    if (redoStack.length > 0) {
+        const snap = redoStack.pop();
+        history.push(snap);
+        loadStateFromSnapshot(snap);
+    }
+}
+
+// Try to load from localStorage on first load
+(function initFromLocalStorage() {
+    const saved = localStorage.getItem("pp_whiteboard_scene");
+    if (saved) {
+        history = [saved];
+        redoStack = [];
+        loadStateFromSnapshot(saved);
+    } else {
+        objects = [];
+        saveState(); // base empty state
+    }
+})();
+
+// ---- Draw objects ----
+function redrawAll() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    objects.forEach(drawObject);
+}
+
+function drawObject(obj) {
+    ctx.save();
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    if (obj.type === "pen") {
+        ctx.strokeStyle = obj.eraser ? "#ffffff" : obj.color;
+        ctx.lineWidth = obj.size;
+        ctx.beginPath();
+        if (obj.points.length > 0) {
+            ctx.moveTo(obj.points[0].x, obj.points[0].y);
+            for (let i = 1; i < obj.points.length; i++) {
+                ctx.lineTo(obj.points[i].x, obj.points[i].y);
+            }
+        }
+        ctx.stroke();
+    }
+
+    if (obj.type === "line") {
+        ctx.strokeStyle = obj.color;
+        ctx.lineWidth = obj.size;
+        ctx.beginPath();
+        ctx.moveTo(obj.x1, obj.y1);
+        ctx.lineTo(obj.x2, obj.y2);
+        ctx.stroke();
+    }
+
+    if (obj.type === "rect") {
+        ctx.strokeStyle = obj.color;
+        ctx.fillStyle = obj.color;
+        ctx.lineWidth = obj.size;
+        if (obj.fill) {
+            ctx.fillRect(obj.x, obj.y, obj.w, obj.h);
+        }
+        ctx.strokeRect(obj.x, obj.y, obj.w, obj.h);
+    }
+
+    if (obj.type === "circle") {
+        ctx.strokeStyle = obj.color;
+        ctx.fillStyle = obj.color;
+        ctx.lineWidth = obj.size;
+        ctx.beginPath();
+        ctx.arc(obj.x, obj.y, obj.radius, 0, Math.PI * 2);
+        if (obj.fill) ctx.fill();
+        ctx.stroke();
+    }
+
+    if (obj.type === "text") {
+        ctx.fillStyle = obj.color;
+        const fontSize = obj.size || 18;
+        ctx.font = fontSize + "px system-ui, sans-serif";
+        ctx.textBaseline = "top";
+        const lines = obj.text.split("\n");
+        const lineHeight = fontSize * 1.3;
+        lines.forEach((line, index) => {
+            ctx.fillText(line, obj.x, obj.y + index * lineHeight);
+        });
+    }
+
+    ctx.restore();
+}
+
+// ---- Tool UI ----
+function clearActiveTools() {
+    document
+        .querySelectorAll(".tool-btn")
+        .forEach(btn => btn.classList.remove("active"));
+}
+
+function setActiveTool(tool) {
+    currentTool = tool;
+    clearActiveTools();
+
+    if (tool === "pen") penBtn.classList.add("active");
+    if (tool === "eraser") eraserBtn.classList.add("active");
+    if (tool === "line") lineBtn.classList.add("active");
+    if (tool === "rect") rectBtn.classList.add("active");
+    if (tool === "circle") circleBtn.classList.add("active");
+    if (tool === "text") textBtn.classList.add("active");
+
+    // keep fill button visual state separate
+    updateFillToggleButton();
+}
+
+// Fill toggle button
+function updateFillToggleButton() {
+    fillToggleBtn.textContent = fillMode ? "🔳" : "🔲";
+    if (fillMode) {
+        fillToggleBtn.classList.add("active");
+    } else {
+        fillToggleBtn.classList.remove("active");
+    }
+}
+updateFillToggleButton();
+
+// ---- Coordinate helper ----
+function getPos(evt) {
+    const rect = canvas.getBoundingClientRect();
+    let clientX, clientY;
+
+    if (evt.touches && evt.touches[0]) {
+        clientX = evt.touches[0].clientX;
+        clientY = evt.touches[0].clientY;
+    } else {
+        clientX = evt.clientX;
+        clientY = evt.clientY;
+    }
+
+    return {
+        x: clientX - rect.left,
+        y: clientY - rect.top
+    };
+}
+
+// ---- Text tool overlay ----
+function createTextOverlay(x, y) {
+    // Finish existing edit if any
+    finishTextEdit();
+
+    const textarea = document.createElement("textarea");
+    textarea.className = "text-input-overlay";
+    textarea.style.left = x + "px";
+    textarea.style.top = y + "px";
+    textarea.style.color = colorPicker.value;
+
+    // Map size slider to font size
+    const baseSize = 10;
+    const fontSize = baseSize + parseInt(sizePicker.value || "4", 10);
+    textarea.style.fontSize = fontSize + "px";
+
+    boardWrapper.appendChild(textarea);
+    textarea.focus();
+
+    textarea.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            finishTextEdit();
+        }
+    });
+
+    textarea.addEventListener("blur", () => {
+        finishTextEdit();
+    });
+
+    editingTextOverlay = {
+        element: textarea,
+        x,
+        y,
+        fontSize
+    };
+}
+
+function finishTextEdit() {
+    if (!editingTextOverlay) return;
+
+    const { element, x, y, fontSize } = editingTextOverlay;
+    const text = element.value.trim();
+
+    if (text) {
+        const obj = {
+            type: "text",
+            x,
+            y,
+            text,
+            color: colorPicker.value,
+            size: fontSize
+        };
+        objects.push(obj);
+        saveState();
+        redrawAll();
+    }
+
+    element.remove();
+    editingTextOverlay = null;
+}
+
+// ---- Pointer events ----
+function pointerDown(e) {
+    e.preventDefault();
+
+    const pos = getPos(e);
+    const x = pos.x;
+    const y = pos.y;
+
+    // Text tool: create overlay and return
+    if (currentTool === "text") {
+        createTextOverlay(x, y);
+        return;
+    }
+
+    painting = true;
+    startX = x;
+    startY = y;
+
+    const color = colorPicker.value;
+    const size = parseInt(sizePicker.value, 10) || 4;
+
+    if (currentTool === "pen" || currentTool === "eraser") {
+        currentObject = {
+            type: "pen",
+            eraser: currentTool === "eraser",
+            color: currentTool === "eraser" ? "#ffffff" : color,
+            size: size,
+            points: [{ x, y }]
+        };
+    } else {
+        // shapes: we'll use a temporary currentObject for preview
+        currentObject = null;
+    }
+}
+
+function pointerMove(e) {
+    if (!painting) return;
+    e.preventDefault();
+
+    const pos = getPos(e);
+    const x = pos.x;
+    const y = pos.y;
+
+    const color = colorPicker.value;
+    const size = parseInt(sizePicker.value, 10) || 4;
+
+    if (currentTool === "pen" || currentTool === "eraser") {
+        if (!currentObject) return;
+        currentObject.points.push({ x, y });
+        redrawAll();
+        drawObject(currentObject);
+    } else {
+        // Shapes preview
+        let tempObj = null;
+
+        if (currentTool === "line") {
+            tempObj = {
+                type: "line",
+                x1: startX,
+                y1: startY,
+                x2: x,
+                y2: y,
+                color,
+                size
+            };
+        }
+
+        if (currentTool === "rect") {
+            tempObj = {
+                type: "rect",
+                x: startX,
+                y: startY,
+                w: x - startX,
+                h: y - startY,
+                color,
+                size,
+                fill: fillMode
+            };
+        }
+
+        if (currentTool === "circle") {
+            const dx = x - startX;
+            const dy = y - startY;
+            const radius = Math.sqrt(dx * dx + dy * dy);
+            tempObj = {
+                type: "circle",
+                x: startX,
+                y: startY,
+                radius,
+                color,
+                size,
+                fill: fillMode
+            };
+        }
+
+        if (tempObj) {
+            currentObject = tempObj;
+            redrawAll();
+            drawObject(tempObj);
+        }
+    }
+}
+
+function pointerUp(e) {
+    if (!painting) return;
+    e.preventDefault();
+    painting = false;
+
+    if (currentTool === "pen" || currentTool === "eraser") {
+        if (currentObject && currentObject.points.length > 1) {
+            objects.push(currentObject);
+            saveState();
+            redrawAll();
+        }
+        currentObject = null;
+    } else if (currentTool === "line" ||
+               currentTool === "rect" ||
+               currentTool === "circle") {
+        if (currentObject) {
+            objects.push(currentObject);
+            saveState();
+            redrawAll();
+            currentObject = null;
+        }
+    }
+}
+
+// Mouse
+canvas.addEventListener("mousedown", pointerDown);
+canvas.addEventListener("mousemove", pointerMove);
+canvas.addEventListener("mouseup", pointerUp);
+canvas.addEventListener("mouseleave", (e) => {
+    if (painting) pointerUp(e);
+});
+
+// Touch
+canvas.addEventListener("touchstart", pointerDown, { passive: false });
+canvas.addEventListener("touchmove", pointerMove, { passive: false });
+canvas.addEventListener("touchend", pointerUp, { passive: false });
+canvas.addEventListener("touchcancel", pointerUp, { passive: false });
+
+// ---- Buttons ----
+penBtn.onclick = () => setActiveTool("pen");
+eraserBtn.onclick = () => setActiveTool("eraser");
+lineBtn.onclick = () => setActiveTool("line");
+rectBtn.onclick = () => setActiveTool("rect");
+circleBtn.onclick = () => setActiveTool("circle");
+textBtn.onclick = () => setActiveTool("text");
+
+fillToggleBtn.onclick = () => {
+    fillMode = !fillMode;
+    updateFillToggleButton();
+};
+
+undoBtn.onclick = undo;
+redoBtn.onclick = redo;
+
+clearBtn.onclick = () => {
+    objects = [];
+    saveState();
+    redrawAll();
+};
+
+// ---- JSON Save / Load ----
+saveJsonBtn.onclick = () => {
+    const dataStr = JSON.stringify(objects, null, 2);
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "whiteboard-scene.json";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+};
+
+loadJsonBtn.onclick = () => {
+    jsonFileInput.click();
+};
+
+jsonFileInput.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        try {
+            const data = JSON.parse(ev.target.result);
+            if (Array.isArray(data)) {
+                objects = data;
+                history = [JSON.stringify(objects)];
+                redoStack = [];
+                redrawAll();
+                try {
+                    localStorage.setItem("pp_whiteboard_scene", history[0]);
+                } catch(e) {}
+            } else {
+                alert("Invalid JSON format: expected an array of objects.");
+            }
+        } catch (err) {
+            alert("Error parsing JSON file.");
+        }
+    };
+    reader.readAsText(file);
+});
+
+// ---- Keyboard Shortcuts ----
+document.addEventListener("keydown", (e) => {
+    if (e.ctrlKey && (e.key === "z" || e.key === "Z")) {
+        e.preventDefault();
+        undo();
+    }
+    if (e.ctrlKey && (e.key === "y" || e.key === "Y")) {
+        e.preventDefault();
+        redo();
+    }
+});
+</script>
+
+</body>
+</html>
