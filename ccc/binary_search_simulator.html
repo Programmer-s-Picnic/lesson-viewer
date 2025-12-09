@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Binary Search Simulator – Programmer's Picnic</title>
+    <title>Search Simulator – Programmer's Picnic</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body {
@@ -13,7 +13,7 @@
             color: #3a2a1a;
         }
         .container {
-            max-width: 1100px;
+            max-width: 1200px;
             margin: 0 auto;
             background: #fffaf0;
             border-radius: 16px;
@@ -37,11 +37,13 @@
             font-size: 0.9rem;
             font-weight: 600;
         }
-        #controls input {
+        #controls input,
+        #controls select {
             padding: 6px 8px;
             border-radius: 8px;
             border: 1px solid #f3c26b;
-            min-width: 220px;
+            min-width: 160px;
+            background: #fffdf7;
         }
         button {
             padding: 7px 14px;
@@ -55,7 +57,7 @@
             color: white;
             font-weight: 600;
         }
-        #prevStepBtn, #nextStepBtn {
+        #prevStepBtn, #nextStepBtn, #autoPlayBtn {
             background: #ffe0b2;
         }
         #stepControls {
@@ -74,8 +76,15 @@
         #message span.note {
             font-weight: 600;
         }
-        #canvasWrapper {
+
+        #visualWrapper {
+            display: flex;
+            gap: 16px;
             margin-top: 15px;
+            align-items: flex-start;
+        }
+        #canvasWrapper {
+            flex: 1 1 0;
             border-radius: 12px;
             border: 1px solid #f3c26b;
             background: #fffdf7;
@@ -86,43 +95,149 @@
             width: 100%;
             max-width: 100%;
         }
+
+        #logsPanel {
+            flex: 0 0 320px;
+            border-radius: 12px;
+            border: 1px solid #f3c26b;
+            background: #fffdf7;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        #logsPanel h3 {
+            margin: 0 0 8px 0;
+            font-size: 1rem;
+        }
+        #logsdiv {
+            border-radius: 8px;
+            border: 1px dashed #f3c26b;
+            background: #fffaf0;
+            padding: 8px;
+            max-height: 260px;
+            overflow-y: auto;
+            font-size: 0.9rem;
+        }
+        .log-entry {
+            margin-bottom: 4px;
+        }
+        .log-entry span.label {
+            font-weight: 600;
+        }
+        .log-entry.active {
+            background: #fff3e0;
+            border-radius: 6px;
+            padding: 2px 4px;
+        }
+        .log-entry .idx {
+            color: #0077cc;
+        }
+        .log-entry .mid {
+            color: #cc0000;
+        }
+        .log-entry .high {
+            color: #009688;
+        }
+
+        #exportControls {
+            margin-top: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        #exportControls button {
+            background: #ffe0b2;
+            font-size: 0.8rem;
+        }
+
+        #speedLabel {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+        #speedRange {
+            accent-color: #ff9800;
+        }
+
+        #soundLabel {
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        @media (max-width: 900px) {
+            #visualWrapper {
+                flex-direction: column;
+            }
+            #logsPanel {
+                width: 100%;
+            }
+        }
+
         @media (max-width: 600px) {
             #controls {
                 flex-direction: column;
                 align-items: stretch;
             }
-            #controls input {
+            #controls input,
+            #controls select {
                 width: 100%;
             }
-        }
-        #logsdiv{
-            border-style: ridge;
         }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>Binary Search Simulator – Programmer's Picnic</h1>
+    <h1>Search Simulator – Programmer's Picnic</h1>
 
     <div id="controls">
         <label for="arrayInput">Array (sorted):</label>
-        <input id="arrayInput" type="text" value="3, 6, 11, 14, 18, 21, 27, 33, 40" placeholder="e.g. 3, 6, 11, 14, 18, 21, 27, 33, 40">
+        <input id="arrayInput" type="text"
+               value="3, 6, 11, 14, 18, 21, 27, 33, 40"
+               placeholder="e.g. 3, 6, 11, 14, 18, 21, 27, 33, 40">
+
         <label for="targetInput">Target:</label>
         <input id="targetInput" type="number" value="21" placeholder="e.g. 21">
-        <button id="visualizeBtn">Visualize Binary Search</button>
+
+        <label for="algoSelect">Search Method:</label>
+        <select id="algoSelect">
+            <option value="binary">Binary (log n)</option>
+            <option value="linear">Linear (n)</option>
+        </select>
+
+        <button id="visualizeBtn">Visualize</button>
     </div>
 
     <div id="stepControls">
         <button id="prevStepBtn">◀ Prev</button>
         <span id="stepInfo">Step 0/0</span>
         <button id="nextStepBtn">Next ▶</button>
+
+        <span id="speedLabel">Speed:</span>
+        <input id="speedRange" type="range" min="200" max="2000" step="100" value="800">
+
+        <button id="autoPlayBtn">▶ Auto Play</button>
+
+        <label id="soundLabel">
+            <input type="checkbox" id="soundToggle" checked>
+            Sound
+        </label>
     </div>
 
     <div id="message"></div>
-    <div id="logsdiv"></div>
 
-    <div id="canvasWrapper">
-        <canvas id="bsCanvas" width="1000" height="420"></canvas>
+    <div id="visualWrapper">
+        <div id="canvasWrapper">
+            <canvas id="bsCanvas" width="1000" height="420"></canvas>
+        </div>
+
+        <div id="logsPanel">
+            <h3>Trace Logs</h3>
+            <div id="logsdiv"></div>
+            <div id="exportControls">
+                <button id="exportTxtBtn">Export Logs (TXT)</button>
+                <button id="exportPdfBtn">Print / PDF</button>
+            </div>
+        </div>
     </div>
 </div>
 
