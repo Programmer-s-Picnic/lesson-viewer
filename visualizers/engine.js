@@ -195,7 +195,9 @@
                 "pp-vis-cell-active",
                 "pp-vis-cell-compare",
                 "pp-vis-cell-found",
-                "pp-vis-cell-miss"
+                "pp-vis-cell-miss",
+                "pp-vis-cell-half-keep",
+                "pp-vis-cell-half-drop"
             );
             var badgesWrap = cell.querySelector(".pp-vis-pointer-badges");
             if (badgesWrap) badgesWrap.innerHTML = "";
@@ -257,6 +259,7 @@
             return cells[index] || null;
         }
 
+        // Single-cell states
         if (typeof step.activeIndex === "number") {
             var a = getCell(step.activeIndex);
             if (a) a.classList.add("pp-vis-cell-active");
@@ -274,6 +277,27 @@
             if (m) m.classList.add("pp-vis-cell-miss");
         }
 
+        // NEW: highlight selected (kept) half range
+        if (Array.isArray(step.keepRange)) {
+            var krStart = step.keepRange[0];
+            var krEnd = step.keepRange[1];
+            for (var i = krStart; i <= krEnd; i++) {
+                var kc = getCell(i);
+                if (kc) kc.classList.add("pp-vis-cell-half-keep");
+            }
+        }
+
+        // NEW: highlight discarded half range
+        if (Array.isArray(step.dropRange)) {
+            var drStart = step.dropRange[0];
+            var drEnd = step.dropRange[1];
+            for (var j = drStart; j <= drEnd; j++) {
+                var dc = getCell(j);
+                if (dc) dc.classList.add("pp-vis-cell-half-drop");
+            }
+        }
+
+        // Pointer badges
         if (step.pointers) {
             Object.keys(step.pointers).forEach(function (name) {
                 var idx = step.pointers[name];

@@ -98,6 +98,7 @@ function generateBinarySearchSteps(arr, target) {
         label: "Start",
         description: "Binary Search begins on sorted array.",
         pointers: { low, high },
+        keepRange: [low, high],          // current active interval
         highlightLines: [1, 2, 3]
     });
 
@@ -111,6 +112,7 @@ function generateBinarySearchSteps(arr, target) {
             description: `mid = floor((${low} + ${high}) / 2) = ${mid}`,
             activeIndex: mid,
             pointers: { low, mid, high },
+            keepRange: [low, high],      // still searching in [low, high]
             highlightLines: [4, 5]
         });
 
@@ -120,26 +122,35 @@ function generateBinarySearchSteps(arr, target) {
                 description: `arr[${mid}] = ${arr[mid]} equals target ${target}.`,
                 foundIndex: mid,
                 pointers: { low, mid, high },
+                keepRange: [mid, mid],    // we “keep” exactly the found cell
                 highlightLines: [6, 7]
             });
             return steps;
         }
 
         if (target < arr[mid]) {
+            // We will KEEP the LEFT half [low, mid-1]
+            // and DISCARD the RIGHT half [mid, high]
             steps.push({
                 label: "Go Left",
                 description: `${target} < ${arr[mid]} → high = mid - 1`,
                 compareIndex: mid,
                 pointers: { low, mid, high },
+                keepRange: [low, mid - 1],   // selected half for next search
+                dropRange: [mid, high],      // discarded half
                 highlightLines: [8, 9]
             });
             high = mid - 1;
         } else {
+            // We will KEEP the RIGHT half [mid+1, high]
+            // and DISCARD the LEFT half [low, mid]
             steps.push({
                 label: "Go Right",
                 description: `${target} > ${arr[mid]} → low = mid + 1`,
                 compareIndex: mid,
                 pointers: { low, mid, high },
+                keepRange: [mid + 1, high],  // selected half for next search
+                dropRange: [low, mid],       // discarded half
                 highlightLines: [10, 11]
             });
             low = mid + 1;
@@ -151,6 +162,7 @@ function generateBinarySearchSteps(arr, target) {
     steps.push({
         label: "Not Found",
         description: "low > high ⇒ empty interval ⇒ target not found.",
+        dropRange: [0, arr.length - 1],     // everything is effectively discarded
         highlightLines: [12]
     });
 
@@ -170,6 +182,7 @@ function generateRecursiveBinarySteps(arr, target) {
             description: `Entering recursive call at depth ${depth}.`,
             pointers: { low, high },
             depth,
+            keepRange: [low, high],
             highlightLines: [1, 2, 3]
         });
 
@@ -178,6 +191,7 @@ function generateRecursiveBinarySteps(arr, target) {
                 label: `Call ${callId}: Base Case`,
                 description: "low > high ⇒ return -1 (not found).",
                 depth,
+                dropRange: [low, high],
                 highlightLines: [11]
             });
             return;
@@ -191,6 +205,7 @@ function generateRecursiveBinarySteps(arr, target) {
             activeIndex: mid,
             pointers: { low, mid, high },
             depth,
+            keepRange: [low, high],
             highlightLines: [4, 5]
         });
 
@@ -200,6 +215,7 @@ function generateRecursiveBinarySteps(arr, target) {
                 description: `arr[${mid}] = ${arr[mid]} equals target ${target}.`,
                 foundIndex: mid,
                 depth,
+                keepRange: [mid, mid],
                 highlightLines: [6, 7]
             });
             return;
@@ -211,6 +227,8 @@ function generateRecursiveBinarySteps(arr, target) {
                 description: `${target} < ${arr[mid]} ⇒ recurse on left half.`,
                 compareIndex: mid,
                 depth,
+                keepRange: [low, mid - 1],
+                dropRange: [mid, high],
                 highlightLines: [8]
             });
             recurse(low, mid - 1, depth + 1);
@@ -220,6 +238,8 @@ function generateRecursiveBinarySteps(arr, target) {
                 description: `${target} > ${arr[mid]} ⇒ recurse on right half.`,
                 compareIndex: mid,
                 depth,
+                keepRange: [mid + 1, high],
+                dropRange: [low, mid],
                 highlightLines: [9, 10]
             });
             recurse(mid + 1, high, depth + 1);
@@ -290,6 +310,7 @@ document.addEventListener("DOMContentLoaded", function () {
     function parseTargetInput() {
         const raw = (targetInput.value || "").trim();
         const n = Number(raw);
+        // If NaN, just keep raw (in case you want string matching later)
         return Number.isNaN(n) ? raw : n;
     }
 
