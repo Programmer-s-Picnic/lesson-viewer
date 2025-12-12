@@ -1,132 +1,177 @@
-/* ============================================================
-   ADVANCED WHITEBOARD – CORE LOGIC
-   ------------------------------------------------------------
-   This file intentionally contains ALL JavaScript so that:
-   - Students can read one file
-   - Logic flow is easy to trace
-   - No build tools are required
-   ============================================================ */
+  
+    (function toolbarModule() {
+      const toolbar = document.getElementById('toolbar');
+      const menuCollapse = document.getElementById('menuCollapse');
+      const toolbarDropdown = document.getElementById('toolbarDropdown');
 
-'use strict';
+      const COLLAPSE_KEY = 'wb_toolbar_collapsed_v1';
+      const AUTO_COLLAPSE_BREAKPOINT = 920;
 
-/* ================= GLOBAL STATE ================= */
+      /**
+       * Build the dropdown content by cloning elements that
+       * have the "hide-when-collapsed" class in the toolbar.
+       *
+       * Important: We remove IDs from clones to avoid duplicate IDs.
+       * We also wire the dropdown controls to forward actions to
+       * the original toolbar controls.
+       */
+      function buildDropdownContents() {
+        toolbarDropdown.innerHTML = '';
 
-const WB = {
-  mode: 'pen',
-  pan: { x: 0, y: 0 },
-  scale: 1,
-  isDrawing: false,
-  lastPoint: null,
-  selected: new Set()
-};
+        // Collect all elements that are hidden when the toolbar collapses
+        const hiddenGroups = document.querySelectorAll('.hide-when-collapsed');
 
-/* ================= DOM REFERENCES ================= */
+        hiddenGroups.forEach(node => {
+          const copy = node.cloneNode(true);
+          // This copy should be visible inside dropdown
+          copy.classList.remove('hide-when-collapsed');
 
-const viewport = document.getElementById('viewport');
-const world = document.getElementById('world');
-const canvas = document.getElementById('drawing');
-const ctx = canvas.getContext('2d');
-const objectsLayer = document.getElementById('objectsLayer');
+          // Remove IDs from all descendants to avoid conflicts
+          copy.querySelectorAll('[id]').forEach(n => n.removeAttribute('id'));
 
-const penColor = document.getElementById('penColor');
-const penSize = document.getElementById('penSize');
-const penOpacity = document.getElementById('penOpacity');
+          toolbarDropdown.appendChild(copy);
+        });
 
-/* ================= TOOL SWITCHING ================= */
+        // Add a small "Close" row at the bottom
+        const bar = document.createElement('div');
+        bar.style.display = 'flex';
+        bar.style.justifyContent = 'flex-end';
+        bar.style.marginTop = '8px';
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = 'Close';
+        closeBtn.className = 'small';
+        closeBtn.addEventListener('click', () => {
+          hideDropdown();
+        });
+        bar.appendChild(closeBtn);
+        toolbarDropdown.appendChild(bar);
 
-function setTool(tool){
-  WB.mode = tool;
-  document.querySelectorAll('.toolbtn').forEach(b=>b.classList.remove('active'));
-  document.getElementById(tool+'Tool').classList.add('active');
-}
+        // Wire cloned buttons: by text content, trigger original toolbar button
+        toolbarDropdown.querySelectorAll('button').forEach(btn => {
+          if (btn === closeBtn) return; // skip our local Close
+          btn.addEventListener('click', () => {
+            const txt = btn.textContent.trim();
+            const candidates = Array.from(toolbar.querySelectorAll('button'))
+              .filter(b => b.textContent.trim() === txt);
+            if (candidates.length) {
+              candidates[0].click();
+            }
+          });
+        });
 
-penTool.onclick = ()=>setTool('pen');
-highlighterTool.onclick = ()=>setTool('highlighter');
-eraserTool.onclick = ()=>setTool('eraser');
-selectTool.onclick = ()=>setTool('select');
+        // Wire cloned inputs/selects: match by position among "hidden" controls
+        const clonedInputs = toolbarDropdown.querySelectorAll('input,select');
+        const originalInputs = Array.from(
+          toolbar.querySelectorAll('input,select')
+        ).filter(n =>
+          n.classList.contains('hide-when-collapsed') ||
+          n.closest('.hide-when-collapsed')
+        );
 
-/* ================= COORDINATE HELPERS ================= */
+        clonedInputs.forEach((input, idx) => {
+          const original = originalInputs[idx];
+          if (!original) return;
 
-function pageToWorld(x,y){
-  const r = viewport.getBoundingClientRect();
-  return {
-    x:(x-r.left-WB.pan.x)/WB.scale,
-    y:(y-r.top-WB.pan.y)/WB.scale
-  };
-}
+          function forwardValue() {
+            original.value = input.value;
+            original.dispatchEvent(new Event('input', { bubbles: true }));
+            original.dispatchEvent(new Event('change', { bubbles: true }));
+          }
 
-/* ================= DRAWING ENGINE ================= */
+          input.addEventListener('input', forwardValue);
+          input.addEventListener('change', forwardValue);
+        });
+      }
 
-viewport.addEventListener('pointerdown',e=>{
-  if(!['pen','highlighter','eraser'].includes(WB.mode)) return;
-  WB.isDrawing = true;
-  WB.lastPoint = pageToWorld(e.clientX,e.clientY);
-  ctx.beginPath();
-  ctx.moveTo(WB.lastPoint.x,WB.lastPoint.y);
-});
+      /**
+       * Helper: apply collapsed state to toolbar + persist in localStorage.
+       */
+      function setCollapsedState(collapsed) {
+        if (collapsed) {
+          toolbar.classList.add('collapsed');
+          localStorage.setItem(COLLAPSE_KEY, '1');
+          menuCollapse.setAttribute('aria-expanded', 'false');
+        } else {
+          toolbar.classList.remove('collapsed');
+          localStorage.removeItem(COLLAPSE_KEY);
+          menuCollapse.setAttribute('aria-expanded', 'true');
+          hideDropdown();
+        }
+      }
 
-window.addEventListener('pointermove',e=>{
-  if(!WB.isDrawing) return;
+      /**
+       * Show dropdown (build contents fresh so it reflects current state).
+       */
+      function showDropdown() {
+        buildDropdownContents();
+        toolbarDropdown.classList.add('show');
+        toolbarDropdown.setAttribute('aria-hidden', 'false');
+      }
 
-  const p = pageToWorld(e.clientX,e.clientY);
+      /**
+       * Hide dropdown.
+       */
+      function hideDropdown() {
+        toolbarDropdown.classList.remove('show');
+        toolbarDropdown.setAttribute('aria-hidden', 'true');
+      }
 
-  if(WB.mode==='eraser'){
-    ctx.save();
-    ctx.globalCompositeOperation='destination-out';
-    ctx.lineWidth=penSize.value;
-    ctx.lineTo(p.x,p.y);
-    ctx.stroke();
-    ctx.restore();
-  }
+      /**
+       * Apply auto-collapse behavior depending on window width
+       * and saved user preference.
+       */
+      function applyAutoCollapse() {
+        const saved = localStorage.getItem(COLLAPSE_KEY);
+        const w = window.innerWidth;
 
-  else if(WB.mode==='highlighter'){
-    /* REAL highlighter effect */
-    ctx.save();
-    ctx.globalCompositeOperation='multiply';
-    ctx.globalAlpha=penOpacity.value;
-    ctx.strokeStyle=penColor.value;
-    ctx.lineWidth=penSize.value*2.5;
-    ctx.lineTo(p.x,p.y);
-    ctx.stroke();
-    ctx.restore();
-  }
+        if (w <= AUTO_COLLAPSE_BREAKPOINT) {
+          // On small screens, always collapsed
+          setCollapsedState(true);
+        } else {
+          // On larger screens, respect saved state (if any)
+          if (saved) {
+            setCollapsedState(true);
+          } else {
+            setCollapsedState(false);
+          }
+        }
+      }
 
-  else{
-    ctx.save();
-    ctx.globalAlpha=penOpacity.value;
-    ctx.strokeStyle=penColor.value;
-    ctx.lineWidth=penSize.value;
-    ctx.lineTo(p.x,p.y);
-    ctx.stroke();
-    ctx.restore();
-  }
+      // --------- Event Wiring ---------
 
-  WB.lastPoint=p;
-});
+      // Initial state
+      applyAutoCollapse();
 
-window.addEventListener('pointerup',()=>{
-  WB.isDrawing=false;
-});
+      // Window resize: re-check auto collapse
+      window.addEventListener('resize', applyAutoCollapse);
 
-/* ================= WORLD SIZE ================= */
+      // Menu button click: toggle collapsed; when collapsed, also toggle dropdown
+      menuCollapse.addEventListener('click', () => {
+        const nowCollapsed = toolbar.classList.contains('collapsed');
 
-function resize(){
-  const w=viewport.clientWidth*2;
-  const h=viewport.clientHeight*2;
-  world.style.width=w+'px';
-  world.style.height=h+'px';
-  canvas.width=w;
-  canvas.height=h;
-}
-resize();
-window.addEventListener('resize',resize);
+        if (nowCollapsed) {
+          // Expand toolbar (desktop style)
+          setCollapsedState(false);
+        } else {
+          // Collapse toolbar and open dropdown immediately
+          setCollapsedState(true);
+          showDropdown();
+        }
+      });
 
-/* ================= DEMO OBJECT ================= */
+      // Clicking outside dropdown closes it
+      document.addEventListener('click', ev => {
+        if (!toolbarDropdown.contains(ev.target) &&
+          !menuCollapse.contains(ev.target)) {
+          hideDropdown();
+        }
+      });
 
-const box=document.createElement('div');
-box.className='obj';
-box.style.left='100px';
-box.style.top='100px';
-box.style.width='200px';
-box.style.height='120px';
-objectsLayer.appendChild(box);
+      // Escape key also closes dropdown
+      window.addEventListener('keydown', ev => {
+        if (ev.key === 'Escape') {
+          hideDropdown();
+        }
+      });
+    })();
+   
