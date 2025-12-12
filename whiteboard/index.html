@@ -1,0 +1,1845 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Programmer's Whiteboard — Champak Roy</title>
+
+  <!-- =========================================================
+       PART 1: GLOBAL STYLES
+       - Visual design only; no behavior here.
+       - If you want to re-theme the board, this is your section.
+     ========================================================= -->
+  <style>
+    :root {
+      /* Main theme colors */
+      --bg: #eef3ff;
+      --panel: #ffffff;
+      --accent: #3f6bff;
+      --muted: #8b9cff;
+      /* Toolbar height (used for dropdown positioning) */
+      --toolbar-h: 66px;
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+                   Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: #0b2545;
+    }
+
+    .app {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* -----------------------------
+       Top toolbar container
+       ----------------------------- */
+    .toolbar {
+      height: var(--toolbar-h);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      padding: 8px;
+      background: linear-gradient(180deg, #ffffff, #f5f9ff);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .toolbar .group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .toolbar button,
+    .toolbar input[type="color"],
+    .toolbar input[type="range"],
+    .toolbar input[type="number"],
+    .toolbar select {
+      background: #ffffff;
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      padding: 8px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .toolbar .spacer {
+      flex: 1;
+    }
+
+    /* Collapse / menu button on left of toolbar */
+    #menuCollapse {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: #ffffff;
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      cursor: pointer;
+      font-size: 18px;
+    }
+
+    /* When toolbar is collapsed, hide elements with this class */
+    .toolbar.collapsed .hide-when-collapsed {
+      display: none;
+    }
+
+    .toolbar.collapsed {
+      gap: 6px;
+    }
+
+    /* Dropdown that appears below toolbar when collapsed */
+    .toolbar-dropdown {
+      position: absolute;
+      left: 8px;
+      top: calc(var(--toolbar-h) + 6px);
+      background: #ffffff;
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+      z-index: 10050;
+      padding: 10px;
+      display: none;
+      min-width: 320px;
+      max-width: calc(100% - 24px);
+    }
+
+    .toolbar-dropdown.show {
+      display: block;
+    }
+
+    /* -----------------------------
+       Main layout: left tools + stage
+       ----------------------------- */
+    .layout {
+      display: flex;
+      flex: 1;
+      gap: 12px;
+      padding: 12px;
+      box-sizing: border-box;
+    }
+
+    /* Left vertical column for tool buttons (Pen / Highlighter / etc.) */
+    .leftcol {
+      width: 88px;
+      min-width: 72px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .toolbtn {
+      width: 64px;
+      text-align: center;
+      padding: 8px;
+      border-radius: 8px;
+      background: #ffffff;
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .toolbtn.active {
+      box-shadow: 0 6px 18px rgba(63, 107, 255, 0.12);
+      border-color: var(--accent);
+    }
+
+    /* -----------------------------
+       Stage (viewport) and world
+       ----------------------------- */
+    .stage-viewport {
+      flex: 1;
+      border-radius: 12px;
+      background: linear-gradient(180deg, #ffffff, #fbfdff);
+      border: 3px solid var(--accent);
+      overflow: hidden;
+      position: relative;
+      min-height: 300px;
+    }
+
+    /* World is the big area inside viewport that we pan/scale */
+    .world {
+      position: absolute;
+      left: 0;
+      top: 0;
+      transform-origin: 0 0;
+      will-change: transform;
+      background-size: 20px 20px, 20px 20px;
+    }
+
+    /* Grid background when enabled */
+    .world.grid {
+      background-image:
+        linear-gradient(90deg, rgba(0, 0, 0, 0.02) 1px, transparent 1px),
+        linear-gradient(rgba(0, 0, 0, 0.02) 1px, transparent 1px);
+    }
+
+    .world.nogrid {
+      background-image: none;
+    }
+
+    /* Layer that holds draggable objects */
+    .objects-layer {
+      position: absolute;
+      left: 0;
+      top: 0;
+      pointer-events: auto;
+    }
+
+    /* Canvas for drawing (pen/highlighter/eraser) */
+    canvas.draw-layer {
+      position: absolute;
+      left: 0;
+      top: 0;
+      display: block;
+    }
+
+    /* -----------------------------
+       Object styles (rects, circles, text, images)
+       ----------------------------- */
+    .obj {
+      position: absolute;
+      box-sizing: border-box;
+      transform-origin: center center;
+      touch-action: none;
+      user-select: none;
+      transition: box-shadow 0.12s ease;
+    }
+
+    .obj .content {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .obj.rect {
+      background: rgba(63, 107, 255, 0.06);
+      border: 2px solid rgba(63, 107, 255, 0.18);
+      border-radius: 8px;
+    }
+
+    .obj.circle {
+      background: rgba(255, 200, 60, 0.10);
+      border: 2px solid rgba(255, 180, 0, 0.22);
+      border-radius: 999px;
+    }
+
+    .obj.text {
+      background: transparent;
+      border: 1px dashed rgba(0, 0, 0, 0.06);
+      padding: 6px 8px;
+      font-size: 16px;
+      color: #000;
+    }
+
+    .obj img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      border-radius: 6px;
+    }
+
+    .obj.selected {
+      box-shadow: 0 12px 30px rgba(16, 24, 40, 0.12);
+      outline: 2px solid rgba(63, 107, 255, 0.10);
+    }
+
+    /* Handles: rotate + resize */
+    .handle {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: #ffffff;
+      border: 2px solid rgba(0, 0, 0, 0.12);
+      border-radius: 3px;
+      box-sizing: border-box;
+      z-index: 40;
+    }
+
+    .handle.rotate {
+      top: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      cursor: grab;
+    }
+
+    .handle.resize {
+      right: -10px;
+      bottom: -10px;
+      cursor: se-resize;
+    }
+
+    /* Selection rectangle for drag-select */
+    .sel-rect {
+      position: fixed;
+      border: 1px dashed rgba(0, 0, 0, 0.25);
+      background: rgba(63, 107, 255, 0.06);
+      pointer-events: none;
+      z-index: 20000;
+      display: none;
+    }
+
+    /* -----------------------------
+       Eraser cursor & label (visual hint when eraser tool is active)
+       ----------------------------- */
+    #eraserCursor {
+      position: fixed;
+      pointer-events: none;
+      border: 2px dashed rgba(0, 0, 0, 0.35);
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10030;
+      display: none;
+      box-sizing: border-box;
+    }
+
+    #eraserSizeLabel {
+      position: fixed;
+      pointer-events: none;
+      z-index: 10031;
+      transform: translate(-50%, -120%);
+      background: rgba(20, 30, 60, 0.9);
+      color: #ffffff;
+      font-size: 12px;
+      padding: 4px 6px;
+      border-radius: 6px;
+      display: none;
+      white-space: nowrap;
+    }
+
+    /* -----------------------------
+       Guide (tips box in bottom-right)
+       ----------------------------- */
+    .guide {
+      position: fixed;
+      right: 12px;
+      bottom: 12px;
+      width: 320px;
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 14px 40px rgba(31, 41, 55, 0.12);
+      z-index: 10020;
+      padding: 0;
+      border: 1px solid rgba(63, 107, 255, 0.12);
+      font-size: 13px;
+    }
+
+    .guide .head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+    }
+
+    .guide .content {
+      padding: 10px;
+      max-height: 320px;
+      overflow: auto;
+    }
+
+    /* Minimal circular style if you ever want to collapse visually */
+    .guide.collapsed {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #helpBtn {
+      position: fixed;
+      right: 12px;
+      bottom: 12px;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: 2px solid rgba(63, 107, 255, 0.25);
+      background: #ffffff;
+      font-size: 20px;
+      display: none; /* shown only when guide is manually hidden */
+      z-index: 10025;
+    }
+
+    /* -----------------------------
+       Responsive tweaks
+       ----------------------------- */
+    @media (max-width: 920px) {
+      .layout {
+        padding: 8px;
+        gap: 8px;
+      }
+      .leftcol {
+        display: none; /* tools move to top / toolbar */
+      }
+      .toolbar.small-screen {
+        flex-wrap: wrap;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .guide {
+        width: 92%;
+        right: 4%;
+        left: 4%;
+        bottom: 12px;
+      }
+      #helpBtn {
+        right: 14px;
+        bottom: 14px;
+      }
+      .toolbar-dropdown {
+        left: 8px;
+        right: 8px;
+        min-width: auto;
+      }
+    }
+  </style>
+</head>
+
+<body>
+<div class="app">
+
+  <!-- =========================================================
+       PART 2: HTML STRUCTURE
+       - Pure DOM structure; no behavior here.
+       - JS will query by ID/class and attach listeners.
+     ========================================================= -->
+
+  <!-- TOP TOOLBAR -->
+  <div class="toolbar" role="toolbar" aria-label="Main toolbar" id="toolbar">
+    <!-- Collapse / Menu button -->
+    <button id="menuCollapse"
+            aria-label="Toggle toolbar"
+            aria-expanded="true"
+            title="Collapse / Expand / Show more tools">
+      ☰
+    </button>
+
+    <!-- Group 1: Object creation -->
+    <div class="group hide-when-collapsed" id="groupObjects">
+      <button id="addRect" title="Add rectangle">Add Rect</button>
+      <button id="addCircle" title="Add circle">Add Circle</button>
+      <button id="addText" title="Add text">Add Text</button>
+      <button id="addImage" title="Add an image by URL">Add Image</button>
+      <button id="dupBtn" title="Duplicate selected (Ctrl/Cmd + D)">Duplicate</button>
+    </div>
+
+    <!-- Group 2: Grid + Snap controls -->
+    <div class="group hide-when-collapsed" id="groupGrid">
+      <button id="toggleGrid">Toggle Grid</button>
+      <label>Grid:</label>
+      <select id="gridSize">
+        <option value="8">8px</option>
+        <option value="12" selected>12px</option>
+        <option value="20">20px</option>
+        <option value="32">32px</option>
+      </select>
+      <label>Snap</label>
+      <input type="checkbox" id="snapToggle" checked>
+    </div>
+
+    <!-- Group 3: Import/Export -->
+    <div class="group hide-when-collapsed" id="groupIO">
+      <button id="exportJSON">Export JSON</button>
+      <button id="importJSONbtn">Import JSON</button>
+      <!-- Hidden file input used by Import button -->
+      <input id="importJSONfile" type="file" accept="application/json" style="display:none">
+      <button id="clearAll">Clear All</button>
+    </div>
+
+    <!-- Spacer pushes style + draw controls to the right -->
+    <div class="spacer hide-when-collapsed"></div>
+
+    <!-- Group 4: Font & shape style controls -->
+    <div class="group hide-when-collapsed" id="groupStyle">
+      <label>Font</label>
+      <input id="fontColor" type="color" title="Font color" value="#000000">
+      <label>Size</label>
+      <input id="fontSize" type="number" min="8" max="72" value="16" style="width:80px">
+
+      <label>Fill</label>
+      <input id="shapeFill" type="color" value="#3f6bff26" title="Shape fill color">
+      <label>Border</label>
+      <input id="shapeBorder" type="color" value="#3f6bff2e" title="Shape border color">
+    </div>
+
+    <!-- Group 5: Draw settings (always visible) -->
+    <div class="group" id="groupDraw">
+      <label>Draw</label>
+      <input id="penColor" type="color" value="#000000">
+      <label class="hide-when-collapsed">Size</label>
+      <input id="penSize" type="range" min="1" max="80" value="18" class="hide-when-collapsed">
+      <label class="hide-when-collapsed">Opacity</label>
+      <input id="penOpacity" type="range" min="0.1" max="1" step="0.05" value="1" class="hide-when-collapsed">
+    </div>
+
+    <!-- Dropdown that appears when toolbar is collapsed -->
+    <div class="toolbar-dropdown" id="toolbarDropdown" role="menu" aria-hidden="true"></div>
+  </div>
+
+  <!-- MAIN LAYOUT: left tools + viewport -->
+  <div class="layout">
+    <!-- Left tool column -->
+    <div class="leftcol" aria-hidden="false">
+      <div id="penTool" class="toolbtn active" title="Pen tool (draw)">Pen</div>
+      <div id="highlighterTool" class="toolbtn" title="Highlighter tool">Highlight</div>
+      <div id="eraserTool" class="toolbtn" title="Eraser tool">Eraser</div>
+      <div id="selectTool" class="toolbtn" title="Select objects / selection box">Select</div>
+      <div id="panHint" style="margin-top:6px;font-size:12px;color:#334">
+        Hold <b>Space</b> to Pan
+      </div>
+    </div>
+
+    <!-- Whiteboard viewport -->
+    <div class="stage-viewport" id="viewport" tabindex="0" aria-label="Whiteboard viewport">
+      <!-- World inside viewport (panned/scaled as a whole) -->
+      <div class="world nogrid" id="world">
+        <!-- Drawing canvas -->
+        <canvas id="drawing" class="draw-layer"></canvas>
+        <!-- Layer for draggable/rotatable objects -->
+        <div id="objectsLayer" class="objects-layer"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GUIDE (Tips panel) -->
+  <aside id="guide" class="guide" role="region" aria-label="How to use guide">
+    <div class="head">
+      <div>
+        <strong>How to use — Whiteboard</strong><br>
+        <small style="color:#445">Quick tips</small>
+      </div>
+      <div>
+        <button id="collapseGuide" title="Hide guide">–</button>
+        <button id="closeGuide" title="Close guide">✕</button>
+      </div>
+    </div>
+    <div class="content" id="guideContent">
+      <h4>Basic</h4>
+      <ul>
+        <li>Add objects (rect/circle/text/image) from the toolbar.</li>
+        <li>Select an object to move, resize (bottom-right), or rotate (top-center).</li>
+        <li>Use the style controls (font color/size, shape fill/border) to update selected objects — or set defaults for new ones.</li>
+        <li>Use Pen / Highlighter / Eraser to draw on the canvas.</li>
+        <li>Hold <b>Space</b> while dragging to pan the canvas.</li>
+      </ul>
+    </div>
+  </aside>
+
+  <!-- Floating help button shown when guide is hidden -->
+  <button id="helpBtn" title="Show help">?</button>
+
+  <!-- Selection rectangle overlay -->
+  <div id="selRect" class="sel-rect"></div>
+  <!-- Eraser visual cursor + label -->
+  <div id="eraserCursor" aria-hidden="true"></div>
+  <div id="eraserSizeLabel" aria-hidden="true"></div>
+</div>
+
+<!-- =========================================================
+     PART 3: TOOLBAR MODULE (Collapse + Dropdown)
+     - Handles responsive behavior of the top toolbar.
+     - Clones "hide-when-collapsed" controls into dropdown.
+   ========================================================= -->
+<script>
+  (function toolbarModule() {
+    const toolbar         = document.getElementById('toolbar');
+    const menuCollapse    = document.getElementById('menuCollapse');
+    const toolbarDropdown = document.getElementById('toolbarDropdown');
+
+    const COLLAPSE_KEY = 'wb_toolbar_collapsed_v1';
+    const AUTO_COLLAPSE_BREAKPOINT = 920;
+
+    /**
+     * Build the dropdown content by cloning elements that
+     * have the "hide-when-collapsed" class in the toolbar.
+     *
+     * Important: We remove IDs from clones to avoid duplicate IDs.
+     * We also wire the dropdown controls to forward actions to
+     * the original toolbar controls.
+     */
+    function buildDropdownContents() {
+      toolbarDropdown.innerHTML = '';
+
+      // Collect all elements that are hidden when the toolbar collapses
+      const hiddenGroups = document.querySelectorAll('.hide-when-collapsed');
+
+      hiddenGroups.forEach(node => {
+        const copy = node.cloneNode(true);
+        // This copy should be visible inside dropdown
+        copy.classList.remove('hide-when-collapsed');
+
+        // Remove IDs from all descendants to avoid conflicts
+        copy.querySelectorAll('[id]').forEach(n => n.removeAttribute('id'));
+
+        toolbarDropdown.appendChild(copy);
+      });
+
+      // Add a small "Close" row at the bottom
+      const bar = document.createElement('div');
+      bar.style.display = 'flex';
+      bar.style.justifyContent = 'flex-end';
+      bar.style.marginTop = '8px';
+      const closeBtn = document.createElement('button');
+      closeBtn.textContent = 'Close';
+      closeBtn.className = 'small';
+      closeBtn.addEventListener('click', () => {
+        hideDropdown();
+      });
+      bar.appendChild(closeBtn);
+      toolbarDropdown.appendChild(bar);
+
+      // Wire cloned buttons: by text content, trigger original toolbar button
+      toolbarDropdown.querySelectorAll('button').forEach(btn => {
+        if (btn === closeBtn) return; // skip our local Close
+        btn.addEventListener('click', () => {
+          const txt = btn.textContent.trim();
+          const candidates = Array.from(toolbar.querySelectorAll('button'))
+            .filter(b => b.textContent.trim() === txt);
+          if (candidates.length) {
+            candidates[0].click();
+          }
+        });
+      });
+
+      // Wire cloned inputs/selects: match by position among "hidden" controls
+      const clonedInputs = toolbarDropdown.querySelectorAll('input,select');
+      const originalInputs = Array.from(
+        toolbar.querySelectorAll('input,select')
+      ).filter(n =>
+        n.classList.contains('hide-when-collapsed') ||
+        n.closest('.hide-when-collapsed')
+      );
+
+      clonedInputs.forEach((input, idx) => {
+        const original = originalInputs[idx];
+        if (!original) return;
+
+        function forwardValue() {
+          original.value = input.value;
+          original.dispatchEvent(new Event('input',  { bubbles: true }));
+          original.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        input.addEventListener('input', forwardValue);
+        input.addEventListener('change', forwardValue);
+      });
+    }
+
+    /**
+     * Helper: apply collapsed state to toolbar + persist in localStorage.
+     */
+    function setCollapsedState(collapsed) {
+      if (collapsed) {
+        toolbar.classList.add('collapsed');
+        localStorage.setItem(COLLAPSE_KEY, '1');
+        menuCollapse.setAttribute('aria-expanded', 'false');
+      } else {
+        toolbar.classList.remove('collapsed');
+        localStorage.removeItem(COLLAPSE_KEY);
+        menuCollapse.setAttribute('aria-expanded', 'true');
+        hideDropdown();
+      }
+    }
+
+    /**
+     * Show dropdown (build contents fresh so it reflects current state).
+     */
+    function showDropdown() {
+      buildDropdownContents();
+      toolbarDropdown.classList.add('show');
+      toolbarDropdown.setAttribute('aria-hidden', 'false');
+    }
+
+    /**
+     * Hide dropdown.
+     */
+    function hideDropdown() {
+      toolbarDropdown.classList.remove('show');
+      toolbarDropdown.setAttribute('aria-hidden', 'true');
+    }
+
+    /**
+     * Apply auto-collapse behavior depending on window width
+     * and saved user preference.
+     */
+    function applyAutoCollapse() {
+      const saved = localStorage.getItem(COLLAPSE_KEY);
+      const w = window.innerWidth;
+
+      if (w <= AUTO_COLLAPSE_BREAKPOINT) {
+        // On small screens, always collapsed
+        setCollapsedState(true);
+      } else {
+        // On larger screens, respect saved state (if any)
+        if (saved) {
+          setCollapsedState(true);
+        } else {
+          setCollapsedState(false);
+        }
+      }
+    }
+
+    // --------- Event Wiring ---------
+
+    // Initial state
+    applyAutoCollapse();
+
+    // Window resize: re-check auto collapse
+    window.addEventListener('resize', applyAutoCollapse);
+
+    // Menu button click: toggle collapsed; when collapsed, also toggle dropdown
+    menuCollapse.addEventListener('click', () => {
+      const nowCollapsed = toolbar.classList.contains('collapsed');
+
+      if (nowCollapsed) {
+        // Expand toolbar (desktop style)
+        setCollapsedState(false);
+      } else {
+        // Collapse toolbar and open dropdown immediately
+        setCollapsedState(true);
+        showDropdown();
+      }
+    });
+
+    // Clicking outside dropdown closes it
+    document.addEventListener('click', ev => {
+      if (!toolbarDropdown.contains(ev.target) &&
+          !menuCollapse.contains(ev.target)) {
+        hideDropdown();
+      }
+    });
+
+    // Escape key also closes dropdown
+    window.addEventListener('keydown', ev => {
+      if (ev.key === 'Escape') {
+        hideDropdown();
+      }
+    });
+  })();
+</script>
+
+<!-- =========================================================
+     PART 4: WHITEBOARD CORE
+     - Drawing tools, objects, selection, grid, import/export,
+       guide panel, and initial demo content.
+   ========================================================= -->
+<script>
+  (function whiteboardCoreModule() {
+    // -------------
+    // DOM References
+    // -------------
+    const viewport      = document.getElementById('viewport');
+    const world         = document.getElementById('world');
+    const objectsLayer  = document.getElementById('objectsLayer');
+    const drawingCanvas = document.getElementById('drawing');
+    const selRect       = document.getElementById('selRect');
+    const ctx           = drawingCanvas.getContext('2d', { alpha: true });
+
+    // Tool buttons
+    const penToolBtn        = document.getElementById('penTool');
+    const highlighterToolBtn= document.getElementById('highlighterTool');
+    const eraserToolBtn     = document.getElementById('eraserTool');
+    const selectToolBtn     = document.getElementById('selectTool');
+
+    // Draw controls
+    const penColor   = document.getElementById('penColor');
+    const penSize    = document.getElementById('penSize');
+    const penOpacity = document.getElementById('penOpacity');
+
+    // Grid & snap controls
+    const toggleGridBtn  = document.getElementById('toggleGrid');
+    const gridSizeSelect = document.getElementById('gridSize');
+    const snapToggle     = document.getElementById('snapToggle');
+
+    // Import/Export
+    const exportJSONBtn  = document.getElementById('exportJSON');
+    const importJSONbtn  = document.getElementById('importJSONbtn');
+    const importJSONfile = document.getElementById('importJSONfile');
+    const clearAllBtn    = document.getElementById('clearAll');
+
+    // Guide & help
+    const helpBtn       = document.getElementById('helpBtn');
+    const guide         = document.getElementById('guide');
+    const collapseGuide = document.getElementById('collapseGuide');
+    const closeGuide    = document.getElementById('closeGuide');
+
+    // Eraser overlay
+    const eraserCursor     = document.getElementById('eraserCursor');
+    const eraserSizeLabel  = document.getElementById('eraserSizeLabel');
+
+    // Style controls
+    const fontColorInput   = document.getElementById('fontColor');
+    const fontSizeInput    = document.getElementById('fontSize');
+    const shapeFillInput   = document.getElementById('shapeFill');
+    const shapeBorderInput = document.getElementById('shapeBorder');
+
+    // -------------------------
+    // Default style values
+    // -------------------------
+    let defaultFontColor   = fontColorInput.value || '#000000';
+    let defaultFontSize    = Number(fontSizeInput.value) || 16;
+    let defaultShapeFill   = shapeFillInput.value || '#3f6bff26';
+    let defaultShapeBorder = shapeBorderInput.value || '#3f6bff2e';
+
+    // -------------------------
+    // World sizing & transform
+    // -------------------------
+    let worldW = 2400;
+    let worldH = 1600;
+    let pan    = { x: 0, y: 0 };
+    let scale  = 1;
+
+    /**
+     * Resize world based on viewport size.
+     * We make it at least a minimum width/height for comfortable drawing.
+     */
+    function resizeWorld() {
+      const vw = viewport.clientWidth;
+      const vh = viewport.clientHeight;
+
+      worldW = Math.max(1400, Math.floor(vw * 2));
+      worldH = Math.max(900,  Math.floor(vh * 2));
+
+      world.style.width  = worldW + 'px';
+      world.style.height = worldH + 'px';
+
+      objectsLayer.style.width  = worldW + 'px';
+      objectsLayer.style.height = worldH + 'px';
+
+      drawingCanvas.width  = worldW;
+      drawingCanvas.height = worldH;
+      drawingCanvas.style.width  = worldW + 'px';
+      drawingCanvas.style.height = worldH + 'px';
+    }
+
+    /**
+     * Apply pan & scale to world element.
+     */
+    function applyTransform() {
+      world.style.transform =
+        `translate(${pan.x}px, ${pan.y}px) scale(${scale})`;
+    }
+
+    /**
+     * Convert page (client) coords to world coords (inside the big drawing area).
+     */
+    function pageToWorld(clientX, clientY) {
+      const r = viewport.getBoundingClientRect();
+      const x = (clientX - r.left - pan.x) / scale;
+      const y = (clientY - r.top  - pan.y) / scale;
+      return { x, y };
+    }
+
+    /**
+     * Convert world coords to page (client) coords. (Sometimes useful.)
+     */
+    function worldToPage(wx, wy) {
+      const r = viewport.getBoundingClientRect();
+      return {
+        x: r.left + pan.x + wx * scale,
+        y: r.top  + pan.y + wy * scale
+      };
+    }
+
+    /**
+     * Snap a numeric value to grid if snap is enabled.
+     */
+    function snapValue(v) {
+      if (!snapToggle.checked) return v;
+      const g = parseInt(gridSizeSelect.value, 10) || 12;
+      return Math.round(v / g) * g;
+    }
+
+    /**
+     * Snap angle to 15-degree increments if snap is enabled.
+     */
+    function snapAngle(a) {
+      if (!snapToggle.checked) return a;
+      const step = 15;
+      return Math.round(a / step) * step;
+    }
+
+    // Initial world setup
+    window.addEventListener('resize', () => {
+      resizeWorld();
+      applyTransform();
+    });
+    resizeWorld();
+    applyTransform();
+
+    // -------------------------
+    // Drawing tools (pen, highlighter, eraser, select)
+    // -------------------------
+    let drawMode = 'pen'; // 'pen' | 'highlighter' | 'eraser' | 'select'
+
+    /**
+     * Set active drawing tool and adjust UI accordingly.
+     */
+    function setActiveTool(tool) {
+      drawMode = tool;
+
+      // Toggle active class on tool buttons
+      [penToolBtn, highlighterToolBtn, eraserToolBtn, selectToolBtn]
+        .forEach(b => b.classList.remove('active'));
+
+      if (tool === 'pen')         penToolBtn.classList.add('active');
+      if (tool === 'highlighter') highlighterToolBtn.classList.add('active');
+      if (tool === 'eraser')      eraserToolBtn.classList.add('active');
+      if (tool === 'select')      selectToolBtn.classList.add('active');
+
+      updateEraserCursorVisibility();
+    }
+
+    // Tool button wiring
+    penToolBtn.addEventListener('click',        () => setActiveTool('pen'));
+    highlighterToolBtn.addEventListener('click',() => setActiveTool('highlighter'));
+    eraserToolBtn.addEventListener('click',     () => setActiveTool('eraser'));
+    selectToolBtn.addEventListener('click',     () => setActiveTool('select'));
+
+    // Canvas drawing state
+    let isDrawing = false;
+    let lastPoint = null;
+
+    function startDrawAt(worldPt) {
+      isDrawing = true;
+      lastPoint = worldPt;
+
+      ctx.lineCap  = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(worldPt.x, worldPt.y);
+
+      // While actually erasing, hide the overlay cursor so user sees erasure clearly
+      if (drawMode === 'eraser') {
+        hideEraserCursorTemporarily();
+      }
+    }
+
+    function continueDrawTo(worldPt) {
+      if (!isDrawing || !lastPoint) return;
+
+      const size = Number(penSize.value);
+
+      if (drawMode === 'eraser') {
+        // Erase using destination-out
+        ctx.save();
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.lineWidth = size;
+        ctx.strokeStyle = 'rgba(0,0,0,1)';
+        ctx.lineTo(worldPt.x, worldPt.y);
+        ctx.stroke();
+        ctx.restore();
+      }
+      else if (drawMode === 'highlighter') {
+        ctx.save();
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.globalAlpha = Number(penOpacity.value) * 0.45;
+        ctx.lineWidth = size * 2;
+        ctx.strokeStyle = penColor.value;
+        ctx.lineTo(worldPt.x, worldPt.y);
+        ctx.stroke();
+        ctx.restore();
+      }
+      else if (drawMode === 'pen') {
+        ctx.save();
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.globalAlpha = Number(penOpacity.value);
+        ctx.lineWidth = size;
+        ctx.strokeStyle = penColor.value;
+        ctx.lineTo(worldPt.x, worldPt.y);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      lastPoint = worldPt;
+    }
+
+    function endDraw() {
+      isDrawing = false;
+      lastPoint = null;
+      showEraserCursorIfNeeded();
+    }
+
+    // -------------------------
+    // Eraser cursor overlay
+    // -------------------------
+    let eraserVisible          = false;
+    let eraserHiddenTemporarily= false;
+    let lastPointerInViewport  = false;
+
+    function updateEraserCursorVisibility() {
+      if (drawMode === 'eraser' &&
+          lastPointerInViewport &&
+          !eraserHiddenTemporarily) {
+        eraserCursor.style.display    = 'block';
+        eraserSizeLabel.style.display = 'block';
+        eraserVisible = true;
+        viewport.style.cursor = 'none';
+      } else {
+        eraserCursor.style.display    = 'none';
+        eraserSizeLabel.style.display = 'none';
+        eraserVisible = false;
+        viewport.style.cursor = 'default';
+      }
+    }
+
+    function hideEraserCursorTemporarily() {
+      eraserHiddenTemporarily = true;
+      eraserCursor.style.display    = 'none';
+      eraserSizeLabel.style.display = 'none';
+    }
+
+    function showEraserCursorIfNeeded() {
+      eraserHiddenTemporarily = false;
+      updateEraserCursorVisibility();
+    }
+
+    function positionEraserCursor(pageX, pageY) {
+      // Eraser size in world units; convert to display size using scale
+      const sizeWorld   = Number(penSize.value) || 10;
+      const displaySize = Math.max(6, sizeWorld * scale);
+
+      eraserCursor.style.width       = displaySize + 'px';
+      eraserCursor.style.height      = displaySize + 'px';
+      eraserCursor.style.left        = pageX + 'px';
+      eraserCursor.style.top         = pageY + 'px';
+      eraserCursor.style.borderRadius = (displaySize / 2) + 'px';
+
+      eraserSizeLabel.textContent = `${sizeWorld}px`;
+
+      const labelOffsetY = 12 + displaySize / 2;
+      eraserSizeLabel.style.left = pageX + 'px';
+      eraserSizeLabel.style.top  = (pageY - labelOffsetY) + 'px';
+    }
+
+    viewport.addEventListener('pointerenter', () => {
+      lastPointerInViewport = true;
+      updateEraserCursorVisibility();
+    });
+
+    viewport.addEventListener('pointerleave', () => {
+      lastPointerInViewport = false;
+      updateEraserCursorVisibility();
+    });
+
+    // Global pointermove: handle eraser cursor position + canvas drawing
+    window.addEventListener('pointermove', ev => {
+      if (eraserVisible || (drawMode === 'eraser' && lastPointerInViewport)) {
+        positionEraserCursor(ev.clientX, ev.clientY);
+      }
+
+      if (isDrawing) {
+        const wpt = pageToWorld(ev.clientX, ev.clientY);
+        continueDrawTo(wpt);
+      }
+    });
+
+    // Pen size change: cursor will update on next pointermove; nothing to do here
+    penSize.addEventListener('input', () => { /* no-op; visual updates automatically */ });
+
+    // -------------------------
+    // Panning & selection box
+    // -------------------------
+    let spaceDown = false;
+    let panning   = false;
+    let panStart  = null;
+    let savedPan  = null;
+
+    let selecting = false;
+    let selStart  = null;
+
+    viewport.addEventListener('pointerdown', ev => {
+      viewport.focus();
+
+      // Holding space = pan mode
+      if (spaceDown) {
+        panning  = true;
+        panStart = { x: ev.clientX, y: ev.clientY };
+        savedPan = { x: pan.x,      y: pan.y      };
+        viewport.style.cursor = 'grabbing';
+        ev.preventDefault();
+        return;
+      }
+
+      // Selection rectangle when in "select" mode and clicking on empty area
+      if (drawMode === 'select' &&
+          (ev.target === viewport || ev.target === world || ev.target === drawingCanvas)) {
+        selecting = true;
+        selStart  = { x: ev.clientX, y: ev.clientY };
+        selRect.style.left   = selStart.x + 'px';
+        selRect.style.top    = selStart.y + 'px';
+        selRect.style.width  = '0px';
+        selRect.style.height = '0px';
+        selRect.style.display = 'block';
+        ev.preventDefault();
+        return;
+      }
+
+      // If a drawing tool is active, start drawing
+      if (drawMode === 'pen' ||
+          drawMode === 'highlighter' ||
+          drawMode === 'eraser') {
+        const wpt = pageToWorld(ev.clientX, ev.clientY);
+        startDrawAt(wpt);
+        ev.preventDefault();
+      }
+    });
+
+    window.addEventListener('pointermove', ev => {
+      // Handle panning
+      if (panning) {
+        pan.x = savedPan.x + (ev.clientX - panStart.x);
+        pan.y = savedPan.y + (ev.clientY - panStart.y);
+        applyTransform();
+        return;
+      }
+
+      // Handle selection rectangle resizing
+      if (selecting && selStart) {
+        const x = Math.min(selStart.x, ev.clientX);
+        const y = Math.min(selStart.y, ev.clientY);
+        const w = Math.abs(ev.clientX - selStart.x);
+        const h = Math.abs(ev.clientY - selStart.y);
+
+        selRect.style.left   = x + 'px';
+        selRect.style.top    = y + 'px';
+        selRect.style.width  = w + 'px';
+        selRect.style.height = h + 'px';
+        return;
+      }
+    });
+
+    window.addEventListener('pointerup', ev => {
+      if (panning) {
+        panning = false;
+        viewport.style.cursor = 'default';
+        return;
+      }
+
+      if (selecting) {
+        finalizeSelectionRect(ev);
+        selecting = false;
+        selRect.style.display = 'none';
+        selStart = null;
+        return;
+      }
+
+      if (isDrawing) {
+        endDraw();
+      }
+    });
+
+    // Spacebar toggles panning mode
+    window.addEventListener('keydown', ev => {
+      if (ev.code === 'Space') {
+        spaceDown = true;
+        viewport.style.cursor = 'grab';
+        ev.preventDefault();
+      }
+    });
+
+    window.addEventListener('keyup', ev => {
+      if (ev.code === 'Space') {
+        spaceDown = false;
+        viewport.style.cursor = 'default';
+      }
+    });
+
+    // -------------------------
+    // Object selection model
+    // -------------------------
+    let selectedSet    = new Set();
+    let selectionOrder = [];  // preserve order of selection
+    let objectCounter  = 1;
+    let zCounter       = 1;
+
+    function addToSelection(el) {
+      if (!el || selectedSet.has(el)) return;
+      selectedSet.add(el);
+      selectionOrder.push(el);
+      el.classList.add('selected');
+    }
+
+    function removeFromSelection(el) {
+      if (!el || !selectedSet.has(el)) return;
+      selectedSet.delete(el);
+      selectionOrder = selectionOrder.filter(x => x !== el);
+      el.classList.remove('selected');
+    }
+
+    function clearSelection() {
+      for (const e of Array.from(selectedSet)) {
+        e.classList.remove('selected');
+      }
+      selectedSet.clear();
+      selectionOrder = [];
+    }
+
+    function getSelectionArray() {
+      return Array.from(selectionOrder);
+    }
+
+    /**
+     * Select a single object.
+     * - If append is false: clear old selection and select only this.
+     * - If append is true: toggle this element in the selection set.
+     */
+    function selectObjectSingle(el, append = false) {
+      if (append) {
+        if (selectedSet.has(el)) {
+          removeFromSelection(el);
+        } else {
+          addToSelection(el);
+        }
+      } else {
+        clearSelection();
+        if (el) addToSelection(el);
+      }
+    }
+
+    // -------------------------
+    // Style application helpers
+    // -------------------------
+    function applyFontColor(color) {
+      if (selectedSet.size > 0) {
+        for (const el of getSelectionArray()) {
+          const c = el.querySelector('.content');
+          if (c) c.style.color = color;
+        }
+      } else {
+        // If nothing selected, change the default for future text objects
+        defaultFontColor = color;
+      }
+    }
+
+    function applyFontSize(size) {
+      const px = (Number(size) || 12) + 'px';
+      if (selectedSet.size > 0) {
+        for (const el of getSelectionArray()) {
+          if (el.classList.contains('text')) {
+            const c = el.querySelector('.content');
+            if (c) c.style.fontSize = px;
+          }
+        }
+      } else {
+        defaultFontSize = Number(size) || 12;
+      }
+    }
+
+    function applyShapeFill(color) {
+      if (selectedSet.size > 0) {
+        for (const el of getSelectionArray()) {
+          if (el.classList.contains('rect') ||
+              el.classList.contains('circle')) {
+            el.style.background = color;
+          }
+        }
+      } else {
+        defaultShapeFill = color;
+      }
+    }
+
+    function applyShapeBorder(color) {
+      if (selectedSet.size > 0) {
+        for (const el of getSelectionArray()) {
+          if (el.classList.contains('rect') ||
+              el.classList.contains('circle')) {
+            el.style.borderColor = color;
+          }
+        }
+      } else {
+        defaultShapeBorder = color;
+      }
+    }
+
+    // Wire style inputs
+    fontColorInput.addEventListener('input', e => applyFontColor(e.target.value));
+    fontSizeInput.addEventListener('input', e => applyFontSize(e.target.value));
+    shapeFillInput.addEventListener('input', e => applyShapeFill(e.target.value));
+    shapeBorderInput.addEventListener('input', e => applyShapeBorder(e.target.value));
+
+    // -------------------------
+    // Object creation
+    // -------------------------
+    function createObject({ x = 120, y = 80, w = 220, h = 120, type = 'rect', html = '' } = {}) {
+      const el = document.createElement('div');
+
+      // Base classes
+      el.className = 'obj ' + (
+        type === 'circle' ? 'circle' :
+        type === 'text'   ? 'text'   :
+        'rect'
+      );
+
+      el.dataset.objId   = 'obj' + (objectCounter++);
+      el.style.left      = x + 'px';
+      el.style.top       = y + 'px';
+      el.style.width     = w + 'px';
+      el.style.height    = h + 'px';
+      el.style.transform = 'rotate(0deg)';
+      el.style.zIndex    = ++zCounter;
+      el.dataset.angle   = '0';
+
+      const content = document.createElement('div');
+      content.className = 'content';
+
+      if (type === 'text') {
+        content.innerHTML     = html || 'Double-click to edit';
+        content.style.color   = defaultFontColor;
+        content.style.fontSize= defaultFontSize + 'px';
+      } else if (type === 'rect' || type === 'circle') {
+        content.innerHTML     = html || '';
+        el.style.background   = defaultShapeFill;
+        el.style.borderColor  = defaultShapeBorder;
+      } else {
+        content.innerHTML = html || '';
+      }
+
+      el.appendChild(content);
+
+      // Rotate + resize handles
+      const rotateHandle = document.createElement('div');
+      rotateHandle.className = 'handle rotate';
+      el.appendChild(rotateHandle);
+
+      const resizeHandle = document.createElement('div');
+      resizeHandle.className = 'handle resize';
+      el.appendChild(resizeHandle);
+
+      makeInteractiveObject(el, rotateHandle, resizeHandle);
+      objectsLayer.appendChild(el);
+
+      // Select newly created object
+      selectObjectSingle(el);
+
+      return el;
+    }
+
+    // Toolbar create-button wiring
+    document.getElementById('addRect').addEventListener('click',    () => createObject({ type: 'rect' }));
+    document.getElementById('addCircle').addEventListener('click',  () => createObject({ type: 'circle', w: 140, h: 140 }));
+    document.getElementById('addText').addEventListener('click',    () => createObject({ type: 'text', w: 220, h: 80, html: 'Double-click to edit' }));
+    document.getElementById('addImage').addEventListener('click',   () => {
+      const url = prompt('Image URL (direct):');
+      if (!url) return;
+      createObject({
+        type: 'rect',
+        w: 260,
+        h: 160,
+        html: `<img src="${url.replace(/"/g,'')}" alt="">`
+      });
+    });
+    document.getElementById('dupBtn').addEventListener('click',     () => duplicateSelected());
+    clearAllBtn.addEventListener('click', () => {
+      if (confirm('Remove all objects and drawings?')) {
+        objectsLayer.innerHTML = '';
+        ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+        clearSelection();
+      }
+    });
+
+    // -------------------------
+    // Selection rectangle finalize
+    // -------------------------
+    function finalizeSelectionRect(ev) {
+      if (!selRect) return;
+
+      const rectPage = selRect.getBoundingClientRect();
+      const vpRect   = viewport.getBoundingClientRect();
+
+      // Convert selection rectangle (page space) into world space
+      const worldRect = {
+        left:   (rectPage.left   - vpRect.left - pan.x) / scale,
+        top:    (rectPage.top    - vpRect.top  - pan.y) / scale,
+        right:  (rectPage.right  - vpRect.left - pan.x) / scale,
+        bottom: (rectPage.bottom - vpRect.top  - pan.y) / scale
+      };
+
+      const els = Array.from(objectsLayer.children)
+        .filter(e => e.classList && e.classList.contains('obj'));
+
+      const append = !!ev.shiftKey;
+      if (!append) clearSelection();
+
+      for (const el of els) {
+        const l = parseFloat(el.style.left);
+        const t = parseFloat(el.style.top);
+        const w = parseFloat(el.style.width);
+        const h = parseFloat(el.style.height);
+
+        const r = l + w;
+        const b = t + h;
+
+        const intersects = !(
+          r < worldRect.left ||
+          l > worldRect.right ||
+          b < worldRect.top ||
+          t > worldRect.bottom
+        );
+
+        if (intersects) {
+          addToSelection(el);
+        }
+      }
+    }
+
+    // -------------------------
+    // Interactive object behaviors
+    // (drag, resize, rotate, double-click edit, click select)
+    // -------------------------
+    function makeInteractiveObject(el, rotateHandle, resizeHandle) {
+      // ---- Dragging (move object or selection group) ----
+      let dragging  = false;
+      let dragStart = null;
+      let groupOrig = null;
+
+      el.addEventListener('pointerdown', ev => {
+        // Only left button
+        if (ev.button && ev.button !== 0) return;
+
+        if (ev.target === rotateHandle || ev.target === resizeHandle) return;
+
+        ev.stopPropagation();
+
+        // Selection behavior: shift-click toggles in selection, otherwise single select
+        if (ev.shiftKey) {
+          selectObjectSingle(el, true);
+        } else if (!selectedSet.has(el)) {
+          selectObjectSingle(el, false);
+        }
+
+        if (el.setPointerCapture) el.setPointerCapture(ev.pointerId);
+
+        dragging  = true;
+        dragStart = { x: ev.clientX, y: ev.clientY };
+
+        // Capture original positions of all selected objects for group move
+        groupOrig = getSelectionArray().map(o => ({
+          el:   o,
+          left: parseFloat(o.style.left),
+          top:  parseFloat(o.style.top)
+        }));
+      });
+
+      window.addEventListener('pointermove', ev => {
+        if (!dragging) return;
+
+        const dxpx = ev.clientX - dragStart.x;
+        const dypx = ev.clientY - dragStart.y;
+
+        const dx = dxpx / scale;
+        const dy = dypx / scale;
+
+        for (const o of groupOrig) {
+          let nx = o.left + dx;
+          let ny = o.top  + dy;
+
+          if (snapToggle.checked) {
+            nx = snapValue(nx);
+            ny = snapValue(ny);
+          }
+
+          o.el.style.left = nx + 'px';
+          o.el.style.top  = ny + 'px';
+        }
+      });
+
+      window.addEventListener('pointerup', ev => {
+        if (!dragging) return;
+        dragging = false;
+        if (el.releasePointerCapture) el.releasePointerCapture(ev.pointerId);
+      });
+
+      // ---- Resizing (bottom-right handle) ----
+      let resizing = false;
+      let rStart   = null;
+      let rOrig    = null;
+
+      resizeHandle.addEventListener('pointerdown', ev => {
+        ev.stopPropagation();
+        if (el.setPointerCapture) el.setPointerCapture(ev.pointerId);
+
+        resizing = true;
+        rStart   = { x: ev.clientX, y: ev.clientY };
+        rOrig    = { w: el.offsetWidth, h: el.offsetHeight };
+
+        if (!selectedSet.has(el)) {
+          clearSelection();
+          addToSelection(el);
+        }
+      });
+
+      window.addEventListener('pointermove', ev => {
+        if (!resizing) return;
+
+        const dxpx = ev.clientX - rStart.x;
+        const dypx = ev.clientY - rStart.y;
+
+        const dx = dxpx / scale;
+        const dy = dypx / scale;
+
+        let nw = Math.max(20, rOrig.w + dx);
+        let nh = Math.max(12, rOrig.h + dy);
+
+        if (snapToggle.checked) {
+          nw = snapValue(nw);
+          nh = snapValue(nh);
+        }
+
+        el.style.width  = nw + 'px';
+        el.style.height = nh + 'px';
+      });
+
+      window.addEventListener('pointerup', ev => {
+        if (!resizing) return;
+        resizing = false;
+        if (resizeHandle.releasePointerCapture) {
+          resizeHandle.releasePointerCapture(ev.pointerId);
+        }
+      });
+
+      // ---- Rotating (top handle) ----
+      let rotating              = false;
+      let rotateStartPointerDeg = 0;
+      let rotateStartAngle      = 0;
+      let rotateCenter          = null;
+
+      rotateHandle.addEventListener('pointerdown', ev => {
+        ev.stopPropagation();
+        if (el.setPointerCapture) el.setPointerCapture(ev.pointerId);
+
+        rotating = true;
+
+        const rect = el.getBoundingClientRect();
+        const cx   = rect.left + rect.width / 2;
+        const cy   = rect.top  + rect.height / 2;
+
+        rotateCenter = pageToWorld(cx, cy);
+        rotateStartAngle = parseFloat(el.dataset.angle || '0');
+
+        const p = pageToWorld(ev.clientX, ev.clientY);
+        rotateStartPointerDeg =
+          Math.atan2(p.y - rotateCenter.y, p.x - rotateCenter.x) * 180 / Math.PI;
+
+        if (!selectedSet.has(el)) {
+          clearSelection();
+          addToSelection(el);
+        }
+      });
+
+      window.addEventListener('pointermove', ev => {
+        if (!rotating) return;
+
+        const p = pageToWorld(ev.clientX, ev.clientY);
+        const pointerDeg =
+          Math.atan2(p.y - rotateCenter.y, p.x - rotateCenter.x) * 180 / Math.PI;
+
+        let delta    = pointerDeg - rotateStartPointerDeg;
+        let newAngle = rotateStartAngle + delta + 90;
+
+        if (snapToggle.checked) newAngle = snapAngle(newAngle);
+
+        el.style.transform = `rotate(${newAngle}deg)`;
+        el.dataset.angle   = String(newAngle);
+      });
+
+      window.addEventListener('pointerup', ev => {
+        if (!rotating) return;
+        rotating = false;
+        if (rotateHandle.releasePointerCapture) {
+          rotateHandle.releasePointerCapture(ev.pointerId);
+        }
+      });
+
+      // ---- Text edit on double-click ----
+      el.addEventListener('dblclick', () => {
+        if (!el.classList.contains('text')) return;
+        const c = el.querySelector('.content');
+        if (!c) return;
+        c.contentEditable = true;
+        c.focus();
+        c.addEventListener('blur', () => {
+          c.contentEditable = false;
+        }, { once: true });
+      });
+
+      // ---- Click selection (single-click) ----
+      el.addEventListener('click', ev => {
+        ev.stopPropagation();
+        const append = ev.shiftKey;
+        selectObjectSingle(el, append);
+      });
+    }
+
+    // -------------------------
+    // Duplication & deletion
+    // -------------------------
+    function duplicateSelected() {
+      const sel = getSelectionArray();
+      if (sel.length === 0) return;
+
+      clearSelection();
+
+      for (const el of sel) {
+        const clone = el.cloneNode(true);
+        clone.dataset.objId = 'obj' + (objectCounter++);
+
+        const left = parseFloat(el.style.left || '0') + 20;
+        const top  = parseFloat(el.style.top  || '0') + 20;
+
+        clone.style.left   = left + 'px';
+        clone.style.top    = top  + 'px';
+        clone.style.zIndex = ++zCounter;
+
+        // Ensure handles exist & re-wire interaction
+        let rotateHandle = clone.querySelector('.handle.rotate');
+        let resizeHandle = clone.querySelector('.handle.resize');
+
+        if (!rotateHandle) {
+          rotateHandle = document.createElement('div');
+          rotateHandle.className = 'handle rotate';
+          clone.appendChild(rotateHandle);
+        }
+        if (!resizeHandle) {
+          resizeHandle = document.createElement('div');
+          resizeHandle.className = 'handle resize';
+          clone.appendChild(resizeHandle);
+        }
+
+        makeInteractiveObject(clone, rotateHandle, resizeHandle);
+        objectsLayer.appendChild(clone);
+        addToSelection(clone);
+      }
+    }
+
+    function deleteSelected() {
+      const sel = getSelectionArray();
+      if (sel.length === 0) return;
+      for (const el of sel) {
+        el.remove();
+      }
+      clearSelection();
+    }
+
+    // Clicking on empty stage: clear selection (when not drawing)
+    viewport.addEventListener('pointerdown', ev => {
+      if (ev.target === viewport || ev.target === world || ev.target === drawingCanvas) {
+        if (drawMode !== 'pen' && drawMode !== 'highlighter' && drawMode !== 'eraser') {
+          clearSelection();
+        }
+      }
+    });
+
+    // -------------------------
+    // Export / Import JSON
+    // -------------------------
+    exportJSONBtn.addEventListener('click', () => {
+      const out = [];
+
+      for (const el of objectsLayer.children) {
+        if (!el.classList || !el.classList.contains('obj')) continue;
+
+        const content = el.querySelector('.content');
+
+        out.push({
+          id:    el.dataset.objId,
+          type:  el.classList.contains('circle') ? 'circle'
+                : el.classList.contains('text')  ? 'text'
+                : 'rect',
+          left:   parseFloat(el.style.left  || 0),
+          top:    parseFloat(el.style.top   || 0),
+          width:  parseFloat(el.style.width || el.offsetWidth),
+          height: parseFloat(el.style.height|| el.offsetHeight),
+          angle:  parseFloat(el.dataset.angle || 0),
+          html:   content ? content.innerHTML : '',
+          css: {
+            background: el.style.background || '',
+            borderColor: el.style.borderColor || '',
+            fontSize: content ? (content.style.fontSize || '') : '',
+            color:    content ? (content.style.color    || '') : ''
+          },
+          z: parseInt(el.style.zIndex || '0', 10)
+        });
+      }
+
+      const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' });
+      const a    = document.createElement('a');
+      a.href     = URL.createObjectURL(blob);
+      a.download = 'whiteboard-objects.json';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+
+    importJSONbtn.addEventListener('click', () => importJSONfile.click());
+
+    importJSONfile.addEventListener('change', ev => {
+      const f = ev.target.files[0];
+      if (!f) return;
+
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          const data = JSON.parse(e.target.result);
+
+          objectsLayer.innerHTML = '';
+          clearSelection();
+
+          for (const item of data) {
+            const el = createObject({
+              x:    item.left,
+              y:    item.top,
+              w:    item.width,
+              h:    item.height,
+              type: item.type,
+              html: item.html
+            });
+
+            el.style.zIndex = item.z || 1;
+            el.style.transform = `rotate(${item.angle || 0}deg)`;
+            el.dataset.angle = String(item.angle || 0);
+
+            if (item.css) {
+              if (item.css.background)  el.style.background  = item.css.background;
+              if (item.css.borderColor) el.style.borderColor = item.css.borderColor;
+              const c = el.querySelector('.content');
+              if (c) {
+                if (item.css.fontSize) c.style.fontSize = item.css.fontSize;
+                if (item.css.color)    c.style.color    = item.css.color;
+              }
+            }
+          }
+        } catch (err) {
+          alert('Invalid JSON file.');
+        }
+      };
+      reader.readAsText(f);
+      ev.target.value = ''; // reset file input
+    });
+
+    // -------------------------
+    // Grid toggle
+    // -------------------------
+    toggleGridBtn.addEventListener('click', () => {
+      const showGrid = !world.classList.contains('grid');
+      if (showGrid) {
+        world.classList.add('grid');
+        world.classList.remove('nogrid');
+      } else {
+        world.classList.remove('grid');
+        world.classList.add('nogrid');
+      }
+    });
+
+    // -------------------------
+    // Guide visibility (help panel)
+    // -------------------------
+    const GUIDE_KEY = 'wb_guide_style_v1';
+    let guideState = { open: true };
+
+    try {
+      const saved = localStorage.getItem(GUIDE_KEY);
+      if (saved) {
+        guideState = JSON.parse(saved);
+      }
+    } catch (e) {
+      // ignore parse errors and use defaults
+    }
+
+    function applyGuideState() {
+      if (!guideState.open) {
+        guide.style.display = 'none';
+        helpBtn.style.display = 'block';
+      } else {
+        guide.style.display = 'block';
+        helpBtn.style.display = 'none';
+      }
+    }
+
+    function saveGuideState() {
+      localStorage.setItem(GUIDE_KEY, JSON.stringify(guideState));
+    }
+
+    applyGuideState();
+
+    collapseGuide.addEventListener('click', () => {
+      // Here we simply hide it; you can later add a "collapsed bubble" style if you want.
+      guideState.open = false;
+      saveGuideState();
+      applyGuideState();
+    });
+
+    closeGuide.addEventListener('click', () => {
+      guideState.open = false;
+      saveGuideState();
+      applyGuideState();
+    });
+
+    helpBtn.addEventListener('click', () => {
+      guideState.open = true;
+      saveGuideState();
+      applyGuideState();
+    });
+
+    // -------------------------
+    // Keyboard shortcuts
+    // -------------------------
+    window.addEventListener('keydown', ev => {
+      // Duplicate: Ctrl/Cmd + D
+      if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'd') {
+        duplicateSelected();
+        ev.preventDefault();
+      }
+
+      // Delete selected (Del or Backspace)
+      if (ev.key === 'Delete' || ev.key === 'Backspace') {
+        deleteSelected();
+        ev.preventDefault();
+      }
+    });
+
+    // -------------------------
+    // Touch behavior: prevent scrolling when drawing on world
+    // -------------------------
+    document.body.addEventListener('touchstart', e => {
+      if (e.target.closest('.world')) e.preventDefault();
+    }, { passive: false });
+
+    document.body.addEventListener('touchmove', e => {
+      if (e.target.closest('.world')) e.preventDefault();
+    }, { passive: false });
+
+    // -------------------------
+    // Initial demo objects (for a friendly starting state)
+    // -------------------------
+    createObject({ x: 80,  y: 60,  w: 260, h: 150, type: 'rect' });
+    createObject({ x: 420, y: 120, w: 160, h: 160, type: 'circle' });
+    createObject({ x: 120, y: 320, w: 260, h: 110, type: 'text',
+                   html: 'Double-click to edit' });
+
+    // Ensure world sized correctly relative to viewport
+    resizeWorld();
+    applyTransform();
+    setActiveTool('pen'); // default tool
+  })();
+</script>
+</body>
+</html>
