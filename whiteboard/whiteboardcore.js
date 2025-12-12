@@ -53,8 +53,8 @@
       // -------------------------
       let defaultFontColor = fontColorInput.value || '#000000';
       let defaultFontSize = Number(fontSizeInput.value) || 16;
-      let defaultShapeFill = shapeFillInput.value || '#3f6bff26';
-      let defaultShapeBorder = shapeBorderInput.value || '#3f6bff2e';
+      let defaultShapeFill = shapeFillInput.value || 'teal';
+      let defaultShapeBorder = shapeBorderInput.value || 'red';
 
       // -------------------------
       // World sizing & transform
@@ -206,11 +206,12 @@
           ctx.restore();
         }
         else if (drawMode === 'highlighter') {
+          // console.log("Highlighting",ctx);
           ctx.save();
-          ctx.globalCompositeOperation = 'source-over';
+          ctx.globalCompositeOperation = 'multiply';
           ctx.globalAlpha = Number(penOpacity.value) * 0.45;
-          ctx.lineWidth = size * 2;
-          ctx.strokeStyle = penColor.value;
+          ctx.lineWidth = size * .5;
+          ctx.strokeStyle ="#FFFF00";// penColor.value;
           ctx.lineTo(worldPt.x, worldPt.y);
           ctx.stroke();
           ctx.restore();
