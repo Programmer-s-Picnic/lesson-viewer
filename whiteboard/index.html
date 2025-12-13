@@ -3,46 +3,63 @@
 
 <head>
   <meta charset="utf-8" />
+  <!-- Change viewport settings if you want different mobile scaling behavior -->
+  <!-- Example: remove user scaling restrictions, or add "maximum-scale=1" etc. -->
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+  <!-- Change the title shown in the browser tab -->
   <title>Programmer's Whiteboard — Champak Roy</title>
 
   <!-- =========================================================
        PART 1: GLOBAL STYLES
        - Visual design only; no behavior here.
-       - If you want to re-theme the board, this is your section.
+       - If you want to re-theme the board, edit whiteboard.css
      ========================================================= -->
   <link rel="stylesheet" href="whiteboard.css" />
 </head>
 
 <body>
+  <!-- The main app wrapper -->
   <div class="app">
 
     <!-- =========================================================
        PART 2: HTML STRUCTURE
        - Pure DOM structure; no behavior here.
        - JS will query by ID/class and attach listeners.
+       - IMPORTANT: IDs are used in JS. If you rename an ID here,
+         you must rename it in whiteboard.js or whiteboardcore.js too.
      ========================================================= -->
 
     <!-- TOP TOOLBAR -->
     <div class="toolbar" role="toolbar" aria-label="Main toolbar" id="toolbar">
       <!-- Collapse / Menu button -->
+      <!-- Change icon "☰" to something else if you want -->
       <button id="menuCollapse" aria-label="Toggle toolbar" aria-expanded="true"
         title="Collapse / Expand / Show more tools">
         ☰
       </button>
 
       <!-- Group 1: Object creation -->
+      <!-- These buttons are wired in whiteboardcore.js -->
       <div class="group hide-when-collapsed" id="groupObjects">
         <button id="addRect" title="Add rectangle">Add Rect</button>
         <button id="addCircle" title="Add circle">Add Circle</button>
         <button id="addText" title="Add text">Add Text</button>
+
+        <!-- Add Image: prompts for URL in JS (whiteboardcore.js) -->
         <button id="addImage" title="Add an image by URL">Add Image</button>
+
+        <!-- Duplicate: Ctrl/Cmd + D also works -->
         <button id="dupBtn" title="Duplicate selected (Ctrl/Cmd + D)">Duplicate</button>
       </div>
 
       <!-- Group 2: Grid + Snap controls -->
       <div class="group hide-when-collapsed" id="groupGrid">
+        <!-- Grid toggle button wired in whiteboardcore.js -->
         <button id="toggleGrid">Toggle Grid</button>
+
+        <!-- Grid size dropdown: changes snapping step + visual grid spacing -->
+        <!-- Change option values here to add more sizes -->
         <label>Grid:</label>
         <select id="gridSize">
           <option value="8">8px</option>
@@ -50,16 +67,24 @@
           <option value="20">20px</option>
           <option value="32">32px</option>
         </select>
+
+        <!-- Snap toggle checkbox -->
         <label>Snap</label>
         <input type="checkbox" id="snapToggle" checked>
       </div>
 
       <!-- Group 3: Import/Export -->
       <div class="group hide-when-collapsed" id="groupIO">
+        <!-- Export JSON saves only OBJECTS, not the drawing canvas (currently) -->
         <button id="exportJSON">Export JSON</button>
+
+        <!-- Import JSON button triggers hidden file input -->
         <button id="importJSONbtn">Import JSON</button>
+
         <!-- Hidden file input used by Import button -->
         <input id="importJSONfile" type="file" accept="application/json" style="display:none">
+
+        <!-- Clear all clears objects AND canvas drawing -->
         <button id="clearAll">Clear All</button>
       </div>
 
@@ -68,13 +93,17 @@
 
       <!-- Group 4: Font & shape style controls -->
       <div class="group hide-when-collapsed" id="groupStyle">
+        <!-- These affect selected objects, or become defaults for new objects -->
         <label>Font</label>
         <input id="fontColor" type="color" title="Font color" value="#000000">
+
         <label>Size</label>
+        <!-- Change min/max if you want larger/smaller font range -->
         <input id="fontSize" type="number" min="8" max="72" value="16" style="width:80px">
 
         <label>Fill</label>
         <input id="shapeFill" type="color" value="#aaaaaa" title="Shape fill color">
+
         <label>Border</label>
         <input id="shapeBorder" type="color" value="#FFFF00" title="Shape border color">
       </div>
@@ -82,36 +111,50 @@
       <!-- Group 5: Draw settings (always visible) -->
       <div class="group" id="groupDraw">
         <label>Draw</label>
+
+        <!-- Pen color input -->
         <input id="penColor" type="color" value="#000000">
+
+        <!-- These are hidden when collapsed (mobile) -->
         <label class="hide-when-collapsed">Size</label>
+        <!-- Change range max if you want thicker strokes possible -->
         <input id="penSize" type="range" min="1" max="80" value="18" class="hide-when-collapsed">
+
         <label class="hide-when-collapsed">Opacity</label>
+        <!-- Change min/step if you want finer opacity control -->
         <input id="penOpacity" type="range" min="0.1" max="1" step="0.05" value="1" class="hide-when-collapsed">
       </div>
 
       <!-- Dropdown that appears when toolbar is collapsed -->
+      <!-- Built dynamically by whiteboard.js -->
       <div class="toolbar-dropdown" id="toolbarDropdown" role="menu" aria-hidden="true"></div>
     </div>
 
     <!-- MAIN LAYOUT: left tools + viewport -->
     <div class="layout">
       <!-- Left tool column -->
+      <!-- On small screens CSS hides this, and toolbar dropdown becomes important -->
       <div class="leftcol" aria-hidden="false">
+        <!-- Tool buttons wired in whiteboardcore.js -->
         <div id="penTool" class="toolbtn active" title="Pen tool (draw)">Pen</div>
         <div id="highlighterTool" class="toolbtn" title="Highlighter tool">Highlight</div>
         <div id="eraserTool" class="toolbtn" title="Eraser tool">Eraser</div>
         <div id="selectTool" class="toolbtn" title="Select objects / selection box">Select</div>
+
         <div id="panHint" style="margin-top:6px;font-size:12px;color:#334">
           Hold <b>Space</b> to Pan
         </div>
       </div>
 
       <!-- Whiteboard viewport -->
+      <!-- tabindex=0 lets it receive keyboard focus -->
       <div class="stage-viewport" id="viewport" tabindex="0" aria-label="Whiteboard viewport">
         <!-- World inside viewport (panned/scaled as a whole) -->
+        <!-- You can add/remove "grid" / "nogrid" class in JS -->
         <div class="world nogrid" id="world">
-          <!-- Drawing canvas -->
+          <!-- Drawing canvas (pen/highlighter/eraser works here) -->
           <canvas id="drawing" class="draw-layer"></canvas>
+
           <!-- Layer for draggable/rotatable objects -->
           <div id="objectsLayer" class="objects-layer"></div>
         </div>
@@ -126,10 +169,12 @@
           <small style="color:#445">Quick tips</small>
         </div>
         <div>
+          <!-- Collapse and close currently do same thing: hide the guide -->
           <button id="collapseGuide" title="Hide guide">–</button>
           <button id="closeGuide" title="Close guide">✕</button>
         </div>
       </div>
+
       <div class="content" id="guideContent">
         <h4>Basic</h4>
         <ul>
@@ -146,8 +191,9 @@
     <!-- Floating help button shown when guide is hidden -->
     <button id="helpBtn" title="Show help">?</button>
 
-    <!-- Selection rectangle overlay -->
+    <!-- Selection rectangle overlay (for drag-select in Select tool mode) -->
     <div id="selRect" class="sel-rect"></div>
+
     <!-- Eraser visual cursor + label -->
     <div id="eraserCursor" aria-hidden="true"></div>
     <div id="eraserSizeLabel" aria-hidden="true"></div>
@@ -157,12 +203,15 @@
      PART 3: TOOLBAR MODULE (Collapse + Dropdown)
      - Handles responsive behavior of the top toolbar.
      - Clones "hide-when-collapsed" controls into dropdown.
+     - If you want to change auto-collapse breakpoint, edit whiteboard.js
    ========================================================= -->
   <script src="whiteboard.js"></script>
+
   <!-- =========================================================
      PART 4: WHITEBOARD CORE
      - Drawing tools, objects, selection, grid, import/export,
        guide panel, and initial demo content.
+     - If you want to change highlight behavior, edit whiteboardcore.js
    ========================================================= -->
   <script src="whiteboardcore.js"></script>
 </body>
