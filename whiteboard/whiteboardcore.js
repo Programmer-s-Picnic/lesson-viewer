@@ -205,17 +205,42 @@
           ctx.stroke();
           ctx.restore();
         }
+       
+        
+        
+
+
+
+
+        
+
         else if (drawMode === 'highlighter') {
-          // console.log("Highlighting",ctx);
-          ctx.save();
-          ctx.globalCompositeOperation = 'multiply';
-          ctx.globalAlpha = Number(penOpacity.value) * 0.45;
-          ctx.lineWidth = size * .5;
-          ctx.strokeStyle ="#FFFF00";// penColor.value;
-          ctx.lineTo(worldPt.x, worldPt.y);
-          ctx.stroke();
-          ctx.restore();
-        }
+          console.log("HIGHLIGHTER ACTIVE");
+
+  ctx.save();
+
+  ctx.globalCompositeOperation = 'source-over';
+
+  // Base marker stroke
+  ctx.globalAlpha = 0.55;
+
+  ctx.lineWidth = size * 2.6;
+  ctx.strokeStyle = 'rgba(255, 245, 0, 1)';
+  ctx.lineCap = 'butt';
+
+  // Soft bleed (THIS is the visible boost)
+  ctx.shadowColor = 'rgba(255, 245, 0, 0.6)';
+  ctx.shadowBlur = size * 1.2;
+
+
+  ctx.lineTo(worldPt.x, worldPt.y);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+
+
         else if (drawMode === 'pen') {
           ctx.save();
           ctx.globalCompositeOperation = 'source-over';
