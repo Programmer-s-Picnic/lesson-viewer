@@ -657,10 +657,21 @@
     content.className = 'content';
 
     if (type === 'text') {
-      content.innerHTML = html || 'Double-click to edit';
-      content.style.color = defaultFontColor;
-      content.style.fontSize = defaultFontSize + 'px';
-    } else if (type === 'rect' || type === 'circle') {
+  content.innerHTML = html || 'Double-click to edit';
+  content.style.color = defaultFontColor;
+  content.style.fontSize = defaultFontSize + 'px';
+} else if (type === 'rect' || type === 'circle') {
+  content.innerHTML = html || 'Double-click to edit';
+  content.style.color = defaultFontColor;
+  content.style.fontSize = defaultFontSize + 'px';
+  el.style.background = defaultShapeFill;
+  el.style.borderColor = defaultShapeBorder;
+}
+
+    
+
+
+    else if (type === 'rect' || type === 'circle') {
       content.innerHTML = html || '';
       el.style.background = defaultShapeFill;
       el.style.borderColor = defaultShapeBorder;
@@ -910,19 +921,23 @@
     });
 
     // ---- TEXT EDITING ----
+    
     el.addEventListener('dblclick', () => {
-      if (!el.classList.contains('text')) return;
-      const c = el.querySelector('.content');
-      if (!c) return;
+  const c = el.querySelector('.content');
+  if (!c) return;
 
-      c.contentEditable = true;
-      c.focus();
+  c.contentEditable = true;
+  c.focus();
 
-      c.addEventListener('blur', () => {
-        c.contentEditable = false;
-        captureState(); // >>> UNDO/REDO (commit edit)
-      }, { once: true });
-    });
+  // Select text automatically
+  document.execCommand('selectAll', false, null);
+
+  c.addEventListener('blur', () => {
+    c.contentEditable = false;
+    captureState(); // Undo support
+  }, { once: true });
+});
+
 
     el.addEventListener('click', ev => {
       ev.stopPropagation();
