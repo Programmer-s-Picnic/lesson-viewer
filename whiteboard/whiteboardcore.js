@@ -80,7 +80,7 @@
   // scale = zoom factor (currently fixed at 1, but ready for zoom feature)
   let pan = { x: 0, y: 0 };
   let scale = 1;
-
+/**Undo Redo Begin */
   /**
    * Resize world based on viewport size.
    *
