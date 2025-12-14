@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -10,71 +11,138 @@
 <body>
   <div class="app">
 
-    <!-- ================= TOP TOOLBAR ================= -->
-    <div class="toolbar" id="toolbar">
-      <button id="menuCollapse">☰</button>
+    <!-- TOP TOOLBAR -->
+    <div class="toolbar" role="toolbar" aria-label="Main toolbar" id="toolbar">
+      <button id="menuCollapse" aria-label="Toggle toolbar" aria-expanded="true"
+        title="Collapse / Expand / Show more tools">
+        ☰
+      </button>
 
-      <div class="group hide-when-collapsed">
-        <button id="addRect">Rect</button>
-        <button id="addCircle">Circle</button>
-        <button id="addText">Text</button>
-        <button id="addImage">Image</button>
-        <button id="dupBtn">Duplicate</button>
+      <!-- Group 1: Object creation -->
+      <div class="group hide-when-collapsed" id="groupObjects">
+        <button id="addRect" title="Add rectangle">Add Rect</button>
+        <button id="addCircle" title="Add circle">Add Circle</button>
+        <button id="addText" title="Add text">Add Text</button>
+        <button id="addImage" title="Add an image by URL">Add Image</button>
+        <button id="dupBtn" title="Duplicate selected (Ctrl/Cmd + D)">Duplicate</button>
       </div>
 
-      <div class="group hide-when-collapsed">
-        <button id="toggleGrid">Grid</button>
-        <label>Grid</label>
+      <!-- Group 2: Grid + Snap controls -->
+      <div class="group hide-when-collapsed" id="groupGrid">
+        <button id="toggleGrid">Toggle Grid</button>
+        <label>Grid:</label>
         <select id="gridSize">
-          <option value="8">8</option>
-          <option value="12" selected>12</option>
-          <option value="20">20</option>
+          <option value="8">8px</option>
+          <option value="12" selected>12px</option>
+          <option value="20">20px</option>
+          <option value="32">32px</option>
         </select>
         <label>Snap</label>
         <input type="checkbox" id="snapToggle" checked>
       </div>
 
-      <div class="group hide-when-collapsed">
-        <!-- >>> UNDO / REDO -->
-        <button id="undoBtn">Undo</button>
-        <button id="redoBtn">Redo</button>
+      <!-- Group 3: Import/Export + Undo/Redo -->
+      <div class="group hide-when-collapsed" id="groupIO">
 
-        <button id="exportJSON">Export</button>
-        <button id="importJSONbtn">Import</button>
-        <input id="importJSONfile" type="file" accept="application/json" hidden>
-        <button id="clearAll">Clear</button>
+        <!-- >>> UNDO/REDO INSERTED HERE -->
+        <button id="undoBtn" title="Undo (Ctrl/Cmd + Z)">Undo</button>
+        <button id="redoBtn" title="Redo (Ctrl/Cmd + Y / Ctrl+Shift+Z)">Redo</button>
+
+        <button id="exportJSON">Export JSON</button>
+        <button id="importJSONbtn">Import JSON</button>
+        <input id="importJSONfile" type="file" accept="application/json" style="display:none">
+        <button id="clearAll">Clear All</button>
       </div>
 
-      <div class="spacer"></div>
+      <div class="spacer hide-when-collapsed"></div>
 
-      <div class="group">
-        <label>Pen</label>
+      <!-- Group 4: Font & shape style controls -->
+      <div class="group hide-when-collapsed" id="groupStyle">
+        <label>Font</label>
+        <input id="fontColor" type="color" title="Font color" value="#000000">
+
+        <label>Size</label>
+        <input id="fontSize" type="number" min="8" max="72" value="16" style="width:80px">
+
+        <label>Fill</label>
+        <input id="shapeFill" type="color" value="#aaaaaa" title="Shape fill color">
+
+        <label>Border</label>
+        <input id="shapeBorder" type="color" value="#FFFF00" title="Shape border color">
+      </div>
+
+      <!-- Group 5: Draw settings (always visible) -->
+      <div class="group" id="groupDraw">
+        <label>Draw</label>
         <input id="penColor" type="color" value="#000000">
-        <input id="penSize" type="range" min="1" max="40" value="6">
-        <input id="penOpacity" type="range" min="0.1" max="1" step="0.1" value="1">
+
+        <label class="hide-when-collapsed">Size</label>
+        <input id="penSize" type="range" min="1" max="80" value="18" class="hide-when-collapsed">
+
+        <label class="hide-when-collapsed">Opacity</label>
+        <input id="penOpacity" type="range" min="0.1" max="1" step="0.05" value="1"
+          class="hide-when-collapsed">
       </div>
 
-      <div id="toolbarDropdown" class="toolbar-dropdown"></div>
+      <div class="toolbar-dropdown" id="toolbarDropdown" role="menu" aria-hidden="true"></div>
     </div>
 
-    <!-- ================= MAIN ================= -->
+    <!-- MAIN LAYOUT -->
     <div class="layout">
-      <div class="leftcol">
-        <div id="penTool" class="toolbtn active">Pen</div>
-        <div id="selectTool" class="toolbtn">Select</div>
+      <div class="leftcol" aria-hidden="false">
+        <div id="penTool" class="toolbtn active" title="Pen tool (draw)">Pen</div>
+        <div id="highlighterTool" class="toolbtn" title="Highlighter tool">Highlight</div>
+        <div id="eraserTool" class="toolbtn" title="Eraser tool">Eraser</div>
+        <div id="selectTool" class="toolbtn" title="Select objects / selection box">Select</div>
+
+        <div id="panHint" style="margin-top:6px;font-size:12px;color:#334">
+          Hold <b>Space</b> to Pan
+        </div>
       </div>
 
-      <div class="stage-viewport" id="viewport" tabindex="0">
+      <div class="stage-viewport" id="viewport" tabindex="0" aria-label="Whiteboard viewport">
         <div class="world nogrid" id="world">
-          <canvas id="drawing"></canvas>
-          <div id="objectsLayer"></div>
+          <canvas id="drawing" class="draw-layer"></canvas>
+          <div id="objectsLayer" class="objects-layer"></div>
         </div>
       </div>
     </div>
 
+    <!-- GUIDE -->
+    <aside id="guide" class="guide" role="region" aria-label="How to use guide">
+      <div class="head">
+        <div>
+          <strong>How to use — Whiteboard</strong><br>
+          <small style="color:#445">Quick tips</small>
+        </div>
+        <div>
+          <button id="collapseGuide" title="Hide guide">–</button>
+          <button id="closeGuide" title="Close guide">✕</button>
+        </div>
+      </div>
+
+      <div class="content" id="guideContent">
+        <h4>Basic</h4>
+        <ul>
+          <li>Add objects (rect/circle/text/image) from the toolbar.</li>
+          <li>Select an object to move, resize (bottom-right), or rotate (top-center).</li>
+          <li>Use style controls to update selected objects (or defaults for new ones).</li>
+          <li>Use Pen / Highlighter / Eraser to draw on the canvas.</li>
+          <li>Hold <b>Space</b> while dragging to pan the canvas.</li>
+        </ul>
+      </div>
+    </aside>
+
+    <button id="helpBtn" title="Show help">?</button>
+
+    <div id="selRect" class="sel-rect"></div>
+
+    <div id="eraserCursor" aria-hidden="true"></div>
+    <div id="eraserSizeLabel" aria-hidden="true"></div>
   </div>
 
   <script src="whiteboard.js"></script>
   <script src="whiteboardcore.js"></script>
 </body>
+
 </html>
