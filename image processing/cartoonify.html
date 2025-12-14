@@ -1,0 +1,687 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Cartoonify (JS demo)</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <style>
+        body {
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            padding: 18px;
+            background: #f7f9fc;
+            color: #111;
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        label {
+            font-size: 14px;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        input[type="range"] {
+            width: 160px;
+        }
+
+        canvas {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            background: #fff;
+            display: block;
+            margin-top: 12px;
+        }
+
+        .row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        button,
+        input[type="file"],
+        input[type="text"] {
+            padding: 8px 10px;
+            border-radius: 6px;
+            border: 1px solid #d0d7de;
+            background: #fff;
+        }
+
+        .small {
+            font-size: 13px;
+            color: #555
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Cartoonify — JavaScript demo</h2>
+    <p class="small">Load an image (file or URL), then click <strong>Cartoonify</strong>. Tweak sliders for different
+        effects.</p>
+
+    <div class="controls">
+        <div class="row">
+            <input type="file" id="fileInput" accept="image/*">
+            <input type="text" id="urlInput" placeholder="Paste image URL and hit Load" style="min-width:280px;">
+            <button id="loadUrl">Load URL</button>
+        </div>
+
+        <div class="row">
+            <label>Posterize levels
+                <input id="levels" type="range" min="2" max="32" value="8">
+                <span id="levelsVal">8</span>
+            </label>
+
+            <label>Blur passes
+                <input id="blurPasses" type="range" min="0" max="6" value="2">
+                <span id="blurVal">2</span>
+            </label>
+
+            <label>Edge threshold
+                <input id="edgeThresh" type="range" min="10" max="200" value="80">
+                <span id="edgeVal">80</span>
+            </label>
+
+            <label>Advanced filter
+                <select id="filterSelect"
+                    style="padding:6px 8px; border-radius:6px; border:1px solid #d0d7de; background:#fff;">
+                    <option value="none">None</option>
+                    <option value="bilateral">Bilateral (CPU)</option>
+                    <option value="webgl">WebGL Shader (GPU)</option>
+                </select>
+            </label>
+
+            <button id="btn">Cartoonify</button>
+            <button id="download">Download PNG</button>
+        </div>
+
+        <!-- Bilateral controls (shown when chosen) -->
+        <div id="bilateralControls" style="display:none; margin-top:10px; gap:12px; align-items:center;">
+            <label style="display:flex; gap:8px; align-items:center;">Radius
+                <input id="bilateralRadius" type="range" min="1" max="6" value="2">
+                <span id="bilatRadVal">2</span>
+            </label>
+            <label style="display:flex; gap:8px; align-items:center;">Color sigma
+                <input id="bilateralSigma" type="range" min="10" max="200" value="50">
+                <span id="bilatSigVal">50</span>
+            </label>
+        </div>
+    </div>
+
+    <canvas id="canvas"></canvas>
+
+    <script>
+        /*
+          Cartoonify demo
+          Steps:
+          1. Scale image to canvas (keeping aspect ratio, max width = 1200)
+          2. Blur (multi-pass box blur)
+          3. Posterize (quantize colors)
+          4. Edge detection on original or smoothed grayscale (Sobel)
+          5. Combine: draw posterized image with dark outlines
+        */
+
+        // Helpers
+        function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+        function loadImageFromFile(file) {
+            return new Promise((res, rej) => {
+                const url = URL.createObjectURL(file);
+                const img = new Image();
+                img.crossOrigin = "anonymous";
+                img.onload = () => { URL.revokeObjectURL(url); res(img); };
+                img.onerror = rej;
+                img.src = url;
+            });
+        }
+
+        function loadImageFromUrl(src) {
+            return new Promise((res, rej) => {
+                const img = new Image();
+                img.crossOrigin = "anonymous"; // try enable CORS
+                img.onload = () => res(img);
+                img.onerror = e => rej(e);
+                img.src = src;
+            });
+        }
+
+        // Resize canvas to image keeping limit
+        function fitCanvasToImage(canvas, img, maxWidth = 1200) {
+            let w = img.naturalWidth || img.width;
+            let h = img.naturalHeight || img.height;
+            if (w > maxWidth) {
+                const scale = maxWidth / w;
+                w = Math.round(w * scale);
+                h = Math.round(h * scale);
+            }
+            canvas.width = w;
+            canvas.height = h;
+        }
+
+        // Basic box blur - separable (horizontal then vertical). For small radii repeated passes approximate Gaussian.
+        function boxBlur(imageData, radiusX = 1, radiusY = 1) {
+            const { width: w, height: h } = imageData;
+            const src = imageData.data;
+            const tmp = new Uint8ClampedArray(src.length);
+            const dst = new Uint8ClampedArray(src.length);
+
+            // horizontal pass
+            const rX = Math.max(0, Math.floor(radiusX));
+            for (let y = 0; y < h; y++) {
+                let index = y * w * 4;
+                for (let x = 0; x < w; x++, index += 4) {
+                    let r = 0, g = 0, b = 0, a = 0, count = 0;
+                    const x0 = Math.max(0, x - rX);
+                    const x1 = Math.min(w - 1, x + rX);
+                    for (let xi = x0; xi <= x1; xi++) {
+                        const i = (y * w + xi) * 4;
+                        r += src[i]; g += src[i + 1]; b += src[i + 2]; a += src[i + 3]; count++;
+                    }
+                    const j = (y * w + x) * 4;
+                    tmp[j] = r / count; tmp[j + 1] = g / count; tmp[j + 2] = b / count; tmp[j + 3] = a / count;
+                }
+            }
+
+            // vertical pass
+            const rY = Math.max(0, Math.floor(radiusY));
+            for (let x = 0; x < w; x++) {
+                for (let y = 0; y < h; y++) {
+                    let r = 0, g = 0, b = 0, a = 0, count = 0;
+                    const y0 = Math.max(0, y - rY);
+                    const y1 = Math.min(h - 1, y + rY);
+                    for (let yi = y0; yi <= y1; yi++) {
+                        const i = (yi * w + x) * 4;
+                        r += tmp[i]; g += tmp[i + 1]; b += tmp[i + 2]; a += tmp[i + 3]; count++;
+                    }
+                    const j = (y * w + x) * 4;
+                    dst[j] = r / count; dst[j + 1] = g / count; dst[j + 2] = b / count; dst[j + 3] = a / count;
+                }
+            }
+
+            // copy back
+            imageData.data.set(dst);
+        }
+
+        // Posterize: reduce each color channel to `levels` discrete steps
+        function posterize(imageData, levels) {
+            const d = imageData.data;
+            const steps = Math.max(2, Math.round(levels));
+            const factor = 255 / (steps - 1);
+            for (let i = 0; i < d.length; i += 4) {
+                d[i] = Math.round(d[i] / factor) * factor;
+                d[i + 1] = Math.round(d[i + 1] / factor) * factor;
+                d[i + 2] = Math.round(d[i + 2] / factor) * factor;
+                // alpha stays unchanged
+            }
+        }
+
+        // ---------------- Advanced: Bilateral filter (simple CPU implementation) ----------------
+        // Note: This is O(r^2) per-pixel; keep radius small (1-4) for decent performance.
+        function bilateralFilter(imageData, radius, sigmaColor) {
+            const w = imageData.width, h = imageData.height;
+            const src = imageData.data;
+            const out = new Uint8ClampedArray(src.length);
+            const sigmaS = radius; // spatial sigma approximation
+            const twoSigmaS2 = 2 * sigmaS * sigmaS;
+            const twoSigmaC2 = 2 * sigmaColor * sigmaColor;
+
+            for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                    const idx = (y * w + x) * 4;
+                    let rSum = 0, gSum = 0, bSum = 0, wSum = 0;
+                    const r0 = src[idx], g0 = src[idx + 1], b0 = src[idx + 2];
+
+                    const x0 = Math.max(0, x - radius);
+                    const x1 = Math.min(w - 1, x + radius);
+                    const y0 = Math.max(0, y - radius);
+                    const y1 = Math.min(h - 1, y + radius);
+
+                    for (let yy = y0; yy <= y1; yy++) {
+                        for (let xx = x0; xx <= x1; xx++) {
+                            const j = (yy * w + xx) * 4;
+                            const dr = src[j] - r0;
+                            const dg = src[j + 1] - g0;
+                            const db = src[j + 2] - b0;
+                            const dist2 = (xx - x) * (xx - x) + (yy - y) * (yy - y);
+                            const colorDist2 = dr * dr + dg * dg + db * db;
+                            const wSpatial = Math.exp(-dist2 / twoSigmaS2);
+                            const wColor = Math.exp(-colorDist2 / twoSigmaC2);
+                            const wTotal = wSpatial * wColor;
+                            rSum += src[j] * wTotal;
+                            gSum += src[j + 1] * wTotal;
+                            bSum += src[j + 2] * wTotal;
+                            wSum += wTotal;
+                        }
+                    }
+                    out[idx] = Math.round(rSum / wSum);
+                    out[idx + 1] = Math.round(gSum / wSum);
+                    out[idx + 2] = Math.round(bSum / wSum);
+                    out[idx + 3] = src[idx + 3];
+                }
+            }
+
+            imageData.data.set(out);
+        }
+
+        // ---------------- Advanced: WebGL shader filter (simple GPU pipeline) ----------------
+        // This creates a WebGL program that applies a small blur, posterize and edge overlay in one pass.
+        function applyWebGLFilter(canvas, img, posterizeLevels, edgeThreshold) {
+            // try to get webgl context from canvas
+            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            if (!gl) return false;
+
+            // vertex shader
+            const vs = `attribute vec2 a_pos; attribute vec2 a_uv; varying vec2 v_uv; void main(){ v_uv = a_uv; gl_Position = vec4(a_pos,0.0,1.0); }`;
+
+            // fragment shader - 9-tap blur, posterize, sobel edges
+            const fs = `precision mediump float; varying vec2 v_uv; uniform sampler2D u_tex; uniform float u_levels; uniform float u_edgeTh; uniform vec2 u_texel;
+
+  vec3 posterize(vec3 c, float levels){
+    return floor(c * levels + 0.5) / levels;
+  }
+
+  void main(){
+    vec3 c = texture2D(u_tex, v_uv).rgb;
+    // 9-tap box blur
+    vec3 sum = vec3(0.0);
+    for(int j=-1;j<=1;j++){
+      for(int i=-1;i<=1;i++){
+        vec2 off = vec2(float(i), float(j)) * u_texel;
+        sum += texture2D(u_tex, v_uv + off).rgb;
+      }
+    }
+    vec3 blur = sum / 9.0;
+    vec3 post = posterize(blur, u_levels);
+
+    // sobel (luminance)
+    float gx = -1.0 * texture2D(u_tex, v_uv + vec2(-u_texel.x, -u_texel.y)).r + 1.0 * texture2D(u_tex, v_uv + vec2(u_texel.x, -u_texel.y)).r
+             -2.0 * texture2D(u_tex, v_uv + vec2(-u_texel.x, 0.0)).r  + 2.0 * texture2D(u_tex, v_uv + vec2(u_texel.x, 0.0)).r
+             -1.0 * texture2D(u_tex, v_uv + vec2(-u_texel.x, u_texel.y)).r  + 1.0 * texture2D(u_tex, v_uv + vec2(u_texel.x, u_texel.y)).r;
+    float gy = -1.0 * texture2D(u_tex, v_uv + vec2(-u_texel.x, -u_texel.y)).r + -2.0 * texture2D(u_tex, v_uv + vec2(0.0, -u_texel.y)).r + -1.0 * texture2D(u_tex, v_uv + vec2(u_texel.x, -u_texel.y)).r
+             +1.0 * texture2D(u_tex, v_uv + vec2(-u_texel.x, u_texel.y)).r + 2.0 * texture2D(u_tex, v_uv + vec2(0.0, u_texel.y)).r + 1.0 * texture2D(u_tex, v_uv + vec2(u_texel.x, u_texel.y)).r;
+    float edge = length(vec2(gx, gy));
+
+    if(edge > u_edgeTh){
+      gl_FragColor = vec4(post * 0.12, 1.0);
+    } else {
+      gl_FragColor = vec4(post, 1.0);
+    }
+  }`;
+
+            function compile(shaderSource, type) {
+                const s = gl.createShader(type);
+                gl.shaderSource(s, shaderSource);
+                gl.compileShader(s);
+                if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+                    console.error(gl.getShaderInfoLog(s)); return null;
+                }
+                return s;
+            }
+
+            const vsObj = compile(vs, gl.VERTEX_SHADER);
+            const fsObj = compile(fs, gl.FRAGMENT_SHADER);
+            if (!vsObj || !fsObj) return false;
+
+            const prog = gl.createProgram();
+            gl.attachShader(prog, vsObj); gl.attachShader(prog, fsObj); gl.linkProgram(prog);
+            if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+                console.error(gl.getProgramInfoLog(prog)); return false;
+            }
+
+            // quad
+            const pos = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
+            const uv = new Float32Array([0, 0, 1, 0, 0, 1, 1, 1]);
+            const posBuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, posBuf); gl.bufferData(gl.ARRAY_BUFFER, pos, gl.STATIC_DRAW);
+            const uvBuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, uvBuf); gl.bufferData(gl.ARRAY_BUFFER, uv, gl.STATIC_DRAW);
+
+            gl.useProgram(prog);
+            const a_pos = gl.getAttribLocation(prog, 'a_pos'); gl.enableVertexAttribArray(a_pos); gl.bindBuffer(gl.ARRAY_BUFFER, posBuf); gl.vertexAttribPointer(a_pos, 2, gl.FLOAT, false, 0, 0);
+            const a_uv = gl.getAttribLocation(prog, 'a_uv'); gl.enableVertexAttribArray(a_uv); gl.bindBuffer(gl.ARRAY_BUFFER, uvBuf); gl.vertexAttribPointer(a_uv, 2, gl.FLOAT, false, 0, 0);
+
+            // create texture
+            const tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+
+            // uniforms
+            const u_levels = gl.getUniformLocation(prog, 'u_levels');
+            const u_edgeTh = gl.getUniformLocation(prog, 'u_edgeTh');
+            const u_texel = gl.getUniformLocation(prog, 'u_texel');
+
+            gl.uniform1f(u_levels, posterizeLevels);
+            gl.uniform1f(u_edgeTh, edgeThreshold / 255.0);
+            gl.uniform2f(u_texel, 1.0 / canvas.width, 1.0 / canvas.height);
+
+            // set viewport and draw
+            gl.viewport(0, 0, canvas.width, canvas.height);
+            gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+            return true;
+        }
+
+        // --------------------------------------------------------------------------------
+
+        // Convert to grayscale (return new Float32Array)
+        function posterize(imageData, levels) {
+            const d = imageData.data;
+            const steps = Math.max(2, Math.round(levels));
+            const factor = 255 / (steps - 1);
+            for (let i = 0; i < d.length; i += 4) {
+                d[i] = Math.round(d[i] / factor) * factor;
+                d[i + 1] = Math.round(d[i + 1] / factor) * factor;
+                d[i + 2] = Math.round(d[i + 2] / factor) * factor;
+                // alpha stays unchanged
+            }
+        }
+
+        // Convert to grayscale (return new Float32Array)
+        function grayscaleFloat(imageData) {
+            const d = imageData.data;
+            const n = d.length / 4;
+            const out = new Float32Array(n);
+            for (let i = 0, j = 0; i < d.length; i += 4, j++) {
+                out[j] = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+            }
+            return out;
+        }
+
+        // Sobel operator on grayscale Float32Array -> magnitude Uint8Array
+        function sobel(grays, w, h) {
+            const out = new Uint8ClampedArray(w * h);
+            // Sobel kernels
+            for (let y = 1; y < h - 1; y++) {
+                for (let x = 1; x < w - 1; x++) {
+                    const idx = y * w + x;
+                    const gx = (
+                        -1 * grays[(y - 1) * w + (x - 1)] + 1 * grays[(y - 1) * w + (x + 1)] +
+                        -2 * grays[(y) * w + (x - 1)] + 2 * grays[(y) * w + (x + 1)] +
+                        -1 * grays[(y + 1) * w + (x - 1)] + 1 * grays[(y + 1) * w + (x + 1)]
+                    );
+                    const gy = (
+                        -1 * grays[(y - 1) * w + (x - 1)] + -2 * grays[(y - 1) * w + x] + -1 * grays[(y - 1) * w + (x + 1)] +
+                        1 * grays[(y + 1) * w + (x - 1)] + 2 * grays[(y + 1) * w + x] + 1 * grays[(y + 1) * w + (x + 1)]
+                    );
+                    const mag = Math.hypot(gx, gy);
+                    out[idx] = clamp(Math.round(mag), 0, 255);
+                }
+            }
+            return out;
+        }
+
+        // Combine: draw posterized color base then darken edges using edge mask
+        function combineWithEdges(baseImageData, edges, threshold) {
+            const d = baseImageData.data;
+            for (let i = 0, p = 0; i < d.length; i += 4, p++) {
+                const e = edges[p];
+                if (e >= threshold) {
+                    // darken pixel strongly to form outline
+                    d[i] = d[i] * 0.12; // Red
+                    d[i + 1] = d[i + 1] * 0.12; // Green
+                    d[i + 2] = d[i + 2] * 0.12; // Blue
+                }
+            }
+        }
+
+        // UI wiring
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        const fileInput = document.getElementById('fileInput');
+        const urlInput = document.getElementById('urlInput');
+        const loadUrlBtn = document.getElementById('loadUrl');
+        const btn = document.getElementById('btn');
+        const downloadBtn = document.getElementById('download');
+
+        const levelsSlider = document.getElementById('levels');
+        const blurSlider = document.getElementById('blurPasses');
+        const edgeSlider = document.getElementById('edgeThresh');
+        const levelsVal = document.getElementById('levelsVal');
+        const blurVal = document.getElementById('blurVal');
+        const edgeVal = document.getElementById('edgeVal');
+
+        levelsSlider.oninput = () => levelsVal.textContent = levelsSlider.value;
+        blurSlider.oninput = () => blurVal.textContent = blurSlider.value;
+        edgeSlider.oninput = () => edgeVal.textContent = edgeSlider.value;
+
+        let currentImage = null;
+
+        fileInput.addEventListener('change', async (e) => {
+            if (e.target.files && e.target.files[0]) {
+                try {
+                    currentImage = await loadImageFromFile(e.target.files[0]);
+                    fitCanvasToImage(canvas, currentImage);
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(currentImage, 0, 0, canvas.width, canvas.height);
+                } catch (err) {
+                    alert('Failed to load image: ' + err);
+                }
+            }
+        });
+
+        loadUrlBtn.addEventListener('click', async () => {
+            const url = urlInput.value.trim();
+            if (!url) return alert('Paste an image URL first.');
+            try {
+                currentImage = await loadImageFromUrl(url);
+                fitCanvasToImage(canvas, currentImage);
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(currentImage, 0, 0, canvas.width, canvas.height);
+            } catch (err) {
+                alert('Failed to load URL. Note: many servers block cross-origin requests. Try a different image or host it with CORS enabled.');
+                console.error(err);
+            }
+        });
+
+        btn.addEventListener('click', () => {
+            if (!currentImage) return alert('Load an image first (file or URL).');
+
+            // draw full-size image to canvas
+            ctx.drawImage(currentImage, 0, 0, canvas.width, canvas.height);
+
+            // We will create two separate ImageData copies:
+            // 1) smoothed/posterized base
+            // 2) grayscale for edges (from slightly blurred image)
+            const w = canvas.width, h = canvas.height;
+            const original = ctx.getImageData(0, 0, w, h);
+
+            // 1) create base copy and apply blur passes + posterize
+            const base = ctx.createImageData(w, h);
+            base.data.set(original.data);
+
+            const passes = Math.max(0, parseInt(blurSlider.value, 10));
+            for (let p = 0; p < passes; p++) {
+                // small radius per pass: use 1 horizontally and 1 vertically (repeat to approximate Gaussian)
+                boxBlur(base, 1, 1);
+            }
+
+            posterize(base, Number(levelsSlider.value));
+
+            // 2) compute edges: operate on grayscale of a lightly blurred copy to reduce noise
+            const edgeSource = ctx.createImageData(w, h);
+            edgeSource.data.set(original.data);
+            // blur a bit for better edge detection
+            boxBlur(edgeSource, 1, 1);
+
+            const gray = grayscaleFloat(edgeSource);
+            const edges = sobel(gray, w, h);
+            const thresh = parseInt(edgeSlider.value, 10);
+
+            // combine
+            combineWithEdges(base, edges, thresh);
+
+            // put result back
+            ctx.putImageData(base, 0, 0);
+        });
+
+        downloadBtn.addEventListener('click', () => {
+            if (!canvas.width || !canvas.height) return alert('Nothing to download.');
+            const a = document.createElement('a');
+            a.href = canvas.toDataURL('image/png');
+            a.download = 'cartoonified.png';
+            a.click();
+        });
+
+        // Initial placeholder
+        (function drawPlaceholder() {
+            canvas.width = Math.min(800, window.innerWidth - 40);
+            canvas.height = Math.round(canvas.width * 0.6);
+            ctx.fillStyle = '#edf2fb';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#556';
+            ctx.font = '18px system-ui, sans-serif';
+            ctx.fillText('Load an image (file or URL) to start', 14, 40);
+        })();
+    </script>
+    <!-- ================= USER GUIDE (enhanced) ================= -->
+    <!-- Floating Help Button -->
+    <button id="helpToggle" aria-expanded="false" title="Open help"
+        style="position:fixed; right:18px; bottom:18px; z-index:9999; border:none; background:#ffcc33; color:#111; padding:12px 14px; border-radius:999px; box-shadow:0 6px 18px rgba(0,0,0,0.12); cursor:pointer; font-weight:600;">
+        Help
+    </button>
+
+    <!-- Quick-start mini-guide (visible near controls) -->
+    <div id="quickStart"
+        style="margin-top:12px; padding:10px 12px; background:#fff; border:1px solid #e6e6e6; border-radius:8px; display:flex; gap:12px; align-items:center;">
+        <strong style="color:#333">Quick start:</strong>
+        <div style="font-size:13px; color:#444">1) Load image → 2) Tweak sliders → 3) Click <em>Cartoonify</em>.</div>
+        <button id="openHelpFromQuick"
+            style="margin-left:auto; padding:6px 10px; border-radius:6px; border:1px solid #d0d7de; background:#fff;">Open
+            Help</button>
+    </div>
+
+    <!-- Collapsible accordion-style guide (initially hidden, toggled by Help button) -->
+    <aside id="helpPanel" role="dialog" aria-hidden="true"
+        style="position:fixed; right:18px; bottom:72px; width:360px; max-width:calc(100% - 40px); z-index:9998; background:#fff; border-radius:10px; box-shadow:0 20px 40px rgba(11,12,14,0.12); border:1px solid rgba(0,0,0,0.04); overflow:hidden; display:none;">
+        <div
+            style="padding:12px 14px; background:linear-gradient(90deg,#fff9e6,#fff4d6); border-bottom:1px solid rgba(0,0,0,0.03);">
+            <div style="display:flex; gap:10px; align-items:center;">
+                <strong style="font-size:15px;">Cartoonify — Help</strong>
+                <button id="closeHelp" aria-label="Close help"
+                    style="margin-left:auto; padding:6px 8px; border-radius:6px; border:1px solid #eee; background:#fff;">Close</button>
+            </div>
+            <div style="font-size:12px; color:#444; margin-top:6px;">Quick tips and an expanded guide with collapsible
+                sections.</div>
+        </div>
+
+        <div style="max-height:420px; overflow:auto; padding:12px;">
+            <details open style="margin-bottom:8px;">
+                <summary style="font-weight:700; cursor:pointer;">1. Load an Image</summary>
+                <div style="padding:8px 6px; font-size:13px; color:#333">
+                    <p><strong>From device:</strong> Click <em>Choose File</em> and pick a JPG/PNG.</p>
+                    <p><strong>From URL:</strong> Paste the image link and click <em>Load URL</em>. If it fails, the
+                        host blocks cross-origin requests — try a different host.</p>
+                </div>
+            </details>
+
+            <details style="margin-bottom:8px;">
+                <summary style="font-weight:700; cursor:pointer;">2. Controls & What They Do</summary>
+                <div style="padding:8px 6px; font-size:13px; color:#333">
+                    <ul>
+                        <li><strong>Posterize levels:</strong> Number of color steps — lower values create stronger,
+                            flat-color regions.</li>
+                        <li><strong>Blur passes:</strong> Smooths the image before posterizing. More passes = smoother,
+                            larger color areas.</li>
+                        <li><strong>Edge threshold:</strong> Determines how strong an edge must be to produce a black
+                            outline.</li>
+                    </ul>
+                </div>
+            </details>
+
+            <details style="margin-bottom:8px;">
+                <summary style="font-weight:700; cursor:pointer;">3. Generate & Download</summary>
+                <div style="padding:8px 6px; font-size:13px; color:#333">
+                    <p>Click <em>Cartoonify</em> to process. Click <em>Download PNG</em> to save the canvas image. Files
+                        are generated locally — nothing is uploaded.</p>
+                </div>
+            </details>
+
+            <details style="margin-bottom:8px;">
+                <summary style="font-weight:700; cursor:pointer;">4. Advanced Tips</summary>
+                <div style="padding:8px 6px; font-size:13px; color:#333">
+                    <ul>
+                        <li>Portraits: Posterize 4–8, blur 1–3.</li>
+                        <li>Landscapes: Posterize 8–16, blur 2–4.</li>
+                        <li>If edges are too heavy, increase the Edge Threshold.</li>
+                    </ul>
+                </div>
+            </details>
+
+            <details style="margin-bottom:8px;">
+                <summary style="font-weight:700; cursor:pointer;">5. Privacy</summary>
+                <div style="padding:8px 6px; font-size:13px; color:#333">
+                    <p>All processing happens inside your browser. No images are sent to any server.</p>
+                </div>
+            </details>
+        </div>
+
+        <div
+            style="padding:10px 12px; border-top:1px solid rgba(0,0,0,0.03); background:#fafafa; display:flex; gap:8px; align-items:center;">
+            <button id="helpCloseDone"
+                style="padding:8px 12px; border-radius:8px; border:1px solid #e0e0e0; background:#fff;">Got it</button>
+            <button id="helpOpenAdvanced"
+                style="margin-left:auto; padding:8px 12px; border-radius:8px; border:none; background:#ffcc33;">Advanced
+                Filters</button>
+        </div>
+    </aside>
+
+    <script>
+        const helpToggle = document.getElementById('helpToggle');
+        const helpPanel = document.getElementById('helpPanel');
+        const closeHelp = document.getElementById('closeHelp');
+        const helpCloseDone = document.getElementById('helpCloseDone');
+        const openHelpFromQuick = document.getElementById('openHelpFromQuick');
+        const helpOpenAdvanced = document.getElementById('helpOpenAdvanced');
+
+        function openHelp() {
+            helpPanel.style.display = 'block';
+            helpPanel.setAttribute('aria-hidden', 'false');
+            helpToggle.setAttribute('aria-expanded', 'true');
+        }
+        function closeHelpPanel() {
+            helpPanel.style.display = 'none';
+            helpPanel.setAttribute('aria-hidden', 'true');
+            helpToggle.setAttribute('aria-expanded', 'false');
+        }
+
+        helpToggle.addEventListener('click', () => {
+            if (helpPanel.style.display === 'block') closeHelpPanel(); else openHelp();
+        });
+        closeHelp.addEventListener('click', closeHelpPanel);
+        helpCloseDone.addEventListener('click', closeHelpPanel);
+        openHelpFromQuick.addEventListener('click', openHelp);
+
+        // 'Advanced Filters' button - currently a placeholder that focuses the posterize slider
+        helpOpenAdvanced.addEventListener('click', () => {
+            document.getElementById('levels').focus();
+            alert('Advanced Filters coming soon — focusing Posterize slider as a placeholder.');
+        });
+
+        // close when clicking outside the panel
+        document.addEventListener('click', (e) => {
+            if (!helpPanel.contains(e.target) && !helpToggle.contains(e.target) && helpPanel.style.display === 'block') {
+                // small defer to allow inner clicks
+                setTimeout(() => {
+                    if (!helpPanel.contains(document.activeElement)) closeHelpPanel();
+                }, 100);
+            }
+        });
+    </script>
+
+</body>
+
+</html>
