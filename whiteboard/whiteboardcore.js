@@ -1,85 +1,37 @@
-(function whiteboardCoreModule() {
-  // =========================================================
-  // WHITEBOARD CORE MODULE
-  // =========================================================
+(function () {
 
-  // -------------
-  // DOM References
-  // -------------
+  // ================= DOM =================
   const viewport = document.getElementById('viewport');
   const world = document.getElementById('world');
+  const canvas = document.getElementById('drawing');
+  const ctx = canvas.getContext('2d');
   const objectsLayer = document.getElementById('objectsLayer');
-  const drawingCanvas = document.getElementById('drawing');
-  const selRect = document.getElementById('selRect');
-
-  const ctx = drawingCanvas.getContext('2d', { alpha: true });
 
   const penToolBtn = document.getElementById('penTool');
-  const highlighterToolBtn = document.getElementById('highlighterTool');
-  const eraserToolBtn = document.getElementById('eraserTool');
   const selectToolBtn = document.getElementById('selectTool');
 
   const penColor = document.getElementById('penColor');
   const penSize = document.getElementById('penSize');
   const penOpacity = document.getElementById('penOpacity');
 
-  const toggleGridBtn = document.getElementById('toggleGrid');
-  const gridSizeSelect = document.getElementById('gridSize');
-  const snapToggle = document.getElementById('snapToggle');
+  const undoBtn = document.getElementById('undoBtn');
+  const redoBtn = document.getElementById('redoBtn');
 
-  const exportJSONBtn = document.getElementById('exportJSON');
-  const importJSONbtn = document.getElementById('importJSONbtn');
-  const importJSONfile = document.getElementById('importJSONfile');
-  const clearAllBtn = document.getElementById('clearAll');
-
-  const helpBtn = document.getElementById('helpBtn');
-  const guide = document.getElementById('guide');
-  const collapseGuide = document.getElementById('collapseGuide');
-  const closeGuide = document.getElementById('closeGuide');
-
-  // =========================================================
-  // >>> UNDO / REDO INSERTED HERE (GLOBAL STACKS)
-  // =========================================================
-  const undoStack = [];
-  const redoStack = [];
-  const MAX_HISTORY = 50;
-
-  // -------------------------
-  // Default style values
-  // -------------------------
-  let defaultFontColor = '#000000';
-  let defaultFontSize = 16;
-  let defaultShapeFill = '#aaaaaa';
-  let defaultShapeBorder = '#ff0000';
-
-  // -------------------------
-  // World sizing & transform
-  // -------------------------
-  let worldW = 2400;
-  let worldH = 1600;
+  // ================= WORLD =================
   let pan = { x: 0, y: 0 };
   let scale = 1;
 
-  function resizeWorld() {
-    const vw = viewport.clientWidth;
-    const vh = viewport.clientHeight;
-
-    worldW = Math.max(1400, Math.floor(vw * 2));
-    worldH = Math.max(900, Math.floor(vh * 2));
-
-    world.style.width = worldW + 'px';
-    world.style.height = worldH + 'px';
-    objectsLayer.style.width = worldW + 'px';
-    objectsLayer.style.height = worldH + 'px';
-
-    drawingCanvas.width = worldW;
-    drawingCanvas.height = worldH;
+  function resize() {
+    const w = viewport.clientWidth * 2;
+    const h = viewport.clientHeight * 2;
+    canvas.width = w;
+    canvas.height = h;
+    world.style.width = w + 'px';
+    world.style.height = h + 'px';
   }
 
-  function applyTransform() {
-    world.style.transform =
-      `translate(${pan.x}px, ${pan.y}px) scale(${scale})`;
-  }
+  resize();
+  window.addEventListener('resize', resize);
 
   function pageToWorld(x, y) {
     const r = viewport.getBoundingClientRect();
@@ -89,170 +41,98 @@
     };
   }
 
-  resizeWorld();
-  applyTransform();
+  // ================= UNDO / REDO =================
+  const undoStack = [];
+  const redoStack = [];
+  let historyLock = 0;
 
-  // =========================================================
-  // >>> UNDO / REDO INSERTED HERE (CAPTURE)
-  // =========================================================
+  function withHistoryLock(fn) {
+    historyLock++;
+    try { fn(); }
+    finally { historyLock--; }
+  }
+
   function captureState() {
-    const canvasData = ctx.getImageData(
-      0, 0, drawingCanvas.width, drawingCanvas.height
-    );
+    if (historyLock) return;
 
-    const objectsData = [];
-    for (const el of objectsLayer.children) {
-      if (!el.classList.contains('obj')) continue;
+    undoStack.push({
+      canvas: ctx.getImageData(0, 0, canvas.width, canvas.height),
+      objects: objectsLayer.innerHTML
+    });
 
-      const c = el.querySelector('.content');
-
-      objectsData.push({
-        type: el.classList.contains('circle') ? 'circle'
-          : el.classList.contains('text') ? 'text'
-            : 'rect',
-        left: parseFloat(el.style.left),
-        top: parseFloat(el.style.top),
-        width: parseFloat(el.style.width),
-        height: parseFloat(el.style.height),
-        angle: parseFloat(el.dataset.angle || 0),
-        html: c ? c.innerHTML : '',
-        css: {
-          background: el.style.background || '',
-          borderColor: el.style.borderColor || '',
-          fontSize: c?.style.fontSize || '',
-          color: c?.style.color || ''
-        },
-        z: parseInt(el.style.zIndex || 1, 10)
-      });
-    }
-
-    undoStack.push({ canvasData, objectsData });
-    if (undoStack.length > MAX_HISTORY) undoStack.shift();
+    if (undoStack.length > 50) undoStack.shift();
     redoStack.length = 0;
+    updateUI();
   }
 
-  // =========================================================
-  // >>> UNDO / REDO INSERTED HERE (RESTORE)
-  // =========================================================
   function restoreState(state) {
-    if (!state) return;
-
-    ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
-    ctx.putImageData(state.canvasData, 0, 0);
-
-    objectsLayer.innerHTML = '';
-
-    for (const item of state.objectsData) {
-      const el = document.createElement('div');
-      el.className = 'obj ' + item.type;
-      el.style.left = item.left + 'px';
-      el.style.top = item.top + 'px';
-      el.style.width = item.width + 'px';
-      el.style.height = item.height + 'px';
-      el.style.zIndex = item.z;
-      el.style.transform = `rotate(${item.angle}deg)`;
-      el.dataset.angle = item.angle;
-
-      if (item.css.background) el.style.background = item.css.background;
-      if (item.css.borderColor) el.style.borderColor = item.css.borderColor;
-
-      const content = document.createElement('div');
-      content.className = 'content';
-      content.innerHTML = item.html;
-      if (item.css.fontSize) content.style.fontSize = item.css.fontSize;
-      if (item.css.color) content.style.color = item.css.color;
-
-      el.appendChild(content);
-      objectsLayer.appendChild(el);
-    }
+    withHistoryLock(() => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.putImageData(state.canvas, 0, 0);
+      objectsLayer.innerHTML = state.objects;
+    });
+    updateUI();
   }
 
-  // =========================================================
-  // >>> UNDO / REDO INSERTED HERE (COMMANDS)
-  // =========================================================
   function undo() {
     if (undoStack.length < 2) return;
-    const current = undoStack.pop();
-    redoStack.push(current);
+    const cur = undoStack.pop();
+    redoStack.push(cur);
     restoreState(undoStack[undoStack.length - 1]);
   }
 
   function redo() {
     if (!redoStack.length) return;
-    const state = redoStack.pop();
-    undoStack.push(state);
-    restoreState(state);
+    const s = redoStack.pop();
+    undoStack.push(s);
+    restoreState(s);
   }
 
-  // -------------------------
-  // Drawing tools
-  // -------------------------
-  let isDrawing = false;
-  let lastPoint = null;
-  let drawMode = 'pen';
+  function updateUI() {
+    undoBtn.disabled = undoStack.length < 2;
+    redoBtn.disabled = !redoStack.length;
+  }
 
-  function startDrawAt(pt) {
-    isDrawing = true;
-    lastPoint = pt;
+  undoBtn.onclick = undo;
+  redoBtn.onclick = redo;
+
+  // ================= DRAW =================
+  let drawing = false;
+
+  viewport.addEventListener('pointerdown', e => {
+    drawing = true;
+    const p = pageToWorld(e.clientX, e.clientY);
     ctx.beginPath();
-    ctx.moveTo(pt.x, pt.y);
-  }
+    ctx.moveTo(p.x, p.y);
+  });
 
-  function continueDrawTo(pt) {
-    if (!isDrawing) return;
-    ctx.lineWidth = Number(penSize.value);
+  window.addEventListener('pointermove', e => {
+    if (!drawing) return;
+    const p = pageToWorld(e.clientX, e.clientY);
+    ctx.lineWidth = penSize.value;
     ctx.strokeStyle = penColor.value;
-    ctx.globalAlpha = Number(penOpacity.value);
-    ctx.lineTo(pt.x, pt.y);
+    ctx.globalAlpha = penOpacity.value;
+    ctx.lineTo(p.x, p.y);
     ctx.stroke();
-    lastPoint = pt;
-  }
+  });
 
-  function endDraw() {
-    isDrawing = false;
-    lastPoint = null;
-
-    // >>> UNDO / REDO INSERTED HERE
+  window.addEventListener('pointerup', () => {
+    if (!drawing) return;
+    drawing = false;
     captureState();
-  }
-
-  viewport.addEventListener('pointerdown', ev => {
-    const pt = pageToWorld(ev.clientX, ev.clientY);
-    startDrawAt(pt);
   });
 
-  window.addEventListener('pointermove', ev => {
-    if (!isDrawing) return;
-    continueDrawTo(pageToWorld(ev.clientX, ev.clientY));
-  });
-
-  window.addEventListener('pointerup', endDraw);
-
-  // -------------------------
-  // Keyboard shortcuts
-  // -------------------------
-  window.addEventListener('keydown', ev => {
-
-    // >>> UNDO / REDO INSERTED HERE
-    if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'z') {
-      undo();
-      ev.preventDefault();
+  // ================= SHORTCUTS =================
+  window.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+      undo(); e.preventDefault();
     }
-
-    if (
-      (ev.ctrlKey || ev.metaKey) &&
-      (ev.key.toLowerCase() === 'y' ||
-        (ev.shiftKey && ev.key.toLowerCase() === 'z'))
-    ) {
-      redo();
-      ev.preventDefault();
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'Z'))) {
+      redo(); e.preventDefault();
     }
   });
 
-  // -------------------------
-  // Initial state snapshot
-  // -------------------------
-  // >>> UNDO / REDO INSERTED HERE
+  // Initial snapshot
   captureState();
 
 })();
