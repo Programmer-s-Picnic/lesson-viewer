@@ -12,7 +12,15 @@
   const drawingCanvas = document.getElementById('drawing');
   const selRect = document.getElementById('selRect');
 
-  const ctx = drawingCanvas.getContext('2d', { alpha: true });
+  
+  const ctx = drawingCanvas.getContext('2d', {
+  alpha: true,
+  willReadFrequently: true
+});
+
+
+
+
 
   // Tool buttons
   const penToolBtn = document.getElementById('penTool');
@@ -328,14 +336,19 @@
   }
 
   function endDraw() {
-    if (!isDrawing) return;
-    isDrawing = false;
-    lastPoint = null;
-    showEraserCursorIfNeeded();
+  if (!isDrawing) return;
 
-    // >>> UNDO/REDO: capture only if something really changed
-    if (strokeChanged) captureState();
+  isDrawing = false;
+  lastPoint = null;
+  showEraserCursorIfNeeded();
+
+  // IMPORTANT: delay snapshot until canvas paint is committed
+  if (strokeChanged) {
+    requestAnimationFrame(() => {
+      captureState();
+    });
   }
+}
 
   // -------------------------
   // Eraser cursor overlay
