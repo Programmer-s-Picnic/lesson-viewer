@@ -1,26 +1,62 @@
+/**
+ * ============================================================
+ * WHITEBOARD CORE MODULE
+ * ============================================================
+ * This is the engine.
+ *
+ * It manages:
+ * - Canvas drawing (pen / highlighter / eraser)
+ * - Objects layer (rect / circle / text / image)
+ * - Selection, dragging, resizing, rotating
+ * - Grid/snap
+ * - Undo/Redo history
+ * - Import/Export JSON (objects only)
+ * - Help/Guide persistence
+ *
+ * CHANGE THIS -> DO THIS (Common edits):
+ * ------------------------------------------------------------
+ * A) Default canvas/world size:
+ *    - resizeWorld(): worldW/worldH calculation
+ *
+ * B) Default tool:
+ *    - setActiveTool('pen') near end
+ *
+ * C) Pen defaults:
+ *    - HTML default values OR in code use .value assignments
+ *
+ * D) Snap grid angle step:
+ *    - snapAngle(): change step = 15
+ *
+ * E) History length:
+ *    - MAX_HISTORY = 40
+ *
+ * F) Export should include canvas too:
+ *    - capture canvasData as a PNG (toDataURL) and include in JSON export
+ *
+ * SAFETY:
+ * - Do not remove historyLock logic unless you know why.
+ * - Do not put IDs into cloned dropdown elements (handled in whiteboard.js).
+ */
+
 (function whiteboardCoreModule() {
   // =========================================================
-  // WHITEBOARD CORE MODULE
+  // 1) DOM REFERENCES
   // =========================================================
-
-  // -------------
-  // DOM References
-  // -------------
   const viewport = document.getElementById('viewport');
   const world = document.getElementById('world');
   const objectsLayer = document.getElementById('objectsLayer');
   const drawingCanvas = document.getElementById('drawing');
   const selRect = document.getElementById('selRect');
 
-  
+  /**
+   * Canvas 2D context
+   * - alpha: true -> allows transparency
+   * - willReadFrequently: true -> helps performance when reading pixels (undo)
+   */
   const ctx = drawingCanvas.getContext('2d', {
-  alpha: true,
-  willReadFrequently: true
-});
-
-
-
-
+    alpha: true,
+    willReadFrequently: true
+  });
 
   // Tool buttons
   const penToolBtn = document.getElementById('penTool');
@@ -60,24 +96,41 @@
   const shapeFillInput = document.getElementById('shapeFill');
   const shapeBorderInput = document.getElementById('shapeBorder');
 
-  // >>> UNDO/REDO INSERTED HERE (toolbar buttons)
+  // Undo/Redo toolbar buttons
   const undoBtn = document.getElementById('undoBtn');
   const redoBtn = document.getElementById('redoBtn');
 
-  // -------------------------
-  // Default style values
-  // -------------------------
+  // =========================================================
+  // 2) DEFAULT STYLE VALUES
+  // =========================================================
+  /**
+   * These are applied:
+   * - When NO object is selected -> they become "defaults for new objects"
+   * - When objects ARE selected -> changes apply to selected objects
+   *
+   * CHANGE THIS -> DO THIS:
+   * - Want different defaults on load? change HTML values or set here.
+   */
   let defaultFontColor = fontColorInput.value || '#000000';
   let defaultFontSize = Number(fontSizeInput.value) || 16;
   let defaultShapeFill = shapeFillInput.value || 'teal';
   let defaultShapeBorder = shapeBorderInput.value || 'red';
 
-  // -------------------------
-  // World sizing & transform
-  // -------------------------
+  // =========================================================
+  // 3) WORLD SIZING & TRANSFORM (Pan + Zoom)
+  // =========================================================
+  /**
+   * worldW/worldH:
+   * - determines how big the internal drawable plane is.
+   *
+   * CHANGE THIS -> DO THIS:
+   * - Want infinite board? you'd need tiling / dynamic expansion
+   * - Want larger board always? increase multipliers in resizeWorld()
+   */
   let worldW = 2400;
   let worldH = 1600;
 
+  // pan = translation (pixels), scale = zoom factor
   let pan = { x: 0, y: 0 };
   let scale = 1;
 
@@ -85,6 +138,7 @@
     const vw = viewport.clientWidth;
     const vh = viewport.clientHeight;
 
+    // The board is about 2x viewport in each dimension (min bounds)
     worldW = Math.max(1400, Math.floor(vw * 2));
     worldH = Math.max(900, Math.floor(vh * 2));
 
@@ -94,17 +148,27 @@
     objectsLayer.style.width = worldW + 'px';
     objectsLayer.style.height = worldH + 'px';
 
+    // IMPORTANT: Canvas pixel buffer sizes must be set via width/height properties
     drawingCanvas.width = worldW;
     drawingCanvas.height = worldH;
 
+    // CSS sizes match, so drawing is 1:1
     drawingCanvas.style.width = worldW + 'px';
     drawingCanvas.style.height = worldH + 'px';
   }
 
   function applyTransform() {
+    // Transform world: translate then scale
     world.style.transform = `translate(${pan.x}px, ${pan.y}px) scale(${scale})`;
   }
 
+  /**
+   * Convert page coordinates (clientX/clientY) to world coordinates,
+   * taking pan and scale into account.
+   *
+   * CHANGE THIS -> DO THIS:
+   * - If you add zoom with mousewheel, this stays correct.
+   */
   function pageToWorld(clientX, clientY) {
     const r = viewport.getBoundingClientRect();
     const x = (clientX - r.left - pan.x) / scale;
@@ -112,6 +176,10 @@
     return { x, y };
   }
 
+  /**
+   * Snap helpers:
+   * snapToggle controls whether snapping applies.
+   */
   function snapValue(v) {
     if (!snapToggle.checked) return v;
     const g = parseInt(gridSizeSelect.value, 10) || 12;
@@ -120,10 +188,11 @@
 
   function snapAngle(a) {
     if (!snapToggle.checked) return a;
-    const step = 15;
+    const step = 15; // CHANGE THIS -> DO THIS: set 5 for smoother, 30 for chunkier
     return Math.round(a / step) * step;
   }
 
+  // Resize board when window resizes
   window.addEventListener('resize', () => {
     resizeWorld();
     applyTransform();
@@ -132,12 +201,22 @@
   applyTransform();
 
   // =========================================================
-  // >>> UNDO/REDO INSERTED HERE (SAFE HISTORY SYSTEM)
+  // 4) UNDO / REDO (Snapshot history)
   // =========================================================
+  /**
+   * This uses a safe snapshot approach:
+   * - canvasData: ImageData of entire canvas
+   * - objectsData: serializable object list snapshot
+   *
+   * CHANGE THIS -> DO THIS:
+   * - Increase history: MAX_HISTORY
+   * - Reduce memory usage: store canvas as PNG dataURL instead of ImageData
+   */
   const undoStack = [];
   const redoStack = [];
   const MAX_HISTORY = 40;
 
+  // historyLock prevents recursive captures during restore/import
   let historyLock = 0;
   function withHistoryLock(fn) {
     historyLock++;
@@ -146,20 +225,31 @@
 
   function updateUndoRedoUI() {
     if (!undoBtn || !redoBtn) return;
+    // Need at least 2 states to undo: baseline + current
     undoBtn.disabled = undoStack.length < 2;
     redoBtn.disabled = redoStack.length === 0;
   }
 
+  /**
+   * Snapshot all objects into plain JSON structures.
+   * NOTE: This stores innerHTML (content) for text and images.
+   * If you import untrusted JSON, it could inject HTML.
+   *
+   * CHANGE THIS -> DO THIS:
+   * - For safety, sanitize HTML before setting innerHTML on restore.
+   */
   function snapshotObjects() {
     const out = [];
     for (const el of objectsLayer.children) {
       if (!el.classList || !el.classList.contains('obj')) continue;
+
       const content = el.querySelector('.content');
+
       out.push({
         id: el.dataset.objId || '',
         type: el.classList.contains('circle') ? 'circle'
           : el.classList.contains('text') ? 'text'
-            : 'rect',
+          : 'rect',
         left: parseFloat(el.style.left || 0),
         top: parseFloat(el.style.top || 0),
         width: parseFloat(el.style.width || el.offsetWidth),
@@ -178,6 +268,10 @@
     return out;
   }
 
+  /**
+   * Restore object list from snapshot data.
+   * Uses createObject(..., noHistory: true) so it doesn’t pollute history.
+   */
   function restoreObjects(data) {
     objectsLayer.innerHTML = '';
     clearSelection();
@@ -190,7 +284,7 @@
         h: item.height,
         type: item.type,
         html: item.html,
-        noHistory: true // IMPORTANT: prevent capture while restoring
+        noHistory: true // IMPORTANT: do not capture state while restoring
       });
 
       el.style.zIndex = item.z || 1;
@@ -213,11 +307,15 @@
   function captureState() {
     if (historyLock > 0) return;
 
+    // Snapshot canvas pixels (can be heavy but reliable)
     const canvasData = ctx.getImageData(0, 0, drawingCanvas.width, drawingCanvas.height);
     const objectsData = snapshotObjects();
 
     undoStack.push({ canvasData, objectsData });
+
     if (undoStack.length > MAX_HISTORY) undoStack.shift();
+
+    // Any new action clears redo stack (standard behavior)
     redoStack.length = 0;
     updateUndoRedoUI();
   }
@@ -225,6 +323,7 @@
   function restoreState(state) {
     if (!state) return;
 
+    // lock prevents accidental capture during restore
     withHistoryLock(() => {
       ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
       ctx.putImageData(state.canvasData, 0, 0);
@@ -251,16 +350,24 @@
   if (undoBtn) undoBtn.addEventListener('click', undo);
   if (redoBtn) redoBtn.addEventListener('click', redo);
 
-  // -------------------------
-  // Drawing tools
-  // -------------------------
-  let drawMode = 'pen'; // 'pen' | 'highlighter' | 'eraser' | 'select'
+  // =========================================================
+  // 5) DRAWING TOOLS (Pen / Highlighter / Eraser / Select)
+  // =========================================================
+  let drawMode = 'pen';
   let isDrawing = false;
   let lastPoint = null;
-  let strokeChanged = false; // >>> UNDO/REDO: only capture real strokes
 
+  // strokeChanged prevents history spam when no real drawing occurred
+  let strokeChanged = false;
+
+  /**
+   * Set active tool + update UI
+   * CHANGE THIS -> DO THIS:
+   * - Want default tool: call setActiveTool('select') at end instead.
+   */
   function setActiveTool(tool) {
     drawMode = tool;
+
     [penToolBtn, highlighterToolBtn, eraserToolBtn, selectToolBtn]
       .forEach(b => b.classList.remove('active'));
 
@@ -288,6 +395,7 @@
     ctx.beginPath();
     ctx.moveTo(worldPt.x, worldPt.y);
 
+    // Hide eraser cursor while actively erasing (looks cleaner)
     if (drawMode === 'eraser') hideEraserCursorTemporarily();
   }
 
@@ -305,6 +413,7 @@
       ctx.stroke();
       ctx.restore();
       strokeChanged = true;
+
     } else if (drawMode === 'highlighter') {
       ctx.save();
       ctx.globalCompositeOperation = 'source-over';
@@ -319,6 +428,7 @@
       ctx.stroke();
       ctx.restore();
       strokeChanged = true;
+
     } else if (drawMode === 'pen') {
       ctx.save();
       ctx.globalCompositeOperation = 'source-over';
@@ -336,23 +446,22 @@
   }
 
   function endDraw() {
-  if (!isDrawing) return;
+    if (!isDrawing) return;
 
-  isDrawing = false;
-  lastPoint = null;
-  showEraserCursorIfNeeded();
+    isDrawing = false;
+    lastPoint = null;
+    showEraserCursorIfNeeded();
 
-  // IMPORTANT: delay snapshot until canvas paint is committed
-  if (strokeChanged) {
-    requestAnimationFrame(() => {
-      captureState();
-    });
+    // IMPORTANT:
+    // requestAnimationFrame ensures the last stroke is committed before snapshot
+    if (strokeChanged) {
+      requestAnimationFrame(() => captureState());
+    }
   }
-}
 
-  // -------------------------
-  // Eraser cursor overlay
-  // -------------------------
+  // =========================================================
+  // 6) ERASER CURSOR OVERLAY
+  // =========================================================
   let eraserVisible = false;
   let eraserHiddenTemporarily = false;
   let lastPointerInViewport = false;
@@ -383,6 +492,7 @@
   }
 
   function positionEraserCursor(pageX, pageY) {
+    // sizeWorld = tool size, displaySize = scaled size on screen
     const sizeWorld = Number(penSize.value) || 10;
     const displaySize = Math.max(6, sizeWorld * scale);
 
@@ -409,6 +519,9 @@
     updateEraserCursorVisibility();
   });
 
+  // This pointermove handles:
+  // - eraser cursor tracking
+  // - active drawing updates
   window.addEventListener('pointermove', ev => {
     if (eraserVisible || (drawMode === 'eraser' && lastPointerInViewport)) {
       positionEraserCursor(ev.clientX, ev.clientY);
@@ -418,9 +531,9 @@
     }
   });
 
-  // -------------------------
-  // Panning & selection box
-  // -------------------------
+  // =========================================================
+  // 7) PANNING & SELECTION BOX
+  // =========================================================
   let spaceDown = false;
   let panning = false;
   let panStart = null;
@@ -432,6 +545,7 @@
   viewport.addEventListener('pointerdown', ev => {
     viewport.focus();
 
+    // Space+drag = pan
     if (spaceDown) {
       panning = true;
       panStart = { x: ev.clientX, y: ev.clientY };
@@ -441,8 +555,10 @@
       return;
     }
 
+    // Selection box draw (only when in select mode and clicking background)
     if (drawMode === 'select' &&
       (ev.target === viewport || ev.target === world || ev.target === drawingCanvas)) {
+
       selecting = true;
       selStart = { x: ev.clientX, y: ev.clientY };
 
@@ -456,12 +572,14 @@
       return;
     }
 
+    // Draw modes start stroke
     if (drawMode === 'pen' || drawMode === 'highlighter' || drawMode === 'eraser') {
       startDrawAt(pageToWorld(ev.clientX, ev.clientY));
       ev.preventDefault();
     }
   });
 
+  // Global pointermove handles panning and selection-rect resizing
   window.addEventListener('pointermove', ev => {
     if (panning) {
       pan.x = savedPan.x + (ev.clientX - panStart.x);
@@ -502,6 +620,12 @@
     if (isDrawing) endDraw();
   });
 
+  // Keyboard controls:
+  // - Space toggles pan mode
+  // - Ctrl/Cmd+Z -> undo
+  // - Ctrl/Cmd+Y or Ctrl+Shift+Z -> redo
+  // - Ctrl/Cmd+D -> duplicate
+  // - Delete -> delete selection
   window.addEventListener('keydown', ev => {
     if (ev.code === 'Space') {
       spaceDown = true;
@@ -509,24 +633,22 @@
       ev.preventDefault();
     }
 
-    // >>> UNDO/REDO shortcuts
     if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'z') {
       undo();
       ev.preventDefault();
     }
+
     if ((ev.ctrlKey || ev.metaKey) &&
       (ev.key.toLowerCase() === 'y' || (ev.shiftKey && ev.key.toLowerCase() === 'z'))) {
       redo();
       ev.preventDefault();
     }
 
-    // Duplicate: Ctrl/Cmd + D
     if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'd') {
       duplicateSelected();
       ev.preventDefault();
     }
 
-    // Delete
     if (ev.key === 'Delete' || ev.key === 'Backspace') {
       deleteSelected();
       ev.preventDefault();
@@ -540,9 +662,9 @@
     }
   });
 
-  // -------------------------
-  // Object selection model
-  // -------------------------
+  // =========================================================
+  // 8) OBJECT SELECTION MODEL
+  // =========================================================
   let selectedSet = new Set();
   let selectionOrder = [];
   let objectCounter = 1;
@@ -572,6 +694,10 @@
     return Array.from(selectionOrder);
   }
 
+  /**
+   * Select an object:
+   * - append=true toggles selection if Shift pressed
+   */
   function selectObjectSingle(el, append = false) {
     if (append) {
       if (selectedSet.has(el)) removeFromSelection(el);
@@ -582,16 +708,19 @@
     }
   }
 
-  // -------------------------
-  // Style application helpers
-  // -------------------------
+  // =========================================================
+  // 9) STYLE APPLICATION HELPERS
+  // =========================================================
   function applyFontColor(color) {
     if (selectedSet.size > 0) {
       for (const el of getSelectionArray()) {
         const c = el.querySelector('.content');
         if (c) c.style.color = color;
       }
-    } else defaultFontColor = color;
+    } else {
+      // No selection => this becomes the default for future objects
+      defaultFontColor = color;
+    }
   }
 
   function applyFontSize(size) {
@@ -603,7 +732,9 @@
           if (c) c.style.fontSize = px;
         }
       }
-    } else defaultFontSize = Number(size) || 12;
+    } else {
+      defaultFontSize = Number(size) || 12;
+    }
   }
 
   function applyShapeFill(color) {
@@ -613,7 +744,9 @@
           el.style.background = color;
         }
       }
-    } else defaultShapeFill = color;
+    } else {
+      defaultShapeFill = color;
+    }
   }
 
   function applyShapeBorder(color) {
@@ -623,64 +756,75 @@
           el.style.borderColor = color;
         }
       }
-    } else defaultShapeBorder = color;
+    } else {
+      defaultShapeBorder = color;
+    }
   }
 
+  // Bind UI inputs to style functions
   fontColorInput.addEventListener('input', e => applyFontColor(e.target.value));
   fontSizeInput.addEventListener('input', e => applyFontSize(e.target.value));
   shapeFillInput.addEventListener('input', e => applyShapeFill(e.target.value));
   shapeBorderInput.addEventListener('input', e => applyShapeBorder(e.target.value));
 
-  // -------------------------
-  // Object creation
-  // -------------------------
+  // =========================================================
+  // 10) OBJECT CREATION
+  // =========================================================
+  /**
+   * createObject creates DOM objects (not canvas drawing).
+   *
+   * CHANGE THIS -> DO THIS:
+   * - Want different default sizes? change defaults in parameters below.
+   * - Want new object types (arrow, sticky note)? add class + rendering logic.
+   */
   function createObject({ x = 120, y = 80, w = 220, h = 120, type = 'rect', html = '', noHistory = false } = {}) {
     const el = document.createElement('div');
 
+    // Assign class based on type
     el.className = 'obj ' + (
       type === 'circle' ? 'circle' :
-        type === 'text' ? 'text' :
-          'rect'
+      type === 'text' ? 'text' :
+      'rect'
     );
 
+    // Unique object ID
     el.dataset.objId = 'obj' + (objectCounter++);
+
+    // Position and size
     el.style.left = x + 'px';
     el.style.top = y + 'px';
     el.style.width = w + 'px';
     el.style.height = h + 'px';
 
+    // Rotation stored in dataset (degrees)
     el.style.transform = 'rotate(0deg)';
     el.dataset.angle = '0';
+
+    // New objects go above older objects
     el.style.zIndex = ++zCounter;
 
     const content = document.createElement('div');
     content.className = 'content';
 
-    if (type === 'text') {
-  content.innerHTML = html || 'Double-click to edit';
-  content.style.color = defaultFontColor;
-  content.style.fontSize = defaultFontSize + 'px';
-} else if (type === 'rect' || type === 'circle') {
-  content.innerHTML = html || 'Double-click to edit';
-  content.style.color = defaultFontColor;
-  content.style.fontSize = defaultFontSize + 'px';
-  el.style.background = defaultShapeFill;
-  el.style.borderColor = defaultShapeBorder;
-}
+    /**
+     * IMPORTANT CLEANUP:
+     * Your original code had duplicated else-if blocks for rect/circle.
+     * This version uses one consistent rule set:
+     * - text/rect/circle are editable
+     * - rect/circle get fill/border defaults
+     */
+    content.innerHTML = html || 'Double-click to edit';
+    content.style.color = defaultFontColor;
+    content.style.fontSize = defaultFontSize + 'px';
 
-    
-
-
-    else if (type === 'rect' || type === 'circle') {
-      content.innerHTML = html || '';
+    if (type === 'rect' || type === 'circle') {
       el.style.background = defaultShapeFill;
       el.style.borderColor = defaultShapeBorder;
-    } else {
-      content.innerHTML = html || '';
     }
 
     el.appendChild(content);
 
+    // Handles
     const rotateHandle = document.createElement('div');
     rotateHandle.className = 'handle rotate';
     el.appendChild(rotateHandle);
@@ -689,50 +833,68 @@
     resizeHandle.className = 'handle resize';
     el.appendChild(resizeHandle);
 
+    // Make it interactive (drag/resize/rotate/edit/select)
     makeInteractiveObject(el, rotateHandle, resizeHandle);
 
+    // Add to DOM
     objectsLayer.appendChild(el);
+
+    // Select newly created object
     selectObjectSingle(el);
 
-    // >>> UNDO/REDO: capture only for user-created objects
+    // Capture history for user-created objects only
     if (!noHistory) captureState();
 
     return el;
   }
 
+  // UI bindings for add buttons
   document.getElementById('addRect').addEventListener('click', () => createObject({ type: 'rect' }));
   document.getElementById('addCircle').addEventListener('click', () => createObject({ type: 'circle', w: 140, h: 140 }));
-  document.getElementById('addText').addEventListener('click', () => createObject({ type: 'text', w: 220, h: 80, html: 'Double-click to edit' }));
+  document.getElementById('addText').addEventListener('click', () =>
+    createObject({ type: 'text', w: 220, h: 80, html: 'Double-click to edit' })
+  );
 
+  /**
+   * Add image uses prompt() for URL:
+   * CHANGE THIS -> DO THIS:
+   * - Replace prompt with a modal, or allow file upload.
+   */
   document.getElementById('addImage').addEventListener('click', () => {
     const url = prompt('Image URL (direct):');
     if (!url) return;
+
     createObject({
       type: 'rect',
       w: 260,
       h: 160,
+      // NOTE: this is raw HTML insertion
+      // CHANGE THIS -> DO THIS:
+      // - sanitize or validate URL, set <img src> safely
       html: `<img src="${url.replace(/"/g, '')}" alt="">`
     });
   });
 
   document.getElementById('dupBtn').addEventListener('click', () => duplicateSelected());
 
+  // Clear all objects + drawings
   clearAllBtn.addEventListener('click', () => {
     if (confirm('Remove all objects and drawings?')) {
       objectsLayer.innerHTML = '';
       ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
       clearSelection();
-      captureState(); // >>> UNDO/REDO
+      captureState();
     }
   });
 
-  // -------------------------
-  // Selection rectangle finalize
-  // -------------------------
+  // =========================================================
+  // 11) SELECTION RECTANGLE FINALIZE
+  // =========================================================
   function finalizeSelectionRect(ev) {
     const rectPage = selRect.getBoundingClientRect();
     const vpRect = viewport.getBoundingClientRect();
 
+    // Convert selection rectangle from page coords to world coords
     const worldRect = {
       left: (rectPage.left - vpRect.left - pan.x) / scale,
       top: (rectPage.top - vpRect.top - pan.y) / scale,
@@ -766,9 +928,17 @@
     }
   }
 
-  // -------------------------
-  // Interactive object behaviors
-  // -------------------------
+  // =========================================================
+  // 12) INTERACTIVE OBJECT BEHAVIORS
+  // =========================================================
+  /**
+   * makeInteractiveObject attaches:
+   * - Dragging
+   * - Resizing
+   * - Rotating
+   * - Dblclick edit
+   * - Click to select
+   */
   function makeInteractiveObject(el, rotateHandle, resizeHandle) {
     // ---- DRAGGING ----
     let dragging = false;
@@ -777,10 +947,13 @@
 
     el.addEventListener('pointerdown', ev => {
       if (ev.button && ev.button !== 0) return;
+
+      // If grabbing handles, do not start dragging
       if (ev.target === rotateHandle || ev.target === resizeHandle) return;
 
       ev.stopPropagation();
 
+      // Shift toggles selection, otherwise single select
       if (ev.shiftKey) selectObjectSingle(el, true);
       else if (!selectedSet.has(el)) selectObjectSingle(el, false);
 
@@ -789,6 +962,7 @@
       dragging = true;
       dragStart = { x: ev.clientX, y: ev.clientY };
 
+      // Multi-select move: store original positions for all selected
       groupOrig = getSelectionArray().map(o => ({
         el: o,
         left: parseFloat(o.style.left),
@@ -805,6 +979,7 @@
       for (const o of groupOrig) {
         let nx = o.left + dx;
         let ny = o.top + dy;
+
         if (snapToggle.checked) {
           nx = snapValue(nx);
           ny = snapValue(ny);
@@ -819,7 +994,8 @@
       dragging = false;
       if (el.releasePointerCapture) el.releasePointerCapture(ev.pointerId);
 
-      captureState(); // >>> UNDO/REDO (commit move)
+      // Commit movement to history
+      captureState();
     });
 
     // ---- RESIZING ----
@@ -835,6 +1011,7 @@
       rStart = { x: ev.clientX, y: ev.clientY };
       rOrig = { w: el.offsetWidth, h: el.offsetHeight };
 
+      // Ensure resizing object is selected
       if (!selectedSet.has(el)) {
         clearSelection();
         addToSelection(el);
@@ -864,7 +1041,7 @@
       resizing = false;
       if (resizeHandle.releasePointerCapture) resizeHandle.releasePointerCapture(ev.pointerId);
 
-      captureState(); // >>> UNDO/REDO (commit resize)
+      captureState();
     });
 
     // ---- ROTATING ----
@@ -879,16 +1056,19 @@
 
       rotating = true;
 
+      // Find element center in page coords
       const rect = el.getBoundingClientRect();
       const cx = rect.left + rect.width / 2;
       const cy = rect.top + rect.height / 2;
 
+      // Convert center to world coords
       rotateCenter = pageToWorld(cx, cy);
+
       rotateStartAngle = parseFloat(el.dataset.angle || '0');
 
+      // Initial pointer angle relative to center
       const p = pageToWorld(ev.clientX, ev.clientY);
-      rotateStartPointerDeg =
-        Math.atan2(p.y - rotateCenter.y, p.x - rotateCenter.x) * 180 / Math.PI;
+      rotateStartPointerDeg = Math.atan2(p.y - rotateCenter.y, p.x - rotateCenter.x) * 180 / Math.PI;
 
       if (!selectedSet.has(el)) {
         clearSelection();
@@ -900,10 +1080,14 @@
       if (!rotating) return;
 
       const p = pageToWorld(ev.clientX, ev.clientY);
-      const pointerDeg =
-        Math.atan2(p.y - rotateCenter.y, p.x - rotateCenter.x) * 180 / Math.PI;
+      const pointerDeg = Math.atan2(p.y - rotateCenter.y, p.x - rotateCenter.x) * 180 / Math.PI;
 
       let delta = pointerDeg - rotateStartPointerDeg;
+
+      // NOTE:
+      // Your code adds +90; leaving as-is.
+      // CHANGE THIS -> DO THIS:
+      // - If rotation feels offset, remove +90 and test.
       let newAngle = rotateStartAngle + delta + 90;
 
       if (snapToggle.checked) newAngle = snapAngle(newAngle);
@@ -917,37 +1101,37 @@
       rotating = false;
       if (rotateHandle.releasePointerCapture) rotateHandle.releasePointerCapture(ev.pointerId);
 
-      captureState(); // >>> UNDO/REDO (commit rotate)
+      captureState();
     });
 
     // ---- TEXT EDITING ----
-    
     el.addEventListener('dblclick', () => {
-  const c = el.querySelector('.content');
-  if (!c) return;
+      const c = el.querySelector('.content');
+      if (!c) return;
 
-  c.contentEditable = true;
-  c.focus();
+      c.contentEditable = true;
+      c.focus();
 
-  // Select text automatically
-  document.execCommand('selectAll', false, null);
+      // Select all text for convenience
+      document.execCommand('selectAll', false, null);
 
-  c.addEventListener('blur', () => {
-    c.contentEditable = false;
-    captureState(); // Undo support
-  }, { once: true });
-});
+      // When editing finishes, commit to history
+      c.addEventListener('blur', () => {
+        c.contentEditable = false;
+        captureState();
+      }, { once: true });
+    });
 
-
+    // Click selects object (with shift toggle)
     el.addEventListener('click', ev => {
       ev.stopPropagation();
       selectObjectSingle(el, ev.shiftKey);
     });
   }
 
-  // -------------------------
-  // Duplication & deletion
-  // -------------------------
+  // =========================================================
+  // 13) DUPLICATION & DELETION
+  // =========================================================
   function duplicateSelected() {
     const sel = getSelectionArray();
     if (sel.length === 0) return;
@@ -958,6 +1142,7 @@
       const clone = el.cloneNode(true);
       clone.dataset.objId = 'obj' + (objectCounter++);
 
+      // Offset so duplicates are visible
       const left = parseFloat(el.style.left || '0') + 20;
       const top = parseFloat(el.style.top || '0') + 20;
 
@@ -965,6 +1150,7 @@
       clone.style.top = top + 'px';
       clone.style.zIndex = ++zCounter;
 
+      // Ensure handles exist
       let rotateHandle = clone.querySelector('.handle.rotate');
       let resizeHandle = clone.querySelector('.handle.resize');
 
@@ -979,23 +1165,26 @@
         clone.appendChild(resizeHandle);
       }
 
+      // Attach interactivity again (important!)
       makeInteractiveObject(clone, rotateHandle, resizeHandle);
 
       objectsLayer.appendChild(clone);
       addToSelection(clone);
     }
 
-    captureState(); // >>> UNDO/REDO
+    captureState();
   }
 
   function deleteSelected() {
     const sel = getSelectionArray();
     if (sel.length === 0) return;
+
     for (const el of sel) el.remove();
     clearSelection();
-    captureState(); // >>> UNDO/REDO
+    captureState();
   }
 
+  // Clicking blank area clears selection in non-draw modes
   viewport.addEventListener('pointerdown', ev => {
     if (ev.target === viewport || ev.target === world || ev.target === drawingCanvas) {
       if (drawMode !== 'pen' && drawMode !== 'highlighter' && drawMode !== 'eraser') {
@@ -1004,11 +1193,12 @@
     }
   });
 
-  // -------------------------
-  // Export / Import JSON
-  // -------------------------
+  // =========================================================
+  // 14) EXPORT / IMPORT JSON (Objects only)
+  // =========================================================
   exportJSONBtn.addEventListener('click', () => {
     const out = snapshotObjects();
+
     const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -1059,7 +1249,7 @@
           }
         });
 
-        captureState(); // >>> UNDO/REDO (commit import)
+        captureState(); // commit import
       } catch (err) {
         alert('Invalid JSON file.');
       }
@@ -1068,9 +1258,9 @@
     ev.target.value = '';
   });
 
-  // -------------------------
-  // Grid toggle
-  // -------------------------
+  // =========================================================
+  // 15) GRID TOGGLE
+  // =========================================================
   toggleGridBtn.addEventListener('click', () => {
     const showGrid = !world.classList.contains('grid');
     if (showGrid) {
@@ -1082,16 +1272,16 @@
     }
   });
 
-  // -------------------------
-  // Guide visibility
-  // -------------------------
+  // =========================================================
+  // 16) GUIDE VISIBILITY (Persisted)
+  // =========================================================
   const GUIDE_KEY = 'wb_guide_style_v1';
   let guideState = { open: true };
 
   try {
     const saved = localStorage.getItem(GUIDE_KEY);
     if (saved) guideState = JSON.parse(saved);
-  } catch (e) { }
+  } catch (e) {}
 
   function applyGuideState() {
     if (!guideState.open) {
@@ -1127,9 +1317,9 @@
     applyGuideState();
   });
 
-  // -------------------------
-  // Touch behavior: prevent scrolling on touch draw
-  // -------------------------
+  // =========================================================
+  // 17) TOUCH BEHAVIOR (Prevent scrolling while drawing)
+  // =========================================================
   document.body.addEventListener('touchstart', e => {
     if (e.target.closest('.world')) e.preventDefault();
   }, { passive: false });
@@ -1138,21 +1328,20 @@
     if (e.target.closest('.world')) e.preventDefault();
   }, { passive: false });
 
-  // -------------------------
-  // Initial demo objects
-  // -------------------------
-  // Create initial content WITHOUT capturing multiple states
+  // =========================================================
+  // 18) INITIAL DEMO OBJECTS + BASELINE HISTORY SNAPSHOT
+  // =========================================================
   withHistoryLock(() => {
-    createObject({ x: 80, y: 60, w: 260, h: 150, type: 'rect', noHistory: true });
+    createObject({ x: 80,  y: 60,  w: 260, h: 150, type: 'rect',  noHistory: true });
     createObject({ x: 420, y: 120, w: 160, h: 160, type: 'circle', noHistory: true });
-    createObject({ x: 120, y: 320, w: 260, h: 110, type: 'text', html: 'Double-click to edit', noHistory: true });
+    createObject({ x: 120, y: 320, w: 260, h: 110, type: 'text',  html: 'Double-click to edit', noHistory: true });
   });
 
   resizeWorld();
   applyTransform();
   setActiveTool('pen');
 
-  // >>> UNDO/REDO: initial baseline snapshot (only once)
+  // baseline state
   captureState();
   updateUndoRedoUI();
 })();

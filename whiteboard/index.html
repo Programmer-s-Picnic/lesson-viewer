@@ -2,27 +2,68 @@
 <html lang="en">
 
 <head>
+  <!--
+    =========================================================
+    DOCUMENT METADATA
+    =========================================================
+    CHANGE THIS -> DO THIS:
+    - Want Hindi UI? set lang="hi" above and use UTF-8 (already)
+    - Want custom title in browser tab? edit <title>
+  -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+
   <title>Programmer's Whiteboard — Champak Roy</title>
+
+  <!--
+    =========================================================
+    STYLESHEET
+    =========================================================
+    CHANGE THIS -> DO THIS:
+    - If you rename CSS file, update href below.
+    - If you want multiple themes: add another <link> or load dynamically.
+  -->
   <link rel="stylesheet" href="whiteboard.css" />
 </head>
 
 <body>
   <div class="app">
 
-    <!-- TOP TOOLBAR -->
+    <!-- =====================================================
+         TOP TOOLBAR
+         =====================================================
+         This is your main control bar.
+         Most controls are wired in whiteboardcore.js
+         Toolbar collapse UI is handled by whiteboard.js
+    -->
     <div class="toolbar" role="toolbar" aria-label="Main toolbar" id="toolbar">
+
+      <!--
+        Toolbar collapse / overflow menu button.
+        CHANGE THIS -> DO THIS:
+        - Want different icon? Replace ☰ with SVG or text.
+        - Want default collapsed? handled by whiteboard.js localStorage key.
+      -->
       <button id="menuCollapse" aria-label="Toggle toolbar" aria-expanded="true"
         title="Collapse / Expand / Show more tools">
         ☰
       </button>
-<div class="brand">
-  <div class="title">Programmer’s Picnic</div>
-  <div class="author">by Champak Roy</div>
-</div>
 
-      <!-- Group 1: Object creation -->
+      <!-- Branding block (your identity) -->
+      <div class="brand">
+        <div class="title">Programmer’s Picnic</div>
+        <div class="author">by Champak Roy</div>
+      </div>
+
+      <!-- =====================================================
+           Group 1: Object creation
+           =====================================================
+           CHANGE THIS -> DO THIS:
+           - Rename button labels: safe (doesn't break JS)
+           - BUT: If your toolbar clone system matches by text,
+             changing text may break dropdown forwarding.
+             (See whiteboard.js notes.)
+      -->
       <div class="group hide-when-collapsed" id="groupObjects">
         <button id="addRect" title="Add rectangle">Add Rect</button>
         <button id="addCircle" title="Add circle">Add Circle</button>
@@ -31,9 +72,16 @@
         <button id="dupBtn" title="Duplicate selected (Ctrl/Cmd + D)">Duplicate</button>
       </div>
 
-      <!-- Group 2: Grid + Snap controls -->
+      <!-- =====================================================
+           Group 2: Grid + Snap controls
+           =====================================================
+           CHANGE THIS -> DO THIS:
+           - Add more grid sizes: add <option value="...">...px</option>
+           - Default grid size: set selected attribute
+      -->
       <div class="group hide-when-collapsed" id="groupGrid">
         <button id="toggleGrid">Toggle Grid</button>
+
         <label>Grid:</label>
         <select id="gridSize">
           <option value="8">8px</option>
@@ -41,14 +89,17 @@
           <option value="20">20px</option>
           <option value="32">32px</option>
         </select>
+
         <label>Snap</label>
         <input type="checkbox" id="snapToggle" checked>
       </div>
 
-      <!-- Group 3: Import/Export + Undo/Redo -->
+      <!-- =====================================================
+           Group 3: Import/Export + Undo/Redo
+           =====================================================
+           Undo/Redo are wired in whiteboardcore.js
+      -->
       <div class="group hide-when-collapsed" id="groupIO">
-
-        <!-- >>> UNDO/REDO INSERTED HERE -->
         <button id="undoBtn" title="Undo (Ctrl/Cmd + Z)">Undo</button>
         <button id="redoBtn" title="Redo (Ctrl/Cmd + Y / Ctrl+Shift+Z)">Redo</button>
 
@@ -60,7 +111,13 @@
 
       <div class="spacer hide-when-collapsed"></div>
 
-      <!-- Group 4: Font & shape style controls -->
+      <!-- =====================================================
+           Group 4: Font & shape style controls
+           =====================================================
+           CHANGE THIS -> DO THIS:
+           - Want default colors: change value="" attributes here
+           - Want bigger step increments: add step="2" etc.
+      -->
       <div class="group hide-when-collapsed" id="groupStyle">
         <label>Font</label>
         <input id="fontColor" type="color" title="Font color" value="#000000">
@@ -75,7 +132,13 @@
         <input id="shapeBorder" type="color" value="#FFFF00" title="Shape border color">
       </div>
 
-      <!-- Group 5: Draw settings (always visible) -->
+      <!-- =====================================================
+           Group 5: Draw settings (always visible)
+           =====================================================
+           CHANGE THIS -> DO THIS:
+           - Default pen size: change value="18"
+           - Default pen opacity: change value="1"
+      -->
       <div class="group" id="groupDraw">
         <label>Draw</label>
         <input id="penColor" type="color" value="#000000">
@@ -84,16 +147,26 @@
         <input id="penSize" type="range" min="1" max="80" value="18" class="hide-when-collapsed">
 
         <label class="hide-when-collapsed">Opacity</label>
-        <input id="penOpacity" type="range" min="0.1" max="1" step="0.05" value="1"
-          class="hide-when-collapsed">
+        <input id="penOpacity" type="range" min="0.1" max="1" step="0.05" value="1" class="hide-when-collapsed">
       </div>
 
+      <!--
+        Dropdown container for collapsed mode.
+        whiteboard.js fills this with cloned tool groups.
+      -->
       <div class="toolbar-dropdown" id="toolbarDropdown" role="menu" aria-hidden="true"></div>
     </div>
 
-    <!-- MAIN LAYOUT -->
+    <!-- =====================================================
+         MAIN LAYOUT
+         =====================================================
+         leftcol = tool buttons
+         stage-viewport = viewport window
+         world = transformable drawing area
+    -->
     <div class="layout">
       <div class="leftcol" aria-hidden="false">
+        <!-- Tool buttons. Active tool class is managed by whiteboardcore.js -->
         <div id="penTool" class="toolbtn active" title="Pen tool (draw)">Pen</div>
         <div id="highlighterTool" class="toolbtn" title="Highlighter tool">Highlight</div>
         <div id="eraserTool" class="toolbtn" title="Eraser tool">Eraser</div>
@@ -104,25 +177,39 @@
         </div>
       </div>
 
+      <!--
+        The viewport catches pointer events and is focusable (tabindex=0)
+        CHANGE THIS -> DO THIS:
+        - Want default focus? call viewport.focus() in JS on load.
+      -->
       <div class="stage-viewport" id="viewport" tabindex="0" aria-label="Whiteboard viewport">
+        <!-- world is the big internal plane that gets transformed -->
         <div class="world nogrid" id="world">
+          <!-- canvas for freehand drawing -->
           <canvas id="drawing" class="draw-layer"></canvas>
+          <!-- div layer for objects (rect/circle/text/image) -->
           <div id="objectsLayer" class="objects-layer"></div>
         </div>
       </div>
     </div>
 
-    <!-- GUIDE -->
+    <!-- =====================================================
+         GUIDE / HELP PANEL
+         =====================================================
+         Persisted open/close state via localStorage in core JS.
+    -->
     <aside id="guide" class="guide" role="region" aria-label="How to use guide">
       <div class="head">
-        <div style="display: block;">
-        <strong>Programmer’s Picnic — Whiteboard</strong><br>
-<small>By Champak Roy</small>
-</div>
+        <div style="display:block;">
+          <strong>Programmer’s Picnic — Whiteboard</strong><br>
+          <small>By Champak Roy</small>
+        </div>
+
         <div>
           <strong>How to use — Whiteboard</strong><br>
           <small style="color:#445">Quick tips</small>
         </div>
+
         <div>
           <button id="collapseGuide" title="Hide guide">–</button>
           <button id="closeGuide" title="Close guide">✕</button>
@@ -141,17 +228,30 @@
       </div>
     </aside>
 
+    <!-- Help button appears when guide is closed -->
     <button id="helpBtn" title="Show help">?</button>
 
+    <!-- selection rectangle (for drag-select) -->
     <div id="selRect" class="sel-rect"></div>
 
+    <!-- eraser UI overlays -->
     <div id="eraserCursor" aria-hidden="true"></div>
     <div id="eraserSizeLabel" aria-hidden="true"></div>
+
   </div>
 
+  <!--
+    =========================================================
+    SCRIPTS
+    =========================================================
+    whiteboard.js: toolbar collapse/dropdown UX
+    whiteboardcore.js: whiteboard engine (tools, objects, undo/redo, etc.)
+
+    CHANGE THIS -> DO THIS:
+    - If you add modules, keep core last so it can bind DOM safely.
+  -->
   <script src="whiteboard.js"></script>
   <script src="whiteboardcore.js?v=FINAL"></script>
-
 </body>
 
 </html>
