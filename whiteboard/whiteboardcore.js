@@ -249,7 +249,7 @@
         id: el.dataset.objId || '',
         type: el.classList.contains('circle') ? 'circle'
           : el.classList.contains('text') ? 'text'
-          : 'rect',
+            : 'rect',
         left: parseFloat(el.style.left || 0),
         top: parseFloat(el.style.top || 0),
         width: parseFloat(el.style.width || el.offsetWidth),
@@ -783,8 +783,8 @@
     // Assign class based on type
     el.className = 'obj ' + (
       type === 'circle' ? 'circle' :
-      type === 'text' ? 'text' :
-      'rect'
+        type === 'text' ? 'text' :
+          'rect'
     );
 
     // Unique object ID
@@ -1281,7 +1281,7 @@
   try {
     const saved = localStorage.getItem(GUIDE_KEY);
     if (saved) guideState = JSON.parse(saved);
-  } catch (e) {}
+  } catch (e) { }
 
   function applyGuideState() {
     if (!guideState.open) {
@@ -1332,9 +1332,9 @@
   // 18) INITIAL DEMO OBJECTS + BASELINE HISTORY SNAPSHOT
   // =========================================================
   withHistoryLock(() => {
-    createObject({ x: 80,  y: 60,  w: 260, h: 150, type: 'rect',  noHistory: true });
+    createObject({ x: 80, y: 60, w: 260, h: 150, type: 'rect', noHistory: true });
     createObject({ x: 420, y: 120, w: 160, h: 160, type: 'circle', noHistory: true });
-    createObject({ x: 120, y: 320, w: 260, h: 110, type: 'text',  html: 'Double-click to edit', noHistory: true });
+    createObject({ x: 120, y: 320, w: 260, h: 110, type: 'text', html: 'Double-click to edit', noHistory: true });
   });
 
   resizeWorld();
@@ -1344,4 +1344,44 @@
   // baseline state
   captureState();
   updateUndoRedoUI();
+
+  // =========================================================
+  // 19) PUBLIC API (Expose safe methods to outside world)
+  // =========================================================
+  window.Whiteboard = {
+    clearBoard() {
+      withHistoryLock(() => {
+        objectsLayer.innerHTML = '';
+        clearSelection();
+        ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+      });
+      captureState();
+    },
+
+    loadObjects(objects) {
+      withHistoryLock(() => {
+        objectsLayer.innerHTML = '';
+        clearSelection();
+        restoreObjects(objects || []);
+      });
+    },
+
+    loadCanvas(base64) {
+      if (!base64) {
+        ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+        return;
+      }
+
+      const img = new Image();
+      img.onload = () => {
+        ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+        ctx.drawImage(img, 0, 0);
+        captureState();
+      };
+      img.src = base64;
+    }
+  };
+
+
+
 })();

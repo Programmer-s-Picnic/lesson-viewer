@@ -250,8 +250,87 @@
     CHANGE THIS -> DO THIS:
     - If you add modules, keep core last so it can bind DOM safely.
   -->
+
+  <!-- Lesson Loader Button -->
+  <button id="lessonBtn" class="lesson-btn" title="Load Lesson">
+    📘 Lessons
+  </button>
+
+  <!-- Lesson Selector Modal -->
+  <div id="lessonModal" class="lesson-modal hidden">
+    <div class="lesson-panel">
+      <div class="lesson-header">
+        <strong>Programmer’s Picnic — Lessons</strong>
+        <button id="closeLessonModal">✕</button>
+      </div>
+
+      <div id="lessonList" class="lesson-list">
+        <!-- lesson cards injected here -->
+      </div>
+    </div>
+  </div>
+
+
+
   <script src="whiteboard.js"></script>
   <script src="whiteboardcore.js?v=FINAL"></script>
+
+
+  <script>
+    const lessonBtn = document.getElementById('lessonBtn');
+    const lessonModal = document.getElementById('lessonModal');
+    const closeLessonModal = document.getElementById('closeLessonModal');
+    const lessonList = document.getElementById('lessonList');
+
+    // Open / close modal
+    lessonBtn.onclick = () => lessonModal.classList.remove('hidden');
+    closeLessonModal.onclick = () => lessonModal.classList.add('hidden');
+
+    // Load lesson index
+    fetch('lessons/index.json')
+      .then(r => r.json())
+      .then(lessons => {
+        lessons.forEach(lesson => {
+          const card = document.createElement('div');
+          card.className = 'lesson-card';
+          card.innerHTML = `
+        <div class="title">${lesson.title}</div>
+        <div class="topic">${lesson.topic}</div>
+        <div class="desc">${lesson.description}</div>
+      `;
+
+          card.onclick = () => loadLessonFile(lesson.file);
+          lessonList.appendChild(card);
+        });
+      });
+
+    // Load selected lesson
+    function loadLessonFile(file) {
+      fetch('lessons/' + file)
+        .then(r => r.json())
+        .then(data => {
+          if (!data.board) {
+            alert('Invalid lesson format');
+            return;
+          }
+
+          // Clear board safely
+          Whiteboard.clearBoard();
+
+          // Load objects
+          Whiteboard.loadObjects(data.board.objects || []);
+
+          // Load canvas (optional)
+          if (data.board.canvas && data.board.canvas.data) {
+            Whiteboard.loadCanvas(data.board.canvas.data);
+          }
+
+          lessonModal.classList.add('hidden');
+        });
+    }
+
+  </script>
+
 </body>
 
 </html>
