@@ -1,254 +1,756 @@
 <!doctype html>
 <html lang="en">
+
 <head>
-<meta charset="utf-8" />
-<title>Cartoonify • Programmer’s Picnic</title>
-<meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Learning Sutras — Cosine Similarity (Baby Steps + Pyodide)</title>
+  <style>
+    :root {
+      --bg: #fffaf2;
+      --card: #ffffff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --brand: #d97706;
+      --ok: #059669;
+      --warn: #b45309;
+      --bad: #dc2626;
+      --border: #e5e7eb;
+      --shadow: 0 10px 30px rgba(0, 0, 0, .06);
+      --radius: 16px;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    }
 
-<style>
-:root{
-  --saffron-1:#fff7ec;
-  --saffron-2:#ffe8c7;
-  --saffron-3:#ffcc80;
-  --saffron-4:#f4a300;
-  --ink:#2b2b2b;
-  --card:#ffffff;
-  --border:rgba(0,0,0,.08);
-}
+    body {
+      margin: 0;
+      background: linear-gradient(180deg, var(--bg), #fff);
+      color: var(--ink);
+    }
 
-*{box-sizing:border-box}
+    header {
+      padding: 28px 16px;
+      text-align: center;
+    }
 
-body{
-  font-family: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-  margin:0;
-  padding:20px;
-  background:linear-gradient(180deg,var(--saffron-1),#fff);
-  color:var(--ink);
-}
+    header h1 {
+      margin: 0;
+      font-size: 28px;
+    }
 
-/* Headings */
-h2{
-  margin:0 0 6px;
-  font-weight:700;
-}
-.small{font-size:13px;color:#555}
+    header p {
+      margin: 8px auto 0;
+      max-width: 900px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
 
-/* Cards */
-.card{
-  background:var(--card);
-  border:1px solid var(--border);
-  border-radius:14px;
-  padding:14px;
-  margin-bottom:14px;
-  box-shadow:0 10px 28px rgba(0,0,0,.05);
-}
+    .wrap {
+      max-width: 1050px;
+      margin: 0 auto;
+      padding: 0 16px 32px;
+    }
 
-/* Controls */
-.controls{display:flex;flex-direction:column;gap:12px}
-.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
 
-label{
-  display:flex;
-  align-items:center;
-  gap:6px;
-  font-size:13px;
-}
+    @media(min-width:980px) {
+      .grid {
+        grid-template-columns: 1.1fr .9fr;
+      }
+    }
 
-input[type="file"],
-input[type="text"],
-select,
-button{
-  padding:8px 12px;
-  border-radius:10px;
-  border:1px solid var(--border);
-  background:#fff;
-  font-size:14px;
-}
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
 
-input[type="text"]{min-width:260px}
+    h2 {
+      margin: 0 0 10px;
+      font-size: 20px;
+    }
 
-/* Buttons */
-button{
-  cursor:pointer;
-  font-weight:600;
-}
-button.primary{
-  background:linear-gradient(180deg,var(--saffron-3),var(--saffron-4));
-  border:none;
-  color:#3b2400;
-}
-button.secondary{
-  background:#fff;
-}
+    h3 {
+      margin: 14px 0 8px;
+      font-size: 16px;
+    }
 
-/* Sliders */
-input[type="range"]{
-  accent-color:var(--saffron-4);
-  width:140px;
-}
+    p,
+    li {
+      line-height: 1.7;
+    }
 
-/* Canvas */
-canvas{
-  display:block;
-  max-width:100%;
-  margin:14px auto 0;
-  background:#fff;
-  border-radius:16px;
-  border:1px solid var(--border);
-  box-shadow:0 14px 36px rgba(0,0,0,.08);
-}
+    .muted {
+      color: var(--muted);
+    }
 
-/* Quick start */
-.quick{
-  display:flex;
-  gap:10px;
-  align-items:center;
-  font-size:13px;
-  background:var(--saffron-1);
-  border:1px dashed var(--saffron-3);
-  border-radius:12px;
-  padding:10px 12px;
-}
+    .pill {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #fff7ed;
+      color: #9a3412;
+      font-size: 12px;
+      font-weight: 600;
+    }
 
-/* Floating help */
-#helpToggle{
-  position:fixed;
-  right:18px;
-  bottom:18px;
-  background:linear-gradient(180deg,var(--saffron-3),var(--saffron-4));
-  color:#3b2400;
-  border:none;
-  border-radius:999px;
-  padding:12px 16px;
-  font-weight:700;
-  box-shadow:0 10px 28px rgba(0,0,0,.18);
-}
+    .step {
+      border-left: 5px solid #fde68a;
+      padding: 12px 12px 12px 14px;
+      border-radius: 12px;
+      background: #fffbeb;
+      margin: 12px 0;
+    }
 
-/* Help panel */
-#helpPanel{
-  position:fixed;
-  right:18px;
-  bottom:80px;
-  width:360px;
-  max-width:calc(100% - 40px);
-  background:#fff;
-  border-radius:16px;
-  border:1px solid var(--border);
-  box-shadow:0 24px 50px rgba(0,0,0,.18);
-  display:none;
-  overflow:hidden;
-}
+    .checkpoint {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: #f8fafc;
+      border: 1px dashed #cbd5e1;
+    }
 
-.help-head{
-  padding:12px 14px;
-  background:linear-gradient(90deg,var(--saffron-2),var(--saffron-1));
-  border-bottom:1px solid var(--border);
-}
+    .checkpoint b {
+      color: #0f172a;
+    }
 
-.help-body{
-  padding:12px;
-  max-height:420px;
-  overflow:auto;
-  font-size:13px;
-}
+    .row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
 
-details summary{
-  cursor:pointer;
-  font-weight:700;
-  margin-bottom:6px;
-}
+    textarea,
+    input,
+    select {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font: inherit;
+      background: #fff;
+    }
 
-.help-foot{
-  padding:10px;
-  background:#fafafa;
-  border-top:1px solid var(--border);
-  display:flex;
-  gap:8px;
-}
-</style>
+    textarea {
+      min-height: 60px;
+      resize: vertical;
+    }
+
+    button {
+      border: none;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-weight: 700;
+      cursor: pointer;
+      background: var(--brand);
+      color: #fff;
+    }
+
+    button.secondary {
+      background: #111827;
+    }
+
+    button.ghost {
+      background: #f3f4f6;
+      color: #111827;
+      border: 1px solid var(--border);
+    }
+
+    code,
+    pre {
+      background: #0b1020;
+      color: #e5e7eb;
+      border-radius: 12px;
+      padding: 10px 12px;
+      overflow: auto;
+    }
+
+    pre {
+      margin: 10px 0;
+    }
+
+    .kpi {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .kpi>div {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 10px;
+      background: #fff;
+    }
+
+    .kpi .v {
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .status {
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #fff;
+      font-weight: 700;
+    }
+
+    .status.ok {
+      border-color: #a7f3d0;
+      background: #ecfdf5;
+      color: #065f46;
+    }
+
+    .status.warn {
+      border-color: #fed7aa;
+      background: #fff7ed;
+      color: #9a3412;
+    }
+
+    .status.bad {
+      border-color: #fecaca;
+      background: #fef2f2;
+      color: #991b1b;
+    }
+
+    .small {
+      font-size: 12px;
+    }
+
+    .imgbox {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .imgbox img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .footer {
+      margin-top: 14px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+  </style>
 </head>
 
 <body>
+  <header>
+    <div class="pill">Learning Sutras • Baby Steps Lesson</div>
+    <h1>Cosine Similarity — Step by Step (with Live Python in Browser)</h1>
+    <p>
+      Goal: understand <b>what cosine similarity is</b>, <b>why we use it for text</b>, and <b>how to compute
+        it</b>
+      using small steps + checkpoints. Practice runs in your browser using <b>Pyodide</b>.
+    </p>
+  </header>
 
-<h2>🎨 Cartoonify</h2>
-<p class="small">Programmer’s Picnic • Pure JavaScript • Runs fully in your browser</p>
+  <div class="wrap">
+    <div class="grid">
 
-<div class="card controls">
-  <div class="row">
-    <input type="file" id="fileInput" accept="image/*">
-    <input type="text" id="urlInput" placeholder="Paste image URL">
-    <button id="loadUrl" class="secondary">Load URL</button>
+      <!-- LEFT: LESSON -->
+      <section class="card" id="lesson">
+        <h2>Baby Steps Lesson Plan</h2>
+        <p class="muted">
+          We will compute cosine similarity using <b>count vectors</b> first (simple), then mention TF-IDF
+          (smart weighting).
+        </p>
+
+        <!-- Step 0 -->
+        <div class="step">
+          <h3>Step 0 — What problem are we solving?</h3>
+          <p>
+            We want a number that tells us: “How similar are two texts?”
+          </p>
+          <ul>
+            <li><b>1.0</b> → very similar / same direction</li>
+            <li><b>0.0</b> → unrelated / perpendicular direction</li>
+          </ul>
+          <div class="checkpoint">
+            <b>Checkpoint:</b> Similarity should depend on <i>meaning overlap</i>, not exact wording.
+          </div>
+        </div>
+
+        <!-- Step 1 -->
+        <div class="step">
+          <h3>Step 1 — Define the important words clearly</h3>
+          <ul>
+            <li><b>Token</b>: a word after cleaning & splitting a sentence (example: “open”, “quizzes”).
+            </li>
+            <li><b>Vocabulary (V)</b>: the list of all unique tokens we care about.</li>
+            <li><b>Vector</b>: a list of numbers, one number per vocabulary word.</li>
+            <li><b>Count Vector</b>: vector values are word counts (how many times each word appears).</li>
+          </ul>
+          <div class="checkpoint">
+            <b>Checkpoint:</b> Text → tokens → vocabulary → numeric vector.
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="step">
+          <h3>Step 2 — Dot product (A · B)</h3>
+          <p>
+            The <b>dot product</b> measures “overlap” between two vectors:
+          </p>
+          <pre><code class="mono">A · B = Σ (Ai × Bi)</code></pre>
+          <p class="muted">
+            If the same words appear in both sentences, the dot product increases.
+          </p>
+          <div class="checkpoint">
+            <b>Checkpoint:</b> More shared important words → bigger dot product.
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="step">
+          <h3>Step 3 — Magnitude (length) of a vector</h3>
+          <p>
+            Magnitude means “how long the arrow is”:
+          </p>
+          <pre><code class="mono">||A|| = √(Σ Ai²)</code></pre>
+          <p class="muted">
+            Longer vectors usually come from longer sentences or repeated words.
+          </p>
+          <div class="checkpoint">
+            <b>Checkpoint:</b> Magnitude is never negative. Bigger counts → bigger magnitude.
+          </div>
+        </div>
+
+        <!-- Step 4 -->
+        <div class="step">
+          <h3>Step 4 — Cosine similarity formula (final)</h3>
+          <pre><code class="mono">cosine_similarity(A, B) = (A · B) / (||A|| × ||B||)</code></pre>
+          <p>
+            This divides overlap by lengths, so we compare <b>direction</b> more than <b>size</b>.
+          </p>
+          <div class="checkpoint">
+            <b>Checkpoint:</b> Cosine similarity is about the <b>angle</b>, not the absolute length.
+          </div>
+        </div>
+
+        <!-- Step 5 -->
+        <div class="step">
+          <h3>Step 5 — Where does TF-IDF fit?</h3>
+          <p>
+            <b>TF-IDF</b> is a smarter way to build vectors:
+          </p>
+          <ul>
+            <li><b>TF (Term Frequency)</b>: how often a word appears in a document.</li>
+            <li><b>IDF (Inverse Document Frequency)</b>: higher when a word is rare across documents.</li>
+            <li><b>TF-IDF = TF × IDF</b></li>
+          </ul>
+          <p class="muted">
+            In this lesson we compute cosine similarity with count vectors (easy).
+            Later you can replace counts with TF-IDF weights.
+          </p>
+          <div class="checkpoint">
+            <b>Checkpoint:</b> TF-IDF changes the vector values; cosine formula stays the same.
+          </div>
+        </div>
+
+        <!-- Mini table -->
+        <div class="step">
+          <h3>Step 6 — Interpret typical scores</h3>
+          <div class="kpi">
+            <div>
+              <div class="muted small">Score</div>
+              <div class="v">~ 1.0</div>
+              <div class="small">Almost same meaning</div>
+            </div>
+            <div>
+              <div class="muted small">Score</div>
+              <div class="v">~ 0.4–0.7</div>
+              <div class="small">Partly related</div>
+            </div>
+            <div>
+              <div class="muted small">Score</div>
+              <div class="v">~ 0.0–0.2</div>
+              <div class="small">Unrelated</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Assignment -->
+        <div class="step">
+          <h3>Assignment (do after practice)</h3>
+          <ul>
+            <li>Create 3 sentence pairs with high similarity and test.</li>
+            <li>Create 3 sentence pairs with low similarity and test.</li>
+            <li>Bonus: ignore common words like <i>the, is, a</i> and compare scores.</li>
+            <li>Write 5 lines: cosine similarity + TF-IDF in your own words.</li>
+          </ul>
+        </div>
+
+        <!-- ============================================================
+ 🔗 IMPORTANT LINKS & REFERENCES
+ ============================================================ -->
+
+        <div class="footer">
+          By <b>Champak Roy</b> • Learning Sutras
+        </div>
+      </section>
+
+      <!-- RIGHT: PYODIDE LAB -->
+      <aside class="card" id="lab">
+        <h2>Live Practice Lab (Pyodide)</h2>
+        <p class="muted">
+          This runs <b>Python</b> in your browser. Choose an example or type your own sentences.
+        </p>
+
+        <label><b>Sentence 1</b></label>
+        <textarea id="s1" placeholder="Type first sentence...">show me quizzes</textarea>
+
+        <label><b>Sentence 2</b></label>
+        <textarea id="s2" placeholder="Type second sentence...">open quizzes</textarea>
+
+        <div class="row" style="margin-top:8px;">
+          <div style="flex:1;min-width:220px;">
+            <label class="small muted"><b>Example Pairs</b></label>
+            <select id="examples">
+              <option value="">-- Select Example --</option>
+              <option value="show me quizzes|open quizzes">Show me quizzes / Open quizzes</option>
+              <option value="buy phone online|purchase a smartphone">Buy phone online / Purchase a
+                smartphone</option>
+              <option value="learn DSA|study data structures">Learn DSA / Study data structures</option>
+              <option value="play cricket|watch cricket">Play cricket / Watch cricket</option>
+              <option value="rainy day|beautiful sunset">Rainy day / Beautiful sunset</option>
+            </select>
+          </div>
+          <div style="flex:0 0 auto;display:flex;gap:10px;align-items:flex-end;">
+            <button id="runBtn">Compute in Python</button>
+            <button id="resetBtn" class="ghost">Reset</button>
+          </div>
+        </div>
+
+        <div id="pyStatus" class="status warn" style="margin-top:12px;">
+          ⏳ Pyodide not loaded yet.
+        </div>
+
+        <h3>Python output</h3>
+        <pre id="out" class="mono">Click “Compute in Python”.</pre>
+
+        <h3>Cosine similarity diagram</h3>
+        <div class="imgbox">
+          <img alt="Cosine Similarity diagram"
+            src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/dc/Cosine_similarity.svg/800px-Cosine_similarity.svg.png">
+        </div>
+
+        <h3>Mini MCQ (quick check)</h3>
+        <ol>
+          <li>Cosine similarity measures the ____ between vectors. <b>(Angle)</b></li>
+          <li>Similarity 1.0 means vectors are ____ . <b>(Same direction)</b></li>
+          <li>Operation used: ____ . <b>(Dot product)</b></li>
+        </ol>
+
+        <p class="small muted">
+          Tip: This demo uses <b>count vectors</b>. For better NLP results, use <b>TF-IDF</b> or embeddings
+          later.
+        </p>
+
+        <div class="step">
+
+
+          <section id="important-links" class="card" style="margin-top:20px;">
+            <h2>🔗 Important Links & References</h2>
+            <p class="muted">
+              These links will strengthen your understanding step-by-step — from intuition
+              to real-world machine learning usage.
+            </p>
+
+            <h3>🧮 Core Concept (Start Here)</h3>
+            <ul>
+              <li>
+                📘 <a href="https://en.wikipedia.org/wiki/Cosine_similarity" target="_blank">
+                  Wikipedia — Cosine Similarity</a><br>
+                <span class="muted small">
+                  Formal definition, formula derivation, and vector geometry explanation.
+                </span>
+              </li>
+            </ul>
+
+            <h3>🧠 Intuition & Visual Understanding</h3>
+            <ul>
+              <li>
+                🎯 <a href="https://towardsdatascience.com/understanding-cosine-similarity-5fd3a8f7c460"
+                  target="_blank">
+                  Towards Data Science — Understanding Cosine Similarity</a><br>
+                <span class="muted small">
+                  Excellent visual explanations with diagrams and NLP examples.
+                </span>
+              </li>
+              <li>
+                📐 <a href="https://www.youtube.com/watch?v=IB2jqH3Kzjw" target="_blank">
+                  3Blue1Brown — Vectors & Angles (YouTube)</a><br>
+                <span class="muted small">
+                  Understand vectors and angles visually (math intuition booster).
+                </span>
+              </li>
+            </ul>
+
+            <h3>🧾 TF-IDF (Next Logical Step)</h3>
+            <ul>
+              <li>
+                📗 <a href="https://en.wikipedia.org/wiki/Tf%E2%80%93idf" target="_blank">
+                  Wikipedia — TF-IDF</a><br>
+                <span class="muted small">
+                  Learn how word importance is calculated before cosine similarity.
+                </span>
+              </li>
+              <li>
+                🔍 <a href="https://scikit-learn.org/stable/modules/feature_extraction.html#tfidf-term-weighting"
+                  target="_blank">
+                  Scikit-Learn — TF-IDF Explained</a><br>
+                <span class="muted small">
+                  Practical Python implementation details.
+                </span>
+              </li>
+            </ul>
+
+            <h3>🤖 NLP & Real-World Usage</h3>
+            <ul>
+              <li>
+                🤖 <a href="https://scikit-learn.org/stable/modules/metrics.html#cosine-similarity" target="_blank">
+                  Scikit-Learn — Cosine Similarity API</a><br>
+                <span class="muted small">
+                  Industry-grade implementation used in ML pipelines.
+                </span>
+              </li>
+              <li>
+                🧬 <a href="https://jalammar.github.io/illustrated-word2vec/" target="_blank">
+                  The Illustrated Word2Vec</a><br>
+                <span class="muted small">
+                  Shows how cosine similarity finds “nearest meaning” words.
+                </span>
+              </li>
+            </ul>
+
+            <h3>📐 Compare with Other Similarity Measures</h3>
+            <ul>
+              <li>
+                📊 <a href="https://en.wikipedia.org/wiki/Jaccard_index" target="_blank">
+                  Jaccard Similarity</a><br>
+                <span class="muted small">
+                  Set-based similarity (overlap / union).
+                </span>
+              </li>
+              <li>
+                📏 <a href="https://en.wikipedia.org/wiki/Euclidean_distance" target="_blank">
+                  Euclidean Distance</a><br>
+                <span class="muted small">
+                  Measures absolute distance, not direction.
+                </span>
+              </li>
+            </ul>
+
+            <h3>🧪 Practice & Experiment</h3>
+            <ul>
+              <li>
+                🧑‍💻 <a href="https://pyodide.org/" target="_blank">
+                  Pyodide Official Site</a><br>
+                <span class="muted small">
+                  Python running directly inside the browser (used in this lesson).
+                </span>
+              </li>
+              <li>
+                📓 <a href="https://colab.research.google.com/" target="_blank">
+                  Google Colab</a><br>
+                <span class="muted small">
+                  Practice cosine similarity with large datasets.
+                </span>
+              </li>
+            </ul>
+
+            <p style="margin-top:14px;">
+              ✅ <b>Recommended Learning Order:</b><br>
+              Vectors → Dot Product → Cosine Similarity → TF-IDF → Word Embeddings
+            </p>
+          </section>
+
+
+
+
+
+        </div>
+      </aside>
+
+    </div>
   </div>
+  <!-- ============================================================
+ 🔗 IMPORTANT LINKS & REFERENCES
+ ============================================================ -->
 
-  <div class="row">
-    <label>Posterize
-      <input id="levels" type="range" min="2" max="32" value="8">
-      <span id="levelsVal">8</span>
-    </label>
 
-    <label>Blur
-      <input id="blurPasses" type="range" min="0" max="6" value="2">
-      <span id="blurVal">2</span>
-    </label>
+  <!-- Pyodide -->
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js"></script>
+  <script>
+    const statusEl = document.getElementById("pyStatus");
+    const outEl = document.getElementById("out");
+    const runBtn = document.getElementById("runBtn");
 
-    <label>Edges
-      <input id="edgeThresh" type="range" min="10" max="200" value="80">
-      <span id="edgeVal">80</span>
-    </label>
+    const s1El = document.getElementById("s1");
+    const s2El = document.getElementById("s2");
+    const exEl = document.getElementById("examples");
 
-    <button id="btn" class="primary">Cartoonify</button>
-    <button id="download" class="secondary">Download</button>
-  </div>
+    const DEFAULT1 = "show me quizzes";
+    const DEFAULT2 = "open quizzes";
 
-  <div class="quick">
-    <strong>Quick:</strong> Load → Adjust → Cartoonify → Download
-    <button id="openHelpFromQuick" style="margin-left:auto">Help</button>
-  </div>
-</div>
+    let pyodideReady = null;
 
-<canvas id="canvas"></canvas>
+    function setStatus(kind, text) {
+      statusEl.className = "status " + kind;
+      statusEl.textContent = text;
+    }
 
-<!-- HELP -->
-<button id="helpToggle">Help</button>
+    // Load Pyodide once
+    async function loadPyodideOnce() {
+      if (pyodideReady) return pyodideReady;
 
-<aside id="helpPanel">
-  <div class="help-head">
-    <strong>Cartoonify Help</strong>
-  </div>
-  <div class="help-body">
-    <details open>
-      <summary>Load Image</summary>
-      <p>Use a local file or paste an image URL.</p>
-    </details>
-    <details>
-      <summary>Sliders</summary>
-      <ul>
-        <li><b>Posterize:</b> Fewer colors</li>
-        <li><b>Blur:</b> Smooth regions</li>
-        <li><b>Edges:</b> Outline strength</li>
-      </ul>
-    </details>
-    <details>
-      <summary>Privacy</summary>
-      <p>All processing happens in your browser.</p>
-    </details>
-  </div>
-  <div class="help-foot">
-    <button onclick="helpPanel.style.display='none'">Got it</button>
-  </div>
-</aside>
+      pyodideReady = (async () => {
+        setStatus("warn", "⏳ Loading Pyodide (Python in browser)...");
+        const pyodide = await loadPyodide();
+        setStatus("ok", "✅ Pyodide loaded. Ready!");
+        return pyodide;
+      })();
 
-<script>
-const helpToggle=document.getElementById('helpToggle');
-const helpPanel=document.getElementById('helpPanel');
-const openHelpFromQuick=document.getElementById('openHelpFromQuick');
+      return pyodideReady;
+    }
 
-helpToggle.onclick=()=>helpPanel.style.display=helpPanel.style.display==='block'?'none':'block';
-openHelpFromQuick.onclick=()=>helpPanel.style.display='block';
-</script>
+    // Example dropdown
+    exEl.addEventListener("change", () => {
+      const v = exEl.value;
+      if (!v) return;
+      const [a, b] = v.split("|");
+      s1El.value = a;
+      s2El.value = b;
+    });
 
-<!-- 🔹 YOUR ORIGINAL JS LOGIC REMAINS UNCHANGED BELOW 🔹 -->
-<!-- (Paste your full Cartoonify JS here exactly as-is) -->
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      s1El.value = DEFAULT1;
+      s2El.value = DEFAULT2;
+      exEl.value = "";
+      outEl.textContent = "Click “Compute in Python”.";
+    });
 
+    // Main run
+    runBtn.addEventListener("click", async () => {
+      const s1 = s1El.value.trim();
+      const s2 = s2El.value.trim();
+
+      if (!s1 || !s2) {
+        setStatus("bad", "⚠️ Please enter both sentences.");
+        return;
+      }
+
+      try {
+        const pyodide = await loadPyodideOnce();
+        setStatus("ok", "✅ Running Python…");
+
+        // Send inputs into Python
+        pyodide.globals.set("S1", s1);
+        pyodide.globals.set("S2", s2);
+
+        const code = `
+import re, math
+from collections import Counter
+
+def tokenize(text: str):
+    """
+    Token = a cleaned word.
+    We keep letters+numbers. (Simple tokenizer)
+    """
+    text = text.lower()
+    text = re.sub(r"[^a-z0-9\\s\\u0900-\\u097F]", " ", text)  # keep English + Devanagari
+    tokens = [t for t in text.split() if t]
+    return tokens
+
+def make_vocab(tokens1, tokens2):
+    "Vocabulary = sorted unique tokens across both sentences."
+    return sorted(set(tokens1) | set(tokens2))
+
+def vectorize(tokens, vocab):
+    """
+    Count Vector:
+    For each word in vocab, store its count in the sentence.
+    """
+    c = Counter(tokens)
+    return [c[w] for w in vocab]
+
+def dot(a, b):
+    return sum(x*y for x, y in zip(a, b))
+
+def magnitude(v):
+    return math.sqrt(sum(x*x for x in v))
+
+def cosine_similarity(a, b):
+    denom = (magnitude(a) * magnitude(b))
+    if denom == 0:
+        return 0.0
+    return dot(a, b) / denom
+
+t1 = tokenize(S1)
+t2 = tokenize(S2)
+vocab = make_vocab(t1, t2)
+A = vectorize(t1, vocab)
+B = vectorize(t2, vocab)
+score = cosine_similarity(A, B)
+
+label = ("✅ Very similar" if score > 0.8 else
+         "🙂 Moderately similar" if score > 0.5 else
+         "😕 Not similar")
+
+report = []
+report.append("STEP 1) Tokens")
+report.append(f"  S1 tokens: {t1}")
+report.append(f"  S2 tokens: {t2}\\n")
+
+report.append("STEP 2) Vocabulary (unique words)")
+report.append(f"  V = {vocab}\\n")
+
+report.append("STEP 3) Count vectors (aligned to V)")
+report.append(f"  A = {A}")
+report.append(f"  B = {B}\\n")
+
+report.append("STEP 4) Dot product and magnitudes")
+report.append(f"  A·B = {dot(A,B)}")
+report.append(f"  ||A|| = {magnitude(A):.4f}")
+report.append(f"  ||B|| = {magnitude(B):.4f}\\n")
+
+report.append("STEP 5) Cosine Similarity")
+report.append(f"  score = {score:.4f}  {label}")
+
+"\\n".join(report)
+      `;
+
+        const result = await pyodide.runPythonAsync(code);
+        outEl.textContent = result;
+        setStatus("ok", "✅ Done. See steps in the output.");
+      } catch (err) {
+        console.error(err);
+        setStatus("bad", "❌ Error while running Pyodide.");
+        outEl.textContent = String(err);
+      }
+    });
+
+    // Start loading lazily (optional). You can comment this out if you want.
+    loadPyodideOnce();
+  </script>
 </body>
+
 </html>
