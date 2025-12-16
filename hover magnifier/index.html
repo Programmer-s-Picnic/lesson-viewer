@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    
+<style>
+    .pp-container {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        line-height: 1.7;
+        color: #2b2b2b;
+    }
+
+    .pp-header {
+        background: linear-gradient(90deg, #fff7ed, #fff3e0);
+        padding: 16px;
+        border-radius: 10px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+        margin-bottom: 24px;
+    }
+
+    .pp-header h1 {
+        margin: 0;
+        color: #92400e;
+    }
+
+    .pp-quote {
+        font-style: italic;
+        color: #6b7280;
+        margin-top: 8px;
+    }
+
+    h2 {
+        color: #92400e;
+        border-left: 4px solid #f59e0b;
+        padding-left: 10px;
+        margin-top: 32px;
+    }
+
+    h3 {
+        color: #b45309;
+        margin-top: 24px;
+    }
+
+    pre {
+        background: #0b1220;
+        color: #e6eef8;
+        padding: 14px;
+        border-radius: 10px;
+        overflow: auto;
+    }
+
+    code {
+        background: #fff3e0;
+        padding: 2px 6px;
+        border-radius: 6px;
+    }
+
+    hr {
+        border: none;
+        border-top: 1px solid #f3e6d6;
+        margin: 32px 0;
+    }
+
+    .pp-tip {
+        background: #fff7ed;
+        border-left: 4px solid #f59e0b;
+        padding: 12px;
+        border-radius: 8px;
+        margin: 16px 0;
+    }
+</style>
+
+</head>
+<body>
+    <!-- ===============================
+ Programmer’s Picnic Blogger Post
+ Amazon-Style Image Magnifier Lesson
+ Light Saffron Theme
+ =============================== -->
+
+<div class="pp-container">
+<!-- ===============================
+ Amazon-Style Image Magnifier Demo
+ Programmer’s Picnic
+ =============================== -->
+
+<div id="pp-magnifier-demo">
+
+  <style>
+  /* Demo container */
+  #pp-magnifier-demo{
+    margin:24px 0;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  }
+
+  /* Layout */
+  #pp-magnifier-demo .magnify-wrapper{
+    display:flex;
+    gap:20px;
+    align-items:flex-start;
+    flex-wrap:wrap;
+  }
+
+  /* Image container */
+  #pp-magnifier-demo .magnify-container{
+    position:relative;
+    width:300px;
+  }
+
+  /* Small image */
+  #pp-magnifier-demo .magnify-small{
+    width:100%;
+    display:block;
+    border-radius:10px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.08);
+  }
+
+  /* Lens */
+  #pp-magnifier-demo .magnify-lens{
+    position:absolute;
+    width:120px;
+    height:120px;
+    border-radius:50%;
+    border:2px solid rgba(0,0,0,0.15);
+    display:none;
+    background-repeat:no-repeat;
+    cursor:none;
+    box-shadow:0 6px 18px rgba(0,0,0,0.15);
+  }
+
+  /* Result box */
+  #pp-magnifier-demo .magnify-result{
+    width:360px;
+    height:360px;
+    border-radius:10px;
+    display:none;
+    background-repeat:no-repeat;
+    border:2px solid rgba(0,0,0,0.1);
+    box-shadow:0 6px 18px rgba(0,0,0,0.08);
+  }
+
+  /* Responsive */
+  @media(max-width:900px){
+    #pp-magnifier-demo .magnify-container{ width:220px; }
+    #pp-magnifier-demo .magnify-result{ width:220px; height:220px; }
+    #pp-magnifier-demo .magnify-lens{ width:100px; height:100px; }
+  }
+  </style>
+
+  <div class="magnify-wrapper">
+    <div class="magnify-container" id="ppContainer">
+      <img
+        id="ppImg"
+        class="magnify-small"
+        src="https://blogger.googleusercontent.com/img/a/AVvXsEhlfwIqq3YYxj6LMFr4E7IKN2bYIor-bFpbUXBT3Jthp8PKmRdWozV3hEk2xcj3kPrJ9WBIkXCr4lw5MTAz0AE5b0lPhQ2ReNbCmMOumP4zLTEOb7GY6s4YWcgcCfzltJVmQcgCObeQNRvn_SWPa_2c6cROZUOBHhRJB20PaV-peuA3GTSafM8JxgaYu5M=s257"
+        alt="Magnifier Demo Image">
+
+      <div class="magnify-lens" id="ppLens"></div>
+    </div>
+
+    <div class="magnify-result" id="ppResult"></div>
+  </div>
+
+  <script>
+  (function(){
+    const img = document.getElementById("ppImg");
+    const lens = document.getElementById("ppLens");
+    const result = document.getElementById("ppResult");
+    const container = document.getElementById("ppContainer");
+
+    const zoom = 3; // change zoom here
+
+    function init(){
+      lens.style.backgroundImage = `url(${img.src})`;
+      result.style.backgroundImage = `url(${img.src})`;
+
+      container.addEventListener("mouseenter", () => {
+        lens.style.display = "block";
+        result.style.display = "block";
+      });
+
+      container.addEventListener("mouseleave", () => {
+        lens.style.display = "none";
+        result.style.display = "none";
+      });
+
+      container.addEventListener("mousemove", moveLens);
+      container.addEventListener("pointermove", moveLens);
+    }
+
+    function moveLens(e){
+      const rect = img.getBoundingClientRect();
+      if(!rect.width || !rect.height) return;
+
+      let x = e.clientX - rect.left - lens.offsetWidth / 2;
+      let y = e.clientY - rect.top  - lens.offsetHeight / 2;
+
+      x = Math.max(0, Math.min(x, img.width  - lens.offsetWidth));
+      y = Math.max(0, Math.min(y, img.height - lens.offsetHeight));
+
+      lens.style.left = x + "px";
+      lens.style.top  = y + "px";
+
+      const bgW = img.width  * zoom;
+      const bgH = img.height * zoom;
+
+      lens.style.backgroundSize   = `${bgW}px ${bgH}px`;
+      result.style.backgroundSize = `${bgW}px ${bgH}px`;
+
+      lens.style.backgroundPosition =
+      result.style.backgroundPosition =
+        `-${x * zoom}px -${y * zoom}px`;
+    }
+
+    if(img.complete) init();
+    else img.addEventListener("load", init);
+  })();
+  </script>
+
+</div>
+
+    <div class="pp-header">
+        <h1>🌼 Programmer’s Picnic Lesson</h1>
+        <h2 style="border:none;padding-left:0;">Build an Amazon-Style Image Magnifier (HTML + CSS + JavaScript)</h2>
+        <div class="pp-quote">
+            “We don’t copy code. We understand it, then make it our own.”<br>
+            — Programmer’s Picnic ☕🌿
+        </div>
+    </div>
+
+    <h2>🎯 What You Will Learn in This Lesson</h2>
+
+    <p>By the end of this lesson, you will be able to:</p>
+    <ul>
+        <li>Create an <strong>Amazon-style image zoom magnifier</strong></li>
+        <li>Understand <strong>how mouse position becomes zoomed pixels</strong></li>
+        <li>Use <strong>CSS backgrounds</strong> for magnification (no canvas, no libraries)</li>
+        <li>Make it <strong>Blogger-safe and copy-paste friendly</strong></li>
+        <li>Modify zoom, lens shape, and layout confidently</li>
+    </ul>
+
+    <p>
+        This lesson uses a <strong>light saffron theme</strong> — calm, readable, and distraction-free.
+    </p>
+
+    <hr>
+
+    <h2>🧠 Concept First: How Image Magnification Really Works</h2>
+
+    <p>
+        Before writing code, let’s understand the <strong>idea</strong>.
+    </p>
+
+    <h3>The magnifier is made of three parts</h3>
+
+    <ol>
+        <li>
+            <strong>Small Image</strong><br>
+            This is the normal image the user sees.
+        </li>
+        <li>
+            <strong>Lens (Zoom Glass)</strong>
+            <ul>
+                <li>Follows the mouse</li>
+                <li>Shows a zoomed portion using <code>background-image</code></li>
+            </ul>
+        </li>
+        <li>
+            <strong>Result Box (Preview Window)</strong>
+            <ul>
+                <li>Shows the same zoomed area</li>
+                <li>At a bigger size for clarity</li>
+            </ul>
+        </li>
+    </ol>
+
+    <p>
+        👉 <strong>Important insight:</strong><br>
+        We are <strong>not enlarging the image element</strong>.<br>
+        We are enlarging the <strong>background image</strong> and shifting it.
+    </p>
+
+    <p>
+        This is the same trick Amazon uses.
+    </p>
+
+    <hr>
+
+    <h2>🧩 Step 1: Create the HTML Structure</h2>
+
+    <p>We start with <strong>simple HTML</strong>.</p>
+
+    <pre>
+&lt;div class="magnify-wrapper"&gt;
+  &lt;div class="magnify-container" id="demoContainer"&gt;
+    &lt;img id="demoImg" class="magnify-small"
+         src="YOUR_IMAGE_URL"
+         alt="Product Image"&gt;
+    &lt;div id="demoLens" class="magnify-lens"&gt;&lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;div id="demoResult" class="magnify-result"&gt;&lt;/div&gt;
+&lt;/div&gt;
+</pre>
+
+    <h3>Why this structure?</h3>
+
+    <ul>
+        <li><code>.magnify-container</code> — holds the image and lens (relative positioning)</li>
+        <li><code>.magnify-lens</code> — floats above the image and follows the mouse</li>
+        <li><code>.magnify-result</code> — shows the zoomed output</li>
+    </ul>
+
+    <p><strong>Think of it as:</strong></p>
+    <p><strong>Image → Lens → Preview</strong></p>
+
+    <hr>
+
+    <h2>🎨 Step 2: Style It (Light Saffron Friendly)</h2>
+
+    <p>
+        Now we add <strong>CSS</strong> to make it usable and beautiful.
+    </p>
+
+    <h3>Key ideas in CSS</h3>
+
+    <ul>
+        <li>Lens is <code>position: absolute</code></li>
+        <li>Container is <code>position: relative</code></li>
+        <li>Zoom happens via <code>background-size</code> and <code>background-position</code></li>
+    </ul>
+
+    <pre>
+.magnify-container {
+  position: relative;
+  width: 300px;
+}
+
+.magnify-lens {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  display: none;
+  background-repeat: no-repeat;
+}
+
+.magnify-result {
+  width: 380px;
+  height: 380px;
+  display: none;
+  background-repeat: no-repeat;
+}
+</pre>
+
+    <div class="pp-tip">
+        💡 <strong>Teaching Tip:</strong><br>
+        If you remove <code>border-radius: 50%</code>, the lens becomes square.
+    </div>
+
+    <hr>
+
+    <h2>⚙️ Step 3: JavaScript — Making the Magic Happen</h2>
+
+    <h3>Step 3.1 — Setup</h3>
+
+    <pre>
+const img = document.getElementById("demoImg");
+const lens = document.getElementById("demoLens");
+const result = document.getElementById("demoResult");
+const container = document.getElementById("demoContainer");
+
+const zoom = 3;
+</pre>
+
+    <ul>
+        <li><code>zoom = 3</code> means <strong>3× magnification</strong></li>
+        <li>The same image is used as a <strong>background</strong> for lens and result</li>
+    </ul>
+
+    <hr>
+
+    <h3>Step 3.2 — Initialize on Image Load</h3>
+
+    <pre>
+function init() {
+  lens.style.backgroundImage = `url(${img.src})`;
+  result.style.backgroundImage = `url(${img.src})`;
+
+  container.addEventListener("mouseenter", show);
+  container.addEventListener("mouseleave", hide);
+  container.addEventListener("mousemove", moveLens);
+}
+</pre>
+
+    <p>
+        👉 We wait for image load because we need <strong>correct width and height</strong> for zoom math.
+    </p>
+
+    <hr>
+
+    <h3>Step 3.3 — Track Mouse & Clamp the Lens</h3>
+
+    <pre>
+let x = e.clientX - rect.left - lens.offsetWidth / 2;
+let y = e.clientY - rect.top - lens.offsetHeight / 2;
+</pre>
+
+    <p><strong>Meaning:</strong></p>
+    <ul>
+        <li>Convert screen coordinates</li>
+        <li>Into image-relative coordinates</li>
+        <li>Center the lens under the cursor</li>
+    </ul>
+
+    <pre>
+if (x &lt; 0) x = 0;
+if (y &lt; 0) y = 0;
+if (x &gt; img.width - lens.offsetWidth) x = img.width - lens.offsetWidth;
+if (y &gt; img.height - lens.offsetHeight) y = img.height - lens.offsetHeight;
+</pre>
+
+    <p>
+        This prevents the lens from going outside the image.
+    </p>
+
+    <hr>
+
+    <h3>Step 3.4 — Zoom Using Background Math</h3>
+
+    <pre>
+const bgW = img.width * zoom;
+const bgH = img.height * zoom;
+
+lens.style.backgroundSize = `${bgW}px ${bgH}px`;
+result.style.backgroundSize = `${bgW}px ${bgH}px`;
+
+lens.style.backgroundPosition = `-${x * zoom}px -${y * zoom}px`;
+result.style.backgroundPosition = `-${x * zoom}px -${y * zoom}px`;
+</pre>
+
+    <p>
+        ✨ <strong>Key Insight:</strong><br>
+        We move the background <strong>opposite to the mouse</strong>
+        so the correct area appears magnified.
+    </p>
+
+    <hr>
+
+    <h2>🛠️ Things You Can Now Modify (Homework)</h2>
+
+    <ul>
+        <li>Change zoom: <code>const zoom = 4;</code></li>
+        <li>Square lens: <code>border-radius: 0;</code></li>
+        <li>Smaller preview box</li>
+        <li>Move preview inside the image</li>
+        <li>Use a high-resolution image for sharper zoom</li>
+    </ul>
+
+    <hr>
+
+    <h2>🧘 Final Thought (Programmer’s Picnic)</h2>
+
+    <p>
+        This lesson teaches more than a feature.
+    </p>
+
+    <ul>
+        <li>Coordinate systems</li>
+        <li>Visual math</li>
+        <li>CSS background manipulation</li>
+        <li>Real-world UI engineering</li>
+    </ul>
+
+    <p>
+        This is <strong>front-end engineering</strong>, not decoration.
+    </p>
+
+    <p>
+        ☕🌿 <strong>– Programmer’s Picnic</strong>
+    </p>
+
+</div>
+</body>
+</html>
