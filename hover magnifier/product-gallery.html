@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+    <style>
+        #pp-product-gallery {
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+            margin: 30px 0;
+        }
+
+        /* Layout */
+        #pp-product-gallery .gallery-wrapper {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        /* Thumbnails */
+        #pp-product-gallery .thumbs {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        #pp-product-gallery .thumbs img {
+            width: 64px;
+            height: 64px;
+            object-fit: cover;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        #pp-product-gallery .thumbs img.active {
+            border-color: #f59e0b;
+        }
+
+        /* Main image container */
+        #pp-product-gallery .magnify-container {
+            position: relative;
+            width: 300px;
+        }
+
+        #pp-product-gallery .magnify-small {
+            width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            display: block;
+        }
+
+        /* Lens */
+        #pp-product-gallery .magnify-lens {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            display: none;
+            border: 2px solid rgba(0, 0, 0, 0.15);
+            background-repeat: no-repeat;
+            cursor: none;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Zoom result */
+        #pp-product-gallery .magnify-result {
+            width: 360px;
+            height: 360px;
+            display: none;
+            border-radius: 10px;
+            background-repeat: no-repeat;
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+        }
+
+        /* Responsive */
+        @media(max-width:900px) {
+            #pp-product-gallery .magnify-container {
+                width: 220px;
+            }
+
+            #pp-product-gallery .magnify-result {
+                width: 220px;
+                height: 220px;
+            }
+
+            #pp-product-gallery .magnify-lens {
+                width: 100px;
+                height: 100px;
+            }
+        }
+    </style>
+
+</head>
+
+<body>
+    <!-- =========================================
+ Programmer’s Picnic
+ Multi-Image Product Gallery + Magnifier
+ ========================================= -->
+
+    <div id="pp-product-gallery">
+
+        <div class="gallery-wrapper">
+
+            <!-- Thumbnails -->
+            <div class="thumbs">
+                <img src="https://picsum.photos/id/1011/600/600" class="active"
+                    data-full="https://picsum.photos/id/1011/1200/1200">
+                <img src="https://picsum.photos/id/1015/600/600" data-full="https://picsum.photos/id/1015/1200/1200">
+                <img src="https://picsum.photos/id/1025/600/600" data-full="https://picsum.photos/id/1025/1200/1200">
+                <img src="https://picsum.photos/id/1035/600/600" data-full="https://picsum.photos/id/1035/1200/1200">
+            </div>
+
+            <!-- Main image + lens -->
+            <div class="magnify-container" id="ppMainContainer">
+                <img id="ppMainImg" class="magnify-small" src="https://picsum.photos/id/1011/600/600"
+                    alt="Product Image">
+                <div class="magnify-lens" id="ppLens"></div>
+            </div>
+
+            <!-- Zoom result -->
+            <div class="magnify-result" id="ppResult"></div>
+
+        </div>
+
+        <script>
+            (function () {
+                const img = document.getElementById("ppMainImg");
+                const lens = document.getElementById("ppLens");
+                const result = document.getElementById("ppResult");
+                const container = document.getElementById("ppMainContainer");
+                const thumbs = document.querySelectorAll("#pp-product-gallery .thumbs img");
+
+                const zoom = 3;
+
+                function init() {
+                    lens.style.backgroundImage = `url(${img.src})`;
+                    result.style.backgroundImage = `url(${img.src})`;
+                }
+
+                container.addEventListener("mouseenter", () => {
+                    lens.style.display = "block";
+                    result.style.display = "block";
+                });
+
+                container.addEventListener("mouseleave", () => {
+                    lens.style.display = "none";
+                    result.style.display = "none";
+                });
+
+                container.addEventListener("mousemove", moveLens);
+                container.addEventListener("pointermove", moveLens);
+
+                function moveLens(e) {
+                    const rect = img.getBoundingClientRect();
+                    if (!rect.width || !rect.height) return;
+
+                    let x = e.clientX - rect.left - lens.offsetWidth / 2;
+                    let y = e.clientY - rect.top - lens.offsetHeight / 2;
+
+                    x = Math.max(0, Math.min(x, img.width - lens.offsetWidth));
+                    y = Math.max(0, Math.min(y, img.height - lens.offsetHeight));
+
+                    lens.style.left = x + "px";
+                    lens.style.top = y + "px";
+
+                    const bgW = img.width * zoom;
+                    const bgH = img.height * zoom;
+
+                    lens.style.backgroundSize = `${bgW}px ${bgH}px`;
+                    result.style.backgroundSize = `${bgW}px ${bgH}px`;
+
+                    lens.style.backgroundPosition =
+                        result.style.backgroundPosition =
+                        `-${x * zoom}px -${y * zoom}px`;
+                }
+
+                // Thumbnail click handler
+                thumbs.forEach(thumb => {
+                    thumb.addEventListener("click", () => {
+                        thumbs.forEach(t => t.classList.remove("active"));
+                        thumb.classList.add("active");
+
+                        img.src = thumb.dataset.full;
+                        lens.style.display = "none";
+                        result.style.display = "none";
+
+                        img.onload = init;
+                    });
+                });
+
+                if (img.complete) init();
+            })();
+        </script>
+
+    </div>
+
+</body>
+
+</html>
