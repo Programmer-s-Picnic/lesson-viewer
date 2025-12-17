@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Cosine Similarity — Colored Vector Lab</title>
+<title>Cosine Similarity — Animated Angle Lab</title>
 
 <style>
 :root{
@@ -28,10 +28,7 @@ pre{background:#0b1020;color:#e5e7eb;border-radius:12px;padding:12px}
 .row{display:flex;gap:10px;flex-wrap:wrap}
 .status{margin-top:10px;padding:10px;border-radius:12px;font-weight:700}
 .status.ok{background:#ecfdf5;color:#065f46}
-.status.warn{background:#fff7ed;color:#9a3412}
-.status.bad{background:#fef2f2;color:#991b1b}
-.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-size:14px}
-.legend span{display:flex;align-items:center;gap:6px}
+.legend{display:flex;gap:14px;margin-top:8px;font-size:14px;flex-wrap:wrap}
 .legend i{width:14px;height:14px;border-radius:3px;display:inline-block}
 .explain{margin-top:10px;font-size:14px;color:var(--muted);line-height:1.7}
 footer{text-align:center;font-size:13px;color:var(--muted);margin:20px}
@@ -41,20 +38,19 @@ footer{text-align:center;font-size:13px;color:var(--muted);margin:20px}
 <body>
 
 <header>
-<h1>Cosine Similarity — Colored Vector Visualization</h1>
-<p>See how sentence meaning becomes vectors, angles, and cosine similarity.</p>
+<h1>Cosine Similarity — Animated Vector Angles</h1>
+<p>Watch similarity change as the angle animates between sentence vectors.</p>
 </header>
 
 <div class="wrap">
 <div class="grid">
 
 <section class="card">
-<h2>Concept Reminder</h2>
+<h2>What’s New in This Upgrade</h2>
 <ul>
-<li>Each sentence → a vector of word counts</li>
-<li>Vectors point in directions</li>
-<li>Smaller angle = more similar meaning</li>
-<li>Cosine similarity = cos(θ)</li>
+<li>Angle θ animates smoothly when you run Python</li>
+<li>Color zones show similarity ranges</li>
+<li>Math → Geometry → Meaning is now obvious</li>
 </ul>
 </section>
 
@@ -73,33 +69,29 @@ footer{text-align:center;font-size:13px;color:var(--muted);margin:20px}
 <option value="no">Keep stopwords</option>
 </select>
 
-<h3>Editable Python Code</h3>
-<textarea id="pyCode" style="min-height:300px;font-family:monospace"></textarea>
-
-<div class="row">
+<div class="row" style="margin-top:10px;">
 <button id="run">Run Python</button>
-<button id="reset" class="ghost">Reset</button>
 </div>
 
-<div id="status" class="status warn">⏳ Loading Pyodide…</div>
+<div id="status" class="status ok">✅ Pyodide Ready</div>
 
 <h3>Output</h3>
-<pre id="out">Waiting…</pre>
+<pre id="out">Click Run.</pre>
 
-<h3>Vector Angle Graph</h3>
+<h3>Animated Vector Graph</h3>
 <div style="border:1px solid var(--border);border-radius:12px;padding:12px">
 
-<svg id="vecSvg" viewBox="0 0 520 320" width="100%" height="320">
+<svg id="svg" viewBox="0 0 520 320" width="100%" height="320">
 <defs>
-<pattern id="grid" width="26" height="26" patternUnits="userSpaceOnUse">
-<path d="M 26 0 L 0 0 0 26" fill="none" stroke="rgba(0,0,0,.08)" stroke-width="1"/>
-</pattern>
 <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
 <path d="M0,0 L10,3 L0,6 Z" fill="currentColor"/>
 </marker>
 </defs>
 
-<rect x="0" y="0" width="520" height="320" fill="url(#grid)"/>
+<!-- Similarity zones -->
+<path id="zoneGood" fill="rgba(5,150,105,0.15)"/>
+<path id="zoneMid"  fill="rgba(245,158,11,0.18)"/>
+<path id="zoneBad"  fill="rgba(220,38,38,0.15)"/>
 
 <!-- Axes -->
 <line x1="60" y1="260" x2="500" y2="260" stroke="#bbb" stroke-width="2"/>
@@ -108,34 +100,31 @@ footer{text-align:center;font-size:13px;color:var(--muted);margin:20px}
 <!-- Origin -->
 <circle cx="260" cy="260" r="4" fill="#555"/>
 
-<!-- Vector A (Blue) -->
-<line id="vecA" x1="260" y1="260" x2="260" y2="260"
+<!-- Vectors -->
+<line id="vecA" x1="260" y1="260" x2="355" y2="260"
 stroke="#2563eb" stroke-width="4" marker-end="url(#arrow)"/>
+<line id="vecB" x1="260" y1="260" x2="355" y2="260"
+stroke="#d97706" stroke-width="4" marker-end="url(#arrow)"/>
 
-<!-- Vector B (Saffron) -->
-<line id="vecB" x1="260" y1="260" x2="260" y2="260"
-stroke="#d97706" stroke-width="4" marker-end="url(#arrow)" opacity="0.85"/>
+<!-- Animated angle -->
+<path id="angleArc" fill="none" stroke="#059669" stroke-width="4"/>
 
-<!-- Angle Arc (Green) -->
-<path id="angleArc" d="" fill="none" stroke="#059669" stroke-width="4"/>
-
-<text id="angleText" x="16" y="24" fill="#065f46">θ = --°</text>
-<text id="cosText" x="16" y="44" fill="#065f46">cos = --</text>
+<text id="label" x="16" y="24" font-size="15" fill="#065f46">
+θ = --° | cos = --
+</text>
 </svg>
 
 <div class="legend">
-<span><i style="background:#2563eb"></i> Vector A (Sentence 1)</span>
-<span><i style="background:#d97706"></i> Vector B (Sentence 2)</span>
+<span><i style="background:#2563eb"></i> Sentence 1</span>
+<span><i style="background:#d97706"></i> Sentence 2</span>
 <span><i style="background:#059669"></i> Angle θ</span>
 </div>
 
 <div class="explain">
-<b>How to read this graph:</b><br/>
-• The <b>blue arrow</b> represents Sentence&nbsp;1 as a vector.<br/>
-• The <b>saffron arrow</b> represents Sentence&nbsp;2 as a vector.<br/>
-• The <b>green arc</b> shows the angle (θ) between them.<br/><br/>
-If the arrows point in nearly the <b>same direction</b>, the angle is small and cosine similarity is high (meanings are similar).  
-If the arrows point in <b>very different directions</b>, the angle is large and cosine similarity is low.
+<b>How to read this animation:</b><br/>
+• Smaller green angle → vectors point in same direction → meanings are similar.<br/>
+• Medium yellow region → partial overlap of meaning.<br/>
+• Large red region → meanings are unrelated.
 </div>
 
 </div>
@@ -151,78 +140,63 @@ By <b>Champak Roy</b> • Programmer’s Picnic
 <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
 
 <script>
-const codeEl = document.getElementById("pyCode");
-const outEl = document.getElementById("out");
-const statusEl = document.getElementById("status");
-
-const DEFAULT_CODE = `
-import re, math, sys, io, json
-STOPWORDS={"the","is","a","me","to","of","and","on","in","for","show","open"}
-buf=io.StringIO(); sys.stdout=buf
-
-def tok(t,r=True):
- t=t.lower(); t=re.sub(r"[^a-z0-9\\s]"," ",t)
- w=t.split()
- return [x for x in w if (x not in STOPWORDS) or not r]
-
-def cos(A,B):
- d=sum(a*b for a,b in zip(A,B))
- ma=math.sqrt(sum(x*x for x in A))
- mb=math.sqrt(sum(x*x for x in B))
- return (0,d,ma,mb) if ma*mb==0 else (d/(ma*mb),d,ma,mb)
-
-r=REMOVE_STOPWORDS=="yes"
-t1,t2=tok(S1,r),tok(S2,r)
-v=sorted(set(t1)|set(t2))
-A=[t1.count(x) for x in v]
-B=[t2.count(x) for x in v]
-c,d,ma,mb=cos(A,B)
-th=math.degrees(math.acos(max(-1,min(1,c)))) if ma*mb else 0
-
-print("A =",A)
-print("B =",B)
-print("Cosine =",round(c,4))
-print("__DATA__"+json.dumps({"A":A,"B":B,"cos":c,"theta":th}))
-buf.getvalue()
-`.trim();
-
-codeEl.value = DEFAULT_CODE;
-
 let pyodide;
 (async()=>{
 pyodide = await loadPyodide({indexURL:"https://cdn.jsdelivr.net/pyodide/v0.23.4/full/"});
-statusEl.className="status ok";
-statusEl.textContent="✅ Pyodide Ready";
 })();
 
-function draw(A,B,cos){
-const o={x:260,y:260}, s=95;
-const ax=A[0]||0, ay=A[1]||0, bx=B[0]||0, by=B[1]||0;
-const na=Math.hypot(ax,ay)||1, nb=Math.hypot(bx,by)||1;
-vecA.setAttribute("x2",o.x+(ax/na)*s);
-vecA.setAttribute("y2",o.y-(ay/na)*s);
-vecB.setAttribute("x2",o.x+(bx/nb)*s);
-vecB.setAttribute("y2",o.y-(by/nb)*s);
-const th=Math.acos(Math.max(-1,Math.min(1,cos)));
-angleText.textContent=`θ = ${(th*180/Math.PI).toFixed(1)}°`;
-cosText.textContent=`cos = ${cos.toFixed(4)}`;
+const code = `
+import math, json, re
+
+def tok(t):
+ t=t.lower()
+ t=re.sub(r"[^a-z0-9\\s]"," ",t)
+ return t.split()
+
+t1,t2=tok(S1),tok(S2)
+v=sorted(set(t1)|set(t2))
+A=[t1.count(x) for x in v]
+B=[t2.count(x) for x in v]
+
+dot=sum(a*b for a,b in zip(A,B))
+ma=math.sqrt(sum(x*x for x in A))
+mb=math.sqrt(sum(x*x for x in B))
+cos=0 if ma*mb==0 else dot/(ma*mb)
+theta=math.degrees(math.acos(max(-1,min(1,cos))))
+
+print("__DATA__"+json.dumps({"cos":cos,"theta":theta}))
+`;
+
+function arc(cx,cy,r,a){
+const x=cx+r*Math.cos(a), y=cy-r*Math.sin(a);
+return `M ${cx+r} ${cy} A ${r} ${r} 0 0 0 ${x} ${y}`;
+}
+
+function animateAngle(theta, cos){
+const cx=260, cy=260, r=48;
+let t=0, steps=30;
+const label=document.getElementById("label");
+const arcEl=document.getElementById("angleArc");
+
+function step(){
+t++;
+const a=(theta*Math.PI/180)*(t/steps);
+arcEl.setAttribute("d",arc(cx,cy,r,a));
+label.textContent=`θ = ${(a*180/Math.PI).toFixed(1)}° | cos = ${cos.toFixed(4)}`;
+if(t<steps) requestAnimationFrame(step);
+}
+step();
 }
 
 run.onclick=async()=>{
 pyodide.globals.set("S1",s1.value);
 pyodide.globals.set("S2",s2.value);
-pyodide.globals.set("REMOVE_STOPWORDS",stop.value);
-const r=await pyodide.runPythonAsync(codeEl.value);
-outEl.textContent=r;
-const i=r.lastIndexOf("__DATA__");
-if(i!=-1){
-const d=JSON.parse(r.slice(i+8));
-draw(d.A,d.B,d.cos);
-}
+const r=await pyodide.runPythonAsync(code);
+out.textContent=r;
+const d=JSON.parse(r.slice(r.indexOf("{")));
+animateAngle(d.theta,d.cos);
 };
-
-reset.onclick=()=>codeEl.value=DEFAULT_CODE;
 </script>
-  <script src='https://programmer-s-picnic.github.io/json-images/find-on-page.js'></script>
+
 </body>
 </html>
