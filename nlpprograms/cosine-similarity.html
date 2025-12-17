@@ -1,250 +1,615 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Cosine Similarity Lab — Vector Angle Visualization</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cosine Similarity — Baby Steps Lab + Print + Detailed Math + SVG Angle</title>
 
-<style>
-:root{
---bg:#fffaf2;--card:#ffffff;--ink:#1f2937;--muted:#6b7280;
---brand:#d97706;--border:#e5e7eb;--ok:#059669;
---warn:#b45309;--bad:#dc2626;--radius:16px;
---shadow:0 10px 30px rgba(0,0,0,.06);
-font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
-body{margin:0;background:linear-gradient(180deg,var(--bg),#fff);color:var(--ink)}
-header{text-align:center;padding:24px}
-.wrap{max-width:1100px;margin:auto;padding:16px}
-.grid{display:grid;gap:16px}
-@media(min-width:980px){.grid{grid-template-columns:1.1fr .9fr}}
-.card{background:var(--card);border:1px solid var(--border);
-border-radius:var(--radius);box-shadow:var(--shadow);padding:16px}
-textarea,select{width:100%;border:1px solid var(--border);
-border-radius:12px;padding:10px;font:inherit}
-button{border:none;border-radius:12px;padding:10px 14px;
-font-weight:700;cursor:pointer;background:var(--brand);color:#fff}
-button.ghost{background:#f3f4f6;color:#111;border:1px solid var(--border)}
-pre{background:#0b1020;color:#e5e7eb;border-radius:12px;padding:12px}
-.row{display:flex;gap:10px;flex-wrap:wrap}
-.status{margin-top:10px;padding:10px;border-radius:12px;font-weight:700}
-.status.ok{background:#ecfdf5;color:#065f46}
-.status.warn{background:#fff7ed;color:#9a3412}
-.status.bad{background:#fef2f2;color:#991b1b}
-footer{text-align:center;font-size:13px;color:var(--muted);margin:20px}
-</style>
+  <style>
+    :root{
+      --bg:#fffaf2;--card:#ffffff;--ink:#1f2937;--muted:#6b7280;
+      --brand:#d97706;--border:#e5e7eb;--ok:#059669;--warn:#b45309;--bad:#dc2626;
+      --radius:16px;--shadow:0 10px 30px rgba(0,0,0,.06);
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    }
+    body{margin:0;background:linear-gradient(180deg,var(--bg),#fff);color:var(--ink)}
+    header{padding:24px 16px;text-align:center}
+    header h1{margin:0;font-size:28px}
+    header p{max-width:980px;margin:10px auto 0;color:var(--muted);line-height:1.7}
+    .wrap{max-width:1180px;margin:0 auto;padding:16px}
+    .grid{display:grid;grid-template-columns:1fr;gap:16px}
+    @media(min-width:1020px){.grid{grid-template-columns:1.15fr .85fr}}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+      box-shadow:var(--shadow);padding:16px}
+    h2{margin:0 0 10px}
+    h3{margin:16px 0 8px}
+    p,li{line-height:1.75}
+    .muted{color:var(--muted)}
+    textarea,select,input{
+      width:100%;box-sizing:border-box;border:1px solid var(--border);
+      border-radius:12px;padding:10px 12px;font:inherit
+    }
+    textarea{resize:vertical}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    button{
+      border:none;border-radius:12px;padding:10px 14px;font-weight:800;cursor:pointer;
+      background:var(--brand);color:white
+    }
+    button.ghost{background:#f3f4f6;color:#111827;border:1px solid var(--border)}
+    button.secondary{background:#111827}
+    pre{
+      background:#0b1020;color:#e5e7eb;border-radius:12px;padding:12px;overflow:auto;
+      white-space:pre-wrap;word-break:break-word
+    }
+    code{background:#f3f4f6;border:1px solid var(--border);border-radius:8px;padding:2px 6px}
+    .status{
+      margin-top:10px;padding:10px 12px;border-radius:12px;border:1px solid var(--border);
+      font-weight:800
+    }
+    .status.ok{background:#ecfdf5;color:#065f46;border-color:#a7f3d0}
+    .status.warn{background:#fff7ed;color:#9a3412;border-color:#fed7aa}
+    .status.bad{background:#fef2f2;color:#991b1b;border-color:#fecaca}
+    details{border:1px solid var(--border);border-radius:12px;padding:10px 12px;background:#fff}
+    details summary{cursor:pointer;font-weight:800}
+    .kpi{
+      display:grid;grid-template-columns:1fr;gap:10px;margin-top:10px
+    }
+    @media(min-width:680px){.kpi{grid-template-columns:repeat(3,1fr)}}
+    .pill{
+      border:1px solid var(--border);border-radius:14px;padding:10px 12px;background:#fff;
+    }
+    .pill .label{font-size:12px;color:var(--muted);font-weight:700}
+    .pill .value{font-size:18px;font-weight:900;margin-top:2px}
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{border:1px solid var(--border);padding:8px 10px;text-align:left}
+    th{background:#fff7ed}
+    .footer{
+      margin-top:18px;text-align:center;font-size:13px;color:var(--muted)
+    }
+    .warnbox{
+      border:1px dashed var(--border);border-radius:12px;padding:12px;background:#fff;
+      color:var(--muted)
+    }
+    a{color:#92400e}
+  </style>
 </head>
 
 <body>
-
 <header>
-<h1>Cosine Similarity — Interactive NLP Lab</h1>
-<p>Understand cosine similarity using vectors, angles, and real Python.</p>
+  <h1>Cosine Similarity — Baby Steps Lab</h1>
+  <p>
+    This is a beginner-friendly NLP lab: you type two sentences, we convert them to <b>tokens</b>, build <b>vectors</b>,
+    compute <b>dot product</b>, <b>magnitudes</b>, and finally <b>cosine similarity</b>.
+    You can edit and run real Python in your browser using <b>Pyodide</b>.
+  </p>
 </header>
 
 <div class="wrap">
-<div class="grid">
+  <div class="grid">
 
-<section class="card">
-<h2>What You Learn</h2>
-<ul>
-<li>Text → Tokens → Vectors</li>
-<li>Cosine similarity formula</li>
-<li>Why angle matters, not length</li>
-<li>How NLP compares meaning</li>
-</ul>
-</section>
+    <!-- LEFT: Explanation + Guide + Math -->
+    <section class="card">
+      <h2>Use-it Guide (Step-by-step)</h2>
+      <ol>
+        <li><b>Type two sentences</b> in the boxes.</li>
+        <li>Choose <b>Stopwords</b>:
+          <ul>
+            <li><b>Remove stopwords</b> → clearer meaning (recommended for learning)</li>
+            <li><b>Keep stopwords</b> → shows why common words can create “fake similarity”</li>
+          </ul>
+        </li>
+        <li>Click <b>Run Python</b>.</li>
+        <li>Read the output steps:
+          <ul>
+            <li><b>STEP 1</b>: tokens (words)</li>
+            <li><b>STEP 2</b>: vocabulary (unique words used for vector dimensions)</li>
+            <li><b>STEP 3</b>: vectors A and B</li>
+            <li><b>STEP 4</b>: dot product, magnitudes, cosine</li>
+            <li><b>STEP 5</b>: interpretation (human meaning)</li>
+          </ul>
+        </li>
+        <li>Look at the <b>SVG Vector Angle</b> to visually understand: smaller angle ⇒ higher cosine.</li>
+      </ol>
 
-<aside class="card">
-<h2>Live Python Lab</h2>
+      <div class="warnbox">
+        <b>Important:</b> Pyodide needs a real website URL. It usually <b>won’t work</b> if you open this file as
+        <code>file://</code>. Use Blogger / GitHub Pages / Netlify.
+      </div>
 
-<label><b>Sentence 1</b></label>
-<textarea id="s1">show me quizzes</textarea>
+      <h3>What is cosine similarity?</h3>
+      <p>
+        Cosine similarity compares two vectors by looking at the <b>angle</b> between them.
+        It does <b>not</b> care about length (magnitude), it mainly cares about direction.
+      </p>
 
-<label><b>Sentence 2</b></label>
-<textarea id="s2">open quizzes</textarea>
+      <h3>The Formula</h3>
+      <pre class="mono">cosine(A, B) = (A · B) / (||A|| × ||B||)</pre>
 
-<label><b>Stopwords</b></label>
-<select id="stop">
-<option value="yes">Remove stopwords</option>
-<option value="no">Keep stopwords</option>
-</select>
+      <h3>Calculations Explained (Detailed)</h3>
+      <p class="muted">
+        In this lab, each vocabulary word becomes one “dimension”. If the vocabulary is
+        <code>["open","quizzes","show"]</code>, then vectors look like:
+        <code>A = [count(open), count(quizzes), count(show)]</code>.
+      </p>
 
-<h3>Editable Python Code</h3>
-<textarea id="pyCode" style="min-height:320px;font-family:monospace"></textarea>
+      <details open>
+        <summary>Dot product (A · B)</summary>
+        <p>
+          Multiply corresponding positions and add:
+          <br/><code>A · B = A1×B1 + A2×B2 + ... + An×Bn</code>
+        </p>
+      </details>
 
-<div class="row">
-<button id="run">Run Python</button>
-<button id="reset" class="ghost">Reset Code</button>
+      <details>
+        <summary>Magnitude (||A|| and ||B||)</summary>
+        <p>
+          Magnitude is vector length:
+          <br/><code>||A|| = sqrt(A1² + A2² + ... + An²)</code>
+        </p>
+      </details>
+
+      <details>
+        <summary>Cosine similarity</summary>
+        <p>
+          Once you have dot product and magnitudes:
+          <br/><code>cos = (A·B) / (||A||×||B||)</code>
+          <br/>If either magnitude is 0 (empty vector), cosine is defined as 0 here.
+        </p>
+      </details>
+
+      <details>
+        <summary>Angle interpretation (θ)</summary>
+        <p>
+          Since <code>cos(θ) = cosine_similarity</code>, we can compute:
+          <br/><code>θ = arccos(cosine)</code>
+          <br/>Smaller θ means vectors point in a similar direction.
+        </p>
+      </details>
+
+      <h3>Reference Links (Read more)</h3>
+      <ul>
+        <li><a href="https://en.wikipedia.org/wiki/Cosine_similarity" target="_blank" rel="noopener">Cosine similarity (Wikipedia)</a> 0</li>
+        <li><a href="https://en.wikipedia.org/wiki/Dot_product" target="_blank" rel="noopener">Dot product (Wikipedia)</a> 1</li>
+        <li><a href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.pairwise.cosine_similarity.html" target="_blank" rel="noopener">scikit-learn cosine_similarity docs</a> 2</li>
+        <li><a href="https://pyodide.org/en/stable/usage/api/js-api.html" target="_blank" rel="noopener">Pyodide JavaScript API (loadPyodide)</a> 3</li>
+        <li><a href="https://pyodide.org/en/stable/usage/downloading-and-deploying.html" target="_blank" rel="noopener">Pyodide downloading & deploying (CDN/indexURL)</a> 4</li>
+        <li><a href="https://www.jsdelivr.com/oss-cdn/pyodide" target="_blank" rel="noopener">Pyodide on jsDelivr CDN</a> 5</li>
+      </ul>
+
+      <h3>Troubleshooting (If Pyodide is stuck loading)</h3>
+      <ul>
+        <li><b>If you opened as file:</b> upload to Blogger/GitHub Pages/Netlify.</li>
+        <li><b>Open DevTools → Console:</b> you’ll see exact errors (CORS/WASM blocked).</li>
+        <li><b>Strict CSP platforms:</b> some themes/settings block WebAssembly downloads.</li>
+      </ul>
+    </section>
+
+    <!-- RIGHT: Live Lab -->
+    <aside class="card">
+      <h2>Live Python Lab (Editable)</h2>
+
+      <label><b>Sentence 1</b></label>
+      <textarea id="s1">show me quizzes</textarea>
+
+      <label><b>Sentence 2</b></label>
+      <textarea id="s2">open quizzes</textarea>
+
+      <label><b>Examples</b></label>
+      <select id="examples">
+        <option value="">-- choose --</option>
+        <option value="show me quizzes|open quizzes">Show me quizzes / Open quizzes</option>
+        <option value="buy phone online|purchase a smartphone">Buy phone / Purchase smartphone</option>
+        <option value="play cricket|watch cricket">Play cricket / Watch cricket</option>
+        <option value="rainy day|beautiful sunset">Rainy day / Beautiful sunset</option>
+        <option value="python list append|add item to list in python">Python append / Add item</option>
+      </select>
+
+      <div class="row" style="margin-top:10px;">
+        <div style="flex:1;min-width:220px;">
+          <label><b>Stopwords</b> <span class="muted">(learning toggle)</span></label>
+          <select id="stop">
+            <option value="yes">Remove stopwords</option>
+            <option value="no">Keep stopwords</option>
+          </select>
+        </div>
+      </div>
+
+      <h3>Editable Python Code</h3>
+      <textarea id="pyCode" style="min-height:360px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;"></textarea>
+
+      <div class="row" style="margin-top:10px;">
+        <button id="runBtn">Run Python</button>
+        <button id="resetBtn" class="ghost">Reset Code</button>
+        <button id="copyBtn" class="secondary">Copy Code</button>
+      </div>
+
+      <div id="pyStatus" class="status warn">⏳ Loading Pyodide…</div>
+
+      <h3>Output (Print captured)</h3>
+      <pre id="out">Waiting…</pre>
+
+      <h3>Quick Results</h3>
+      <div class="kpi">
+        <div class="pill">
+          <div class="label">Cosine Similarity</div>
+          <div class="value" id="kCos">--</div>
+        </div>
+        <div class="pill">
+          <div class="label">Angle θ (degrees)</div>
+          <div class="value" id="kTheta">--</div>
+        </div>
+        <div class="pill">
+          <div class="label">Interpretation</div>
+          <div class="value" id="kInterp">--</div>
+        </div>
+      </div>
+
+      <h3>Math Breakdown (from your run)</h3>
+      <table>
+        <tr><th>Quantity</th><th>Value</th></tr>
+        <tr><td>Dot product (A·B)</td><td id="mDot">--</td></tr>
+        <tr><td>||A||</td><td id="mMagA">--</td></tr>
+        <tr><td>||B||</td><td id="mMagB">--</td></tr>
+        <tr><td>cosine = dot/(||A||×||B||)</td><td id="mCos">--</td></tr>
+      </table>
+
+      <h3>Vector Angle (SVG)</h3>
+      <div style="border:1px solid var(--border); border-radius:12px; padding:12px;">
+        <svg id="vecSvg" viewBox="0 0 520 320" width="100%" height="320" role="img" aria-label="Vector angle visualization">
+          <defs>
+            <pattern id="grid" width="26" height="26" patternUnits="userSpaceOnUse">
+              <path d="M 26 0 L 0 0 0 26" fill="none" stroke="rgba(0,0,0,.08)" stroke-width="1"/>
+            </pattern>
+            <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+              <path d="M0,0 L10,3 L0,6 Z" fill="currentColor"></path>
+            </marker>
+          </defs>
+
+          <rect x="0" y="0" width="520" height="320" fill="url(#grid)"></rect>
+
+          <!-- Axes -->
+          <line x1="60" y1="260" x2="500" y2="260" stroke="rgba(0,0,0,.25)" stroke-width="2"/>
+          <line x1="260" y1="20" x2="260" y2="300" stroke="rgba(0,0,0,.25)" stroke-width="2"/>
+          <text x="505" y="255" font-size="12" fill="rgba(0,0,0,.55)">x</text>
+          <text x="265" y="28"  font-size="12" fill="rgba(0,0,0,.55)">y</text>
+
+          <!-- Origin -->
+          <circle cx="260" cy="260" r="4" fill="rgba(0,0,0,.45)"></circle>
+
+          <!-- Vectors -->
+          <g style="color:#111827">
+            <line id="vecA" x1="260" y1="260" x2="260" y2="260"
+                  stroke="currentColor" stroke-width="4" marker-end="url(#arrow)"/>
+            <line id="vecB" x1="260" y1="260" x2="260" y2="260"
+                  stroke="currentColor" stroke-width="4" marker-end="url(#arrow)" opacity="0.65"/>
+          </g>
+
+          <!-- Angle arc -->
+          <path id="angleArc" d="" fill="none" stroke="rgba(0,0,0,.35)" stroke-width="4"/>
+
+          <text id="angleText" x="18" y="26" font-size="14" fill="rgba(0,0,0,.75)">θ = --°</text>
+          <text id="cosText"   x="18" y="48" font-size="14" fill="rgba(0,0,0,.75)">cos = --</text>
+
+          <text x="18" y="294" font-size="12" fill="rgba(0,0,0,.55)">
+            Note: We draw a 2D projection using the first two vocabulary dimensions.
+          </text>
+        </svg>
+      </div>
+
+      <details style="margin-top:12px;">
+        <summary>Why is the SVG only 2D while vectors are high-dimensional?</summary>
+        <p class="muted">
+          Your real vectors can have many dimensions (one per vocabulary word). A screen is 2D.
+          So we project the high-dimensional vector into 2D using the first two dimensions only.
+          This is a learning visualization. (Later we can improve with PCA-like projection.)
+        </p>
+      </details>
+
+    </aside>
+
+  </div>
+
+  <div class="footer">
+    By <b>Champak Roy</b> • Programmer’s Picnic • Learning Sutras
+  </div>
 </div>
 
-<div id="status" class="status warn">⏳ Loading Pyodide…</div>
-
-<h3>Output</h3>
-<pre id="out">Waiting…</pre>
-
-<h3>Vector Angle Visualization</h3>
-<div style="border:1px solid var(--border);border-radius:12px;padding:12px">
-<svg id="vecSvg" viewBox="0 0 520 320" width="100%" height="320">
-<defs>
-<marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
-<path d="M0,0 L10,3 L0,6 Z" fill="currentColor"/>
-</marker>
-</defs>
-
-<line x1="260" y1="260" x2="500" y2="260" stroke="#ccc" stroke-width="2"/>
-<line x1="260" y1="20"  x2="260" y2="300" stroke="#ccc" stroke-width="2"/>
-
-<circle cx="260" cy="260" r="4" fill="#555"/>
-
-<line id="vecA" x1="260" y1="260" x2="260" y2="260"
-stroke="#111" stroke-width="4" marker-end="url(#arrow)"/>
-
-<line id="vecB" x1="260" y1="260" x2="260" y2="260"
-stroke="#111" stroke-opacity="0.6" stroke-width="4" marker-end="url(#arrow)"/>
-
-<path id="angleArc" d="" fill="none" stroke="#999" stroke-width="4"/>
-
-<text id="angleText" x="16" y="24">θ = --°</text>
-<text id="cosText" x="16" y="44">cos = --</text>
-</svg>
-</div>
-
-</aside>
-</div>
-
-<footer>
-By <b>Champak Roy</b> • Programmer’s Picnic • Learning Sutras
-</footer>
-</div>
-
-<!-- ✅ STABLE PYODIDE -->
+<!-- PYODIDE (Stable + explicit indexURL) -->
 <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
 
 <script>
-const codeEl = document.getElementById("pyCode");
-const outEl = document.getElementById("out");
-const statusEl = document.getElementById("status");
+  // ---------- DOM ----------
+  const codeEl = document.getElementById("pyCode");
+  const outEl = document.getElementById("out");
+  const statusEl = document.getElementById("pyStatus");
+  const runBtn = document.getElementById("runBtn");
+  const resetBtn = document.getElementById("resetBtn");
+  const copyBtn = document.getElementById("copyBtn");
+  const s1El = document.getElementById("s1");
+  const s2El = document.getElementById("s2");
+  const exEl = document.getElementById("examples");
+  const stopEl = document.getElementById("stop");
 
-const DEFAULT_CODE = `
+  const kCos = document.getElementById("kCos");
+  const kTheta = document.getElementById("kTheta");
+  const kInterp = document.getElementById("kInterp");
+  const mDot = document.getElementById("mDot");
+  const mMagA = document.getElementById("mMagA");
+  const mMagB = document.getElementById("mMagB");
+  const mCos = document.getElementById("mCos");
+
+  // SVG nodes
+  const vecA = document.getElementById("vecA");
+  const vecB = document.getElementById("vecB");
+  const angleArc = document.getElementById("angleArc");
+  const angleText = document.getElementById("angleText");
+  const cosText = document.getElementById("cosText");
+
+  function setStatus(type, msg){
+    statusEl.className = "status " + type;
+    statusEl.textContent = msg;
+  }
+
+  // ---------- DEFAULT PYTHON (Print works + JSON data line) ----------
+  const DEFAULT_CODE = `
 import re, math, sys, io, json
 
+# A small stopword list for learning. You can expand it later.
 STOPWORDS = {"the","is","a","me","to","of","and","on","in","for","show","open"}
 
+# Capture Python's print output so it appears in the webpage.
 buffer = io.StringIO()
 sys.stdout = buffer
 
-def tokenize(text, remove=True):
+def tokenize(text, remove_stopwords=True):
     text = text.lower()
     text = re.sub(r"[^a-z0-9\\s]", " ", text)
-    tokens = text.split()
-    if remove:
+    tokens = [t for t in text.split() if t]
+    if remove_stopwords:
         tokens = [t for t in tokens if t not in STOPWORDS]
     return tokens
 
-def cosine_similarity(a,b):
-    dot = sum(x*y for x,y in zip(a,b))
-    ma = math.sqrt(sum(x*x for x in a))
-    mb = math.sqrt(sum(x*x for x in b))
-    return 0 if ma*mb==0 else dot/(ma*mb)
+def vectorize(tokens, vocab):
+    # Count frequency of each vocab word in tokens
+    return [tokens.count(w) for w in vocab]
 
-remove = REMOVE_STOPWORDS == "yes"
+def dot_product(A, B):
+    return sum(a*b for a,b in zip(A,B))
 
+def magnitude(V):
+    return math.sqrt(sum(x*x for x in V))
+
+def cosine_similarity(A, B):
+    dot = dot_product(A,B)
+    magA = magnitude(A)
+    magB = magnitude(B)
+    if magA * magB == 0:
+        return 0.0, dot, magA, magB
+    return dot/(magA*magB), dot, magA, magB
+
+# Inputs from JavaScript
+remove = (REMOVE_STOPWORDS == "yes")
 t1 = tokenize(S1, remove)
 t2 = tokenize(S2, remove)
 
 print("STEP 1: TOKENS")
-print(t1)
-print(t2)
+print("Tokens1:", t1)
+print("Tokens2:", t2)
 
-vocab = sorted(set(t1)|set(t2))
-A = [t1.count(w) for w in vocab]
-B = [t2.count(w) for w in vocab]
+# Vocabulary = union of words
+vocab = sorted(set(t1) | set(t2))
+A = vectorize(t1, vocab)
+B = vectorize(t2, vocab)
 
-print("\\nSTEP 2: VOCAB")
+print("\\nSTEP 2: VOCABULARY")
 print(vocab)
 
-print("\\nSTEP 3: VECTORS")
-print("A =",A)
-print("B =",B)
+print("\\nSTEP 3: VECTORS (term-frequency)")
+print("A =", A)
+print("B =", B)
 
-score = cosine_similarity(A,B)
+cos, dot, magA, magB = cosine_similarity(A,B)
 
-print("\\nSTEP 4: COSINE")
-print(round(score,4))
+# Angle theta = arccos(cos). Clamp for safety.
+c = max(-1.0, min(1.0, cos))
+theta = math.degrees(math.acos(c)) if (magA*magB)!=0 else 0.0
+
+print("\\nSTEP 4: MATH")
+print("Dot (A·B) =", dot)
+print("||A|| =", magA)
+print("||B|| =", magB)
+print("Cosine =", round(cos, 4))
+print("Theta(deg) =", round(theta, 2))
 
 print("\\nSTEP 5: INTERPRETATION")
-if score > 0.75:
-    print("🟢 Very Similar")
-elif score > 0.35:
-    print("🟡 Somewhat Related")
+if cos > 0.75:
+    interp = "Very Similar"
+elif cos > 0.35:
+    interp = "Somewhat Related"
 else:
-    print("🔴 Not Related")
+    interp = "Not Related"
+print(interp)
 
-print("\\n__DATA__"+json.dumps({"A":A,"B":B,"score":score}))
+# Send structured data to JavaScript (for SVG + tables)
+print("\\n__DATA__" + json.dumps({
+    "vocab": vocab,
+    "A": A,
+    "B": B,
+    "dot": dot,
+    "magA": magA,
+    "magB": magB,
+    "cos": cos,
+    "theta": theta,
+    "interp": interp
+}))
 
 buffer.getvalue()
 `.trim();
 
-codeEl.value = DEFAULT_CODE;
+  codeEl.value = DEFAULT_CODE;
 
-let pyodide;
+  // ---------- Pyodide loading ----------
+  let pyodide = null;
 
-async function initPyodide(){
-  try{
-    statusEl.textContent = "⏳ Loading Pyodide (Python in browser)...";
-    pyodide = await loadPyodide({
-      indexURL: "https://cdn.jsdelivr.net/pyodide/v0.23.4/full/"
-    });
-    statusEl.className = "status ok";
-    statusEl.textContent = "✅ Pyodide Ready";
-  }catch(err){
-    statusEl.className = "status bad";
-    statusEl.textContent = "❌ Pyodide failed to load";
-    outEl.textContent = err;
-    console.error(err);
+  async function initPyodide(){
+    if (location.protocol === "file:"){
+      setStatus("bad", "❌ Opened as file:// — Pyodide usually won't load. Upload to Blogger/GitHub Pages.");
+      outEl.textContent = "Tip: Upload this HTML to Blogger or GitHub Pages. Then open with https:// and retry.";
+      return;
+    }
+
+    try{
+      setStatus("warn", "⏳ Loading Pyodide (Python in browser)...");
+      // A timeout so you don't get “stuck forever”
+      const timeoutMs = 20000;
+      const timeout = new Promise((_, rej)=>setTimeout(()=>rej(new Error("Pyodide load timeout (20s). Check network/CSP/WASM blocking.")), timeoutMs));
+
+      const loader = loadPyodide({
+        indexURL: "https://cdn.jsdelivr.net/pyodide/v0.23.4/full/"
+      });
+
+      pyodide = await Promise.race([loader, timeout]);
+      setStatus("ok", "✅ Pyodide Ready");
+    }catch(err){
+      setStatus("bad", "❌ Pyodide failed to load (see output + console)");
+      outEl.textContent = String(err);
+      console.error("Pyodide load error:", err);
+    }
   }
-}
 
-initPyodide();
-
-function drawVectors(A,B,score){
-  const origin={x:260,y:260}, scale=90;
-  const ax=A[0]||0, ay=A[1]||0;
-  const bx=B[0]||0, by=B[1]||0;
-
-  const na=Math.hypot(ax,ay)||1;
-  const nb=Math.hypot(bx,by)||1;
-
-  vecA.setAttribute("x2", origin.x+(ax/na)*scale);
-  vecA.setAttribute("y2", origin.y-(ay/na)*scale);
-  vecB.setAttribute("x2", origin.x+(bx/nb)*scale);
-  vecB.setAttribute("y2", origin.y-(by/nb)*scale);
-
-  const theta=Math.acos(Math.max(-1,Math.min(1,score)));
-  angleText.textContent=`θ = ${(theta*180/Math.PI).toFixed(1)}°`;
-  cosText.textContent=`cos = ${score.toFixed(4)}`;
-}
-
-document.getElementById("run").onclick = async ()=>{
-  if(!pyodide){
-    alert("Pyodide not ready yet");
-    return;
+  // ---------- Helpers for SVG ----------
+  function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+  function project2D(vec){
+    // Take first two dimensions for visualization
+    return { x: (vec[0] ?? 0), y: (vec[1] ?? 0) };
   }
-  pyodide.globals.set("S1", s1.value);
-  pyodide.globals.set("S2", s2.value);
-  pyodide.globals.set("REMOVE_STOPWORDS", stop.value);
+  function norm2D(p){ return Math.hypot(p.x, p.y) || 1; }
+  function angleOf(p){ return Math.atan2(p.y, p.x); }
 
-  const res = await pyodide.runPythonAsync(codeEl.value);
-  outEl.textContent = res;
+  function arcPath(cx, cy, r, a0, a1){
+    // Build a small arc between angles a0 and a1 (in radians)
+    let sweep = a1 - a0;
+    while (sweep < 0) sweep += Math.PI * 2;
+    while (sweep > Math.PI * 2) sweep -= Math.PI * 2;
 
-  const i = res.lastIndexOf("__DATA__");
-  if(i !== -1){
-    const data = JSON.parse(res.slice(i+8));
-    drawVectors(data.A, data.B, data.score);
+    // Use the smaller arc
+    if (sweep > Math.PI){
+      const tmp = a0; a0 = a1; a1 = tmp;
+      sweep = a1 - a0;
+      while (sweep < 0) sweep += Math.PI * 2;
+    }
+
+    const x0 = cx + r * Math.cos(a0);
+    const y0 = cy - r * Math.sin(a0);
+    const x1 = cx + r * Math.cos(a1);
+    const y1 = cy - r * Math.sin(a1);
+
+    const largeArc = sweep > Math.PI ? 1 : 0;
+    const sweepFlag = 0;
+    return `M ${x0.toFixed(2)} ${y0.toFixed(2)} A ${r} ${r} 0 ${largeArc} ${sweepFlag} ${x1.toFixed(2)} ${y1.toFixed(2)}`;
   }
-};
 
-document.getElementById("reset").onclick = ()=>codeEl.value = DEFAULT_CODE;
+  function updateSVG(A, B, cos, thetaDeg){
+    const origin = {x:260, y:260};
+    const scale = 95;
+
+    const a2 = project2D(A);
+    const b2 = project2D(B);
+
+    const na = norm2D(a2), nb = norm2D(b2);
+    const aN = {x: a2.x/na, y: a2.y/na};
+    const bN = {x: b2.x/nb, y: b2.y/nb};
+
+    const ax = origin.x + aN.x * scale;
+    const ay = origin.y - aN.y * scale;
+    const bx = origin.x + bN.x * scale;
+    const by = origin.y - bN.y * scale;
+
+    vecA.setAttribute("x1", origin.x); vecA.setAttribute("y1", origin.y);
+    vecA.setAttribute("x2", ax.toFixed(2)); vecA.setAttribute("y2", ay.toFixed(2));
+
+    vecB.setAttribute("x1", origin.x); vecB.setAttribute("y1", origin.y);
+    vecB.setAttribute("x2", bx.toFixed(2)); vecB.setAttribute("y2", by.toFixed(2));
+
+    const angA = angleOf(aN);
+    const angB = angleOf(bN);
+    angleArc.setAttribute("d", arcPath(origin.x, origin.y, 46, angA, angB));
+
+    angleText.textContent = `θ = ${Number(thetaDeg).toFixed(1)}°`;
+    cosText.textContent = `cos = ${Number(cos).toFixed(4)}`;
+  }
+
+  function updateMathUI(data){
+    const cos = Number(data.cos ?? 0);
+    const theta = Number(data.theta ?? 0);
+    const dot = Number(data.dot ?? 0);
+    const magA = Number(data.magA ?? 0);
+    const magB = Number(data.magB ?? 0);
+    const interp = String(data.interp ?? "--");
+
+    kCos.textContent = cos.toFixed(4);
+    kTheta.textContent = theta.toFixed(1) + "°";
+    kInterp.textContent = interp;
+
+    mDot.textContent = dot.toFixed(4);
+    mMagA.textContent = magA.toFixed(4);
+    mMagB.textContent = magB.toFixed(4);
+    const denom = magA * magB;
+    mCos.textContent = denom === 0 ? "0 (empty vector)" : (dot/denom).toFixed(6);
+
+    updateSVG(data.A || [], data.B || [], cos, theta);
+  }
+
+  // ---------- UI wiring ----------
+  exEl.addEventListener("change", () => {
+    if(!exEl.value) return;
+    const [a,b] = exEl.value.split("|");
+    s1El.value = a;
+    s2El.value = b;
+  });
+
+  resetBtn.onclick = () => { codeEl.value = DEFAULT_CODE; setStatus(pyodide ? "ok":"warn", pyodide ? "✅ Pyodide Ready":"⏳ Loading Pyodide…"); };
+
+  copyBtn.onclick = async () => {
+    try{
+      await navigator.clipboard.writeText(codeEl.value);
+      setStatus("ok","✅ Code copied");
+    }catch(e){
+      setStatus("bad","❌ Copy failed (browser blocked clipboard)");
+    }
+  };
+
+  runBtn.onclick = async () => {
+    if(!pyodide){
+      setStatus("warn","⏳ Pyodide not ready yet");
+      return;
+    }
+
+    setStatus("ok","✅ Running…");
+    pyodide.globals.set("S1", s1El.value);
+    pyodide.globals.set("S2", s2El.value);
+    pyodide.globals.set("REMOVE_STOPWORDS", stopEl.value);
+
+    try{
+      const res = await pyodide.runPythonAsync(codeEl.value);
+      outEl.textContent = String(res);
+
+      // Parse the JSON data line after __DATA__
+      const marker = "__DATA__";
+      const idx = String(res).lastIndexOf(marker);
+      if(idx !== -1){
+        const jsonText = String(res).slice(idx + marker.length).trim();
+        const data = JSON.parse(jsonText);
+        updateMathUI(data);
+      }
+    }catch(e){
+      outEl.textContent = String(e);
+      setStatus("bad","❌ Python error (see output)");
+      console.error(e);
+    }
+  };
+
+  initPyodide();
 </script>
 
 </body>
