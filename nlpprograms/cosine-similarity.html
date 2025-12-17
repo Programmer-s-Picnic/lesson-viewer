@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Cosine Similarity Lab — Programmer’s Picnic</title>
+<title>Cosine Similarity Lab — Vector Angle Visualization</title>
 
 <style>
 :root{
---bg:#fffaf2;--card:#fff;--ink:#1f2937;--muted:#6b7280;
+--bg:#fffaf2;--card:#ffffff;--ink:#1f2937;--muted:#6b7280;
 --brand:#d97706;--border:#e5e7eb;--ok:#059669;
 --warn:#b45309;--bad:#dc2626;--radius:16px;
 --shadow:0 10px 30px rgba(0,0,0,.06);
@@ -25,7 +25,7 @@ button{border:none;border-radius:12px;padding:10px 14px;
 font-weight:700;cursor:pointer;background:var(--brand);color:#fff}
 button.ghost{background:#f3f4f6;color:#111;border:1px solid var(--border)}
 pre{background:#0b1020;color:#e5e7eb;border-radius:12px;padding:12px}
-.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.row{display:flex;gap:10px;flex-wrap:wrap}
 .status{margin-top:10px;padding:10px;border-radius:12px;font-weight:700}
 .status.ok{background:#ecfdf5;color:#065f46}
 .status.warn{background:#fff7ed;color:#9a3412}
@@ -37,25 +37,25 @@ footer{text-align:center;font-size:13px;color:var(--muted);margin:20px}
 <body>
 
 <header>
-<h1>Cosine Similarity — Interactive NLP Lab</h1>
-<p>Learn how machines compare meaning using vectors, angles, and math.</p>
+<h1>Cosine Similarity — Interactive Vector Lab</h1>
+<p>See how machines compare meaning using vectors, angles, and cosine similarity.</p>
 </header>
 
 <div class="wrap">
 <div class="grid">
 
 <section class="card">
-<h2>What You Will Learn</h2>
+<h2>What You Learn</h2>
 <ul>
 <li>Text → Tokens → Vectors</li>
-<li>Dot product & magnitude</li>
-<li>Why sentence length doesn’t matter</li>
-<li>How NLP measures similarity</li>
+<li>Cosine similarity formula</li>
+<li>Why angle matters more than length</li>
+<li>How NLP compares meaning</li>
 </ul>
 
 <h3>Assignment</h3>
 <ul>
-<li>Toggle stopwords ON / OFF</li>
+<li>Toggle stopwords ON/OFF</li>
 <li>Try unrelated sentences</li>
 <li>Explain cosine similarity in 5 lines</li>
 </ul>
@@ -88,8 +88,35 @@ footer{text-align:center;font-size:13px;color:var(--muted);margin:20px}
 
 <h3>Output</h3>
 <pre id="out">Run the code.</pre>
-</aside>
 
+<h3>Vector Angle Visualization</h3>
+<div style="border:1px solid var(--border);border-radius:12px;padding:12px">
+<svg id="vecSvg" viewBox="0 0 520 320" width="100%" height="320">
+<defs>
+<marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+<path d="M0,0 L10,3 L0,6 Z" fill="currentColor"/>
+</marker>
+</defs>
+
+<line x1="260" y1="260" x2="500" y2="260" stroke="#ccc" stroke-width="2"/>
+<line x1="260" y1="20"  x2="260" y2="300" stroke="#ccc" stroke-width="2"/>
+
+<circle cx="260" cy="260" r="4" fill="#555"/>
+
+<line id="vecA" x1="260" y1="260" x2="260" y2="260"
+stroke="#111" stroke-width="4" marker-end="url(#arrow)"/>
+
+<line id="vecB" x1="260" y1="260" x2="260" y2="260"
+stroke="#111" stroke-opacity="0.6" stroke-width="4" marker-end="url(#arrow)"/>
+
+<path id="angleArc" d="" fill="none" stroke="#999" stroke-width="4"/>
+
+<text id="angleText" x="16" y="24">θ = --°</text>
+<text id="cosText" x="16" y="44">cos = --</text>
+</svg>
+</div>
+
+</aside>
 </div>
 
 <footer>
@@ -98,34 +125,35 @@ By <b>Champak Roy</b> • Programmer’s Picnic • Learning Sutras
 </div>
 
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js"></script>
+
 <script>
 const codeEl=document.getElementById("pyCode");
 const outEl=document.getElementById("out");
 const statusEl=document.getElementById("status");
 
 const DEFAULT_CODE = `
-import re, math, sys, io
+import re, math, sys, io, json
 
 STOPWORDS = {"the","is","a","me","to","of","and","on","in","for","show","open"}
 
 buffer = io.StringIO()
 sys.stdout = buffer
 
-def tokenize(text, remove_stopwords=True):
+def tokenize(text, remove=True):
     text = text.lower()
     text = re.sub(r"[^a-z0-9\\s]", " ", text)
     tokens = text.split()
-    if remove_stopwords:
+    if remove:
         tokens = [t for t in tokens if t not in STOPWORDS]
     return tokens
 
-def cosine_similarity(a, b):
+def cosine_similarity(a,b):
     dot = sum(x*y for x,y in zip(a,b))
-    mag_a = math.sqrt(sum(x*x for x in a))
-    mag_b = math.sqrt(sum(x*x for x in b))
-    return 0 if mag_a*mag_b == 0 else dot/(mag_a*mag_b)
+    ma = math.sqrt(sum(x*x for x in a))
+    mb = math.sqrt(sum(x*x for x in b))
+    return 0 if ma*mb==0 else dot/(ma*mb)
 
-remove = REMOVE_STOPWORDS == "yes"
+remove = REMOVE_STOPWORDS=="yes"
 
 t1 = tokenize(S1, remove)
 t2 = tokenize(S2, remove)
@@ -134,29 +162,28 @@ print("STEP 1: TOKENS")
 print(t1)
 print(t2)
 
-vocab = sorted(set(t1) | set(t2))
+vocab = sorted(set(t1)|set(t2))
 A = [t1.count(w) for w in vocab]
 B = [t2.count(w) for w in vocab]
 
-print("\\nSTEP 2: VOCABULARY")
+print("\\nSTEP 2: VOCAB")
 print(vocab)
 
 print("\\nSTEP 3: VECTORS")
-print("A =", A)
-print("B =", B)
+print("A =",A)
+print("B =",B)
 
-score = cosine_similarity(A, B)
+score = cosine_similarity(A,B)
 
-print("\\nSTEP 4: COSINE SCORE")
+print("\\nSTEP 4: COSINE")
 print(round(score,4))
 
 print("\\nSTEP 5: INTERPRETATION")
-if score > 0.75:
-    print("🟢 Very Similar Meaning")
-elif score > 0.35:
-    print("🟡 Somewhat Related")
-else:
-    print("🔴 Not Related")
+if score>0.75: print("🟢 Very Similar")
+elif score>0.35: print("🟡 Somewhat Related")
+else: print("🔴 Not Related")
+
+print("\\n__DATA__"+json.dumps({"A":A,"B":B,"score":score}))
 
 buffer.getvalue()
 `.trim();
@@ -164,24 +191,48 @@ buffer.getvalue()
 codeEl.value = DEFAULT_CODE;
 
 let pyodide;
-
-async function init(){
+(async()=>{
 pyodide = await loadPyodide();
 statusEl.className="status ok";
 statusEl.textContent="✅ Pyodide Ready";
+})();
+
+function drawVectors(A,B,score){
+const origin={x:260,y:260}, scale=90;
+const ax=A[0]||0, ay=A[1]||0;
+const bx=B[0]||0, by=B[1]||0;
+
+const na=Math.hypot(ax,ay)||1, nb=Math.hypot(bx,by)||1;
+const ax2=origin.x+(ax/na)*scale;
+const ay2=origin.y-(ay/na)*scale;
+const bx2=origin.x+(bx/nb)*scale;
+const by2=origin.y-(by/nb)*scale;
+
+vecA.setAttribute("x2",ax2); vecA.setAttribute("y2",ay2);
+vecB.setAttribute("x2",bx2); vecB.setAttribute("y2",by2);
+
+const theta=Math.acos(Math.max(-1,Math.min(1,score)));
+angleText.textContent=`θ = ${(theta*180/Math.PI).toFixed(1)}°`;
+cosText.textContent=`cos = ${score.toFixed(4)}`;
+
+const r=40;
+const d=\`M \${origin.x+r} \${origin.y}
+A \${r} \${r} 0 0 0
+\${origin.x+r*Math.cos(theta)} \${origin.y-r*Math.sin(theta)}\`;
+angleArc.setAttribute("d",d);
 }
-init();
 
 document.getElementById("run").onclick=async()=>{
-pyodide.globals.set("S1",document.getElementById("s1").value);
-pyodide.globals.set("S2",document.getElementById("s2").value);
-pyodide.globals.set("REMOVE_STOPWORDS",document.getElementById("stop").value);
-try{
-outEl.textContent=await pyodide.runPythonAsync(codeEl.value);
-}catch(e){
-outEl.textContent=e;
-statusEl.className="status bad";
-statusEl.textContent="❌ Python Error";
+pyodide.globals.set("S1",s1.value);
+pyodide.globals.set("S2",s2.value);
+pyodide.globals.set("REMOVE_STOPWORDS",stop.value);
+const res=await pyodide.runPythonAsync(codeEl.value);
+outEl.textContent=res;
+
+const i=res.lastIndexOf("__DATA__");
+if(i!=-1){
+const data=JSON.parse(res.slice(i+8));
+drawVectors(data.A,data.B,data.score);
 }
 };
 
