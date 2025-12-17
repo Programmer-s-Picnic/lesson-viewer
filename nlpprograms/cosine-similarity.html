@@ -37,8 +37,8 @@ footer{text-align:center;font-size:13px;color:var(--muted);margin:20px}
 <body>
 
 <header>
-<h1>Cosine Similarity — Interactive Vector Lab</h1>
-<p>See how machines compare meaning using vectors, angles, and cosine similarity.</p>
+<h1>Cosine Similarity — Interactive NLP Lab</h1>
+<p>Understand cosine similarity using vectors, angles, and real Python.</p>
 </header>
 
 <div class="wrap">
@@ -49,15 +49,8 @@ footer{text-align:center;font-size:13px;color:var(--muted);margin:20px}
 <ul>
 <li>Text → Tokens → Vectors</li>
 <li>Cosine similarity formula</li>
-<li>Why angle matters more than length</li>
+<li>Why angle matters, not length</li>
 <li>How NLP compares meaning</li>
-</ul>
-
-<h3>Assignment</h3>
-<ul>
-<li>Toggle stopwords ON/OFF</li>
-<li>Try unrelated sentences</li>
-<li>Explain cosine similarity in 5 lines</li>
 </ul>
 </section>
 
@@ -87,7 +80,7 @@ footer{text-align:center;font-size:13px;color:var(--muted);margin:20px}
 <div id="status" class="status warn">⏳ Loading Pyodide…</div>
 
 <h3>Output</h3>
-<pre id="out">Run the code.</pre>
+<pre id="out">Waiting…</pre>
 
 <h3>Vector Angle Visualization</h3>
 <div style="border:1px solid var(--border);border-radius:12px;padding:12px">
@@ -124,12 +117,13 @@ By <b>Champak Roy</b> • Programmer’s Picnic • Learning Sutras
 </footer>
 </div>
 
-<script src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js"></script>
+<!-- ✅ STABLE PYODIDE -->
+<script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
 
 <script>
-const codeEl=document.getElementById("pyCode");
-const outEl=document.getElementById("out");
-const statusEl=document.getElementById("status");
+const codeEl = document.getElementById("pyCode");
+const outEl = document.getElementById("out");
+const statusEl = document.getElementById("status");
 
 const DEFAULT_CODE = `
 import re, math, sys, io, json
@@ -153,7 +147,7 @@ def cosine_similarity(a,b):
     mb = math.sqrt(sum(x*x for x in b))
     return 0 if ma*mb==0 else dot/(ma*mb)
 
-remove = REMOVE_STOPWORDS=="yes"
+remove = REMOVE_STOPWORDS == "yes"
 
 t1 = tokenize(S1, remove)
 t2 = tokenize(S2, remove)
@@ -179,9 +173,12 @@ print("\\nSTEP 4: COSINE")
 print(round(score,4))
 
 print("\\nSTEP 5: INTERPRETATION")
-if score>0.75: print("🟢 Very Similar")
-elif score>0.35: print("🟡 Somewhat Related")
-else: print("🔴 Not Related")
+if score > 0.75:
+    print("🟢 Very Similar")
+elif score > 0.35:
+    print("🟡 Somewhat Related")
+else:
+    print("🔴 Not Related")
 
 print("\\n__DATA__"+json.dumps({"A":A,"B":B,"score":score}))
 
@@ -191,52 +188,64 @@ buffer.getvalue()
 codeEl.value = DEFAULT_CODE;
 
 let pyodide;
-(async()=>{
-pyodide = await loadPyodide();
-statusEl.className="status ok";
-statusEl.textContent="✅ Pyodide Ready";
-})();
+
+async function initPyodide(){
+  try{
+    statusEl.textContent = "⏳ Loading Pyodide (Python in browser)...";
+    pyodide = await loadPyodide({
+      indexURL: "https://cdn.jsdelivr.net/pyodide/v0.23.4/full/"
+    });
+    statusEl.className = "status ok";
+    statusEl.textContent = "✅ Pyodide Ready";
+  }catch(err){
+    statusEl.className = "status bad";
+    statusEl.textContent = "❌ Pyodide failed to load";
+    outEl.textContent = err;
+    console.error(err);
+  }
+}
+
+initPyodide();
 
 function drawVectors(A,B,score){
-const origin={x:260,y:260}, scale=90;
-const ax=A[0]||0, ay=A[1]||0;
-const bx=B[0]||0, by=B[1]||0;
+  const origin={x:260,y:260}, scale=90;
+  const ax=A[0]||0, ay=A[1]||0;
+  const bx=B[0]||0, by=B[1]||0;
 
-const na=Math.hypot(ax,ay)||1, nb=Math.hypot(bx,by)||1;
-const ax2=origin.x+(ax/na)*scale;
-const ay2=origin.y-(ay/na)*scale;
-const bx2=origin.x+(bx/nb)*scale;
-const by2=origin.y-(by/nb)*scale;
+  const na=Math.hypot(ax,ay)||1;
+  const nb=Math.hypot(bx,by)||1;
 
-vecA.setAttribute("x2",ax2); vecA.setAttribute("y2",ay2);
-vecB.setAttribute("x2",bx2); vecB.setAttribute("y2",by2);
+  vecA.setAttribute("x2", origin.x+(ax/na)*scale);
+  vecA.setAttribute("y2", origin.y-(ay/na)*scale);
+  vecB.setAttribute("x2", origin.x+(bx/nb)*scale);
+  vecB.setAttribute("y2", origin.y-(by/nb)*scale);
 
-const theta=Math.acos(Math.max(-1,Math.min(1,score)));
-angleText.textContent=`θ = ${(theta*180/Math.PI).toFixed(1)}°`;
-cosText.textContent=`cos = ${score.toFixed(4)}`;
-
-const r=40;
-const d=\`M \${origin.x+r} \${origin.y}
-A \${r} \${r} 0 0 0
-\${origin.x+r*Math.cos(theta)} \${origin.y-r*Math.sin(theta)}\`;
-angleArc.setAttribute("d",d);
+  const theta=Math.acos(Math.max(-1,Math.min(1,score)));
+  angleText.textContent=`θ = ${(theta*180/Math.PI).toFixed(1)}°`;
+  cosText.textContent=`cos = ${score.toFixed(4)}`;
 }
 
-document.getElementById("run").onclick=async()=>{
-pyodide.globals.set("S1",s1.value);
-pyodide.globals.set("S2",s2.value);
-pyodide.globals.set("REMOVE_STOPWORDS",stop.value);
-const res=await pyodide.runPythonAsync(codeEl.value);
-outEl.textContent=res;
+document.getElementById("run").onclick = async ()=>{
+  if(!pyodide){
+    alert("Pyodide not ready yet");
+    return;
+  }
+  pyodide.globals.set("S1", s1.value);
+  pyodide.globals.set("S2", s2.value);
+  pyodide.globals.set("REMOVE_STOPWORDS", stop.value);
 
-const i=res.lastIndexOf("__DATA__");
-if(i!=-1){
-const data=JSON.parse(res.slice(i+8));
-drawVectors(data.A,data.B,data.score);
-}
+  const res = await pyodide.runPythonAsync(codeEl.value);
+  outEl.textContent = res;
+
+  const i = res.lastIndexOf("__DATA__");
+  if(i !== -1){
+    const data = JSON.parse(res.slice(i+8));
+    drawVectors(data.A, data.B, data.score);
+  }
 };
 
-document.getElementById("reset").onclick=()=>codeEl.value=DEFAULT_CODE;
+document.getElementById("reset").onclick = ()=>codeEl.value = DEFAULT_CODE;
 </script>
+
 </body>
 </html>
