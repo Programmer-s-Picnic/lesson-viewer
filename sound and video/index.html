@@ -1,225 +1,708 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<title>Voice Recorder Pro – Programmer’s Picnic</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Speech to Text + Voice Recorder Pro – Programmer’s Picnic</title>
 
+<!-- MP3 encoder (client-side) -->
 <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.0/lame.min.js"></script>
 
 <style>
-body{
-  margin:0;
-  font-family:system-ui,Segoe UI,Roboto,Arial;
-  background:linear-gradient(180deg,#fff7ed,#ffedd5);
-  display:flex;
-  justify-content:center;
-  padding:20px;
-}
-.card{
-  width:100%;
-  max-width:1000px;
-  background:#fff;
-  border-radius:22px;
-  padding:20px;
-  box-shadow:0 18px 48px rgba(0,0,0,.18);
-}
-.brand{font-weight:800;color:#92400e}
-h1{margin:6px 0}
-.row{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
-button{
-  border:none;
-  padding:10px 14px;
-  border-radius:14px;
-  font-weight:700;
-  cursor:pointer;
-}
-.primary{background:#f59e0b}
-.danger{background:#ef4444;color:white}
-.ok{background:#10b981;color:white}
-canvas{
-  width:100%;
-  height:120px;
-  background:#0b0b0b;
-  border-radius:12px;
-}
-audio{width:100%;margin-top:8px}
-.slider{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  margin:6px 0;
-}
-label{font-weight:700;font-size:14px}
-input[type=range]{width:100%}
+  /* Blogger-safe sandbox root */
+  #pp-root{
+    min-height: 80vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding: 24px 10px;
+    background:
+      radial-gradient(900px 520px at 20% 10%, #fffaf0, transparent),
+      linear-gradient(180deg,#fff7ed,#ffedd5);
+  }
+  #pp-root *{
+    box-sizing:border-box;
+    font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  }
+
+  .card{
+    width:min(1120px, 100%);
+    background:#ffffffdd;
+    backdrop-filter: blur(10px);
+    border-radius: 22px;
+    box-shadow: 0 18px 48px rgba(0,0,0,.18);
+    padding: 22px;
+    color:#1f2937;
+  }
+
+  .brand{font-weight:800;color:#92400e}
+  h1{margin:6px 0 4px}
+  .sub{color:#6b7280;font-size:13px;margin-bottom:12px}
+
+  .help{
+    background:#fffbeb;
+    border:1px solid #fde68a;
+    border-radius:16px;
+    padding:14px;
+    font-size:14px;
+    margin-bottom:14px;
+  }
+  .help b{color:#92400e}
+
+  .row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .btn{
+    border:none;
+    padding:10px 14px;
+    border-radius:14px;
+    font-weight:700;
+    font-size:14px;
+    cursor:pointer;
+  }
+  .primary{background:#f59e0b}
+  .danger{background:#ef4444;color:white}
+  .ok{background:#10b981;color:white}
+  .ghost{background:#fff;border:1px solid #fde68a;color:#92400e}
+
+  .grid{
+    display:grid;
+    gap:12px;
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 980px){
+    .grid{grid-template-columns: 1fr 1fr;}
+  }
+
+  .box{
+    border:1px solid #fde68a;
+    border-radius:16px;
+    background:#fff;
+    padding:12px;
+  }
+  .box h3{
+    margin:0 0 6px;
+    font-size:14px;
+    color:#92400e;
+  }
+
+  textarea{
+    width:100%;
+    min-height: 180px;
+    border-radius:14px;
+    border:1px solid #e5e7eb;
+    padding:10px;
+    font-size:14px;
+    line-height:1.5;
+    outline:none;
+  }
+  textarea:focus{
+    border-color:#f59e0b;
+    box-shadow: 0 0 0 4px rgba(245,158,11,.18);
+  }
+  textarea.read{
+    background:#f9fafb;
+    min-height: 130px;
+  }
+
+  .status{font-size:13px;color:#6b7280;margin-top:6px}
+  .footer{font-size:12px;color:#9ca3af;margin-top:6px}
+
+  /* Waveform + meter */
+  canvas{
+    width:100%;
+    height:120px;
+    background:#0b0b0b;
+    border-radius:12px;
+    display:block;
+  }
+  .meter{
+    width:100%;
+    height:14px;
+    background:#e5e7eb;
+    border-radius:999px;
+    overflow:hidden;
+    margin-top:8px;
+  }
+  .meter-fill{
+    height:100%;
+    width:0%;
+    background:#059669;
+    transition: width .08s linear, background .08s linear;
+  }
+  .warn{
+    font-weight:800;
+    margin-top:8px;
+  }
+  .warn.low{color:#92400e}
+  .warn.good{color:#059669}
+  .warn.clip{color:#dc2626}
+
+  /* Sliders (apply BEFORE saving) */
+  .sliders{
+    display:grid;
+    gap:10px;
+    grid-template-columns: 1fr;
+    margin-top:10px;
+  }
+  @media (min-width: 980px){
+    .sliders{grid-template-columns: 1fr 1fr;}
+  }
+  .slider{
+    background:#fffbeb;
+    border:1px solid #fde68a;
+    border-radius:14px;
+    padding:10px 12px;
+  }
+  .slider-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    margin-bottom:6px;
+    font-weight:800;
+    color:#92400e;
+    font-size:13px;
+  }
+  input[type="range"]{
+    width:100%;
+  }
+
+  /* Playback */
+  audio{
+    width:100%;
+    margin-top:10px;
+  }
 </style>
 </head>
 
 <body>
-<div class="card">
+<div id="pp-root">
+  <div class="card">
+    <div class="brand">Programmer’s Picnic</div>
+    <h1>🎤 Speech to Text + Voice Recorder Pro</h1>
+    <div class="sub">Practice → Listen → Record → Play → Adjust (Volume/Speed) → Export WAV/MP3 + Waveform PNG</div>
 
-<div class="brand">Programmer’s Picnic</div>
-<h1>🎙 Voice Recorder Pro</h1>
+    <div class="help">
+      <b>How to use:</b><br>
+      1️⃣ Edit the script below and read it aloud.<br>
+      2️⃣ Press <b>Listen</b> to get speech-to-text (you can edit names yourself).<br>
+      3️⃣ Press <b>Record Voice</b> for final audio. Watch the graph + meter.<br>
+      4️⃣ Use <b>Volume</b> and <b>Speed</b> sliders to adjust <i>before saving</i>.<br>
+      5️⃣ Press <b>Play</b> to preview, then download WAV/MP3 and Waveform PNG.
+    </div>
 
-<div class="row">
-  <button class="primary" id="rec">Record</button>
-  <button class="danger" id="stop" style="display:none">Stop</button>
-  <button class="ok" id="dlWav" style="display:none">WAV</button>
-  <button class="ok" id="dlMp3" style="display:none">MP3</button>
+    <!-- Practice Script -->
+    <div class="box" style="margin-bottom:12px">
+      <h3>Practice Script (Read this aloud)</h3>
+      <textarea class="read" id="scriptBox">Stop scrolling.
+Equal and double equal are not the same.
+Single equals assigns a value.
+Double equals compares values.
+This mistake breaks programs.</textarea>
+      <div class="footer">Tip: Pause after each sentence.</div>
+    </div>
+
+    <!-- Speech-to-Text controls -->
+    <div class="row">
+      <button class="btn primary" id="startListen">▶ Listen</button>
+      <button class="btn danger" id="stopListen" style="display:none">⏹ Stop</button>
+      <button class="btn ghost" id="clearText">Clear</button>
+      <button class="btn ok" id="copyText">Copy</button>
+      <button class="btn ghost" id="dlTxt">Download TXT</button>
+    </div>
+
+    <!-- Recorder controls -->
+    <div class="row">
+      <button class="btn primary" id="rec">🎙 Record Voice</button>
+      <button class="btn danger" id="stopRec" style="display:none">⏹ Stop</button>
+      <button class="btn ok" id="dlWav" style="display:none">Download WAV</button>
+      <button class="btn ok" id="dlMp3" style="display:none">Download MP3</button>
+      <button class="btn ghost" id="dlImg" style="display:none">Waveform PNG</button>
+    </div>
+
+    <!-- Sound Graph + Meter + Warnings + Sliders + Playback -->
+    <div class="box" style="margin-bottom:12px">
+      <h3>Sound Graph + Meter (During Recording)</h3>
+      <canvas id="wave" width="900" height="120"></canvas>
+      <div class="meter"><div class="meter-fill" id="meterFill"></div></div>
+      <div class="warn" id="warnText">Idle</div>
+
+      <div class="sliders">
+        <div class="slider">
+          <div class="slider-head">
+            <span>Volume (applied to saved file)</span>
+            <span id="volVal">1.00×</span>
+          </div>
+          <input type="range" id="gain" min="0" max="2" step="0.01" value="1">
+          <div class="footer">1.00× = original. Increase if voice is low. If red “clipping”, reduce.</div>
+        </div>
+
+        <div class="slider">
+          <div class="slider-head">
+            <span>Speed (applied to saved file)</span>
+            <span id="spdVal">1.00×</span>
+          </div>
+          <input type="range" id="speed" min="0.6" max="1.4" step="0.01" value="1">
+          <div class="footer">1.00× = normal. 1.10× feels energetic for Shorts.</div>
+        </div>
+      </div>
+
+      <h3 style="margin-top:12px">Playback (Preview adjusted audio)</h3>
+      <audio id="player" controls></audio>
+      <div class="footer">Playback uses the adjusted (volume/speed) version — same as what you download.</div>
+    </div>
+
+    <!-- Transcript boxes -->
+    <div class="grid">
+      <div class="box">
+        <h3>Final Transcript (editable)</h3>
+        <textarea id="finalText" placeholder="Your spoken text will appear here…"></textarea>
+        <div class="status" id="status">Status: Idle</div>
+      </div>
+      <div class="box">
+        <h3>Live Listening (interim)</h3>
+        <textarea id="interimText" readonly placeholder="Listening…"></textarea>
+        <div class="footer">Chrome/Edge recommended for Speech-to-Text.</div>
+      </div>
+    </div>
+
+  </div>
 </div>
-
-<canvas id="wave"></canvas>
-
-<div class="slider">
-  <label>Volume</label>
-  <input type="range" id="gain" min="0" max="2" step="0.01" value="1">
-</div>
-
-<div class="slider">
-  <label>Speed</label>
-  <input type="range" id="speed" min="0.5" max="1.5" step="0.01" value="1">
-</div>
-
-<audio id="player" controls></audio>
 
 <script>
-let mediaRec, chunks=[], audioBuf;
-let ctx=new AudioContext();
-let analyser, dataArray, srcNode;
-let canvas=document.getElementById("wave");
-let cctx=canvas.getContext("2d");
-let anim;
+/* =========================================================
+   ELEMENTS
+========================================================= */
+const scriptBox  = document.getElementById("scriptBox");
 
-rec.onclick=async()=>{
-  const stream=await navigator.mediaDevices.getUserMedia({audio:true});
-  analyser=ctx.createAnalyser();
-  analyser.fftSize=2048;
-  dataArray=new Uint8Array(analyser.fftSize);
-  srcNode=ctx.createMediaStreamSource(stream);
-  srcNode.connect(analyser);
+const startListen = document.getElementById("startListen");
+const stopListen  = document.getElementById("stopListen");
+const clearText   = document.getElementById("clearText");
+const copyText    = document.getElementById("copyText");
+const dlTxt       = document.getElementById("dlTxt");
 
-  mediaRec=new MediaRecorder(stream);
-  chunks=[];
-  mediaRec.ondataavailable=e=>chunks.push(e.data);
-  mediaRec.onstop=async()=>{
-    cancelAnimationFrame(anim);
-    const blob=new Blob(chunks);
-    audioBuf=await ctx.decodeAudioData(await blob.arrayBuffer());
-    updatePlayer();
-    dlWav.style.display=dlMp3.style.display="inline-block";
+const recBtn    = document.getElementById("rec");
+const stopRecBtn= document.getElementById("stopRec");
+const dlWavBtn  = document.getElementById("dlWav");
+const dlMp3Btn  = document.getElementById("dlMp3");
+const dlImgBtn  = document.getElementById("dlImg");
+
+const finalText = document.getElementById("finalText");
+const interimText = document.getElementById("interimText");
+const statusEl = document.getElementById("status");
+
+const canvas = document.getElementById("wave");
+const cctx = canvas.getContext("2d");
+const meterFill = document.getElementById("meterFill");
+const warnText = document.getElementById("warnText");
+
+const gainSlider = document.getElementById("gain");
+const speedSlider = document.getElementById("speed");
+const volVal = document.getElementById("volVal");
+const spdVal = document.getElementById("spdVal");
+
+const player = document.getElementById("player");
+
+/* =========================================================
+   SPEECH TO TEXT (RAW, NO NAME FIX)
+========================================================= */
+const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+let stt = null;
+
+if (SpeechRec) {
+  stt = new SpeechRec();
+  stt.lang = "en-IN";
+  stt.continuous = true;
+  stt.interimResults = true;
+
+  stt.onresult = e => {
+    let interim = "";
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const txt = e.results[i][0].transcript;
+      if (e.results[i].isFinal) {
+        finalText.value += (finalText.value ? " " : "") + txt.trim();
+      } else {
+        interim += txt;
+      }
+    }
+    interimText.value = interim.trim();
   };
-  mediaRec.start();
-  draw();
-  rec.style.display="none";
-  stop.style.display="inline-block";
-};
 
-stop.onclick=()=>{
-  mediaRec.stop();
-  rec.style.display="inline-block";
-  stop.style.display="none";
-};
+  stt.onerror = e => {
+    statusEl.textContent = "Status: STT error — " + e.error;
+  };
 
-function draw(){
-  anim=requestAnimationFrame(draw);
-  analyser.getByteTimeDomainData(dataArray);
-  cctx.fillStyle="#0b0b0b";
-  cctx.fillRect(0,0,canvas.width,canvas.height);
-  cctx.strokeStyle="#f59e0b";
-  cctx.beginPath();
-  let x=0, slice=canvas.width/dataArray.length;
-  for(let i=0;i<dataArray.length;i++){
-    let v=(dataArray[i]-128)/128;
-    let y=canvas.height/2+v*canvas.height/2;
-    if(i===0)cctx.moveTo(x,y);
-    else cctx.lineTo(x,y);
-    x+=slice;
-  }
-  cctx.stroke();
+  stt.onend = () => {
+    statusEl.textContent = "Status: Idle";
+  };
+} else {
+  statusEl.textContent = "Status: SpeechRecognition not supported. Use Chrome/Edge.";
 }
 
-function applyEffects(){
-  const gain=parseFloat(gainSlider.value);
-  const speed=parseFloat(speedSlider.value);
+startListen.onclick = () => {
+  if (stt) {
+    try { stt.start(); } catch (_) {}
+    statusEl.textContent = "Status: Listening…";
+  } else {
+    statusEl.textContent = "Status: STT not supported in this browser.";
+  }
+  startListen.style.display = "none";
+  stopListen.style.display = "inline-block";
+};
 
-  const len=Math.floor(audioBuf.length/speed);
-  const out=ctx.createBuffer(1,len,audioBuf.sampleRate);
-  const ch=audioBuf.getChannelData(0);
-  const outCh=out.getChannelData(0);
+stopListen.onclick = () => {
+  if (stt) { try { stt.stop(); } catch (_) {} }
+  startListen.style.display = "inline-block";
+  stopListen.style.display = "none";
+  interimText.value = "";
+  statusEl.textContent = "Status: Idle";
+};
 
-  for(let i=0;i<len;i++){
-    let srcIdx=Math.floor(i*speed);
-    outCh[i]=(ch[srcIdx]||0)*gain;
+copyText.onclick = async () => {
+  try {
+    await navigator.clipboard.writeText(finalText.value);
+    statusEl.textContent = "Status: Copied ✅";
+  } catch {
+    statusEl.textContent = "Status: Copy failed. Select text and Ctrl+C.";
+  }
+};
+
+clearText.onclick = () => {
+  finalText.value = "";
+  interimText.value = "";
+  statusEl.textContent = "Status: Cleared";
+};
+
+dlTxt.onclick = () => {
+  download(new Blob([finalText.value], {type:"text/plain;charset=utf-8"}), "script.txt");
+  statusEl.textContent = "Status: Downloaded script.txt";
+};
+
+/* =========================================================
+   RECORDING + WAVEFORM + METER + WARNINGS
+========================================================= */
+let mediaRec = null;
+let chunks = [];
+let audioCtx = null;
+let analyser = null;
+let dataArray = null;
+let sourceNode = null;
+let animId = null;
+
+let rawAudioBuffer = null;   // decoded from recording
+let wavBlob = null;          // adjusted
+let mp3Blob = null;          // adjusted
+let waveImgBlob = null;      // png snapshot
+
+// Draw waveform & compute level continuously during RECORD
+function drawWaveform(){
+  animId = requestAnimationFrame(drawWaveform);
+
+  if (!analyser || !dataArray) return;
+  analyser.getByteTimeDomainData(dataArray);
+
+  // background
+  cctx.fillStyle = "#0b0b0b";
+  cctx.fillRect(0,0,canvas.width,canvas.height);
+
+  // waveform
+  cctx.strokeStyle = "#f59e0b";
+  cctx.lineWidth = 2;
+  cctx.beginPath();
+
+  let sum = 0;
+  const sliceWidth = canvas.width / dataArray.length;
+  let x = 0;
+
+  for (let i = 0; i < dataArray.length; i++) {
+    const v = (dataArray[i] - 128) / 128; // -1..1 approx
+    sum += Math.abs(v);
+    const y = canvas.height/2 + v * canvas.height/2;
+
+    if (i === 0) cctx.moveTo(x,y);
+    else cctx.lineTo(x,y);
+
+    x += sliceWidth;
+  }
+  cctx.stroke();
+
+  // volume level estimate
+  const level = sum / dataArray.length; // 0..~1
+  updateMeter(level);
+}
+
+function updateMeter(level){
+  // Map to 0..100%
+  const percent = Math.min(level * 320, 100);
+  meterFill.style.width = percent + "%";
+
+  if (percent < 20){
+    meterFill.style.background = "#92400e";
+    warnText.textContent = "Too Low";
+    warnText.className = "warn low";
+  } else if (percent < 75){
+    meterFill.style.background = "#059669";
+    warnText.textContent = "Good Level";
+    warnText.className = "warn good";
+  } else {
+    meterFill.style.background = "#dc2626";
+    warnText.textContent = "Clipping!";
+    warnText.className = "warn clip";
+  }
+}
+
+function clearCanvas(){
+  cctx.fillStyle = "#0b0b0b";
+  cctx.fillRect(0,0,canvas.width,canvas.height);
+  meterFill.style.width = "0%";
+  meterFill.style.background = "#059669";
+  warnText.textContent = "Idle";
+  warnText.className = "warn";
+}
+
+// Save waveform image (PNG) from current canvas
+function snapshotWavePng(){
+  return new Promise(resolve => {
+    canvas.toBlob(b => resolve(b), "image/png");
+  });
+}
+
+/* =========================================================
+   APPLY EFFECTS (VOLUME + SPEED) BEFORE SAVING
+   - Volume = multiply samples
+   - Speed = resample by index mapping (simple, fast)
+========================================================= */
+function applyEffectsToBuffer(inputBuffer, gain, speed){
+  const sr = inputBuffer.sampleRate;
+  const inCh = inputBuffer.getChannelData(0);
+
+  // speed > 1: faster => fewer samples
+  // speed < 1: slower => more samples
+  const outLen = Math.max(1, Math.floor(inputBuffer.length / speed));
+  const out = new AudioBuffer({ length: outLen, numberOfChannels: 1, sampleRate: sr });
+  const outCh = out.getChannelData(0);
+
+  for (let i = 0; i < outLen; i++){
+    const srcIndex = Math.floor(i * speed);
+    const s = inCh[srcIndex] ?? 0;
+    let v = s * gain;
+
+    // clamp to avoid overflow distortion
+    if (v > 1) v = 1;
+    if (v < -1) v = -1;
+
+    outCh[i] = v;
   }
   return out;
 }
 
-function updatePlayer(){
-  const buf=applyEffects();
-  player.src=URL.createObjectURL(toWav(buf));
+/* =========================================================
+   EXPORT: WAV + MP3 (uses adjusted buffer)
+========================================================= */
+function bufferToWavBlob(buffer){
+  const numCh = buffer.numberOfChannels;
+  const length = buffer.length * numCh * 2 + 44;
+  const ab = new ArrayBuffer(length);
+  const view = new DataView(ab);
+
+  let offset = 0;
+  const writeString = (s) => {
+    for (let i = 0; i < s.length; i++) view.setUint8(offset + i, s.charCodeAt(i));
+    offset += s.length;
+  };
+
+  writeString("RIFF");
+  view.setUint32(offset, length - 8, true); offset += 4;
+  writeString("WAVE");
+  writeString("fmt ");
+  view.setUint32(offset, 16, true); offset += 4;
+  view.setUint16(offset, 1, true); offset += 2;
+  view.setUint16(offset, numCh, true); offset += 2;
+  view.setUint32(offset, buffer.sampleRate, true); offset += 4;
+  view.setUint32(offset, buffer.sampleRate * 2 * numCh, true); offset += 4;
+  view.setUint16(offset, numCh * 2, true); offset += 2;
+  view.setUint16(offset, 16, true); offset += 2;
+  writeString("data");
+  view.setUint32(offset, length - offset - 4, true); offset += 4;
+
+  const channels = [];
+  for (let c = 0; c < numCh; c++) channels.push(buffer.getChannelData(c));
+
+  for (let i = 0; i < buffer.length; i++){
+    for (let c = 0; c < numCh; c++){
+      let s = channels[c][i];
+      s = Math.max(-1, Math.min(1, s));
+      view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+      offset += 2;
+    }
+  }
+
+  return new Blob([view], {type:"audio/wav"});
 }
 
-gainSlider.oninput=speedSlider.oninput=updatePlayer;
+function bufferToMp3Blob(buffer){
+  // 128kbps mono
+  const sr = buffer.sampleRate;
+  const enc = new lamejs.Mp3Encoder(1, sr, 128);
+  const ch = buffer.getChannelData(0);
 
-dlWav.onclick=()=>{
-  download(toWav(applyEffects()),"voice.wav");
-};
-dlMp3.onclick=()=>{
-  download(toMp3(applyEffects()),"voice.mp3");
+  let mp3Chunks = [];
+  let i = 0;
+
+  while (i < ch.length){
+    const slice = ch.subarray(i, i + 1152);
+    const pcm = new Int16Array(slice.length);
+    for (let j = 0; j < slice.length; j++){
+      const v = Math.max(-1, Math.min(1, slice[j]));
+      pcm[j] = v * 32767;
+    }
+
+    const buf = enc.encodeBuffer(pcm);
+    if (buf.length) mp3Chunks.push(new Uint8Array(buf));
+    i += 1152;
+  }
+
+  const end = enc.flush();
+  if (end.length) mp3Chunks.push(new Uint8Array(end));
+
+  return new Blob(mp3Chunks, {type:"audio/mpeg"});
+}
+
+/* =========================================================
+   UPDATE PREVIEW + EXPORTS AFTER SLIDER CHANGE
+========================================================= */
+function updatePreviewAndExports(){
+  if (!rawAudioBuffer) return;
+
+  const gain = parseFloat(gainSlider.value);
+  const speed = parseFloat(speedSlider.value);
+
+  volVal.textContent = gain.toFixed(2) + "×";
+  spdVal.textContent = speed.toFixed(2) + "×";
+
+  const adjusted = applyEffectsToBuffer(rawAudioBuffer, gain, speed);
+
+  // regenerate exports
+  wavBlob = bufferToWavBlob(adjusted);
+  mp3Blob = bufferToMp3Blob(adjusted);
+
+  // update player to adjusted WAV (most compatible)
+  const url = URL.createObjectURL(wavBlob);
+  player.src = url;
+
+  statusEl.textContent = "Status: Updated preview (volume/speed)";
+}
+
+/* =========================================================
+   RECORD BUTTONS
+========================================================= */
+recBtn.onclick = async () => {
+  // Reset UI
+  dlWavBtn.style.display = dlMp3Btn.style.display = dlImgBtn.style.display = "none";
+  player.removeAttribute("src");
+  player.load();
+  rawAudioBuffer = null;
+  wavBlob = mp3Blob = waveImgBlob = null;
+
+  clearCanvas();
+
+  const stream = await navigator.mediaDevices.getUserMedia({ audio:true });
+
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 2048;
+  dataArray = new Uint8Array(analyser.fftSize);
+
+  sourceNode = audioCtx.createMediaStreamSource(stream);
+  sourceNode.connect(analyser);
+
+  mediaRec = new MediaRecorder(stream);
+  chunks = [];
+
+  mediaRec.ondataavailable = (e) => chunks.push(e.data);
+
+  mediaRec.onstart = () => {
+    statusEl.textContent = "Status: Recording…";
+    warnText.textContent = "Recording…";
+    warnText.className = "warn";
+  };
+
+  mediaRec.onstop = async () => {
+    if (animId) cancelAnimationFrame(animId);
+
+    // capture waveform png at stop-time
+    waveImgBlob = await snapshotWavePng();
+
+    statusEl.textContent = "Status: Processing audio…";
+
+    const blob = new Blob(chunks);
+    const buf = await blob.arrayBuffer();
+    rawAudioBuffer = await audioCtx.decodeAudioData(buf);
+
+    // Generate preview + exports using current sliders
+    updatePreviewAndExports();
+
+    dlWavBtn.style.display = "inline-block";
+    dlMp3Btn.style.display = "inline-block";
+    dlImgBtn.style.display = "inline-block";
+
+    statusEl.textContent = "Status: Ready (play + download)";
+  };
+
+  // start
+  mediaRec.start();
+  drawWaveform();
+
+  recBtn.style.display = "none";
+  stopRecBtn.style.display = "inline-block";
 };
 
-function download(b,n){
-  const u=URL.createObjectURL(b);
-  const a=document.createElement("a");
-  a.href=u;a.download=n;a.click();
+stopRecBtn.onclick = () => {
+  if (mediaRec && mediaRec.state !== "inactive") {
+    mediaRec.stop();
+  }
+  recBtn.style.display = "inline-block";
+  stopRecBtn.style.display = "none";
+};
+
+/* =========================================================
+   SLIDER EVENTS
+========================================================= */
+gainSlider.oninput = updatePreviewAndExports;
+speedSlider.oninput = updatePreviewAndExports;
+
+/* =========================================================
+   DOWNLOAD BUTTONS
+========================================================= */
+dlWavBtn.onclick = () => {
+  if (!wavBlob) return;
+  download(wavBlob, "voice.wav");
+};
+
+dlMp3Btn.onclick = () => {
+  if (!mp3Blob) return;
+  download(mp3Blob, "voice.mp3");
+};
+
+dlImgBtn.onclick = () => {
+  if (!waveImgBlob) return;
+  download(waveImgBlob, "waveform.png");
+};
+
+function download(blob, filename){
+  const u = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = u;
+  a.download = filename;
+  a.click();
   URL.revokeObjectURL(u);
 }
 
-/* WAV */
-function toWav(b){
-  const l=b.length*2+44;
-  const a=new ArrayBuffer(l),v=new DataView(a);
-  let o=0;
-  const w=s=>{for(let i=0;i<s.length;i++)v.setUint8(o++,s.charCodeAt(i))};
-  w("RIFF");v.setUint32(o,l-8,true);o+=4;
-  w("WAVEfmt ");v.setUint32(o,16,true);o+=4;
-  v.setUint16(o,1,true);o+=2;
-  v.setUint16(o,1,true);o+=2;
-  v.setUint32(o,b.sampleRate,true);o+=4;
-  v.setUint32(o,b.sampleRate*2,true);o+=4;
-  v.setUint16(o,2,true);o+=2;
-  v.setUint16(o,16,true);o+=2;
-  w("data");v.setUint32(o,l-o-4,true);o+=4;
-  const ch=b.getChannelData(0);
-  for(let i=0;i<ch.length;i++){
-    v.setInt16(o,Math.max(-1,Math.min(1,ch[i]))*32767,true);
-    o+=2;
-  }
-  return new Blob([v],{type:"audio/wav"});
-}
-
-/* MP3 */
-function toMp3(b){
-  const enc=new lamejs.Mp3Encoder(1,b.sampleRate,128);
-  const ch=b.getChannelData(0);
-  let mp3=[],i=0;
-  while(i<ch.length){
-    const slice=ch.subarray(i,i+1152);
-    const pcm=new Int16Array(slice.length);
-    for(let j=0;j<slice.length;j++)pcm[j]=slice[j]*32767;
-    const buf=enc.encodeBuffer(pcm);
-    if(buf.length)mp3.push(new Uint8Array(buf));
-    i+=1152;
-  }
-  const end=enc.flush();
-  if(end.length)mp3.push(new Uint8Array(end));
-  return new Blob(mp3,{type:"audio/mp3"});
-}
-
-const gainSlider=document.getElementById("gain");
-const speedSlider=document.getElementById("speed");
+/* =========================================================
+   INIT (nice defaults)
+========================================================= */
+volVal.textContent = parseFloat(gainSlider.value).toFixed(2) + "×";
+spdVal.textContent = parseFloat(speedSlider.value).toFixed(2) + "×";
+clearCanvas();
 </script>
-
-</div>
 </body>
 </html>
