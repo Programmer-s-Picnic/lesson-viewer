@@ -1,236 +1,350 @@
 <!doctype html>
 <html lang="en">
+
 <head>
-<meta charset="utf-8">
-<title>Voice Recorder – Programmer’s Picnic</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Speech to Text – Programmer’s Picnic</title>
 
-<style>
-:root{
-  --bg1:#fff7ed;
-  --bg2:#ffedd5;
-  --accent:#f59e0b;
-  --danger:#ef4444;
-  --ok:#10b981;
-  --ink:#1f2937;
-  --muted:#6b7280;
-  --card:#ffffffcc;
-}
+  <style>
+    /* Blogger-safe sandbox root */
+    #pp-root {
+      min-height: 80vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 26px 12px;
+      background:
+        radial-gradient(900px 520px at 20% 10%, #fffaf0, transparent),
+        linear-gradient(180deg, #fff7ed, #ffedd5);
+    }
 
-*{box-sizing:border-box}
+    #pp-root * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
 
-body{
-  margin:0;
-  min-height:100vh;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  background:
-    radial-gradient(800px 400px at 20% 10%, #fffaf0, transparent),
-    linear-gradient(180deg,var(--bg1),var(--bg2));
-  font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-  color:var(--ink);
-}
+    .pp-card {
+      width: min(760px, 100%);
+      background: rgba(255, 255, 255, .88);
+      backdrop-filter: blur(10px);
+      border-radius: 22px;
+      box-shadow: 0 18px 48px rgba(0, 0, 0, .18);
+      padding: 22px;
+      color: #1f2937;
+    }
 
-.app{
-  width:360px;
-  padding:26px;
-  border-radius:22px;
-  background:var(--card);
-  backdrop-filter: blur(10px);
-  box-shadow:0 20px 50px rgba(0,0,0,.18);
-  text-align:center;
-}
+    .pp-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
 
-.logo{
-  font-weight:700;
-  color:#92400e;
-  font-size:18px;
-}
+    .pp-brand {
+      font-weight: 800;
+      color: #92400e;
+      letter-spacing: .2px;
+    }
 
-h1{
-  margin:10px 0 6px;
-  font-size:22px;
-}
+    .pp-title {
+      font-size: 20px;
+      font-weight: 800;
+      margin: 6px 0 2px;
+    }
 
-.sub{
-  font-size:14px;
-  color:var(--muted);
-  margin-bottom:22px;
-}
+    .pp-sub {
+      color: #6b7280;
+      font-size: 13px;
+      margin: 0 0 14px;
+    }
 
-.mic{
-  width:120px;
-  height:120px;
-  margin:0 auto 18px;
-  border-radius:50%;
-  background:linear-gradient(180deg,#fde68a,#f59e0b);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:46px;
-  cursor:pointer;
-  box-shadow:0 12px 30px rgba(245,158,11,.45);
-  transition:.2s;
-}
+    .pp-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin: 10px 0 14px;
+    }
 
-.mic.recording{
-  animation:pulse 1.4s infinite;
-  background:linear-gradient(180deg,#fecaca,#ef4444);
-  box-shadow:0 12px 30px rgba(239,68,68,.45);
-}
+    .pp-btn {
+      border: none;
+      padding: 11px 14px;
+      border-radius: 14px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 14px;
+    }
 
-@keyframes pulse{
-  0%{transform:scale(1)}
-  50%{transform:scale(1.06)}
-  100%{transform:scale(1)}
-}
+    .pp-btn.primary {
+      background: #f59e0b;
+      color: #111827;
+    }
 
-.timer{
-  font-variant-numeric: tabular-nums;
-  font-size:18px;
-  margin-bottom:18px;
-}
+    .pp-btn.danger {
+      background: #ef4444;
+      color: #fff;
+    }
 
-.btn{
-  width:100%;
-  padding:12px;
-  margin:6px 0;
-  border:none;
-  border-radius:14px;
-  font-size:15px;
-  cursor:pointer;
-}
+    .pp-btn.ok {
+      background: #10b981;
+      color: #fff;
+    }
 
-.btn.primary{background:var(--accent)}
-.btn.danger{background:var(--danger);color:#fff;display:none}
-.btn.ok{background:var(--ok);color:#fff;display:none}
+    .pp-btn.ghost {
+      background: #fff;
+      border: 1px solid #fde68a;
+      color: #92400e;
+    }
 
-.status{
-  margin-top:10px;
-  font-size:13px;
-  color:var(--muted);
-}
+    .pp-pill {
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid #fde68a;
+      background: #fffbeb;
+      color: #92400e;
+      font-weight: 700;
+      font-size: 13px;
+    }
 
-.footer{
-  margin-top:16px;
-  font-size:12px;
-  color:#9ca3af;
-}
-</style>
+    .pp-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    @media (min-width: 720px) {
+      .pp-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .pp-box {
+      border: 1px solid #fde68a;
+      border-radius: 16px;
+      background: #fff;
+      padding: 12px;
+    }
+
+    .pp-box h3 {
+      margin: 0 0 8px;
+      font-size: 14px;
+      color: #92400e;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 210px;
+      resize: vertical;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 12px;
+      font-size: 14px;
+      line-height: 1.5;
+      outline: none;
+    }
+
+    textarea:focus {
+      border-color: #f59e0b;
+      box-shadow: 0 0 0 4px rgba(245, 158, 11, .18);
+    }
+
+    .pp-status {
+      margin-top: 8px;
+      font-size: 13px;
+      color: #6b7280;
+    }
+
+    .pp-footer {
+      margin-top: 12px;
+      color: #9ca3af;
+      font-size: 12px;
+    }
+
+    .pp-warn {
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      color: #92400e;
+      padding: 10px 12px;
+      border-radius: 14px;
+      font-size: 13px;
+    }
+
+    kbd {
+      border: 1px solid #e5e7eb;
+      border-bottom-width: 2px;
+      border-radius: 6px;
+      padding: 1px 6px;
+      background: #fff;
+      font-size: 12px;
+    }
+  </style>
 </head>
 
 <body>
-<div class="app">
-  <div class="logo">Programmer’s Picnic</div>
-  <h1>Voice Recorder</h1>
-  <div class="sub">Record clean voice for Shorts & lessons</div>
+  <div id="pp-root">
+    <div class="pp-card">
+      <div class="pp-top">
+        <div>
+          <div class="pp-brand">Programmer’s Picnic</div>
+          <div class="pp-title">🎤 Speech to Text (Voice → Script)</div>
+          <p class="pp-sub">Chrome/Edge recommended • No upload • Works in browser</p>
+        </div>
 
-  <div class="mic" id="mic">🎙️</div>
+        <div class="pp-pill" id="supportPill">Checking support…</div>
+      </div>
 
-  <div class="timer" id="timer">00:00</div>
+      <div class="pp-warn" id="supportWarn" style="display:none">
+        Your browser may not support Speech Recognition. Try <b>Chrome</b> or <b>Edge</b>.
+      </div>
 
-  <button class="btn danger" id="stop">Stop Recording</button>
-  <button class="btn ok" id="download">Download WAV</button>
+      <div class="pp-row">
+        <button class="pp-btn primary" id="startBtn">▶ Start Listening</button>
+        <button class="pp-btn danger" id="stopBtn" style="display:none">⏹ Stop</button>
+        <button class="pp-btn ghost" id="clearBtn">Clear</button>
+        <button class="pp-btn ghost" id="copyBtn">Copy</button>
+        <button class="pp-btn ok" id="downloadBtn">Download .txt</button>
+      </div>
 
-  <div class="status" id="status">Tap mic to start</div>
+      <div class="pp-grid">
+        <div class="pp-box">
+          <h3>Live Transcript</h3>
+          <textarea id="finalText" placeholder="Your final transcript will appear here…"></textarea>
+          <div class="pp-status" id="status">Status: Idle</div>
+        </div>
 
-  <div class="footer">
-    100% browser based · No upload · No login
+        <div class="pp-box">
+          <h3>Interim (What it’s hearing right now)</h3>
+          <textarea id="interimText" placeholder="Interim text (changes as you speak)..." readonly></textarea>
+          <div class="pp-footer">
+            Tip: Speak in short sentences. Pause after each line.
+            Shortcut: Press <kbd>Ctrl</kbd>+<kbd>A</kbd> then <kbd>Ctrl</kbd>+<kbd>C</kbd>.
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
-</div>
 
-<script>
-let mediaRecorder, audioChunks=[];
-let audioContext, wavBlob;
-let seconds=0, timerInt;
+  <script>
+    (() => {
+      // --- Cross-browser SpeechRecognition ---
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-const mic = document.getElementById("mic");
-const stopBtn = document.getElementById("stop");
-const dlBtn = document.getElementById("download");
-const status = document.getElementById("status");
-const timer = document.getElementById("timer");
+      const supportPill = document.getElementById("supportPill");
+      const supportWarn = document.getElementById("supportWarn");
 
-function formatTime(s){
-  return String(Math.floor(s/60)).padStart(2,"0")+":"+
-         String(s%60).padStart(2,"0");
-}
+      const startBtn = document.getElementById("startBtn");
+      const stopBtn = document.getElementById("stopBtn");
+      const clearBtn = document.getElementById("clearBtn");
+      const copyBtn = document.getElementById("copyBtn");
+      const downloadBtn = document.getElementById("downloadBtn");
 
-mic.onclick = async ()=>{
-  const stream = await navigator.mediaDevices.getUserMedia({audio:true});
-  audioContext = new AudioContext();
-  mediaRecorder = new MediaRecorder(stream);
-  audioChunks=[];
+      const finalText = document.getElementById("finalText");
+      const interimText = document.getElementById("interimText");
+      const status = document.getElementById("status");
 
-  mediaRecorder.ondataavailable = e=>audioChunks.push(e.data);
+      if (!SpeechRecognition) {
+        supportPill.textContent = "Not supported";
+        supportPill.style.background = "#fee2e2";
+        supportPill.style.borderColor = "#fecaca";
+        supportPill.style.color = "#991b1b";
+        supportWarn.style.display = "block";
+        startBtn.disabled = true;
+        return;
+      }
 
-  mediaRecorder.onstart = ()=>{
-    mic.classList.add("recording");
-    stopBtn.style.display="block";
-    dlBtn.style.display="none";
-    status.textContent="Recording...";
-    seconds=0;
-    timer.textContent="00:00";
-    timerInt=setInterval(()=>{
-      seconds++;
-      timer.textContent=formatTime(seconds);
-    },1000);
-  };
+      supportPill.textContent = "Supported ✅";
+      supportPill.style.background = "#ecfdf5";
+      supportPill.style.borderColor = "#bbf7d0";
+      supportPill.style.color = "#065f46";
 
-  mediaRecorder.onstop = async ()=>{
-    clearInterval(timerInt);
-    mic.classList.remove("recording");
-    stopBtn.style.display="none";
-    status.textContent="Processing audio…";
+      const rec = new SpeechRecognition();
+      rec.lang = "en-IN";            // India English
+      rec.continuous = true;
+      rec.interimResults = true;
 
-    const blob=new Blob(audioChunks);
-    const buf=await blob.arrayBuffer();
-    const audioBuf=await audioContext.decodeAudioData(buf);
-    wavBlob=audioBufferToWav(audioBuf);
+      let listening = false;
 
-    dlBtn.style.display="block";
-    status.textContent="Ready to download";
-  };
+      function setListening(on) {
+        listening = on;
+        startBtn.style.display = on ? "none" : "inline-block";
+        stopBtn.style.display = on ? "inline-block" : "none";
+        status.textContent = on ? "Status: Listening…" : "Status: Idle";
+      }
 
-  mediaRecorder.start();
-};
+      rec.onresult = (event) => {
+        let interim = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const res = event.results[i];
+          const text = res[0].transcript;
+          if (res.isFinal) {
+            finalText.value += (finalText.value ? " " : "") + text.trim();
+          } else {
+            interim += text;
+          }
+        }
+        interimText.value = interim.trim();
+      };
 
-stopBtn.onclick=()=>mediaRecorder.stop();
+      rec.onerror = (e) => {
+        setListening(false);
+        status.textContent = "Status: Error — " + e.error;
+      };
 
-dlBtn.onclick=()=>{
-  const url=URL.createObjectURL(wavBlob);
-  const a=document.createElement("a");
-  a.href=url;
-  a.download="voice.wav";
-  a.click();
-  URL.revokeObjectURL(url);
-};
+      rec.onend = () => {
+        // Some browsers stop automatically; keep UI sane
+        setListening(false);
+        interimText.value = "";
+      };
 
-// WAV encoder
-function audioBufferToWav(buffer){
-  const num=buffer.numberOfChannels;
-  const len=buffer.length*num*2+44;
-  const ab=new ArrayBuffer(len);
-  const v=new DataView(ab);
-  let o=0;
-  const w=s=>{for(let i=0;i<s.length;i++)v.setUint8(o++,s.charCodeAt(i));};
-  w("RIFF");v.setUint32(o,len-8,true);o+=4;
-  w("WAVEfmt ");v.setUint32(o,16,true);o+=4;
-  v.setUint16(o,1,true);o+=2;
-  v.setUint16(o,num,true);o+=2;
-  v.setUint32(o,buffer.sampleRate,true);o+=4;
-  v.setUint32(o,buffer.sampleRate*2*num,true);o+=4;
-  v.setUint16(o,num*2,true);o+=2;
-  v.setUint16(o,16,true);o+=2;
-  w("data");v.setUint32(o,len-o-4,true);o+=4;
-  const ch=[];for(let i=0;i<num;i++)ch.push(buffer.getChannelData(i));
-  for(let i=0;i<buffer.length;i++)
-    for(let j=0;j<num;j++){
-      let s=Math.max(-1,Math.min(1,ch[j][i]));
-      v.setInt16(o,s<0?s*0x8000:s*0x7fff,true);o+=2;
-    }
-  return new Blob([v],{type:"audio/wav"});
-}
-</script>
+      startBtn.onclick = () => {
+        try {
+          rec.start();
+          setListening(true);
+        } catch (err) {
+          status.textContent = "Status: Could not start (try again)";
+        }
+      };
+
+      stopBtn.onclick = () => {
+        try {
+          rec.stop();
+        } catch (err) { }
+        setListening(false);
+        interimText.value = "";
+      };
+
+      clearBtn.onclick = () => {
+        finalText.value = "";
+        interimText.value = "";
+        status.textContent = "Status: Cleared";
+      };
+
+      copyBtn.onclick = async () => {
+        try {
+          await navigator.clipboard.writeText(finalText.value.trim());
+          status.textContent = "Status: Copied ✅";
+        } catch (err) {
+          status.textContent = "Status: Copy failed (select text + Ctrl+C)";
+        }
+      };
+
+      downloadBtn.onclick = () => {
+        const content = finalText.value.trim();
+        const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "speech_to_text_script.txt";
+        a.click();
+        URL.revokeObjectURL(url);
+        status.textContent = "Status: Downloaded .txt";
+      };
+    })();
+  </script>
+   <script src='https://programmer-s-picnic.github.io/json-images/find-on-page.js'></script>
 </body>
+
 </html>

@@ -35,8 +35,8 @@ def cosine_similarity(a, b):
         return 0.0
     return dot(a, b) / denom
 
-S1="I am good"
-S2="I am good"
+S1="Piyush kidnapped Avinash"
+S2="Avinash was kidnapped by Piyush"
 t1 = tokenize(S1)
 t2 = tokenize(S2)
 vocab = make_vocab(t1, t2)
