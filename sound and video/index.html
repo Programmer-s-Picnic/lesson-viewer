@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Voice Recorder – Programmer’s Picnic</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+:root{
+  --bg1:#fff7ed;
+  --bg2:#ffedd5;
+  --accent:#f59e0b;
+  --danger:#ef4444;
+  --ok:#10b981;
+  --ink:#1f2937;
+  --muted:#6b7280;
+  --card:#ffffffcc;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:
+    radial-gradient(800px 400px at 20% 10%, #fffaf0, transparent),
+    linear-gradient(180deg,var(--bg1),var(--bg2));
+  font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  color:var(--ink);
+}
+
+.app{
+  width:360px;
+  padding:26px;
+  border-radius:22px;
+  background:var(--card);
+  backdrop-filter: blur(10px);
+  box-shadow:0 20px 50px rgba(0,0,0,.18);
+  text-align:center;
+}
+
+.logo{
+  font-weight:700;
+  color:#92400e;
+  font-size:18px;
+}
+
+h1{
+  margin:10px 0 6px;
+  font-size:22px;
+}
+
+.sub{
+  font-size:14px;
+  color:var(--muted);
+  margin-bottom:22px;
+}
+
+.mic{
+  width:120px;
+  height:120px;
+  margin:0 auto 18px;
+  border-radius:50%;
+  background:linear-gradient(180deg,#fde68a,#f59e0b);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:46px;
+  cursor:pointer;
+  box-shadow:0 12px 30px rgba(245,158,11,.45);
+  transition:.2s;
+}
+
+.mic.recording{
+  animation:pulse 1.4s infinite;
+  background:linear-gradient(180deg,#fecaca,#ef4444);
+  box-shadow:0 12px 30px rgba(239,68,68,.45);
+}
+
+@keyframes pulse{
+  0%{transform:scale(1)}
+  50%{transform:scale(1.06)}
+  100%{transform:scale(1)}
+}
+
+.timer{
+  font-variant-numeric: tabular-nums;
+  font-size:18px;
+  margin-bottom:18px;
+}
+
+.btn{
+  width:100%;
+  padding:12px;
+  margin:6px 0;
+  border:none;
+  border-radius:14px;
+  font-size:15px;
+  cursor:pointer;
+}
+
+.btn.primary{background:var(--accent)}
+.btn.danger{background:var(--danger);color:#fff;display:none}
+.btn.ok{background:var(--ok);color:#fff;display:none}
+
+.status{
+  margin-top:10px;
+  font-size:13px;
+  color:var(--muted);
+}
+
+.footer{
+  margin-top:16px;
+  font-size:12px;
+  color:#9ca3af;
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+  <div class="logo">Programmer’s Picnic</div>
+  <h1>Voice Recorder</h1>
+  <div class="sub">Record clean voice for Shorts & lessons</div>
+
+  <div class="mic" id="mic">🎙️</div>
+
+  <div class="timer" id="timer">00:00</div>
+
+  <button class="btn danger" id="stop">Stop Recording</button>
+  <button class="btn ok" id="download">Download WAV</button>
+
+  <div class="status" id="status">Tap mic to start</div>
+
+  <div class="footer">
+    100% browser based · No upload · No login
+  </div>
+</div>
+
+<script>
+let mediaRecorder, audioChunks=[];
+let audioContext, wavBlob;
+let seconds=0, timerInt;
+
+const mic = document.getElementById("mic");
+const stopBtn = document.getElementById("stop");
+const dlBtn = document.getElementById("download");
+const status = document.getElementById("status");
+const timer = document.getElementById("timer");
+
+function formatTime(s){
+  return String(Math.floor(s/60)).padStart(2,"0")+":"+
+         String(s%60).padStart(2,"0");
+}
+
+mic.onclick = async ()=>{
+  const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+  audioContext = new AudioContext();
+  mediaRecorder = new MediaRecorder(stream);
+  audioChunks=[];
+
+  mediaRecorder.ondataavailable = e=>audioChunks.push(e.data);
+
+  mediaRecorder.onstart = ()=>{
+    mic.classList.add("recording");
+    stopBtn.style.display="block";
+    dlBtn.style.display="none";
+    status.textContent="Recording...";
+    seconds=0;
+    timer.textContent="00:00";
+    timerInt=setInterval(()=>{
+      seconds++;
+      timer.textContent=formatTime(seconds);
+    },1000);
+  };
+
+  mediaRecorder.onstop = async ()=>{
+    clearInterval(timerInt);
+    mic.classList.remove("recording");
+    stopBtn.style.display="none";
+    status.textContent="Processing audio…";
+
+    const blob=new Blob(audioChunks);
+    const buf=await blob.arrayBuffer();
+    const audioBuf=await audioContext.decodeAudioData(buf);
+    wavBlob=audioBufferToWav(audioBuf);
+
+    dlBtn.style.display="block";
+    status.textContent="Ready to download";
+  };
+
+  mediaRecorder.start();
+};
+
+stopBtn.onclick=()=>mediaRecorder.stop();
+
+dlBtn.onclick=()=>{
+  const url=URL.createObjectURL(wavBlob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download="voice.wav";
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+// WAV encoder
+function audioBufferToWav(buffer){
+  const num=buffer.numberOfChannels;
+  const len=buffer.length*num*2+44;
+  const ab=new ArrayBuffer(len);
+  const v=new DataView(ab);
+  let o=0;
+  const w=s=>{for(let i=0;i<s.length;i++)v.setUint8(o++,s.charCodeAt(i));};
+  w("RIFF");v.setUint32(o,len-8,true);o+=4;
+  w("WAVEfmt ");v.setUint32(o,16,true);o+=4;
+  v.setUint16(o,1,true);o+=2;
+  v.setUint16(o,num,true);o+=2;
+  v.setUint32(o,buffer.sampleRate,true);o+=4;
+  v.setUint32(o,buffer.sampleRate*2*num,true);o+=4;
+  v.setUint16(o,num*2,true);o+=2;
+  v.setUint16(o,16,true);o+=2;
+  w("data");v.setUint32(o,len-o-4,true);o+=4;
+  const ch=[];for(let i=0;i<num;i++)ch.push(buffer.getChannelData(i));
+  for(let i=0;i<buffer.length;i++)
+    for(let j=0;j<num;j++){
+      let s=Math.max(-1,Math.min(1,ch[j][i]));
+      v.setInt16(o,s<0?s*0x8000:s*0x7fff,true);o+=2;
+    }
+  return new Blob([v],{type:"audio/wav"});
+}
+</script>
+</body>
+</html>
