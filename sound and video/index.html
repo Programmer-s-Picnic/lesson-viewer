@@ -1,475 +1,225 @@
 <!doctype html>
 <html lang="en">
-
 <head>
-  <meta charset="utf-8">
-  <title>Speech to Text + Voice Recorder – Programmer’s Picnic</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8">
+<title>Voice Recorder Pro – Programmer’s Picnic</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <!-- MP3 encoder -->
-  <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.0/lame.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.0/lame.min.js"></script>
 
-  <style>
-    #pp-root {
-      min-height: 80vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 24px 10px;
-      background:
-        radial-gradient(900px 520px at 20% 10%, #fffaf0, transparent),
-        linear-gradient(180deg, #fff7ed, #ffedd5);
-    }
-
-    #pp-root * {
-      box-sizing: border-box;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-    }
-
-    .card {
-      width: min(1100px, 100%);
-      background: #ffffffdd;
-      backdrop-filter: blur(10px);
-      border-radius: 22px;
-      box-shadow: 0 18px 48px rgba(0, 0, 0, .18);
-      padding: 22px;
-      color: #1f2937;
-    }
-
-    .brand {
-      font-weight: 800;
-      color: #92400e
-    }
-
-    h1 {
-      margin: 6px 0 4px
-    }
-
-    .sub {
-      color: #6b7280;
-      font-size: 13px;
-      margin-bottom: 12px
-    }
-
-    .help {
-      background: #fffbeb;
-      border: 1px solid #fde68a;
-      border-radius: 16px;
-      padding: 14px;
-      font-size: 14px;
-      margin-bottom: 14px;
-    }
-
-    .help b {
-      color: #92400e
-    }
-
-    .row {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-bottom: 12px
-    }
-
-    .btn {
-      border: none;
-      padding: 10px 14px;
-      border-radius: 14px;
-      font-weight: 700;
-      font-size: 14px;
-      cursor: pointer
-    }
-
-    .primary {
-      background: #f59e0b
-    }
-
-    .danger {
-      background: #ef4444;
-      color: white
-    }
-
-    .ok {
-      background: #10b981;
-      color: white
-    }
-
-    .ghost {
-      background: #fff;
-      border: 1px solid #fde68a;
-      color: #92400e
-    }
-
-    .grid {
-      display: grid;
-      gap: 12px;
-      grid-template-columns: 1fr
-    }
-
-    @media(min-width:900px) {
-      .grid {
-        grid-template-columns: 1fr 1fr
-      }
-    }
-
-    .box {
-      border: 1px solid #fde68a;
-      border-radius: 16px;
-      background: #fff;
-      padding: 12px
-    }
-
-    .box h3 {
-      margin: 0 0 6px;
-      font-size: 14px;
-      color: #92400e
-    }
-
-    textarea {
-      width: 100%;
-      min-height: 180px;
-      border-radius: 14px;
-      border: 1px solid #e5e7eb;
-      padding: 10px;
-      font-size: 14px;
-      line-height: 1.5
-    }
-
-    textarea.read {
-      background: #f9fafb
-    }
-
-    .status {
-      font-size: 13px;
-      color: #6b7280;
-      margin-top: 6px
-    }
-
-    .footer {
-      font-size: 12px;
-      color: #9ca3af;
-      margin-top: 6px
-    }
-
-    /* Sound graph */
-    canvas {
-      width: 100%;
-      height: 120px;
-      background: #0b0b0b;
-      border-radius: 12px;
-    }
-
-    /* Volume meter */
-    .meter {
-      width: 100%;
-      height: 14px;
-      background: #e5e7eb;
-      border-radius: 999px;
-      overflow: hidden;
-      margin-top: 6px;
-    }
-
-    .meter-fill {
-      height: 100%;
-      width: 0%;
-      background: green;
-      transition: width .1s, background .1s;
-    }
-
-    .warn {
-      font-weight: 700;
-      margin-top: 6px;
-    }
-
-    .warn.low {
-      color: #92400e
-    }
-
-    .warn.good {
-      color: #059669
-    }
-
-    .warn.clip {
-      color: #dc2626
-    }
-  </style>
+<style>
+body{
+  margin:0;
+  font-family:system-ui,Segoe UI,Roboto,Arial;
+  background:linear-gradient(180deg,#fff7ed,#ffedd5);
+  display:flex;
+  justify-content:center;
+  padding:20px;
+}
+.card{
+  width:100%;
+  max-width:1000px;
+  background:#fff;
+  border-radius:22px;
+  padding:20px;
+  box-shadow:0 18px 48px rgba(0,0,0,.18);
+}
+.brand{font-weight:800;color:#92400e}
+h1{margin:6px 0}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
+button{
+  border:none;
+  padding:10px 14px;
+  border-radius:14px;
+  font-weight:700;
+  cursor:pointer;
+}
+.primary{background:#f59e0b}
+.danger{background:#ef4444;color:white}
+.ok{background:#10b981;color:white}
+canvas{
+  width:100%;
+  height:120px;
+  background:#0b0b0b;
+  border-radius:12px;
+}
+audio{width:100%;margin-top:8px}
+.slider{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:6px 0;
+}
+label{font-weight:700;font-size:14px}
+input[type=range]{width:100%}
+</style>
 </head>
 
 <body>
-  <div id="pp-root">
-    <div class="card">
-      <div class="brand">Programmer’s Picnic</div>
-      <h1>🎤 Speech to Text + Voice Recorder</h1>
-      <div class="sub">Practice → Speak → Record → Download</div>
+<div class="card">
 
-      <div class="help">
-        <b>How to use:</b><br>
-        1️⃣ Read the script below.<br>
-        2️⃣ Use <b>Listen</b> to practice and check text.<br>
-        3️⃣ Use <b>Record</b> for final voice.<br>
-        4️⃣ Watch the sound graph and meter.<br>
-        5️⃣ Download WAV / MP3 and waveform image.
-      </div>
+<div class="brand">Programmer’s Picnic</div>
+<h1>🎙 Voice Recorder Pro</h1>
 
-      <div class="box">
-        <h3>Practice Script (Read aloud)</h3>
-        <textarea class="read" id="scriptBox">
-Stop scrolling.
-Equal and double equal are not the same.
-Single equals assigns a value.
-Double equals compares values.
-This mistake breaks programs.
-      </textarea>
-      </div>
+<div class="row">
+  <button class="primary" id="rec">Record</button>
+  <button class="danger" id="stop" style="display:none">Stop</button>
+  <button class="ok" id="dlWav" style="display:none">WAV</button>
+  <button class="ok" id="dlMp3" style="display:none">MP3</button>
+</div>
 
-      <!-- LISTEN -->
-      <div class="row">
-        <button class="btn primary" id="startListen">▶ Listen</button>
-        <button class="btn danger" id="stopListen" style="display:none">⏹ Stop</button>
-        <button class="btn ghost" id="clearText">Clear</button>
-        <button class="btn ok" id="copyText">Copy</button>
-        <button class="btn ghost" id="dlTxt">Download TXT</button>
-      </div>
+<canvas id="wave"></canvas>
 
-      <!-- RECORD -->
-      <div class="row">
-        <button class="btn primary" id="rec">🎙 Record Voice</button>
-        <button class="btn danger" id="stopRec" style="display:none">⏹ Stop</button>
-        <button class="btn ok" id="dlWav" style="display:none">WAV</button>
-        <button class="btn ok" id="dlMp3" style="display:none">MP3</button>
-        <button class="btn ghost" id="dlImg" style="display:none">Waveform PNG</button>
-      </div>
+<div class="slider">
+  <label>Volume</label>
+  <input type="range" id="gain" min="0" max="2" step="0.01" value="1">
+</div>
 
-      <!-- SOUND GRAPH -->
-      <div class="box">
-        <h3>Sound Graph</h3>
-        <canvas id="wave"></canvas>
-        <div class="meter">
-          <div class="meter-fill" id="meterFill"></div>
-        </div>
-        <div class="warn" id="warnText">Idle</div>
-      </div>
+<div class="slider">
+  <label>Speed</label>
+  <input type="range" id="speed" min="0.5" max="1.5" step="0.01" value="1">
+</div>
 
-      <div class="grid">
-        <div class="box">
-          <h3>Final Transcript</h3>
-          <textarea id="finalText"></textarea>
-          <div class="status" id="status">Status: Idle</div>
-        </div>
-        <div class="box">
-          <h3>Live Listening</h3>
-          <textarea id="interimText" readonly></textarea>
-        </div>
-      </div>
-    </div>
-  </div>
+<audio id="player" controls></audio>
 
-  <script>
-    /* ===============================
-       SPEECH TO TEXT
-    ================================ */
-    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-    let stt;
-    if (SpeechRec) {
-      stt = new SpeechRec();
-      stt.lang = "en-IN";
-      stt.continuous = true;
-      stt.interimResults = true;
+<script>
+let mediaRec, chunks=[], audioBuf;
+let ctx=new AudioContext();
+let analyser, dataArray, srcNode;
+let canvas=document.getElementById("wave");
+let cctx=canvas.getContext("2d");
+let anim;
 
-      stt.onresult = e => {
-        let interim = "";
-        for (let i = e.resultIndex; i < e.results.length; i++) {
-          const txt = e.results[i][0].transcript;
-          if (e.results[i].isFinal)
-            finalText.value += (finalText.value ? " " : "") + txt.trim();
-          else interim += txt;
-        }
-        interimText.value = interim;
-      };
-    }
+rec.onclick=async()=>{
+  const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+  analyser=ctx.createAnalyser();
+  analyser.fftSize=2048;
+  dataArray=new Uint8Array(analyser.fftSize);
+  srcNode=ctx.createMediaStreamSource(stream);
+  srcNode.connect(analyser);
 
-    startListen.onclick = () => {
-      if (stt) stt.start();
-      startListen.style.display = "none";
-      stopListen.style.display = "inline-block";
-    };
-    stopListen.onclick = () => {
-      if (stt) stt.stop();
-      startListen.style.display = "inline-block";
-      stopListen.style.display = "none";
-      interimText.value = "";
-    };
+  mediaRec=new MediaRecorder(stream);
+  chunks=[];
+  mediaRec.ondataavailable=e=>chunks.push(e.data);
+  mediaRec.onstop=async()=>{
+    cancelAnimationFrame(anim);
+    const blob=new Blob(chunks);
+    audioBuf=await ctx.decodeAudioData(await blob.arrayBuffer());
+    updatePlayer();
+    dlWav.style.display=dlMp3.style.display="inline-block";
+  };
+  mediaRec.start();
+  draw();
+  rec.style.display="none";
+  stop.style.display="inline-block";
+};
 
-    /* ===============================
-       RECORD + GRAPH
-    ================================ */
-    let mediaRec, audioCtx, analyser, dataArray, sourceNode;
-    let chunks = [], wavBlob, mp3Blob;
-    let canvas = document.getElementById("wave");
-    let ctx = canvas.getContext("2d");
-    let anim;
+stop.onclick=()=>{
+  mediaRec.stop();
+  rec.style.display="inline-block";
+  stop.style.display="none";
+};
 
-    rec.onclick = async () => {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      audioCtx = new AudioContext();
-      analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 2048;
-      dataArray = new Uint8Array(analyser.fftSize);
-      sourceNode = audioCtx.createMediaStreamSource(stream);
-      sourceNode.connect(analyser);
+function draw(){
+  anim=requestAnimationFrame(draw);
+  analyser.getByteTimeDomainData(dataArray);
+  cctx.fillStyle="#0b0b0b";
+  cctx.fillRect(0,0,canvas.width,canvas.height);
+  cctx.strokeStyle="#f59e0b";
+  cctx.beginPath();
+  let x=0, slice=canvas.width/dataArray.length;
+  for(let i=0;i<dataArray.length;i++){
+    let v=(dataArray[i]-128)/128;
+    let y=canvas.height/2+v*canvas.height/2;
+    if(i===0)cctx.moveTo(x,y);
+    else cctx.lineTo(x,y);
+    x+=slice;
+  }
+  cctx.stroke();
+}
 
-      mediaRec = new MediaRecorder(stream);
-      chunks = [];
-      mediaRec.ondataavailable = e => chunks.push(e.data);
+function applyEffects(){
+  const gain=parseFloat(gainSlider.value);
+  const speed=parseFloat(speedSlider.value);
 
-      mediaRec.onstop = async () => {
-        cancelAnimationFrame(anim);
-        saveWaveImage();
+  const len=Math.floor(audioBuf.length/speed);
+  const out=ctx.createBuffer(1,len,audioBuf.sampleRate);
+  const ch=audioBuf.getChannelData(0);
+  const outCh=out.getChannelData(0);
 
-        const blob = new Blob(chunks);
-        const buf = await blob.arrayBuffer();
-        const audioBuf = await audioCtx.decodeAudioData(buf);
+  for(let i=0;i<len;i++){
+    let srcIdx=Math.floor(i*speed);
+    outCh[i]=(ch[srcIdx]||0)*gain;
+  }
+  return out;
+}
 
-        wavBlob = toWav(audioBuf);
-        mp3Blob = toMp3(audioBuf);
+function updatePlayer(){
+  const buf=applyEffects();
+  player.src=URL.createObjectURL(toWav(buf));
+}
 
-        dlWav.style.display = dlMp3.style.display = dlImg.style.display = "inline-block";
-      };
+gainSlider.oninput=speedSlider.oninput=updatePlayer;
 
-      drawWave();
-      mediaRec.start();
-      rec.style.display = "none";
-      stopRec.style.display = "inline-block";
-    };
+dlWav.onclick=()=>{
+  download(toWav(applyEffects()),"voice.wav");
+};
+dlMp3.onclick=()=>{
+  download(toMp3(applyEffects()),"voice.mp3");
+};
 
-    stopRec.onclick = () => {
-      mediaRec.stop();
-      rec.style.display = "inline-block";
-      stopRec.style.display = "none";
-    };
+function download(b,n){
+  const u=URL.createObjectURL(b);
+  const a=document.createElement("a");
+  a.href=u;a.download=n;a.click();
+  URL.revokeObjectURL(u);
+}
 
-    /* ===============================
-       DRAW WAVE + METER
-    ================================ */
-    function drawWave() {
-      anim = requestAnimationFrame(drawWave);
-      analyser.getByteTimeDomainData(dataArray);
+/* WAV */
+function toWav(b){
+  const l=b.length*2+44;
+  const a=new ArrayBuffer(l),v=new DataView(a);
+  let o=0;
+  const w=s=>{for(let i=0;i<s.length;i++)v.setUint8(o++,s.charCodeAt(i))};
+  w("RIFF");v.setUint32(o,l-8,true);o+=4;
+  w("WAVEfmt ");v.setUint32(o,16,true);o+=4;
+  v.setUint16(o,1,true);o+=2;
+  v.setUint16(o,1,true);o+=2;
+  v.setUint32(o,b.sampleRate,true);o+=4;
+  v.setUint32(o,b.sampleRate*2,true);o+=4;
+  v.setUint16(o,2,true);o+=2;
+  v.setUint16(o,16,true);o+=2;
+  w("data");v.setUint32(o,l-o-4,true);o+=4;
+  const ch=b.getChannelData(0);
+  for(let i=0;i<ch.length;i++){
+    v.setInt16(o,Math.max(-1,Math.min(1,ch[i]))*32767,true);
+    o+=2;
+  }
+  return new Blob([v],{type:"audio/wav"});
+}
 
-      ctx.fillStyle = "#0b0b0b";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+/* MP3 */
+function toMp3(b){
+  const enc=new lamejs.Mp3Encoder(1,b.sampleRate,128);
+  const ch=b.getChannelData(0);
+  let mp3=[],i=0;
+  while(i<ch.length){
+    const slice=ch.subarray(i,i+1152);
+    const pcm=new Int16Array(slice.length);
+    for(let j=0;j<slice.length;j++)pcm[j]=slice[j]*32767;
+    const buf=enc.encodeBuffer(pcm);
+    if(buf.length)mp3.push(new Uint8Array(buf));
+    i+=1152;
+  }
+  const end=enc.flush();
+  if(end.length)mp3.push(new Uint8Array(end));
+  return new Blob(mp3,{type:"audio/mp3"});
+}
 
-      ctx.strokeStyle = "#f59e0b";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
+const gainSlider=document.getElementById("gain");
+const speedSlider=document.getElementById("speed");
+</script>
 
-      let sum = 0;
-      let slice = canvas.width / dataArray.length;
-      let x = 0;
-
-      for (let i = 0; i < dataArray.length; i++) {
-        let v = (dataArray[i] - 128) / 128;
-        sum += Math.abs(v);
-        let y = canvas.height / 2 + v * canvas.height / 2;
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-        x += slice;
-      }
-      ctx.stroke();
-
-      let level = sum / dataArray.length;
-      updateMeter(level);
-    }
-
-    function updateMeter(level) {
-      let percent = Math.min(level * 300, 100);
-      meterFill.style.width = percent + "%";
-
-      if (percent < 20) {
-        meterFill.style.background = "#92400e";
-        warnText.textContent = "Too Low";
-        warnText.className = "warn low";
-      } else if (percent < 70) {
-        meterFill.style.background = "#059669";
-        warnText.textContent = "Good Level";
-        warnText.className = "warn good";
-      } else {
-        meterFill.style.background = "#dc2626";
-        warnText.textContent = "Clipping!";
-        warnText.className = "warn clip";
-      }
-    }
-
-    /* ===============================
-       SAVE WAVE IMAGE
-    ================================ */
-    function saveWaveImage() {
-      canvas.toBlob(b => {
-        window.waveImg = b;
-      });
-    }
-    dlImg.onclick = () => download(waveImg, "waveform.png");
-
-    /* ===============================
-       DOWNLOAD HELPERS
-    ================================ */
-    copyText.onclick = () => navigator.clipboard.writeText(finalText.value);
-    clearText.onclick = () => { finalText.value = ""; interimText.value = ""; };
-    dlTxt.onclick = () => download(new Blob([finalText.value]), "script.txt");
-    dlWav.onclick = () => download(wavBlob, "voice.wav");
-    dlMp3.onclick = () => download(mp3Blob, "voice.mp3");
-
-    function download(b, n) {
-      const u = URL.createObjectURL(b);
-      const a = document.createElement("a");
-      a.href = u; a.download = n; a.click();
-      URL.revokeObjectURL(u);
-    }
-
-    /* ===============================
-       WAV
-    ================================ */
-    function toWav(b) {
-      const n = b.numberOfChannels, l = b.length * 2 * n + 44;
-      const a = new ArrayBuffer(l), v = new DataView(a); let o = 0;
-      const w = s => { for (let i = 0; i < s.length; i++)v.setUint8(o++, s.charCodeAt(i)) };
-      w("RIFF"); v.setUint32(o, l - 8, true); o += 4;
-      w("WAVEfmt "); v.setUint32(o, 16, true); o += 4;
-      v.setUint16(o, 1, true); o += 2;
-      v.setUint16(o, n, true); o += 2;
-      v.setUint32(o, b.sampleRate, true); o += 4;
-      v.setUint32(o, b.sampleRate * 2 * n, true); o += 4;
-      v.setUint16(o, 2 * n, true); o += 2;
-      v.setUint16(o, 16, true); o += 2;
-      w("data"); v.setUint32(o, l - o - 4, true); o += 4;
-      for (let i = 0; i < b.length; i++)
-        for (let c = 0; c < n; c++) {
-          let s = Math.max(-1, Math.min(1, b.getChannelData(c)[i]));
-          v.setInt16(o, s < 0 ? s * 0x8000 : s * 0x7fff, true); o += 2;
-        }
-      return new Blob([v], { type: "audio/wav" });
-    }
-
-    /* ===============================
-       MP3
-    ================================ */
-    function toMp3(b) {
-      const ch = b.getChannelData(0);
-      const enc = new lamejs.Mp3Encoder(1, b.sampleRate, 128);
-      let mp3 = [], i = 0;
-      while (i < ch.length) {
-        const slice = ch.subarray(i, i + 1152);
-        const pcm = new Int16Array(slice.length);
-        for (let j = 0; j < slice.length; j++)
-          pcm[j] = Math.max(-1, Math.min(1, slice[j])) * 32767;
-        const buf = enc.encodeBuffer(pcm);
-        if (buf.length) mp3.push(new Uint8Array(buf));
-        i += 1152;
-      }
-      const end = enc.flush();
-      if (end.length) mp3.push(new Uint8Array(end));
-      return new Blob(mp3, { type: "audio/mp3" });
-    }
-  </script>
+</div>
 </body>
-
 </html>
