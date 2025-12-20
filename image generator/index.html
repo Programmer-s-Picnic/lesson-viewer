@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Programmer’s Picnic — Image Generator</title>
+  <style>
+    :root{
+      --bg:#fffaf2; --card:#fff; --ink:#1f2937; --muted:#6b7280;
+      --brand:#d97706; --brand2:#f59e0b; --border:#e5e7eb;
+      --shadow:0 14px 34px rgba(0,0,0,.08); --r:18px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+    header{padding:18px 14px;background:linear-gradient(90deg,#fff7ed,#fffbeb);border-bottom:1px solid var(--border)}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}
+    .title{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    h1{margin:0;font-size:20px;color:#92400e}
+    .tag{padding:8px 10px;border:1px solid var(--border);border-radius:999px;background:#fff;box-shadow:0 6px 18px rgba(0,0,0,.05);font-size:13px}
+    .grid{display:grid;grid-template-columns:1.1fr .9fr;gap:14px;margin-top:14px}
+    @media (max-width: 920px){.grid{grid-template-columns:1fr}}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow);padding:14px}
+    label{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
+    textarea,input,select{
+      width:100%;padding:10px 12px;border-radius:14px;border:1px solid var(--border);
+      outline:none;font-size:14px;background:#fff;
+    }
+    textarea{min-height:96px;resize:vertical}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .btn{
+      width:100%;padding:12px 14px;border-radius:16px;border:0;cursor:pointer;
+      background:linear-gradient(135deg,var(--brand),var(--brand2));
+      color:#fff;font-weight:700;font-size:15px;box-shadow:0 10px 24px rgba(217,119,6,.25);
+    }
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+    .hint{color:var(--muted);font-size:13px;margin-top:8px;line-height:1.5}
+    .out{display:flex;flex-direction:column;gap:10px}
+    .imgbox{
+      border:1px dashed #f1c58b;border-radius:18px;background:linear-gradient(180deg,#fff7ed,#fff);
+      min-height:420px;display:grid;place-items:center;overflow:hidden
+    }
+    .imgbox img{max-width:100%;height:auto;display:block}
+    .status{font-size:13px;color:var(--muted)}
+    .small{font-size:12px;color:var(--muted)}
+    .pillrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .pill{
+      border:1px solid var(--border);background:#fff;border-radius:999px;padding:8px 10px;
+      cursor:pointer;font-size:13px
+    }
+  </style>
+</head>
+<body>
+<header>
+  <div class="wrap title">
+    <h1>Programmer’s Picnic — Image Generator 🍊</h1>
+    <div class="tag">Light saffron UI • Made for lessons & thumbnails</div>
+  </div>
+</header>
+
+<div class="wrap grid">
+  <div class="card">
+    <label>API URL</label>
+    <input id="api" value="http://localhost:8000/generate" />
+
+    <label>Prompt</label>
+    <textarea id="prompt" placeholder="Example: A friendly Indian coding teacher inside a laptop, comic style, soft saffron theme, clean lines"></textarea>
+
+    <div class="pillrow">
+      <button class="pill" data-p="Comic strip style, clean outlines, minimal text, soft saffron palette, friendly teacher explaining recursion with simple icons">Comic Explainer</button>
+      <button class="pill" data-p="YouTube thumbnail style, bold composition, bright saffron highlights, laptop and code, high contrast, sharp">Thumbnail</button>
+      <button class="pill" data-p="Educational diagram style, simple shapes, clear labels area (leave blank space), saffron theme, neat">Diagram</button>
+      <button class="pill" data-p="Cute classroom illustration in India, warm lighting, students learning programming, modern flat style">Classroom</button>
+    </div>
+
+    <label>Negative prompt (optional)</label>
+    <input id="neg" value="blurry, low quality, watermark, logo, text, extra fingers" />
+
+    <div class="row">
+      <div>
+        <label>Steps</label>
+        <input id="steps" type="number" value="28" min="10" max="60" />
+      </div>
+      <div>
+        <label>Guidance (CFG)</label>
+        <input id="guidance" type="number" value="7.5" step="0.5" min="1" max="12" />
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>Width</label>
+        <select id="w">
+          <option>512</option><option>640</option><option>768</option>
+        </select>
+      </div>
+      <div>
+        <label>Height</label>
+        <select id="h">
+          <option>512</option><option>640</option><option>768</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>Seed (-1 random)</label>
+        <input id="seed" type="number" value="-1" />
+      </div>
+      <div style="display:flex;align-items:end">
+        <button class="btn" id="go">Generate ✨</button>
+      </div>
+    </div>
+
+    <div class="hint">
+      Tip: If you want consistent “Programmer’s Picnic branding”, keep a stable seed (like 1234) and reuse it.
+    </div>
+  </div>
+
+  <div class="card out">
+    <div class="status" id="status">Ready.</div>
+    <div class="imgbox" id="box">
+      <div class="small">Generated image will appear here.</div>
+    </div>
+    <a id="dl" style="display:none" download="pp-image.png">Download image</a>
+  </div>
+</div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+
+  // Prompt pills
+  document.querySelectorAll(".pill").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const add = btn.getAttribute("data-p");
+      const p = $("prompt").value.trim();
+      $("prompt").value = p ? (p + ", " + add) : add;
+      $("prompt").focus();
+    });
+  });
+
+  async function generate() {
+    const api = $("api").value.trim();
+    const payload = {
+      prompt: $("prompt").value,
+      negative_prompt: $("neg").value,
+      steps: Number($("steps").value),
+      guidance: Number($("guidance").value),
+      width: Number($("w").value),
+      height: Number($("h").value),
+      seed: Number($("seed").value)
+    };
+
+    if (!payload.prompt.trim()) {
+      $("status").textContent = "Please enter a prompt.";
+      return;
+    }
+
+    $("go").disabled = true;
+    $("status").textContent = "Generating… (this can take some time depending on GPU/CPU)";
+    $("box").innerHTML = "<div class='small'>Working…</div>";
+
+    try {
+      const res = await fetch(api, {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const txt = await res.text().catch(()=> "");
+        throw new Error("API error: " + res.status + " " + txt);
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+
+      const img = new Image();
+      img.onload = () => URL.revokeObjectURL(url);
+      img.src = url;
+
+      $("box").innerHTML = "";
+      $("box").appendChild(img);
+
+      $("status").textContent = "Done ✅";
+
+      // Download link
+      $("dl").href = url;
+      $("dl").style.display = "inline-block";
+      $("dl").textContent = "Download image";
+    } catch (e) {
+      $("status").textContent = "Failed ❌ " + (e.message || e);
+      $("box").innerHTML = "<div class='small'>Check API URL, server logs, and CORS.</div>";
+    } finally {
+      $("go").disabled = false;
+    }
+  }
+
+  $("go").addEventListener("click", generate);
+</script>
+</body>
+</html>
