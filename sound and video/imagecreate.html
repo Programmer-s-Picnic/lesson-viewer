@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Programmer’s Picnic – Image Generator (Localhost)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    :root {
+      --bg: #fffaf2;
+      --card: #ffffff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --brand: #d97706;
+      --brand2: #f59e0b;
+      --border: #e5e7eb;
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 20px auto;
+      padding: 16px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, .08);
+    }
+
+    h1 {
+      margin: 0 0 6px 0;
+      color: #92400e;
+    }
+
+    p.sub {
+      margin: 0 0 14px 0;
+      color: var(--muted);
+    }
+
+    label {
+      font-size: 13px;
+      color: var(--muted);
+      display: block;
+      margin-top: 14px;
+    }
+
+    textarea,
+    select {
+      width: 100%;
+      padding: 10px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      font-size: 14px;
+      margin-top: 6px;
+    }
+
+    button {
+      margin-top: 16px;
+      padding: 12px 18px;
+      border-radius: 14px;
+      border: none;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      background: linear-gradient(135deg, var(--brand), var(--brand2));
+    }
+
+    button:disabled {
+      opacity: .6;
+      cursor: not-allowed;
+    }
+
+    .status {
+      margin-top: 12px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .output {
+      margin-top: 16px;
+      border: 1px dashed #f3c892;
+      border-radius: 16px;
+      min-height: 360px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(180deg, #fff7ed, #ffffff);
+    }
+
+    .output img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .small {
+      font-size: 12px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>Programmer’s Picnic 🍊 Image Generator</h1>
+      <p class="sub">Localhost demo — Blogger-ready frontend</p>
+
+      <label>Prompt</label>
+      <textarea id="prompt"
+        placeholder="Example: Indian teacher explaining recursion inside laptop, comic style, soft saffron theme">
+
+Example: Indian teacher explaining recursion inside laptop, comic style, soft saffron theme
+
+    </textarea>
+
+      <label>Style Preset</label>
+      <select id="style">
+        <option value="">None</option>
+        <option value="comic style, clean outlines, soft saffron palette">
+          Comic Explainer
+        </option>
+        <option value="youtube thumbnail style, bold, high contrast">
+          YouTube Thumbnail
+        </option>
+        <option value="educational diagram, minimal, clean layout">
+          Diagram
+        </option>
+      </select>
+
+      <!-- IMPORTANT: type="button" prevents form submission -->
+      <button type="button" id="genBtn">Generate ✨</button>
+
+      <div class="status" id="status">Ready.</div>
+
+      <div class="output" id="output">
+        <div class="small">Generated image will appear here</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = "http://127.0.0.1:9000/pp-generate";
+
+    const btn = document.getElementById("genBtn");
+    const statusEl = document.getElementById("status");
+    const output = document.getElementById("output");
+
+    btn.addEventListener("click", generateImage);
+
+    async function generateImage() {
+      const prompt = document.getElementById("prompt").value.trim();
+      const style = document.getElementById("style").value;
+
+      if (!prompt) {
+        statusEl.textContent = "Please enter a prompt.";
+        return;
+      }
+
+      btn.disabled = true;
+      statusEl.textContent = "Generating… please wait";
+      output.innerHTML = "<div class='small'>Working…</div>";
+
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: prompt,
+            style: style,
+            key: "PP_SECRET_2025"
+          })
+        });
+
+        if (!res.ok) {
+          throw new Error("Server error: " + res.status);
+        }
+
+        const blob = await res.blob();
+        const imgURL = URL.createObjectURL(blob);
+
+        const img = new Image();
+        img.onload = () => URL.revokeObjectURL(imgURL);
+        img.src = imgURL;
+
+        output.innerHTML = "";
+        output.appendChild(img);
+
+        statusEl.textContent = "Done ✅";
+      }
+      catch (err) {
+        console.error(err);
+        statusEl.textContent = "Failed ❌ Check proxy server.";
+        output.innerHTML = "<div class='small'>Could not generate image</div>";
+      }
+      finally {
+        btn.disabled = false;
+      }
+    }
+  </script>
+
+</body>
+
+</html>
