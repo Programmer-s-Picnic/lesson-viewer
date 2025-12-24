@@ -1,199 +1,267 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Scraping Yahoo Finance Historical Stock Data using Selenium | Programmer’s Picnic</title>
+  <meta name="description" content="Learn why requests fails on Yahoo Finance and how Selenium scrapes JavaScript-loaded historical stock data. Step-by-step code + upgrades." />
+  <meta name="author" content="Champak Roy" />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Scraping Yahoo Finance Historical Stock Data using Selenium" />
+  <meta property="og:description" content="Why requests fails on Yahoo Finance and how Selenium scrapes JS-loaded historical data (with clean, practical code)." />
+  <meta property="og:type" content="article" />
 
   <style>
+    :root{
+      --bg:#fffaf2;
+      --card:#ffffff;
+      --ink:#1f2937;
+      --muted:#6b7280;
+      --brand:#d97706;  /* saffron */
+      --brand2:#f59e0b;
+      --border:#e5e7eb;
+      --shadow:0 10px 24px rgba(0,0,0,.08);
+      --r:16px;
+    }
+    *{box-sizing:border-box}
     body{
+      margin:0;
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      background: #fffaf2;
-      color: #2b2b2b;
-      line-height: 1.8;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.85;
     }
-
+    a{color:inherit}
     .pp-container{
-      max-width: 900px;
+      max-width: 980px;
       margin: auto;
-      padding: 20px;
+      padding: 18px;
     }
 
+    /* header */
     .pp-header{
       background: linear-gradient(135deg,#fff4dc,#ffe8b5);
-      border-radius: 14px;
+      border-radius: var(--r);
       padding: 22px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.08);
-      margin-bottom: 26px;
+      box-shadow: var(--shadow);
+      margin: 14px 0 22px;
+      border: 1px solid rgba(0,0,0,.04);
     }
-
     .pp-header h1{
-      margin: 0;
+      margin: 0 0 6px;
       color: #92400e;
-      font-size: 28px;
+      font-size: clamp(22px, 2.4vw, 30px);
+      line-height: 1.25;
     }
-
     .pp-brand{
-      margin-top: 6px;
       font-size: 14px;
       color: #7c2d12;
       font-style: italic;
     }
 
+    /* sections */
     section{
-      background: #ffffff;
-      border-radius: 14px;
-      padding: 22px;
-      margin-bottom: 22px;
+      background: var(--card);
+      border-radius: var(--r);
+      padding: 18px;
+      margin: 0 0 18px;
       box-shadow: 0 6px 18px rgba(0,0,0,0.06);
-      border-left: 6px solid #f59e0b;
+      border: 1px solid rgba(0,0,0,.06);
+      border-left: 6px solid var(--brand2);
     }
-
     h2{
+      margin: 0 0 10px;
       color: #b45309;
-      margin-top: 0;
+      font-size: 20px;
     }
+    p{margin: 10px 0}
+    ul,ol{margin: 10px 0 0; padding-left: 20px}
+    li{margin: 6px 0}
 
+    /* code */
     pre{
-      background: #1f2937;
+      background: #0f172a;
       color: #f9fafb;
-      padding: 16px;
-      border-radius: 10px;
+      padding: 14px;
+      border-radius: 12px;
       overflow-x: auto;
-      font-size: 14px;
+      font-size: 13.5px;
+      line-height: 1.55;
+      border: 1px solid rgba(255,255,255,.08);
+      margin: 12px 0 0;
     }
+    code{font-family: Consolas, ui-monospace, SFMono-Regular, Menlo, Monaco, "Liberation Mono", monospace}
 
-    code{
-      font-family: Consolas, monospace;
-    }
-
+    /* note */
     .note{
       background: #fffbeb;
-      border-left: 5px solid #f59e0b;
-      padding: 14px;
-      border-radius: 10px;
+      border-left: 5px solid var(--brand2);
+      padding: 12px 14px;
+      border-radius: 12px;
       margin-top: 12px;
       font-size: 15px;
+      color:#4b5563;
     }
 
+    /* CTA button */
+    .cta-row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top: 12px;
+      align-items:center;
+    }
+    .btn{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      text-decoration:none;
+      font-weight: 700;
+      border: 1px solid rgba(0,0,0,.08);
+      box-shadow: 0 8px 18px rgba(0,0,0,.08);
+      background: linear-gradient(180deg,#fff7ed,#ffedd5);
+    }
+    .btn:hover{transform: translateY(-1px)}
+    .btn:active{transform: translateY(0px)}
+
+    /* footer */
     .footer{
-      text-align: center;
-      margin-top: 30px;
-      color: #6b7280;
+      text-align:center;
+      margin: 22px 0 10px;
+      color: var(--muted);
       font-size: 14px;
+    }
+
+    /* responsive */
+    @media (max-width: 520px){
+      .pp-container{padding: 12px}
+      section{padding: 15px}
+      pre{font-size: 13px}
     }
   </style>
 </head>
 
 <body>
+  <div class="pp-container">
 
-<div class="pp-container">
+    <header class="pp-header">
+      <h1>Scraping Yahoo Finance Historical Stock Data using Selenium</h1>
+      <div class="pp-brand">Programmer’s Picnic · Learn with Champak Roy</div>
 
-  <div class="pp-header">
-    <h1>Scraping Yahoo Finance Historical Stock Data using Selenium</h1>
-    <div class="pp-brand">
-      Programmer’s Picnic · Learn with Champak Roy
-    </div>
-  </div>
+      <div class="cta-row">
+        <a class="btn" href="https://github.com/Varanasi-Software-Junction/Web-Analyzer-using-Selenium" target="_blank" rel="noopener">
+          📦 Code on GitHub
+        </a>
+        <span class="pp-brand" style="font-style:normal;color:#6b7280;">
+          Tip: open GitHub in a new tab to avoid leaving the lesson.
+        </span>
+      </div>
+    </header>
 
-  <section>
-    <h2>Why Requests Fails for Yahoo Finance</h2>
-    <p>
-      Yahoo Finance loads its historical price table using <b>JavaScript</b>.
-      When we use the <code>requests</code> library, Python only downloads the
-      initial HTML — it does <b>not execute JavaScript</b>.
-    </p>
+    <section>
+      <h2>Why <code>requests</code> Fails for Yahoo Finance</h2>
+      <p>
+        Yahoo Finance loads the historical price table using <b>JavaScript</b>.
+        When we use <code>requests</code>, Python only downloads the initial HTML —
+        it does <b>not execute JavaScript</b>.
+      </p>
+      <p>So the historical table you see in the browser is missing in the downloaded HTML.</p>
 
-    <p>
-      As a result, the historical data table is missing.
-    </p>
+      <div class="note">
+        📌 <b>Rule of Thumb:</b><br />
+        If data appears only after the page loads → Selenium (or browser automation) is required.
+      </div>
+    </section>
 
-    <div class="note">
-      📌 <b>Rule of Thumb:</b><br>
-      If data appears only after the page loads → Selenium is required.
-    </div>
-  </section>
+    <section>
+      <h2>Why Selenium Works</h2>
+      <p>
+        Selenium opens a real browser (Chrome), executes JavaScript,
+        and lets us interact with dynamically loaded content.
+      </p>
+      <ul>
+        <li>✔ JavaScript execution</li>
+        <li>✔ Dynamic tables</li>
+        <li>✔ Real-world scraping pattern</li>
+      </ul>
+    </section>
 
-  <section>
-    <h2>Why Selenium Works</h2>
-    <p>
-      Selenium opens a real browser (Chrome), executes JavaScript,
-      and allows us to interact with dynamically loaded content.
-    </p>
+    <section>
+      <h2>Working Python Code (Page Source)</h2>
+      <p class="note" style="margin-top:0">
+        This version prints the fully loaded HTML (<code>driver.page_source</code>).
+        Next step is extracting the History table rows.
+      </p>
 
-    <ul>
-      <li>✔ JavaScript execution</li>
-      <li>✔ Dynamic tables</li>
-      <li>✔ Real-world scraping</li>
-    </ul>
-  </section>
-
-  <section>
-    <h2>Working Python Code (Yahoo Finance History)</h2>
-    <a href="https://github.com/Varanasi-Software-Junction/Web-Analyzer-using-Selenium" class="pp-brand"><h1 style="background-color:orange;">Code on GIT</h1></a>
-    <pre><code>
-from selenium import webdriver
+      <pre><code>from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 from time import sleep
 
-
 # ---------- INPUT ----------
-
-stockurl = "https://finance.yahoo.com/quote/RELIANCE.NS/"
+stockurl = "https://finance.yahoo.com/quote/RELIANCE.NS/history"
 
 # ---------- DRIVER ----------
-driver = webdriver.Chrome(
-    service=Service(ChromeDriverManager().install())
-)
+driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
 
-driver.get(stockurl)
+try:
+    driver.get(stockurl)
 
-# Wait for JavaScript-loaded content
-sleep(5)
+    # Wait for JavaScript-loaded content
+    sleep(5)
 
-# ---------- Download Data ----------
-data = driver.page_source
+    # ---------- DATA ----------
+    html = driver.page_source
+    print(html)
 
-driver.quit()
-print(data)
-driver.quit()
+finally:
+    # Always close the browser safely
+    driver.quit()
 </code></pre>
-  </section>
 
-  <section>
-    <h2>What This Program Does</h2>
-    <ol>
-      <li>Takes a stock name as input</li>
-      <li>Opens Yahoo Finance historical page</li>
-      <li>Waits for JavaScript to load data</li>
-      <li>Extracts historical prices row by row</li>
-      <li>Prints clean tabular output</li>
-    </ol>
+      <div class="note">
+        ✅ Fixes made: removed the duplicate <code>driver.quit()</code>, opened the actual <b>/history</b> URL,
+        and wrapped quitting in <code>try/finally</code> so Chrome closes even if errors occur.
+      </div>
+    </section>
 
-    <div class="note">
-      🎓 This is a <b>real industry scraping pattern</b> used in
-      finance, analytics, and ML pipelines.
-    </div>
-  </section>
+    <section>
+      <h2>What This Program Does</h2>
+      <ol>
+        <li>Opens Yahoo Finance History page for a stock</li>
+        <li>Waits for JavaScript to load the content</li>
+        <li>Captures the final HTML</li>
+        <li>Prints it (so we can confirm the table exists)</li>
+      </ol>
+      <div class="note">
+        🎓 This is a common first step in finance scraping pipelines:
+        verify the HTML contains the data, then parse it into a table.
+      </div>
+    </section>
 
-  <section>
-    <h2>Next Upgrades</h2>
-    <ul>
-      <li>Export data to CSV</li>
-      <li>Load into Pandas DataFrame</li>
-      <li>Plot stock price graphs</li>
-      <li>Headless browser mode</li>
-      <li>GUI-based stock scraper</li>
-    </ul>
-  </section>
+    <section>
+      <h2>Next Upgrades</h2>
+      <ul>
+        <li>Extract the history rows into clean text</li>
+        <li>Export to CSV</li>
+        <li>Load into a Pandas DataFrame</li>
+        <li>Plot price graphs</li>
+        <li>Headless browser mode (faster)</li>
+        <li>GUI-based stock scraper (sellable tool)</li>
+      </ul>
+    </section>
 
-  <div class="footer">
-    © Programmer’s Picnic · Varanasi<br>
-    Teaching Programming the Practical Way
+    <footer class="footer">
+      © Programmer’s Picnic · Varanasi<br />
+      Teaching Programming the Practical Way
+    </footer>
+
   </div>
 
-</div>
-<script src='https://programmer-s-picnic.github.io/json-images/find-on-page.js'></script>
+  <!-- Find-on-page widget (keep at end for faster first paint) -->
+  <script src="https://programmer-s-picnic.github.io/json-images/find-on-page.js"></script>
 </body>
 </html>
