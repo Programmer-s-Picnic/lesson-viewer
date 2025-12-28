@@ -40,7 +40,7 @@ h3{
 }
 textarea{
   width:100%;
-  height:180px;
+  height:200px;
   padding:10px;
   border-radius:12px;
   border:1px solid #e5e7eb;
@@ -74,7 +74,7 @@ button:disabled{
 canvas{
   width:360px;
   max-width:90vw;
-  background:#fff4dc;
+  background:#000;
   border-radius:18px;
   border:1px solid #e5e7eb;
 }
@@ -115,12 +115,14 @@ a.download{
 <main>
 
 <section class="panel">
-  <h3>Script (use ===SCREEN===)</h3>
+  <h3>Script (supports background images)</h3>
   <textarea id="script">
+===BG:images/bg1.jpg===
 Python allows this mistake silently.
 
 ===SCREEN===
 
+===BG:images/bg2.jpg===
 Mutable default arguments
 are shared forever.
 
@@ -169,141 +171,165 @@ const recordBtn = document.getElementById("recordBtn");
 const stopBtn = document.getElementById("stopBtn");
 const downloadLink = document.getElementById("download");
 
-let micStream;
-let recorder;
-let chunks = [];
-let timer;
-let scenes = [];
-let idx = 0;
+let micStream, recorder, chunks=[];
+let timer, scenes=[], idx=0;
+let recognition, finalText="", interim="", lastWord="";
 
-let recognition;
-let finalText = "";
-let interim = "";
-let lastWord = "";
+const SAFE_MARGIN = 140;
+const bgCache = {};
 
-// ------------------ helpers ------------------
 secSlider.oninput = () => {
   secLabel.textContent = secSlider.value + " seconds per screen";
 };
 
-// ------------------ drawing ------------------
-function draw(text){
-  ctx.fillStyle="#fff4dc";
-  ctx.fillRect(0,0,canvas.width,canvas.height);
+function loadBg(src){
+  if(!src) return null;
+  if(bgCache[src]) return bgCache[src];
+  const img = new Image();
+  img.src = src;
+  bgCache[src] = img;
+  return img;
+}
+
+function wrapText(text, maxWidth){
+  const words = text.split(" ");
+  let lines=[], line="";
+  for(const w of words){
+    const test = line + w + " ";
+    if(ctx.measureText(test).width > maxWidth){
+      lines.push(line);
+      line = w + " ";
+    } else line = test;
+  }
+  lines.push(line);
+  return lines;
+}
+
+function drawScene(scene, progress){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  if(scene.bg){
+    const img = loadBg(scene.bg);
+    if(img && img.complete){
+      ctx.drawImage(img,0,0,canvas.width,canvas.height);
+    } else {
+      ctx.fillStyle="#fff4dc";
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+    }
+  } else {
+    const g = ctx.createLinearGradient(0,0,0,canvas.height);
+    g.addColorStop(0,"#fff7ed");
+    g.addColorStop(1,"#ffe4b5");
+    ctx.fillStyle = g;
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+  }
+
+  // animation
+  ctx.globalAlpha = Math.min(progress*2,1);
+  const offsetY = (1-progress)*40;
 
   ctx.fillStyle="#111827";
   ctx.textAlign="center";
   ctx.font="76px Arial";
 
-  const lines = text.split("\n");
-  let y = canvas.height/2 - lines.length*45;
+  const lines = wrapText(scene.text, canvas.width - SAFE_MARGIN*2);
+  let y = canvas.height/2 - lines.length*45 + offsetY;
+
   lines.forEach(l=>{
-    ctx.fillText(l, canvas.width/2, y);
+    ctx.fillText(l.trim(), canvas.width/2, y);
     y += 90;
   });
 
   // watermark
-  ctx.globalAlpha=0.35;
+  ctx.globalAlpha = 0.35;
   ctx.font="28px Arial";
   ctx.fillText("Programmer’s Picnic • Champak Roy",
     canvas.width-380, canvas.height-40);
-  ctx.globalAlpha=1;
+  ctx.globalAlpha = 1;
 }
 
-// ------------------ parse script ------------------
-function parse(){
-  scenes = scriptEl.value
-    .split("===SCREEN===")
-    .map(s=>s.trim())
-    .filter(Boolean);
+function parseScript(){
+  const raw = scriptEl.value.split("===SCREEN===");
+  scenes = raw.map(block=>{
+    const bgMatch = block.match(/===BG:(.*?)===/);
+    return {
+      bg: bgMatch ? bgMatch[1].trim() : null,
+      text: block.replace(/===BG:.*?===/,"").trim()
+    };
+  }).filter(s=>s.text);
 }
 
-// ------------------ speech ------------------
+function startTimeline(){
+  parseScript();
+  idx = 0;
+  let t0 = performance.now();
+
+  timer = setInterval(()=>{
+    const now = performance.now();
+    const p = ((now - t0) % (secSlider.value*1000)) / (secSlider.value*1000);
+    drawScene(scenes[idx], p);
+  }, 30);
+
+  setTimeout(()=>{
+    idx++;
+    if(idx >= scenes.length) stopAll();
+    else startTimeline();
+  }, secSlider.value*1000);
+}
+
 function setupSpeech(){
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SR){
-    statusEl.textContent = "Speech-to-text not supported in this browser.";
-    return;
-  }
-
+  if(!SR) return;
   recognition = new SR();
-  recognition.lang = "en-US";
-  recognition.continuous = true;
-  recognition.interimResults = true;
-
-  recognition.onresult = e => {
-    interim = "";
+  recognition.continuous=true;
+  recognition.interimResults=true;
+  recognition.onresult=e=>{
+    interim="";
     for(let i=e.resultIndex;i<e.results.length;i++){
-      const t = e.results[i][0].transcript;
-      if(e.results[i].isFinal) finalText += t + " ";
-      else interim += t;
+      const t=e.results[i][0].transcript;
+      if(e.results[i].isFinal) finalText+=t+" ";
+      else interim+=t;
     }
-
-    const words = (finalText + interim).trim().split(/\s+/);
-    lastWord = words.at(-1) || "";
-
-    spokenBox.innerHTML = words.slice(-30).map(w=>{
-      return w.toLowerCase() === lastWord.toLowerCase()
-        ? `<span class="hl">${w}</span>` : w;
+    const words=(finalText+interim).trim().split(/\s+/);
+    lastWord=words.at(-1)||"";
+    spokenBox.innerHTML=words.slice(-25).map(w=>{
+      return w.toLowerCase()===lastWord.toLowerCase()
+        ? `<span class="hl">${w}</span>`:w;
     }).join(" ");
   };
 }
 
-// ------------------ timeline ------------------
-function startTimeline(){
-  parse();
-  idx = 0;
-  draw(scenes[0]);
-
-  timer = setInterval(()=>{
-    idx++;
-    if(idx < scenes.length){
-      draw(scenes[idx]);
-    } else {
-      stopAll();
-    }
-  }, secSlider.value * 1000);
-}
-
-// ------------------ controls ------------------
-micBtn.onclick = async () => {
-  micStream = await navigator.mediaDevices.getUserMedia({audio:true});
+micBtn.onclick=async()=>{
+  micStream=await navigator.mediaDevices.getUserMedia({audio:true});
   setupSpeech();
-  previewBtn.disabled = false;
-  recordBtn.disabled = false;
-  statusEl.textContent = "Mic ready (run on localhost!)";
+  previewBtn.disabled=false;
+  recordBtn.disabled=false;
+  statusEl.textContent="Mic ready (localhost required)";
 };
 
-previewBtn.onclick = () => {
-  finalText = "";
-  spokenBox.textContent = "";
+previewBtn.onclick=()=>{
+  finalText=""; spokenBox.textContent="";
   recognition?.start();
-  statusEl.textContent = "Previewing…";
+  statusEl.textContent="Previewing…";
   startTimeline();
 };
 
-recordBtn.onclick = () => {
-  finalText = "";
-  spokenBox.textContent = "";
-  chunks = [];
-  downloadLink.style.display="none";
-
-  const stream = canvas.captureStream(30);
+recordBtn.onclick=()=>{
+  finalText=""; spokenBox.textContent="";
+  chunks=[]; downloadLink.style.display="none";
+  const stream=canvas.captureStream(30);
   micStream.getTracks().forEach(t=>stream.addTrack(t));
-
-  recorder = new MediaRecorder(stream);
-  recorder.ondataavailable = e => chunks.push(e.data);
-  recorder.onstop = () => {
-    const blob = new Blob(chunks,{type:"video/webm"});
-    const url = URL.createObjectURL(blob);
-    downloadLink.href = url;
-    downloadLink.download = "short.webm";
+  recorder=new MediaRecorder(stream);
+  recorder.ondataavailable=e=>chunks.push(e.data);
+  recorder.onstop=()=>{
+    const blob=new Blob(chunks,{type:"video/webm"});
+    downloadLink.href=URL.createObjectURL(blob);
+    downloadLink.download="short.webm";
     downloadLink.style.display="inline-block";
   };
-
   recorder.start();
   recognition?.start();
-  statusEl.textContent = "Recording…";
+  statusEl.textContent="Recording…";
   startTimeline();
 };
 
@@ -311,10 +337,9 @@ function stopAll(){
   clearInterval(timer);
   recognition?.stop();
   if(recorder && recorder.state==="recording") recorder.stop();
-  statusEl.textContent = "Stopped";
+  statusEl.textContent="Stopped";
 }
-
-stopBtn.onclick = stopAll;
+stopBtn.onclick=stopAll;
 </script>
 
 </body>
