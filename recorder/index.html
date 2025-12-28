@@ -87,7 +87,7 @@ canvas{
   font-size:13px;
 }
 .spoken .hl{
-  background:rgba(245,158,11,.4);
+  background:rgba(245,158,11,.45);
   padding:2px 6px;
   border-radius:8px;
   font-weight:800;
@@ -114,7 +114,6 @@ a.download{
 
 <main>
 
-<!-- LEFT -->
 <section class="panel">
   <h3>Script (use ===SCREEN===)</h3>
   <textarea id="script">
@@ -148,7 +147,6 @@ Now you know.
   <a id="download" class="download">⬇ Download Video (WEBM)</a>
 </section>
 
-<!-- RIGHT -->
 <section class="panel" style="display:flex;justify-content:center;">
   <canvas id="canvas" width="1080" height="1920"></canvas>
 </section>
@@ -183,12 +181,12 @@ let finalText = "";
 let interim = "";
 let lastWord = "";
 
-// ------------------ UI helpers ------------------
+// ------------------ helpers ------------------
 secSlider.oninput = () => {
   secLabel.textContent = secSlider.value + " seconds per screen";
 };
 
-// ------------------ Drawing ------------------
+// ------------------ drawing ------------------
 function draw(text){
   ctx.fillStyle="#fff4dc";
   ctx.fillRect(0,0,canvas.width,canvas.height);
@@ -204,14 +202,15 @@ function draw(text){
     y += 90;
   });
 
-  ctx.globalAlpha=0.4;
+  // watermark
+  ctx.globalAlpha=0.35;
   ctx.font="28px Arial";
   ctx.fillText("Programmer’s Picnic • Champak Roy",
     canvas.width-380, canvas.height-40);
   ctx.globalAlpha=1;
 }
 
-// ------------------ Script parsing ------------------
+// ------------------ parse script ------------------
 function parse(){
   scenes = scriptEl.value
     .split("===SCREEN===")
@@ -219,12 +218,16 @@ function parse(){
     .filter(Boolean);
 }
 
-// ------------------ Speech recognition ------------------
+// ------------------ speech ------------------
 function setupSpeech(){
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SR) return;
+  if(!SR){
+    statusEl.textContent = "Speech-to-text not supported in this browser.";
+    return;
+  }
 
   recognition = new SR();
+  recognition.lang = "en-US";
   recognition.continuous = true;
   recognition.interimResults = true;
 
@@ -235,17 +238,18 @@ function setupSpeech(){
       if(e.results[i].isFinal) finalText += t + " ";
       else interim += t;
     }
+
     const words = (finalText + interim).trim().split(/\s+/);
     lastWord = words.at(-1) || "";
 
     spokenBox.innerHTML = words.slice(-30).map(w=>{
-      return w.toLowerCase()===lastWord.toLowerCase()
+      return w.toLowerCase() === lastWord.toLowerCase()
         ? `<span class="hl">${w}</span>` : w;
     }).join(" ");
   };
 }
 
-// ------------------ Timeline ------------------
+// ------------------ timeline ------------------
 function startTimeline(){
   parse();
   idx = 0;
@@ -261,24 +265,26 @@ function startTimeline(){
   }, secSlider.value * 1000);
 }
 
-// ------------------ Controls ------------------
+// ------------------ controls ------------------
 micBtn.onclick = async () => {
   micStream = await navigator.mediaDevices.getUserMedia({audio:true});
   setupSpeech();
   previewBtn.disabled = false;
   recordBtn.disabled = false;
-  statusEl.textContent = "Mic ready";
+  statusEl.textContent = "Mic ready (run on localhost!)";
 };
 
 previewBtn.onclick = () => {
-  finalText=""; spokenBox.textContent="";
+  finalText = "";
+  spokenBox.textContent = "";
   recognition?.start();
   statusEl.textContent = "Previewing…";
   startTimeline();
 };
 
 recordBtn.onclick = () => {
-  finalText=""; spokenBox.textContent="";
+  finalText = "";
+  spokenBox.textContent = "";
   chunks = [];
   downloadLink.style.display="none";
 
