@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Programmer’s Picnic – Web Shorts Maker</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+  font-family: system-ui, Segoe UI, Arial;
+  background:#fffaf2;
+  padding:20px;
+}
+h1{color:#92400e}
+textarea{
+  width:100%;
+  height:180px;
+  font-size:15px;
+}
+button{
+  padding:10px 16px;
+  margin:6px 4px;
+  font-size:15px;
+}
+canvas{
+  display:block;
+  margin-top:15px;
+  background:#fff4dc;
+  border-radius:10px;
+}
+#status{margin-top:10px;font-weight:bold}
+</style>
+</head>
+
+<body>
+
+<h1>🎬 Web Shorts Maker</h1>
+
+<p>Script (use <code>===SCREEN===</code> to break screens)</p>
+<textarea id="script">
+Python allows this mistake silently.
+
+===SCREEN===
+
+Mutable default arguments
+are shared forever.
+
+===SCREEN===
+
+Now you know.
+</textarea>
+
+<br>
+
+<button onclick="preview()">👁 Preview</button>
+<button onclick="startRecording()">🎙 Record</button>
+<button onclick="stopRecording()">⏹ Stop</button>
+
+<div id="status">Idle</div>
+
+<canvas id="canvas" width="1080" height="1920"></canvas>
+
+<a id="download" style="display:none">⬇ Download Video</a>
+
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const status = document.getElementById("status");
+
+let mediaRecorder;
+let recordedChunks = [];
+let screens = [];
+let screenIndex = 0;
+let intervalId;
+
+function parseScreens(){
+  screens = document.getElementById("script")
+    .value.split("===SCREEN===")
+    .map(s => s.trim())
+    .filter(Boolean);
+}
+
+function drawScreen(text){
+  ctx.fillStyle = "#fff4dc";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  ctx.fillStyle = "#000";
+  ctx.textAlign = "center";
+  ctx.font = "72px Arial";
+
+  const lines = text.split("\n");
+  let y = canvas.height/2 - lines.length*40;
+
+  lines.forEach(line=>{
+    ctx.fillText(line, canvas.width/2, y);
+    y += 80;
+  });
+
+  ctx.font = "28px Arial";
+  ctx.globalAlpha = 0.4;
+  ctx.fillText("Programmer’s Picnic • Champak Roy",
+               canvas.width-360, canvas.height-40);
+  ctx.globalAlpha = 1;
+}
+
+function preview(){
+  parseScreens();
+  screenIndex = 0;
+  drawScreen(screens[0]);
+}
+
+function startRecording(){
+  parseScreens();
+  screenIndex = 0;
+  recordedChunks = [];
+
+  const stream = canvas.captureStream(30);
+  navigator.mediaDevices.getUserMedia({audio:true})
+    .then(mic=>{
+      mic.getAudioTracks().forEach(t=>stream.addTrack(t));
+
+      mediaRecorder = new MediaRecorder(stream, {mimeType:"video/webm"});
+      mediaRecorder.ondataavailable = e => recordedChunks.push(e.data);
+      mediaRecorder.onstop = saveVideo;
+      mediaRecorder.start();
+
+      status.textContent = "Recording…";
+
+      drawScreen(screens[0]);
+      intervalId = setInterval(()=>{
+        screenIndex++;
+        if(screenIndex < screens.length){
+          drawScreen(screens[screenIndex]);
+        }
+      }, 3000);
+    });
+}
+
+function stopRecording(){
+  clearInterval(intervalId);
+  mediaRecorder.stop();
+  status.textContent = "Stopped";
+}
+
+function saveVideo(){
+  const blob = new Blob(recordedChunks, {type:"video/webm"});
+  const url = URL.createObjectURL(blob);
+  const a = document.getElementById("download");
+  a.href = url;
+  a.download = "short.webm";
+  a.style.display = "block";
+  a.textContent = "⬇ Download Video";
+}
+</script>
+
+</body>
+</html>
