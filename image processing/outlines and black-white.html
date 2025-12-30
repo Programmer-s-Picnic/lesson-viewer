@@ -1,251 +1,338 @@
- 
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Programmer's Picnic: Get Image Outlines and Convert to Black and White</title>
-<style>
-  :root{
-    --bg:#eef8ff;
-    --card:#ffffff;
-    --accent:#2b7be4;
-    --muted:#6b7280;
-    --radius:12px;
-    --pad:18px;
-  }
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>
+      Programmer's Picnic: Get Image Outlines and Convert to Black and White
+    </title>
+    <style>
+      :root {
+        --bg: #eef8ff;
+        --card: #ffffff;
+        --accent: #2b7be4;
+        --muted: #6b7280;
+        --radius: 12px;
+        --pad: 18px;
+      }
 
-  body{
-    margin:0;
-    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-    background: linear-gradient(180deg, #f7fbff 0%, var(--bg) 100%);
-    color:#0b1220;
-    -webkit-font-smoothing:antialiased;
-    -moz-osx-font-smoothing:grayscale;
-    padding:28px;
-    box-sizing:border-box;
-  }
+      body {
+        margin: 0;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+          Roboto, "Helvetica Neue", Arial;
+        background: linear-gradient(180deg, #f7fbff 0%, var(--bg) 100%);
+        color: #0b1220;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        padding: 28px;
+        box-sizing: border-box;
+      }
 
-  .ccc__container{
-    max-width:1100px;
-    margin:0 auto;
-    background:var(--card);
-    border-radius:var(--radius);
-    padding:28px;
-    box-shadow:0 8px 30px rgba(13,38,76,0.08);
-  }
+      .ccc__container {
+        max-width: 1100px;
+        margin: 0 auto;
+        background: var(--card);
+        border-radius: var(--radius);
+        padding: 28px;
+        box-shadow: 0 8px 30px rgba(13, 38, 76, 0.08);
+      }
 
-  .ccc__head{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:12px;
-    margin-bottom:18px;
-  }
-  .ccc__title{
-    font-size:20px;
-    font-weight:700;
-    letter-spacing:0.2px;
-  }
-  .ccc__subtitle{
-    color:var(--muted);
-    font-size:13px;
-    margin-top:4px;
-  }
+      .ccc__head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+      .ccc__title {
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: 0.2px;
+      }
+      .ccc__subtitle {
+        color: var(--muted);
+        font-size: 13px;
+        margin-top: 4px;
+      }
 
-  .ccc__controls{
-    display:flex;
-    gap:10px;
-    align-items:center;
-    flex-wrap:wrap;
-  }
+      .ccc__controls {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
 
-  .ccc__btn{
-    background:var(--accent);
-    color:white;
-    border:none;
-    padding:10px 14px;
-    border-radius:10px;
-    cursor:pointer;
-    font-weight:600;
-    box-shadow:0 6px 14px rgba(43,123,228,0.18);
-  }
-  .ccc__btn:active{ transform:translateY(1px) }
+      .ccc__btn {
+        background: var(--accent);
+        color: white;
+        border: none;
+        padding: 10px 14px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: 600;
+        box-shadow: 0 6px 14px rgba(43, 123, 228, 0.18);
+      }
+      .ccc__btn:active {
+        transform: translateY(1px);
+      }
 
-  .ccc__secondary{
-    background:transparent;
-    border: 1px solid #d9e6ff;
-    color:var(--accent);
-    padding:8px 12px;
-    border-radius:10px;
-    cursor:pointer;
-  }
+      .ccc__secondary {
+        background: transparent;
+        border: 1px solid #d9e6ff;
+        color: var(--accent);
+        padding: 8px 12px;
+        border-radius: 10px;
+        cursor: pointer;
+      }
 
-  .ccc__row{
-    display:flex;
-    gap:18px;
-    align-items:flex-start;
-    flex-wrap:wrap;
-  }
+      .ccc__row {
+        display: flex;
+        gap: 18px;
+        align-items: flex-start;
+        flex-wrap: wrap;
+      }
 
-  .ccc__left, .ccc__right{
-    flex:1 1 420px;
-    min-width:260px;
-  }
+      .ccc__left,
+      .ccc__right {
+        flex: 1 1 420px;
+        min-width: 260px;
+      }
 
-  .ccc__drop{
-    border:2px dashed #dbeeff;
-    border-radius:12px;
-    padding:18px;
-    text-align:center;
-    background:linear-gradient(180deg, rgba(235,249,255,0.6), rgba(245,250,255,0.4));
-    cursor:pointer;
-  }
-  .ccc__drop.dragover{
-    border-color:var(--accent);
-    box-shadow:0 6px 20px rgba(43,123,228,0.08) inset;
-  }
+      .ccc__drop {
+        border: 2px dashed #dbeeff;
+        border-radius: 12px;
+        padding: 18px;
+        text-align: center;
+        background: linear-gradient(
+          180deg,
+          rgba(235, 249, 255, 0.6),
+          rgba(245, 250, 255, 0.4)
+        );
+        cursor: pointer;
+      }
+      .ccc__drop.dragover {
+        border-color: var(--accent);
+        box-shadow: 0 6px 20px rgba(43, 123, 228, 0.08) inset;
+      }
 
-  .ccc__input{
-    display:none;
-  }
+      .ccc__input {
+        display: none;
+      }
 
-  .ccc__canvasWrap{
-    display:flex;
-    gap:12px;
-    align-items:center;
-    justify-content:center;
-    flex-wrap:wrap;
-    margin-top:14px;
-  }
+      .ccc__canvasWrap {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 14px;
+      }
 
-  canvas{
-    border-radius:10px;
-    box-shadow:0 6px 18px rgba(15,35,70,0.06);
-    max-width:100%;
-    height:auto;
-    background:white;
-  }
+      canvas {
+        border-radius: 10px;
+        box-shadow: 0 6px 18px rgba(15, 35, 70, 0.06);
+        max-width: 100%;
+        height: auto;
+        background: white;
+      }
 
-  .ccc__panel{
-    background:linear-gradient(180deg, #ffffff, #fcfeff);
-    padding:12px;
-    border-radius:12px;
-    border:1px solid #f0f6ff;
-    margin-top:12px;
-  }
+      .ccc__panel {
+        background: linear-gradient(180deg, #ffffff, #fcfeff);
+        padding: 12px;
+        border-radius: 12px;
+        border: 1px solid #f0f6ff;
+        margin-top: 12px;
+      }
 
-  .ccc__label{
-    font-size:13px;
-    color:var(--muted);
-    margin-bottom:8px;
-  }
+      .ccc__label {
+        font-size: 13px;
+        color: var(--muted);
+        margin-bottom: 8px;
+      }
 
-  .ccc__range{
-    width:100%;
-  }
+      .ccc__range {
+        width: 100%;
+      }
 
-  .ccc__footer{
-    margin-top:16px;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:12px;
-    flex-wrap:wrap;
-  }
+      .ccc__footer {
+        margin-top: 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
 
-  .ccc__small{
-    font-size:13px;
-    color:var(--muted);
-  }
+      .ccc__small {
+        font-size: 13px;
+        color: var(--muted);
+      }
 
-  .ccc__download{
-    background:linear-gradient(90deg,var(--accent),#2fa0ff);
-    padding:10px 14px;
-    border-radius:10px;
-    border:none;
-    color:white;
-    cursor:pointer;
-  }
+      .ccc__download {
+        background: linear-gradient(90deg, var(--accent), #2fa0ff);
+        padding: 10px 14px;
+        border-radius: 10px;
+        border: none;
+        color: white;
+        cursor: pointer;
+      }
 
-  /* small responsive tweaks */
-  @media (max-width:880px){
-    .ccc__row{ flex-direction:column; }
-    .ccc__head{ flex-direction:column; align-items:flex-start; gap:6px; }
-  }
-</style>
-</head>
-<body>
-  <div class="ccc__container" role="main">
-    <div class="ccc__head">
-      <div>
-        <div class="ccc__title">Sobel Edge Detector</div>
-        <div class="ccc__subtitle">Upload an image (or drag & drop). Adjust threshold and save the outline.</div>
+      /* small responsive tweaks */
+      @media (max-width: 880px) {
+        .ccc__row {
+          flex-direction: column;
+        }
+        .ccc__head {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 6px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ccc__container" role="main">
+      <div class="ccc__head">
+        <div>
+          <div class="ccc__title">Sobel Edge Detector</div>
+          <div class="ccc__subtitle">
+            Upload an image (or drag & drop). Adjust threshold and save the
+            outline.
+          </div>
+        </div>
+
+        <div class="ccc__controls" aria-hidden="false">
+          <label class="ccc__secondary" for="ccc__fileInput"
+            >Choose Image</label
+          >
+          <input
+            id="ccc__fileInput"
+            class="ccc__input"
+            type="file"
+            accept="image/*"
+          />
+
+          <button id="ccc__btnClear" class="ccc__secondary">Clear</button>
+          <button id="ccc__downloadBtn" class="ccc__download">
+            Download Result
+          </button>
+        </div>
       </div>
 
-      <div class="ccc__controls" aria-hidden="false">
-        <label class="ccc__secondary" for="ccc__fileInput">Choose Image</label>
-        <input id="ccc__fileInput" class="ccc__input" type="file" accept="image/*">
+      <div class="ccc__row">
+        <div class="ccc__left">
+          <div id="ccc__dropArea" class="ccc__drop" tabindex="0">
+            <div style="font-weight: 600; font-size: 15px; color: #064ea2">
+              Drop image here or click to choose
+            </div>
+            <div style="color: var(--muted); margin-top: 8px; font-size: 13px">
+              Supports JPG, PNG. Max display size will fit the canvas.
+            </div>
 
-        <button id="ccc__btnClear" class="ccc__secondary">Clear</button>
-        <button id="ccc__downloadBtn" class="ccc__download">Download Result</button>
+            <div
+              class="ccc__canvasWrap"
+              id="ccc__previewWrap"
+              style="display: none"
+            >
+              <canvas
+                id="ccc__origCanvas"
+                width="600"
+                height="400"
+                title="Original image"
+              ></canvas>
+            </div>
+          </div>
+
+          <div class="ccc__panel">
+            <div class="ccc__label">Sobel settings</div>
+            <div
+              style="
+                display: flex;
+                gap: 10px;
+                align-items: center;
+                margin-bottom: 10px;
+              "
+            >
+              <div style="flex: 1">
+                <div class="ccc__label">
+                  Edge Threshold: <span id="ccc__thVal">80</span>
+                </div>
+                <input
+                  id="ccc__threshold"
+                  class="ccc__range"
+                  type="range"
+                  min="0"
+                  max="255"
+                  value="80"
+                />
+              </div>
+              <div style="width: 120px; text-align: center">
+                <div class="ccc__label">Invert</div>
+                <label
+                  style="
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 8px;
+                    cursor: pointer;
+                  "
+                >
+                  <input type="checkbox" id="ccc__invert" />
+                  <span style="font-size: 13px; color: var(--muted)"
+                    >invert</span
+                  >
+                </label>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; align-items: center">
+              <button id="ccc__applyBtn" class="ccc__btn">Apply Sobel</button>
+              <button id="ccc__gaussBtn" class="ccc__secondary">
+                Grayscale + Smooth
+              </button>
+              <button id="ccc__autoBtn" class="ccc__secondary">
+                Auto Contrast
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="ccc__right">
+          <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px">
+            Result
+          </div>
+          <div
+            style="
+              display: flex;
+              gap: 12px;
+              align-items: center;
+              flex-wrap: wrap;
+            "
+          >
+            <canvas
+              id="ccc__edgeCanvas"
+              width="600"
+              height="400"
+              title="Sobel edges"
+            ></canvas>
+          </div>
+
+          <div class="ccc__footer">
+            <div class="ccc__small">
+              Tip: Use a photo with good contrast. Slide threshold for
+              thicker/thinner lines.
+            </div>
+            <div style="display: flex; gap: 10px">
+              <button id="ccc__downloadEdge" class="ccc__download">
+                Download PNG
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="ccc__row">
-      <div class="ccc__left">
-        <div id="ccc__dropArea" class="ccc__drop" tabindex="0">
-          <div style="font-weight:600; font-size:15px; color:#064ea2">Drop image here or click to choose</div>
-          <div style="color:var(--muted); margin-top:8px; font-size:13px">Supports JPG, PNG. Max display size will fit the canvas.</div>
-
-          <div class="ccc__canvasWrap" id="ccc__previewWrap" style="display:none;">
-            <canvas id="ccc__origCanvas" width="600" height="400" title="Original image"></canvas>
-          </div>
-        </div>
-
-        <div class="ccc__panel">
-          <div class="ccc__label">Sobel settings</div>
-          <div style="display:flex; gap:10px; align-items:center; margin-bottom:10px;">
-            <div style="flex:1">
-              <div class="ccc__label">Edge Threshold: <span id="ccc__thVal">80</span></div>
-              <input id="ccc__threshold" class="ccc__range" type="range" min="0" max="255" value="80">
-            </div>
-            <div style="width:120px; text-align:center;">
-              <div class="ccc__label">Invert</div>
-              <label style="display:inline-flex; align-items:center; gap:8px; cursor:pointer;">
-                <input type="checkbox" id="ccc__invert">
-                <span style="font-size:13px; color:var(--muted)">invert</span>
-              </label>
-            </div>
-          </div>
-
-          <div style="display:flex; gap:10px; align-items:center;">
-            <button id="ccc__applyBtn" class="ccc__btn">Apply Sobel</button>
-            <button id="ccc__gaussBtn" class="ccc__secondary">Grayscale + Smooth</button>
-            <button id="ccc__autoBtn" class="ccc__secondary">Auto Contrast</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="ccc__right">
-        <div style="font-weight:600; font-size:14px; margin-bottom:8px">Result</div>
-        <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-          <canvas id="ccc__edgeCanvas" width="600" height="400" title="Sobel edges"></canvas>
-        </div>
-
-        <div class="ccc__footer">
-          <div class="ccc__small">Tip: Use a photo with good contrast. Slide threshold for thicker/thinner lines.</div>
-          <div style="display:flex; gap:10px;">
-            <button id="ccc__downloadEdge" class="ccc__download">Download PNG</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-  </div>
-
-<script>
-/*
+    <script>
+      /*
   Sobel Edge Detector - pure JS
   - Grayscale
   - 3x3 Sobel kernels (Gx, Gy)
@@ -254,303 +341,335 @@
   All classes/IDs prefixed with ccc__ as requested.
 */
 
-const fileInput = document.getElementById('ccc__fileInput');
-const dropArea = document.getElementById('ccc__dropArea');
-const origCanvas = document.getElementById('ccc__origCanvas');
-const edgeCanvas = document.getElementById('ccc__edgeCanvas');
-const previewWrap = document.getElementById('ccc__previewWrap');
+      const fileInput = document.getElementById("ccc__fileInput");
+      const dropArea = document.getElementById("ccc__dropArea");
+      const origCanvas = document.getElementById("ccc__origCanvas");
+      const edgeCanvas = document.getElementById("ccc__edgeCanvas");
+      const previewWrap = document.getElementById("ccc__previewWrap");
 
-const ctxOrig = origCanvas.getContext('2d', { willReadFrequently: true });
-const ctxEdge = edgeCanvas.getContext('2d', { willReadFrequently: true });
+      const ctxOrig = origCanvas.getContext("2d", { willReadFrequently: true });
+      const ctxEdge = edgeCanvas.getContext("2d", { willReadFrequently: true });
 
-const thresholdSlider = document.getElementById('ccc__threshold');
-const thVal = document.getElementById('ccc__thVal');
-const invertCheckbox = document.getElementById('ccc__invert');
+      const thresholdSlider = document.getElementById("ccc__threshold");
+      const thVal = document.getElementById("ccc__thVal");
+      const invertCheckbox = document.getElementById("ccc__invert");
 
-const applyBtn = document.getElementById('ccc__applyBtn');
-const clearBtn = document.getElementById('ccc__btnClear');
-const downloadBtn = document.getElementById('ccc__downloadBtn');
-const downloadEdgeBtn = document.getElementById('ccc__downloadEdge');
-const gaussBtn = document.getElementById('ccc__gaussBtn');
-const autoBtn = document.getElementById('ccc__autoBtn');
+      const applyBtn = document.getElementById("ccc__applyBtn");
+      const clearBtn = document.getElementById("ccc__btnClear");
+      const downloadBtn = document.getElementById("ccc__downloadBtn");
+      const downloadEdgeBtn = document.getElementById("ccc__downloadEdge");
+      const gaussBtn = document.getElementById("ccc__gaussBtn");
+      const autoBtn = document.getElementById("ccc__autoBtn");
 
-let loadedImage = null;
+      let loadedImage = null;
 
-// Utility: load File -> Image
-function loadFileToImage(file){
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
-    img.onerror = (e) => { URL.revokeObjectURL(url); reject(e); };
-    img.src = url;
-  });
-}
+      // Utility: load File -> Image
+      function loadFileToImage(file) {
+        return new Promise((resolve, reject) => {
+          const url = URL.createObjectURL(file);
+          const img = new Image();
+          img.onload = () => {
+            URL.revokeObjectURL(url);
+            resolve(img);
+          };
+          img.onerror = (e) => {
+            URL.revokeObjectURL(url);
+            reject(e);
+          };
+          img.src = url;
+        });
+      }
 
-async function handleFile(file){
-  try {
-    const img = await loadFileToImage(file);
-    loadedImage = img;
-    drawOriginal(img);
-    // auto-run Sobel for convenience
-    applySobel();
-  } catch(e) {
-    alert('Failed to load image: ' + e);
-  }
-}
-
-function drawOriginal(img){
-  // fit into canvas while preserving aspect ratio
-  const maxW = 900; // display cap (canvas will scale)
-  const maxH = 700;
-  let w = img.width, h = img.height;
-  const scale = Math.min(maxW / w, maxH / h, 1.0);
-  w = Math.round(w * scale);
-  h = Math.round(h * scale);
-
-  origCanvas.width = w;
-  origCanvas.height = h;
-  edgeCanvas.width = w;
-  edgeCanvas.height = h;
-
-  ctxOrig.clearRect(0,0,origCanvas.width, origCanvas.height);
-  ctxOrig.drawImage(img, 0, 0, w, h);
-  previewWrap.style.display = 'flex';
-}
-
-// Drag & drop handlers
-['dragenter','dragover'].forEach(name=>{
-  dropArea.addEventListener(name, (e)=>{
-    e.preventDefault();
-    e.stopPropagation();
-    dropArea.classList.add('dragover');
-  }, false);
-});
-['dragleave','drop'].forEach(name=>{
-  dropArea.addEventListener(name, (e)=>{
-    e.preventDefault();
-    e.stopPropagation();
-    dropArea.classList.remove('dragover');
-  }, false);
-});
-
-dropArea.addEventListener('drop', (e)=>{
-  const dt = e.dataTransfer;
-  if (!dt) return;
-  const file = dt.files[0];
-  if (file) handleFile(file);
-});
-
-dropArea.addEventListener('click', ()=> fileInput.click());
-fileInput.addEventListener('change', (e)=>{
-  const f = e.target.files && e.target.files[0];
-  if (f) handleFile(f);
-});
-
-thresholdSlider.addEventListener('input', ()=>{
-  thVal.innerText = thresholdSlider.value;
-});
-
-applyBtn.addEventListener('click', applySobel);
-clearBtn.addEventListener('click', clearAll);
-downloadBtn.addEventListener('click', downloadCombined);
-downloadEdgeBtn.addEventListener('click', downloadEdge);
-
-gaussBtn.addEventListener('click', () => {
-  if(!loadedImage){ alert('Load an image first'); return; }
-  // apply a simple box blur (3x3) on grayscale to slightly denoise
-  const imgData = ctxOrig.getImageData(0,0,origCanvas.width, origCanvas.height);
-  const gs = toGrayscaleArray(imgData);
-  const sm = boxBlur(gs, origCanvas.width, origCanvas.height);
-  writeGrayToCanvas(sm, ctxOrig, origCanvas.width, origCanvas.height);
-});
-
-autoBtn.addEventListener('click', () => {
-  if(!loadedImage){ alert('Load an image first'); return; }
-  autoContrast(ctxOrig, origCanvas.width, origCanvas.height);
-});
-
-// --- Image processing helpers ---
-
-function clearAll(){
-  ctxOrig.clearRect(0,0,origCanvas.width, origCanvas.height);
-  ctxEdge.clearRect(0,0,edgeCanvas.width, edgeCanvas.height);
-  previewWrap.style.display = 'none';
-  fileInput.value = '';
-  loadedImage = null;
-}
-
-function downloadEdge(){
-  const link = document.createElement('a');
-  link.download = 'sobel-edge.png';
-  link.href = edgeCanvas.toDataURL('image/png');
-  link.click();
-}
-function downloadCombined(){
-  // create a temporary combined canvas with original + edges side-by-side
-  const w = origCanvas.width, h = origCanvas.height;
-  const comb = document.createElement('canvas');
-  comb.width = w * 2 + 20;
-  comb.height = h;
-  const c = comb.getContext('2d');
-  c.fillStyle = '#ffffff';
-  c.fillRect(0,0,comb.width, comb.height);
-  c.drawImage(origCanvas, 0, 0);
-  c.drawImage(edgeCanvas, w + 20, 0);
-  const link = document.createElement('a');
-  link.download = 'sobel-combined.png';
-  link.href = comb.toDataURL('image/png');
-  link.click();
-}
-
-// Convert imageData to grayscale numeric array (Uint8ClampedArray) - length = w*h
-function toGrayscaleArray(imageData){
-  const { data, width, height } = imageData;
-  const out = new Uint8ClampedArray(width * height);
-  for (let i = 0, j = 0; i < data.length; i += 4, j++){
-    // Rec 709 luma: 0.2126 R + 0.7152 G + 0.0722 B - gives good perceptual brightness
-    out[j] = Math.round(0.2126 * data[i] + 0.7152 * data[i+1] + 0.0722 * data[i+2]);
-  }
-  return out;
-}
-
-// Write grayscale array back to a canvas context (RGBA)
-function writeGrayToCanvas(grayArr, ctx, width, height){
-  const img = ctx.createImageData(width, height);
-  for (let i = 0, j = 0; j < grayArr.length; i += 4, j++){
-    const v = grayArr[j];
-    img.data[i] = v;
-    img.data[i+1] = v;
-    img.data[i+2] = v;
-    img.data[i+3] = 255;
-  }
-  ctx.putImageData(img, 0, 0);
-}
-
-// 3x3 box blur (simple)
-function boxBlur(gray, w, h){
-  const out = new Uint8ClampedArray(w*h);
-  for (let y=0;y<h;y++){
-    for (let x=0;x<w;x++){
-      let sum=0, cnt=0;
-      for (let ky=-1; ky<=1; ky++){
-        for (let kx=-1; kx<=1; kx++){
-          const nx = x + kx, ny = y + ky;
-          if (nx >=0 && nx < w && ny >=0 && ny < h){
-            sum += gray[ny*w + nx];
-            cnt++;
-          }
+      async function handleFile(file) {
+        try {
+          const img = await loadFileToImage(file);
+          loadedImage = img;
+          drawOriginal(img);
+          // auto-run Sobel for convenience
+          applySobel();
+        } catch (e) {
+          alert("Failed to load image: " + e);
         }
       }
-      out[y*w + x] = Math.round(sum / cnt);
-    }
-  }
-  return out;
-}
 
-// Auto contrast (stretch histogram to full 0-255)
-function autoContrast(ctx, w, h){
-  const img = ctx.getImageData(0,0,w,h);
-  const gray = toGrayscaleArray(img);
-  let min=255, max=0;
-  for (let i=0;i<gray.length;i++){
-    if (gray[i] < min) min = gray[i];
-    if (gray[i] > max) max = gray[i];
-  }
-  if (max === min) return;
-  const scale = 255 / (max - min);
-  const out = new Uint8ClampedArray(gray.length);
-  for (let i=0;i<gray.length;i++){
-    out[i] = Math.min(255, Math.max(0, Math.round((gray[i] - min) * scale)));
-  }
-  writeGrayToCanvas(out, ctx, w, h);
-}
+      function drawOriginal(img) {
+        // fit into canvas while preserving aspect ratio
+        const maxW = 900; // display cap (canvas will scale)
+        const maxH = 700;
+        let w = img.width,
+          h = img.height;
+        const scale = Math.min(maxW / w, maxH / h, 1.0);
+        w = Math.round(w * scale);
+        h = Math.round(h * scale);
 
-// Main: apply Sobel
-function applySobel(){
-  if(!loadedImage){
-    alert('Please load an image first (drag & drop or choose file).');
-    return;
-  }
+        origCanvas.width = w;
+        origCanvas.height = h;
+        edgeCanvas.width = w;
+        edgeCanvas.height = h;
 
-  // Get grayscale of current origCanvas (user may have applied smoothing)
-  const width = origCanvas.width;
-  const height = origCanvas.height;
-  const origImageData = ctxOrig.getImageData(0,0,width,height);
-  const gray = toGrayscaleArray(origImageData);
+        ctxOrig.clearRect(0, 0, origCanvas.width, origCanvas.height);
+        ctxOrig.drawImage(img, 0, 0, w, h);
+        previewWrap.style.display = "flex";
+      }
 
-  // Sobel kernels (standard)
-  // Gx = [-1 0 +1; -2 0 +2; -1 0 +1]
-  // Gy = [-1 -2 -1; 0 0 0; +1 +2 +1]
-  const gxK = [-1,0,1, -2,0,2, -1,0,1];
-  const gyK = [-1,-2,-1, 0,0,0, 1,2,1];
+      // Drag & drop handlers
+      ["dragenter", "dragover"].forEach((name) => {
+        dropArea.addEventListener(
+          name,
+          (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropArea.classList.add("dragover");
+          },
+          false
+        );
+      });
+      ["dragleave", "drop"].forEach((name) => {
+        dropArea.addEventListener(
+          name,
+          (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropArea.classList.remove("dragover");
+          },
+          false
+        );
+      });
 
-  // output array
-  const out = new Uint8ClampedArray(width * height);
+      dropArea.addEventListener("drop", (e) => {
+        const dt = e.dataTransfer;
+        if (!dt) return;
+        const file = dt.files[0];
+        if (file) handleFile(file);
+      });
 
-  // For boundary pixels, we can skip or clamp. We'll clamp by checking bounds.
-  for (let y=0; y<height; y++){
-    for (let x=0; x<width; x++){
-      let gx = 0, gy = 0;
-      let k = 0;
-      for (let ky=-1; ky<=1; ky++){
-        for (let kx=-1; kx<=1; kx++, k++){
-          const nx = x + kx;
-          const ny = y + ky;
-          if (nx >= 0 && nx < width && ny >= 0 && ny < height){
-            const val = gray[ny * width + nx];
-            gx += val * gxK[k];
-            gy += val * gyK[k];
+      dropArea.addEventListener("click", () => fileInput.click());
+      fileInput.addEventListener("change", (e) => {
+        const f = e.target.files && e.target.files[0];
+        if (f) handleFile(f);
+      });
+
+      thresholdSlider.addEventListener("input", () => {
+        thVal.innerText = thresholdSlider.value;
+      });
+
+      applyBtn.addEventListener("click", applySobel);
+      clearBtn.addEventListener("click", clearAll);
+      downloadBtn.addEventListener("click", downloadCombined);
+      downloadEdgeBtn.addEventListener("click", downloadEdge);
+
+      gaussBtn.addEventListener("click", () => {
+        if (!loadedImage) {
+          alert("Load an image first");
+          return;
+        }
+        // apply a simple box blur (3x3) on grayscale to slightly denoise
+        const imgData = ctxOrig.getImageData(
+          0,
+          0,
+          origCanvas.width,
+          origCanvas.height
+        );
+        const gs = toGrayscaleArray(imgData);
+        const sm = boxBlur(gs, origCanvas.width, origCanvas.height);
+        writeGrayToCanvas(sm, ctxOrig, origCanvas.width, origCanvas.height);
+      });
+
+      autoBtn.addEventListener("click", () => {
+        if (!loadedImage) {
+          alert("Load an image first");
+          return;
+        }
+        autoContrast(ctxOrig, origCanvas.width, origCanvas.height);
+      });
+
+      // --- Image processing helpers ---
+
+      function clearAll() {
+        ctxOrig.clearRect(0, 0, origCanvas.width, origCanvas.height);
+        ctxEdge.clearRect(0, 0, edgeCanvas.width, edgeCanvas.height);
+        previewWrap.style.display = "none";
+        fileInput.value = "";
+        loadedImage = null;
+      }
+
+      function downloadEdge() {
+        const link = document.createElement("a");
+        link.download = "sobel-edge.png";
+        link.href = edgeCanvas.toDataURL("image/png");
+        link.click();
+      }
+      function downloadCombined() {
+        // create a temporary combined canvas with original + edges side-by-side
+        const w = origCanvas.width,
+          h = origCanvas.height;
+        const comb = document.createElement("canvas");
+        comb.width = w * 2 + 20;
+        comb.height = h;
+        const c = comb.getContext("2d");
+        c.fillStyle = "#ffffff";
+        c.fillRect(0, 0, comb.width, comb.height);
+        c.drawImage(origCanvas, 0, 0);
+        c.drawImage(edgeCanvas, w + 20, 0);
+        const link = document.createElement("a");
+        link.download = "sobel-combined.png";
+        link.href = comb.toDataURL("image/png");
+        link.click();
+      }
+
+      // Convert imageData to grayscale numeric array (Uint8ClampedArray) - length = w*h
+      function toGrayscaleArray(imageData) {
+        const { data, width, height } = imageData;
+        const out = new Uint8ClampedArray(width * height);
+        for (let i = 0, j = 0; i < data.length; i += 4, j++) {
+          // Rec 709 luma: 0.2126 R + 0.7152 G + 0.0722 B - gives good perceptual brightness
+          out[j] = Math.round(
+            0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2]
+          );
+        }
+        return out;
+      }
+
+      // Write grayscale array back to a canvas context (RGBA)
+      function writeGrayToCanvas(grayArr, ctx, width, height) {
+        const img = ctx.createImageData(width, height);
+        for (let i = 0, j = 0; j < grayArr.length; i += 4, j++) {
+          const v = grayArr[j];
+          img.data[i] = v;
+          img.data[i + 1] = v;
+          img.data[i + 2] = v;
+          img.data[i + 3] = 255;
+        }
+        ctx.putImageData(img, 0, 0);
+      }
+
+      // 3x3 box blur (simple)
+      function boxBlur(gray, w, h) {
+        const out = new Uint8ClampedArray(w * h);
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            let sum = 0,
+              cnt = 0;
+            for (let ky = -1; ky <= 1; ky++) {
+              for (let kx = -1; kx <= 1; kx++) {
+                const nx = x + kx,
+                  ny = y + ky;
+                if (nx >= 0 && nx < w && ny >= 0 && ny < h) {
+                  sum += gray[ny * w + nx];
+                  cnt++;
+                }
+              }
+            }
+            out[y * w + x] = Math.round(sum / cnt);
           }
         }
+        return out;
       }
-      // magnitude
-      // We compute sqrt(gx^2 + gy^2). For performance you could use abs(gx)+abs(gy) approximation.
-      const mag = Math.hypot(gx, gy); // same as sqrt(gx*gx+gy*gy)
-      out[y * width + x] = mag;
-    }
-  }
 
-  // Normalize magnitudes to 0-255
-  let maxMag = 0;
-  for (let i=0;i<out.length;i++) if (out[i] > maxMag) maxMag = out[i];
-  const norm = new Uint8ClampedArray(out.length);
-  if (maxMag === 0){
-    // blank image
-    for (let i=0;i<out.length;i++) norm[i] = 0;
-  } else {
-    const invMax = 255 / maxMag;
-    for (let i=0;i<out.length;i++){
-      norm[i] = Math.round(out[i] * invMax);
-    }
-  }
+      // Auto contrast (stretch histogram to full 0-255)
+      function autoContrast(ctx, w, h) {
+        const img = ctx.getImageData(0, 0, w, h);
+        const gray = toGrayscaleArray(img);
+        let min = 255,
+          max = 0;
+        for (let i = 0; i < gray.length; i++) {
+          if (gray[i] < min) min = gray[i];
+          if (gray[i] > max) max = gray[i];
+        }
+        if (max === min) return;
+        const scale = 255 / (max - min);
+        const out = new Uint8ClampedArray(gray.length);
+        for (let i = 0; i < gray.length; i++) {
+          out[i] = Math.min(
+            255,
+            Math.max(0, Math.round((gray[i] - min) * scale))
+          );
+        }
+        writeGrayToCanvas(out, ctx, w, h);
+      }
 
-  // Thresholding
-  const thresh = parseInt(thresholdSlider.value, 10) || 0;
-  const invert = invertCheckbox.checked;
-  const finalArr = new Uint8ClampedArray(norm.length);
-  for (let i=0;i<norm.length;i++){
-    const v = norm[i] >= thresh ? 255 : 0;
-    finalArr[i] = invert ? 255 - v : v;
-  }
+      // Main: apply Sobel
+      function applySobel() {
+        if (!loadedImage) {
+          alert("Please load an image first (drag & drop or choose file).");
+          return;
+        }
 
-  // Draw to edge canvas
-  writeGrayToCanvas(finalArr, ctxEdge, width, height);
-}
+        // Get grayscale of current origCanvas (user may have applied smoothing)
+        const width = origCanvas.width;
+        const height = origCanvas.height;
+        const origImageData = ctxOrig.getImageData(0, 0, width, height);
+        const gray = toGrayscaleArray(origImageData);
 
-// Accessibility: keyboard open file on Enter in drop area
-dropArea.addEventListener('keydown', (e)=>{
-  if (e.key === 'Enter' || e.key === ' ') {
-    e.preventDefault();
-    fileInput.click();
-  }
-});
+        // Sobel kernels (standard)
+        // Gx = [-1 0 +1; -2 0 +2; -1 0 +1]
+        // Gy = [-1 -2 -1; 0 0 0; +1 +2 +1]
+        const gxK = [-1, 0, 1, -2, 0, 2, -1, 0, 1];
+        const gyK = [-1, -2, -1, 0, 0, 0, 1, 2, 1];
 
-</script>
-<script src='https://programmer-s-picnic.github.io/json-images/find-on-page.js'></script>
-</body>
+        // output array
+        const out = new Uint8ClampedArray(width * height);
+
+        // For boundary pixels, we can skip or clamp. We'll clamp by checking bounds.
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            let gx = 0,
+              gy = 0;
+            let k = 0;
+            for (let ky = -1; ky <= 1; ky++) {
+              for (let kx = -1; kx <= 1; kx++, k++) {
+                const nx = x + kx;
+                const ny = y + ky;
+                if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                  const val = gray[ny * width + nx];
+                  gx += val * gxK[k];
+                  gy += val * gyK[k];
+                }
+              }
+            }
+            // magnitude
+            // We compute sqrt(gx^2 + gy^2). For performance you could use abs(gx)+abs(gy) approximation.
+            const mag = Math.hypot(gx, gy); // same as sqrt(gx*gx+gy*gy)
+            out[y * width + x] = mag;
+          }
+        }
+
+        // Normalize magnitudes to 0-255
+        let maxMag = 0;
+        for (let i = 0; i < out.length; i++)
+          if (out[i] > maxMag) maxMag = out[i];
+        const norm = new Uint8ClampedArray(out.length);
+        if (maxMag === 0) {
+          // blank image
+          for (let i = 0; i < out.length; i++) norm[i] = 0;
+        } else {
+          const invMax = 255 / maxMag;
+          for (let i = 0; i < out.length; i++) {
+            norm[i] = Math.round(out[i] * invMax);
+          }
+        }
+
+        // Thresholding
+        const thresh = parseInt(thresholdSlider.value, 10) || 0;
+        const invert = invertCheckbox.checked;
+        const finalArr = new Uint8ClampedArray(norm.length);
+        for (let i = 0; i < norm.length; i++) {
+          const v = norm[i] >= thresh ? 255 : 0;
+          finalArr[i] = invert ? 255 - v : v;
+        }
+
+        // Draw to edge canvas
+        writeGrayToCanvas(finalArr, ctxEdge, width, height);
+      }
+
+      // Accessibility: keyboard open file on Enter in drop area
+      dropArea.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          fileInput.click();
+        }
+      });
+    </script>
+    <script src="https://programmer-s-picnic.github.io/json-images/find-on-page.js"></script>
+  </body>
 </html>
-
-
-
-
