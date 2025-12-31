@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <title>Day 3 – Arithmetic Operators | Python Starter Club</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Day 3 Python arithmetic operators with comics, BODMAS, step-by-step evaluator, stack view, and Pyodide.">
+<meta name="description" content="Day 3 Python arithmetic operators with comics, BODMAS, full step-by-step evaluation, and Pyodide editor.">
 <meta name="author" content="Champak Roy">
 
 <style>
@@ -59,8 +59,11 @@ textarea{min-height:150px;font-family:Consolas,monospace}
   background:#0b1220;color:#f9fafb;border-radius:12px;
   padding:14px;font-family:Consolas,monospace
 }
-.hl{background:rgba(245,158,11,.25);padding:0 4px;border-radius:6px}
 .status{font-size:13px;border:1px dashed var(--border);padding:8px;border-radius:10px}
+.stepsList{
+  background:#fff7ed;border-radius:12px;padding:12px;
+  font-family:Consolas,monospace;font-size:14px
+}
 .footer{text-align:center;margin:30px 0;color:#555;font-size:14px}
 </style>
 </head>
@@ -71,7 +74,10 @@ textarea{min-height:150px;font-family:Consolas,monospace}
 <div class="hero">
 <h1>Day 3 — Arithmetic Operators</h1>
 <div class="sub">Python Starter Club • Programmer’s Picnic • Champak Roy</div>
-<p class="muted">Learn calculations, BODMAS, and how Python evaluates expressions.</p>
+<p class="muted">
+Python follows a fixed order while calculating.  
+We will now <b>see every step clearly</b>.
+</p>
 </div>
 
 <div class="grid grid-2">
@@ -114,20 +120,13 @@ Click Build Steps
 </div>
 
 <div class="exprBox" id="exprView" style="margin-top:10px">—</div>
+
+<h3 style="margin-top:16px">📋 All Steps</h3>
+<div class="stepsList" id="allSteps">
+Steps will appear here.
+</div>
 </div>
 
-</div>
-
-<!-- STACK -->
-<div class="card">
-<h2>📚 Calculation Stack (Concept)</h2>
-<div class="row">
-<div id="stackBox" class="exprBox" style="flex:1">Empty</div>
-<div style="flex:1">
-<div id="stackNote" class="status">Click Build Stack</div>
-<button class="btn secondary" id="btnBuildStack" style="margin-top:10px">Build Stack</button>
-</div>
-</div>
 </div>
 
 <!-- PYODIDE -->
@@ -159,6 +158,8 @@ Programmer’s Picnic • Champak Roy
 const exprInput=document.getElementById("exprInput");
 const view=document.getElementById("exprView");
 const status=document.getElementById("stepStatus");
+const allSteps=document.getElementById("allSteps");
+
 const btnBuild=document.getElementById("btnBuild");
 const btnPrev=document.getElementById("btnPrev");
 const btnNext=document.getElementById("btnNext");
@@ -172,54 +173,51 @@ function prec(o){return{"**":4,"*":3,"/":3,"//":3,"%":3,"+":2,"-":2}[o];}
 
 function reduceOnce(t){
 for(let p=4;p>=2;p--){
-for(let i=0;i<t.length;i++){
-let o=t[i]; if(prec(o)==p){
-let a=+t[i-1],b=+t[i+1],r;
+for(let j=0;j<t.length;j++){
+let o=t[j]; if(prec(o)==p){
+let a=+t[j-1],b=+t[j+1],r;
 if(o=="+")r=a+b; if(o=="-")r=a-b;
 if(o=="*")r=a*b; if(o=="/")r=a/b;
 if(o=="//")r=Math.floor(a/b);
 if(o=="%")r=a%b; if(o=="**")r=a**b;
-t.splice(i-1,3,r); return true;
+t.splice(j-1,3,r); return true;
 }}}return false;}
+
+function draw(){
+view.textContent=steps[i]||"—";
+status.textContent=`Step ${i+1}/${steps.length}`;
+btnPrev.disabled=i<=0;
+btnNext.disabled=i>=steps.length-1;
+btnReset.disabled=false;
+btnPlay.disabled=steps.length<=1;
+}
 
 btnBuild.onclick=()=>{
 steps=[]; i=0;
 let t=tokenize(exprInput.value); if(!t)return;
 steps.push(t.join(" "));
 while(reduceOnce(t))steps.push(t.join(" "));
+allSteps.innerHTML=steps.map((s,n)=>`Step ${n+1}: ${s}`).join("<br>");
 draw();
 };
-
-function draw(){
-view.textContent=steps[i]||"—";
-status.textContent=`Step ${i+1}/${steps.length}`;
-btnPrev.disabled=i<=0; btnNext.disabled=i>=steps.length-1;
-btnReset.disabled=false; btnPlay.disabled=steps.length<=1;
-}
 
 btnNext.onclick=()=>{if(i<steps.length-1){i++;draw();}};
 btnPrev.onclick=()=>{if(i>0){i--;draw();}};
 btnReset.onclick=()=>{i=0;draw();};
+
 btnPlay.onclick=()=>{
 if(timer){clearInterval(timer);timer=null;btnPlay.textContent="Play";return;}
 btnPlay.textContent="Pause";
-timer=setInterval(()=>{if(i>=steps.length-1){clearInterval(timer);timer=null;btnPlay.textContent="Play";}
-else{i++;draw();}},800);
+timer=setInterval(()=>{
+if(i>=steps.length-1){
+clearInterval(timer);timer=null;btnPlay.textContent="Play";
+}else{i++;draw();}
+},800);
 };
 })();
+</script>
 
-/* ===== STACK ===== */
-document.getElementById("btnBuildStack").onclick=()=>{
-const e=document.getElementById("exprInput").value.replace(/\s+/g,"");
-const box=document.getElementById("stackBox");
-box.innerHTML="";
-[...e].forEach(c=>{
-if("0123456789+-*/".includes(c)){
-let d=document.createElement("div");d.textContent=c;box.appendChild(d);
-}});
-document.getElementById("stackNote").textContent="Values & operators pushed to stack.";
-};
-
+<script>
 /* ===== PYODIDE ===== */
 (async()=>{
 let py=null;
