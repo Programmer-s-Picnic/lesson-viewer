@@ -1,265 +1,32 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Programmer’s Picnic – Learn Chess (Highlighted Moves)</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-
-<style>
-body{
-  margin:0;
-  font-family: system-ui, Segoe UI, Roboto, Arial;
-  background:#fffaf2;
-  color:#2b2b2b;
-}
-header{
-  background:linear-gradient(135deg,#ffedd5,#fde68a);
-  padding:14px;
-  text-align:center;
-  border-bottom:2px solid #f59e0b;
-}
-header h1{margin:0;color:#92400e}
-header p{margin:4px 0 0;font-size:13px;color:#7c2d12}
-
-main{
-  max-width:900px;
-  margin:auto;
-  padding:14px;
-  display:grid;
-  grid-template-columns:340px 1fr;
-  gap:14px;
-}
-@media(max-width:800px){
-  main{grid-template-columns:1fr}
-}
-
-.card{
-  background:#fff;
-  border-radius:14px;
-  box-shadow:0 10px 25px rgba(0,0,0,.1);
-  padding:14px;
-}
-
-#board{
-  width:320px;
-  height:320px;
-  margin:auto;
-  display:grid;
-  grid-template-columns:repeat(8,1fr);
-  border:6px solid rgba(255,153,51,.25);
-  border-radius:12px;
-  overflow:hidden;
-}
-
-.square{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:34px;
-  cursor:pointer;
-  user-select:none;
-}
-.light{background:#fef3c7}
-.dark{background:#d97706}
-
-.selected{
-  outline:4px solid #2563eb;
-}
-.valid{
-  box-shadow: inset 0 0 0 4px rgba(34,197,94,.9);
-}
-
-.lesson{
-  margin-top:10px;
-  padding:12px;
-  background:#fff7ed;
-  border:1px solid #f59e0b;
-  border-radius:10px;
-  font-size:14px;
-  line-height:1.6;
-}
-
-pre{
-  background:#fff;
-  border-radius:10px;
-  padding:10px;
-  border:1px solid #ddd;
-  font-size:12px;
-  white-space:pre-wrap;
-}
-</style>
-</head>
-
-<body>
-
-<header>
-  <h1>♟ Programmer’s Picnic – Learn Chess</h1>
-  <p>Click a piece → see valid moves → play</p>
-</header>
-
-<main>
-
-<div class="card">
-  <div id="board"></div>
-
-  <div style="margin-top:8px;font-size:14px">
-    <b>Status:</b> <span id="status">Your move (White)</span>
-  </div>
-</div>
-
-<div class="card">
-  <h3>Coach Champak 🧠</h3>
-  <div id="lesson" class="lesson">
-    Kisi piece par click karo. Green boxes valid moves dikhayenge.
-  </div>
-</div>
-
-</main>
-
-<script>
-/* =========================
-   BOARD + PIECES
-========================= */
-const pieces = {
-  r:"♜", n:"♞", b:"♝", q:"♛", k:"♚", p:"♟",
-  R:"♖", N:"♘", B:"♗", Q:"♕", K:"♔", P:"♙"
-};
-
-let boardState, selected, validMoves=[];
-
-const boardEl = document.getElementById("board");
-const statusEl = document.getElementById("status");
-const lessonEl = document.getElementById("lesson");
-
-function resetGame(){
-  boardState = [
-    "rnbqkbnr",
-    "pppppppp",
-    "........",
-    "........",
-    "........",
-    "........",
-    "PPPPPPPP",
-    "RNBQKBNR"
-  ];
-  selected = null;
-  validMoves = [];
-  drawBoard();
-}
-
-function drawBoard(){
-  boardEl.innerHTML="";
-  for(let r=0;r<8;r++){
-    for(let c=0;c<8;c++){
-      const sq = document.createElement("div");
-      sq.className = "square "+((r+c)%2?"dark":"light");
-      sq.dataset.r=r;
-      sq.dataset.c=c;
-
-      const piece = boardState[r][c];
-      if(piece!==".") sq.textContent = pieces[piece];
-
-      if(selected && selected.r===r && selected.c===c)
-        sq.classList.add("selected");
-
-      if(validMoves.some(m=>m.r===r && m.c===c))
-        sq.classList.add("valid");
-
-      sq.onclick = ()=>handleClick(r,c);
-      boardEl.appendChild(sq);
-    }
-  }
-}
-
 function handleClick(r,c){
-  const p = boardState[r][c];
 
-  // selecting a white piece
-  if(!selected){
-    if(p>="A" && p<="Z"){
-      selected={r,c};
-      validMoves = getValidMoves(p,r,c);
-      lessonEl.textContent = "Green squares = valid moves.";
+  // CASE 1: No piece selected yet → select white piece
+  if(selected === null){
+    const p = boardState[r][c];
+    if(p >= "A" && p <= "Z"){   // white piece only
+      selected = { r, c };
+      validMoves = getValidMoves(p, r, c);
+      lessonEl.textContent = "Green squares pe move kar sakte ho.";
     }
     drawBoard();
     return;
   }
 
-  // move only if valid
-  if(validMoves.some(m=>m.r===r && m.c===c)){
+  // CASE 2: Piece selected → try to move
+  if(validMoves.some(m => m.r === r && m.c === c)){
     boardState[r][c] = boardState[selected.r][selected.c];
     boardState[selected.r][selected.c] = ".";
-    selected=null;
-    validMoves=[];
-    lessonEl.textContent = "Good move! Computer thinking…";
+    selected = null;
+    validMoves = [];
+    lessonEl.textContent = "Good move! Computer soch raha hai…";
     drawBoard();
-    setTimeout(computerMove,500);
+    setTimeout(computerMove, 500);
     return;
   }
 
-  // reset selection
-  selected=null;
-  validMoves=[];
+  // CASE 3: Click elsewhere → cancel selection
+  selected = null;
+  validMoves = [];
+  lessonEl.textContent = "Selection cancel ho gaya.";
   drawBoard();
 }
-
-/* =========================
-   VALID MOVE LOGIC
-========================= */
-function getValidMoves(p,r,c){
-  const moves=[];
-  const isEmpty=(r,c)=>boardState[r][c]===".";
-  const isBlack=(r,c)=>boardState[r][c]>="a" && boardState[r][c]<="z";
-
-  // Pawn (White)
-  if(p==="P"){
-    if(r>0 && isEmpty(r-1,c)) moves.push({r:r-1,c});
-    if(r>0 && c>0 && isBlack(r-1,c-1)) moves.push({r:r-1,c:c-1});
-    if(r>0 && c<7 && isBlack(r-1,c+1)) moves.push({r:r-1,c:c+1});
-  }
-
-  // Rook
-  if(p==="R"){
-    for(let i=r-1;i>=0;i--) if(isEmpty(i,c)) moves.push({r:i,c}); else break;
-    for(let i=r+1;i<8;i++) if(isEmpty(i,c)) moves.push({r:i,c}); else break;
-    for(let i=c-1;i>=0;i--) if(isEmpty(r,i)) moves.push({r,c:i}); else break;
-    for(let i=c+1;i<8;i++) if(isEmpty(r,i)) moves.push({r,c:i}); else break;
-  }
-
-  // Knight
-  if(p==="N"){
-    [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]]
-      .forEach(d=>{
-        const nr=r+d[0], nc=c+d[1];
-        if(nr>=0&&nr<8&&nc>=0&&nc<8 &&
-          (isEmpty(nr,nc)||isBlack(nr,nc)))
-          moves.push({r:nr,c:nc});
-      });
-  }
-
-  return moves;
-}
-
-/* =========================
-   SIMPLE COMPUTER MOVE
-========================= */
-function computerMove(){
-  for(let r=0;r<8;r++){
-    for(let c=0;c<8;c++){
-      if(boardState[r][c]==="p" && r<7 && boardState[r+1][c]==="."){
-        boardState[r+1][c]="p";
-        boardState[r][c]=".";
-        lessonEl.textContent="Computer ne pawn aage badhaya.";
-        drawBoard();
-        return;
-      }
-    }
-  }
-}
-
-/* INIT */
-resetGame();
-</script>
-
-</body>
-</html>
