@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Programmer’s Picnic – Learn Chess</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
 <style>
 body{
@@ -18,7 +18,7 @@ header{
   text-align:center;
   border-bottom:2px solid #f59e0b;
 }
-header h1{margin:0;color:#92400e}
+header h1{margin:0;color:#92400e;font-size:22px}
 header p{margin:4px 0 0;font-size:13px;color:#7c2d12}
 
 main{
@@ -29,9 +29,7 @@ main{
   grid-template-columns:340px 1fr;
   gap:14px;
 }
-@media(max-width:800px){
-  main{grid-template-columns:1fr}
-}
+@media(max-width:800px){main{grid-template-columns:1fr}}
 
 .card{
   background:#fff;
@@ -41,23 +39,25 @@ main{
 }
 
 #board{
-  width:320px;
-  height:320px;
+  width:min(90vw, 360px);
+  aspect-ratio:1/1;
   margin:auto;
   display:grid;
   grid-template-columns:repeat(8,1fr);
   border:6px solid rgba(255,153,51,.25);
   border-radius:12px;
   overflow:hidden;
+  touch-action:manipulation;
 }
 
 .square{
   display:flex;
   align-items:center;
   justify-content:center;
-  font-size:34px;
+  font-size:clamp(26px, 6vw, 36px);
   cursor:pointer;
   user-select:none;
+  -webkit-tap-highlight-color: transparent;
 }
 .light{background:#fef3c7}
 .dark{background:#d97706}
@@ -78,175 +78,148 @@ main{
 </head>
 
 <body>
-
 <header>
   <h1>♟ Programmer’s Picnic – Learn Chess</h1>
-  <p>Click a piece → green squares → move</p>
+  <p>You play White • Computer plays Black</p>
 </header>
 
 <main>
-
-<div class="card">
-  <div id="board"></div>
-  <div style="margin-top:8px;font-size:14px">
-    <b>Status:</b> <span id="status">Your move (White)</span>
-  </div>
-</div>
-
-<div class="card">
-  <h3>Coach Champak 🧠</h3>
-  <div id="lesson" class="lesson">
-    White piece par click karo. Green square pe move karo.
-  </div>
-</div>
-
+<div class="card"><div id="board"></div></div>
+<div class="card"><h3>Coach Champak 🧠</h3><div id="lesson" class="lesson">Your move: tap a white piece.</div></div>
 </main>
 
 <script>
 /* =========================
-   PIECES & BOARD
+   BASIC SETUP
 ========================= */
-const pieces = {
-  r:"♜", n:"♞", b:"♝", q:"♛", k:"♚", p:"♟",
-  R:"♖", N:"♘", B:"♗", Q:"♕", K:"♔", P:"♙"
-};
-
-let boardState, selected=null, validMoves=[];
-
-const boardEl = document.getElementById("board");
-const lessonEl = document.getElementById("lesson");
+const pieces={r:"♜",n:"♞",b:"♝",q:"♛",k:"♚",p:"♟",R:"♖",N:"♘",B:"♗",Q:"♕",K:"♔",P:"♙"};
+let boardState,selected=null,validMoves=[],turn="white";
+const boardEl=document.getElementById("board"),lessonEl=document.getElementById("lesson");
 
 function resetGame(){
-  boardState = [
-    "rnbqkbnr",
-    "pppppppp",
-    "........",
-    "........",
-    "........",
-    "........",
-    "PPPPPPPP",
-    "RNBQKBNR"
-  ];
-  selected=null;
-  validMoves=[];
-  drawBoard();
-}
-
-function drawBoard(){
-  boardEl.innerHTML="";
-  for(let r=0;r<8;r++){
-    for(let c=0;c<8;c++){
-      const sq=document.createElement("div");
-      sq.className="square "+((r+c)%2?"dark":"light");
-      sq.dataset.r=r; sq.dataset.c=c;
-
-      const p=boardState[r][c];
-      if(p!==".") sq.textContent=pieces[p];
-
-      if(selected && selected.r===r && selected.c===c)
-        sq.classList.add("selected");
-
-      if(validMoves.some(m=>m.r===r&&m.c===c))
-        sq.classList.add("valid");
-
-      sq.onclick=()=>handleClick(r,c);
-      boardEl.appendChild(sq);
-    }
-  }
+ boardState=["rnbqkbnr".split(""),"pppppppp".split(""),"........".split(""),"........".split(""),"........".split(""),"........".split(""),"PPPPPPPP".split(""),"RNBQKBNR".split("")];
+ selected=null;validMoves=[];turn="white";
+ drawBoard();
 }
 
 /* =========================
-   CLICK HANDLING (FIXED)
+   DRAW BOARD
+========================= */
+function drawBoard(){
+ boardEl.innerHTML="";
+ for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+  const sq=document.createElement("div");
+  sq.className="square "+((r+c)%2?"dark":"light");
+  const p=boardState[r][c]; if(p!==".") sq.textContent=pieces[p];
+  if(selected&&selected.r===r&&selected.c===c) sq.classList.add("selected");
+  if(validMoves.some(m=>m.r===r&&m.c===c)) sq.classList.add("valid");
+  sq.onclick=()=>handleClick(r,c);
+  boardEl.appendChild(sq);
+ }
+}
+
+/* =========================
+   PLAYER MOVE (WHITE)
 ========================= */
 function handleClick(r,c){
+ if(turn!=="white") return;
 
-  // select white piece
-  if(selected===null){
-    const p=boardState[r][c];
-    if(p>="A"&&p<="Z"){
-      selected={r,c};
-      validMoves=getValidMoves(p,r,c);
-      lessonEl.textContent="Green squares valid moves hain.";
-    }
-    drawBoard();
-    return;
+ if(!selected){
+  const p=boardState[r][c];
+  if(p>="A"&&p<="Z"){
+    selected={r,c};
+    validMoves=getMoves(p,r,c,"white");
+    lessonEl.textContent="Green square par move karo.";
   }
+  drawBoard();return;
+ }
 
-  // move if valid
-  if(validMoves.some(m=>m.r===r&&m.c===c)){
-    boardState[r][c]=boardState[selected.r][selected.c];
-    boardState[selected.r][selected.c]=".";
-    selected=null;
-    validMoves=[];
-    lessonEl.textContent="Good move! Computer thinking...";
-    drawBoard();
-    setTimeout(computerMove,500);
-    return;
-  }
-
-  // cancel selection
-  selected=null;
-  validMoves=[];
-  lessonEl.textContent="Selection cancel.";
+ if(validMoves.some(m=>m.r===r&&m.c===c)){
+  boardState[r][c]=boardState[selected.r][selected.c];
+  boardState[selected.r][selected.c]=".";
+  selected=null;validMoves=[];turn="black";
+  lessonEl.textContent="Computer soch raha hai…";
   drawBoard();
+  setTimeout(computerMove,600);
+  return;
+ }
+
+ selected=null;validMoves=[];drawBoard();
 }
 
 /* =========================
-   VALID MOVE LOGIC
+   MOVE GENERATION
 ========================= */
-function getValidMoves(p,r,c){
-  const moves=[];
-  const empty=(r,c)=>boardState[r][c]===".";
-  const black=(r,c)=>boardState[r][c]>="a"&&boardState[r][c]<="z";
+function slideMoves(moves,r,c,dirs,enemyCheck){
+ dirs.forEach(d=>{let nr=r+d[0],nc=c+d[1];while(nr>=0&&nr<8&&nc>=0&&nc<8){
+  if(boardState[nr][nc]===".") moves.push({r:nr,c:nc});
+  else{ if(enemyCheck(nr,nc)) moves.push({r:nr,c:nc}); break; }
+  nr+=d[0];nc+=d[1];
+ }});
+}
 
-  // Pawn
-  if(p==="P"){
-    if(r>0&&empty(r-1,c)) moves.push({r:r-1,c});
-    if(r>0&&c>0&&black(r-1,c-1)) moves.push({r:r-1,c:c-1});
-    if(r>0&&c<7&&black(r-1,c+1)) moves.push({r:r-1,c:c+1});
+function getMoves(p,r,c,side){
+ const moves=[];
+ const empty=(r,c)=>boardState[r][c]===".";
+ const enemy= side==="white"
+   ? (r,c)=>boardState[r][c]>="a"&&boardState[r][c]<="z"
+   : (r,c)=>boardState[r][c]>="A"&&boardState[r][c]<="Z";
+
+ if(p==="P"&&side==="white"){
+  if(r>0&&empty(r-1,c)){
+   moves.push({r:r-1,c});
+   if(r===6&&empty(r-2,c)) moves.push({r:r-2,c});
   }
+  if(r>0&&c>0&&enemy(r-1,c-1)) moves.push({r:r-1,c:c-1});
+  if(r>0&&c<7&&enemy(r-1,c+1)) moves.push({r:r-1,c:c+1});
+ }
 
-  // Rook
-  if(p==="R"){
-    for(let i=r-1;i>=0;i--) if(empty(i,c)) moves.push({r:i,c}); else break;
-    for(let i=r+1;i<8;i++) if(empty(i,c)) moves.push({r:i,c}); else break;
-    for(let i=c-1;i>=0;i--) if(empty(r,i)) moves.push({r,c:i}); else break;
-    for(let i=c+1;i<8;i++) if(empty(r,i)) moves.push({r,c:i}); else break;
+ if(p==="p"&&side==="black"){
+  if(r<7&&empty(r+1,c)){
+   moves.push({r:r+1,c});
+   if(r===1&&empty(r+2,c)) moves.push({r:r+2,c});
   }
+  if(r<7&&c>0&&enemy(r+1,c-1)) moves.push({r:r+1,c:c-1});
+  if(r<7&&c<7&&enemy(r+1,c+1)) moves.push({r:r+1,c:c+1});
+ }
 
-  // Knight
-  if(p==="N"){
-    [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]]
-      .forEach(d=>{
-        const nr=r+d[0], nc=c+d[1];
-        if(nr>=0&&nr<8&&nc>=0&&nc<8&&(empty(nr,nc)||black(nr,nc)))
-          moves.push({r:nr,c:nc});
-      });
-  }
-
-  return moves;
+ if(p.toLowerCase()==="r") slideMoves(moves,r,c,[[1,0],[-1,0],[0,1],[0,-1]],enemy);
+ if(p.toLowerCase()==="b") slideMoves(moves,r,c,[[1,1],[1,-1],[-1,1],[-1,-1]],enemy);
+ if(p.toLowerCase()==="q") slideMoves(moves,r,c,[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]],enemy);
+ if(p.toLowerCase()==="n") [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]].forEach(d=>{
+  const nr=r+d[0],nc=c+d[1];
+  if(nr>=0&&nr<8&&nc>=0&&nc<8&&(empty(nr,nc)||enemy(nr,nc))) moves.push({r:nr,c:nc});
+ });
+ if(p.toLowerCase()==="k") [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]].forEach(d=>{
+  const nr=r+d[0],nc=c+d[1];
+  if(nr>=0&&nr<8&&nc>=0&&nc<8&&(empty(nr,nc)||enemy(nr,nc))) moves.push({r:nr,c:nc});
+ });
+ return moves;
 }
 
 /* =========================
-   SIMPLE COMPUTER MOVE
+   COMPUTER MOVE (BLACK)
 ========================= */
 function computerMove(){
-  for(let r=0;r<8;r++){
-    for(let c=0;c<8;c++){
-      if(boardState[r][c]==="p"&&r<7&&boardState[r+1][c]==="."){
-        boardState[r+1][c]="p";
-        boardState[r][c]=".";
-        lessonEl.textContent="Computer pawn aage badha.";
-        drawBoard();
-        return;
-      }
-    }
+ let allMoves=[];
+ for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+  const p=boardState[r][c];
+  if(p>="a"&&p<="z"){
+    const ms=getMoves(p,r,c,"black");
+    ms.forEach(m=>allMoves.push({from:{r,c},to:m}));
   }
+ }
+ if(allMoves.length===0){lessonEl.textContent="Game over.";return;}
+
+ const move=allMoves[Math.floor(Math.random()*allMoves.length)];
+ boardState[move.to.r][move.to.c]=boardState[move.from.r][move.from.c];
+ boardState[move.from.r][move.from.c]=".";
+ turn="white";
+ lessonEl.textContent="Your move.";
+ drawBoard();
 }
 
-/* INIT */
 resetGame();
 </script>
-
 </body>
 </html>
