@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Programmer’s Picnic – Learn Chess vs Computer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body{
+  margin:0;
+  font-family: system-ui, Segoe UI, Roboto, Arial;
+  background:#fffaf2;
+  color:#2b2b2b;
+}
+header{
+  background:linear-gradient(135deg,#ffedd5,#fde68a);
+  padding:14px;
+  text-align:center;
+  border-bottom:2px solid #f59e0b;
+}
+header h1{margin:0;color:#92400e}
+header p{margin:4px 0 0;font-size:13px;color:#7c2d12}
+
+main{
+  max-width:900px;
+  margin:auto;
+  padding:14px;
+  display:grid;
+  grid-template-columns:340px 1fr;
+  gap:14px;
+}
+@media(max-width:800px){
+  main{grid-template-columns:1fr}
+}
+
+.card{
+  background:#fff;
+  border-radius:14px;
+  box-shadow:0 10px 25px rgba(0,0,0,.1);
+  padding:14px;
+}
+
+#board{
+  width:320px;
+  height:320px;
+  margin:auto;
+  display:grid;
+  grid-template-columns:repeat(8,1fr);
+  border:6px solid rgba(255,153,51,.25);
+  border-radius:12px;
+  overflow:hidden;
+}
+
+.square{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:34px;
+  cursor:pointer;
+  user-select:none;
+}
+.light{background:#fef3c7}
+.dark{background:#d97706}
+.selected{outline:4px solid #2563eb}
+
+.controls button{
+  margin:4px;
+  padding:10px 14px;
+  border:none;
+  border-radius:10px;
+  background:linear-gradient(135deg,#ff9933,#f59e0b);
+  font-weight:700;
+  cursor:pointer;
+}
+
+.lesson{
+  margin-top:10px;
+  padding:12px;
+  background:#fff7ed;
+  border:1px solid #f59e0b;
+  border-radius:10px;
+  font-size:14px;
+  line-height:1.6;
+}
+
+pre{
+  background:#fff;
+  border-radius:10px;
+  padding:10px;
+  border:1px solid #ddd;
+  font-size:12px;
+  white-space:pre-wrap;
+}
+
+footer{
+  text-align:center;
+  font-size:12px;
+  color:#6b7280;
+  padding:10px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>♟ Programmer’s Picnic – Learn Chess</h1>
+  <p>Human vs Computer • Beginner Friendly</p>
+</header>
+
+<main>
+
+<!-- BOARD -->
+<div class="card">
+  <div id="board"></div>
+
+  <div class="controls" style="text-align:center;margin-top:10px;">
+    <button onclick="resetGame()">New Game</button>
+  </div>
+
+  <div style="margin-top:8px;font-size:14px">
+    <b>Status:</b> <span id="status">Your move (White)</span>
+  </div>
+</div>
+
+<!-- COACH -->
+<div class="card">
+  <h3>Coach Champak 🧠</h3>
+
+  <div id="lesson" class="lesson">
+    Beta, white se shuru karo. Pehle pieces develop karo.
+  </div>
+
+  <h3>Move Log</h3>
+  <pre id="log">—</pre>
+</div>
+
+</main>
+
+<footer>
+  Programmer’s Picnic • Chess explained simply
+</footer>
+
+<script>
+/* =========================
+   SIMPLE CHESS LOGIC
+========================= */
+
+const pieces = {
+  r:"♜", n:"♞", b:"♝", q:"♛", k:"♚", p:"♟",
+  R:"♖", N:"♘", B:"♗", Q:"♕", K:"♔", P:"♙"
+};
+
+let boardState, selectedSquare;
+const boardEl = document.getElementById("board");
+const statusEl = document.getElementById("status");
+const lessonEl = document.getElementById("lesson");
+const logEl = document.getElementById("log");
+
+function resetGame(){
+  boardState = [
+    "rnbqkbnr",
+    "pppppppp",
+    "........",
+    "........",
+    "........",
+    "........",
+    "PPPPPPPP",
+    "RNBQKBNR"
+  ];
+  selectedSquare = null;
+  logEl.textContent = "";
+  lessonEl.textContent = "Game reset. White to move.";
+  drawBoard();
+}
+
+function drawBoard(){
+  boardEl.innerHTML = "";
+  for(let r=0;r<8;r++){
+    for(let c=0;c<8;c++){
+      const sq = document.createElement("div");
+      sq.className = "square "+((r+c)%2?"dark":"light");
+      sq.dataset.r = r;
+      sq.dataset.c = c;
+      const piece = boardState[r][c];
+      if(piece !== ".") sq.textContent = pieces[piece];
+      sq.onclick = () => handleClick(r,c);
+      boardEl.appendChild(sq);
+    }
+  }
+}
+
+function handleClick(r,c){
+  if(!selectedSquare){
+    if(boardState[r][c] >= "A" && boardState[r][c] <= "Z"){
+      selectedSquare = {r,c};
+      highlight(r,c);
+    }
+    return;
+  }
+
+  movePiece(selectedSquare.r, selectedSquare.c, r, c);
+  clearHighlight();
+  selectedSquare = null;
+  setTimeout(computerMove, 500);
+}
+
+function movePiece(r1,c1,r2,c2){
+  const p = boardState[r1][c1];
+  const target = boardState[r2][c2];
+  if(target !== "."){
+    log("Capture: "+p+" takes "+target);
+    lessonEl.textContent = "Achha! Capture mila.";
+  } else {
+    log("Move: "+p);
+    lessonEl.textContent = "Simple move. Pieces activate ho rahe hain.";
+  }
+  boardState[r2][c2] = p;
+  boardState[r1][c1] = ".";
+  drawBoard();
+}
+
+function computerMove(){
+  let moves = [];
+  for(let r=0;r<8;r++){
+    for(let c=0;c<8;c++){
+      const p = boardState[r][c];
+      if(p >= "a" && p <= "z"){
+        const dr = r+1;
+        if(dr<8){
+          if(boardState[dr][c] === ".")
+            moves.push({r1:r,c1:c,r2:dr,c2:c});
+          if(c>0 && boardState[dr][c-1]>="A")
+            moves.push({r1:r,c1:c,r2:dr,c2:c-1});
+          if(c<7 && boardState[dr][c+1]>="A")
+            moves.push({r1:r,c1:c,r2:dr,c2:c+1});
+        }
+      }
+    }
+  }
+  if(moves.length===0) return;
+  const m = moves[Math.floor(Math.random()*moves.length)];
+  const cap = boardState[m.r2][m.c2] !== ".";
+  boardState[m.r2][m.c2] = boardState[m.r1][m.c1];
+  boardState[m.r1][m.c1] = ".";
+  log(cap ? "Computer captures!" : "Computer moves");
+  lessonEl.textContent = cap
+    ? "Computer ne mauka dekha aur capture kiya."
+    : "Computer ne simple development move kiya.";
+  drawBoard();
+}
+
+function log(text){
+  logEl.textContent += text + "\n";
+}
+
+function highlight(r,c){
+  document.querySelectorAll(".square")[r*8+c].classList.add("selected");
+}
+function clearHighlight(){
+  document.querySelectorAll(".square").forEach(s=>s.classList.remove("selected"));
+}
+
+/* INIT */
+resetGame();
+</script>
+
+</body>
+</html>
