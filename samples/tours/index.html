@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Varanasi Tourism Planner — Build Your Own Tour</title>
-  <meta name="description" content="Varanasi tourism page with destinations and a DIY tour builder. Search on the right, save tour in localStorage, share on WhatsApp."/>
+  <meta name="description" content="Varanasi tourism page with destinations and a DIY tour builder. Each destination has a sliding picture carousel, search on the right, save tour in localStorage, share on WhatsApp."/>
   <style>
     :root{
       --bg:#fff7e6;          /* light saffron */
@@ -31,7 +31,7 @@
         var(--bg);
     }
     a{color:inherit;text-decoration:none}
-    button,input{font:inherit}
+    button,input,select{font:inherit}
     .topbar{
       position:sticky; top:0; z-index:20;
       backdrop-filter: blur(10px);
@@ -151,9 +151,84 @@
       display:flex; flex-direction:column;
       box-shadow: 0 10px 22px rgba(0,0,0,.06);
     }
+
+    /* --- Sliding pictures / carousel --- */
+    .carousel{
+      position:relative;
+      height: 170px;
+      background: linear-gradient(180deg, rgba(245,158,11,.16), rgba(255,255,255,0));
+      overflow:hidden;
+    }
+    .track{
+      height:100%;
+      display:flex;
+      transition: transform .45s ease;
+      will-change: transform;
+    }
+    .slide{
+      min-width:100%;
+      height:100%;
+      display:grid;
+      place-items:center;
+      padding:12px;
+    }
+    .slide img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      border-radius: 14px;
+      border:1px solid var(--border);
+      box-shadow: 0 14px 30px rgba(0,0,0,.12);
+      user-select:none;
+      pointer-events:none;
+    }
+    .car-nav{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:0 10px;
+      pointer-events:none;
+    }
+    .car-btn{
+      pointer-events:auto;
+      width:38px;height:38px;
+      border-radius: 14px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.82);
+      cursor:pointer;
+      display:grid; place-items:center;
+      box-shadow: 0 10px 20px rgba(0,0,0,.10);
+    }
+    .car-btn:hover{filter:brightness(.98)}
+    .dots{
+      position:absolute;
+      left:0; right:0; bottom:10px;
+      display:flex; gap:6px;
+      justify-content:center;
+      pointer-events:none;
+    }
+    .dot{
+      width:7px; height:7px;
+      border-radius:999px;
+      background: rgba(107,114,128,.35);
+      border:1px solid rgba(234,220,197,.9);
+    }
+    .dot.active{background: rgba(217,119,6,.85)}
+    .car-tag{
+      position:absolute;
+      top:10px; left:10px;
+      font-size:11px;
+      padding:5px 9px;
+      border-radius: 999px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.86);
+      color: var(--muted);
+    }
+
     .card-top{
       padding:12px 12px 10px;
-      background: linear-gradient(180deg, rgba(245,158,11,.14), rgba(255,255,255,.0));
       display:flex; align-items:flex-start; justify-content:space-between; gap:10px;
     }
     .title{
@@ -240,8 +315,7 @@
     }
     .tinybtn:hover{filter:brightness(.98)}
     .tinybtn.remove{color:#991b1b; border-color: rgba(220,38,38,.22); background: rgba(220,38,38,.08)}
-    .tinybtn.up{color:#0f766e}
-    .tinybtn.down{color:#0f766e}
+    .tinybtn.up,.tinybtn.down{color:#0f766e}
 
     .note{
       font-size:12px;
@@ -306,7 +380,7 @@
       display:flex; gap:10px; align-items:flex-start;
       max-width: 420px;
     }
-    .t .dot{width:10px;height:10px;border-radius:999px;background:var(--ok); margin-top:4px}
+    .t .okdot{width:10px;height:10px;border-radius:999px;background:var(--ok); margin-top:4px}
     .t .msg{font-size:13px}
     .t .msg small{display:block; color:var(--muted); margin-top:2px}
   </style>
@@ -390,7 +464,7 @@
 
           <div style="height:14px"></div>
 
-          <div class="label">Your tour (drag-free reorder)</div>
+          <div class="label">Your tour (reorder)</div>
           <div class="tourlist" id="tourList"></div>
 
           <div class="row" style="margin-top:12px;">
@@ -424,7 +498,58 @@
 (() => {
   const LS_TOUR = "varanasi_tour_v1";
 
-  // Destinations (popular + practical; not exhaustive)
+  // --- Simple "photo-like" SVG images (offline, no external links) ---
+  // Each destination gets 3 slides.
+  function svgDataURI(svg){ return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg); }
+  function photoSVG(title, subtitle, hue){
+    const h = Number(hue)||30;
+    return svgDataURI(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700">
+        <defs>
+          <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="hsl(${h}, 90%, 60%)" stop-opacity=".95"/>
+            <stop offset="1" stop-color="hsl(${h+40}, 85%, 55%)" stop-opacity=".92"/>
+          </linearGradient>
+          <radialGradient id="r" cx="30%" cy="20%" r="80%">
+            <stop offset="0" stop-color="#fff" stop-opacity=".55"/>
+            <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+          </radialGradient>
+          <filter id="s" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#000" flood-opacity=".22"/>
+          </filter>
+        </defs>
+        <rect width="1200" height="700" fill="url(#g)"/>
+        <rect width="1200" height="700" fill="url(#r)"/>
+        <!-- water-ish waves -->
+        <path d="M0 520 C 200 490, 320 560, 520 530 C 720 500, 900 580, 1200 520 L1200 700 L0 700 Z"
+              fill="#ffffff" fill-opacity=".20"/>
+        <path d="M0 560 C 240 540, 360 610, 600 580 C 840 550, 980 640, 1200 580 L1200 700 L0 700 Z"
+              fill="#ffffff" fill-opacity=".18"/>
+        <!-- glow circle -->
+        <circle cx="960" cy="160" r="90" fill="#fff" fill-opacity=".22"/>
+        <!-- title card -->
+        <g filter="url(#s)">
+          <rect x="60" y="60" width="720" height="190" rx="28" fill="#fff" fill-opacity=".86"/>
+          <rect x="60" y="60" width="720" height="190" rx="28" fill="none" stroke="#eadcc5" stroke-width="6"/>
+          <text x="105" y="145" font-size="58" font-family="Arial, sans-serif" font-weight="800" fill="#1f2937">${escapeXML(title)}</text>
+          <text x="105" y="200" font-size="28" font-family="Arial, sans-serif" font-weight="600" fill="#6b7280">${escapeXML(subtitle)}</text>
+        </g>
+        <!-- tiny "ghat" silhouettes -->
+        <g fill="#1f2937" fill-opacity=".22">
+          <rect x="160" y="440" width="90" height="60" rx="10"/>
+          <rect x="265" y="410" width="120" height="90" rx="12"/>
+          <rect x="395" y="430" width="110" height="70" rx="12"/>
+          <rect x="520" y="400" width="140" height="100" rx="14"/>
+          <rect x="670" y="430" width="110" height="70" rx="12"/>
+        </g>
+      </svg>
+    `);
+  }
+  function escapeXML(s){
+    return String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&apos;");
+  }
+
+  // Destinations (with 3-slide carousels each)
   const DEST = [
     {
       id:"d1",
@@ -434,7 +559,12 @@
       timeNeeded:"1–2 hrs",
       cost:"Depends (donations / queue services)",
       highlights:"One of the most revered Shiva temples; spiritual heart of Kashi.",
-      map:"https://www.google.com/maps/search/?api=1&query=Kashi+Vishwanath+Temple+Varanasi"
+      map:"https://www.google.com/maps/search/?api=1&query=Kashi+Vishwanath+Temple+Varanasi",
+      photos:[
+        photoSVG("Kashi Vishwanath", "Temple & corridor vibes", 28),
+        photoSVG("Kashi Vishwanath", "Morning darshan energy", 36),
+        photoSVG("Kashi Vishwanath", "Evening lanes nearby", 20),
+      ]
     },
     {
       id:"d2",
@@ -444,7 +574,12 @@
       timeNeeded:"1–2 hrs",
       cost:"Free (Aarti seating may cost)",
       highlights:"Famous for the Ganga Aarti; lively atmosphere by the river.",
-      map:"https://www.google.com/maps/search/?api=1&query=Dashashwamedh+Ghat+Varanasi"
+      map:"https://www.google.com/maps/search/?api=1&query=Dashashwamedh+Ghat+Varanasi",
+      photos:[
+        photoSVG("Dashashwamedh Ghat", "Ganga Aarti (evening)", 18),
+        photoSVG("Dashashwamedh Ghat", "Crowd & lamps glow", 26),
+        photoSVG("Dashashwamedh Ghat", "Riverfront view", 14),
+      ]
     },
     {
       id:"d3",
@@ -454,7 +589,12 @@
       timeNeeded:"1–2 hrs",
       cost:"Free",
       highlights:"Calmer vibe; sunrise scenes and morning walks by the ghats.",
-      map:"https://www.google.com/maps/search/?api=1&query=Assi+Ghat+Varanasi"
+      map:"https://www.google.com/maps/search/?api=1&query=Assi+Ghat+Varanasi",
+      photos:[
+        photoSVG("Assi Ghat", "Sunrise calm", 40),
+        photoSVG("Assi Ghat", "Morning walk & chai", 34),
+        photoSVG("Assi Ghat", "Boats & soft light", 46),
+      ]
     },
     {
       id:"d4",
@@ -464,7 +604,12 @@
       timeNeeded:"30–60 min",
       cost:"Free",
       highlights:"A major cremation ghat; deeply traditional and powerful to witness (be respectful).",
-      map:"https://www.google.com/maps/search/?api=1&query=Manikarnika+Ghat+Varanasi"
+      map:"https://www.google.com/maps/search/?api=1&query=Manikarnika+Ghat+Varanasi",
+      photos:[
+        photoSVG("Manikarnika Ghat", "Oldest traditions", 10),
+        photoSVG("Manikarnika Ghat", "Historic riverfront", 16),
+        photoSVG("Manikarnika Ghat", "Respectful viewing", 6),
+      ]
     },
     {
       id:"d5",
@@ -474,7 +619,12 @@
       timeNeeded:"2–4 hrs",
       cost:"Tickets may apply",
       highlights:"Buddhist pilgrimage site; serene monuments and historical ruins.",
-      map:"https://www.google.com/maps/search/?api=1&query=Dhamek+Stupa+Sarnath"
+      map:"https://www.google.com/maps/search/?api=1&query=Dhamek+Stupa+Sarnath",
+      photos:[
+        photoSVG("Sarnath", "Dhamek Stupa", 120),
+        photoSVG("Sarnath", "Peaceful lawns", 140),
+        photoSVG("Sarnath", "Ruins & history", 110),
+      ]
     },
     {
       id:"d6",
@@ -484,7 +634,12 @@
       timeNeeded:"1–2 hrs",
       cost:"Tickets apply",
       highlights:"Artifacts from Sarnath; iconic Ashokan lion capital association.",
-      map:"https://www.google.com/maps/search/?api=1&query=Sarnath+Museum"
+      map:"https://www.google.com/maps/search/?api=1&query=Sarnath+Museum",
+      photos:[
+        photoSVG("Sarnath Museum", "Artifacts & sculpture", 200),
+        photoSVG("Sarnath Museum", "Heritage exhibits", 190),
+        photoSVG("Sarnath Museum", "Learning stop", 210),
+      ]
     },
     {
       id:"d7",
@@ -494,17 +649,27 @@
       timeNeeded:"1–2 hrs",
       cost:"Tickets may apply",
       highlights:"Historic fort across the Ganga; museum and royal-era collections.",
-      map:"https://www.google.com/maps/search/?api=1&query=Ramnagar+Fort+Varanasi"
+      map:"https://www.google.com/maps/search/?api=1&query=Ramnagar+Fort+Varanasi",
+      photos:[
+        photoSVG("Ramnagar Fort", "Fort & museum", 260),
+        photoSVG("Ramnagar Fort", "Royal collections", 240),
+        photoSVG("Ramnagar Fort", "Ganga-side view", 280),
+      ]
     },
     {
       id:"d8",
-      name:"Banaras Hindu University (BHU) & Bharat Kala Bhavan",
+      name:"BHU & Bharat Kala Bhavan",
       type:"Heritage",
       bestTime:"day",
       timeNeeded:"2–4 hrs",
       cost:"Often free/entry rules vary",
       highlights:"Campus stroll + art museum; peaceful green spaces.",
-      map:"https://www.google.com/maps/search/?api=1&query=BHU+Bharat+Kala+Bhavan+Varanasi"
+      map:"https://www.google.com/maps/search/?api=1&query=BHU+Bharat+Kala+Bhavan+Varanasi",
+      photos:[
+        photoSVG("BHU", "Green campus walk", 90),
+        photoSVG("Bharat Kala Bhavan", "Art & culture", 70),
+        photoSVG("BHU", "Quiet evenings", 100),
+      ]
     },
     {
       id:"d9",
@@ -514,7 +679,12 @@
       timeNeeded:"45–90 min",
       cost:"Free",
       highlights:"Popular local deity temple; often a dedicated queue.",
-      map:"https://www.google.com/maps/search/?api=1&query=Kaal+Bhairav+Temple+Varanasi"
+      map:"https://www.google.com/maps/search/?api=1&query=Kaal+Bhairav+Temple+Varanasi",
+      photos:[
+        photoSVG("Kaal Bhairav", "Local devotion", 320),
+        photoSVG("Kaal Bhairav", "Queue & darshan", 300),
+        photoSVG("Kaal Bhairav", "Temple street", 340),
+      ]
     },
     {
       id:"d10",
@@ -524,7 +694,12 @@
       timeNeeded:"45–90 min",
       cost:"Free",
       highlights:"Beloved Hanuman temple; close to BHU area.",
-      map:"https://www.google.com/maps/search/?api=1&query=Sankat+Mochan+Temple+Varanasi"
+      map:"https://www.google.com/maps/search/?api=1&query=Sankat+Mochan+Temple+Varanasi",
+      photos:[
+        photoSVG("Sankat Mochan", "Hanuman temple", 30),
+        photoSVG("Sankat Mochan", "Prasad & prayers", 22),
+        photoSVG("Sankat Mochan", "Near BHU area", 38),
+      ]
     },
     {
       id:"d11",
@@ -534,7 +709,12 @@
       timeNeeded:"1–2 hrs",
       cost:"Paid",
       highlights:"Classic Varanasi experience—see ghats from the river (sunrise is magical).",
-      map:"https://www.google.com/maps/search/?api=1&query=Boat+ride+Varanasi+ghats"
+      map:"https://www.google.com/maps/search/?api=1&query=Boat+ride+Varanasi+ghats",
+      photos:[
+        photoSVG("Boat Ride", "Sunrise on Ganga", 48),
+        photoSVG("Boat Ride", "Ghats panorama", 54),
+        photoSVG("Boat Ride", "Quiet water moments", 42),
+      ]
     },
     {
       id:"d12",
@@ -544,7 +724,12 @@
       timeNeeded:"45–90 min",
       cost:"Free",
       highlights:"Close to the Vishwanath corridor region; devotional circuit-friendly.",
-      map:"https://www.google.com/maps/search/?api=1&query=Vishalakshi+Temple+Varanasi"
+      map:"https://www.google.com/maps/search/?api=1&query=Vishalakshi+Temple+Varanasi",
+      photos:[
+        photoSVG("Vishalakshi Temple", "Shakti Peeth area", 15),
+        photoSVG("Vishalakshi Temple", "Temple lane", 24),
+        photoSVG("Vishalakshi Temple", "Devotional circuit", 12),
+      ]
     },
     {
       id:"d13",
@@ -554,7 +739,12 @@
       timeNeeded:"1–2 hrs",
       cost:"Free",
       highlights:"Local shopping + lanes; great for Banarasi items and snacks.",
-      map:"https://www.google.com/maps/search/?api=1&query=Godowlia+Market+Varanasi"
+      map:"https://www.google.com/maps/search/?api=1&query=Godowlia+Market+Varanasi",
+      photos:[
+        photoSVG("Godowlia Market", "Street life & shops", 5),
+        photoSVG("Godowlia Market", "Snacks & lanes", 18),
+        photoSVG("Godowlia Market", "Evening lights", 10),
+      ]
     },
     {
       id:"d14",
@@ -564,7 +754,12 @@
       timeNeeded:"2–3 hrs",
       cost:"Free",
       highlights:"Explore famous Banarasi silk craft (buy only from trusted sellers).",
-      map:"https://www.google.com/maps/search/?api=1&query=Banarasi+silk+weaving+Varanasi"
+      map:"https://www.google.com/maps/search/?api=1&query=Banarasi+silk+weaving+Varanasi",
+      photos:[
+        photoSVG("Banarasi Silk", "Weaving craft", 285),
+        photoSVG("Banarasi Silk", "Patterns & zari", 300),
+        photoSVG("Banarasi Silk", "Shopping tip: trusted", 270),
+      ]
     }
   ];
 
@@ -592,7 +787,7 @@
   function toast(title, detail){
     const el = document.createElement("div");
     el.className = "t";
-    el.innerHTML = `<div class="dot"></div><div class="msg"><b>${title}</b><small>${detail}</small></div>`;
+    el.innerHTML = `<div class="okdot"></div><div class="msg"><b>${title}</b><small>${detail}</small></div>`;
     toastWrap.appendChild(el);
     setTimeout(()=> el.remove(), 2600);
   }
@@ -609,11 +804,7 @@
     filterType.appendChild(opt);
   });
 
-  const state = {
-    q: "",
-    type: "all",
-    time: "all"
-  };
+  const state = { q:"", type:"all", time:"all" };
 
   function setSearch(v){
     state.q = (v || "");
@@ -621,18 +812,16 @@
     rightSearch.value = state.q;
     renderDestinations();
   }
-
   topSearch.addEventListener("input", e => setSearch(e.target.value));
   rightSearch.addEventListener("input", e => setSearch(e.target.value));
 
-  filterType.addEventListener("change", e=>{
-    state.type = e.target.value;
-    renderDestinations();
-  });
-  filterTime.addEventListener("change", e=>{
-    state.time = e.target.value;
-    renderDestinations();
-  });
+  filterType.addEventListener("change", e=>{ state.type = e.target.value; renderDestinations(); });
+  filterTime.addEventListener("change", e=>{ state.time = e.target.value; renderDestinations(); });
+
+  function prettyTime(t){
+    const m = {sunrise:"Sunrise", day:"Daytime", evening:"Evening", night:"Night"};
+    return m[t] || t;
+  }
 
   function filteredDest(){
     const q = state.q.trim().toLowerCase();
@@ -657,8 +846,7 @@
     toast("Added to tour", DEST.find(x=>x.id===id)?.name || id);
   }
   function removeFromTour(id){
-    let ids = readTour().filter(x=>x!==id);
-    writeTour(ids);
+    writeTour(readTour().filter(x=>x!==id));
     renderTour();
   }
   function moveTour(id, dir){
@@ -679,8 +867,60 @@
     toast("Cleared", "Your tour has been cleared.");
   }
 
+  // ------- Carousel state -------
+  // Keep per-destination slide index in memory (resets on rerender/search; still smooth)
+  const carIdx = new Map(); // id -> index
+  const carTimers = new Map(); // id -> interval id
+
+  function setDotActive(dotsWrap, idx){
+    [...dotsWrap.children].forEach((dot,i)=> dot.classList.toggle("active", i===idx));
+  }
+
+  function mountCarouselHandlers(cardEl, d){
+    const track = cardEl.querySelector(".track");
+    const dotsWrap = cardEl.querySelector(".dots");
+    const prevBtn = cardEl.querySelector('[data-prev]');
+    const nextBtn = cardEl.querySelector('[data-next]');
+
+    const total = d.photos.length;
+    let idx = carIdx.get(d.id) ?? 0;
+
+    function go(newIdx){
+      idx = (newIdx + total) % total;
+      carIdx.set(d.id, idx);
+      track.style.transform = `translateX(-${idx * 100}%)`;
+      setDotActive(dotsWrap, idx);
+    }
+
+    prevBtn.addEventListener("click", (e)=>{ e.preventDefault(); go(idx - 1); });
+    nextBtn.addEventListener("click", (e)=>{ e.preventDefault(); go(idx + 1); });
+
+    // autoplay (pause on hover)
+    const start = () => {
+      stop();
+      const t = setInterval(()=> go(idx + 1), 4500);
+      carTimers.set(d.id, t);
+    };
+    const stop = () => {
+      const t = carTimers.get(d.id);
+      if(t) clearInterval(t);
+      carTimers.delete(d.id);
+    };
+
+    cardEl.querySelector(".carousel").addEventListener("mouseenter", stop);
+    cardEl.querySelector(".carousel").addEventListener("mouseleave", start);
+
+    // init position + dots
+    go(idx);
+    start();
+  }
+
   // ------- Render destinations -------
   function renderDestinations(){
+    // stop old timers (avoid memory leaks on rerender)
+    for(const t of carTimers.values()) clearInterval(t);
+    carTimers.clear();
+
     const list = filteredDest();
     destCount.textContent = String(list.length);
     destGrid.innerHTML = "";
@@ -688,12 +928,29 @@
     const tourIds = new Set(readTour());
 
     list.forEach(d=>{
+      const inTour = tourIds.has(d.id);
+
       const el = document.createElement("article");
       el.className = "card";
 
-      const inTour = tourIds.has(d.id);
+      const dots = d.photos.map((_,i)=> `<span class="dot ${i===0?"active":""}"></span>`).join("");
+      const slides = d.photos.map(src => `
+        <div class="slide"><img src="${src}" alt="${d.name} photo"></div>
+      `).join("");
 
       el.innerHTML = `
+        <div class="carousel" aria-label="Sliding pictures">
+          <span class="car-tag">Sliding photos</span>
+          <div class="track">${slides}</div>
+
+          <div class="car-nav" aria-hidden="false">
+            <button class="car-btn" data-prev="${d.id}" aria-label="Previous photo">‹</button>
+            <button class="car-btn" data-next="${d.id}" aria-label="Next photo">›</button>
+          </div>
+
+          <div class="dots" aria-label="Slide indicators">${dots}</div>
+        </div>
+
         <div class="card-top">
           <div>
             <p class="title">${d.name}</p>
@@ -723,12 +980,8 @@
       `;
 
       destGrid.appendChild(el);
+      mountCarouselHandlers(el, d);
     });
-  }
-
-  function prettyTime(t){
-    const m = {sunrise:"Sunrise", day:"Daytime", evening:"Evening", night:"Night"};
-    return m[t] || t;
   }
 
   // ------- Render tour -------
@@ -772,11 +1025,9 @@
 
   // Tour list events
   tourList.addEventListener("click", (e)=>{
-    const add = e.target?.getAttribute?.("data-add");
     const rm = e.target?.getAttribute?.("data-rm");
     const up = e.target?.getAttribute?.("data-up");
     const down = e.target?.getAttribute?.("data-down");
-
     if(rm) removeFromTour(rm);
     if(up) moveTour(up, "up");
     if(down) moveTour(down, "down");
@@ -819,7 +1070,6 @@
   document.getElementById("clearTourBtn").addEventListener("click", clearTour);
 
   document.getElementById("saveTourBtn").addEventListener("click", ()=>{
-    // It is always already in localStorage; this is a “nice” button for users.
     toast("Saved", "Your tour is saved in this browser.");
   });
 
