@@ -265,7 +265,37 @@ else:
   </div>
 </div>
 
+<!-- ADVANCED DECISION TREE -->
+<div class="card interactive">
+  <span class="pill">Decision Tree</span>
+  <h2>🌳 Code → Decision Tree → Execution</h2>
 
+  <p class="muted">
+    Write a simple <code>if / elif / else</code>.  
+    We will convert it into a decision tree and simulate execution.
+  </p>
+
+  <textarea id="treeCode">
+if marks >= 90:
+    print("A Grade")
+elif marks >= 60:
+    print("B Grade")
+else:
+    print("Fail")
+  </textarea>
+
+  <div class="row" style="margin-top:10px">
+    <input type="number" id="testValue" placeholder="Test value (e.g. 72)" />
+    <button class="btn" onclick="buildTree()">Build Tree</button>
+    <button class="btn secondary" onclick="runTree()">Run</button>
+  </div>
+
+  <svg id="treeSvg" viewBox="0 0 620 420" width="100%" style="margin-top:16px"></svg>
+
+  <div class="muted" style="margin-top:10px">
+    Teaching line: <b>Python checks conditions top to bottom. First True wins.</b>
+  </div>
+</div>
 <!-- PYODIDE SCRIPT -->
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js"></script>
 
@@ -380,6 +410,93 @@ function buildTree(){
       Error: ${e}
     </text>`;
   }
+}
+</script>
+
+
+
+<script>
+let treeNodes = [];
+
+function buildTree(){
+  const src = document.getElementById("treeCode").value.trim();
+  const svg = document.getElementById("treeSvg");
+  svg.innerHTML = "";
+  treeNodes = [];
+
+  const lines = src.split("\n").map(l => l.trim()).filter(Boolean);
+
+  let y = 40;
+  let x = 310;
+
+  lines.forEach((line, i) => {
+    if(line.startsWith("if ") || line.startsWith("elif ")){
+      const cond = line.replace(/^(if|elif)\s+/, "").replace(":", "");
+      treeNodes.push({type:"cond", text:cond, y});
+      y += 90;
+    }
+    if(line.startsWith("else")){
+      treeNodes.push({type:"else", text:"else", y});
+      y += 90;
+    }
+    if(line.startsWith("print")){
+      treeNodes.push({type:"action", text:line.replace("print",""), y});
+    }
+  });
+
+  renderTree(svg);
+}
+
+function renderTree(svg){
+  let y = 40;
+  treeNodes.forEach((n, i) => {
+    if(n.type === "cond"){
+      svg.innerHTML += `
+        <polygon id="node${i}" points="${x},${y} ${x+100},${y+40} ${x},${y+80} ${x-100},${y+40}"
+          fill="#fff" stroke="#92400e" stroke-width="2"/>
+        <text x="${x}" y="${y+45}" text-anchor="middle" font-size="13">${n.text}</text>
+      `;
+    }
+    if(n.type === "else"){
+      svg.innerHTML += `
+        <rect id="node${i}" x="${x-80}" y="${y}" width="160" height="50" rx="10"
+          fill="#fff" stroke="#92400e" stroke-width="2"/>
+        <text x="${x}" y="${y+30}" text-anchor="middle" font-size="13">else</text>
+      `;
+    }
+    if(n.type === "action"){
+      svg.innerHTML += `
+        <rect id="node${i}" x="${x+180}" y="${y-40}" width="180" height="50" rx="10"
+          fill="#fff" stroke="#059669" stroke-width="2"/>
+        <text x="${x+270}" y="${y-10}" text-anchor="middle" font-size="13">${n.text}</text>
+      `;
+    }
+    y += 90;
+  });
+}
+
+function runTree(){
+  const val = Number(document.getElementById("testValue").value);
+  let matched = false;
+
+  treeNodes.forEach((n,i)=>{
+    const el = document.getElementById("node"+i);
+    if(!el) return;
+
+    el.setAttribute("fill","#fff");
+
+    if(n.type === "cond" && !matched){
+      const expr = n.text.replace(/[a-zA-Z_]+/g,val);
+      if(eval(expr)){
+        el.setAttribute("fill","#d1fae5");
+        matched = true;
+      }
+    }
+    else if(n.type === "else" && !matched){
+      el.setAttribute("fill","#fee2e2");
+      matched = true;
+    }
+  });
 }
 </script>
 
