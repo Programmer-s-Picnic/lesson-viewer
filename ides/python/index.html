@@ -1,0 +1,874 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Python Commands Guide (python, pip, venv, tools) — Comprehensive</title>
+  <meta name="description" content="A comprehensive, practical guide to Python commands: python, pip, venv, pipx, virtualenv, py launcher, conda basics, Poetry, uv, troubleshooting, and best practices." />
+  <style>
+    :root{
+      /* Light Saffron Theme (your default) */
+      --bg: #fff7e6;
+      --panel: #ffffff;
+      --panel2: #fff0cc;
+      --text: #2a2418;
+      --muted: #5a503c;
+      --brand: #d07a00;
+      --accent: #1b7f5a;
+      --warn: #b85c00;
+      --danger: #c43737;
+      --border: rgba(42,36,24,.14);
+      --shadow: 0 10px 26px rgba(42,36,24,.12);
+      --code: #1c1a16;
+      --codeText: #fff7e6;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      --radius: 18px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:var(--sans);
+      color:var(--text);
+      background:
+        radial-gradient(900px 450px at 15% 0%, rgba(208,122,0,.18), transparent 60%),
+        radial-gradient(900px 450px at 85% 10%, rgba(27,127,90,.12), transparent 60%),
+        radial-gradient(700px 400px at 50% 95%, rgba(208,122,0,.12), transparent 60%),
+        var(--bg);
+      line-height:1.65;
+    }
+    a{color:var(--brand); text-decoration:none}
+    a:hover{text-decoration:underline}
+    header{
+      position:sticky; top:0; z-index:50;
+      backdrop-filter: blur(10px);
+      background: linear-gradient(to bottom, rgba(255,247,230,.92), rgba(255,247,230,.75));
+      border-bottom:1px solid var(--border);
+    }
+    .wrap{max-width:1100px; margin:0 auto; padding:18px}
+    .topbar{display:flex; align-items:center; justify-content:space-between; gap:12px}
+    .brand{display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.2px}
+    .logo{
+      width:36px; height:36px; border-radius:12px;
+      background: conic-gradient(from 210deg, #f4b23b, #ffd08a, #f4b23b, #e08a00);
+      box-shadow: var(--shadow);
+      display:grid; place-items:center;
+      border:1px solid rgba(42,36,24,.16);
+    }
+    .logo span{font-family:var(--mono); font-weight:900; font-size:13px; color:#2a2418}
+    .actions{display:flex; gap:10px; align-items:center}
+    .btn{
+      cursor:pointer;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.70);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:12px;
+      font-weight:700;
+      display:inline-flex; align-items:center; gap:8px;
+      transition: transform .05s ease, background .2s ease, border-color .2s ease;
+      user-select:none;
+    }
+    .btn:hover{background: rgba(255,255,255,.92); border-color: rgba(42,36,24,.20)}
+    .btn:active{transform: translateY(1px)}
+    .btn.primary{
+      background: linear-gradient(135deg, rgba(208,122,0,.22), rgba(27,127,90,.14));
+      border-color: rgba(208,122,0,.35);
+    }
+    .pill{
+      display:inline-flex; gap:8px; align-items:center;
+      padding:7px 10px; border-radius:999px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.65);
+      font-size:12px; color:var(--muted);
+    }
+    .search{
+      display:flex; gap:10px; flex:1; min-width:220px; max-width:520px;
+      align-items:center;
+      border:1px solid var(--border);
+      border-radius: 14px;
+      padding: 10px 12px;
+      background: rgba(255,255,255,.70);
+    }
+    .search input{
+      width:100%;
+      border:none; outline:none;
+      background:transparent;
+      color:var(--text);
+      font-size:14px;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns: 320px 1fr;
+      gap:18px;
+      align-items:start;
+      padding:18px;
+      max-width:1100px;
+      margin:0 auto;
+    }
+    @media (max-width: 980px){
+      .grid{grid-template-columns:1fr}
+      .sidebar{position:relative; top:auto}
+      .actions{flex-wrap:wrap}
+    }
+    .hero{max-width:1100px; margin:0 auto; padding:26px 18px 6px; display:grid; gap:16px}
+    .hero h1{
+      margin:0;
+      font-size: clamp(28px, 3.3vw, 44px);
+      line-height:1.15;
+      letter-spacing:-.5px;
+    }
+    .hero p{margin:0; color:var(--muted); max-width:80ch}
+    .hero .row{display:flex; flex-wrap:wrap; gap:10px; align-items:center}
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.78));
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .sidebar{
+      position: sticky; top: 78px;
+      padding:14px;
+      background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,240,204,.75));
+    }
+    .sidebar h3{
+      margin:6px 10px 8px;
+      font-size:13px;
+      color:var(--muted);
+      text-transform:uppercase;
+      letter-spacing:.12em
+    }
+    .toc{
+      display:flex; flex-direction:column; gap:6px; padding: 0 6px 8px;
+      max-height: calc(100vh - 140px);
+      overflow:auto;
+    }
+    .toc a{
+      display:flex; justify-content:space-between; align-items:center;
+      padding:10px 10px;
+      border-radius:12px;
+      border:1px solid transparent;
+      color:var(--text);
+      background: rgba(255,240,204,.55);
+    }
+    .toc a:hover{
+      border-color: rgba(42,36,24,.18);
+      background: rgba(255,240,204,.85);
+      text-decoration:none
+    }
+    .toc a small{color:var(--muted)}
+    main{padding:18px}
+    section{
+      padding:18px;
+      margin-bottom:16px;
+      border-radius: var(--radius);
+      border:1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,240,204,.58));
+    }
+    section h2{margin:0 0 8px; font-size:22px}
+    section h3{margin:18px 0 8px; font-size:18px}
+    section p{margin:8px 0; color:var(--muted)}
+    ul,ol{padding-left:20px}
+    .kgrid{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap:12px;
+      margin-top:10px;
+    }
+    @media (max-width: 720px){ .kgrid{grid-template-columns:1fr} }
+    .k{
+      padding:14px;
+      border-radius:16px;
+      border:1px solid rgba(42,36,24,.14);
+      background: rgba(255,247,230,.65);
+    }
+    .k strong{display:block; margin-bottom:6px}
+    .k ul{margin:8px 0 0 18px; color:var(--muted)}
+    .k li{margin:6px 0}
+    .callout{
+      padding:14px;
+      border-radius:16px;
+      border:1px solid rgba(208,122,0,.30);
+      background: rgba(208,122,0,.10);
+      margin:10px 0;
+      color:var(--muted);
+    }
+    .callout.warn{border-color: rgba(184,92,0,.30); background: rgba(184,92,0,.12)}
+    .callout.danger{border-color: rgba(196,55,55,.28); background: rgba(196,55,55,.10)}
+    .tag{
+      display:inline-block;
+      font-size:12px;
+      padding:4px 9px;
+      border-radius:999px;
+      border:1px solid rgba(42,36,24,.14);
+      background: rgba(255,255,255,.60);
+      color:var(--muted);
+      margin-right:6px;
+    }
+    pre, code{font-family:var(--mono)}
+    pre{
+      margin:12px 0;
+      padding:14px;
+      border-radius:16px;
+      border:1px solid rgba(255,247,230,.25);
+      background: var(--code);
+      color: var(--codeText);
+      overflow:auto;
+    }
+    code.inline{
+      padding:2px 6px;
+      border-radius:9px;
+      border:1px solid rgba(42,36,24,.18);
+      background: rgba(255,240,204,.70);
+      color: #2a2418;
+    }
+    .two{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:12px;
+    }
+    @media (max-width: 900px){ .two{grid-template-columns:1fr} }
+    .footer{
+      max-width:1100px; margin:0 auto; padding:22px 18px 46px;
+      color:var(--muted);
+      text-align:center;
+    }
+    .hr{height:1px; background: var(--border); margin:14px 0}
+    .kbd{
+      font-family: var(--mono);
+      border: 1px solid rgba(42,36,24,.18);
+      background: rgba(255,255,255,.65);
+      border-bottom-color: rgba(42,36,24,.24);
+      padding: 2px 6px;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #2a2418;
+      white-space: nowrap;
+    }
+    .chiprow{display:flex; flex-wrap:wrap; gap:8px; margin:10px 0}
+    .chip{
+      display:inline-flex; align-items:center; gap:8px;
+      border:1px solid rgba(42,36,24,.14);
+      background: rgba(255,255,255,.70);
+      border-radius:999px;
+      padding:7px 10px;
+      font-size:12px;
+      color:var(--muted);
+    }
+    .linkgrid{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap:12px;
+      margin-top:12px;
+    }
+    @media (max-width: 720px){ .linkgrid{grid-template-columns:1fr} }
+    .linkcard{
+      padding:14px;
+      border-radius:16px;
+      border:1px solid rgba(42,36,24,.14);
+      background: rgba(255,255,255,.70);
+    }
+    .linkcard b{display:block; margin-bottom:6px}
+    .linkcard p{margin:0; color:var(--muted)}
+  </style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand" aria-label="Python Commands Guide">
+        <div class="logo" aria-hidden="true"><span>PY</span></div>
+        <div>
+          <div style="font-size:15px">Python Commands Guide</div>
+          <div class="mini muted">python • pip • venv • tools • troubleshooting • best practices</div>
+        </div>
+      </div>
+      <div class="actions">
+        <div class="search" role="search">
+          <span aria-hidden="true">🔎</span>
+          <input id="searchBox" placeholder="Search (e.g., venv, pip install, requirements, poetry, uv, wheels)..." />
+          <button class="btn" id="clearSearch" type="button" title="Clear search">✕</button>
+        </div>
+        <button class="btn primary" id="printBtn" type="button" title="Print / Save as PDF">🖨️ Print</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="hero">
+  <h1>Python CLI commands (python, pip, venv — and more)</h1>
+  <p>
+    This is a practical reference for the most useful Python commands across Windows, macOS, and Linux.
+    It covers <b>python</b> (running scripts, modules, REPL), <b>pip</b> (installing packages), <b>virtual environments</b>,
+    and popular tooling like <b>pipx</b>, <b>Poetry</b>, <b>uv</b>, plus debugging and common errors.
+  </p>
+  <div class="row">
+    <span class="pill">✅ Copy/paste ready</span>
+    <span class="pill">🧪 Virtual env best practices</span>
+    <span class="pill">📦 Packaging basics</span>
+    <span class="pill">🛠️ Troubleshooting</span>
+  </div>
+</div>
+
+<div class="grid">
+  <aside class="card sidebar">
+    <h3>Table of contents</h3>
+    <nav class="toc" id="toc">
+      <a href="#quick-start"><span>Quick start</span><small>3 commands</small></a>
+      <a href="#python"><span>python command</span><small>run, -m, flags</small></a>
+      <a href="#pip"><span>pip command</span><small>install, list, freeze</small></a>
+      <a href="#venv"><span>Virtual environments</span><small>venv, activate</small></a>
+      <a href="#requirements"><span>Requirements</span><small>freeze, lock</small></a>
+      <a href="#pip-tools"><span>pip tools</span><small>pipx, pip-tools</small></a>
+      <a href="#poetry"><span>Poetry</span><small>modern workflow</small></a>
+      <a href="#uv"><span>uv</span><small>fast installs</small></a>
+      <a href="#py-launcher"><span>Windows: py launcher</span><small>py -3.12</small></a>
+      <a href="#conda"><span>Conda basics</span><small>envs</small></a>
+      <a href="#debug"><span>Debugging CLI</span><small>pdb, trace</small></a>
+      <a href="#packaging"><span>Packaging basics</span><small>build, wheel</small></a>
+      <a href="#troubleshooting"><span>Troubleshooting</span><small>common errors</small></a>
+      <a href="#links"><span>Relevant links</span><small>official docs</small></a>
+      <a href="#checklists"><span>Checklists</span><small>copy/paste</small></a>
+    </nav>
+  </aside>
+
+  <main class="card">
+    <section id="quick-start" data-keywords="quick start create venv install run pip python">
+      <h2>Quick start (the 3 commands you’ll use most)</h2>
+      <p>For a clean project setup, do this inside your project folder:</p>
+      <pre><code># 1) Create a virtual environment
+python -m venv .venv
+
+# 2) Activate it (see venv section for Windows/macOS/Linux)
+# 3) Install packages
+python -m pip install -U pip
+python -m pip install requests
+
+# Run your script
+python app.py</code></pre>
+
+      <div class="callout">
+        <b>Best practice:</b> Prefer <code class="inline">python -m pip</code> instead of <code class="inline">pip</code>.
+        It guarantees you’re using pip for the exact Python you intended.
+      </div>
+    </section>
+
+    <section id="python" data-keywords="python run script repl -m module version -V -c path sys.executable">
+      <h2>The <code class="inline">python</code> command</h2>
+      <p><b>python</b> runs scripts, starts an interactive REPL, or runs modules with <code class="inline">-m</code>.</p>
+
+      <h3>Check your Python</h3>
+      <pre><code>python --version
+python -V
+
+# Where is this python coming from?
+python -c "import sys; print(sys.executable)"
+python -c "import sys; print(sys.path)"</code></pre>
+
+      <h3>Run a script / run inline code</h3>
+      <pre><code>python app.py
+python path/to/script.py
+
+python -c "print('hello')"
+python -c "import platform; print(platform.platform())"</code></pre>
+
+      <h3>Run a module with <code class="inline">-m</code> (very important)</h3>
+      <pre><code># Run pip through the same python
+python -m pip --version
+
+# Start a simple web server (great for testing)
+python -m http.server 8000
+
+# Run unittest discovery
+python -m unittest
+
+# Run a package/module as a script
+python -m yourpackage</code></pre>
+
+      <h3>Useful flags</h3>
+      <div class="kgrid">
+        <div class="k">
+          <strong>Quality-of-life</strong>
+          <ul>
+            <li><code class="inline">-i</code> : drop into interactive mode after running a script</li>
+            <li><code class="inline">-m</code> : run a module</li>
+            <li><code class="inline">-c</code> : run a one-liner</li>
+            <li><code class="inline">-q</code> : quieter REPL startup (varies by version)</li>
+          </ul>
+        </div>
+        <div class="k">
+          <strong>Debug/diagnostics</strong>
+          <ul>
+            <li><code class="inline">-X dev</code> : developer mode (extra warnings)</li>
+            <li><code class="inline">-W default</code> : warning control</li>
+            <li><code class="inline">-OO</code> : strip docstrings + optimize (rarely needed)</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout warn">
+        <b>Tip:</b> If <code class="inline">python</code> doesn’t work on Windows, try <code class="inline">py</code> (see “Windows: py launcher”).
+      </div>
+    </section>
+
+    <section id="pip" data-keywords="pip install uninstall list show freeze upgrade wheel cache index">
+      <h2>The <code class="inline">pip</code> command</h2>
+      <p>
+        <b>pip</b> installs and manages Python packages from package indexes (like PyPI) into your current environment.
+      </p>
+
+      <h3>Install, upgrade, uninstall</h3>
+      <pre><code># Install packages
+python -m pip install requests
+
+# Install a specific version
+python -m pip install "requests==2.32.3"
+
+# Upgrade a package
+python -m pip install -U requests
+
+# Uninstall
+python -m pip uninstall requests</code></pre>
+
+      <h3>Inspect what’s installed</h3>
+      <pre><code>python -m pip list
+python -m pip show requests
+
+# See dependency tree (needs install)
+python -m pip install pipdeptree
+pipdeptree</code></pre>
+
+      <h3>Freeze / export installed packages</h3>
+      <pre><code># Outputs exact installed versions
+python -m pip freeze</code></pre>
+
+      <h3>Install from files / URLs</h3>
+      <pre><code># From a requirements file
+python -m pip install -r requirements.txt
+
+# Editable install (for local development)
+python -m pip install -e .
+
+# From a git repo (example)
+python -m pip install "git+https://github.com/psf/requests.git"</code></pre>
+
+      <h3>Useful pip options</h3>
+      <div class="kgrid">
+        <div class="k">
+          <strong>Common</strong>
+          <ul>
+            <li><code class="inline">-U</code> / <code class="inline">--upgrade</code></li>
+            <li><code class="inline">-r</code> install from requirements file</li>
+            <li><code class="inline">--no-cache-dir</code> when cache causes trouble</li>
+            <li><code class="inline">--upgrade-strategy eager</code> (advanced)</li>
+          </ul>
+        </div>
+        <div class="k">
+          <strong>Diagnostics</strong>
+          <ul>
+            <li><code class="inline">-v</code> verbose mode</li>
+            <li><code class="inline">--version</code> show pip version</li>
+            <li><code class="inline">debug</code> for environment details</li>
+          </ul>
+        </div>
+      </div>
+
+      <pre><code># Example diagnostics
+python -m pip --version
+python -m pip debug -v</code></pre>
+
+      <div class="callout danger">
+        <b>Avoid:</b> Running <code class="inline">pip</code> with system Python on Linux in a way that breaks OS packages.
+        Use a virtual environment for projects.
+      </div>
+    </section>
+
+    <section id="venv" data-keywords="venv virtual environment activate deactivate .venv scripts bin">
+      <h2>Virtual environments (venv)</h2>
+      <p>
+        Virtual environments isolate dependencies per project so packages don’t conflict.
+        The most common built-in tool is <code class="inline">venv</code>.
+      </p>
+
+      <h3>Create a venv</h3>
+      <pre><code>python -m venv .venv</code></pre>
+
+      <h3>Activate</h3>
+      <div class="kgrid">
+        <div class="k">
+          <strong>Windows (PowerShell)</strong>
+          <pre><code>.\.venv\Scripts\Activate.ps1</code></pre>
+          <p class="muted mini">If scripts are blocked: run PowerShell as user and set policy:<br><code class="inline">Set-ExecutionPolicy -Scope CurrentUser RemoteSigned</code></p>
+        </div>
+        <div class="k">
+          <strong>macOS / Linux (bash/zsh)</strong>
+          <pre><code>source .venv/bin/activate</code></pre>
+        </div>
+      </div>
+
+      <h3>Deactivate</h3>
+      <pre><code>deactivate</code></pre>
+
+      <h3>Confirm you’re using the right python/pip</h3>
+      <pre><code>python -c "import sys; print(sys.executable)"
+python -m pip --version</code></pre>
+
+      <div class="callout">
+        <b>Tip:</b> Name your venv <code class="inline">.venv</code> and add it to <code class="inline">.gitignore</code>.
+      </div>
+    </section>
+
+    <section id="requirements" data-keywords="requirements.txt pip freeze lock file constraints compile">
+      <h2>Requirements & reproducible installs</h2>
+      <p>
+        There are two common ways to track dependencies:
+        <span class="tag">simple requirements.txt</span> and
+        <span class="tag">lock files</span> (Poetry/uv/conda).
+      </p>
+
+      <h3>Simple approach (small projects)</h3>
+      <pre><code># Save exact versions currently installed
+python -m pip freeze &gt; requirements.txt
+
+# Install later
+python -m pip install -r requirements.txt</code></pre>
+
+      <div class="callout warn">
+        <b>Note:</b> <code class="inline">pip freeze</code> captures everything installed (including transitive deps).
+        For teams, consider a tool that separates "direct" vs "locked" dependencies.
+      </div>
+
+      <h3>Better approach with pip-tools (pin + lock)</h3>
+      <pre><code># 1) Create requirements.in with your top-level deps:
+# requests
+# rich
+
+python -m pip install pip-tools
+
+# 2) Compile to a locked requirements.txt (pins versions)
+python -m piptools compile requirements.in
+
+# 3) Sync your env to exactly those versions
+python -m piptools sync requirements.txt</code></pre>
+    </section>
+
+    <section id="pip-tools" data-keywords="pipx pip-tools virtualenv tox nox pre-commit">
+      <h2>More tools you’ll actually use</h2>
+
+      <h3>pipx (install CLI apps safely)</h3>
+      <p class="muted">
+        Use <b>pipx</b> for Python-based command-line tools (so they don’t pollute project venvs).
+      </p>
+      <pre><code># Install pipx (once)
+python -m pip install --user pipx
+python -m pipx ensurepath
+
+# Install a CLI tool globally-isolated
+pipx install black
+pipx install ruff
+pipx install poetry
+
+# Run without installing (handy)
+pipx run httpie --help</code></pre>
+
+      <h3>pre-commit (auto-format and lint on commit)</h3>
+      <pre><code>python -m pip install pre-commit
+pre-commit install</code></pre>
+
+      <h3>tox / nox (test automation across versions)</h3>
+      <div class="kgrid">
+        <div class="k">
+          <strong>tox (classic)</strong>
+          <pre><code>python -m pip install tox
+tox</code></pre>
+        </div>
+        <div class="k">
+          <strong>nox (Pythonic)</strong>
+          <pre><code>python -m pip install nox
+nox</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <section id="poetry" data-keywords="poetry install add remove lock pyproject.toml publish build">
+      <h2>Poetry (modern dependency management)</h2>
+      <p>
+        Poetry manages dependencies with a <code class="inline">pyproject.toml</code> and lock file.
+        It’s popular for apps/libraries because installs are reproducible.
+      </p>
+
+      <pre><code># Install Poetry (recommended via pipx)
+pipx install poetry
+
+# Start a project
+poetry new myproj
+cd myproj
+
+# Add dependencies
+poetry add requests
+poetry add --group dev pytest ruff
+
+# Install (creates venv + installs)
+poetry install
+
+# Run commands inside the env
+poetry run python -V
+poetry run pytest</code></pre>
+
+      <div class="callout">
+        <b>Tip:</b> For teams, committing <code class="inline">poetry.lock</code> helps keep everyone’s environment consistent.
+      </div>
+    </section>
+
+    <section id="uv" data-keywords="uv fast pip venv sync lock python install">
+      <h2>uv (fast Python package + venv tooling)</h2>
+      <p class="muted">
+        <b>uv</b> is a newer tool that focuses on speed for installs and environment management.
+        Many people use it as a faster replacement for parts of pip/venv workflows.
+      </p>
+
+      <div class="callout warn">
+        <b>Note:</b> Commands can vary by uv version and workflow. If you use uv in a team, standardize on one approach and document it.
+      </div>
+
+      <pre><code># Typical patterns (examples; exact commands may differ by version)
+# Create and use a venv, then install
+uv venv
+uv pip install -U pip
+uv pip install requests
+
+# Or sync dependencies from a lock/config (workflow-dependent)
+# uv sync</code></pre>
+    </section>
+
+    <section id="py-launcher" data-keywords="windows py launcher py -3.11 py -m pip multiple versions">
+      <h2>Windows: the <code class="inline">py</code> launcher</h2>
+      <p>
+        On Windows, you may have multiple Python versions. The <code class="inline">py</code> launcher helps you pick one reliably.
+      </p>
+
+      <pre><code># List installed Pythons (often works)
+py -0p
+
+# Run a specific major/minor
+py -3.12 --version
+py -3.11 -m pip --version
+
+# Create a venv with a specific python
+py -3.12 -m venv .venv
+py -3.12 -m pip install -U pip</code></pre>
+
+      <div class="callout">
+        <b>Tip:</b> If <code class="inline">python</code> is pointing to the wrong version, use <code class="inline">py -3.12</code> explicitly.
+      </div>
+    </section>
+
+    <section id="conda" data-keywords="conda create activate deactivate channels forge mamba">
+      <h2>Conda basics (when to use it)</h2>
+      <p>
+        Conda is popular in data science because it can manage non-Python dependencies (like native libraries).
+        Use it if your stack needs complex compiled packages (NumPy/SciPy stacks, CUDA, etc.).
+      </p>
+
+      <pre><code># Create an environment
+conda create -n myenv python=3.12
+
+# Activate / deactivate
+conda activate myenv
+conda deactivate
+
+# Install packages
+conda install numpy pandas
+# Or use pip inside conda env for pure-Python packages:
+python -m pip install requests</code></pre>
+
+      <div class="callout warn">
+        <b>Mixing conda and pip:</b> Prefer conda packages first, then pip for the rest. Avoid random mixing if you want stability.
+      </div>
+    </section>
+
+    <section id="debug" data-keywords="debug pdb trace traceback faulthandler verbose import timeit cProfile">
+      <h2>Debugging & diagnostics from the CLI</h2>
+
+      <h3>Tracebacks + more info</h3>
+      <pre><code># Print full tracebacks for crashes (useful in some cases)
+python -X faulthandler app.py</code></pre>
+
+      <h3>pdb (built-in debugger)</h3>
+      <pre><code># Drop into debugger on crash
+python -m pdb app.py</code></pre>
+
+      <h3>Time quick snippets</h3>
+      <pre><code>python -m timeit "sum(range(1000000))"</code></pre>
+
+      <h3>Profile performance</h3>
+      <pre><code>python -m cProfile -s cumulative app.py</code></pre>
+    </section>
+
+    <section id="packaging" data-keywords="packaging build wheel sdist pyproject.toml setuptools hatch">
+      <h2>Packaging basics (build a wheel)</h2>
+      <p class="muted">If you’re building a library or distributing code, these commands matter.</p>
+
+      <pre><code># Install build tool
+python -m pip install build
+
+# Build sdist and wheel (outputs to dist/)
+python -m build</code></pre>
+
+      <div class="callout">
+        <b>Tip:</b> Most modern Python packaging uses <code class="inline">pyproject.toml</code> as the central config file.
+      </div>
+    </section>
+
+    <section id="troubleshooting" data-keywords="troubleshooting not recognized command python pip ssl certificate permission denied externally managed environment">
+      <h2>Troubleshooting (common errors)</h2>
+
+      <h3>1) “python/pip is not recognized” (Windows)</h3>
+      <ul class="muted">
+        <li>Try <code class="inline">py</code> instead of <code class="inline">python</code>.</li>
+        <li>Ensure Python is added to PATH during install.</li>
+        <li>Restart terminal after installing Python.</li>
+      </ul>
+
+      <h3>2) Installing goes to the wrong Python</h3>
+      <pre><code># Always bind pip to the python you want:
+python -m pip install PACKAGE
+
+# Confirm:
+python -m pip --version
+python -c "import sys; print(sys.executable)"</code></pre>
+
+      <h3>3) Permission denied / cannot write</h3>
+      <ul class="muted">
+        <li>Use a virtual environment.</li>
+        <li>Or install to user site: <code class="inline">python -m pip install --user PACKAGE</code></li>
+      </ul>
+
+      <h3>4) SSL / certificate errors</h3>
+      <ul class="muted">
+        <li>Often caused by corporate proxies or outdated certificate stores.</li>
+        <li>Try upgrading pip: <code class="inline">python -m pip install -U pip</code></li>
+        <li>Check your network/SSL inspection setup if on a managed network.</li>
+      </ul>
+
+      <h3>5) “Externally managed environment” (some Linux distros)</h3>
+      <div class="callout warn">
+        <b>Meaning:</b> The OS protects the system Python. Use a venv for projects, or use pipx for CLI tools.
+      </div>
+    </section>
+
+    <section id="links" data-keywords="links python docs pip venv pypi poetry conda pipx packaging">
+      <h2>Relevant links</h2>
+      <p>Official docs and dependable references to bookmark.</p>
+
+      <div class="linkgrid">
+        <div class="linkcard">
+          <b>Python documentation</b>
+          <p><a href="https://docs.python.org/" target="_blank" rel="noopener">https://docs.python.org/</a></p>
+          <p class="mini muted">Language + standard library docs.</p>
+        </div>
+        <div class="linkcard">
+          <b>pip documentation</b>
+          <p><a href="https://pip.pypa.io/" target="_blank" rel="noopener">https://pip.pypa.io/</a></p>
+          <p class="mini muted">pip install options, troubleshooting.</p>
+        </div>
+        <div class="linkcard">
+          <b>venv docs</b>
+          <p><a href="https://docs.python.org/3/library/venv.html" target="_blank" rel="noopener">https://docs.python.org/3/library/venv.html</a></p>
+          <p class="mini muted">Built-in virtual environments.</p>
+        </div>
+        <div class="linkcard">
+          <b>PyPI (package index)</b>
+          <p><a href="https://pypi.org/" target="_blank" rel="noopener">https://pypi.org/</a></p>
+          <p class="mini muted">Search packages and releases.</p>
+        </div>
+        <div class="linkcard">
+          <b>pipx</b>
+          <p><a href="https://pypa.github.io/pipx/" target="_blank" rel="noopener">https://pypa.github.io/pipx/</a></p>
+          <p class="mini muted">Install Python CLI apps safely.</p>
+        </div>
+        <div class="linkcard">
+          <b>Python Packaging User Guide</b>
+          <p><a href="https://packaging.python.org/" target="_blank" rel="noopener">https://packaging.python.org/</a></p>
+          <p class="mini muted">Best practices for packaging and dependency management.</p>
+        </div>
+      </div>
+
+      <div class="callout">
+        <b>Want this even more practical?</b> Tell me your OS (Windows/macOS/Linux) and whether you use Poetry/Conda, and I can tailor this page.
+      </div>
+    </section>
+
+    <section id="checklists" data-keywords="checklist python project setup venv pip requirements">
+      <h2>Checklists (copy/paste)</h2>
+
+      <h3>New project checklist</h3>
+      <pre><code>- [ ] Create venv: python -m venv .venv
+- [ ] Activate venv
+- [ ] Upgrade pip: python -m pip install -U pip
+- [ ] Install deps
+- [ ] Save deps (requirements/lock file)
+- [ ] Add .venv to .gitignore
+- [ ] Add formatter/linter (ruff/black) and pre-commit</code></pre>
+
+      <h3>Debug checklist</h3>
+      <pre><code>- [ ] Confirm python path: python -c "import sys; print(sys.executable)"
+- [ ] Confirm pip binding: python -m pip --version
+- [ ] Recreate venv if needed
+- [ ] Use pip debug: python -m pip debug -v
+- [ ] Print traceback / run pdb if crash persists</code></pre>
+    </section>
+
+    <div class="footer">
+      <div class="hr"></div>
+      <p>
+        Made as a single-page reference. Tip: use <span class="kbd">Ctrl</span> + <span class="kbd">F</span> (or the search box)
+        to jump quickly.
+      </p>
+    </div>
+  </main>
+</div>
+
+<script>
+  // Simple client-side search: filters sections and hides TOC items accordingly.
+  (function(){
+    const searchBox = document.getElementById('searchBox');
+    const clearBtn = document.getElementById('clearSearch');
+    const printBtn = document.getElementById('printBtn');
+    const sections = Array.from(document.querySelectorAll('main section'));
+    const tocLinks = Array.from(document.querySelectorAll('#toc a'));
+
+    function normalize(s){ return (s || "").toLowerCase().trim(); }
+
+    function applyFilter(q){
+      const query = normalize(q);
+      if(!query){
+        sections.forEach(s => s.classList.remove('hide'));
+        tocLinks.forEach(a => a.classList.remove('hide'));
+        return;
+      }
+
+      sections.forEach(sec => {
+        const text = normalize(sec.innerText);
+        const keywords = normalize(sec.getAttribute('data-keywords'));
+        const id = sec.id || "";
+        const match = text.includes(query) || keywords.includes(query) || id.includes(query);
+        sec.classList.toggle('hide', !match);
+      });
+
+      tocLinks.forEach(a => {
+        const href = (a.getAttribute('href') || "").replace('#','');
+        const sec = document.getElementById(href);
+        const isHidden = sec ? sec.classList.contains('hide') : false;
+        a.classList.toggle('hide', isHidden);
+      });
+    }
+
+    searchBox.addEventListener('input', e => applyFilter(e.target.value));
+    clearBtn.addEventListener('click', () => { searchBox.value = ""; applyFilter(""); searchBox.focus(); });
+    printBtn.addEventListener('click', () => window.print());
+  })();
+</script>
+</body>
+</html>
