@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Saffron Shop — Cart</title>
+  <style>
+    :root{
+      --bg:#fff7e6;
+      --card:#ffffff;
+      --ink:#1f2937;
+      --muted:#6b7280;
+      --brand:#d97706;
+      --brand2:#f59e0b;
+      --border:#eadcc5;
+      --shadow:0 18px 40px rgba(0,0,0,.12);
+      --r:18px;
+      --ok:#059669;
+      --bad:#dc2626;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans";
+      color:var(--ink);
+      background:
+        radial-gradient(1200px 700px at 10% -10%, rgba(245,158,11,.18), transparent 60%),
+        radial-gradient(900px 700px at 100% 0%, rgba(217,119,6,.14), transparent 55%),
+        var(--bg);
+    }
+    a{color:inherit;text-decoration:none}
+    button{font:inherit}
+    .topbar{
+      position:sticky; top:0; z-index:10;
+      backdrop-filter: blur(10px);
+      background: rgba(255,247,230,.75);
+      border-bottom:1px solid var(--border);
+    }
+    .topbar-inner{
+      max-width:1100px; margin:0 auto;
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      padding:12px 14px;
+    }
+    .logo{display:flex; align-items:center; gap:10px; font-weight:900;}
+    .logo-badge{
+      width:38px;height:38px;border-radius:12px;
+      background: linear-gradient(135deg, var(--brand2), var(--brand));
+      box-shadow: 0 10px 25px rgba(217,119,6,.22);
+      display:grid; place-items:center; color:white; font-weight:900;
+    }
+    .btn{
+      border:none;
+      background: linear-gradient(135deg, var(--brand2), var(--brand));
+      color:white;
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      box-shadow: 0 12px 24px rgba(217,119,6,.18);
+      transition: transform .12s ease, filter .12s ease;
+      display:inline-flex; align-items:center; justify-content:center; gap:8px;
+      white-space:nowrap;
+    }
+    .btn:hover{transform: translateY(-1px); filter:saturate(1.02)}
+    .btn.secondary{
+      background: rgba(255,255,255,.9);
+      color: var(--ink);
+      border:1px solid var(--border);
+      box-shadow:none;
+    }
+    .wrap{max-width:1100px; margin:0 auto; padding:16px 14px 40px;}
+    .h1{font-size:26px; font-weight:950; margin:0;}
+    .sub{color:var(--muted); margin:6px 0 0; font-size:13px;}
+
+    .layout{
+      display:grid;
+      grid-template-columns: 1fr 340px;
+      gap:14px;
+      align-items:start;
+      margin-top:14px;
+    }
+    @media (max-width: 980px){
+      .layout{grid-template-columns: 1fr;}
+    }
+
+    .panel{
+      background: rgba(255,255,255,.88);
+      border:1px solid var(--border);
+      border-radius: var(--r);
+      box-shadow: 0 10px 28px rgba(0,0,0,.08);
+      overflow:hidden;
+    }
+    .panel-h{
+      padding:14px;
+      border-bottom:1px solid var(--border);
+      background: rgba(255,247,230,.6);
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+    }
+    .panel-h b{font-weight:950}
+    .panel-b{padding:14px;}
+
+    .item{
+      display:grid;
+      grid-template-columns: 86px 1fr;
+      gap:12px;
+      padding:12px;
+      border:1px solid var(--border);
+      border-radius: 16px;
+      background: rgba(255,255,255,.9);
+    }
+    .item + .item{margin-top:12px;}
+    .thumb{
+      width:86px;height:86px;border-radius:16px;
+      border:1px solid var(--border);
+      background: rgba(255,247,230,.55);
+      display:grid; place-items:center;
+      overflow:hidden;
+    }
+    .thumb img{width:100%; height:100%; object-fit:cover}
+    .title{font-weight:950; margin:0 0 4px; line-height:1.2;}
+    .meta{color:var(--muted); font-size:12px; display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+    .meta .dot{width:4px;height:4px;border-radius:999px;background:rgba(107,114,128,.7)}
+    .row{
+      display:flex; flex-wrap:wrap;
+      align-items:center; justify-content:space-between;
+      gap:10px;
+      margin-top:10px;
+    }
+    .money{font-weight:950;}
+    select{
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.9);
+      padding:8px 10px;
+      border-radius: 12px;
+      outline:none;
+    }
+    .linkbtn{
+      border:none; cursor:pointer;
+      background: transparent;
+      color: var(--bad);
+      font-weight:900;
+      padding:8px 10px;
+      border-radius: 12px;
+    }
+    .linkbtn:hover{background: rgba(220,38,38,.08)}
+    .empty{
+      padding:18px;
+      border:1px dashed rgba(234,220,197,.95);
+      border-radius: 18px;
+      background: rgba(255,247,230,.55);
+      color: var(--muted);
+      line-height:1.5;
+    }
+
+    .sumline{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:10px 0;
+      border-bottom:1px dashed rgba(234,220,197,.95);
+      color: var(--muted);
+      font-size:13px;
+    }
+    .sumline:last-child{border-bottom:none}
+    .sumline b{color:var(--ink)}
+    .grand{
+      font-size:18px;
+      font-weight:950;
+      color: var(--ink);
+      padding-top:6px;
+    }
+    .note{
+      font-size:12px;
+      color: var(--muted);
+      line-height:1.4;
+      margin-top:10px;
+    }
+
+    .toast{
+      position: fixed;
+      right: 14px;
+      bottom: 14px;
+      z-index: 2000;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .toast .t{
+      background: rgba(255,255,255,.92);
+      border:1px solid var(--border);
+      border-radius: 16px;
+      padding:10px 12px;
+      box-shadow: 0 14px 30px rgba(0,0,0,.14);
+      display:flex; gap:10px; align-items:flex-start;
+      max-width: 360px;
+    }
+    .t .dot{
+      width:10px;height:10px;border-radius:999px;background:var(--ok); margin-top:4px;
+    }
+    .t .msg{font-size:13px; color:var(--ink)}
+    .t .msg small{display:block; color:var(--muted); margin-top:2px}
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="logo">
+        <div class="logo-badge">S</div>
+        <div>
+          <div style="line-height:1;">Saffron Shop</div>
+          <div style="line-height:1; font-size:12px; color:var(--muted); font-weight:800;">Shopping Cart</div>
+        </div>
+      </div>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <a class="btn secondary" href="index.html">← Continue Shopping</a>
+        <button class="btn secondary" id="clearCart">Clear Cart</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <h1 class="h1">Your Cart</h1>
+    <p class="sub">Cart data is stored in your browser (localStorage key: <code>cart_items_v1</code>).</p>
+
+    <div class="layout">
+      <section class="panel">
+        <div class="panel-h">
+          <b>Items</b>
+          <span style="color:var(--muted); font-size:13px;"><span id="count">0</span> total</span>
+        </div>
+        <div class="panel-b" id="items"></div>
+      </section>
+
+      <aside class="panel">
+        <div class="panel-h">
+          <b>Order Summary</b>
+          <span style="color:var(--muted); font-size:13px;">(demo)</span>
+        </div>
+        <div class="panel-b">
+          <div class="sumline"><span>Subtotal</span><b id="subtotal">₹0</b></div>
+          <div class="sumline"><span>Discount</span><b id="discount">₹0</b></div>
+          <div class="sumline"><span>Shipping</span><b id="ship">₹0</b></div>
+          <div class="sumline grand"><span>Total</span><span id="total">₹0</span></div>
+
+          <button class="btn" style="width:100%; margin-top:12px;" id="checkout">Proceed to Checkout</button>
+          <div class="note">
+            This is a front-end demo only. “Checkout” just shows a message.
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" aria-live="polite" aria-atomic="true"></div>
+
+<script>
+(() => {
+  const LS_CART = "cart_items_v1";
+
+  // Same SVG helpers (so cart page can render product thumbs without external assets)
+  function svgDataURI(svg) {
+    return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  }
+  function teeSVG(colorA, colorB) {
+    return svgDataURI(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800">
+        <defs>
+          <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="${colorA}"/>
+            <stop offset="1" stop-color="${colorB}"/>
+          </linearGradient>
+        </defs>
+        <rect width="800" height="800" fill="#fff7e6"/>
+        <path d="M265 195c40-35 78-55 135-55s95 20 135 55l85 55-55 110-70-35v330c0 28-22 50-50 50H320c-28 0-50-22-50-50V325l-70 35-55-110 120-55z"
+              fill="url(#g)" stroke="#c7b299" stroke-width="10" stroke-linejoin="round"/>
+      </svg>
+    `);
+  }
+  function hoodieSVG(colorA, colorB) {
+    return svgDataURI(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800">
+        <defs>
+          <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="${colorA}"/>
+            <stop offset="1" stop-color="${colorB}"/>
+          </linearGradient>
+        </defs>
+        <rect width="800" height="800" fill="#fff7e6"/>
+        <path d="M280 200c20-55 60-95 120-95s100 40 120 95l60 60-45 120-55-35v300c0 30-24 55-55 55H330c-30 0-55-25-55-55V345l-55 35-45-120 105-60z"
+              fill="url(#g)" stroke="#c7b299" stroke-width="10" stroke-linejoin="round"/>
+      </svg>
+    `);
+  }
+  function kurtaSVG(colorA, colorB) {
+    return svgDataURI(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800">
+        <defs>
+          <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="${colorA}"/>
+            <stop offset="1" stop-color="${colorB}"/>
+          </linearGradient>
+        </defs>
+        <rect width="800" height="800" fill="#fff7e6"/>
+        <path d="M300 160c30-30 60-45 100-45s70 15 100 45l70 80-55 110-45-25v380c0 28-22 50-50 50H330c-28 0-50-22-50-50V325l-45 25-55-110 120-80z"
+              fill="url(#g)" stroke="#c7b299" stroke-width="10" stroke-linejoin="round"/>
+      </svg>
+    `);
+  }
+  function jeansSVG(colorA, colorB) {
+    return svgDataURI(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800">
+        <defs>
+          <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="${colorA}"/>
+            <stop offset="1" stop-color="${colorB}"/>
+          </linearGradient>
+        </defs>
+        <rect width="800" height="800" fill="#fff7e6"/>
+        <path d="M290 160h220l-30 520c-2 40-34 70-74 70h-12c-40 0-72-30-74-70l-30-520z"
+              fill="url(#g)" stroke="#c7b299" stroke-width="10" stroke-linejoin="round"/>
+      </svg>
+    `);
+  }
+
+  const PRODUCTS = [
+    { id:"p1", title:"Cotton Tee — Saffron Fade", category:"T-Shirt", color:"Saffron", size:"M", material:"100% Cotton", price:799, mrp:1299, images:[ teeSVG("#f59e0b","#d97706") ] },
+    { id:"p2", title:"Everyday Hoodie — Charcoal", category:"Hoodie", color:"Charcoal", size:"L", material:"Cotton Blend", price:1599, mrp:2499, images:[ hoodieSVG("#374151","#111827") ] },
+    { id:"p3", title:"Linen Kurta — Ivory", category:"Kurta", color:"Ivory", size:"XL", material:"Premium Linen", price:1899, mrp:2999, images:[ kurtaSVG("#fff7ed","#fcd34d") ] },
+    { id:"p4", title:"Denim Jeans — Deep Indigo", category:"Jeans", color:"Indigo", size:"32", material:"Denim", price:2099, mrp:3299, images:[ jeansSVG("#1d4ed8","#0f172a") ] },
+    { id:"p5", title:"Oversized Tee — Mint", category:"T-Shirt", color:"Mint", size:"S", material:"Combed Cotton", price:899, mrp:1499, images:[ teeSVG("#34d399","#0ea5e9") ] },
+    { id:"p6", title:"Hoodie — Warm Sand", category:"Hoodie", color:"Sand", size:"M", material:"Fleece", price:1799, mrp:2799, images:[ hoodieSVG("#fbbf24","#b45309") ] },
+    { id:"p7", title:"Kurta — Ocean Blue", category:"Kurta", color:"Blue", size:"L", material:"Cotton Slub", price:1699, mrp:2699, images:[ kurtaSVG("#38bdf8","#1d4ed8") ] },
+    { id:"p8", title:"Jeans — Stone Black", category:"Jeans", color:"Black", size:"34", material:"Stretch Denim", price:2299, mrp:3599, images:[ jeansSVG("#111827","#000000") ] },
+  ];
+
+  function money(n){ return "₹" + Number(n).toLocaleString("en-IN"); }
+
+  function readCart(){
+    try{ return JSON.parse(localStorage.getItem(LS_CART) || "[]"); }catch{ return []; }
+  }
+  function writeCart(items){
+    localStorage.setItem(LS_CART, JSON.stringify(items));
+  }
+
+  const itemsEl = document.getElementById("items");
+  const countEl = document.getElementById("count");
+  const subtotalEl = document.getElementById("subtotal");
+  const discountEl = document.getElementById("discount");
+  const shipEl = document.getElementById("ship");
+  const totalEl = document.getElementById("total");
+
+  function compute(){
+    const cart = readCart();
+    let subtotal = 0;
+    let mrpTotal = 0;
+
+    cart.forEach(ci => {
+      const p = PRODUCTS.find(x=>x.id===ci.id);
+      if(!p) return;
+      const q = Number(ci.qty)||0;
+      subtotal += p.price * q;
+      mrpTotal += p.mrp * q;
+    });
+
+    const discount = Math.max(0, mrpTotal - subtotal);
+    const shipping = subtotal >= 1999 || subtotal === 0 ? 0 : 79;
+    const total = subtotal + shipping;
+
+    countEl.textContent = String(cart.reduce((s,i)=> s + (Number(i.qty)||0), 0));
+    subtotalEl.textContent = money(subtotal);
+    discountEl.textContent = "- " + money(discount);
+    shipEl.textContent = shipping === 0 ? "₹0" : money(shipping);
+    totalEl.textContent = money(total);
+  }
+
+  function render(){
+    const cart = readCart();
+    itemsEl.innerHTML = "";
+
+    if(cart.length === 0){
+      itemsEl.innerHTML = `
+        <div class="empty">
+          <b>Your cart is empty.</b><br/>
+          Go back to the products page and add some clothes.
+          <div style="margin-top:12px;">
+            <a class="btn secondary" href="index.html">← Shop Clothes</a>
+          </div>
+        </div>
+      `;
+      compute();
+      return;
+    }
+
+    cart.forEach(ci => {
+      const p = PRODUCTS.find(x=>x.id===ci.id);
+      if(!p) return;
+
+      const q = Number(ci.qty)||1;
+      const line = document.createElement("div");
+      line.className = "item";
+      line.innerHTML = `
+        <div class="thumb"><img src="${p.images[0]}" alt="${p.title}"></div>
+        <div>
+          <p class="title">${p.title}</p>
+          <div class="meta">
+            <span>${p.category}</span><span class="dot"></span>
+            <span>${p.color}</span><span class="dot"></span>
+            <span>Size ${p.size}</span><span class="dot"></span>
+            <span>${p.material}</span>
+          </div>
+
+          <div class="row">
+            <div>
+              <span class="money">${money(p.price)}</span>
+              <span style="color:var(--muted); font-size:12px; margin-left:8px; text-decoration:line-through;">${money(p.mrp)}</span>
+            </div>
+
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+              <label style="font-size:12px; color:var(--muted); font-weight:900;">Qty</label>
+              <select data-qty="${p.id}">
+                ${[1,2,3,4,5,6,7,8,9,10].map(n => `<option ${n===q?"selected":""}>${n}</option>`).join("")}
+              </select>
+              <button class="linkbtn" data-rm="${p.id}">Remove</button>
+            </div>
+          </div>
+        </div>
+      `;
+      itemsEl.appendChild(line);
+    });
+
+    compute();
+  }
+
+  // Events
+  itemsEl.addEventListener("change", (e)=>{
+    const id = e.target?.getAttribute?.("data-qty");
+    if(!id) return;
+    const qty = Number(e.target.value || 1);
+    const cart = readCart();
+    const item = cart.find(x=>x.id===id);
+    if(item){ item.qty = qty; writeCart(cart); }
+    compute();
+  });
+
+  itemsEl.addEventListener("click", (e)=>{
+    const rm = e.target?.getAttribute?.("data-rm");
+    if(!rm) return;
+    let cart = readCart();
+    cart = cart.filter(x=>x.id !== rm);
+    writeCart(cart);
+    toast("Removed", "Item removed from cart");
+    render();
+  });
+
+  document.getElementById("clearCart").addEventListener("click", ()=>{
+    writeCart([]);
+    toast("Cleared", "Cart cleared");
+    render();
+  });
+
+  document.getElementById("checkout").addEventListener("click", ()=>{
+    const cart = readCart();
+    if(cart.length === 0){
+      toast("Nothing to checkout", "Add items first");
+      return;
+    }
+    toast("Checkout (demo)", "This is a front-end demo—no payment processed.");
+  });
+
+  // Toast
+  const toastWrap = document.getElementById("toast");
+  function toast(title, detail){
+    const el = document.createElement("div");
+    el.className = "t";
+    el.innerHTML = `<div class="dot"></div><div class="msg"><b>${title}</b><small>${detail}</small></div>`;
+    toastWrap.appendChild(el);
+    setTimeout(()=> el.remove(), 2600);
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
