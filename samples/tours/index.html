@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Varanasi Tourism Planner — Build Your Own Tour</title>
-  <meta name="description" content="Varanasi tourism page with destinations and a DIY tour builder. Each destination has a sliding picture carousel, search on the right, save tour in localStorage, share on WhatsApp."/>
+  <meta name="description" content="Varanasi tourism page with destinations and a DIY tour builder. Each destination has a sliding picture carousel, search on the right, save tour in localStorage, share tour on WhatsApp, and view selected destinations on a map."/>
   <style>
     :root{
       --bg:#fff7e6;          /* light saffron */
@@ -383,6 +383,60 @@
     .t .okdot{width:10px;height:10px;border-radius:999px;background:var(--ok); margin-top:4px}
     .t .msg{font-size:13px}
     .t .msg small{display:block; color:var(--muted); margin-top:2px}
+
+    /* --- Map modal --- */
+    .modal{
+      position:fixed;
+      inset:0;
+      background: rgba(15,23,42,.45);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index: 120;
+      padding: 16px;
+    }
+    .modal.show{display:flex}
+    .modal-card{
+      width:min(1100px, 100%);
+      height:min(78vh, 760px);
+      background: rgba(255,255,255,.95);
+      border:1px solid var(--border);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+    }
+    .modal-h{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:12px 12px;
+      background: rgba(255,247,230,.75);
+      border-bottom:1px solid var(--border);
+    }
+    .modal-h b{font-weight:950}
+    .modal-h small{color:var(--muted)}
+    .modal-b{
+      flex:1;
+      background: #fff;
+      position:relative;
+    }
+    .modal-b iframe{
+      width:100%;
+      height:100%;
+      border:0;
+    }
+    .kbd{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 11px;
+      padding:2px 6px;
+      border:1px solid var(--border);
+      border-radius: 8px;
+      background: rgba(255,255,255,.8);
+      color: var(--muted);
+    }
   </style>
 </head>
 <body>
@@ -397,7 +451,7 @@
       </div>
 
       <div class="pill" title="Quick search (same as right-side search)">
-        🔎 <input id="topSearch" type="search" placeholder="Search: Kashi Vishwanath, Sarnath, ghats..." autocomplete="off"/>
+        🔎 <input id="topSearch" type="search" placeholder="Search: Champak's Home, Sarnath, ghats..." autocomplete="off"/>
       </div>
 
       <button class="btn secondary" id="saveTourBtn" title="Save current tour in browser">💾 Save Tour</button>
@@ -416,6 +470,7 @@
               Your tour is saved in <b>localStorage</b> so it stays even after refresh.
             </p>
             <div class="chips">
+              <span class="chip hot">Start Point</span>
               <span class="chip hot">Ghats</span>
               <span class="chip hot">Temples</span>
               <span class="chip hot">Heritage</span>
@@ -469,16 +524,41 @@
 
           <div class="row" style="margin-top:12px;">
             <button class="btn" id="makePlanBtn">🧭 Make Tour Summary</button>
+            <button class="btn secondary" id="viewMapBtn">🗺️ View Tour Map</button>
+          </div>
+
+          <div class="row" style="margin-top:10px;">
             <button class="btn danger" id="clearTourBtn">🧹 Clear</button>
+            <button class="btn secondary" id="openMapsBtn" title="Open in Google Maps (new tab)">↗️ Open in Maps</button>
           </div>
 
           <div class="note" id="summaryBox" style="display:none;"></div>
 
           <div class="note">
-            <b>Tip:</b> Use the green WhatsApp button to share your tour. It opens WhatsApp with your plan text.
+            <b>Tip:</b> “View Tour Map” shows your selected destinations as a route in an embedded map.
+            Use <span class="kbd">Esc</span> or Close to exit the map.
           </div>
         </div>
       </aside>
+    </div>
+  </div>
+
+  <!-- Map Modal -->
+  <div class="modal" id="mapModal" aria-hidden="true" role="dialog" aria-label="Tour Map Modal">
+    <div class="modal-card">
+      <div class="modal-h">
+        <div>
+          <b>Tour Map</b><br/>
+          <small>Route built from your selected destinations (order matters)</small>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+          <a class="btn secondary" id="openMapsLink" href="#" target="_blank" rel="noopener">↗️ Open in Maps</a>
+          <button class="btn danger" id="closeMapBtn">✕ Close</button>
+        </div>
+      </div>
+      <div class="modal-b">
+        <iframe id="mapFrame" title="Selected destinations map" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+      </div>
     </div>
   </div>
 
@@ -499,8 +579,10 @@
   const LS_TOUR = "varanasi_tour_v1";
 
   // --- Simple "photo-like" SVG images (offline, no external links) ---
-  // Each destination gets 3 slides.
   function svgDataURI(svg){ return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg); }
+  function escapeXML(s){
+    return String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&apos;");
+  }
   function photoSVG(title, subtitle, hue){
     const h = Number(hue)||30;
     return svgDataURI(`
@@ -520,21 +602,17 @@
         </defs>
         <rect width="1200" height="700" fill="url(#g)"/>
         <rect width="1200" height="700" fill="url(#r)"/>
-        <!-- water-ish waves -->
         <path d="M0 520 C 200 490, 320 560, 520 530 C 720 500, 900 580, 1200 520 L1200 700 L0 700 Z"
               fill="#ffffff" fill-opacity=".20"/>
         <path d="M0 560 C 240 540, 360 610, 600 580 C 840 550, 980 640, 1200 580 L1200 700 L0 700 Z"
               fill="#ffffff" fill-opacity=".18"/>
-        <!-- glow circle -->
         <circle cx="960" cy="160" r="90" fill="#fff" fill-opacity=".22"/>
-        <!-- title card -->
         <g filter="url(#s)">
-          <rect x="60" y="60" width="720" height="190" rx="28" fill="#fff" fill-opacity=".86"/>
-          <rect x="60" y="60" width="720" height="190" rx="28" fill="none" stroke="#eadcc5" stroke-width="6"/>
-          <text x="105" y="145" font-size="58" font-family="Arial, sans-serif" font-weight="800" fill="#1f2937">${escapeXML(title)}</text>
-          <text x="105" y="200" font-size="28" font-family="Arial, sans-serif" font-weight="600" fill="#6b7280">${escapeXML(subtitle)}</text>
+          <rect x="60" y="60" width="820" height="210" rx="28" fill="#fff" fill-opacity=".86"/>
+          <rect x="60" y="60" width="820" height="210" rx="28" fill="none" stroke="#eadcc5" stroke-width="6"/>
+          <text x="105" y="150" font-size="56" font-family="Arial, sans-serif" font-weight="800" fill="#1f2937">${escapeXML(title)}</text>
+          <text x="105" y="210" font-size="26" font-family="Arial, sans-serif" font-weight="700" fill="#6b7280">${escapeXML(subtitle)}</text>
         </g>
-        <!-- tiny "ghat" silhouettes -->
         <g fill="#1f2937" fill-opacity=".22">
           <rect x="160" y="440" width="90" height="60" rx="10"/>
           <rect x="265" y="410" width="120" height="90" rx="12"/>
@@ -545,12 +623,30 @@
       </svg>
     `);
   }
-  function escapeXML(s){
-    return String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&apos;");
-  }
 
-  // Destinations (with 3-slide carousels each)
+  // --- NEW: Champak's Home as first destination ---
+  const HOME = {
+    id:"d0",
+    name:"Champak's Home",
+    type:"Start Point",
+    bestTime:"day",
+    timeNeeded:"—",
+    cost:"—",
+    highlights:"Your starting point (25.349304, 83.001256).",
+    // Use coordinates in maps so it’s precise:
+    map:"https://www.google.com/maps/search/?api=1&query=25.349304,83.001256",
+    // Keep the provided short link too (optional, used in summary)
+    mapShort:"https://maps.app.goo.gl/bknSLrV9C48gY4yK6",
+    photos:[
+      photoSVG("Champak's Home", "Start here • 25.349304, 83.001256", 35),
+      photoSVG("Champak's Home", "Plan your route from here", 22),
+      photoSVG("Champak's Home", "Ready for Varanasi tour", 44),
+    ]
+  };
+
+  // Destinations (HOME first)
   const DEST = [
+    HOME,
     {
       id:"d1",
       name:"Shri Kashi Vishwanath Temple",
@@ -772,6 +868,20 @@
     localStorage.setItem(LS_TOUR, JSON.stringify(ids));
   }
 
+  // Ensure Home is ALWAYS first in the tour (even if older saved tours exist)
+  function normalizeTour(){
+    let ids = readTour().filter(Boolean);
+    ids = ids.filter(id => id !== HOME.id);
+    ids.unshift(HOME.id);
+    // keep only ids that exist
+    const exists = new Set(DEST.map(d=>d.id));
+    ids = ids.filter(id => exists.has(id));
+    // de-dup
+    ids = [...new Set(ids)];
+    writeTour(ids);
+  }
+  normalizeTour();
+
   // ------- UI refs -------
   const destGrid = document.getElementById("destGrid");
   const destCount = document.getElementById("destCount");
@@ -782,6 +892,11 @@
   const filterType = document.getElementById("filterType");
   const filterTime = document.getElementById("filterTime");
   const summaryBox = document.getElementById("summaryBox");
+
+  // Map modal refs
+  const mapModal = document.getElementById("mapModal");
+  const mapFrame = document.getElementById("mapFrame");
+  const openMapsLink = document.getElementById("openMapsLink");
 
   const toastWrap = document.getElementById("toast");
   function toast(title, detail){
@@ -835,42 +950,119 @@
 
   // ------- Tour ops -------
   function addToTour(id){
-    const ids = readTour();
+    let ids = readTour();
     if(ids.includes(id)){
       toast("Already added", "This destination is already in your tour.");
       return;
     }
     ids.push(id);
     writeTour(ids);
+    normalizeTour();
     renderTour();
     toast("Added to tour", DEST.find(x=>x.id===id)?.name || id);
   }
   function removeFromTour(id){
+    // don't allow removing home
+    if(id === HOME.id){
+      toast("Pinned", "Champak's Home is the fixed start point.");
+      return;
+    }
     writeTour(readTour().filter(x=>x!==id));
+    normalizeTour();
     renderTour();
   }
   function moveTour(id, dir){
+    // don't move home
+    if(id === HOME.id) return;
+
     const ids = readTour();
     const idx = ids.indexOf(id);
     if(idx === -1) return;
+
+    // prevent moving above home (index 0)
     const newIdx = dir === "up" ? idx-1 : idx+1;
-    if(newIdx < 0 || newIdx >= ids.length) return;
+    if(newIdx < 1 || newIdx >= ids.length) return;
+
     [ids[idx], ids[newIdx]] = [ids[newIdx], ids[idx]];
     writeTour(ids);
+    normalizeTour();
     renderTour();
   }
   function clearTour(){
-    writeTour([]);
+    // keep only home
+    writeTour([HOME.id]);
+    normalizeTour();
     renderTour();
     summaryBox.style.display="none";
     summaryBox.textContent="";
-    toast("Cleared", "Your tour has been cleared.");
+    toast("Cleared", "Tour cleared (start point kept).");
   }
 
+  // ------- Build a Google Maps route URL from selected destinations -------
+  function placeQuery(d){
+    // If we have coordinates, use them directly for accuracy
+    if(d.coords) return d.coords;
+    return `${d.name} Varanasi`;
+  }
+
+  // Attach coords to HOME for route building
+  HOME.coords = "25.349304,83.001256";
+
+  function buildRouteUrlFromTour(){
+    const ids = readTour();
+    if(ids.length === 0) return null;
+
+    const places = ids.map(id => DEST.find(x=>x.id===id)).filter(Boolean);
+    if(places.length === 0) return null;
+
+    if(places.length === 1){
+      const q = encodeURIComponent(placeQuery(places[0]));
+      return `https://www.google.com/maps/search/?api=1&query=${q}`;
+    }
+
+    const origin = encodeURIComponent(placeQuery(places[0]));
+    const destination = encodeURIComponent(placeQuery(places[places.length - 1]));
+    const middle = places.slice(1, -1).map(p => encodeURIComponent(placeQuery(p)));
+    const waypoints = middle.slice(0, 20).join("%7C");
+
+    const base = `https://www.google.com/maps/dir/?api=1&travelmode=walking&origin=${origin}&destination=${destination}`;
+    return waypoints ? `${base}&waypoints=${waypoints}` : base;
+  }
+
+  function openMapModal(){
+    const url = buildRouteUrlFromTour();
+    if(!url){
+      toast("Tour empty", "Add destinations first, then view the map.");
+      return;
+    }
+    mapFrame.src = url;
+    openMapsLink.href = url;
+    mapModal.classList.add("show");
+    mapModal.setAttribute("aria-hidden", "false");
+  }
+  function closeMapModal(){
+    mapModal.classList.remove("show");
+    mapModal.setAttribute("aria-hidden", "true");
+    mapFrame.src = "about:blank";
+  }
+
+  document.getElementById("viewMapBtn").addEventListener("click", openMapModal);
+  document.getElementById("closeMapBtn").addEventListener("click", closeMapModal);
+  mapModal.addEventListener("click", (e)=>{ if(e.target === mapModal) closeMapModal(); });
+  window.addEventListener("keydown", (e)=>{ if(e.key === "Escape" && mapModal.classList.contains("show")) closeMapModal(); });
+
+  document.getElementById("openMapsBtn").addEventListener("click", ()=>{
+    const url = buildRouteUrlFromTour();
+    if(!url){
+      toast("Tour empty", "Add destinations first, then open maps.");
+      return;
+    }
+    window.open(url, "_blank", "noopener");
+  });
+
   // ------- Carousel state -------
-  // Keep per-destination slide index in memory (resets on rerender/search; still smooth)
-  const carIdx = new Map(); // id -> index
-  const carTimers = new Map(); // id -> interval id
+  const carIdx = new Map();
+  const carTimers = new Map();
 
   function setDotActive(dotsWrap, idx){
     [...dotsWrap.children].forEach((dot,i)=> dot.classList.toggle("active", i===idx));
@@ -895,7 +1087,6 @@
     prevBtn.addEventListener("click", (e)=>{ e.preventDefault(); go(idx - 1); });
     nextBtn.addEventListener("click", (e)=>{ e.preventDefault(); go(idx + 1); });
 
-    // autoplay (pause on hover)
     const start = () => {
       stop();
       const t = setInterval(()=> go(idx + 1), 4500);
@@ -910,14 +1101,12 @@
     cardEl.querySelector(".carousel").addEventListener("mouseenter", stop);
     cardEl.querySelector(".carousel").addEventListener("mouseleave", start);
 
-    // init position + dots
     go(idx);
     start();
   }
 
   // ------- Render destinations -------
   function renderDestinations(){
-    // stop old timers (avoid memory leaks on rerender)
     for(const t of carTimers.values()) clearInterval(t);
     carTimers.clear();
 
@@ -937,6 +1126,8 @@
       const slides = d.photos.map(src => `
         <div class="slide"><img src="${src}" alt="${d.name} photo"></div>
       `).join("");
+
+      const openMapHref = d.mapShort ? d.mapShort : d.map;
 
       el.innerHTML = `
         <div class="carousel" aria-label="Sliding pictures">
@@ -975,7 +1166,7 @@
           <button class="btn ${inTour ? "secondary":""}" data-add="${d.id}">
             ${inTour ? "✓ Added" : "➕ Add to Tour"}
           </button>
-          <a class="btn secondary" href="${d.map}" target="_blank" rel="noopener">📍 Open Map</a>
+          <a class="btn secondary" href="${openMapHref}" target="_blank" rel="noopener">📍 Open Map</a>
         </div>
       `;
 
@@ -1004,17 +1195,19 @@
       const d = DEST.find(x=>x.id===id);
       if(!d) return;
 
+      const isHome = (id === HOME.id);
+
       const item = document.createElement("div");
       item.className = "touritem";
       item.innerHTML = `
         <div>
-          <b>${idx+1}. ${d.name}</b>
+          <b>${idx+1}. ${d.name}${isHome ? " (Start)" : ""}</b>
           <small>${d.type} • ${prettyTime(d.bestTime)} • ${d.timeNeeded}</small>
         </div>
         <div style="display:flex; gap:8px; align-items:center;">
-          <button class="tinybtn up" title="Move up" data-up="${id}">▲</button>
-          <button class="tinybtn down" title="Move down" data-down="${id}">▼</button>
-          <button class="tinybtn remove" title="Remove" data-rm="${id}">Remove</button>
+          <button class="tinybtn up" title="Move up" data-up="${id}" ${isHome ? "disabled" : ""}>▲</button>
+          <button class="tinybtn down" title="Move down" data-down="${id}" ${isHome ? "disabled" : ""}>▼</button>
+          <button class="tinybtn remove" title="Remove" data-rm="${id}" ${isHome ? "disabled" : ""}>Remove</button>
         </div>
       `;
       tourList.appendChild(item);
@@ -1046,7 +1239,8 @@
     const places = ids.map((id, i)=>{
       const d = DEST.find(x=>x.id===id);
       if(!d) return null;
-      return `${i+1}) ${d.name} — ${d.type} — Best: ${prettyTime(d.bestTime)} — Time: ${d.timeNeeded}\n   Map: ${d.map}`;
+      const mapLink = d.mapShort ? d.mapShort : d.map;
+      return `${i+1}) ${d.name} — ${d.type} — Best: ${prettyTime(d.bestTime)} — Time: ${d.timeNeeded}\n   Map: ${mapLink}`;
     }).filter(Boolean);
 
     const header = `Varanasi Tour Plan (DIY)\n-----------------------`;
