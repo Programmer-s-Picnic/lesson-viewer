@@ -236,6 +236,36 @@ Calm learning. Strong foundations.
 
 </div>
 
+
+<!-- DECISION TREE BUILDER -->
+<div class="card interactive">
+  <span class="pill">Decision Tree</span>
+  <h2>🌳 From if–else to Decision Tree</h2>
+
+  <p class="muted">
+    Write a simple <code>if–else</code>.  
+    We will convert it into a decision tree.
+  </p>
+
+  <textarea id="ifInput">
+if n % 2 == 0:
+    print("Even")
+else:
+    print("Odd")
+  </textarea>
+
+  <button class="btn" onclick="buildTree()">Build Decision Tree</button>
+
+  <svg id="treeSvg" viewBox="0 0 520 360" width="100%" style="margin-top:16px">
+    <!-- Nodes will be injected -->
+  </svg>
+
+  <div class="muted" style="margin-top:10px">
+    Teaching line: <b>Code is just a written form of decisions.</b>
+  </div>
+</div>
+
+
 <!-- PYODIDE SCRIPT -->
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js"></script>
 
@@ -293,5 +323,65 @@ function runFlow(){
   }
 }
 </script>
+
+
+<script>
+function buildTree(){
+  const src = document.getElementById("ifInput").value.trim();
+  const svg = document.getElementById("treeSvg");
+  svg.innerHTML = "";
+
+  try{
+    const lines = src.split("\n").map(l => l.trim());
+
+    if(!lines[0].startsWith("if ") || !lines[0].endsWith(":"))
+      throw "First line must be an if condition";
+
+    if(!lines.find(l => l.startsWith("else")))
+      throw "Missing else block";
+
+    const condition = lines[0].slice(3, -1);
+    const trueAction = lines[1]?.replace("print", "").trim() || "True action";
+    const falseAction = lines[lines.length-1]?.replace("print", "").trim() || "False action";
+
+    svg.innerHTML = `
+      <!-- Condition -->
+      <polygon points="260,40 360,100 260,160 160,100"
+        fill="#fff" stroke="#92400e" stroke-width="2"/>
+      <text x="260" y="105" text-anchor="middle" font-size="13">
+        ${condition}
+      </text>
+
+      <!-- True branch -->
+      <line x1="360" y1="100" x2="440" y2="200"
+        stroke="#059669" stroke-width="3"/>
+      <rect x="390" y="200" width="120" height="50" rx="10"
+        fill="#d1fae5" stroke="#059669" stroke-width="2"/>
+      <text x="450" y="230" text-anchor="middle" font-size="13">
+        ${trueAction}
+      </text>
+
+      <!-- False branch -->
+      <line x1="160" y1="100" x2="80" y2="200"
+        stroke="#dc2626" stroke-width="3"/>
+      <rect x="20" y="200" width="120" height="50" rx="10"
+        fill="#fee2e2" stroke="#dc2626" stroke-width="2"/>
+      <text x="80" y="230" text-anchor="middle" font-size="13">
+        ${falseAction}
+      </text>
+
+      <!-- Labels -->
+      <text x="390" y="150" font-size="12">True</text>
+      <text x="110" y="150" font-size="12">False</text>
+    `;
+  }
+  catch(e){
+    svg.innerHTML = `<text x="260" y="180" text-anchor="middle" fill="red">
+      Error: ${e}
+    </text>`;
+  }
+}
+</script>
+
 </body>
 </html>
