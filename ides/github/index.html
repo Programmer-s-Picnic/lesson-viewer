@@ -1,0 +1,894 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>GitHub Comprehensive Guide (Beginner → Advanced)</title>
+  <meta name="description" content="A comprehensive, practical guide to using GitHub: repos, branches, PRs, issues, actions, pages, security, and workflows." />
+  <style>
+    :root{
+      --bg:#0b1020;
+      --panel:#101a33;
+      --panel2:#0f1730;
+      --text:#e9eefc;
+      --muted:#b9c4e6;
+      --brand:#7aa2ff;
+      --accent:#42d392;
+      --warn:#ffd166;
+      --danger:#ff5c7a;
+      --border:rgba(255,255,255,.10);
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --code:#0a0f1f;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:var(--sans);
+      color:var(--text);
+      background:
+        radial-gradient(1000px 500px at 20% 0%, rgba(122,162,255,.18), transparent 60%),
+        radial-gradient(900px 450px at 80% 10%, rgba(66,211,146,.14), transparent 60%),
+        radial-gradient(700px 400px at 50% 90%, rgba(255,209,102,.10), transparent 60%),
+        var(--bg);
+      line-height:1.6;
+    }
+    a{color:var(--brand); text-decoration:none}
+    a:hover{text-decoration:underline}
+    header{
+      position:sticky; top:0; z-index:50;
+      backdrop-filter: blur(10px);
+      background: linear-gradient(to bottom, rgba(11,16,32,.90), rgba(11,16,32,.55));
+      border-bottom:1px solid var(--border);
+    }
+    .wrap{max-width:1100px; margin:0 auto; padding:18px 18px}
+    .topbar{
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+    }
+    .brand{
+      display:flex; align-items:center; gap:10px;
+      font-weight:800; letter-spacing:.2px;
+    }
+    .logo{
+      width:36px; height:36px; border-radius:12px;
+      background: conic-gradient(from 210deg, var(--brand), var(--accent), var(--warn), var(--brand));
+      box-shadow: var(--shadow);
+      display:grid; place-items:center;
+      border:1px solid rgba(255,255,255,.22);
+    }
+    .logo span{font-family:var(--mono); font-weight:800; font-size:14px; color:#06102a}
+    .actions{display:flex; gap:10px; align-items:center}
+    .btn{
+      cursor:pointer;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.06);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:12px;
+      font-weight:650;
+      display:inline-flex; align-items:center; gap:8px;
+      transition: transform .05s ease, background .2s ease, border-color .2s ease;
+      user-select:none;
+    }
+    .btn:hover{background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.18)}
+    .btn:active{transform: translateY(1px)}
+    .btn.primary{
+      background: linear-gradient(135deg, rgba(122,162,255,.22), rgba(66,211,146,.16));
+      border-color: rgba(122,162,255,.35);
+    }
+    .pill{
+      display:inline-flex; gap:8px; align-items:center;
+      padding:7px 10px; border-radius:999px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.06);
+      font-size:12px; color:var(--muted);
+    }
+    .grid{
+      display:grid;
+      grid-template-columns: 320px 1fr;
+      gap:18px;
+      align-items:start;
+      padding:18px;
+      max-width:1100px;
+      margin:0 auto;
+    }
+    @media (max-width: 980px){
+      .grid{grid-template-columns: 1fr}
+      .sidebar{position:relative; top:auto}
+    }
+    .hero{
+      max-width:1100px; margin:0 auto; padding:26px 18px 6px;
+      display:grid; gap:16px;
+    }
+    .hero h1{
+      margin:0;
+      font-size: clamp(28px, 3.3vw, 44px);
+      line-height:1.15;
+      letter-spacing:-.5px;
+    }
+    .hero p{margin:0; color:var(--muted); max-width: 78ch}
+    .hero .row{display:flex; flex-wrap:wrap; gap:10px; align-items:center}
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .sidebar{
+      position: sticky; top: 78px;
+      padding:14px;
+    }
+    .sidebar h3{margin:6px 10px 8px; font-size:14px; color:var(--muted); text-transform:uppercase; letter-spacing:.12em}
+    .toc{
+      display:flex; flex-direction:column; gap:6px; padding: 0 6px 8px;
+      max-height: calc(100vh - 140px);
+      overflow:auto;
+    }
+    .toc a{
+      display:flex; justify-content:space-between; align-items:center;
+      padding:10px 10px;
+      border-radius:12px;
+      border:1px solid transparent;
+      color:var(--text);
+      background: rgba(0,0,0,.10);
+    }
+    .toc a:hover{border-color: rgba(255,255,255,.16); background: rgba(255,255,255,.06); text-decoration:none}
+    .toc a small{color:var(--muted)}
+    main{
+      padding:18px;
+    }
+    section{
+      padding:18px;
+      margin-bottom:16px;
+      border-radius: var(--radius);
+      border:1px solid var(--border);
+      background: linear-gradient(180deg, rgba(16,26,51,.60), rgba(15,23,48,.35));
+    }
+    section h2{margin:0 0 8px; font-size:22px}
+    section h3{margin:18px 0 8px; font-size:18px}
+    section p{margin:8px 0; color:var(--muted)}
+    .kgrid{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap:12px;
+      margin-top:10px;
+    }
+    @media (max-width: 720px){ .kgrid{grid-template-columns:1fr} }
+    .k{
+      padding:14px;
+      border-radius:16px;
+      border:1px solid var(--border);
+      background: rgba(0,0,0,.16);
+    }
+    .k strong{display:block; margin-bottom:6px}
+    .k ul{margin:8px 0 0 18px; color:var(--muted)}
+    .k li{margin:6px 0}
+    .callout{
+      padding:14px;
+      border-radius:16px;
+      border:1px solid rgba(122,162,255,.28);
+      background: rgba(122,162,255,.08);
+      margin:10px 0;
+      color:var(--muted);
+    }
+    .callout.warn{border-color: rgba(255,209,102,.28); background: rgba(255,209,102,.08)}
+    .callout.danger{border-color: rgba(255,92,122,.30); background: rgba(255,92,122,.09)}
+    .tag{
+      display:inline-block;
+      font-size:12px;
+      padding:4px 9px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.05);
+      color:var(--muted);
+      margin-right:6px;
+    }
+    pre, code{font-family:var(--mono)}
+    pre{
+      margin:12px 0;
+      padding:14px;
+      border-radius:16px;
+      border:1px solid var(--border);
+      background: var(--code);
+      overflow:auto;
+    }
+    code.inline{
+      padding:2px 6px;
+      border-radius:9px;
+      border:1px solid var(--border);
+      background: rgba(0,0,0,.18);
+      color: #e7efff;
+    }
+    .two{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:12px;
+    }
+    @media (max-width: 900px){ .two{grid-template-columns:1fr} }
+    .footer{
+      max-width:1100px; margin:0 auto; padding:22px 18px 46px;
+      color:var(--muted);
+      text-align:center;
+    }
+    .search{
+      display:flex; gap:10px; flex:1; min-width:220px; max-width:520px;
+      align-items:center;
+      border:1px solid var(--border);
+      border-radius: 14px;
+      padding: 10px 12px;
+      background: rgba(0,0,0,.16);
+    }
+    .search input{
+      width:100%;
+      border:none; outline:none;
+      background:transparent;
+      color:var(--text);
+      font-size:14px;
+    }
+    .muted{color:var(--muted)}
+    .hide{display:none !important}
+    .mini{font-size:12px}
+    .hr{
+      height:1px; background: var(--border); margin:14px 0;
+    }
+    .kbd{
+      font-family: var(--mono);
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.06);
+      border-bottom-color: rgba(255,255,255,.20);
+      padding: 2px 6px;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #e9eefc;
+    }
+  </style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand" aria-label="GitHub Guide">
+        <div class="logo" aria-hidden="true"><span>GH</span></div>
+        <div>
+          <div style="font-size:15px">GitHub Comprehensive Guide</div>
+          <div class="mini muted">Repos • Branching • PRs • Issues • Actions • Pages • Security</div>
+        </div>
+      </div>
+      <div class="actions">
+        <div class="search" role="search">
+          <span aria-hidden="true">🔎</span>
+          <input id="searchBox" placeholder="Search this guide (e.g., pull request, actions, ssh, rebase)..." />
+          <button class="btn" id="clearSearch" type="button" title="Clear search">✕</button>
+        </div>
+        <button class="btn primary" id="printBtn" type="button" title="Print / Save as PDF">🖨️ Print</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="hero">
+  <h1>Everything you need to use GitHub effectively</h1>
+  <p>
+    This single-page guide covers GitHub from first steps to real-world workflows: creating repositories, working with branches,
+    collaborating with pull requests, tracking work with issues, automating with GitHub Actions, publishing with GitHub Pages,
+    and securing your projects.
+  </p>
+  <div class="row">
+    <span class="pill">✅ Best practices included</span>
+    <span class="pill">⌨️ Essential commands & workflow</span>
+    <span class="pill">🧩 Templates & checklists</span>
+    <span class="pill">🔐 Security tips</span>
+  </div>
+</div>
+
+<div class="grid">
+  <aside class="card sidebar">
+    <h3>Table of contents</h3>
+    <nav class="toc" id="toc">
+      <a href="#getting-started"><span>Getting started</span><small>account, profile</small></a>
+      <a href="#repo-basics"><span>Repositories</span><small>clone, fork, structure</small></a>
+      <a href="#git-basics"><span>Git basics</span><small>commit, push, pull</small></a>
+      <a href="#branches"><span>Branching</span><small>feature branches</small></a>
+      <a href="#pull-requests"><span>Pull requests</span><small>review, merge</small></a>
+      <a href="#issues-projects"><span>Issues & Projects</span><small>planning</small></a>
+      <a href="#collaboration"><span>Collaboration</span><small>teams, permissions</small></a>
+      <a href="#actions"><span>GitHub Actions</span><small>CI/CD</small></a>
+      <a href="#pages"><span>GitHub Pages</span><small>deploy</small></a>
+      <a href="#releases"><span>Releases & tags</span><small>versioning</small></a>
+      <a href="#security"><span>Security</span><small>secrets, scanning</small></a>
+      <a href="#advanced"><span>Advanced Git</span><small>rebase, cherry-pick</small></a>
+      <a href="#troubleshooting"><span>Troubleshooting</span><small>fix common problems</small></a>
+      <a href="#glossary"><span>Glossary</span><small>quick definitions</small></a>
+      <a href="#checklists"><span>Checklists</span><small>copy/paste</small></a>
+    </nav>
+  </aside>
+
+  <main class="card">
+    <section id="getting-started" data-keywords="account profile ssh 2fa organizations settings">
+      <h2>Getting started</h2>
+      <p>
+        GitHub is a platform for hosting Git repositories and collaborating on code. You’ll typically use <span class="kbd">Git</span>
+        locally and GitHub as the remote (online) home for your project.
+      </p>
+
+      <div class="kgrid">
+        <div class="k">
+          <strong>1) Create your account + set up your profile</strong>
+          <ul>
+            <li>Add a profile photo and bio (helps collaborators recognize you).</li>
+            <li>Set your display name and public email preferences.</li>
+            <li>Add a pinned repository (showcase your best project).</li>
+          </ul>
+        </div>
+        <div class="k">
+          <strong>2) Secure your account</strong>
+          <ul>
+            <li>Enable <b>Two-Factor Authentication (2FA)</b>.</li>
+            <li>Use a <b>password manager</b>.</li>
+            <li>Prefer <b>SSH keys</b> or <b>fine-grained tokens</b> over passwords for Git operations.</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>Install Git (local)</h3>
+      <p>
+        You need Git on your computer to commit and push code. After installing, configure your name + email:
+      </p>
+      <pre><code>git config --global user.name "Your Name"
+git config --global user.email "you@example.com"
+git config --global init.defaultBranch main
+git config --global pull.rebase false</code></pre>
+
+      <div class="callout">
+        <b>Tip:</b> If you contribute to open source, consider using a “no-reply” GitHub email in your Git config to protect privacy.
+      </div>
+
+      <h3>SSH keys (recommended)</h3>
+      <p>SSH avoids entering passwords and is widely used for GitHub auth.</p>
+      <pre><code># Generate a key (ed25519 is modern/recommended)
+ssh-keygen -t ed25519 -C "you@example.com"
+
+# Start agent and add key
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_ed25519
+
+# Copy public key and add it to GitHub: Settings → SSH and GPG keys
+cat ~/.ssh/id_ed25519.pub</code></pre>
+    </section>
+
+    <section id="repo-basics" data-keywords="repository repo create clone fork readme license gitignore">
+      <h2>Repositories</h2>
+      <p>
+        A <b>repository</b> (repo) contains your project’s code, history, and collaboration features (issues, pull requests, actions).
+      </p>
+
+      <h3>Create a repository</h3>
+      <div class="two">
+        <div class="k">
+          <strong>On GitHub (web)</strong>
+          <ul>
+            <li>New repository → choose name + visibility (Public/Private).</li>
+            <li>Add <span class="tag">README</span> (project intro), <span class="tag">LICENSE</span>, and <span class="tag">.gitignore</span>.</li>
+            <li>Use a clear description and topics (tags) for discoverability.</li>
+          </ul>
+        </div>
+        <div class="k">
+          <strong>Locally (Git-first)</strong>
+          <ul>
+            <li>Create a folder, initialize Git, commit, then add GitHub as remote.</li>
+            <li>Best when you already have a project and want to publish it.</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>Clone vs Fork</h3>
+      <div class="kgrid">
+        <div class="k">
+          <strong>Clone</strong>
+          <p class="muted">Download a repo you have access to (yours or someone else’s) onto your computer.</p>
+          <pre><code>git clone git@github.com:OWNER/REPO.git</code></pre>
+        </div>
+        <div class="k">
+          <strong>Fork</strong>
+          <p class="muted">Create your own copy of someone else’s repo under your account (common in open source).</p>
+          <pre><code># After forking on GitHub, clone your fork:
+git clone git@github.com:YOURNAME/REPO.git</code></pre>
+        </div>
+      </div>
+
+      <h3>Repository essentials</h3>
+      <ul class="muted">
+        <li><b>README.md</b>: What it is, how to run it, examples, screenshots, links.</li>
+        <li><b>LICENSE</b>: Legal terms for use/contribution (MIT/Apache-2.0/GPL, etc.).</li>
+        <li><b>.gitignore</b>: Files you don’t want tracked (node_modules, build, secrets).</li>
+        <li><b>CONTRIBUTING.md</b>: How others can contribute (setup, style, PR process).</li>
+        <li><b>CODEOWNERS</b>: Auto-requests reviews from specific people/teams.</li>
+      </ul>
+    </section>
+
+    <section id="git-basics" data-keywords="git add commit status log push pull remote origin">
+      <h2>Git basics you’ll use daily</h2>
+
+      <div class="kgrid">
+        <div class="k">
+          <strong>Core flow</strong>
+          <pre><code>git status
+git add .
+git commit -m "Describe the change"
+git push</code></pre>
+          <p class="muted">Repeat this loop as you work. Commit messages should explain <i>why</i> and <i>what</i>.</p>
+        </div>
+        <div class="k">
+          <strong>Pull latest changes</strong>
+          <pre><code>git pull</code></pre>
+          <p class="muted">
+            If you collaborate with others, pull often. If you prefer a linear history, you can use
+            <code class="inline">git pull --rebase</code>.
+          </p>
+        </div>
+      </div>
+
+      <h3>Remotes (origin)</h3>
+      <pre><code>git remote -v
+git remote add origin git@github.com:OWNER/REPO.git
+git push -u origin main</code></pre>
+
+      <h3>Viewing history</h3>
+      <pre><code>git log --oneline --decorate --graph --all</code></pre>
+
+      <div class="callout warn">
+        <b>Rule of thumb:</b> Never commit secrets (API keys, passwords). Use environment variables and secret managers.
+      </div>
+    </section>
+
+    <section id="branches" data-keywords="branching feature branch checkout switch merge conflict">
+      <h2>Branching (how teams avoid chaos)</h2>
+      <p>
+        A <b>branch</b> is an independent line of development. Most teams keep <code class="inline">main</code> stable and do work on feature branches.
+      </p>
+
+      <h3>Typical feature-branch workflow</h3>
+      <pre><code># Start from main
+git switch main
+git pull
+
+# Create a new branch
+git switch -c feature/login-form
+
+# Work, commit, push
+git add .
+git commit -m "Add login form UI"
+git push -u origin feature/login-form</code></pre>
+
+      <h3>Merging vs Rebasing (what to choose)</h3>
+      <div class="two">
+        <div class="k">
+          <strong>Merge (safe + common)</strong>
+          <p class="muted">Keeps branch history, creates a merge commit (or fast-forward).</p>
+          <pre><code>git switch main
+git pull
+git merge feature/login-form</code></pre>
+        </div>
+        <div class="k">
+          <strong>Rebase (clean history)</strong>
+          <p class="muted">Replays your commits on top of main. Great locally; be careful rebasing shared branches.</p>
+          <pre><code>git switch feature/login-form
+git fetch origin
+git rebase origin/main</code></pre>
+        </div>
+      </div>
+
+      <div class="callout danger">
+        <b>Important:</b> Avoid rebasing branches that other people already pulled, unless your team explicitly agrees on it.
+      </div>
+    </section>
+
+    <section id="pull-requests" data-keywords="pull request pr review merge squash rebase checks">
+      <h2>Pull requests (PRs)</h2>
+      <p>
+        A pull request is a proposal to merge code into another branch (usually <code class="inline">main</code>).
+        PRs enable review, discussion, and automated checks before merging.
+      </p>
+
+      <h3>Making a great PR</h3>
+      <div class="kgrid">
+        <div class="k">
+          <strong>Title + description</strong>
+          <ul>
+            <li>Write a clear title: “Fix login validation” not “Update”.</li>
+            <li>Explain the problem, solution, and any trade-offs.</li>
+            <li>Link related issues (e.g., “Closes #123”).</li>
+          </ul>
+        </div>
+        <div class="k">
+          <strong>Keep it reviewable</strong>
+          <ul>
+            <li>Smaller PRs merge faster and reduce bugs.</li>
+            <li>Add screenshots or GIFs for UI changes.</li>
+            <li>Include tests or explain why not needed.</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>PR merge strategies</h3>
+      <ul class="muted">
+        <li><b>Merge commit</b>: preserves full branch history.</li>
+        <li><b>Squash and merge</b>: turns many commits into one (clean main history).</li>
+        <li><b>Rebase and merge</b>: linear history, keeps individual commits.</li>
+      </ul>
+
+      <h3>Reviews & checks</h3>
+      <p class="muted">
+        Use review comments to ask questions, suggest changes, and ensure style consistency. Use CI checks (tests/lint) to prevent regressions.
+      </p>
+    </section>
+
+    <section id="issues-projects" data-keywords="issues labels milestones projects kanban triage templates">
+      <h2>Issues & Projects (planning + tracking)</h2>
+      <p>
+        <b>Issues</b> capture tasks, bugs, enhancements, and discussions. <b>Projects</b> helps organize issues/PRs in a board (Kanban-style).
+      </p>
+
+      <h3>Issue best practices</h3>
+      <div class="kgrid">
+        <div class="k">
+          <strong>Use templates</strong>
+          <ul>
+            <li>Bug report: steps to reproduce, expected vs actual, environment.</li>
+            <li>Feature request: problem, proposed solution, alternatives.</li>
+          </ul>
+        </div>
+        <div class="k">
+          <strong>Use labels + milestones</strong>
+          <ul>
+            <li>Labels: <code class="inline">bug</code>, <code class="inline">enhancement</code>, <code class="inline">good first issue</code></li>
+            <li>Milestones: group issues for a release (v1.2, sprint).</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>Link issues and PRs</h3>
+      <pre><code># In PR description:
+Closes #42
+Fixes #105
+Resolves OWNER/REPO#12</code></pre>
+
+      <div class="callout">
+        <b>Tip:</b> “Good first issue” + clear reproduction steps is one of the fastest ways to get helpful open-source contributions.
+      </div>
+    </section>
+
+    <section id="collaboration" data-keywords="collaborators teams permissions roles organization">
+      <h2>Collaboration: permissions & teamwork</h2>
+      <p>
+        GitHub lets you control who can read/write/admin a repository. In organizations, you typically manage access using teams.
+      </p>
+
+      <h3>Common permission model</h3>
+      <ul class="muted">
+        <li><b>Read</b>: view and clone.</li>
+        <li><b>Triage</b>: manage issues and PRs (no write).</li>
+        <li><b>Write</b>: push to repo (often protected by branch rules).</li>
+        <li><b>Maintain</b>: manage repo settings (limited admin).</li>
+        <li><b>Admin</b>: full control.</li>
+      </ul>
+
+      <h3>Branch protection rules (highly recommended)</h3>
+      <div class="kgrid">
+        <div class="k">
+          <strong>Protect main</strong>
+          <ul>
+            <li>Require pull requests before merging.</li>
+            <li>Require review approvals.</li>
+            <li>Require status checks (CI tests).</li>
+          </ul>
+        </div>
+        <div class="k">
+          <strong>Quality gates</strong>
+          <ul>
+            <li>Require linear history (optional).</li>
+            <li>Require signed commits (optional).</li>
+            <li>Require conversation resolution.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="actions" data-keywords="github actions ci cd workflow yaml runners secrets">
+      <h2>GitHub Actions (CI/CD automation)</h2>
+      <p>
+        Actions run workflows (defined in YAML) when events happen: pushes, PRs, schedules, releases.
+        Use them to run tests, lint, build, and deploy automatically.
+      </p>
+
+      <h3>Basic workflow example (Node.js)</h3>
+      <pre><code># .github/workflows/ci.yml
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm ci
+      - run: npm test</code></pre>
+
+      <h3>Key concepts</h3>
+      <ul class="muted">
+        <li><b>Workflow</b>: the YAML file.</li>
+        <li><b>Job</b>: a set of steps that runs on a runner.</li>
+        <li><b>Step</b>: a command or an action.</li>
+        <li><b>Runner</b>: where it runs (GitHub-hosted or self-hosted).</li>
+        <li><b>Secrets</b>: encrypted variables used in workflows (API keys, tokens).</li>
+      </ul>
+
+      <div class="callout warn">
+        <b>Security:</b> Be careful with pull requests from forks—don’t expose secrets to untrusted code.
+      </div>
+    </section>
+
+    <section id="pages" data-keywords="github pages deploy static site jekyll actions">
+      <h2>GitHub Pages (hosting)</h2>
+      <p>
+        GitHub Pages hosts static sites directly from a repository. Great for docs, portfolios, and demos.
+      </p>
+
+      <h3>Quick setup</h3>
+      <ol class="muted">
+        <li>Repo → <b>Settings</b> → <b>Pages</b></li>
+        <li>Select source: <b>Deploy from a branch</b> (commonly <code class="inline">main</code> / <code class="inline">docs/</code>) or <b>GitHub Actions</b></li>
+        <li>Pick folder (root or /docs) and save</li>
+      </ol>
+
+      <h3>Common patterns</h3>
+      <div class="kgrid">
+        <div class="k">
+          <strong>Docs site</strong>
+          <ul>
+            <li>Put documentation in <code class="inline">/docs</code> or use a docs generator.</li>
+            <li>Use Actions to build and publish if needed.</li>
+          </ul>
+        </div>
+        <div class="k">
+          <strong>Frontend build</strong>
+          <ul>
+            <li>Build React/Vue/Angular and deploy the build output.</li>
+            <li>Actions can upload the build artifact to Pages.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="releases" data-keywords="releases tags semver changelog">
+      <h2>Releases & tags</h2>
+      <p>
+        Releases help you publish stable versions of your project. A <b>tag</b> marks a specific commit (e.g., <code class="inline">v1.0.0</code>).
+      </p>
+
+      <h3>Semantic Versioning (SemVer)</h3>
+      <p class="muted">
+        <span class="tag">MAJOR</span> breaking changes • <span class="tag">MINOR</span> new features, backwards compatible •
+        <span class="tag">PATCH</span> bug fixes
+      </p>
+
+      <h3>Create a tag + push it</h3>
+      <pre><code>git tag -a v1.0.0 -m "First stable release"
+git push origin v1.0.0</code></pre>
+
+      <h3>Generate a CHANGELOG</h3>
+      <p class="muted">Keep a <code class="inline">CHANGELOG.md</code> so users can quickly see what changed between versions.</p>
+    </section>
+
+    <section id="security" data-keywords="security dependabot code scanning secret scanning permissions">
+      <h2>Security essentials</h2>
+      <p>
+        GitHub has built-in features to reduce risk: dependency alerts, secret scanning, code scanning, and security policies.
+      </p>
+
+      <h3>Do these in every repo</h3>
+      <div class="kgrid">
+        <div class="k">
+          <strong>Protect secrets</strong>
+          <ul>
+            <li>Never commit secrets; rotate immediately if you do.</li>
+            <li>Use repository/organization secrets for Actions.</li>
+            <li>Use <code class="inline">.env</code> locally and add it to <code class="inline">.gitignore</code>.</li>
+          </ul>
+        </div>
+        <div class="k">
+          <strong>Dependency hygiene</strong>
+          <ul>
+            <li>Enable Dependabot updates (where available).</li>
+            <li>Review security alerts and patch quickly.</li>
+            <li>Pin critical dependencies if needed.</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>Security policy + reporting</h3>
+      <p class="muted">
+        Add <code class="inline">SECURITY.md</code> explaining how to report vulnerabilities. This builds trust with users.
+      </p>
+
+      <div class="callout">
+        <b>Pro tip:</b> Use least-privilege permissions for tokens and Actions workflows.
+      </div>
+    </section>
+
+    <section id="advanced" data-keywords="stash cherry-pick reset revert bisect reflog submodule lfs">
+      <h2>Advanced Git (super useful in real life)</h2>
+
+      <h3>Stash work-in-progress</h3>
+      <pre><code>git stash
+git pull
+git stash pop</code></pre>
+
+      <h3>Undo changes safely</h3>
+      <div class="kgrid">
+        <div class="k">
+          <strong>Undo a commit (keep history)</strong>
+          <p class="muted">Creates a new commit that reverses another commit (safe for shared branches).</p>
+          <pre><code>git revert &lt;commit_sha&gt;</code></pre>
+        </div>
+        <div class="k">
+          <strong>Reset (be careful)</strong>
+          <p class="muted">Moves branch pointer; can rewrite history. Avoid on shared branches.</p>
+          <pre><code>git reset --soft HEAD~1   # keep changes staged
+git reset --mixed HEAD~1  # keep changes unstaged
+git reset --hard HEAD~1   # discard changes</code></pre>
+        </div>
+      </div>
+
+      <h3>Recover “lost” commits</h3>
+      <pre><code>git reflog
+# find the commit, then:
+git checkout &lt;sha&gt;
+# or move branch back:
+git reset --hard &lt;sha&gt;</code></pre>
+
+      <h3>Cherry-pick a commit</h3>
+      <pre><code>git cherry-pick &lt;commit_sha&gt;</code></pre>
+
+      <h3>Large files</h3>
+      <p class="muted">
+        Consider Git LFS for large binaries (videos, datasets). Don’t bloat your repo with huge files unless needed.
+      </p>
+    </section>
+
+    <section id="troubleshooting" data-keywords="conflict merge conflict detached head permission denied ssh https token">
+      <h2>Troubleshooting (common problems)</h2>
+
+      <h3>Merge conflicts</h3>
+      <ol class="muted">
+        <li>Open the conflicted files; look for <code class="inline">&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code> and <code class="inline">&gt;&gt;&gt;&gt;&gt;&gt;&gt;</code>.</li>
+        <li>Edit to keep the correct final content.</li>
+        <li><code class="inline">git add &lt;file&gt;</code> then <code class="inline">git commit</code> (or continue rebase).</li>
+      </ol>
+
+      <h3>“Permission denied (publickey)”</h3>
+      <pre><code># Check SSH connectivity
+ssh -T git@github.com
+
+# Ensure correct key is loaded
+ssh-add -l
+
+# Use the SSH remote URL
+git remote set-url origin git@github.com:OWNER/REPO.git</code></pre>
+
+      <h3>Detached HEAD</h3>
+      <p class="muted">You checked out a commit, not a branch. Create a branch from there:</p>
+      <pre><code>git switch -c fix/detached-head</code></pre>
+
+      <h3>Accidentally committed secrets</h3>
+      <div class="callout danger">
+        <b>Do this immediately:</b> rotate the secret (invalidate old key), remove it from the repo, and consider rewriting history if necessary.
+        If the repo is public, assume the secret is compromised.
+      </div>
+    </section>
+
+    <section id="glossary" data-keywords="glossary definitions upstream origin fork clone pr issue">
+      <h2>Glossary</h2>
+      <ul class="muted">
+        <li><b>Remote</b>: A hosted copy of your repo (e.g., GitHub).</li>
+        <li><b>Origin</b>: Default name for your remote.</li>
+        <li><b>Upstream</b>: The original repo you forked from (common in open source).</li>
+        <li><b>Commit</b>: A snapshot of changes with a message + ID (SHA).</li>
+        <li><b>Branch</b>: A pointer to a series of commits.</li>
+        <li><b>PR (Pull Request)</b>: Proposal to merge changes into a target branch.</li>
+        <li><b>CI/CD</b>: Automated testing/building/deploying.</li>
+        <li><b>Tag</b>: Named pointer to a commit (often a version).</li>
+      </ul>
+    </section>
+
+    <section id="checklists" data-keywords="checklist pr checklist repo checklist workflow">
+      <h2>Checklists (copy/paste)</h2>
+
+      <h3>New repository checklist</h3>
+      <pre><code>- [ ] README with install/run steps
+- [ ] License chosen
+- [ ] .gitignore configured
+- [ ] Basic CI workflow (tests/lint)
+- [ ] Branch protection on main
+- [ ] Issue templates (bug/feature)
+- [ ] SECURITY.md for reporting vulnerabilities</code></pre>
+
+      <h3>Pull request checklist</h3>
+      <pre><code>- [ ] PR title clearly describes change
+- [ ] Linked issue(s) (Closes #123)
+- [ ] Tests added/updated (or reason why not)
+- [ ] Screenshots/GIFs for UI changes
+- [ ] No secrets in commits
+- [ ] CI checks are passing
+- [ ] Review feedback addressed</code></pre>
+
+      <h3>Release checklist</h3>
+      <pre><code>- [ ] Version bumped (SemVer)
+- [ ] Changelog updated
+- [ ] Tag created (vX.Y.Z)
+- [ ] Release notes written
+- [ ] Artifacts attached (if any)
+- [ ] Deployment verified</code></pre>
+    </section>
+
+    <div class="footer">
+      <div class="hr"></div>
+      <p>
+        Made as a single-page reference. Tip: use <span class="kbd">Ctrl</span> + <span class="kbd">F</span> (or the search box)
+        to jump quickly.
+      </p>
+    </div>
+  </main>
+</div>
+
+<script>
+  // Simple client-side search: filters sections and highlights matches in headings/keywords.
+  (function(){
+    const searchBox = document.getElementById('searchBox');
+    const clearBtn = document.getElementById('clearSearch');
+    const printBtn = document.getElementById('printBtn');
+    const sections = Array.from(document.querySelectorAll('main section'));
+    const tocLinks = Array.from(document.querySelectorAll('#toc a'));
+
+    function normalize(s){ return (s || "").toLowerCase().trim(); }
+
+    function applyFilter(q){
+      const query = normalize(q);
+      if(!query){
+        sections.forEach(s => s.classList.remove('hide'));
+        tocLinks.forEach(a => a.classList.remove('hide'));
+        return;
+      }
+
+      sections.forEach(sec => {
+        const text = normalize(sec.innerText);
+        const keywords = normalize(sec.getAttribute('data-keywords'));
+        const id = sec.id || "";
+        const match = text.includes(query) || keywords.includes(query) || id.includes(query);
+        sec.classList.toggle('hide', !match);
+      });
+
+      tocLinks.forEach(a => {
+        const href = (a.getAttribute('href') || "").replace('#','');
+        const sec = document.getElementById(href);
+        const isHidden = sec ? sec.classList.contains('hide') : false;
+        a.classList.toggle('hide', isHidden);
+      });
+    }
+
+    searchBox.addEventListener('input', e => applyFilter(e.target.value));
+    clearBtn.addEventListener('click', () => { searchBox.value = ""; applyFilter(""); searchBox.focus(); });
+    printBtn.addEventListener('click', () => window.print());
+  })();
+</script>
+</body>
+</html>
