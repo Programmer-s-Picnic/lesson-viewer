@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Varanasi Tourism Planner — Build Your Own Tour</title>
+  <meta name="description" content="Varanasi tourism page with destinations and a DIY tour builder. Search on the right, save tour in localStorage, share on WhatsApp."/>
+  <style>
+    :root{
+      --bg:#fff7e6;          /* light saffron */
+      --card:#ffffff;
+      --ink:#1f2937;
+      --muted:#6b7280;
+      --brand:#d97706;
+      --brand2:#f59e0b;
+      --border:#eadcc5;
+      --shadow:0 18px 40px rgba(0,0,0,.12);
+      --r:18px;
+      --ok:#059669;
+      --warn:#b45309;
+      --bad:#dc2626;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans";
+      color:var(--ink);
+      background:
+        radial-gradient(1200px 700px at 10% -10%, rgba(245,158,11,.20), transparent 60%),
+        radial-gradient(900px 700px at 100% 0%, rgba(217,119,6,.16), transparent 55%),
+        var(--bg);
+    }
+    a{color:inherit;text-decoration:none}
+    button,input{font:inherit}
+    .topbar{
+      position:sticky; top:0; z-index:20;
+      backdrop-filter: blur(10px);
+      background: rgba(255,247,230,.78);
+      border-bottom:1px solid var(--border);
+    }
+    .topbar-inner{
+      max-width:1200px; margin:0 auto;
+      display:flex; align-items:center; gap:12px;
+      padding:12px 14px;
+    }
+    .logo{
+      display:flex; align-items:center; gap:10px;
+      font-weight:950;
+      letter-spacing:.2px;
+      min-width: 220px;
+    }
+    .logo-badge{
+      width:40px;height:40px;border-radius:14px;
+      background: linear-gradient(135deg, var(--brand2), var(--brand));
+      box-shadow: 0 12px 26px rgba(217,119,6,.22);
+      display:grid; place-items:center; color:white; font-weight:950;
+    }
+    .pill{
+      flex:1;
+      display:flex; align-items:center; gap:10px;
+      border:1px solid var(--border);
+      border-radius:999px;
+      padding:8px 12px;
+      background: rgba(255,255,255,.86);
+      min-width: 220px;
+    }
+    .pill input{
+      border:none; outline:none; background:transparent;
+      width:100%;
+      font-size:14px;
+    }
+    .btn{
+      border:none;
+      background: linear-gradient(135deg, var(--brand2), var(--brand));
+      color:white;
+      padding:10px 12px;
+      border-radius:14px;
+      cursor:pointer;
+      box-shadow: 0 12px 24px rgba(217,119,6,.18);
+      transition: transform .12s ease, filter .12s ease;
+      display:inline-flex; align-items:center; justify-content:center; gap:8px;
+      white-space:nowrap;
+    }
+    .btn:hover{transform: translateY(-1px); filter:saturate(1.02)}
+    .btn:active{transform: translateY(0px)}
+    .btn.secondary{
+      background: rgba(255,255,255,.92);
+      color: var(--ink);
+      border:1px solid var(--border);
+      box-shadow:none;
+    }
+    .btn.danger{
+      background: rgba(220,38,38,.10);
+      border:1px solid rgba(220,38,38,.25);
+      color: #991b1b;
+      box-shadow:none;
+    }
+    .wrap{max-width:1200px; margin:0 auto; padding:16px 14px 40px;}
+    .hero{
+      display:grid;
+      grid-template-columns: 1.05fr .95fr;
+      gap:14px;
+      margin-top:8px;
+    }
+    @media (max-width: 980px){
+      .hero{grid-template-columns: 1fr;}
+      .right{position:relative !important; top:auto !important;}
+    }
+    .panel{
+      background: rgba(255,255,255,.88);
+      border:1px solid var(--border);
+      border-radius: var(--r);
+      box-shadow: 0 10px 28px rgba(0,0,0,.08);
+      overflow:hidden;
+    }
+    .panel-h{
+      padding:14px;
+      border-bottom:1px solid var(--border);
+      background: rgba(255,247,230,.62);
+      display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
+    }
+    .panel-h h1,.panel-h h2{margin:0}
+    .panel-h h1{font-size:24px; font-weight:950; letter-spacing:.2px}
+    .panel-h h2{font-size:16px; font-weight:950}
+    .panel-h p{margin:6px 0 0; color:var(--muted); font-size:13px; line-height:1.45}
+    .panel-b{padding:14px}
+
+    .chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px}
+    .chip{
+      font-size:12px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.85);
+      color: var(--muted);
+    }
+    .chip.hot{color:#92400e; border-color: rgba(217,119,6,.35)}
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap:12px;
+    }
+    @media (max-width: 640px){
+      .grid{grid-template-columns: 1fr;}
+    }
+    .card{
+      border:1px solid var(--border);
+      border-radius: 18px;
+      background: rgba(255,255,255,.92);
+      overflow:hidden;
+      display:flex; flex-direction:column;
+      box-shadow: 0 10px 22px rgba(0,0,0,.06);
+    }
+    .card-top{
+      padding:12px 12px 10px;
+      background: linear-gradient(180deg, rgba(245,158,11,.14), rgba(255,255,255,.0));
+      display:flex; align-items:flex-start; justify-content:space-between; gap:10px;
+    }
+    .title{
+      margin:0;
+      font-weight:950;
+      line-height:1.2;
+      font-size:15px;
+    }
+    .meta{
+      margin:6px 0 0;
+      color: var(--muted);
+      font-size:12px;
+      line-height:1.45;
+    }
+    .badges{display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end}
+    .badge{
+      font-size:11px;
+      padding:4px 8px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.88);
+      color: var(--muted);
+      white-space:nowrap;
+    }
+    .badge.cat{color:#92400e; border-color: rgba(217,119,6,.35)}
+    .badge.time{color:#0f766e; border-color: rgba(13,148,136,.28)}
+    .badge.cost{color:#6d28d9; border-color: rgba(109,40,217,.25)}
+    .card-mid{padding:0 12px 12px}
+    .desc{
+      margin:0;
+      color: var(--ink);
+      font-size:13px;
+      line-height:1.55;
+    }
+    .card-actions{
+      padding:12px;
+      border-top:1px dashed rgba(234,220,197,.95);
+      display:flex; gap:10px; flex-wrap:wrap;
+      margin-top:auto;
+    }
+    .card-actions .btn{flex:1}
+    .card-actions .btn.secondary{flex:1}
+
+    .right{
+      position: sticky;
+      top: 70px;
+      height: fit-content;
+    }
+    .field{
+      width:100%;
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:10px 10px;
+      background: rgba(255,255,255,.92);
+      outline:none;
+    }
+    .label{font-size:12px; color:var(--muted); margin:0 0 6px;}
+    .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+    .row > *{flex:1}
+    .tourlist{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .touritem{
+      border:1px solid var(--border);
+      border-radius: 16px;
+      background: rgba(255,255,255,.92);
+      padding:10px;
+      display:grid;
+      grid-template-columns: 1fr auto;
+      gap:10px;
+      align-items:center;
+    }
+    .touritem b{font-weight:950}
+    .touritem small{display:block; color:var(--muted); font-size:12px; margin-top:3px}
+    .tinybtn{
+      border:none;
+      border-radius:12px;
+      padding:8px 10px;
+      cursor:pointer;
+      background: rgba(255,255,255,.9);
+      border:1px solid var(--border);
+    }
+    .tinybtn:hover{filter:brightness(.98)}
+    .tinybtn.remove{color:#991b1b; border-color: rgba(220,38,38,.22); background: rgba(220,38,38,.08)}
+    .tinybtn.up{color:#0f766e}
+    .tinybtn.down{color:#0f766e}
+
+    .note{
+      font-size:12px;
+      color: var(--muted);
+      line-height:1.45;
+      border-top:1px dashed rgba(234,220,197,.95);
+      padding-top:10px;
+      margin-top:10px;
+    }
+    .countpill{
+      font-size:12px;
+      padding:3px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.86);
+      color: var(--muted);
+      white-space:nowrap;
+    }
+
+    /* Floating WhatsApp button */
+    .fab{
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      z-index: 50;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      align-items:flex-end;
+    }
+    .wabtn{
+      border:none;
+      cursor:pointer;
+      border-radius: 18px;
+      padding:12px 14px;
+      color:white;
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      box-shadow: 0 18px 34px rgba(0,0,0,.18);
+      display:inline-flex; align-items:center; gap:10px;
+      font-weight:900;
+    }
+    .wabtn small{display:block; font-weight:700; opacity:.9}
+    .wabtn:hover{transform: translateY(-1px)}
+    .wabtn:active{transform: translateY(0px)}
+
+    /* Toast */
+    .toast{
+      position: fixed;
+      left: 16px;
+      bottom: 16px;
+      z-index: 60;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .t{
+      background: rgba(255,255,255,.92);
+      border:1px solid var(--border);
+      border-radius: 16px;
+      padding:10px 12px;
+      box-shadow: 0 14px 30px rgba(0,0,0,.14);
+      display:flex; gap:10px; align-items:flex-start;
+      max-width: 420px;
+    }
+    .t .dot{width:10px;height:10px;border-radius:999px;background:var(--ok); margin-top:4px}
+    .t .msg{font-size:13px}
+    .t .msg small{display:block; color:var(--muted); margin-top:2px}
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="logo" aria-label="Varanasi Tourism Planner">
+        <div class="logo-badge">ॐ</div>
+        <div>
+          <div style="line-height:1; font-size:14px;">Varanasi Tourism Planner</div>
+          <div style="line-height:1; font-size:12px; color:var(--muted); font-weight:800;">Select destinations • Build your own tour</div>
+        </div>
+      </div>
+
+      <div class="pill" title="Quick search (same as right-side search)">
+        🔎 <input id="topSearch" type="search" placeholder="Search: Kashi Vishwanath, Sarnath, ghats..." autocomplete="off"/>
+      </div>
+
+      <button class="btn secondary" id="saveTourBtn" title="Save current tour in browser">💾 Save Tour</button>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="hero">
+      <!-- LEFT: DESTINATIONS -->
+      <section class="panel">
+        <div class="panel-h">
+          <div>
+            <h1>Explore Varanasi</h1>
+            <p>
+              Choose places you want to visit and build your personal tour plan.
+              Your tour is saved in <b>localStorage</b> so it stays even after refresh.
+            </p>
+            <div class="chips">
+              <span class="chip hot">Ghats</span>
+              <span class="chip hot">Temples</span>
+              <span class="chip hot">Heritage</span>
+              <span class="chip hot">Sarnath</span>
+              <span class="chip">Food</span>
+              <span class="chip">Shopping</span>
+            </div>
+          </div>
+          <div class="countpill"><span id="destCount">0</span> destinations</div>
+        </div>
+
+        <div class="panel-b">
+          <div class="grid" id="destGrid"></div>
+        </div>
+      </section>
+
+      <!-- RIGHT: SEARCH + TOUR BUILDER -->
+      <aside class="panel right">
+        <div class="panel-h">
+          <div>
+            <h2>Search (Right Side)</h2>
+            <p>Filter destinations and add them to your tour. Reorder your tour items here.</p>
+          </div>
+          <span class="countpill"><span id="tourCount">0</span> in tour</span>
+        </div>
+
+        <div class="panel-b">
+          <div class="label">Search destinations</div>
+          <input id="rightSearch" class="field" type="search" placeholder="Type to search..." autocomplete="off"/>
+
+          <div style="height:12px"></div>
+
+          <div class="label">Quick filters</div>
+          <div class="row">
+            <select id="filterType" class="field" aria-label="Filter by type">
+              <option value="all">All types</option>
+            </select>
+            <select id="filterTime" class="field" aria-label="Filter by best time">
+              <option value="all">Any time</option>
+              <option value="sunrise">Sunrise</option>
+              <option value="day">Day</option>
+              <option value="evening">Evening</option>
+              <option value="night">Night</option>
+            </select>
+          </div>
+
+          <div style="height:14px"></div>
+
+          <div class="label">Your tour (drag-free reorder)</div>
+          <div class="tourlist" id="tourList"></div>
+
+          <div class="row" style="margin-top:12px;">
+            <button class="btn" id="makePlanBtn">🧭 Make Tour Summary</button>
+            <button class="btn danger" id="clearTourBtn">🧹 Clear</button>
+          </div>
+
+          <div class="note" id="summaryBox" style="display:none;"></div>
+
+          <div class="note">
+            <b>Tip:</b> Use the green WhatsApp button to share your tour. It opens WhatsApp with your plan text.
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- Floating WhatsApp share -->
+  <div class="fab">
+    <button class="wabtn" id="waShare">
+      🟢 WhatsApp
+      <span style="display:flex; flex-direction:column; align-items:flex-start; line-height:1.1;">
+        <small>Share your tour</small>
+      </span>
+    </button>
+  </div>
+
+  <div class="toast" id="toast" aria-live="polite" aria-atomic="true"></div>
+
+<script>
+(() => {
+  const LS_TOUR = "varanasi_tour_v1";
+
+  // Destinations (popular + practical; not exhaustive)
+  const DEST = [
+    {
+      id:"d1",
+      name:"Shri Kashi Vishwanath Temple",
+      type:"Temple",
+      bestTime:"day",
+      timeNeeded:"1–2 hrs",
+      cost:"Depends (donations / queue services)",
+      highlights:"One of the most revered Shiva temples; spiritual heart of Kashi.",
+      map:"https://www.google.com/maps/search/?api=1&query=Kashi+Vishwanath+Temple+Varanasi"
+    },
+    {
+      id:"d2",
+      name:"Dashashwamedh Ghat",
+      type:"Ghat",
+      bestTime:"evening",
+      timeNeeded:"1–2 hrs",
+      cost:"Free (Aarti seating may cost)",
+      highlights:"Famous for the Ganga Aarti; lively atmosphere by the river.",
+      map:"https://www.google.com/maps/search/?api=1&query=Dashashwamedh+Ghat+Varanasi"
+    },
+    {
+      id:"d3",
+      name:"Assi Ghat",
+      type:"Ghat",
+      bestTime:"sunrise",
+      timeNeeded:"1–2 hrs",
+      cost:"Free",
+      highlights:"Calmer vibe; sunrise scenes and morning walks by the ghats.",
+      map:"https://www.google.com/maps/search/?api=1&query=Assi+Ghat+Varanasi"
+    },
+    {
+      id:"d4",
+      name:"Manikarnika Ghat",
+      type:"Ghat",
+      bestTime:"day",
+      timeNeeded:"30–60 min",
+      cost:"Free",
+      highlights:"A major cremation ghat; deeply traditional and powerful to witness (be respectful).",
+      map:"https://www.google.com/maps/search/?api=1&query=Manikarnika+Ghat+Varanasi"
+    },
+    {
+      id:"d5",
+      name:"Sarnath (Dhamek Stupa & ruins)",
+      type:"Sarnath",
+      bestTime:"day",
+      timeNeeded:"2–4 hrs",
+      cost:"Tickets may apply",
+      highlights:"Buddhist pilgrimage site; serene monuments and historical ruins.",
+      map:"https://www.google.com/maps/search/?api=1&query=Dhamek+Stupa+Sarnath"
+    },
+    {
+      id:"d6",
+      name:"Sarnath Museum (Archaeological Museum)",
+      type:"Sarnath",
+      bestTime:"day",
+      timeNeeded:"1–2 hrs",
+      cost:"Tickets apply",
+      highlights:"Artifacts from Sarnath; iconic Ashokan lion capital association.",
+      map:"https://www.google.com/maps/search/?api=1&query=Sarnath+Museum"
+    },
+    {
+      id:"d7",
+      name:"Ramnagar Fort",
+      type:"Heritage",
+      bestTime:"day",
+      timeNeeded:"1–2 hrs",
+      cost:"Tickets may apply",
+      highlights:"Historic fort across the Ganga; museum and royal-era collections.",
+      map:"https://www.google.com/maps/search/?api=1&query=Ramnagar+Fort+Varanasi"
+    },
+    {
+      id:"d8",
+      name:"Banaras Hindu University (BHU) & Bharat Kala Bhavan",
+      type:"Heritage",
+      bestTime:"day",
+      timeNeeded:"2–4 hrs",
+      cost:"Often free/entry rules vary",
+      highlights:"Campus stroll + art museum; peaceful green spaces.",
+      map:"https://www.google.com/maps/search/?api=1&query=BHU+Bharat+Kala+Bhavan+Varanasi"
+    },
+    {
+      id:"d9",
+      name:"Kaal Bhairav Temple",
+      type:"Temple",
+      bestTime:"day",
+      timeNeeded:"45–90 min",
+      cost:"Free",
+      highlights:"Popular local deity temple; often a dedicated queue.",
+      map:"https://www.google.com/maps/search/?api=1&query=Kaal+Bhairav+Temple+Varanasi"
+    },
+    {
+      id:"d10",
+      name:"Sankat Mochan Hanuman Temple",
+      type:"Temple",
+      bestTime:"day",
+      timeNeeded:"45–90 min",
+      cost:"Free",
+      highlights:"Beloved Hanuman temple; close to BHU area.",
+      map:"https://www.google.com/maps/search/?api=1&query=Sankat+Mochan+Temple+Varanasi"
+    },
+    {
+      id:"d11",
+      name:"Boat Ride on the Ganga (Ghats stretch)",
+      type:"Experience",
+      bestTime:"sunrise",
+      timeNeeded:"1–2 hrs",
+      cost:"Paid",
+      highlights:"Classic Varanasi experience—see ghats from the river (sunrise is magical).",
+      map:"https://www.google.com/maps/search/?api=1&query=Boat+ride+Varanasi+ghats"
+    },
+    {
+      id:"d12",
+      name:"Vishalakshi Temple / Shakti Peeth area",
+      type:"Temple",
+      bestTime:"day",
+      timeNeeded:"45–90 min",
+      cost:"Free",
+      highlights:"Close to the Vishwanath corridor region; devotional circuit-friendly.",
+      map:"https://www.google.com/maps/search/?api=1&query=Vishalakshi+Temple+Varanasi"
+    },
+    {
+      id:"d13",
+      name:"Godowlia Market (Shopping & street life)",
+      type:"Market",
+      bestTime:"evening",
+      timeNeeded:"1–2 hrs",
+      cost:"Free",
+      highlights:"Local shopping + lanes; great for Banarasi items and snacks.",
+      map:"https://www.google.com/maps/search/?api=1&query=Godowlia+Market+Varanasi"
+    },
+    {
+      id:"d14",
+      name:"Banaras Silk & Weaving lanes (Saree experience)",
+      type:"Market",
+      bestTime:"day",
+      timeNeeded:"2–3 hrs",
+      cost:"Free",
+      highlights:"Explore famous Banarasi silk craft (buy only from trusted sellers).",
+      map:"https://www.google.com/maps/search/?api=1&query=Banarasi+silk+weaving+Varanasi"
+    }
+  ];
+
+  // ------- LocalStorage Tour Helpers -------
+  function readTour(){
+    try { return JSON.parse(localStorage.getItem(LS_TOUR) || "[]"); }
+    catch { return []; }
+  }
+  function writeTour(ids){
+    localStorage.setItem(LS_TOUR, JSON.stringify(ids));
+  }
+
+  // ------- UI refs -------
+  const destGrid = document.getElementById("destGrid");
+  const destCount = document.getElementById("destCount");
+  const tourList = document.getElementById("tourList");
+  const tourCount = document.getElementById("tourCount");
+  const topSearch = document.getElementById("topSearch");
+  const rightSearch = document.getElementById("rightSearch");
+  const filterType = document.getElementById("filterType");
+  const filterTime = document.getElementById("filterTime");
+  const summaryBox = document.getElementById("summaryBox");
+
+  const toastWrap = document.getElementById("toast");
+  function toast(title, detail){
+    const el = document.createElement("div");
+    el.className = "t";
+    el.innerHTML = `<div class="dot"></div><div class="msg"><b>${title}</b><small>${detail}</small></div>`;
+    toastWrap.appendChild(el);
+    setTimeout(()=> el.remove(), 2600);
+  }
+
+  // ------- Filters -------
+  const TYPES = ["all", ...new Set(DEST.map(d=>d.type))].sort((a,b)=>{
+    if(a==="all") return -1; if(b==="all") return 1;
+    return a.localeCompare(b);
+  });
+  TYPES.forEach(t=>{
+    const opt = document.createElement("option");
+    opt.value = t;
+    opt.textContent = t==="all" ? "All types" : t;
+    filterType.appendChild(opt);
+  });
+
+  const state = {
+    q: "",
+    type: "all",
+    time: "all"
+  };
+
+  function setSearch(v){
+    state.q = (v || "");
+    topSearch.value = state.q;
+    rightSearch.value = state.q;
+    renderDestinations();
+  }
+
+  topSearch.addEventListener("input", e => setSearch(e.target.value));
+  rightSearch.addEventListener("input", e => setSearch(e.target.value));
+
+  filterType.addEventListener("change", e=>{
+    state.type = e.target.value;
+    renderDestinations();
+  });
+  filterTime.addEventListener("change", e=>{
+    state.time = e.target.value;
+    renderDestinations();
+  });
+
+  function filteredDest(){
+    const q = state.q.trim().toLowerCase();
+    return DEST.filter(d=>{
+      const matchesQ = !q || (d.name + " " + d.type + " " + d.bestTime + " " + d.highlights).toLowerCase().includes(q);
+      const matchesType = state.type === "all" || d.type === state.type;
+      const matchesTime = state.time === "all" || d.bestTime === state.time;
+      return matchesQ && matchesType && matchesTime;
+    });
+  }
+
+  // ------- Tour ops -------
+  function addToTour(id){
+    const ids = readTour();
+    if(ids.includes(id)){
+      toast("Already added", "This destination is already in your tour.");
+      return;
+    }
+    ids.push(id);
+    writeTour(ids);
+    renderTour();
+    toast("Added to tour", DEST.find(x=>x.id===id)?.name || id);
+  }
+  function removeFromTour(id){
+    let ids = readTour().filter(x=>x!==id);
+    writeTour(ids);
+    renderTour();
+  }
+  function moveTour(id, dir){
+    const ids = readTour();
+    const idx = ids.indexOf(id);
+    if(idx === -1) return;
+    const newIdx = dir === "up" ? idx-1 : idx+1;
+    if(newIdx < 0 || newIdx >= ids.length) return;
+    [ids[idx], ids[newIdx]] = [ids[newIdx], ids[idx]];
+    writeTour(ids);
+    renderTour();
+  }
+  function clearTour(){
+    writeTour([]);
+    renderTour();
+    summaryBox.style.display="none";
+    summaryBox.textContent="";
+    toast("Cleared", "Your tour has been cleared.");
+  }
+
+  // ------- Render destinations -------
+  function renderDestinations(){
+    const list = filteredDest();
+    destCount.textContent = String(list.length);
+    destGrid.innerHTML = "";
+
+    const tourIds = new Set(readTour());
+
+    list.forEach(d=>{
+      const el = document.createElement("article");
+      el.className = "card";
+
+      const inTour = tourIds.has(d.id);
+
+      el.innerHTML = `
+        <div class="card-top">
+          <div>
+            <p class="title">${d.name}</p>
+            <p class="meta">${d.highlights}</p>
+          </div>
+          <div class="badges">
+            <span class="badge cat">${d.type}</span>
+            <span class="badge time">${prettyTime(d.bestTime)}</span>
+            <span class="badge cost">${d.timeNeeded}</span>
+          </div>
+        </div>
+
+        <div class="card-mid">
+          <p class="desc">
+            <b>Time needed:</b> ${d.timeNeeded}<br/>
+            <b>Best time:</b> ${prettyTime(d.bestTime)}<br/>
+            <b>Cost:</b> ${d.cost}
+          </p>
+        </div>
+
+        <div class="card-actions">
+          <button class="btn ${inTour ? "secondary":""}" data-add="${d.id}">
+            ${inTour ? "✓ Added" : "➕ Add to Tour"}
+          </button>
+          <a class="btn secondary" href="${d.map}" target="_blank" rel="noopener">📍 Open Map</a>
+        </div>
+      `;
+
+      destGrid.appendChild(el);
+    });
+  }
+
+  function prettyTime(t){
+    const m = {sunrise:"Sunrise", day:"Daytime", evening:"Evening", night:"Night"};
+    return m[t] || t;
+  }
+
+  // ------- Render tour -------
+  function renderTour(){
+    const ids = readTour();
+    tourCount.textContent = String(ids.length);
+
+    tourList.innerHTML = "";
+    if(ids.length === 0){
+      tourList.innerHTML = `
+        <div class="note" style="border-top:none; margin-top:0;">
+          Your tour is empty. Add destinations from the left list.
+        </div>
+      `;
+      renderDestinations();
+      return;
+    }
+
+    ids.forEach((id, idx)=>{
+      const d = DEST.find(x=>x.id===id);
+      if(!d) return;
+
+      const item = document.createElement("div");
+      item.className = "touritem";
+      item.innerHTML = `
+        <div>
+          <b>${idx+1}. ${d.name}</b>
+          <small>${d.type} • ${prettyTime(d.bestTime)} • ${d.timeNeeded}</small>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button class="tinybtn up" title="Move up" data-up="${id}">▲</button>
+          <button class="tinybtn down" title="Move down" data-down="${id}">▼</button>
+          <button class="tinybtn remove" title="Remove" data-rm="${id}">Remove</button>
+        </div>
+      `;
+      tourList.appendChild(item);
+    });
+
+    renderDestinations();
+  }
+
+  // Tour list events
+  tourList.addEventListener("click", (e)=>{
+    const add = e.target?.getAttribute?.("data-add");
+    const rm = e.target?.getAttribute?.("data-rm");
+    const up = e.target?.getAttribute?.("data-up");
+    const down = e.target?.getAttribute?.("data-down");
+
+    if(rm) removeFromTour(rm);
+    if(up) moveTour(up, "up");
+    if(down) moveTour(down, "down");
+  });
+
+  // Destination grid events
+  destGrid.addEventListener("click", (e)=>{
+    const id = e.target?.getAttribute?.("data-add");
+    if(!id) return;
+    addToTour(id);
+  });
+
+  // Summary generator
+  function makeSummaryText(){
+    const ids = readTour();
+    const places = ids.map((id, i)=>{
+      const d = DEST.find(x=>x.id===id);
+      if(!d) return null;
+      return `${i+1}) ${d.name} — ${d.type} — Best: ${prettyTime(d.bestTime)} — Time: ${d.timeNeeded}\n   Map: ${d.map}`;
+    }).filter(Boolean);
+
+    const header = `Varanasi Tour Plan (DIY)\n-----------------------`;
+    const footer = `\nTips:\n• Start early for ghats/boat ride.\n• Keep buffer time for queues.\n• Be respectful at sensitive places (e.g., Manikarnika Ghat).`;
+    return `${header}\n${places.join("\n")}${footer}`;
+  }
+
+  document.getElementById("makePlanBtn").addEventListener("click", ()=>{
+    const ids = readTour();
+    if(ids.length === 0){
+      toast("Tour empty", "Add destinations first.");
+      return;
+    }
+    const text = makeSummaryText();
+    summaryBox.style.display = "block";
+    summaryBox.innerHTML = `<b>Your Tour Summary</b><br/><pre style="white-space:pre-wrap; margin:8px 0 0; font:inherit; font-size:12px; color:var(--ink)"></pre>`;
+    summaryBox.querySelector("pre").textContent = text;
+    toast("Summary created", "You can share it on WhatsApp.");
+  });
+
+  document.getElementById("clearTourBtn").addEventListener("click", clearTour);
+
+  document.getElementById("saveTourBtn").addEventListener("click", ()=>{
+    // It is always already in localStorage; this is a “nice” button for users.
+    toast("Saved", "Your tour is saved in this browser.");
+  });
+
+  // WhatsApp share button
+  document.getElementById("waShare").addEventListener("click", ()=>{
+    const ids = readTour();
+    if(ids.length === 0){
+      toast("Tour empty", "Add destinations to share.");
+      return;
+    }
+    const text = makeSummaryText();
+    const url = "https://wa.me/?text=" + encodeURIComponent(text);
+    window.open(url, "_blank", "noopener");
+  });
+
+  // init
+  renderTour();
+  renderDestinations();
+})();
+</script>
+</body>
+</html>
