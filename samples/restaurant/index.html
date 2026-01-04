@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Saffron Dine — Restaurant Booking (Virtual Tables)</title>
+  <meta name="description" content="Restaurant booking system with virtual tables (floor plan). Create, view, edit, cancel bookings. Stored in localStorage." />
+  <style>
+    :root{
+      --bg:#fff7e6;          /* light saffron */
+      --card:#ffffff;
+      --ink:#1f2937;
+      --muted:#6b7280;
+      --brand:#d97706;
+      --brand2:#f59e0b;
+      --border:#eadcc5;
+      --shadow:0 18px 40px rgba(0,0,0,.12);
+      --r:18px;
+
+      --ok:#16a34a;          /* available */
+      --hold:#2563eb;        /* selected */
+      --warn:#b45309;        /* soon */
+      --busy:#dc2626;        /* booked */
+      --grid:#f3ead7;
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans";
+      color:var(--ink);
+      background:
+        radial-gradient(1200px 700px at 10% -10%, rgba(245,158,11,.20), transparent 60%),
+        radial-gradient(900px 700px at 100% 0%, rgba(217,119,6,.16), transparent 55%),
+        var(--bg);
+    }
+    a{color:inherit;text-decoration:none}
+    button,input,select,textarea{font:inherit}
+
+    .topbar{
+      position:sticky; top:0; z-index:50;
+      backdrop-filter: blur(10px);
+      background: rgba(255,247,230,.78);
+      border-bottom:1px solid var(--border);
+    }
+    .topbar-inner{
+      max-width:1200px; margin:0 auto;
+      padding:12px 14px;
+      display:flex; align-items:center; gap:12px;
+    }
+    .logo{
+      display:flex; align-items:center; gap:10px;
+      font-weight:950; letter-spacing:.2px;
+      min-width: 240px;
+    }
+    .logo-badge{
+      width:40px;height:40px;border-radius:14px;
+      background: linear-gradient(135deg, var(--brand2), var(--brand));
+      box-shadow: 0 12px 26px rgba(217,119,6,.22);
+      display:grid; place-items:center; color:white; font-weight:950;
+    }
+    .pill{
+      flex:1;
+      display:flex; align-items:center; gap:10px;
+      border:1px solid var(--border);
+      border-radius:999px;
+      padding:8px 12px;
+      background: rgba(255,255,255,.86);
+      min-width: 220px;
+    }
+    .pill input{
+      border:none; outline:none; background:transparent;
+      width:100%;
+      font-size:14px;
+    }
+    .btn{
+      border:none;
+      background: linear-gradient(135deg, var(--brand2), var(--brand));
+      color:white;
+      padding:10px 12px;
+      border-radius:14px;
+      cursor:pointer;
+      box-shadow: 0 12px 24px rgba(217,119,6,.18);
+      transition: transform .12s ease, filter .12s ease;
+      display:inline-flex; align-items:center; justify-content:center; gap:8px;
+      white-space:nowrap;
+    }
+    .btn:hover{transform: translateY(-1px); filter:saturate(1.02)}
+    .btn:active{transform: translateY(0px)}
+    .btn.secondary{
+      background: rgba(255,255,255,.92);
+      color: var(--ink);
+      border:1px solid var(--border);
+      box-shadow:none;
+    }
+    .btn.danger{
+      background: rgba(220,38,38,.10);
+      border:1px solid rgba(220,38,38,.25);
+      color:#991b1b;
+      box-shadow:none;
+    }
+    .btn.good{
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      box-shadow: 0 12px 24px rgba(34,197,94,.18);
+    }
+
+    .wrap{max-width:1200px; margin:0 auto; padding:16px 14px 40px;}
+    .layout{
+      display:grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap:14px;
+      align-items:start;
+    }
+    @media (max-width: 980px){
+      .layout{grid-template-columns:1fr}
+      .side{position:relative !important; top:auto !important;}
+    }
+
+    .panel{
+      background: rgba(255,255,255,.88);
+      border:1px solid var(--border);
+      border-radius: var(--r);
+      box-shadow: 0 10px 28px rgba(0,0,0,.08);
+      overflow:hidden;
+    }
+    .panel-h{
+      padding:14px;
+      border-bottom:1px solid var(--border);
+      background: rgba(255,247,230,.62);
+      display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
+    }
+    .panel-h h1,.panel-h h2{margin:0}
+    .panel-h h1{font-size:22px; font-weight:950}
+    .panel-h h2{font-size:16px; font-weight:950}
+    .panel-h p{margin:6px 0 0; color:var(--muted); font-size:13px; line-height:1.45}
+    .panel-b{padding:14px}
+
+    /* FLOOR PLAN */
+    .floor{
+      position:relative;
+      height: 520px;
+      border-radius: 18px;
+      border:1px solid var(--border);
+      background:
+        linear-gradient(90deg, rgba(243,234,215,.8) 1px, transparent 1px) 0 0/34px 34px,
+        linear-gradient(0deg, rgba(243,234,215,.8) 1px, transparent 1px) 0 0/34px 34px,
+        radial-gradient(900px 400px at 10% 0%, rgba(245,158,11,.16), transparent 60%),
+        #fff;
+      overflow:hidden;
+      box-shadow: 0 12px 26px rgba(0,0,0,.06);
+    }
+    .floor-label{
+      position:absolute; left:12px; top:12px;
+      font-size:12px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.92);
+      color: var(--muted);
+    }
+    .legend{
+      display:flex; gap:8px; flex-wrap:wrap;
+      margin-top:12px;
+    }
+    .leg{
+      display:flex; align-items:center; gap:8px;
+      font-size:12px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.85);
+      color: var(--muted);
+    }
+    .swatch{width:10px;height:10px;border-radius:999px}
+    .sw-av{background:var(--ok)}
+    .sw-se{background:var(--hold)}
+    .sw-bu{background:var(--busy)}
+    .sw-so{background:var(--warn)}
+
+    .table{
+      position:absolute;
+      border-radius: 18px;
+      border: 2px solid rgba(234,220,197,.9);
+      background: rgba(255,255,255,.9);
+      box-shadow: 0 14px 26px rgba(0,0,0,.10);
+      cursor:pointer;
+      user-select:none;
+      transition: transform .12s ease, filter .12s ease, border-color .12s ease;
+      padding:10px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex-direction:column;
+      gap:3px;
+      text-align:center;
+    }
+    .table:hover{transform: translateY(-2px); filter:saturate(1.02)}
+    .table:active{transform: translateY(0px)}
+    .tno{font-weight:950}
+    .tcap{font-size:12px; color:var(--muted)}
+    .tstat{font-size:11px; font-weight:900; letter-spacing:.2px; margin-top:2px; padding:3px 8px; border-radius:999px; border:1px solid var(--border); background: rgba(255,255,255,.9); color:var(--muted)}
+    .available{outline: 3px solid rgba(34,197,94,.22)}
+    .selected{outline: 3px solid rgba(37,99,235,.25); border-color: rgba(37,99,235,.45)}
+    .booked{outline: 3px solid rgba(220,38,38,.18); border-color: rgba(220,38,38,.35)}
+    .soon{outline: 3px solid rgba(180,83,9,.18); border-color: rgba(180,83,9,.35)}
+
+    .bar{
+      display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+      margin-bottom:12px;
+    }
+    .field{
+      width:100%;
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:10px 10px;
+      background: rgba(255,255,255,.92);
+      outline:none;
+    }
+    .row{display:flex; gap:10px; flex-wrap:wrap}
+    .row > *{flex:1; min-width: 160px;}
+    textarea.field{min-height:76px; resize: vertical;}
+
+    .side{
+      position: sticky;
+      top: 70px;
+      height: fit-content;
+    }
+
+    .list{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .item{
+      border:1px solid var(--border);
+      border-radius: 16px;
+      background: rgba(255,255,255,.92);
+      padding:10px;
+      display:grid;
+      grid-template-columns: 1fr auto;
+      gap:10px;
+      align-items:center;
+    }
+    .item b{font-weight:950}
+    .item small{display:block; color:var(--muted); font-size:12px; margin-top:3px; line-height:1.35}
+    .chips{display:flex; gap:6px; flex-wrap:wrap; margin-top:6px}
+    .chip{
+      font-size:11px; padding:4px 8px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.88);
+      color: var(--muted);
+      white-space:nowrap;
+    }
+    .chip.red{color:#991b1b; border-color: rgba(220,38,38,.25); background: rgba(220,38,38,.08)}
+    .chip.blue{color:#1d4ed8; border-color: rgba(37,99,235,.22); background: rgba(37,99,235,.08)}
+    .chip.green{color:#166534; border-color: rgba(34,197,94,.22); background: rgba(34,197,94,.08)}
+
+    .tinybtn{
+      border:none;
+      border-radius:12px;
+      padding:8px 10px;
+      cursor:pointer;
+      background: rgba(255,255,255,.9);
+      border:1px solid var(--border);
+    }
+    .tinybtn:hover{filter:brightness(.98)}
+    .tinybtn.danger{color:#991b1b; border-color: rgba(220,38,38,.22); background: rgba(220,38,38,.08)}
+    .tinybtn.edit{color:#1d4ed8; border-color: rgba(37,99,235,.22); background: rgba(37,99,235,.08)}
+
+    .note{
+      font-size:12px;
+      color: var(--muted);
+      line-height:1.45;
+      border-top:1px dashed rgba(234,220,197,.95);
+      padding-top:10px;
+      margin-top:10px;
+    }
+    .pillcount{
+      font-size:12px;
+      padding:3px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.86);
+      color: var(--muted);
+      white-space:nowrap;
+    }
+
+    .toast{
+      position: fixed;
+      left: 16px;
+      bottom: 16px;
+      z-index: 80;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .t{
+      background: rgba(255,255,255,.92);
+      border:1px solid var(--border);
+      border-radius: 16px;
+      padding:10px 12px;
+      box-shadow: 0 14px 30px rgba(0,0,0,.14);
+      display:flex; gap:10px; align-items:flex-start;
+      max-width: 460px;
+    }
+    .t .dot{width:10px;height:10px;border-radius:999px;background:var(--brand); margin-top:4px}
+    .t .msg{font-size:13px}
+    .t .msg small{display:block; color:var(--muted); margin-top:2px}
+
+    .kbd{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 11px;
+      padding:2px 6px;
+      border:1px solid var(--border);
+      border-radius: 8px;
+      background: rgba(255,255,255,.8);
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="logo">
+        <div class="logo-badge">🍽️</div>
+        <div>
+          <div style="line-height:1; font-size:14px;">Saffron Dine — Booking</div>
+          <div style="line-height:1; font-size:12px; color:var(--muted); font-weight:800;">Virtual tables • LocalStorage</div>
+        </div>
+      </div>
+
+      <div class="pill" title="Search bookings by name/phone/table">
+        🔎 <input id="search" type="search" placeholder="Search bookings: name, phone, table..." autocomplete="off"/>
+      </div>
+
+      <button class="btn secondary" id="exportBtn" title="Export bookings JSON">⬇️ Export</button>
+      <button class="btn secondary" id="resetBtn" title="Clear all bookings">🧹 Reset</button>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="layout">
+      <!-- LEFT: FLOOR + BOOK FORM -->
+      <section class="panel">
+        <div class="panel-h">
+          <div>
+            <h1>Virtual Floor Plan</h1>
+            <p>
+              Pick a date + time, then click a table to book it.
+              Conflict-safe: same table cannot be double-booked for overlapping times.
+            </p>
+          </div>
+          <span class="pillcount"><span id="availText">—</span></span>
+        </div>
+
+        <div class="panel-b">
+          <div class="bar row">
+            <div>
+              <div style="font-size:12px;color:var(--muted);font-weight:900;margin:0 0 6px;">Date</div>
+              <input class="field" id="date" type="date"/>
+            </div>
+            <div>
+              <div style="font-size:12px;color:var(--muted);font-weight:900;margin:0 0 6px;">Start time</div>
+              <input class="field" id="start" type="time" value="19:00"/>
+            </div>
+            <div>
+              <div style="font-size:12px;color:var(--muted);font-weight:900;margin:0 0 6px;">Duration</div>
+              <select class="field" id="duration">
+                <option value="60">60 min</option>
+                <option value="90" selected>90 min</option>
+                <option value="120">120 min</option>
+                <option value="150">150 min</option>
+                <option value="180">180 min</option>
+              </select>
+            </div>
+            <div>
+              <div style="font-size:12px;color:var(--muted);font-weight:900;margin:0 0 6px;">Party size</div>
+              <input class="field" id="party" type="number" min="1" max="20" value="2"/>
+            </div>
+          </div>
+
+          <div class="floor" id="floor" aria-label="Virtual tables floor plan">
+            <div class="floor-label">Click a table to select • <span class="kbd">Esc</span> to deselect</div>
+            <!-- tables injected by JS -->
+          </div>
+
+          <div class="legend" aria-label="Legend">
+            <div class="leg"><span class="swatch sw-av"></span> Available</div>
+            <div class="leg"><span class="swatch sw-se"></span> Selected</div>
+            <div class="leg"><span class="swatch sw-so"></span> Booked soon (within 30 min of start)</div>
+            <div class="leg"><span class="swatch sw-bu"></span> Booked (conflict)</div>
+          </div>
+
+          <div style="height:14px"></div>
+
+          <div class="panel" style="box-shadow:none;">
+            <div class="panel-h" style="border-bottom:1px solid var(--border);">
+              <div>
+                <h2>Booking Form</h2>
+                <p id="formHint">Select a table to proceed.</p>
+              </div>
+              <span class="pillcount">Selected: <b id="selTable">—</b></span>
+            </div>
+
+            <div class="panel-b">
+              <div class="row">
+                <div>
+                  <div style="font-size:12px;color:var(--muted);font-weight:900;margin:0 0 6px;">Customer name</div>
+                  <input class="field" id="name" type="text" placeholder="e.g., Aman Sharma" />
+                </div>
+                <div>
+                  <div style="font-size:12px;color:var(--muted);font-weight:900;margin:0 0 6px;">Phone</div>
+                  <input class="field" id="phone" type="tel" placeholder="e.g., 98xxxxxx12" />
+                </div>
+              </div>
+
+              <div style="height:10px"></div>
+
+              <div class="row">
+                <div>
+                  <div style="font-size:12px;color:var(--muted);font-weight:900;margin:0 0 6px;">Notes</div>
+                  <textarea class="field" id="notes" placeholder="Birthday, window seat, high chair, allergies..."></textarea>
+                </div>
+              </div>
+
+              <div style="height:12px"></div>
+
+              <div class="row">
+                <button class="btn good" id="bookBtn">✅ Confirm Booking</button>
+                <button class="btn secondary" id="deselectBtn">↩️ Deselect Table</button>
+              </div>
+
+              <div class="note">
+                Data is saved in your browser: <code class="kbd">restaurant_bookings_v1</code>.  
+                Tip: set date/time first, then choose a table for accurate availability.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT: BOOKINGS LIST -->
+      <aside class="panel side">
+        <div class="panel-h">
+          <div>
+            <h2>Bookings</h2>
+            <p>Search, edit, or cancel existing reservations.</p>
+          </div>
+          <span class="pillcount"><span id="bookingCount">0</span> total</span>
+        </div>
+
+        <div class="panel-b">
+          <div class="row">
+            <select class="field" id="listFilter" aria-label="List filter">
+              <option value="all">All</option>
+              <option value="today">Today</option>
+              <option value="upcoming" selected>Upcoming</option>
+              <option value="past">Past</option>
+            </select>
+            <select class="field" id="sortBy" aria-label="Sort by">
+              <option value="time_asc" selected>Sort: Soonest</option>
+              <option value="time_desc">Sort: Latest</option>
+              <option value="table_asc">Sort: Table</option>
+              <option value="name_asc">Sort: Name</option>
+            </select>
+          </div>
+
+          <div style="height:12px"></div>
+
+          <div class="list" id="list"></div>
+
+          <div class="note">
+            Rules: A booking occupies a table from <b>start</b> to <b>end</b>.  
+            Overlaps are blocked. “Booked soon” means it ends close to the selected start time.
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" aria-live="polite" aria-atomic="true"></div>
+
+<script>
+(() => {
+  const LS = "restaurant_bookings_v1";
+
+  // --- Virtual tables: positions are % inside floor plan ---
+  // Shape is expressed using width/height (rects). You can add more tables easily.
+  const TABLES = [
+    {id:"T1", cap:2, x:8,  y:18, w:16, h:16},
+    {id:"T2", cap:2, x:28, y:18, w:16, h:16},
+    {id:"T3", cap:4, x:50, y:14, w:20, h:18},
+    {id:"T4", cap:4, x:75, y:18, w:16, h:16},
+
+    {id:"T5", cap:2, x:10, y:44, w:16, h:16},
+    {id:"T6", cap:6, x:34, y:42, w:26, h:18},
+    {id:"T7", cap:4, x:68, y:44, w:18, h:16},
+
+    {id:"T8", cap:2, x:8,  y:70, w:16, h:16},
+    {id:"T9", cap:2, x:28, y:70, w:16, h:16},
+    {id:"T10", cap:8, x:52, y:66, w:36, h:20},
+  ];
+
+  // --- UI refs ---
+  const floor = document.getElementById("floor");
+  const dateEl = document.getElementById("date");
+  const startEl = document.getElementById("start");
+  const durationEl = document.getElementById("duration");
+  const partyEl = document.getElementById("party");
+  const nameEl = document.getElementById("name");
+  const phoneEl = document.getElementById("phone");
+  const notesEl = document.getElementById("notes");
+  const bookBtn = document.getElementById("bookBtn");
+  const deselectBtn = document.getElementById("deselectBtn");
+  const selTableEl = document.getElementById("selTable");
+  const formHint = document.getElementById("formHint");
+  const list = document.getElementById("list");
+  const bookingCount = document.getElementById("bookingCount");
+  const searchEl = document.getElementById("search");
+  const listFilter = document.getElementById("listFilter");
+  const sortBy = document.getElementById("sortBy");
+  const availText = document.getElementById("availText");
+  const exportBtn = document.getElementById("exportBtn");
+  const resetBtn = document.getElementById("resetBtn");
+
+  const toastWrap = document.getElementById("toast");
+  function toast(title, detail){
+    const el = document.createElement("div");
+    el.className = "t";
+    el.innerHTML = `<div class="dot"></div><div class="msg"><b>${escapeHTML(title)}</b><small>${escapeHTML(detail || "")}</small></div>`;
+    toastWrap.appendChild(el);
+    setTimeout(()=> el.remove(), 2800);
+  }
+  function escapeHTML(s){
+    return String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
+  }
+
+  // --- Storage ---
+  function readBookings(){
+    try { return JSON.parse(localStorage.getItem(LS) || "[]"); }
+    catch { return []; }
+  }
+  function writeBookings(items){
+    localStorage.setItem(LS, JSON.stringify(items));
+  }
+
+  // --- Time helpers ---
+  function pad2(n){ return String(n).padStart(2,"0"); }
+  function todayISO(){
+    const d = new Date();
+    return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+  }
+  function toMinutes(hhmm){
+    const [h,m] = String(hhmm).split(":").map(Number);
+    return h*60 + m;
+  }
+  function minutesToHHMM(min){
+    const h = Math.floor(min/60);
+    const m = min%60;
+    return `${pad2(h)}:${pad2(m)}`;
+  }
+  function dtKey(date, time){
+    return `${date}T${time}`;
+  }
+  function toEpoch(date, time){
+    // interpret in local time
+    const [y,mo,da] = date.split("-").map(Number);
+    const [hh,mm] = time.split(":").map(Number);
+    return new Date(y, mo-1, da, hh, mm, 0, 0).getTime();
+  }
+  function overlaps(aStart, aEnd, bStart, bEnd){
+    // [start, end) overlap check
+    return aStart < bEnd && bStart < aEnd;
+  }
+
+  // --- Current selection ---
+  let selectedTableId = null;
+  let editingBookingId = null; // if set, save will update booking
+
+  function getSelectedWindow(){
+    const date = dateEl.value;
+    const start = startEl.value;
+    const dur = Number(durationEl.value || 90);
+    const sMin = toMinutes(start);
+    const eMin = sMin + dur;
+    return {date, start, end: minutesToHHMM(eMin), dur};
+  }
+
+  // --- Availability model ---
+  function bookingWindow(b){
+    // b: {date,start,end}
+    return { startEpoch: toEpoch(b.date, b.start), endEpoch: toEpoch(b.date, b.end) };
+  }
+
+  function isTableConflicting(tableId, date, start, end, ignoreBookingId=null){
+    const bs = readBookings().filter(b => b.tableId === tableId && b.date === date && b.id !== ignoreBookingId);
+    const aS = toEpoch(date, start);
+    const aE = toEpoch(date, end);
+    return bs.some(b=>{
+      const {startEpoch, endEpoch} = bookingWindow(b);
+      return overlaps(aS, aE, startEpoch, endEpoch);
+    });
+  }
+
+  function isSoonBooked(tableId, date, start, end, ignoreBookingId=null){
+    // "soon" = ends within 30 minutes of selected start OR starts within 30 minutes after selected end
+    const windowStart = toEpoch(date, start);
+    const windowEnd = toEpoch(date, end);
+    const bs = readBookings().filter(b => b.tableId === tableId && b.date === date && b.id !== ignoreBookingId);
+    return bs.some(b=>{
+      const {startEpoch, endEpoch} = bookingWindow(b);
+      const diffEndToStart = Math.abs(endEpoch - windowStart);
+      const diffStartToEnd = Math.abs(startEpoch - windowEnd);
+      return (diffEndToStart <= 30*60*1000) || (diffStartToEnd <= 30*60*1000);
+    });
+  }
+
+  // --- Render floor plan tables ---
+  function renderFloor(){
+    const {date, start, end} = getSelectedWindow();
+    const party = Number(partyEl.value || 1);
+
+    floor.querySelectorAll(".table").forEach(n=>n.remove());
+
+    let availableCount = 0;
+
+    TABLES.forEach(t=>{
+      const el = document.createElement("div");
+      el.className = "table";
+      el.style.left = t.x + "%";
+      el.style.top  = t.y + "%";
+      el.style.width = t.w + "%";
+      el.style.height = t.h + "%";
+
+      const capOk = party <= t.cap;
+      const conflict = date && start ? isTableConflicting(t.id, date, start, end, editingBookingId) : false;
+      const soon = (!conflict && date && start) ? isSoonBooked(t.id, date, start, end, editingBookingId) : false;
+
+      if(!conflict && capOk) availableCount++;
+
+      // status / classes
+      if(conflict) el.classList.add("booked");
+      else if(soon) el.classList.add("soon");
+      else el.classList.add("available");
+
+      if(selectedTableId === t.id) el.classList.add("selected");
+
+      let statusText = conflict ? "BOOKED" : (soon ? "SOON" : "AVAILABLE");
+      if(!capOk) statusText = conflict ? "BOOKED" : "TOO SMALL";
+
+      el.innerHTML = `
+        <div class="tno">${t.id}</div>
+        <div class="tcap">Seats: ${t.cap}</div>
+        <div class="tstat">${statusText}</div>
+      `;
+
+      el.addEventListener("click", ()=>{
+        // can't pick if too small
+        if(!capOk){
+          toast("Table too small", `${t.id} seats ${t.cap}. Increase table size or reduce party.`);
+          return;
+        }
+        // can't pick if conflicting
+        if(date && start && isTableConflicting(t.id, date, start, end, editingBookingId)){
+          toast("Not available", `${t.id} is already booked for that time.`);
+          return;
+        }
+        selectedTableId = t.id;
+        selTableEl.textContent = t.id;
+        formHint.textContent = editingBookingId
+          ? `Editing booking — table ${t.id} selected. Update details and save.`
+          : `Table ${t.id} selected. Fill details and confirm.`;
+        renderFloor();
+      });
+
+      floor.appendChild(el);
+    });
+
+    // availability text
+    if(!dateEl.value){
+      availText.textContent = "Set date/time to view availability";
+    }else{
+      availText.textContent = `${availableCount}/${TABLES.length} tables fit party & free`;
+    }
+
+    // keep selected shown
+    selTableEl.textContent = selectedTableId || "—";
+  }
+
+  // --- Booking CRUD ---
+  function uuid(){
+    return "b_" + Math.random().toString(16).slice(2) + "_" + Date.now().toString(16);
+  }
+
+  function validateForm(){
+    const {date, start, end} = getSelectedWindow();
+    const party = Number(partyEl.value || 0);
+
+    if(!date) return {ok:false, msg:"Please select a date."};
+    if(!start) return {ok:false, msg:"Please select a start time."};
+    if(!selectedTableId) return {ok:false, msg:"Please select a table on the floor plan."};
+    if(!nameEl.value.trim()) return {ok:false, msg:"Please enter customer name."};
+    if(!phoneEl.value.trim()) return {ok:false, msg:"Please enter phone number."};
+    if(!(party >= 1 && party <= 20)) return {ok:false, msg:"Party size must be between 1 and 20."};
+
+    const table = TABLES.find(t=>t.id===selectedTableId);
+    if(!table) return {ok:false, msg:"Invalid table selection."};
+    if(party > table.cap) return {ok:false, msg:`${selectedTableId} seats ${table.cap}. Choose a bigger table.`};
+
+    if(isTableConflicting(selectedTableId, date, start, end, editingBookingId)){
+      return {ok:false, msg:`${selectedTableId} is already booked for that time.`};
+    }
+    return {ok:true, msg:"OK"};
+  }
+
+  function saveBooking(){
+    const v = validateForm();
+    if(!v.ok){ toast("Cannot book", v.msg); return; }
+
+    const {date, start, end, dur} = getSelectedWindow();
+    const party = Number(partyEl.value || 1);
+
+    const booking = {
+      id: editingBookingId || uuid(),
+      tableId: selectedTableId,
+      date, start, end,
+      durationMin: dur,
+      party,
+      name: nameEl.value.trim(),
+      phone: phoneEl.value.trim(),
+      notes: notesEl.value.trim(),
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    };
+
+    const items = readBookings();
+
+    if(editingBookingId){
+      const idx = items.findIndex(b=>b.id === editingBookingId);
+      if(idx === -1){
+        toast("Edit failed", "Booking not found.");
+        return;
+      }
+      booking.createdAt = items[idx].createdAt;
+      items[idx] = booking;
+      writeBookings(items);
+      toast("Updated", `Booking updated for ${booking.name} (${booking.tableId}).`);
+    }else{
+      items.push(booking);
+      writeBookings(items);
+      toast("Booked!", `${booking.tableId} reserved for ${booking.name}.`);
+    }
+
+    // reset edit state + keep selection
+    editingBookingId = null;
+    clearForm(false);
+    renderAll();
+  }
+
+  function clearForm(clearSelection=true){
+    nameEl.value = "";
+    phoneEl.value = "";
+    notesEl.value = "";
+    if(clearSelection){
+      selectedTableId = null;
+      selTableEl.textContent = "—";
+      formHint.textContent = "Select a table to proceed.";
+    }else{
+      formHint.textContent = "Select a table to proceed.";
+    }
+  }
+
+  function cancelBooking(id){
+    const items = readBookings().filter(b => b.id !== id);
+    writeBookings(items);
+
+    if(editingBookingId === id){
+      editingBookingId = null;
+      clearForm(true);
+    }
+
+    toast("Cancelled", "Booking removed.");
+    renderAll();
+  }
+
+  function startEdit(id){
+    const items = readBookings();
+    const b = items.find(x=>x.id===id);
+    if(!b){ toast("Not found", "Booking does not exist."); return; }
+
+    editingBookingId = b.id;
+    selectedTableId = b.tableId;
+
+    dateEl.value = b.date;
+    startEl.value = b.start;
+    durationEl.value = String(b.durationMin || (toMinutes(b.end) - toMinutes(b.start)));
+    partyEl.value = String(b.party || 2);
+
+    nameEl.value = b.name || "";
+    phoneEl.value = b.phone || "";
+    notesEl.value = b.notes || "";
+
+    formHint.textContent = `Editing booking: ${b.tableId} • ${b.date} ${b.start}-${b.end}`;
+    toast("Edit mode", `Update details and press Confirm Booking to save.`);
+    renderAll();
+    window.scrollTo({top:0, behavior:"smooth"});
+  }
+
+  // --- List render ---
+  function isPast(b){
+    return toEpoch(b.date, b.end) < Date.now();
+  }
+  function isToday(b){
+    return b.date === todayISO();
+  }
+  function isUpcoming(b){
+    return toEpoch(b.date, b.end) >= Date.now();
+  }
+
+  function formatDate(iso){
+    const [y,m,d] = iso.split("-").map(Number);
+    const dt = new Date(y, m-1, d);
+    return dt.toLocaleDateString("en-IN", {weekday:"short", day:"2-digit", month:"short", year:"numeric"});
+  }
+
+  function sortBookings(items){
+    const mode = sortBy.value;
+    const copy = items.slice();
+    switch(mode){
+      case "time_desc":
+        copy.sort((a,b)=> toEpoch(b.date,b.start) - toEpoch(a.date,a.start));
+        break;
+      case "table_asc":
+        copy.sort((a,b)=> a.tableId.localeCompare(b.tableId) || (toEpoch(a.date,a.start)-toEpoch(b.date,b.start)));
+        break;
+      case "name_asc":
+        copy.sort((a,b)=> (a.name||"").localeCompare(b.name||"") || (toEpoch(a.date,a.start)-toEpoch(b.date,b.start)));
+        break;
+      default:
+        copy.sort((a,b)=> toEpoch(a.date,a.start) - toEpoch(b.date,b.start));
+    }
+    return copy;
+  }
+
+  function applyListFilter(items){
+    const f = listFilter.value;
+    if(f==="today") return items.filter(isToday);
+    if(f==="upcoming") return items.filter(isUpcoming);
+    if(f==="past") return items.filter(isPast);
+    return items;
+  }
+
+  function applySearch(items){
+    const q = (searchEl.value || "").trim().toLowerCase();
+    if(!q) return items;
+    return items.filter(b=>{
+      const hay = `${b.name} ${b.phone} ${b.tableId} ${b.date} ${b.start} ${b.end} ${b.notes||""}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }
+
+  function renderList(){
+    const all = readBookings();
+    bookingCount.textContent = String(all.length);
+
+    let items = applyListFilter(all);
+    items = applySearch(items);
+    items = sortBookings(items);
+
+    list.innerHTML = "";
+
+    if(items.length === 0){
+      list.innerHTML = `
+        <div class="note" style="border-top:none; margin-top:0;">
+          No bookings found for the current filters/search.
+        </div>
+      `;
+      return;
+    }
+
+    items.forEach(b=>{
+      const soon = (dateEl.value && startEl.value)
+        ? isSoonBooked(b.tableId, dateEl.value, startEl.value, getSelectedWindow().end, editingBookingId)
+        : false;
+
+      const statusChip = isPast(b)
+        ? `<span class="chip red">Past</span>`
+        : (isToday(b) ? `<span class="chip green">Today</span>` : `<span class="chip blue">Upcoming</span>`);
+
+      const editChip = (editingBookingId === b.id)
+        ? `<span class="chip blue">Editing</span>` : "";
+
+      const el = document.createElement("div");
+      el.className = "item";
+      el.innerHTML = `
+        <div>
+          <b>${escapeHTML(b.name || "Guest")} • ${escapeHTML(b.tableId)}</b>
+          <small>
+            ${escapeHTML(formatDate(b.date))} • ${escapeHTML(b.start)}–${escapeHTML(b.end)} • Party: ${escapeHTML(String(b.party||"—"))}
+            <br/>Phone: ${escapeHTML(b.phone || "—")}
+            ${b.notes ? `<br/>Notes: ${escapeHTML(b.notes)}` : ""}
+          </small>
+          <div class="chips">
+            ${statusChip}
+            ${editChip}
+            ${soon ? `<span class="chip">Near selected slot</span>` : ""}
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end;">
+          <button class="tinybtn edit" data-edit="${b.id}">Edit</button>
+          <button class="tinybtn danger" data-cancel="${b.id}">Cancel</button>
+        </div>
+      `;
+      list.appendChild(el);
+    });
+  }
+
+  // --- Export / reset ---
+  exportBtn.addEventListener("click", ()=>{
+    const data = readBookings();
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "restaurant_bookings.json";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    toast("Exported", "restaurant_bookings.json downloaded.");
+  });
+
+  resetBtn.addEventListener("click", ()=>{
+    const ok = confirm("Clear ALL bookings? This cannot be undone.");
+    if(!ok) return;
+    writeBookings([]);
+    editingBookingId = null;
+    selectedTableId = null;
+    clearForm(true);
+    toast("Reset done", "All bookings cleared.");
+    renderAll();
+  });
+
+  // --- Event wiring ---
+  [dateEl, startEl, durationEl, partyEl].forEach(el => el.addEventListener("input", ()=>{ renderFloor(); renderList(); }));
+  searchEl.addEventListener("input", renderList);
+  listFilter.addEventListener("change", renderList);
+  sortBy.addEventListener("change", renderList);
+
+  bookBtn.addEventListener("click", saveBooking);
+  deselectBtn.addEventListener("click", ()=>{
+    editingBookingId = null;
+    selectedTableId = null;
+    clearForm(true);
+    toast("Deselected", "Table deselected.");
+    renderAll();
+  });
+
+  window.addEventListener("keydown", (e)=>{
+    if(e.key === "Escape"){
+      editingBookingId = null;
+      selectedTableId = null;
+      clearForm(true);
+      renderAll();
+    }
+  });
+
+  list.addEventListener("click", (e)=>{
+    const edit = e.target?.getAttribute?.("data-edit");
+    const cancel = e.target?.getAttribute?.("data-cancel");
+    if(edit) startEdit(edit);
+    if(cancel){
+      const ok = confirm("Cancel this booking?");
+      if(ok) cancelBooking(cancel);
+    }
+  });
+
+  // --- Render all ---
+  function renderAll(){
+    renderFloor();
+    renderList();
+  }
+
+  // --- init defaults ---
+  dateEl.value = todayISO();
+  renderAll();
+})();
+</script>
+</body>
+</html>

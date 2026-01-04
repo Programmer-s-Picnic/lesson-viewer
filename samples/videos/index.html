@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Kashi Motion Studio — Video Production in Varanasi</title>
+  <meta name="description" content="A light-saffron themed landing page for a video making firm in Varanasi. Uses IntersectionObserver to animate sections and auto-play/pause videos."/>
+  <style>
+    :root{
+      --bg:#fff7e6; --card:#ffffff; --ink:#1f2937; --muted:#6b7280;
+      --brand:#d97706; --brand2:#f59e0b; --border:#eadcc5;
+      --shadow:0 20px 50px rgba(0,0,0,.12);
+      --r:22px;
+      --ok:#16a34a; --blue:#2563eb; --bad:#dc2626;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0}
+    body{
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans";
+      color:var(--ink);
+      background:
+        radial-gradient(1100px 700px at 12% -12%, rgba(245,158,11,.22), transparent 60%),
+        radial-gradient(900px 650px at 100% 0%, rgba(217,119,6,.18), transparent 55%),
+        radial-gradient(900px 700px at 30% 120%, rgba(245,158,11,.14), transparent 60%),
+        var(--bg);
+      overflow-x:hidden;
+    }
+    a{color:inherit;text-decoration:none}
+    button,input{font:inherit}
+
+    /* top nav */
+    .nav{
+      position:sticky; top:0; z-index:50;
+      backdrop-filter: blur(12px);
+      background: rgba(255,247,230,.78);
+      border-bottom:1px solid var(--border);
+    }
+    .navin{
+      max-width:1200px; margin:0 auto;
+      display:flex; align-items:center; gap:12px;
+      padding:12px 14px;
+    }
+    .brand{
+      display:flex; align-items:center; gap:10px;
+      font-weight:950; letter-spacing:.2px;
+      min-width: 260px;
+    }
+    .badge{
+      width:42px;height:42px;border-radius:16px;
+      background: linear-gradient(135deg, var(--brand2), var(--brand));
+      box-shadow: 0 14px 28px rgba(217,119,6,.22);
+      display:grid; place-items:center;
+      color:#fff; font-weight:950;
+    }
+    .pill{
+      flex:1;
+      display:flex; align-items:center; gap:10px;
+      border:1px solid var(--border);
+      border-radius:999px;
+      padding:9px 12px;
+      background: rgba(255,255,255,.88);
+      min-width:220px;
+    }
+    .pill input{
+      border:none; outline:none; background:transparent;
+      width:100%;
+      font-size:14px;
+    }
+    .btn{
+      border:none; cursor:pointer;
+      border-radius:16px;
+      padding:10px 12px;
+      display:inline-flex; align-items:center; justify-content:center; gap:8px;
+      background: linear-gradient(135deg, var(--brand2), var(--brand));
+      color:white;
+      box-shadow: 0 14px 26px rgba(217,119,6,.18);
+      transition: transform .12s ease, filter .12s ease;
+      white-space:nowrap;
+    }
+    .btn:hover{transform: translateY(-1px); filter:saturate(1.02)}
+    .btn.secondary{
+      background: rgba(255,255,255,.92);
+      border:1px solid var(--border);
+      color:var(--ink);
+      box-shadow:none;
+    }
+
+    /* layout */
+    .wrap{max-width:1200px; margin:0 auto; padding:18px 14px 70px;}
+    .hero{
+      display:grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap:14px;
+      margin-top:10px;
+      align-items:stretch;
+    }
+    @media (max-width: 980px){
+      .hero{grid-template-columns:1fr}
+    }
+
+    .card{
+      background: rgba(255,255,255,.88);
+      border:1px solid var(--border);
+      border-radius: var(--r);
+      box-shadow: 0 14px 30px rgba(0,0,0,.08);
+      overflow:hidden;
+      position:relative;
+    }
+    .cardpad{padding:16px}
+    h1{margin:0; font-size:34px; line-height:1.06; letter-spacing:.2px}
+    p{margin:10px 0 0; color:var(--muted); line-height:1.55}
+    .kicker{
+      display:inline-flex; align-items:center; gap:8px;
+      font-size:12px; font-weight:900; letter-spacing:.18em;
+      text-transform:uppercase;
+      color:#92400e;
+      border:1px solid rgba(217,119,6,.28);
+      background: rgba(255,255,255,.75);
+      padding:7px 10px;
+      border-radius:999px;
+    }
+    .heroActions{display:flex; flex-wrap:wrap; gap:10px; margin-top:14px}
+    .mini{
+      display:flex; gap:10px; flex-wrap:wrap; margin-top:14px;
+    }
+    .chip{
+      font-size:12px; color:var(--muted);
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.78);
+      padding:7px 10px;
+      border-radius:999px;
+      display:inline-flex; align-items:center; gap:8px;
+    }
+    .chip b{color:var(--ink)}
+    .statgrid{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap:12px;
+      padding:14px;
+      border-top:1px dashed rgba(234,220,197,.95);
+      background: rgba(255,247,230,.45);
+    }
+    .stat{
+      border:1px solid var(--border);
+      border-radius: 18px;
+      background: rgba(255,255,255,.86);
+      padding:12px;
+    }
+    .stat .n{font-weight:950; font-size:20px}
+    .stat .s{color:var(--muted); font-size:12px; margin-top:2px}
+
+    /* demo frame */
+    .frame{
+      height:100%;
+      display:flex;
+      flex-direction:column;
+    }
+    .frameTop{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      padding:14px;
+      background: rgba(255,247,230,.60);
+      border-bottom:1px solid var(--border);
+    }
+    .frameTop b{font-weight:950}
+    .frameTop small{color:var(--muted)}
+    .mediaGrid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:12px;
+      padding:14px;
+    }
+    .media{
+      border:1px solid var(--border);
+      border-radius: 18px;
+      overflow:hidden;
+      background: rgba(255,255,255,.90);
+      box-shadow: 0 12px 24px rgba(0,0,0,.07);
+      position:relative;
+      transform: translateY(12px) scale(.98);
+      opacity:0;
+      transition: transform .8s cubic-bezier(.2,.8,.2,1), opacity .8s ease;
+    }
+    .media.reveal{
+      transform: translateY(0px) scale(1);
+      opacity:1;
+    }
+    video, img{
+      display:block;
+      width:100%;
+      height:auto;
+      background: #f6f1e7;
+    }
+    .tag{
+      position:absolute;
+      left:12px; top:12px;
+      font-size:11px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.86);
+      color: var(--muted);
+      backdrop-filter: blur(8px);
+    }
+    .hint{
+      position:absolute;
+      right:12px; top:12px;
+      font-size:11px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid rgba(37,99,235,.20);
+      background: rgba(37,99,235,.08);
+      color: #1d4ed8;
+      backdrop-filter: blur(8px);
+    }
+
+    /* sections */
+    .section{
+      margin-top:14px;
+      padding:16px;
+      display:grid;
+      grid-template-columns: .9fr 1.1fr;
+      gap:14px;
+      align-items:start;
+    }
+    @media (max-width: 980px){
+      .section{grid-template-columns:1fr}
+    }
+    .secTitle{
+      margin:0;
+      font-size:22px;
+      font-weight:950;
+    }
+    .muted{color:var(--muted); font-size:13px; line-height:1.55}
+    .list{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap:12px;
+      margin-top:12px;
+    }
+    @media (max-width: 640px){
+      .list{grid-template-columns:1fr}
+    }
+    .tile{
+      border:1px solid var(--border);
+      border-radius: 20px;
+      background: rgba(255,255,255,.90);
+      padding:12px;
+      box-shadow: 0 10px 22px rgba(0,0,0,.06);
+      transform: translateY(16px);
+      opacity:0;
+      transition: transform .85s cubic-bezier(.2,.8,.2,1), opacity .85s ease, filter .85s ease;
+      filter: blur(6px);
+    }
+    .tile.reveal{
+      transform: translateY(0);
+      opacity:1;
+      filter: blur(0);
+    }
+    .tile b{font-weight:950}
+    .tile p{margin:6px 0 0; font-size:12px; color:var(--muted); line-height:1.45}
+
+    /* interesting “scanline” animation on reveal */
+    .scan::after{
+      content:"";
+      position:absolute;
+      inset:-30%;
+      background: linear-gradient(120deg, transparent 40%, rgba(255,255,255,.35) 50%, transparent 60%);
+      transform: translateX(-120%) rotate(10deg);
+      pointer-events:none;
+      opacity:0;
+    }
+    .scan.reveal::after{
+      opacity:1;
+      animation: sweep 1.3s cubic-bezier(.2,.8,.2,1) forwards;
+    }
+    @keyframes sweep{
+      0%{transform: translateX(-120%) rotate(10deg)}
+      100%{transform: translateX(120%) rotate(10deg)}
+    }
+
+    /* work grid */
+    .work{
+      margin-top:14px;
+      padding:14px;
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0,1fr));
+      gap:12px;
+    }
+    @media (max-width: 980px){ .work{grid-template-columns: repeat(2, minmax(0,1fr));} }
+    @media (max-width: 640px){ .work{grid-template-columns: 1fr;} }
+    .workCard{
+      border:1px solid var(--border);
+      border-radius: 20px;
+      overflow:hidden;
+      background: rgba(255,255,255,.92);
+      box-shadow: 0 12px 26px rgba(0,0,0,.07);
+      position:relative;
+      transform: translateY(18px) scale(.98);
+      opacity:0;
+      transition: transform .85s cubic-bezier(.2,.8,.2,1), opacity .85s ease;
+    }
+    .workCard.reveal{transform: translateY(0) scale(1); opacity:1;}
+    .workBody{padding:12px}
+    .workBody b{font-weight:950}
+    .workBody p{margin:6px 0 0; font-size:12px; color:var(--muted); line-height:1.45}
+
+    /* CTA */
+    .cta{
+      margin-top:14px;
+      padding:16px;
+      display:grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap:14px;
+      align-items:center;
+    }
+    @media (max-width: 980px){ .cta{grid-template-columns:1fr} }
+    .ctaBox{
+      border:1px solid var(--border);
+      border-radius: 22px;
+      background: rgba(255,255,255,.90);
+      padding:14px;
+      box-shadow: 0 12px 26px rgba(0,0,0,.06);
+      transform: translateY(18px);
+      opacity:0;
+      transition: transform .85s cubic-bezier(.2,.8,.2,1), opacity .85s ease;
+    }
+    .ctaBox.reveal{transform: translateY(0); opacity:1;}
+    .ctaBox .row{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px}
+    .field{
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:10px 10px;
+      background: rgba(255,255,255,.92);
+      outline:none;
+      width:100%;
+    }
+    .row > *{flex:1; min-width: 180px;}
+    .foot{
+      margin-top:14px;
+      padding:14px 16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+      color:var(--muted);
+      font-size:12px;
+    }
+
+    /* floating WhatsApp */
+    .fab{
+      position:fixed;
+      right:16px;
+      bottom:16px;
+      z-index:70;
+      display:flex;
+      flex-direction:column;
+      align-items:flex-end;
+      gap:10px;
+    }
+    .wa{
+      border:none;
+      cursor:pointer;
+      border-radius: 18px;
+      padding:12px 14px;
+      color:white;
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      box-shadow: 0 18px 34px rgba(0,0,0,.18);
+      display:inline-flex; align-items:center; gap:10px;
+      font-weight:950;
+    }
+    .wa small{display:block; font-weight:700; opacity:.92}
+
+    /* reduced motion */
+    @media (prefers-reduced-motion: reduce){
+      *{scroll-behavior:auto !important}
+      .media,.tile,.workCard,.ctaBox{transition:none !important}
+      .scan::after{display:none !important}
+    }
+  </style>
+</head>
+<body>
+  <div class="nav">
+    <div class="navin">
+      <div class="brand">
+        <div class="badge">KM</div>
+        <div>
+          <div style="line-height:1; font-size:14px;">Kashi Motion Studio</div>
+          <div style="line-height:1; font-size:12px; color:var(--muted); font-weight:800;">Video Production • Varanasi</div>
+        </div>
+      </div>
+
+      <div class="pill" title="Search services / portfolio">
+        🔎 <input id="search" type="search" placeholder="Search: wedding, reels, ads, drone, documentary..." autocomplete="off"/>
+      </div>
+
+      <a class="btn secondary" href="#work">🎬 Work</a>
+      <a class="btn secondary" href="#services">🛠️ Services</a>
+      <a class="btn" href="#contact">📩 Get Quote</a>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <!-- HERO -->
+    <section class="hero">
+      <div class="card scan observe">
+        <div class="cardpad">
+          <span class="kicker">VARANASI • STORY-FIRST • CINEMATIC</span>
+          <h1>We turn Banaras moments into films that feel alive.</h1>
+          <p>
+            Weddings, brand stories, reels, documentaries, product videos — shot and edited with a modern,
+            cinematic look while keeping the soul of Kashi.
+          </p>
+          <div class="heroActions">
+            <button class="btn" id="quoteBtn">📩 Request a Quote</button>
+            <button class="btn secondary" id="showreelBtn">▶️ Watch Showreel</button>
+          </div>
+          <div class="mini">
+            <span class="chip">🎥 <b>4K</b> shooting</span>
+            <span class="chip">🚁 <b>Drone</b> shots</span>
+            <span class="chip">🎛️ <b>Color</b> grading</span>
+            <span class="chip">🎙️ <b>Audio</b> polish</span>
+          </div>
+        </div>
+        <div class="statgrid">
+          <div class="stat">
+            <div class="n">24–48 hrs</div>
+            <div class="s">fast reel turnaround (optional)</div>
+          </div>
+          <div class="stat">
+            <div class="n">Cinematic + Real</div>
+            <div class="s">emotion-first storytelling</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- HERO MEDIA (IntersectionObserver auto-play/pause) -->
+      <div class="card frame">
+        <div class="frameTop">
+          <div>
+            <b>Auto-play Showcase</b><br/>
+            <small>Videos play only when visible (IntersectionObserver)</small>
+          </div>
+          <span class="chip">🔊 muted • loop</span>
+        </div>
+
+        <div class="mediaGrid">
+          <figure class="media observe-media scan" data-kind="video">
+            <span class="tag">Showreel (demo)</span>
+            <span class="hint">Plays on view</span>
+            <video class="io-video" muted loop playsinline preload="metadata"
+              poster="data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%271200%27%20height%3D%27680%27%20viewBox%3D%270%200%201200%20680%27%3E%3Cdefs%3E%3ClinearGradient%20id%3D%27g%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%271%27%20y2%3D%271%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%23f59e0b%27%20stop-opacity%3D%27.95%27/%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%23d97706%27%20stop-opacity%3D%27.92%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%271200%27%20height%3D%27680%27%20fill%3D%27url(%23g)%27/%3E%3Ctext%20x%3D%2760%27%20y%3D%27170%27%20font-size%3D%2760%27%20font-family%3D%27Arial%27%20font-weight%3D%27900%27%20fill%3D%27%23fff%27%3EShowreel%20Demo%3C/text%3E%3Ctext%20x%3D%2760%27%20y%3D%27240%27%20font-size%3D%2728%27%20font-family%3D%27Arial%27%20font-weight%3D%27700%27%20fill%3D%27%23fff%27%20opacity%3D%27.9%27%3EReplace%20with%20your%20MP4%20files%3C/text%3E%3C/svg%3E">
+              <!-- NOTE: Replace src with your real MP4 file (same folder) -->
+              <source src="sample1.mp4" type="video/mp4">
+            </video>
+          </figure>
+
+          <figure class="media observe-media scan" data-kind="image">
+            <span class="tag">Frames • Color grade</span>
+            <span class="hint">Animates on view</span>
+            <img class="io-img" alt="Cinematic frame placeholder"
+              src="data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%271200%27%20height%3D%27680%27%20viewBox%3D%270%200%201200%20680%27%3E%3Cdefs%3E%3CradialGradient%20id%3D%27r%27%20cx%3D%2730%25%27%20cy%3D%2720%25%27%20r%3D%2780%25%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%23ffffff%27%20stop-opacity%3D%27.55%27/%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%23ffffff%27%20stop-opacity%3D%270%27/%3E%3C/radialGradient%3E%3ClinearGradient%20id%3D%27g%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%271%27%20y2%3D%271%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%23f59e0b%27/%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%231f2937%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%271200%27%20height%3D%27680%27%20fill%3D%27url(%23g)%27/%3E%3Crect%20width%3D%271200%27%20height%3D%27680%27%20fill%3D%27url(%23r)%27/%3E%3Crect%20x%3D%2760%27%20y%3D%2760%27%20width%3D%27720%27%20height%3D%27190%27%20rx%3D%2728%27%20fill%3D%27%23fff%27%20fill-opacity%3D%27.88%27/%3E%3Ctext%20x%3D%2795%27%20y%3D%27140%27%20font-size%3D%2752%27%20font-family%3D%27Arial%27%20font-weight%3D%27900%27%20fill%3D%27%231f2937%27%3ECinematic%20Frames%3C/text%3E%3Ctext%20x%3D%2795%27%20y%3D%27200%27%20font-size%3D%2728%27%20font-family%3D%27Arial%27%20font-weight%3D%27700%27%20fill%3D%27%236b7280%27%3EWarm%20tones%20%2B%20clean%20contrast%3C/text%3E%3C/svg%3E" />
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- SERVICES -->
+    <section class="card section observe" id="services">
+      <div>
+        <h2 class="secTitle">Services we shoot in Varanasi</h2>
+        <p class="muted">
+          From ghats to banquet halls — we plan, shoot, edit, grade and deliver.
+          (Use the search box in the top bar to highlight matching cards.)
+        </p>
+      </div>
+
+      <div class="list" id="serviceList">
+        <div class="tile observe-tile" data-keywords="wedding cinematic haldi sangeet reception">
+          <b>Wedding Films</b>
+          <p>Full coverage + cinematic trailer + reels. Focus on emotion & storytelling.</p>
+        </div>
+        <div class="tile observe-tile" data-keywords="reels shorts instagram youtube fast edit">
+          <b>Reels & Shorts</b>
+          <p>Vertical-first shooting, fast cuts, captions, trendy pacing (24–48 hrs option).</p>
+        </div>
+        <div class="tile observe-tile" data-keywords="brand ad commercial product promo">
+          <b>Brand Ads</b>
+          <p>Script + shotlist + product highlights with premium lighting.</p>
+        </div>
+        <div class="tile observe-tile" data-keywords="documentary interview storytelling">
+          <b>Documentary / Interviews</b>
+          <p>Real stories, natural visuals, clean audio, multi-cam interviews.</p>
+        </div>
+        <div class="tile observe-tile" data-keywords="drone aerial ghat cityscape">
+          <b>Drone & Aerial</b>
+          <p>Sunrise ghats, cityscapes, venue reveals (as per local permissions).</p>
+        </div>
+        <div class="tile observe-tile" data-keywords="events corporate conference stage">
+          <b>Events & Corporate</b>
+          <p>Conferences, launches, stage coverage, highlight after-movie.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- WORK / PORTFOLIO GRID -->
+    <section class="card observe" id="work">
+      <div class="cardpad">
+        <h2 class="secTitle" style="margin:0;">Selected Work (Demo)</h2>
+        <p class="muted" style="margin-top:8px;">
+          These are demo blocks. Replace <span class="kbd">sample2.mp4</span> etc. with your real files.
+          Videos auto-play only when visible.
+        </p>
+      </div>
+
+      <div class="work">
+        <article class="workCard observe-media scan" data-kind="video">
+          <span class="tag">Wedding Trailer</span>
+          <video class="io-video" muted loop playsinline preload="metadata">
+            <source src="sample2.mp4" type="video/mp4">
+          </video>
+          <div class="workBody">
+            <b>“Ghat-side vows”</b>
+            <p>Warm tones • slow-motion • emotional beats.</p>
+          </div>
+        </article>
+
+        <article class="workCard observe-media scan" data-kind="video">
+          <span class="tag">Brand Promo</span>
+          <video class="io-video" muted loop playsinline preload="metadata">
+            <source src="sample3.mp4" type="video/mp4">
+          </video>
+          <div class="workBody">
+            <b>“Product story”</b>
+            <p>Lighting • detail shots • clean typography overlays.</p>
+          </div>
+        </article>
+
+        <article class="workCard observe-media scan" data-kind="image">
+          <span class="tag">Behind the Scenes</span>
+          <img class="io-img" alt="Behind the scenes placeholder"
+               src="data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%271200%27%20height%3D%27800%27%20viewBox%3D%270%200%201200%20800%27%3E%3Cdefs%3E%3ClinearGradient%20id%3D%27g%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%271%27%20y2%3D%271%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%231f2937%27/%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%23f59e0b%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%271200%27%20height%3D%27800%27%20fill%3D%27url(%23g)%27/%3E%3Crect%20x%3D%2770%27%20y%3D%2770%27%20width%3D%27780%27%20height%3D%27200%27%20rx%3D%2730%27%20fill%3D%27%23fff%27%20fill-opacity%3D%27.88%27/%3E%3Ctext%20x%3D%27110%27%20y%3D%27170%27%20font-size%3D%2756%27%20font-family%3D%27Arial%27%20font-weight%3D%27900%27%20fill%3D%27%231f2937%27%3EBTS%20Moments%3C/text%3E%3Ctext%20x%3D%27110%27%20y%3D%27225%27%20font-size%3D%2728%27%20font-family%3D%27Arial%27%20font-weight%3D%27700%27%20fill%3D%27%236b7280%27%3ELights%20%2B%20camera%20%2B%20Banaras%20lanes%3C/text%3E%3C/svg%3E" />
+          <div class="workBody">
+            <b>On-location setup</b>
+            <p>Fast, tidy, client-friendly workflow.</p>
+          </div>
+        </article>
+
+        <article class="workCard observe-media scan" data-kind="video">
+          <span class="tag">Event Aftermovie</span>
+          <video class="io-video" muted loop playsinline preload="metadata">
+            <source src="sample4.mp4" type="video/mp4">
+          </video>
+          <div class="workBody">
+            <b>“Stage energy”</b>
+            <p>Highlights • crowd reactions • quick pacing.</p>
+          </div>
+        </article>
+
+        <article class="workCard observe-media scan" data-kind="image">
+          <span class="tag">Color Grade Look</span>
+          <img class="io-img" alt="Color grade look placeholder"
+               src="data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%271200%27%20height%3D%27800%27%20viewBox%3D%270%200%201200%20800%27%3E%3Cdefs%3E%3CradialGradient%20id%3D%27r%27%20cx%3D%2725%25%27%20cy%3D%2720%25%27%20r%3D%2780%25%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%23ffffff%27%20stop-opacity%3D%27.55%27/%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%23ffffff%27%20stop-opacity%3D%270%27/%3E%3C/radialGradient%3E%3ClinearGradient%20id%3D%27g%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%271%27%20y2%3D%271%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%23f59e0b%27/%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%230f172a%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%271200%27%20height%3D%27800%27%20fill%3D%27url(%23g)%27/%3E%3Crect%20width%3D%271200%27%20height%3D%27800%27%20fill%3D%27url(%23r)%27/%3E%3Crect%20x%3D%2780%27%20y%3D%2780%27%20width%3D%27820%27%20height%3D%27220%27%20rx%3D%2730%27%20fill%3D%27%23fff%27%20fill-opacity%3D%27.88%27/%3E%3Ctext%20x%3D%27120%27%20y%3D%27185%27%20font-size%3D%2756%27%20font-family%3D%27Arial%27%20font-weight%3D%27900%27%20fill%3D%27%231f2937%27%3EWarm%20Grade%3C/text%3E%3Ctext%20x%3D%27120%27%20y%3D%27245%27%20font-size%3D%2728%27%20font-family%3D%27Arial%27%20font-weight%3D%27700%27%20fill%3D%27%236b7280%27%3ESaffron%20highlights%20%2B%20clean%20shadows%3C/text%3E%3C/svg%3E" />
+          <div class="workBody">
+            <b>Signature warm look</b>
+            <p>Designed for skin tones & festive lighting.</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- CTA / CONTACT -->
+    <section class="card cta observe" id="contact">
+      <div>
+        <h2 class="secTitle">Let’s plan your shoot in Varanasi</h2>
+        <p class="muted">
+          Share your event date, location, and what you need. We’ll reply with a budget range + timeline.
+        </p>
+        <div class="mini">
+          <span class="chip">📍 <b>Based in:</b> Varanasi</span>
+          <span class="chip">🧾 <b>Deliverables:</b> Reels • Trailer • Full film</span>
+          <span class="chip">⚡ <b>Rush edits:</b> Available</span>
+        </div>
+      </div>
+
+      <div class="ctaBox observe-media">
+        <b style="font-size:14px;">Quick quote</b>
+        <div class="row">
+          <input class="field" id="clientName" placeholder="Your name" />
+          <input class="field" id="clientPhone" placeholder="Phone / WhatsApp" />
+        </div>
+        <div class="row" style="margin-top:10px;">
+          <input class="field" id="clientDate" type="date" />
+          <select class="field" id="clientType">
+            <option value="Wedding">Wedding</option>
+            <option value="Reels">Reels / Shorts</option>
+            <option value="Brand">Brand / Ad</option>
+            <option value="Event">Event</option>
+            <option value="Documentary">Documentary</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="row" style="margin-top:10px;">
+          <input class="field" id="clientLoc" placeholder="Location (e.g., Assi Ghat / Lanka / Hotel)" />
+        </div>
+        <div class="row" style="margin-top:10px;">
+          <input class="field" id="clientMsg" placeholder="What do you want? (coverage, reels count, drone, etc.)" />
+        </div>
+        <div class="row" style="margin-top:12px;">
+          <button class="btn" id="sendWa">🟢 Send on WhatsApp</button>
+          <button class="btn secondary" id="copyMsg">📋 Copy Message</button>
+        </div>
+        <div class="note" style="margin-top:10px; font-size:12px; color:var(--muted); line-height:1.45;">
+          Tip: Replace demo videos (<span class="kbd">sample1.mp4</span> etc.) with your real MP4 files in the same folder.
+        </div>
+      </div>
+    </section>
+
+    <footer class="card foot observe">
+      <div>© <span id="year"></span> Kashi Motion Studio • Varanasi</div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <a class="chip" href="#services">Services</a>
+        <a class="chip" href="#work">Portfolio</a>
+        <a class="chip" href="#contact">Contact</a>
+      </div>
+    </footer>
+  </div>
+
+  <div class="fab">
+    <button class="wa" id="waFloat">
+      🟢 WhatsApp
+      <span style="display:flex; flex-direction:column; align-items:flex-start; line-height:1.1;">
+        <small>Get a quote</small>
+      </span>
+    </button>
+  </div>
+
+<script>
+(() => {
+  // ---- Small helpers ----
+  const $ = (q, root=document) => root.querySelector(q);
+  const $$ = (q, root=document) => [...root.querySelectorAll(q)];
+  const esc = (s) => String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
+
+  $("#year").textContent = new Date().getFullYear();
+
+  // Smooth scroll for buttons
+  $("#quoteBtn").addEventListener("click", ()=> document.getElementById("contact").scrollIntoView({behavior:"smooth"}));
+  $("#showreelBtn").addEventListener("click", ()=> document.getElementById("work").scrollIntoView({behavior:"smooth"}));
+
+  // ---- IntersectionObserver: reveal animations + play/pause videos ----
+  const ioReveal = new IntersectionObserver((entries)=>{
+    entries.forEach(en=>{
+      if(en.isIntersecting){
+        en.target.classList.add("reveal");
+        // do not unobserve; keeps class for smooth
+      }
+    });
+  }, {threshold: 0.18});
+
+  $$(".observe, .observe-tile, .observe-media, .ctaBox, .workCard, .media, .tile").forEach(el => ioReveal.observe(el));
+
+  const ioMedia = new IntersectionObserver((entries)=>{
+    entries.forEach(async (en)=>{
+      const box = en.target;
+      const kind = box.getAttribute("data-kind");
+      if(kind !== "video") return;
+
+      const v = box.querySelector("video");
+      if(!v) return;
+
+      if(en.isIntersecting){
+        // Attempt to play; if browser blocks, user can tap.
+        try{
+          // load only when needed (saves bandwidth)
+          if(v.readyState === 0) v.load();
+          await v.play();
+        }catch(e){
+          // ignore autoplay restrictions
+        }
+      }else{
+        try{ v.pause(); }catch(e){}
+      }
+    });
+  }, {threshold: 0.55}); // play when most of the card is visible
+
+  $$(".observe-media[data-kind='video']").forEach(el => ioMedia.observe(el));
+  $$(".media[data-kind='video']").forEach(el => ioMedia.observe(el));
+
+  // ---- Search highlighting (top search bar) ----
+  const search = $("#search");
+  const serviceTiles = $$(".tile[data-keywords]");
+  const workCards = $$(".workCard");
+  const mediaBoxes = $$(".media");
+
+  function mark(el, on){
+    el.style.outline = on ? "3px solid rgba(217,119,6,.35)" : "";
+    el.style.boxShadow = on ? "0 18px 40px rgba(217,119,6,.14)" : "";
+  }
+
+  function doSearch(){
+    const q = (search.value || "").trim().toLowerCase();
+    if(!q){
+      [...serviceTiles, ...workCards, ...mediaBoxes].forEach(el => mark(el,false));
+      return;
+    }
+    serviceTiles.forEach(el=>{
+      const hay = (el.getAttribute("data-keywords") + " " + el.textContent).toLowerCase();
+      mark(el, hay.includes(q));
+    });
+    workCards.forEach(el=>{
+      const hay = el.textContent.toLowerCase();
+      mark(el, hay.includes(q));
+    });
+    mediaBoxes.forEach(el=>{
+      const hay = el.textContent.toLowerCase();
+      mark(el, hay.includes(q));
+    });
+  }
+  search.addEventListener("input", doSearch);
+
+  // ---- WhatsApp quote message ----
+  function getQuoteText(){
+    const name = $("#clientName").value.trim() || "—";
+    const phone = $("#clientPhone").value.trim() || "—";
+    const date = $("#clientDate").value || "—";
+    const type = $("#clientType").value;
+    const loc  = $("#clientLoc").value.trim() || "Varanasi";
+    const msg  = $("#clientMsg").value.trim() || "Please share packages & availability.";
+    return `Hello Kashi Motion Studio 👋
+Name: ${name}
+Phone: ${phone}
+Shoot type: ${type}
+Date: ${date}
+Location: ${loc}
+Details: ${msg}
+
+Please share budget range + timeline.`;
+  }
+
+  function openWhatsApp(text){
+    const url = "https://wa.me/?text=" + encodeURIComponent(text);
+    window.open(url, "_blank", "noopener");
+  }
+
+  $("#sendWa").addEventListener("click", ()=> openWhatsApp(getQuoteText()));
+  $("#waFloat").addEventListener("click", ()=> openWhatsApp(getQuoteText()));
+
+  $("#copyMsg").addEventListener("click", async ()=>{
+    const text = getQuoteText();
+    try{
+      await navigator.clipboard.writeText(text);
+      alert("Message copied!");
+    }catch{
+      // fallback
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+      alert("Message copied!");
+    }
+  });
+
+  // Default date = today
+  const d = new Date();
+  const pad = (n)=> String(n).padStart(2,"0");
+  $("#clientDate").value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+
+  // ---- Nice touch: gently “pulse” the floating button when idle ----
+  let pulseTimer = null;
+  function startPulse(){
+    if(pulseTimer) return;
+    const btn = $("#waFloat");
+    let on = false;
+    pulseTimer = setInterval(()=>{
+      on = !on;
+      btn.style.transform = on ? "translateY(-1px) scale(1.02)" : "translateY(0px) scale(1)";
+    }, 1600);
+  }
+  startPulse();
+
+})();
+</script>
+</body>
+</html>
