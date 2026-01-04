@@ -107,24 +107,79 @@
 
 <script>
 /* -----------------------------
-   SVG generators (define FIRST)
+   Safe helpers
 -------------------------------- */
-function flowSVG_marks(){
-  return `
-  <div class="svgWrap">
-  <svg width="560" height="220" viewBox="0 0 560 220" xmlns="http://www.w3.org/2000/svg">
-    <defs><marker id="arr" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
-      <path d="M0,0 L9,3 L0,6 Z" fill="#9a3412"></path></marker></defs>
-    <rect x="12" y="12" width="536" height="196" rx="16" fill="#fff" stroke="#e5e7eb"/>
-    <text x="280" y="40" text-anchor="middle" font-weight="900" fill="#7c2d12">Marks → Grade</text>
+function htmlEscape(s){
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    const t=a[i]; a[i]=a[j]; a[j]=t;
+  }
+  return a;
+}
 
-    <rect x="40" y="60" width="160" height="40" rx="12" fill="#fffbeb" stroke="#fde68a"/>
-    <text x="120" y="85" text-anchor="middle" font-weight="800" fill="#92400e">marks ≥ 90?</text>
+/* -----------------------------
+   Question Bank (FIXED SYNTAX)
+-------------------------------- */
+const BANK = [
+  {id:"Q1",category:"Theory",type:"text",promptHTML:`What does <code class="inline">elif</code> mean?`,
+   options:["End if","Else if","Equal if","Extra if"],answerIndex:1,
+   explainHTML:`<b>elif</b> means <b>else if</b>.`},
 
-    <rect x="360" y="60" width="160" height="40" rx="12" fill="#fffbeb" stroke="#fde68a"/>
-    <text x="440" y="85" text-anchor="middle" font-weight="800" fill="#92400e">Print "A"</text>
+  {id:"Q2",category:"Theory",type:"text",promptHTML:`How many blocks run in an if-elif-else chain?`,
+   options:["0","1","2","All"],answerIndex:1,
+   explainHTML:`Only the <b>first true</b> block runs.`},
 
-    <rect x="40" y="130" width="160" height="40" rx="12" fill="#fffbeb" stroke="#fde68a"/>
-    <text x="120" y="155" text-anchor="middle" font-weight="800" fill="#92400e">marks ≥ 60?</text>
+  {id:"Q3",category:"Theory",type:"text",promptHTML:`What is <code class="inline">bool(0)</code>?`,
+   options:["True","False","Error","None"],answerIndex:1,
+   explainHTML:`0 is considered <b>False</b> in Python.`},
 
-    <rect x="360" y="130" width="160"
+  {id:"Q4",category:"Theory",type:"text",promptHTML:`Which value is truthy?`,
+   options:["0","''","[]","1"],answerIndex:3,
+   explainHTML:`Only <b>1</b> is truthy here.`},
+
+  {id:"Q5",category:"Theory",type:"text",promptHTML:`What happens if all conditions are false?`,
+   options:["Nothing happens","else runs","elif runs","Error"],answerIndex:1,
+   explainHTML:`The <b>else</b> block runs.`}
+];
+
+/* -----------------------------
+   Quiz engine (simple & safe)
+-------------------------------- */
+let quiz = shuffle(BANK);
+
+function renderQuiz(){
+  const quizEl = document.getElementById("quiz");
+  quizEl.innerHTML = "";
+
+  quiz.forEach((q,i)=>{
+    const qId = `q_${i}`;
+    const opts = q.options.map((opt,oi)=>`
+      <label class="opt">
+        <input type="radio" name="${qId}" value="${oi}"> ${opt}
+      </label>`).join("");
+
+    const div = document.createElement("div");
+    div.className = "q";
+    div.innerHTML = `<b>Q${i+1}.</b> ${q.promptHTML}<div class="options">${opts}</div>`;
+    quizEl.appendChild(div);
+  });
+}
+
+function submitQuiz(){
+  let score = 0;
+  quiz.forEach((q,i)=>{
+    const sel = document.querySelector(`input[name="q_${i}"]:checked`);
+    if(sel && Number(sel.value)===q.answerIndex) score++;
+  });
+  document.getElementById("scoreText").textContent = `Score: ${score} / ${quiz.length}`;
+}
+
+renderQuiz();
+document.getElementById("submitBtn").onclick = submitQuiz;
+</script>
+</body>
+</html>
