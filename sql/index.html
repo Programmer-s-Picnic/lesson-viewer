@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>SQL in Browser — SQLite Demo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <style>
+      :root {
+        --bg: #fff7e6;
+        --card: #ffffff;
+        --ink: #1f2937;
+        --brand: #d97706;
+        --border: #f3d7a6;
+      }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+      }
+      .container {
+        max-width: 900px;
+        margin: 30px auto;
+        padding: 20px;
+      }
+      h1 {
+        text-align: center;
+        color: var(--brand);
+      }
+      .card {
+        background: var(--card);
+        padding: 20px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+      }
+      textarea {
+        width: 100%;
+        height: 160px;
+        font-family: monospace;
+        font-size: 15px;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+      }
+      button {
+        background: var(--brand);
+        color: #fff;
+        border: none;
+        padding: 10px 18px;
+        font-size: 15px;
+        border-radius: 8px;
+        cursor: pointer;
+        margin-top: 10px;
+      }
+      button:hover {
+        opacity: 0.9;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        margin-top: 15px;
+      }
+      th,
+      td {
+        border: 1px solid var(--border);
+        padding: 8px;
+        text-align: left;
+      }
+      th {
+        background: #fdecc8;
+      }
+      #error {
+        color: #b91c1c;
+        margin-top: 10px;
+      }
+      .footer {
+        text-align: center;
+        margin-top: 15px;
+        font-size: 14px;
+        color: #6b7280;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Run SQL in Your Browser 🧠</h1>
+
+      <div class="card">
+        <p><b>Try editing and running SQL:</b></p>
+
+        <textarea id="sqlInput">
+SELECT * FROM birthdays;
+    </textarea
+        >
+
+        <button onclick="runSQL()">Run SQL</button>
+
+        <div id="error"></div>
+        <div id="result"></div>
+      </div>
+
+      <div class="footer">Powered by SQLite --- Programmer's Picnic</div>
+    </div>
+
+    <!-- SQL.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+
+    <script>
+      let db;
+
+      initSqlJs({
+        locateFile: (file) =>
+          `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`,
+      }).then((SQL) => {
+        db = new SQL.Database();
+
+        // Create sample table
+        db.run(`
+    CREATE TABLE birthdays (
+      id INTEGER PRIMARY KEY,
+      name varchar(50),
+      birthday datetime
+    );
+
+    INSERT INTO birthdays (name, birthday) VALUES
+    ('Champak Roy', '16-Jan-1970');
+  `);
+
+        runSQL(); // auto-run initial query
+      });
+
+      function runSQL() {
+        const sql = document.getElementById("sqlInput").value;
+        const resultDiv = document.getElementById("result");
+        const errorDiv = document.getElementById("error");
+
+        resultDiv.innerHTML = "";
+        errorDiv.textContent = "";
+
+        try {
+          const res = db.exec(sql);
+          if (res.length === 0) {
+            resultDiv.innerHTML = "<p>Query executed successfully.</p>";
+            return;
+          }
+
+          const table = document.createElement("table");
+          const thead = table.createTHead();
+          const tbody = table.createTBody();
+
+          // Headers
+          const headerRow = thead.insertRow();
+          res[0].columns.forEach((col) => {
+            const th = document.createElement("th");
+            th.textContent = col;
+            headerRow.appendChild(th);
+          });
+
+          // Rows
+          res[0].values.forEach((row) => {
+            const tr = tbody.insertRow();
+            row.forEach((cell) => {
+              const td = tr.insertCell();
+              td.textContent = cell;
+            });
+          });
+
+          resultDiv.appendChild(table);
+        } catch (err) {
+          errorDiv.textContent = err.message;
+        }
+      }
+    </script>
+
+    <script src="https://programmer-s-picnic.github.io/json-images/find-on-page.js"></script>
+
+    <script src="https://programmer-s-picnic.github.io/json-images/imgshow.js"></script>
+
+    <script src="https://programmer-s-picnic.github.io/json-images/hometag.js"></script>
+  </body>
+</html>
