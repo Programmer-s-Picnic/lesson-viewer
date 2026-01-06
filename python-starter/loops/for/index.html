@@ -3,10 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Python Loops Explained</title>
+    <title>Python Loops & range() — Comprehensive + Pyodide</title>
+    <meta
+      name="description"
+      content="A comprehensive lesson on Python range() with examples, pitfalls, and a Pyodide editor to run code in the browser."
+    />
     <style>
       :root {
-        /* light saffron-ish */
+        /* Light saffron theme */
         --bg: #fff7e6;
         --card: #ffffff;
         --ink: #1f2937;
@@ -14,12 +18,16 @@
         --brand: #d97706;
         --brand2: #f59e0b;
         --border: #eadcc5;
+        --shadow: 0 16px 34px rgba(0, 0, 0, 0.08);
+
         --codebg: #eefbf1;
         --okbg: #d4edda;
         --okink: #155724;
         --badbg: #f8d7da;
         --badink: #721c24;
-        --shadow: 0 16px 34px rgba(0, 0, 0, 0.08);
+
+        --chip: #fff1d6;
+        --chipInk: #7c2d12;
       }
 
       * {
@@ -33,18 +41,18 @@
         background: var(--bg);
         color: var(--ink);
         padding: 24px;
-        line-height: 1.6;
+        line-height: 1.65;
       }
 
       .container {
-        max-width: 980px;
+        max-width: 1100px;
         margin: 0 auto;
       }
 
       header.hero {
         background: linear-gradient(180deg, #ffffff, #fff3d1);
         border: 1px solid var(--border);
-        border-radius: 16px;
+        border-radius: 18px;
         padding: 18px 18px 14px;
         box-shadow: var(--shadow);
         margin-bottom: 18px;
@@ -53,7 +61,7 @@
       h1 {
         margin: 0 0 6px;
         color: #7c2d12;
-        font-size: 1.8rem;
+        font-size: 1.85rem;
         line-height: 1.2;
       }
 
@@ -61,13 +69,13 @@
         margin-top: 22px;
         margin-bottom: 10px;
         color: #92400e;
-        font-size: 1.28rem;
+        font-size: 1.32rem;
       }
 
       h3 {
         margin: 14px 0 8px;
         color: #7c2d12;
-        font-size: 1.05rem;
+        font-size: 1.08rem;
       }
 
       p,
@@ -77,6 +85,17 @@
 
       .muted {
         color: var(--muted);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+      @media (min-width: 980px) {
+        .grid.two {
+          grid-template-columns: 1.1fr 0.9fr;
+        }
       }
 
       hr {
@@ -90,6 +109,19 @@
         padding-left: 22px;
       }
 
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: var(--chip);
+        border: 1px solid var(--border);
+        color: var(--chipInk);
+        font-weight: 700;
+        font-size: 0.88rem;
+      }
+
       code {
         background: var(--codebg);
         padding: 2px 6px;
@@ -99,7 +131,7 @@
         font-size: 0.98em;
       }
 
-      /* Code block + copy button wrapper (stable on all screens) */
+      /* Code block wrapper */
       .codeblock {
         border: 1px solid var(--border);
         background: var(--card);
@@ -108,7 +140,6 @@
         box-shadow: var(--shadow);
         margin: 12px 0 14px;
       }
-
       .codeblock .bar {
         display: flex;
         align-items: center;
@@ -118,37 +149,39 @@
         background: #fff1d6;
         gap: 10px;
       }
-
       .codeblock .bar .label {
-        font-weight: 600;
+        font-weight: 700;
         color: #7c2d12;
         font-size: 0.95rem;
       }
 
-      button.copy-btn {
+      button {
         appearance: none;
         border: 1px solid rgba(0, 0, 0, 0.08);
         background: linear-gradient(180deg, var(--brand2), var(--brand));
         color: #fff;
-        padding: 7px 12px;
-        border-radius: 10px;
+        padding: 8px 12px;
+        border-radius: 12px;
         cursor: pointer;
-        font-weight: 600;
+        font-weight: 700;
         transition: transform 0.05s ease, filter 0.15s ease;
         white-space: nowrap;
       }
-
-      button.copy-btn:active {
+      button:hover {
+        filter: brightness(1.03);
+      }
+      button:active {
         transform: translateY(1px);
       }
-
-      button.copy-btn:hover {
-        filter: brightness(1.02);
+      button:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
       }
 
-      button.copy-btn:disabled {
-        opacity: 0.75;
-        cursor: not-allowed;
+      .btn-ghost {
+        background: #fff;
+        color: #7c2d12;
+        border: 1px solid var(--border);
       }
 
       pre {
@@ -157,71 +190,116 @@
         background: var(--codebg);
         overflow: auto;
       }
-
       pre code {
         border: none;
         background: transparent;
         padding: 0;
-        border-radius: 0;
         display: block;
         white-space: pre;
       }
 
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        box-shadow: var(--shadow);
+        padding: 14px;
+      }
+
       .callout {
-        margin: 14px 0;
         background: #fffbe7;
         border: 1px solid var(--border);
         border-radius: 16px;
         padding: 16px;
         box-shadow: var(--shadow);
+        margin: 14px 0;
       }
 
-      .callout .mini {
-        color: var(--muted);
-        margin-top: 6px;
+      .warn {
+        background: #fff1f2;
+        border: 1px solid #fecdd3;
       }
 
-      .pill {
-        display: inline-block;
-        padding: 2px 10px;
-        border-radius: 999px;
-        background: #fff1d6;
+      .kpi {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+      }
+      @media (min-width: 780px) {
+        .kpi {
+          grid-template-columns: repeat(4, 1fr);
+        }
+      }
+      .kpi .box {
+        background: #fff;
         border: 1px solid var(--border);
-        color: #7c2d12;
-        font-weight: 600;
-        font-size: 0.88rem;
-      }
-
-      .assignments pre {
-        background: transparent;
-        border: 1px dashed var(--border);
-        border-radius: 12px;
-        padding: 12px;
-      }
-
-      /* Optional MCQ styles (kept, but MCQ section is commented in HTML) */
-      .question {
-        margin: 1rem 0;
-      }
-      .options button {
-        display: block;
-        margin: 6px 0;
-        background-color: #f7f7f7;
+        border-radius: 14px;
         padding: 10px;
-        border: 1px solid #ddd;
+      }
+      .kpi .box .t {
+        font-weight: 800;
+        color: #7c2d12;
+      }
+      .kpi .box .s {
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      /* Pyodide editor */
+      .editor {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+      @media (min-width: 980px) {
+        .editor {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 290px;
+        resize: vertical;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        padding: 12px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 14px;
+        background: #fff;
+        color: var(--ink);
+        outline: none;
+      }
+
+      .output {
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        padding: 12px;
+        background: #0b1220;
+        color: #e5e7eb;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        min-height: 290px;
+        white-space: pre-wrap;
+        overflow: auto;
+      }
+
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .status {
+        font-weight: 700;
+        color: var(--muted);
+      }
+
+      details summary {
         cursor: pointer;
-        border-radius: 10px;
-        text-align: left;
-      }
-      .options button.correct {
-        background-color: var(--okbg);
-        color: var(--okink);
-        border-color: rgba(21, 87, 36, 0.25);
-      }
-      .options button.wrong {
-        background-color: var(--badbg);
-        color: var(--badink);
-        border-color: rgba(114, 28, 36, 0.25);
+        font-weight: 800;
+        color: #7c2d12;
+        margin: 8px 0;
       }
 
       footer {
@@ -236,311 +314,416 @@
   <body>
     <div class="container">
       <header class="hero">
-        <h1>🔁 Mastering Loops in Python</h1>
+        <h1>
+          🔁 Python <code>range()</code> — Comprehensive Guide + Practice Editor
+        </h1>
         <p class="muted">
-          Loops repeat a block of code multiple times. Python mainly uses
-          <strong>for</strong> and <strong>while</strong> loops.
+          Learn how <code>range()</code> really works (start/stop/step,
+          negatives, slicing, indexing, membership tests, performance) and run
+          code instantly using Pyodide.
         </p>
       </header>
 
-      <p>Python has two common loop types:</p>
-      <ul>
-        <li>
-          <strong>for loop</strong> – best when you know the number of
-          iterations.
-        </li>
-        <li>
-          <strong>while loop</strong> – best when a condition controls the loop.
-        </li>
-      </ul>
-
-      <h2>🔹 The <code>range()</code> Function</h2>
-      <p>The <code>range()</code> function generates a sequence of integers:</p>
-      <ul>
-        <li>
-          <code>range(stop)</code> – starts at 0 and ends at
-          <code>stop - 1</code>
-        </li>
-        <li>
-          <code>range(start, stop)</code> – starts at <code>start</code>, ends
-          at <code>stop - 1</code>
-        </li>
-        <li>
-          <code>range(start, stop, step)</code> – jumps by <code>step</code>
-        </li>
-      </ul>
-
-      <div class="codeblock" data-label="Example: odd steps (1 to 9)">
-        <div class="bar">
-          <span class="label">Example: range(1, 10, 2)</span>
-          <button class="copy-btn" type="button">Copy</button>
+      <div class="kpi">
+        <div class="box">
+          <div class="t">What it is</div>
+          <div class="s">An iterable of ints (lazy)</div>
         </div>
-        <pre><code>for i in range(1, 10, 2):
-    print(i)</code></pre>
+        <div class="box">
+          <div class="t">Common use</div>
+          <div class="s">Loop counts / indices</div>
+        </div>
+        <div class="box">
+          <div class="t">Memory</div>
+          <div class="s">Doesn’t store all numbers</div>
+        </div>
+        <div class="box">
+          <div class="t">Stop rule</div>
+          <div class="s">Stop is <em>excluded</em></div>
+        </div>
       </div>
 
-      <h2>🔸 for Loop</h2>
-      <p>
-        A <code>for</code> loop iterates over a sequence like a list, string, or
-        range.
-      </p>
-
-      <div class="codeblock" data-label="Example: loop over string">
-        <div class="bar">
-          <span class="label">Example: loop over "Python"</span>
-          <button class="copy-btn" type="button">Copy</button>
-        </div>
-        <pre><code>for letter in "Python":
-    print(letter)</code></pre>
-      </div>
-
-      <h2>🔁 Understanding <code>range()</code> in Python</h2>
-      <p><code>range()</code> can take:</p>
-      <ul>
-        <li><strong>Start</strong> (optional): default is 0</li>
-        <li><strong>Stop</strong>: end point (not included)</li>
-        <li><strong>Step</strong> (optional): default is 1</li>
-      </ul>
-
-      <hr />
-
-      <h2>🧮 Example 1: Natural Numbers from 1 to n</h2>
-      <p>This prints numbers like <code>1, 2, 3, ..., n</code>.</p>
-
-      <div class="codeblock" data-label="Natural numbers">
-        <div class="bar">
-          <span class="label">Print 1 to n</span>
-          <button class="copy-btn" type="button">Copy</button>
-        </div>
-        <pre><code>n = int(input("Enter a number: "))
-for i in range(1, n + 1):
-    print(i, end=", ")</code></pre>
-      </div>
-
-      <h2>🧮 Example 2: Even Numbers from 2 to n</h2>
-      <p>This prints even numbers like <code>2, 4, 6, ..., n</code>.</p>
-
-      <div class="codeblock" data-label="Even numbers">
-        <div class="bar">
-          <span class="label">Print evens up to n</span>
-          <button class="copy-btn" type="button">Copy</button>
-        </div>
-        <pre><code>n = int(input("Enter a number: "))
-for i in range(2, n + 1, 2):
-    print(i, end=", ")</code></pre>
-      </div>
-
-      <h2>🧮 Example 3: Odd Numbers from 1 to n</h2>
-      <p>This prints odd numbers like <code>1, 3, 5, ..., n</code>.</p>
-
-      <div class="codeblock" data-label="Odd numbers">
-        <div class="bar">
-          <span class="label">Print odds up to n</span>
-          <button class="copy-btn" type="button">Copy</button>
-        </div>
-        <pre><code>n = int(input("Enter a number: "))
-for i in range(1, n + 1, 2):
-    print(i, end=", ")</code></pre>
-      </div>
-
-      <div class="callout">
-        <div class="pill">Reverse ranges</div>
-        <h2 style="margin-top: 10px">
-          🔁 Python <code>range()</code> in Decreasing Order
-        </h2>
+      <h2>1) What is <code>range()</code>?</h2>
+      <div class="card">
         <p>
-          To loop backwards, use a <strong>negative step</strong>:
-          <code>range(start, stop, -1)</code>.
+          <code>range()</code> creates a special object called a
+          <strong>range object</strong>. It represents an arithmetic progression
+          of integers:
         </p>
-
-        <h3>📍 Example 1: Print 10 to 1</h3>
-        <div class="codeblock" style="box-shadow: none; margin-top: 8px">
-          <div class="bar">
-            <span class="label">10 down to 1</span>
-            <button class="copy-btn" type="button">Copy</button>
-          </div>
-          <pre><code>for i in range(10, 0, -1):
-    print(i, end=" ")</code></pre>
-        </div>
-        <p class="mini"><strong>Output:</strong> 10 9 8 7 6 5 4 3 2 1</p>
-
-        <h3>📍 Example 2: Even Numbers from 20 to 2</h3>
-        <div class="codeblock" style="box-shadow: none; margin-top: 8px">
-          <div class="bar">
-            <span class="label">Evens backwards</span>
-            <button class="copy-btn" type="button">Copy</button>
-          </div>
-          <pre><code>for i in range(20, 1, -2):
-    print(i, end=" ")</code></pre>
-        </div>
-        <p class="mini"><strong>Output:</strong> 20 18 16 14 12 10 8 6 4 2</p>
-
-        <h3>📍 Example 3: Odd Numbers from 19 to 1</h3>
-        <div class="codeblock" style="box-shadow: none; margin-top: 8px">
-          <div class="bar">
-            <span class="label">Odds backwards</span>
-            <button class="copy-btn" type="button">Copy</button>
-          </div>
-          <pre><code>for i in range(19, 0, -2):
-    print(i, end=" ")</code></pre>
-        </div>
-        <p class="mini"><strong>Output:</strong> 19 17 15 13 11 9 7 5 3 1</p>
-
-        <h3>📍 Example 4: Countdown by 5s from 50</h3>
-        <div class="codeblock" style="box-shadow: none; margin-top: 8px">
-          <div class="bar">
-            <span class="label">50 down by 5</span>
-            <button class="copy-btn" type="button">Copy</button>
-          </div>
-          <pre><code>for i in range(50, 0, -5):
-    print(i, end=" ")</code></pre>
-        </div>
-        <p class="mini">
-          <strong>Output:</strong> 50 45 40 35 30 25 20 15 10 5
-        </p>
-
-        <h3>📍 Example 5: Reverse Alphabet (Z to A)</h3>
-        <div class="codeblock" style="box-shadow: none; margin-top: 8px">
-          <div class="bar">
-            <span class="label">Z down to A</span>
-            <button class="copy-btn" type="button">Copy</button>
-          </div>
-          <pre><code>for i in range(ord("Z"), ord("A") - 1, -1):
-    print(chr(i), end=" ")</code></pre>
-        </div>
-        <p class="mini"><strong>Output:</strong> Z Y X ... C B A</p>
-
-        <p class="muted" style="margin-top: 10px">
-          👉 Try changing <code>start</code>, <code>stop</code>, and
-          <code>step</code> to practice!
+        <ul>
+          <li>It is <strong>iterable</strong> (you can loop over it).</li>
+          <li>
+            It is <strong>lazy</strong> (it does not build a full list of
+            numbers in memory).
+          </li>
+          <li>
+            It supports <strong>length</strong>, <strong>indexing</strong>,
+            <strong>slicing</strong>, and <strong>membership tests</strong>.
+          </li>
+        </ul>
+        <p class="muted">
+          Think of it as: “a compact recipe for numbers”, not a stored list.
         </p>
       </div>
 
-      <h2>🔸 while Loop</h2>
-      <p>A <code>while</code> loop runs as long as the condition stays True.</p>
-
-      <div class="codeblock" data-label="while loop example">
+      <div class="codeblock">
         <div class="bar">
-          <span class="label">Count 1 to 5</span>
+          <span class="label">Quick demo: range is NOT a list</span>
           <button class="copy-btn" type="button">Copy</button>
         </div>
-        <pre><code>count = 1
-while count <= 5:
-    print(count)
-    count += 1</code></pre>
+        <pre><code>r = range(5)
+print(r)                 # range(0, 5)
+print(type(r))           # &lt;class 'range'&gt;
+print(list(r))           # [0, 1, 2, 3, 4]</code></pre>
       </div>
 
-      <h2>🔸 Nested Loops</h2>
-      <p>
-        A nested loop is a loop inside another loop (useful for grids/tables).
-      </p>
+      <h2>2) Syntax (three forms)</h2>
+      <div class="grid two">
+        <div class="card">
+          <h3><span class="chip">A</span> <code>range(stop)</code></h3>
+          <p>
+            Starts at <code>0</code>, increases by <code>1</code>, stops before
+            <code>stop</code>.
+          </p>
+          <div class="codeblock">
+            <div class="bar">
+              <span class="label">range(stop)</span>
+              <button class="copy-btn" type="button">Copy</button>
+            </div>
+            <pre><code>print(list(range(5)))    # 0..4</code></pre>
+          </div>
 
-      <div class="codeblock" data-label="nested loops example">
+          <h3><span class="chip">B</span> <code>range(start, stop)</code></h3>
+          <p>
+            Starts at <code>start</code>, increases by <code>1</code>, stops
+            before <code>stop</code>.
+          </p>
+          <div class="codeblock">
+            <div class="bar">
+              <span class="label">range(start, stop)</span>
+              <button class="copy-btn" type="button">Copy</button>
+            </div>
+            <pre><code>print(list(range(2, 7))) # 2..6</code></pre>
+          </div>
+
+          <h3>
+            <span class="chip">C</span> <code>range(start, stop, step)</code>
+          </h3>
+          <p>
+            Starts at <code>start</code>, adds <code>step</code> each time, and
+            stops before <code>stop</code>.
+          </p>
+          <div class="codeblock">
+            <div class="bar">
+              <span class="label">range(start, stop, step)</span>
+              <button class="copy-btn" type="button">Copy</button>
+            </div>
+            <pre><code>print(list(range(1, 10, 2)))  # odds: 1,3,5,7,9</code></pre>
+          </div>
+        </div>
+
+        <div class="callout">
+          <h3>Golden rules (must remember)</h3>
+          <ul>
+            <li>
+              <strong>Stop is excluded</strong>: <code>range(5)</code> ends at
+              4.
+            </li>
+            <li>
+              <strong>Step cannot be 0</strong>: <code>range(1, 10, 0)</code> is
+              an error.
+            </li>
+            <li>
+              If step is positive, numbers go up. If step is negative, numbers
+              go down.
+            </li>
+            <li>
+              If your step direction doesn’t “move toward” stop, you get an
+              empty range.
+            </li>
+          </ul>
+
+          <div class="codeblock" style="box-shadow: none; margin-top: 10px">
+            <div class="bar">
+              <span class="label">Empty range examples</span>
+              <button class="copy-btn" type="button">Copy</button>
+            </div>
+            <pre><code>print(list(range(5, 1)))      # [] (step defaults to +1, but start&gt;stop)
+print(list(range(1, 5, -1)))  # [] (step is -1, but start&lt;stop)</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <h2>3) Understanding stop-excluded with real examples</h2>
+      <div class="card">
+        <p>
+          “Stop excluded” is extremely useful because it makes ranges fit
+          naturally with:
+        </p>
+        <ul>
+          <li>
+            <strong>Counting n items</strong>: <code>range(n)</code> gives
+            exactly n values.
+          </li>
+          <li>
+            <strong>Indexing</strong>: list indices are 0 to
+            <code>len(list)-1</code>.
+          </li>
+          <li>
+            <strong>Slicing</strong>: slices are also stop-excluded, like
+            <code>a[2:7]</code>.
+          </li>
+        </ul>
+      </div>
+
+      <div class="codeblock">
         <div class="bar">
-          <span class="label">Print (i, j) pairs</span>
+          <span class="label">Counting and indexing examples</span>
           <button class="copy-btn" type="button">Copy</button>
         </div>
-        <pre><code>for i in range(1, 4):
-    for j in range(1, 4):
-        print(i, j)</code></pre>
+        <pre><code>items = ["a", "b", "c", "d"]
+
+# 1) exactly len(items) indices
+for i in range(len(items)):
+    print(i, items[i])
+
+# 2) last index is len(items) - 1
+print("Last item:", items[len(items) - 1])</code></pre>
       </div>
 
-      <!--
-      <h2>🧠 Try It Yourself (MCQs)</h2>
+      <h2>4) Negative steps (reverse counting)</h2>
+      <div class="callout">
+        <p>
+          Use a negative step to count down. A simple pattern is:
+          <code>range(start, stop, -1)</code> where <code>stop</code> is usually
+          0 or -1 depending on inclusion.
+        </p>
 
-      <div class="question">
-        <p><strong>1. What is the output of:</strong> <code>for i in range(2, 7, 2): print(i)</code>?</p>
-        <div class="options">
-          <button onclick="checkAnswer(this, true)">2 4 6</button>
-          <button onclick="checkAnswer(this, false)">2 3 4 5 6</button>
-          <button onclick="checkAnswer(this, false)">2 4</button>
+        <div class="codeblock" style="box-shadow: none; margin-top: 10px">
+          <div class="bar">
+            <span class="label">Countdown patterns</span>
+            <button class="copy-btn" type="button">Copy</button>
+          </div>
+          <pre><code># 10 down to 1
+print(list(range(10, 0, -1)))
+
+# 10 down to 0 (include 0)
+print(list(range(10, -1, -1)))</code></pre>
         </div>
       </div>
 
-      <div class="question">
-        <p><strong>2. Which loop is preferred when you don’t know the number of iterations?</strong></p>
-        <div class="options">
-          <button onclick="checkAnswer(this, true)">while</button>
-          <button onclick="checkAnswer(this, false)">for</button>
-          <button onclick="checkAnswer(this, false)">range</button>
+      <h2>5) How many numbers will a range produce?</h2>
+      <div class="card">
+        <p>
+          You can get the size using <code>len(range(...))</code>. This is fast
+          because range is compact.
+        </p>
+        <div class="codeblock">
+          <div class="bar">
+            <span class="label">len(range(...))</span>
+            <button class="copy-btn" type="button">Copy</button>
+          </div>
+          <pre><code>print(len(range(10)))          # 10 numbers: 0..9
+print(len(range(2, 10)))       # 8 numbers: 2..9
+print(len(range(1, 10, 2)))    # 5 numbers: 1,3,5,7,9
+print(len(range(10, 0, -1)))   # 10 numbers: 10..1</code></pre>
         </div>
       </div>
-      -->
 
-      <h2>💻 Programming Assignments</h2>
-      <ol class="assignments">
-        <li>Print all even numbers from 1 to 50.</li>
-        <li>Generate a multiplication table using nested loops.</li>
+      <h2>6) range as a “sequence” (indexing, slicing, membership)</h2>
+      <div class="grid two">
+        <div class="card">
+          <p>A <code>range</code> acts like an immutable sequence:</p>
+          <ul>
+            <li><code>r[0]</code> gives the first value</li>
+            <li><code>r[-1]</code> gives the last value</li>
+            <li><code>r[2:10:2]</code> returns another range</li>
+            <li><code>x in r</code> checks membership efficiently</li>
+          </ul>
+          <div class="codeblock">
+            <div class="bar">
+              <span class="label">Indexing + slicing + membership</span>
+              <button class="copy-btn" type="button">Copy</button>
+            </div>
+            <pre><code>r = range(3, 20, 3)  # 3,6,9,12,15,18
+
+print(r[0])          # 3
+print(r[-1])         # 18
+print(list(r[1:4]))  # [6, 9, 12]
+
+print(12 in r)       # True
+print(14 in r)       # False</code></pre>
+          </div>
+        </div>
+
+        <div class="callout warn">
+          <h3>Common beginner mistakes</h3>
+          <ul>
+            <li>
+              Forgetting stop is excluded:
+              <code>range(1, 5)</code> gives 1,2,3,4 (not 5).
+            </li>
+            <li>
+              Using the wrong stop when reversing: to include 0 you need
+              <code>stop = -1</code>.
+            </li>
+            <li>
+              Step direction mismatch:
+              <code>range(1, 5, -1)</code> becomes empty.
+            </li>
+            <li>
+              Step = 0 is invalid:
+              <code>range(1, 10, 0)</code> raises an error.
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <h2>7) Practical recipes (copy-ready)</h2>
+
+      <details open>
+        <summary>✅ Recipe: 1 to n (inclusive)</summary>
+        <div class="codeblock">
+          <div class="bar">
+            <span class="label">1..n inclusive</span>
+            <button class="copy-btn" type="button">Copy</button>
+          </div>
+          <pre><code>n = 10
+for i in range(1, n + 1):
+    print(i, end=" ")</code></pre>
+        </div>
+      </details>
+
+      <details>
+        <summary>✅ Recipe: Even numbers up to n</summary>
+        <div class="codeblock">
+          <div class="bar">
+            <span class="label">Evens up to n</span>
+            <button class="copy-btn" type="button">Copy</button>
+          </div>
+          <pre><code>n = 20
+for i in range(2, n + 1, 2):
+    print(i, end=" ")</code></pre>
+        </div>
+      </details>
+
+      <details>
+        <summary>✅ Recipe: Reverse loop over indices</summary>
+        <div class="codeblock">
+          <div class="bar">
+            <span class="label">Reverse indices</span>
+            <button class="copy-btn" type="button">Copy</button>
+          </div>
+          <pre><code>items = ["x", "y", "z", "w"]
+
+for i in range(len(items) - 1, -1, -1):
+    print(i, items[i])</code></pre>
+        </div>
+      </details>
+
+      <details>
+        <summary>✅ Recipe: Multiplication table (nested loops)</summary>
+        <div class="codeblock">
+          <div class="bar">
+            <span class="label">Table 1..5</span>
+            <button class="copy-btn" type="button">Copy</button>
+          </div>
+          <pre><code>for i in range(1, 6):
+    for j in range(1, 6):
+        print(i * j, end="\t")
+    print()</code></pre>
+        </div>
+      </details>
+
+      <h2>8) Try it yourself — Pyodide Python Editor</h2>
+      <div class="card">
+        <p>
+          This editor runs Python directly in your browser using
+          <strong>Pyodide</strong> (Python compiled to WebAssembly). No
+          installation required.
+        </p>
+        <div class="editor">
+          <div>
+            <div
+              class="row"
+              style="justify-content: space-between; margin-bottom: 8px"
+            >
+              <span class="chip">Python code</span>
+              <div class="row">
+                <button id="runBtn" type="button">Run ▶</button>
+                <button id="resetBtn" type="button" class="btn-ghost">
+                  Reset
+                </button>
+              </div>
+            </div>
+
+            <textarea id="codeArea" spellcheck="false"></textarea>
+
+            <div class="row" style="margin-top: 10px">
+              <span class="status" id="pyStatus">Loading Pyodide…</span>
+              <button id="clearOutBtn" type="button" class="btn-ghost">
+                Clear Output
+              </button>
+              <button id="copyOutBtn" type="button" class="btn-ghost">
+                Copy Output
+              </button>
+            </div>
+
+            <p class="muted" style="margin-top: 8px">
+              Tip: Use <code>print()</code> to see output. Use
+              <code>input()</code> carefully (see note below).
+            </p>
+          </div>
+
+          <div>
+            <div
+              class="row"
+              style="justify-content: space-between; margin-bottom: 8px"
+            >
+              <span class="chip">Output</span>
+              <span class="muted">stdout / errors</span>
+            </div>
+            <div id="output" class="output"></div>
+
+            <div class="callout warn" style="margin-top: 10px">
+              <h3 style="margin-top: 0">
+                About <code>input()</code> in browser
+              </h3>
+              <p class="muted" style="margin-bottom: 0">
+                Browser Python can support input via prompt, but it’s not as
+                smooth as terminal input. In this page, <code>input()</code> is
+                redirected to a simple prompt popup.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h2>9) Mini practice tasks (range-focused)</h2>
+      <ol>
+        <li>Print numbers from 100 to 1 (reverse) using <code>range</code>.</li>
+        <li>Print multiples of 7 from 7 to 70.</li>
+        <li>Print squares of numbers from 1 to 10.</li>
+        <li>Take n and print all odd numbers up to n.</li>
         <li>
-          Calculate the factorial of a number using <code>while</code> loop.
-        </li>
-        <li>
-          Write a program to display the Fibonacci sequence up to
-          <code>n</code> terms.
-        </li>
-        <li>
-          Print a pattern:
-          <pre><code>*
-**
-***
-****</code></pre>
+          Print the index + character of a string using
+          <code>range(len(s))</code>.
         </li>
       </ol>
 
-      <h2>📌 Summary</h2>
-      <ul>
-        <li>
-          <code>for</code> – definite repetition (fixed or known iterations)
-        </li>
-        <li><code>while</code> – indefinite repetition (condition-based)</li>
-        <li>
-          <code>range(start, stop, step)</code> – controls many numeric loops
-        </li>
-      </ul>
-
       <footer>
-        Built for learning • Copy buttons work everywhere • Light saffron theme
+        Built for learning • Comprehensive range() • Runs Python in-browser
+        (Pyodide) • Light saffron theme
       </footer>
     </div>
 
     <script>
-      // One robust copy handler for ALL copy buttons
-      function getCodeTextFromButton(btn) {
-        // 1) If button is inside a .codeblock, copy its <pre><code>...</code></pre>
-        const codeblock = btn.closest(".codeblock");
-        if (codeblock) {
-          const codeEl = codeblock.querySelector("pre code");
-          if (codeEl) return codeEl.innerText;
-        }
-
-        // 2) Fallback: if button is near a <pre>, try nearby siblings
-        const prevPre = btn.previousElementSibling?.matches("pre")
-          ? btn.previousElementSibling
-          : null;
-        if (prevPre) {
-          const codeEl = prevPre.querySelector("code");
-          return codeEl ? codeEl.innerText : prevPre.innerText;
-        }
-
-        const nextPre = btn.nextElementSibling?.matches("pre")
-          ? btn.nextElementSibling
-          : null;
-        if (nextPre) {
-          const codeEl = nextPre.querySelector("code");
-          return codeEl ? codeEl.innerText : nextPre.innerText;
-        }
-
-        return "";
-      }
-
+      // ---- Copy buttons for code blocks (robust) ----
       async function copyText(text) {
-        // Clipboard API works best on HTTPS/localhost. Provide fallback.
         if (navigator.clipboard && window.isSecureContext) {
           await navigator.clipboard.writeText(text);
           return;
         }
-
-        // Fallback for non-secure contexts (e.g., file://)
         const ta = document.createElement("textarea");
         ta.value = text;
         ta.style.position = "fixed";
@@ -553,46 +736,166 @@ while count <= 5:
         document.body.removeChild(ta);
       }
 
-      // Attach listeners to every copy button
-      document.querySelectorAll("button.copy-btn").forEach((btn) => {
+      document.querySelectorAll(".codeblock .copy-btn").forEach((btn) => {
         btn.addEventListener("click", async () => {
-          const text = getCodeTextFromButton(btn);
-          if (!text.trim()) {
-            btn.innerText = "No code found";
-            setTimeout(() => (btn.innerText = "Copy"), 1200);
-            return;
-          }
-
-          const old = btn.innerText;
+          const code =
+            btn.closest(".codeblock")?.querySelector("pre code")?.innerText ||
+            "";
+          const old = btn.textContent;
           btn.disabled = true;
-          btn.innerText = "Copying...";
-
+          btn.textContent = "Copying...";
           try {
-            await copyText(text);
-            btn.innerText = "Copied!";
-            setTimeout(() => {
-              btn.innerText = old || "Copy";
-              btn.disabled = false;
-            }, 1400);
+            await copyText(code);
+            btn.textContent = "Copied!";
           } catch (e) {
-            btn.innerText = "Copy failed";
-            setTimeout(() => {
-              btn.innerText = old || "Copy";
-              btn.disabled = false;
-            }, 1400);
+            btn.textContent = "Copy failed";
           }
+          setTimeout(() => {
+            btn.textContent = old;
+            btn.disabled = false;
+          }, 1200);
         });
       });
 
-      // If you enable MCQs, this function will work
-      function checkAnswer(btn, isCorrect) {
-        const buttons = btn.parentElement.querySelectorAll("button");
-        buttons.forEach((b) => {
-          b.disabled = true;
-          if (b === btn && isCorrect) b.classList.add("correct");
-          else if (b === btn && !isCorrect) b.classList.add("wrong");
-        });
+      // ---- Pyodide Editor ----
+      const outputEl = document.getElementById("output");
+      const statusEl = document.getElementById("pyStatus");
+      const runBtn = document.getElementById("runBtn");
+      const resetBtn = document.getElementById("resetBtn");
+      const clearOutBtn = document.getElementById("clearOutBtn");
+      const copyOutBtn = document.getElementById("copyOutBtn");
+      const codeArea = document.getElementById("codeArea");
+
+      const DEFAULT_CODE = `# range() quick playground
+print("range(5) ->", list(range(5)))
+print("range(2, 8) ->", list(range(2, 8)))
+print("range(1, 10, 2) ->", list(range(1, 10, 2)))
+
+# reverse
+print("range(10, 0, -1) ->", list(range(10, 0, -1)))
+
+# indexing / slicing / membership
+r = range(3, 20, 3)
+print("r =", r, "as list:", list(r))
+print("r[0] =", r[0], "r[-1] =", r[-1])
+print("list(r[1:4]) =", list(r[1:4]))
+print("12 in r?", 12 in r)
+print("14 in r?", 14 in r)
+`;
+
+      codeArea.value = DEFAULT_CODE;
+
+      function appendOut(text) {
+        outputEl.textContent += text;
+        outputEl.scrollTop = outputEl.scrollHeight;
       }
+
+      function setStatus(text) {
+        statusEl.textContent = text;
+      }
+
+      // Provide a basic input() prompt for Pyodide
+      function installInputShim(pyodide) {
+        pyodide.globals.set("js_input", (promptText) => {
+          const v = window.prompt(promptText || "Input:");
+          return v === null ? "" : v;
+        });
+
+        const shim = `
+import builtins
+def _browser_input(prompt=""):
+    return js_input(str(prompt))
+builtins.input = _browser_input
+`;
+        return pyodide.runPythonAsync(shim);
+      }
+
+      let pyodideReady = null;
+
+      async function loadPyodideAndPackages() {
+        setStatus("Loading Pyodide… (first load can take a bit)");
+        appendOut("Loading Pyodide...\n");
+
+        // Load pyodide.js from official CDN
+        const script = document.createElement("script");
+        script.src = "https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js";
+        script.onload = async () => {
+          try {
+            const pyodide = await loadPyodide({
+              indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.2/full/",
+            });
+
+            // Redirect Python stdout/stderr to JS
+            pyodide.setStdout({ batched: (s) => appendOut(s) });
+            pyodide.setStderr({ batched: (s) => appendOut(s) });
+
+            await installInputShim(pyodide);
+
+            setStatus("Pyodide loaded ✅");
+            appendOut("Pyodide loaded ✅\n\n");
+            pyodideReadyResolve(pyodide);
+          } catch (err) {
+            setStatus("Pyodide failed to load ❌");
+            appendOut("Error loading Pyodide:\n" + err + "\n");
+          }
+        };
+        script.onerror = () => {
+          setStatus("Failed to load pyodide.js ❌");
+          appendOut("Network error: could not load pyodide.js\n");
+        };
+        document.head.appendChild(script);
+      }
+
+      let pyodideReadyResolve;
+      pyodideReady = new Promise((resolve) => {
+        pyodideReadyResolve = resolve;
+      });
+
+      loadPyodideAndPackages();
+
+      runBtn.addEventListener("click", async () => {
+        runBtn.disabled = true;
+        setStatus("Running…");
+        appendOut("\n▶ Running...\n");
+
+        const pyodide = await pyodideReady;
+        try {
+          await pyodide.runPythonAsync(codeArea.value);
+          appendOut("\n✓ Done.\n");
+          setStatus("Ready ✅");
+        } catch (err) {
+          appendOut("\n✗ Error:\n" + err + "\n");
+          setStatus("Error ❌");
+        } finally {
+          runBtn.disabled = false;
+        }
+      });
+
+      resetBtn.addEventListener("click", () => {
+        codeArea.value = DEFAULT_CODE;
+        setStatus("Ready ✅");
+      });
+
+      clearOutBtn.addEventListener("click", () => {
+        outputEl.textContent = "";
+        setStatus("Ready ✅");
+      });
+
+      copyOutBtn.addEventListener("click", async () => {
+        const old = copyOutBtn.textContent;
+        copyOutBtn.disabled = true;
+        copyOutBtn.textContent = "Copying...";
+        try {
+          await copyText(outputEl.textContent || "");
+          copyOutBtn.textContent = "Copied!";
+        } catch (e) {
+          copyOutBtn.textContent = "Copy failed";
+        }
+        setTimeout(() => {
+          copyOutBtn.textContent = old;
+          copyOutBtn.disabled = false;
+        }, 1200);
+      });
     </script>
   </body>
 </html>
