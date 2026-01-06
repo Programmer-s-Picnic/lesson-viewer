@@ -299,7 +299,7 @@
         border: 1px solid var(--border);
         border-radius: 10px;
         background: #fff;
-        max-height: 240px;
+        max-height: 280px;
         overflow: auto;
       }
       .helpitem {
@@ -362,18 +362,17 @@
           </div>
 
           <div class="samples" aria-label="Sample queries">
+            <span
+              class="chip"
+              data-sql="SELECT name, type FROM sqlite_master WHERE type IN ('table','view') ORDER BY type, name;"
+              >Show tables</span
+            >
+            <span class="chip" data-sql="PRAGMA foreign_keys;">FK status</span>
+            <span class="chip" data-sql="SELECT * FROM employees;"
+              >Employees (FK)</span
+            >
             <span class="chip" data-sql="SELECT * FROM birthdays;"
-              >Show all</span
-            >
-            <span
-              class="chip"
-              data-sql="SELECT name, birthday FROM birthdays ORDER BY birthday;"
-              >Order by birthday</span
-            >
-            <span
-              class="chip"
-              data-sql="SELECT name FROM birthdays WHERE name LIKE '%Roy%';"
-              >Find 'Roy'</span
+              >Birthdays</span
             >
             <span class="chip" data-sql="SELECT * FROM customers;"
               >Customers</span
@@ -381,7 +380,7 @@
             <span class="chip" data-sql="SELECT * FROM orders;">Orders</span>
             <span
               class="chip"
-              data-sql="SELECT c.name, o.total, o.order_date FROM customers c JOIN orders o ON o.customer_id = c.id ORDER BY o.order_date DESC;"
+              data-sql="SELECT c.name, c.city, o.total, o.order_date FROM customers c JOIN orders o ON o.customer_id = c.id ORDER BY o.order_date DESC;"
               >JOIN demo</span
             >
             <span
@@ -424,23 +423,21 @@
             </div>
 
             <div class="helptext" style="margin-top: 6px">
-              Search examples like <code class="inline">join</code>,
-              <code class="inline">group by</code>,
-              <code class="inline">limit</code>,
-              <code class="inline">create table</code> and click “Insert”.
-              <br />
-              <span class="small"
-                >This demo database already includes tables used in these
-                examples: <b>birthdays</b>, <b>customers</b>, <b>orders</b>,
-                <b>products</b>, <b>students</b>.</span
-              >
+              Search: <code class="inline">create</code>,
+              <code class="inline">alter</code>,
+              <code class="inline">drop</code>,
+              <code class="inline">references</code>,
+              <code class="inline">check</code>,
+              <code class="inline">commit</code>,
+              <code class="inline">rollback</code>. Click “Insert” to paste into
+              the editor.
             </div>
 
             <div style="margin-top: 10px">
               <input
                 id="helpSearch"
                 type="text"
-                placeholder="Search SQL help… (e.g., join, where, order by)"
+                placeholder="Search SQL help… (e.g., references, check, commit)"
                 autocomplete="off"
               />
             </div>
@@ -582,7 +579,7 @@
           var arr = getHistory(kind);
           arr.unshift(payload);
 
-          var CAP = 250;
+          var CAP = 300;
           if (arr.length > CAP) arr.length = CAP;
 
           setHistory(kind, arr);
@@ -621,22 +618,23 @@
           resultDiv.appendChild(div);
         }
 
-        // ===== DB (Create tables used in examples + insert rows)
+        // ===== DB seed (includes FK + CHECK demo tables)
         function createFreshDB() {
           if (!SQLlib) return;
           db = new SQLlib.Database();
 
-          // NOTE: Keep SQL simple for SQLite + demo purposes
+          // IMPORTANT: enable FK enforcement in SQLite
           var seedSQL =
+            "PRAGMA foreign_keys = ON;" +
             // birthdays
             "DROP TABLE IF EXISTS birthdays;" +
             "CREATE TABLE birthdays (id INTEGER PRIMARY KEY, name TEXT, birthday TEXT);" +
             "INSERT INTO birthdays (name, birthday) VALUES " +
             "('Champak Roy','1970-01-16')," +
-            "('Abhishek Pandey','2001-07-11')," +
+            "('Amitabh Pandey','2001-07-11')," +
             "('Anita Sharma','1996-03-22')," +
             "('Ravi Kumar','1992-12-05');" +
-            // students (used in CREATE TABLE help)
+            // students
             "DROP TABLE IF EXISTS students;" +
             "CREATE TABLE students (id INTEGER PRIMARY KEY, name TEXT, marks INTEGER);" +
             "INSERT INTO students (name, marks) VALUES " +
@@ -644,7 +642,7 @@
             "('Diya',95)," +
             "('Kabir',76)," +
             "('Meera',84);" +
-            // customers + orders (used in JOIN demo)
+            // customers + orders
             "DROP TABLE IF EXISTS customers;" +
             "CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT, city TEXT);" +
             "INSERT INTO customers (name, city) VALUES " +
@@ -653,26 +651,16 @@
             "('Rahul Verma','Delhi')," +
             "('Priya Gupta','Kolkata');" +
             "DROP TABLE IF EXISTS orders;" +
-            "CREATE TABLE orders (" +
-            "  id INTEGER PRIMARY KEY," +
-            "  customer_id INTEGER," +
-            "  total REAL," +
-            "  order_date TEXT" +
-            ");" +
+            "CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, total REAL, order_date TEXT);" +
             "INSERT INTO orders (customer_id, total, order_date) VALUES " +
             "(1, 499.50, '2025-12-28')," +
             "(2, 1299.00, '2025-12-30')," +
             "(1, 250.00, '2026-01-02')," +
             "(3, 899.99, '2026-01-04')," +
             "(4, 159.00, '2026-01-05');" +
-            // products (used in GROUP BY demo)
+            // products
             "DROP TABLE IF EXISTS products;" +
-            "CREATE TABLE products (" +
-            "  id INTEGER PRIMARY KEY," +
-            "  name TEXT," +
-            "  category TEXT," +
-            "  price REAL" +
-            ");" +
+            "CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT, category TEXT, price REAL);" +
             "INSERT INTO products (name, category, price) VALUES " +
             "('Notebook','Stationery',45.00)," +
             "('Pen','Stationery',10.00)," +
@@ -682,7 +670,38 @@
             "('Keyboard','Electronics',999.00)," +
             "('Mug','Kitchen',149.00)," +
             "('Bottle','Kitchen',299.00);" +
-            // helpful view (optional)
+            // FK demo: departments + employees (REFERENCES)
+            "DROP TABLE IF EXISTS employees;" +
+            "DROP TABLE IF EXISTS departments;" +
+            "CREATE TABLE departments (" +
+            "  id INTEGER PRIMARY KEY," +
+            "  name TEXT NOT NULL UNIQUE" +
+            ");" +
+            "CREATE TABLE employees (" +
+            "  id INTEGER PRIMARY KEY," +
+            "  name TEXT NOT NULL," +
+            "  dept_id INTEGER NOT NULL REFERENCES departments(id)" +
+            "    ON UPDATE CASCADE ON DELETE RESTRICT" +
+            ");" +
+            "INSERT INTO departments (name) VALUES ('IT'),('HR'),('Sales');" +
+            "INSERT INTO employees (name, dept_id) VALUES " +
+            "('Sonal', 1)," +
+            "('Imran', 1)," +
+            "('Kavya', 2)," +
+            "('Rohit', 3);" +
+            // CHECK demo table
+            "DROP TABLE IF EXISTS payments;" +
+            "CREATE TABLE payments (" +
+            "  id INTEGER PRIMARY KEY," +
+            "  payer TEXT NOT NULL," +
+            "  amount REAL NOT NULL CHECK (amount > 0)," +
+            "  status TEXT NOT NULL CHECK (status IN ('PENDING','PAID','FAILED'))" +
+            ");" +
+            "INSERT INTO payments (payer, amount, status) VALUES " +
+            "('Champak Roy', 499.00, 'PAID')," +
+            "('Neha Singh', 250.00, 'PENDING')," +
+            "('Rahul Verma', 100.00, 'FAILED');" +
+            // view (optional)
             "DROP VIEW IF EXISTS v_customer_orders;" +
             "CREATE VIEW v_customer_orders AS " +
             "SELECT o.id AS order_id, c.name AS customer_name, c.city, o.total, o.order_date " +
@@ -880,7 +899,7 @@
                 existing.sort(function (a, b) {
                   return new Date(b.ts) - new Date(a.ts);
                 });
-                var CAP = 250;
+                var CAP = 300;
                 if (existing.length > CAP) existing.length = CAP;
                 setHistory(kind, existing);
               }
@@ -969,14 +988,84 @@
           }
         }
 
-        // ===== Help data + search (tables exist for JOIN + GROUP BY demos)
+        // ===== Help data (added REFERENCES/CHECK/COMMIT/ROLLBACK)
         var HELP_DATA = [
           {
-            title: "Show tables",
-            keywords: ["tables", "sqlite_master", "schema"],
-            desc: "List tables in the database.",
+            title: "Show tables + views",
+            keywords: ["tables", "views", "sqlite_master", "schema"],
+            desc: "List tables and views in the database.",
             sql: "SELECT name, type FROM sqlite_master WHERE type IN ('table','view') ORDER BY type, name;",
           },
+          {
+            title: "Describe a table (columns)",
+            keywords: ["describe", "pragma", "table_info"],
+            desc: "See columns of a table using PRAGMA.",
+            sql: "PRAGMA table_info(birthdays);",
+          },
+
+          // REFERENCES / FOREIGN KEYS
+          {
+            title: "REFERENCES / Foreign Key basics",
+            keywords: ["references", "foreign key", "fk"],
+            desc: "employees.dept_id REFERENCES departments(id). FK enforcement is ON in this demo.",
+            sql: "PRAGMA foreign_keys;\nSELECT e.name AS employee, d.name AS department\nFROM employees e\nJOIN departments d ON d.id = e.dept_id\nORDER BY d.name, e.name;",
+          },
+          {
+            title: "Try a FK violation (should fail)",
+            keywords: ["references", "foreign key", "violation"],
+            desc: "This tries to insert an employee pointing to a non-existing department id 999.",
+            sql: "INSERT INTO employees (name, dept_id) VALUES ('Bad FK Row', 999);\nSELECT * FROM employees;",
+          },
+
+          // CHECK
+          {
+            title: "CHECK constraint (payments demo)",
+            keywords: ["check", "constraint", "validate"],
+            desc: "payments table has CHECK(amount > 0) and CHECK(status IN ...).",
+            sql: "SELECT * FROM payments;\n-- This should FAIL (amount must be > 0)\nINSERT INTO payments (payer, amount, status) VALUES ('Test', -10, 'PAID');",
+          },
+          {
+            title: "CHECK constraint success example",
+            keywords: ["check", "payments"],
+            desc: "A valid insert into payments.",
+            sql: "INSERT INTO payments (payer, amount, status) VALUES ('New Payer', 99.50, 'PAID');\nSELECT * FROM payments ORDER BY id DESC LIMIT 5;",
+          },
+
+          // TRANSACTIONS: COMMIT / ROLLBACK
+          {
+            title: "COMMIT (transaction example)",
+            keywords: ["commit", "transaction", "begin"],
+            desc: "Begins a transaction, updates rows, then COMMIT makes it permanent.",
+            sql: "BEGIN;\nUPDATE products SET price = price + 10 WHERE category = 'Kitchen';\nCOMMIT;\nSELECT * FROM products WHERE category='Kitchen' ORDER BY id;",
+          },
+          {
+            title: "ROLLBACK (undo changes)",
+            keywords: ["rollback", "transaction", "begin"],
+            desc: "Begins a transaction, makes changes, then ROLLBACK cancels them.",
+            sql: "BEGIN;\nUPDATE products SET price = price + 1000 WHERE category = 'Electronics';\nROLLBACK;\nSELECT * FROM products WHERE category='Electronics' ORDER BY id;",
+          },
+
+          // DDL: CREATE / ALTER / DROP
+          {
+            title: "CREATE TABLE (example)",
+            keywords: ["create", "create table", "ddl"],
+            desc: "Create a new table and insert rows.",
+            sql: "CREATE TABLE departments2 (\n  id INTEGER PRIMARY KEY,\n  name TEXT NOT NULL\n);\nINSERT INTO departments2 (name) VALUES ('A'),('B');\nSELECT * FROM departments2;",
+          },
+          {
+            title: "ALTER TABLE: ADD COLUMN (SQLite)",
+            keywords: ["alter", "alter table", "add column"],
+            desc: "SQLite commonly supports ADD COLUMN.",
+            sql: "ALTER TABLE students ADD COLUMN grade TEXT;\nUPDATE students SET grade='A' WHERE marks >= 90;\nUPDATE students SET grade='B' WHERE marks BETWEEN 80 AND 89;\nUPDATE students SET grade='C' WHERE marks < 80;\nSELECT * FROM students ORDER BY marks DESC;",
+          },
+          {
+            title: "DROP TABLE",
+            keywords: ["drop", "drop table"],
+            desc: "Drop a table (permanent). Use IF EXISTS to avoid errors.",
+            sql: "DROP TABLE IF EXISTS temp_to_delete;\nCREATE TABLE temp_to_delete(id INTEGER);\nDROP TABLE IF EXISTS temp_to_delete;\nSELECT name FROM sqlite_master WHERE type='table' AND name='temp_to_delete';",
+          },
+
+          // DML / Querying
           {
             title: "SELECT basics",
             keywords: ["select", "from"],
@@ -990,18 +1079,6 @@
             sql: "SELECT * FROM birthdays\nWHERE name LIKE '%Roy%';",
           },
           {
-            title: "ORDER BY sorting",
-            keywords: ["order by", "sort"],
-            desc: "Sort results.",
-            sql: "SELECT * FROM birthdays\nORDER BY birthday DESC;",
-          },
-          {
-            title: "LIMIT results",
-            keywords: ["limit"],
-            desc: "Limit number of rows returned.",
-            sql: "SELECT * FROM birthdays\nLIMIT 3;",
-          },
-          {
             title: "JOIN (customers + orders)",
             keywords: ["join", "customers", "orders"],
             desc: "Join customers with orders (tables included).",
@@ -1012,12 +1089,6 @@
             keywords: ["group by", "count", "avg", "products"],
             desc: "Aggregate products by category (table included).",
             sql: "SELECT category, COUNT(*) AS items, ROUND(AVG(price),2) AS avg_price\nFROM products\nGROUP BY category\nORDER BY items DESC;",
-          },
-          {
-            title: "Students (marks)",
-            keywords: ["students", "marks"],
-            desc: "View students table (table included).",
-            sql: "SELECT * FROM students ORDER BY marks DESC;",
           },
         ];
 
@@ -1045,7 +1116,7 @@
 
           if (!matches.length) {
             helpResults.innerHTML =
-              '<div class="helpitem"><div class="desc">No matches. Try: <b>join</b>, <b>group by</b>, <b>tables</b>, <b>where</b>.</div></div>';
+              '<div class="helpitem"><div class="desc">No matches. Try: <b>references</b>, <b>check</b>, <b>commit</b>, <b>rollback</b>.</div></div>';
             return;
           }
 
@@ -1176,7 +1247,7 @@
         })
           .then(function (SQL) {
             SQLlib = SQL;
-            createFreshDB(); // ✅ now creates all example tables + inserts rows
+            createFreshDB();
             setStatus(true);
             renderHistory();
             renderHelpResults("");
@@ -1204,5 +1275,6 @@
       src="https://programmer-s-picnic.github.io/json-images/hometag.js"
       defer
     ></script>
+    <!-- <script defer src="https://programmer-s-picnic.github.io/json-images/pp-lock.js"></script> -->
   </body>
 </html>
