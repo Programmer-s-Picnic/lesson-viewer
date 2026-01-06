@@ -299,7 +299,7 @@
         border: 1px solid var(--border);
         border-radius: 10px;
         background: #fff;
-        max-height: 220px;
+        max-height: 240px;
         overflow: auto;
       }
       .helpitem {
@@ -362,19 +362,45 @@
           </div>
 
           <div class="samples" aria-label="Sample queries">
-            <span class="chip" data-sql="SELECT * FROM birthdays;">Show all</span>
-            <span class="chip" data-sql="SELECT name, birthday FROM birthdays ORDER BY birthday;">Order by birthday</span>
-            <span class="chip" data-sql="SELECT name FROM birthdays WHERE name LIKE '%Roy%';">Find 'Roy'</span>
-            <span class="chip" data-sql="INSERT INTO birthdays (name, birthday) VALUES ('Abhishek Pandey', '2001-07-11');&#10;SELECT * FROM birthdays;">Insert + show</span>
-            <span class="chip" data-sql="UPDATE birthdays SET name='Champak Roy (Updated)' WHERE id=1;&#10;SELECT * FROM birthdays;">Update + show</span>
-            <span class="chip" data-sql="SELECT * FROM not_a_table;">Intentional error</span>
+            <span class="chip" data-sql="SELECT * FROM birthdays;"
+              >Show all</span
+            >
+            <span
+              class="chip"
+              data-sql="SELECT name, birthday FROM birthdays ORDER BY birthday;"
+              >Order by birthday</span
+            >
+            <span
+              class="chip"
+              data-sql="SELECT name FROM birthdays WHERE name LIKE '%Roy%';"
+              >Find 'Roy'</span
+            >
+            <span class="chip" data-sql="SELECT * FROM customers;"
+              >Customers</span
+            >
+            <span class="chip" data-sql="SELECT * FROM orders;">Orders</span>
+            <span
+              class="chip"
+              data-sql="SELECT c.name, o.total, o.order_date FROM customers c JOIN orders o ON o.customer_id = c.id ORDER BY o.order_date DESC;"
+              >JOIN demo</span
+            >
+            <span
+              class="chip"
+              data-sql="SELECT category, COUNT(*) AS items, ROUND(AVG(price),2) AS avg_price FROM products GROUP BY category ORDER BY items DESC;"
+              >GROUP BY demo</span
+            >
+            <span class="chip" data-sql="SELECT * FROM not_a_table;"
+              >Intentional error</span
+            >
           </div>
 
           <textarea id="sqlInput">SELECT * FROM birthdays;</textarea>
 
           <div class="row" style="margin-top: 10px">
             <button id="runBtn" disabled>Run SQL</button>
-            <button id="resetBtn" class="btn-secondary" disabled>Reset DB</button>
+            <button id="resetBtn" class="btn-secondary" disabled>
+              Reset DB
+            </button>
             <button id="downloadCsvBtn" class="btn-ghost" disabled>
               Download last result CSV
             </button>
@@ -398,9 +424,16 @@
             </div>
 
             <div class="helptext" style="margin-top: 6px">
-              Type keywords like <code class="inline">join</code>,
-              <code class="inline">group by</code>, <code class="inline">limit</code>,
+              Search examples like <code class="inline">join</code>,
+              <code class="inline">group by</code>,
+              <code class="inline">limit</code>,
               <code class="inline">create table</code> and click “Insert”.
+              <br />
+              <span class="small"
+                >This demo database already includes tables used in these
+                examples: <b>birthdays</b>, <b>customers</b>, <b>orders</b>,
+                <b>products</b>, <b>students</b>.</span
+              >
             </div>
 
             <div style="margin-top: 10px">
@@ -421,7 +454,9 @@
           <div class="panel-title">
             <h2>Query History</h2>
             <div class="seg">
-              <button id="tabSuccess" class="active" type="button">Success</button>
+              <button id="tabSuccess" class="active" type="button">
+                Success
+              </button>
               <button id="tabFail" type="button">Failure</button>
             </div>
           </div>
@@ -436,7 +471,12 @@
             <button id="clearHistoryBtn" class="btn-ghost" disabled>
               Clear tab
             </button>
-            <input id="importFile" type="file" accept="application/json" style="display:none" />
+            <input
+              id="importFile"
+              type="file"
+              accept="application/json"
+              style="display: none"
+            />
           </div>
 
           <ul id="historyList" class="list"></ul>
@@ -520,7 +560,9 @@
           var key = kind === "success" ? LS_SUCCESS : LS_FAIL;
           var raw = localStorage.getItem(key);
           var arr = safeParseJSON(raw, []);
-          return Object.prototype.toString.call(arr) === "[object Array]" ? arr : [];
+          return Object.prototype.toString.call(arr) === "[object Array]"
+            ? arr
+            : [];
         }
         function setHistory(kind, arr) {
           var key = kind === "success" ? LS_SUCCESS : LS_FAIL;
@@ -540,7 +582,7 @@
           var arr = getHistory(kind);
           arr.unshift(payload);
 
-          var CAP = 200;
+          var CAP = 250;
           if (arr.length > CAP) arr.length = CAP;
 
           setHistory(kind, arr);
@@ -579,14 +621,74 @@
           resultDiv.appendChild(div);
         }
 
-        // ===== DB
+        // ===== DB (Create tables used in examples + insert rows)
         function createFreshDB() {
           if (!SQLlib) return;
           db = new SQLlib.Database();
-          db.run(
+
+          // NOTE: Keep SQL simple for SQLite + demo purposes
+          var seedSQL =
+            // birthdays
+            "DROP TABLE IF EXISTS birthdays;" +
             "CREATE TABLE birthdays (id INTEGER PRIMARY KEY, name TEXT, birthday TEXT);" +
-              "INSERT INTO birthdays (name, birthday) VALUES ('Champak Roy', '1970-01-16');"
-          );
+            "INSERT INTO birthdays (name, birthday) VALUES " +
+            "('Champak Roy','1970-01-16')," +
+            "('Abhishek Pandey','2001-07-11')," +
+            "('Anita Sharma','1996-03-22')," +
+            "('Ravi Kumar','1992-12-05');" +
+            // students (used in CREATE TABLE help)
+            "DROP TABLE IF EXISTS students;" +
+            "CREATE TABLE students (id INTEGER PRIMARY KEY, name TEXT, marks INTEGER);" +
+            "INSERT INTO students (name, marks) VALUES " +
+            "('Aarav',88)," +
+            "('Diya',95)," +
+            "('Kabir',76)," +
+            "('Meera',84);" +
+            // customers + orders (used in JOIN demo)
+            "DROP TABLE IF EXISTS customers;" +
+            "CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT, city TEXT);" +
+            "INSERT INTO customers (name, city) VALUES " +
+            "('Champak Roy','Varanasi')," +
+            "('Neha Singh','Lucknow')," +
+            "('Rahul Verma','Delhi')," +
+            "('Priya Gupta','Kolkata');" +
+            "DROP TABLE IF EXISTS orders;" +
+            "CREATE TABLE orders (" +
+            "  id INTEGER PRIMARY KEY," +
+            "  customer_id INTEGER," +
+            "  total REAL," +
+            "  order_date TEXT" +
+            ");" +
+            "INSERT INTO orders (customer_id, total, order_date) VALUES " +
+            "(1, 499.50, '2025-12-28')," +
+            "(2, 1299.00, '2025-12-30')," +
+            "(1, 250.00, '2026-01-02')," +
+            "(3, 899.99, '2026-01-04')," +
+            "(4, 159.00, '2026-01-05');" +
+            // products (used in GROUP BY demo)
+            "DROP TABLE IF EXISTS products;" +
+            "CREATE TABLE products (" +
+            "  id INTEGER PRIMARY KEY," +
+            "  name TEXT," +
+            "  category TEXT," +
+            "  price REAL" +
+            ");" +
+            "INSERT INTO products (name, category, price) VALUES " +
+            "('Notebook','Stationery',45.00)," +
+            "('Pen','Stationery',10.00)," +
+            "('Eraser','Stationery',5.00)," +
+            "('Headphones','Electronics',799.00)," +
+            "('Mouse','Electronics',399.00)," +
+            "('Keyboard','Electronics',999.00)," +
+            "('Mug','Kitchen',149.00)," +
+            "('Bottle','Kitchen',299.00);" +
+            // helpful view (optional)
+            "DROP VIEW IF EXISTS v_customer_orders;" +
+            "CREATE VIEW v_customer_orders AS " +
+            "SELECT o.id AS order_id, c.name AS customer_name, c.city, o.total, o.order_date " +
+            "FROM orders o JOIN customers c ON c.id = o.customer_id;";
+
+          db.run(seedSQL);
         }
 
         // ===== Results table
@@ -622,9 +724,7 @@
         // ===== CSV
         function csvEscape(val) {
           var s = val === null || typeof val === "undefined" ? "" : String(val);
-          if (/[",\n\r]/.test(s)) {
-            return '"' + s.replace(/"/g, '""') + '"';
-          }
+          if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
           return s;
         }
         function toCSV(columns, values) {
@@ -632,12 +732,14 @@
           var i, j;
 
           var header = [];
-          for (i = 0; i < columns.length; i++) header.push(csvEscape(columns[i]));
+          for (i = 0; i < columns.length; i++)
+            header.push(csvEscape(columns[i]));
           lines.push(header.join(","));
 
           for (i = 0; i < values.length; i++) {
             var row = [];
-            for (j = 0; j < values[i].length; j++) row.push(csvEscape(values[i][j]));
+            for (j = 0; j < values[i].length; j++)
+              row.push(csvEscape(values[i][j]));
             lines.push(row.join(","));
           }
           return lines.join("\n");
@@ -695,7 +797,8 @@
             var li0 = document.createElement("li");
             li0.className = "item";
             li0.style.cursor = "default";
-            li0.innerHTML = '<div class="small">No ' + activeTab + " queries yet.</div>";
+            li0.innerHTML =
+              '<div class="small">No ' + activeTab + " queries yet.</div>";
             historyList.appendChild(li0);
             return;
           }
@@ -705,10 +808,13 @@
               var li = document.createElement("li");
               li.className = "item";
 
-              var sqlShort = entry.sql.length > 180 ? entry.sql.slice(0, 180) + "…" : entry.sql;
+              var sqlShort =
+                entry.sql.length > 180
+                  ? entry.sql.slice(0, 180) + "…"
+                  : entry.sql;
 
               li.innerHTML =
-                '<div style="white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \'Liberation Mono\',\'Courier New\', monospace; font-size: 12.5px;">' +
+                "<div style=\"white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono','Courier New', monospace; font-size: 12.5px;\">" +
                 escapeHTML(sqlShort) +
                 "</div>" +
                 '<div class="meta"><span>' +
@@ -736,7 +842,11 @@
             fail: getHistory("fail"),
           };
           var filename = "sql_history_" + nowISO().replace(/:/g, "-") + ".json";
-          downloadText(filename, JSON.stringify(payload, null, 2), "application/json");
+          downloadText(
+            filename,
+            JSON.stringify(payload, null, 2),
+            "application/json"
+          );
         }
 
         function importHistoryJSON(file) {
@@ -744,14 +854,21 @@
           reader.onload = function () {
             try {
               var obj = JSON.parse(String(reader.result || "{}"));
-              var incomingSuccess = Object.prototype.toString.call(obj.success) === "[object Array]" ? obj.success : [];
-              var incomingFail = Object.prototype.toString.call(obj.fail) === "[object Array]" ? obj.fail : [];
+              var incomingSuccess =
+                Object.prototype.toString.call(obj.success) === "[object Array]"
+                  ? obj.success
+                  : [];
+              var incomingFail =
+                Object.prototype.toString.call(obj.fail) === "[object Array]"
+                  ? obj.fail
+                  : [];
 
               function merge(kind, incoming) {
                 var existing = getHistory(kind);
                 var seen = {};
                 for (var i = 0; i < existing.length; i++) {
-                  if (existing[i] && existing[i].sqlNorm) seen[existing[i].sqlNorm] = true;
+                  if (existing[i] && existing[i].sqlNorm)
+                    seen[existing[i].sqlNorm] = true;
                 }
                 for (var j = 0; j < incoming.length; j++) {
                   var x = incoming[j];
@@ -763,7 +880,7 @@
                 existing.sort(function (a, b) {
                   return new Date(b.ts) - new Date(a.ts);
                 });
-                var CAP = 200;
+                var CAP = 250;
                 if (existing.length > CAP) existing.length = CAP;
                 setHistory(kind, existing);
               }
@@ -774,7 +891,9 @@
               renderHistory();
               showOk("History imported successfully.");
             } catch (e) {
-              errorDiv.textContent = "Import failed. Invalid JSON.\n\n" + (e && e.message ? e.message : String(e));
+              errorDiv.textContent =
+                "Import failed. Invalid JSON.\n\n" +
+                (e && e.message ? e.message : String(e));
             }
           };
           reader.readAsText(file);
@@ -806,7 +925,11 @@
           try {
             var results = db.exec(sql);
 
-            addToHistory("success", { sql: sql, sqlNorm: sqlNorm, ts: nowISO() });
+            addToHistory("success", {
+              sql: sql,
+              sqlNorm: sqlNorm,
+              ts: nowISO(),
+            });
 
             if (!results || !results.length) {
               showOk("Query executed successfully (no rows returned).");
@@ -816,7 +939,8 @@
               return;
             }
 
-            for (var i = 0; i < results.length; i++) renderResultSet(results[i], i);
+            for (var i = 0; i < results.length; i++)
+              renderResultSet(results[i], i);
 
             var last = results[results.length - 1];
             lastResultForCSV = {
@@ -831,7 +955,12 @@
             var msg = err && err.message ? err.message : String(err);
             errorDiv.textContent = msg;
 
-            addToHistory("fail", { sql: sql, sqlNorm: sqlNorm, ts: nowISO(), error: msg });
+            addToHistory("fail", {
+              sql: sql,
+              sqlNorm: sqlNorm,
+              ts: nowISO(),
+              error: msg,
+            });
 
             lastResultForCSV = null;
             downloadCsvBtn.disabled = true;
@@ -840,73 +969,68 @@
           }
         }
 
-        // ===== Help data + search
+        // ===== Help data + search (tables exist for JOIN + GROUP BY demos)
         var HELP_DATA = [
           {
+            title: "Show tables",
+            keywords: ["tables", "sqlite_master", "schema"],
+            desc: "List tables in the database.",
+            sql: "SELECT name, type FROM sqlite_master WHERE type IN ('table','view') ORDER BY type, name;",
+          },
+          {
             title: "SELECT basics",
-            keywords: ["select", "from", "columns", "projection"],
+            keywords: ["select", "from"],
             desc: "Select columns from a table.",
             sql: "SELECT id, name FROM birthdays;",
           },
           {
             title: "WHERE filtering",
-            keywords: ["where", "filter", "and", "or", "like"],
+            keywords: ["where", "like"],
             desc: "Filter rows using conditions.",
             sql: "SELECT * FROM birthdays\nWHERE name LIKE '%Roy%';",
           },
           {
             title: "ORDER BY sorting",
-            keywords: ["order by", "sort", "asc", "desc"],
+            keywords: ["order by", "sort"],
             desc: "Sort results.",
             sql: "SELECT * FROM birthdays\nORDER BY birthday DESC;",
           },
           {
             title: "LIMIT results",
-            keywords: ["limit", "top", "first", "pagination"],
+            keywords: ["limit"],
             desc: "Limit number of rows returned.",
-            sql: "SELECT * FROM birthdays\nLIMIT 5;",
+            sql: "SELECT * FROM birthdays\nLIMIT 3;",
           },
           {
-            title: "INSERT row",
-            keywords: ["insert", "values", "add row"],
-            desc: "Add new rows into a table.",
-            sql: "INSERT INTO birthdays (name, birthday)\nVALUES ('New Person', '2000-01-01');",
+            title: "JOIN (customers + orders)",
+            keywords: ["join", "customers", "orders"],
+            desc: "Join customers with orders (tables included).",
+            sql: "SELECT c.name, c.city, o.total, o.order_date\nFROM customers c\nJOIN orders o ON o.customer_id = c.id\nORDER BY o.order_date DESC;",
           },
           {
-            title: "UPDATE row",
-            keywords: ["update", "set", "edit", "modify"],
-            desc: "Update existing rows.",
-            sql: "UPDATE birthdays\nSET name = 'Updated Name'\nWHERE id = 1;",
+            title: "GROUP BY (products)",
+            keywords: ["group by", "count", "avg", "products"],
+            desc: "Aggregate products by category (table included).",
+            sql: "SELECT category, COUNT(*) AS items, ROUND(AVG(price),2) AS avg_price\nFROM products\nGROUP BY category\nORDER BY items DESC;",
           },
           {
-            title: "DELETE row",
-            keywords: ["delete", "remove", "where"],
-            desc: "Delete rows that match a condition.",
-            sql: "DELETE FROM birthdays\nWHERE id = 1;",
-          },
-          {
-            title: "CREATE TABLE",
-            keywords: ["create table", "schema", "ddl"],
-            desc: "Create a new table.",
-            sql: "CREATE TABLE students (\n  id INTEGER PRIMARY KEY,\n  name TEXT,\n  marks INTEGER\n);",
-          },
-          {
-            title: "JOIN (example schema)",
-            keywords: ["join", "inner join", "left join", "foreign key"],
-            desc: "Join combines rows from two tables. (Example uses orders/customers.)",
-            sql: "SELECT c.name, o.total\nFROM customers c\nJOIN orders o ON o.customer_id = c.id;",
-          },
-          {
-            title: "GROUP BY + COUNT",
-            keywords: ["group by", "count", "aggregate", "having"],
-            desc: "Aggregate rows into groups.",
-            sql: "SELECT birthday, COUNT(*) AS people\nFROM birthdays\nGROUP BY birthday\nORDER BY people DESC;",
+            title: "Students (marks)",
+            keywords: ["students", "marks"],
+            desc: "View students table (table included).",
+            sql: "SELECT * FROM students ORDER BY marks DESC;",
           },
         ];
 
         function helpMatches(item, q) {
-          var hay =
-            (item.title + " " + item.desc + " " + item.sql + " " + (item.keywords || []).join(" ")).toLowerCase();
+          var hay = (
+            item.title +
+            " " +
+            item.desc +
+            " " +
+            item.sql +
+            " " +
+            (item.keywords || []).join(" ")
+          ).toLowerCase();
           return hay.indexOf(q) !== -1;
         }
 
@@ -921,7 +1045,7 @@
 
           if (!matches.length) {
             helpResults.innerHTML =
-              '<div class="helpitem"><div class="desc">No matches. Try: <b>where</b>, <b>join</b>, <b>group by</b>, <b>limit</b>.</div></div>';
+              '<div class="helpitem"><div class="desc">No matches. Try: <b>join</b>, <b>group by</b>, <b>tables</b>, <b>where</b>.</div></div>';
             return;
           }
 
@@ -942,7 +1066,8 @@
               btn.onclick = function () {
                 var toInsert = item.sql + "\n";
                 var before = sqlInput.value;
-                if (before && before.charAt(before.length - 1) !== "\n") before += "\n";
+                if (before && before.charAt(before.length - 1) !== "\n")
+                  before += "\n";
                 sqlInput.value = before + toInsert;
                 sqlInput.focus();
               };
@@ -964,7 +1089,7 @@
           createFreshDB();
           lastResultForCSV = null;
           downloadCsvBtn.disabled = true;
-          showOk("Database reset. Try running a query.");
+          showOk("Database reset (tables + sample rows recreated).");
         };
 
         downloadCsvBtn.onclick = function () {
@@ -994,7 +1119,6 @@
           (function (chip) {
             chip.addEventListener("click", function () {
               var sql = chip.getAttribute("data-sql") || "";
-              // Convert HTML entity newline &#10; to actual newline if present in attribute
               sql = sql.replace(/&#10;/g, "\n");
               sqlInput.value = sql;
               sqlInput.focus();
@@ -1012,25 +1136,21 @@
 
         // Export/Import/Clear
         exportHistoryBtn.onclick = exportHistoryJSON;
-
         importHistoryBtn.onclick = function () {
           importFile.click();
         };
-
         importFile.addEventListener("change", function () {
           var file = importFile.files && importFile.files[0];
           if (!file) return;
           importHistoryJSON(file);
           importFile.value = "";
         });
-
         clearHistoryBtn.onclick = clearActiveHistory;
 
-        // Help events
+        // Help
         helpSearch.addEventListener("input", function () {
           renderHelpResults(helpSearch.value);
         });
-
         toggleHelpBtn.onclick = function () {
           var hidden = helpSearch.style.display === "none";
           if (hidden) {
@@ -1044,17 +1164,19 @@
           }
         };
 
-        // ===== Init SQL.js (no arrow fn)
+        // ===== Init SQL.js (ES5)
         setStatus(false);
 
         initSqlJs({
           locateFile: function (file) {
-            return "https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/" + file;
+            return (
+              "https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/" + file
+            );
           },
         })
           .then(function (SQL) {
             SQLlib = SQL;
-            createFreshDB();
+            createFreshDB(); // ✅ now creates all example tables + inserts rows
             setStatus(true);
             renderHistory();
             renderHelpResults("");
@@ -1070,8 +1192,17 @@
     </script>
 
     <!-- Optional project scripts (non-blocking) -->
-    <script src="https://programmer-s-picnic.github.io/json-images/find-on-page.js" defer></script>
-    <script src="https://programmer-s-picnic.github.io/json-images/imgshow.js" defer></script>
-    <script src="https://programmer-s-picnic.github.io/json-images/hometag.js" defer></script>
+    <script
+      src="https://programmer-s-picnic.github.io/json-images/find-on-page.js"
+      defer
+    ></script>
+    <script
+      src="https://programmer-s-picnic.github.io/json-images/imgshow.js"
+      defer
+    ></script>
+    <script
+      src="https://programmer-s-picnic.github.io/json-images/hometag.js"
+      defer
+    ></script>
   </body>
 </html>
