@@ -72,8 +72,7 @@
         background: #fff;
         box-sizing: border-box;
       }
-      textarea:focus,
-      input[type="text"]:focus {
+      textarea:focus {
         box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.18);
       }
       button {
@@ -129,7 +128,7 @@
         background: #22c55e;
         box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18);
       }
-      .helptext {
+      .help {
         margin: 8px 0 0;
         color: var(--muted);
         font-size: 13px;
@@ -233,7 +232,7 @@
         margin: 0;
         padding: 0;
         list-style: none;
-        max-height: 320px;
+        max-height: 430px;
         overflow: auto;
         border: 1px solid var(--border);
         border-radius: 10px;
@@ -272,64 +271,6 @@
         color: var(--muted);
       }
 
-      /* Help section */
-      .helpbox {
-        margin-top: 14px;
-        padding: 12px;
-        border: 1px dashed var(--border);
-        background: #fffaf2;
-        border-radius: 12px;
-      }
-      .helpbox h3 {
-        margin: 0 0 10px;
-        color: #92400e;
-        font-size: 15px;
-      }
-      .helpbox input[type="text"] {
-        width: 100%;
-        padding: 10px 10px;
-        border-radius: 10px;
-        border: 1px solid var(--border);
-        outline: none;
-        box-sizing: border-box;
-        font-size: 14px;
-        background: #fff;
-      }
-      .helpresults {
-        margin-top: 10px;
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        background: #fff;
-        max-height: 220px;
-        overflow: auto;
-      }
-      .helpitem {
-        padding: 10px;
-        border-bottom: 1px solid var(--border);
-      }
-      .helpitem:last-child {
-        border-bottom: none;
-      }
-      .helpitem .title {
-        font-weight: 800;
-        color: #92400e;
-        margin-bottom: 6px;
-      }
-      .helpitem .desc {
-        color: var(--muted);
-        font-size: 13px;
-        line-height: 1.4;
-        margin-bottom: 8px;
-      }
-      pre.snip {
-        margin: 0;
-        padding: 10px;
-        border-radius: 10px;
-        background: #fff7e6;
-        border: 1px solid var(--border);
-        overflow: auto;
-        font-size: 12.5px;
-      }
       .footer {
         text-align: center;
         margin-top: 12px;
@@ -344,12 +285,12 @@
       <h1>Run SQL in Your Browser 🧠</h1>
 
       <div class="grid">
-        <!-- LEFT: SQL editor + results + HELP -->
+        <!-- LEFT: SQL editor + results -->
         <div class="card">
           <div class="row space">
             <div>
               <p style="margin: 0 0 6px"><b>Try editing and running SQL:</b></p>
-              <div class="helptext">
+              <div class="help">
                 Tip: Press <b>Ctrl + Enter</b> to run. Multiple statements are
                 allowed (separated by <code class="inline">;</code>).
               </div>
@@ -375,7 +316,7 @@
             >
             <span
               class="chip"
-              data-sql="INSERT INTO birthdays (name, birthday) VALUES ('Abhishek Pandey', '2001-07-11');\nSELECT * FROM birthdays;"
+              data-sql="INSERT INTO birthdays (name, birthday) VALUES ('Champak Roy', '1970-01-16');\nSELECT * FROM birthdays;"
               >Insert + show</span
             >
             <span
@@ -383,7 +324,9 @@
               data-sql="UPDATE birthdays SET name='Champak Roy (Updated)' WHERE id=1;\nSELECT * FROM birthdays;"
               >Update + show</span
             >
-            <span class="chip" data-sql="SELECT * FROM not_a_table;"
+            <span
+              class="chip"
+              data-sql="SELECT * FROM not_a_table;"
               >Intentional error</span
             >
           </div>
@@ -401,37 +344,9 @@
           <div id="error" role="alert"></div>
           <div id="result" aria-live="polite"></div>
 
-          <div class="helptext">
+          <div class="help">
             CSV downloads the <b>last displayed SELECT result</b> (if your query
             has multiple SELECTs, it uses the last one).
-          </div>
-
-          <!-- HELP SECTION -->
-          <div class="helpbox" id="helpBox">
-            <div class="row space">
-              <h3 style="margin: 0">SQL Help (Search & Insert)</h3>
-              <button id="toggleHelpBtn" class="btn-ghost" type="button">
-                Hide
-              </button>
-            </div>
-
-            <div class="helptext" style="margin-top: 6px">
-              Type keywords like <code class="inline">join</code>,
-              <code class="inline">group by</code>, <code class="inline">limit</code>,
-              <code class="inline">create table</code> and click a result to insert
-              the SQL snippet into the editor.
-            </div>
-
-            <div style="margin-top: 10px">
-              <input
-                id="helpSearch"
-                type="text"
-                placeholder="Search SQL help… (e.g., join, where, order by)"
-                autocomplete="off"
-              />
-            </div>
-
-            <div class="helpresults" id="helpResults" aria-label="Help results"></div>
           </div>
         </div>
 
@@ -464,7 +379,7 @@
           </div>
 
           <ul id="historyList" class="list" aria-label="History list"></ul>
-          <div class="helptext">
+          <div class="help">
             - Click an item to load it into the editor.<br />
             - Duplicates are ignored (same SQL text, trimmed).<br />
             - History is saved in <b>localStorage</b>.
@@ -513,19 +428,15 @@
       const clearHistoryBtn = document.getElementById("clearHistoryBtn");
       const importFile = document.getElementById("importFile");
 
-      // Help DOM
-      const helpBox = document.getElementById("helpBox");
-      const toggleHelpBtn = document.getElementById("toggleHelpBtn");
-      const helpSearch = document.getElementById("helpSearch");
-      const helpResults = document.getElementById("helpResults");
-
       // ====== Helpers ======
       function nowISO() {
         return new Date().toISOString();
       }
+
       function normalizeSQL(sql) {
         return (sql || "").trim();
       }
+
       function safeJSONParse(str, fallback) {
         try {
           return JSON.parse(str);
@@ -540,22 +451,32 @@
         const arr = safeJSONParse(raw, []);
         return Array.isArray(arr) ? arr : [];
       }
+
       function setHistory(kind, arr) {
         const key = kind === "success" ? LS_SUCCESS : LS_FAIL;
         localStorage.setItem(key, JSON.stringify(arr));
       }
+
       function hasSQL(kind, sqlNorm) {
         const arr = getHistory(kind);
         return arr.some((x) => (x && x.sqlNorm) === sqlNorm);
       }
+
       function addToHistory(kind, payload) {
+        // payload: {sql, sqlNorm, ts, note?}
         const sqlNorm = payload.sqlNorm;
         if (!sqlNorm) return;
+
         if (hasSQL(kind, sqlNorm)) return; // no repeats
         const arr = getHistory(kind);
+
+        // Add newest first
         arr.unshift(payload);
+
+        // Optional cap to prevent unlimited growth
         const CAP = 200;
         if (arr.length > CAP) arr.length = CAP;
+
         setHistory(kind, arr);
       }
 
@@ -568,6 +489,7 @@
           exportHistoryBtn.disabled = false;
           importHistoryBtn.disabled = false;
           clearHistoryBtn.disabled = false;
+          // CSV button enabled only when we have a result
           downloadCsvBtn.disabled = !lastResultForCSV;
         } else {
           statusDot.classList.remove("ok");
@@ -585,6 +507,7 @@
         resultDiv.innerHTML = "";
         errorDiv.textContent = "";
       }
+
       function showOk(message) {
         const p = document.createElement("div");
         p.className = "okmsg";
@@ -595,12 +518,15 @@
       function createFreshDB() {
         if (!SQLlib) return;
         db = new SQLlib.Database();
+
+        // ISO date string for reliable ordering/filtering
         db.run(`
           CREATE TABLE birthdays (
             id INTEGER PRIMARY KEY,
             name TEXT,
             birthday TEXT
           );
+
           INSERT INTO birthdays (name, birthday) VALUES
           ('Champak Roy', '1970-01-16');
         `);
@@ -609,7 +535,7 @@
       function renderResultSet(res, index) {
         const title = document.createElement("div");
         title.className = "table-title";
-        title.textContent = \`Result \${index + 1}\`;
+        title.textContent = `Result ${index + 1}`;
         resultDiv.appendChild(title);
 
         const table = document.createElement("table");
@@ -637,15 +563,22 @@
       // ====== CSV ======
       function csvEscape(value) {
         const s = value === null || value === undefined ? "" : String(value);
-        if (/[",\n\r]/.test(s)) return \`"\${s.replace(/"/g, '""')}"\`;
+        // If contains quotes, comma, newline -> wrap & escape quotes
+        if (/[",\n\r]/.test(s)) {
+          return `"${s.replace(/"/g, '""')}"`;
+        }
         return s;
       }
+
       function toCSV(columns, values) {
         const lines = [];
         lines.push(columns.map(csvEscape).join(","));
-        for (const row of values) lines.push(row.map(csvEscape).join(","));
+        for (const row of values) {
+          lines.push(row.map(csvEscape).join(","));
+        }
         return lines.join("\n");
       }
+
       function downloadText(filename, text, mime = "text/plain") {
         const blob = new Blob([text], { type: mime });
         const url = URL.createObjectURL(blob);
@@ -657,9 +590,12 @@
         a.remove();
         URL.revokeObjectURL(url);
       }
+
       function suggestCSVFilename(sqlNorm) {
+        // Simple heuristic: if query starts with SELECT ... FROM <table>
+        // else fallback
         let name = "result";
-        const m = sqlNorm.match(/from\\s+([a-zA-Z_][\\w]*)/i);
+        const m = sqlNorm.match(/from\s+([a-zA-Z_][\w]*)/i);
         if (m && m[1]) name = m[1];
         const dt = new Date();
         const stamp =
@@ -670,19 +606,10 @@
           String(dt.getHours()).padStart(2, "0") +
           String(dt.getMinutes()).padStart(2, "0") +
           String(dt.getSeconds()).padStart(2, "0");
-        return \`\${name}_\${stamp}.csv\`;
+        return `${name}_${stamp}.csv`;
       }
 
       // ====== History UI ======
-      function escapeHTML(str) {
-        return String(str)
-          .replaceAll("&", "&amp;")
-          .replaceAll("<", "&lt;")
-          .replaceAll(">", "&gt;")
-          .replaceAll('"', "&quot;")
-          .replaceAll("'", "&#039;");
-      }
-
       function setActiveTab(tab) {
         activeTab = tab;
         tabSuccess.classList.toggle("active", tab === "success");
@@ -698,7 +625,7 @@
           const li = document.createElement("li");
           li.className = "item";
           li.style.cursor = "default";
-          li.innerHTML = \`<div class="small">No \${activeTab} queries yet.</div>\`;
+          li.innerHTML = `<div class="small">No ${activeTab} queries yet.</div>`;
           historyList.appendChild(li);
           return;
         }
@@ -709,15 +636,15 @@
           const sqlShort =
             entry.sql.length > 180 ? entry.sql.slice(0, 180) + "…" : entry.sql;
 
-          li.innerHTML = \`
+          li.innerHTML = `
             <div style="white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono','Courier New', monospace; font-size: 12.5px;">
-              \${escapeHTML(sqlShort)}
+              ${escapeHTML(sqlShort)}
             </div>
             <div class="meta">
-              <span>\${new Date(entry.ts).toLocaleString()}</span>
-              <span>\${activeTab === "success" ? "✅ Success" : "❌ Failure"}</span>
+              <span>${new Date(entry.ts).toLocaleString()}</span>
+              <span>${activeTab === "success" ? "✅ Success" : "❌ Failure"}</span>
             </div>
-          \`;
+          `;
 
           li.addEventListener("click", () => {
             sqlInput.value = entry.sql;
@@ -728,6 +655,16 @@
         }
       }
 
+      function escapeHTML(str) {
+        return String(str)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      // ====== Export/Import ======
       function exportHistoryJSON() {
         const payload = {
           version: 1,
@@ -735,9 +672,9 @@
           success: getHistory("success"),
           fail: getHistory("fail"),
         };
-        const filename = \`sql_history_\${new Date()
+        const filename = `sql_history_${new Date()
           .toISOString()
-          .replace(/[:]/g, "-")}.json\`;
+          .replace(/[:]/g, "-")}.json`;
         downloadText(filename, JSON.stringify(payload, null, 2), "application/json");
       }
 
@@ -749,6 +686,7 @@
             const incomingSuccess = Array.isArray(obj.success) ? obj.success : [];
             const incomingFail = Array.isArray(obj.fail) ? obj.fail : [];
 
+            // Merge (no repeats) based on sqlNorm
             function merge(kind, incoming) {
               const existing = getHistory(kind);
               const seen = new Set(existing.map((x) => x.sqlNorm));
@@ -761,7 +699,10 @@
                 merged.push(x);
               }
 
+              // Sort newest first by ts
               merged.sort((a, b) => new Date(b.ts) - new Date(a.ts));
+
+              // Cap
               const CAP = 200;
               if (merged.length > CAP) merged.length = CAP;
 
@@ -785,7 +726,7 @@
       function clearActiveHistory() {
         setHistory(activeTab, []);
         renderHistory();
-        showOk(\`Cleared \${activeTab} history.\`);
+        showOk(`Cleared ${activeTab} history.`);
       }
 
       // ====== Main: Run SQL ======
@@ -808,8 +749,14 @@
         try {
           const results = db.exec(sql);
 
-          addToHistory("success", { sql, sqlNorm, ts: nowISO() });
+          // Store successful query (even if no rows)
+          addToHistory("success", {
+            sql,
+            sqlNorm,
+            ts: nowISO(),
+          });
 
+          // Render results
           if (!results || results.length === 0) {
             showOk("Query executed successfully (no rows returned).");
             lastResultForCSV = null;
@@ -818,8 +765,10 @@
             return;
           }
 
+          // Render all result sets
           results.forEach((res, i) => renderResultSet(res, i));
 
+          // Save last SELECT result for CSV (use the last result set)
           const last = results[results.length - 1];
           lastResultForCSV = {
             columns: last.columns || [],
@@ -833,147 +782,19 @@
           const msg = err && err.message ? err.message : String(err);
           errorDiv.textContent = msg;
 
-          addToHistory("fail", { sql, sqlNorm, ts: nowISO(), error: msg });
+          // Store unsuccessful query (no repeats)
+          addToHistory("fail", {
+            sql,
+            sqlNorm,
+            ts: nowISO(),
+            error: msg,
+          });
 
           lastResultForCSV = null;
           downloadCsvBtn.disabled = true;
 
           renderHistory();
         }
-      }
-
-      // ====== Help content (searchable) ======
-      const HELP_DATA = [
-        {
-          title: "SELECT basics",
-          keywords: ["select", "from", "columns", "projection"],
-          desc: "Select columns from a table.",
-          sql: `SELECT id, name FROM birthdays;`,
-        },
-        {
-          title: "WHERE filtering",
-          keywords: ["where", "filter", "and", "or", "like"],
-          desc: "Filter rows using conditions.",
-          sql: `SELECT * FROM birthdays
-WHERE name LIKE '%Roy%';`,
-        },
-        {
-          title: "ORDER BY sorting",
-          keywords: ["order by", "sort", "asc", "desc"],
-          desc: "Sort results.",
-          sql: `SELECT * FROM birthdays
-ORDER BY birthday DESC;`,
-        },
-        {
-          title: "LIMIT results",
-          keywords: ["limit", "top", "first", "pagination"],
-          desc: "Limit number of rows returned.",
-          sql: `SELECT * FROM birthdays
-LIMIT 5;`,
-        },
-        {
-          title: "INSERT row",
-          keywords: ["insert", "values", "add row"],
-          desc: "Add new rows into a table.",
-          sql: `INSERT INTO birthdays (name, birthday)
-VALUES ('New Person', '2000-01-01');`,
-        },
-        {
-          title: "UPDATE row",
-          keywords: ["update", "set", "edit", "modify"],
-          desc: "Update existing rows.",
-          sql: `UPDATE birthdays
-SET name = 'Updated Name'
-WHERE id = 1;`,
-        },
-        {
-          title: "DELETE row",
-          keywords: ["delete", "remove", "where"],
-          desc: "Delete rows that match a condition.",
-          sql: `DELETE FROM birthdays
-WHERE id = 1;`,
-        },
-        {
-          title: "CREATE TABLE",
-          keywords: ["create table", "schema", "ddl"],
-          desc: "Create a new table.",
-          sql: `CREATE TABLE students (
-  id INTEGER PRIMARY KEY,
-  name TEXT,
-  marks INTEGER
-);`,
-        },
-        {
-          title: "JOIN (example schema)",
-          keywords: ["join", "inner join", "left join", "foreign key"],
-          desc: "Join combines rows from two tables. (Example uses orders/customers.)",
-          sql: `SELECT c.name, o.total
-FROM customers c
-JOIN orders o ON o.customer_id = c.id;`,
-        },
-        {
-          title: "GROUP BY + COUNT",
-          keywords: ["group by", "count", "aggregate", "having"],
-          desc: "Aggregate rows into groups.",
-          sql: `SELECT birthday, COUNT(*) AS people
-FROM birthdays
-GROUP BY birthday
-ORDER BY people DESC;`,
-        },
-      ];
-
-      function renderHelpResults(query) {
-        const q = (query || "").trim().toLowerCase();
-        helpResults.innerHTML = "";
-
-        const matches = HELP_DATA.filter((item) => {
-          if (!q) return true;
-          const hay = [
-            item.title,
-            item.desc,
-            item.sql,
-            ...(item.keywords || []),
-          ]
-            .join(" ")
-            .toLowerCase();
-          return hay.includes(q);
-        });
-
-        if (!matches.length) {
-          helpResults.innerHTML =
-            '<div class="helpitem"><div class="desc">No matches. Try: <b>where</b>, <b>join</b>, <b>group by</b>, <b>limit</b>.</div></div>';
-          return;
-        }
-
-        matches.forEach((item) => {
-          const wrap = document.createElement("div");
-          wrap.className = "helpitem";
-          wrap.innerHTML = `
-            <div class="title">${escapeHTML(item.title)}</div>
-            <div class="desc">${escapeHTML(item.desc)}</div>
-            <pre class="snip">${escapeHTML(item.sql)}</pre>
-            <div class="row" style="margin-top:10px">
-              <button class="btn-ghost" type="button">Insert into editor</button>
-            </div>
-          `;
-          wrap.querySelector("button").addEventListener("click", () => {
-            // Insert at cursor if possible, else append
-            const toInsert = item.sql + "\n";
-            const start = sqlInput.selectionStart ?? sqlInput.value.length;
-            const end = sqlInput.selectionEnd ?? sqlInput.value.length;
-
-            const before = sqlInput.value.slice(0, start);
-            const after = sqlInput.value.slice(end);
-
-            sqlInput.value = before + (before && !before.endsWith("\n") ? "\n" : "") + toInsert + after;
-            sqlInput.focus();
-
-            // Move cursor to end of inserted snippet
-            const pos = (before + (before && !before.endsWith("\n") ? "\n" : "") + toInsert).length;
-            sqlInput.setSelectionRange(pos, pos);
-          });
-          helpResults.appendChild(wrap);
-        });
       }
 
       // ====== Events ======
@@ -1025,29 +846,17 @@ ORDER BY people DESC;`,
 
       // Export/Import/Clear
       exportHistoryBtn.addEventListener("click", exportHistoryJSON);
+
       importHistoryBtn.addEventListener("click", () => importFile.click());
+
       importFile.addEventListener("change", () => {
         const file = importFile.files && importFile.files[0];
         if (!file) return;
         importHistoryJSON(file);
-        importFile.value = "";
+        importFile.value = ""; // allow re-import same file
       });
-      clearHistoryBtn.addEventListener("click", clearActiveHistory);
 
-      // Help events
-      helpSearch.addEventListener("input", () => renderHelpResults(helpSearch.value));
-      toggleHelpBtn.addEventListener("click", () => {
-        const hidden = helpResults.style.display === "none" && helpSearch.style.display === "none";
-        if (hidden) {
-          helpSearch.style.display = "";
-          helpResults.style.display = "";
-          toggleHelpBtn.textContent = "Hide";
-        } else {
-          helpSearch.style.display = "none";
-          helpResults.style.display = "none";
-          toggleHelpBtn.textContent = "Show";
-        }
-      });
+      clearHistoryBtn.addEventListener("click", clearActiveHistory);
 
       // ====== Init SQL.js ======
       setStatus(false);
@@ -1061,7 +870,6 @@ ORDER BY people DESC;`,
           createFreshDB();
           setStatus(true);
           renderHistory(); // load from localStorage on start
-          renderHelpResults(""); // show help list initially
           runSQL(); // auto-run initial query
         })
         .catch((e) => {
