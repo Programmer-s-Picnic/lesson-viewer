@@ -1,0 +1,902 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Birthday Card Builder (HTML)</title>
+  <style>
+    :root{
+      /* Light saffron builder UI */
+      --bg:#fff7e6;
+      --card:#ffffff;
+      --ink:#1f2937;
+      --muted:#6b7280;
+      --brand:#d97706;
+      --brand2:#ff8a00;
+      --border:#f3d7a6;
+      --shadow:0 18px 45px rgba(31,41,55,.14);
+      --ok:#166534;
+      --danger:#b91c1c;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background:
+        radial-gradient(900px 600px at 15% 10%, rgba(255,138,0,.18), transparent 60%),
+        radial-gradient(900px 600px at 85% 10%, rgba(255,194,106,.28), transparent 55%),
+        linear-gradient(180deg, var(--bg), #fff);
+      color:var(--ink);
+    }
+    header{
+      padding:18px 16px;
+      border-bottom:1px solid var(--border);
+      background:rgba(255,255,255,.7);
+      backdrop-filter: blur(6px);
+      position:sticky;
+      top:0;
+      z-index:10;
+    }
+    .topbar{
+      max-width:1200px;
+      margin:0 auto;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    h1{margin:0;font-size:18px;letter-spacing:.2px;color:var(--brand)}
+    .btnrow{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+    button{
+      border:none;
+      border-radius:999px;
+      padding:10px 14px;
+      background:linear-gradient(180deg, #ffb85c, var(--brand2));
+      color:#fff;
+      cursor:pointer;
+      font-weight:800;
+      box-shadow:0 10px 22px rgba(217,119,6,.18);
+    }
+    button.secondary{background:#fff;color:var(--brand);border:1px solid var(--border);box-shadow:none}
+    button:active{transform:translateY(1px)}
+
+    .wrap{max-width:1200px;margin:18px auto;padding:0 16px 24px}
+    .grid{display:grid;gap:14px}
+    @media (min-width:1000px){.grid{grid-template-columns:420px 1fr;align-items:start}}
+
+    .panel{
+      background:rgba(255,255,255,.86);
+      border:1px solid var(--border);
+      border-radius:18px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .panel h2{
+      margin:0;
+      padding:14px 14px 10px;
+      font-size:14px;
+      color:#7c2d12;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      border-bottom:1px solid var(--border);
+      background:linear-gradient(180deg, rgba(255,232,191,.65), rgba(255,255,255,.6));
+    }
+
+    form{padding:14px;display:grid;gap:12px}
+    label{font-size:12px;color:var(--muted);display:grid;gap:6px}
+    input, textarea, select{
+      width:100%;
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:10px 10px;
+      font:inherit;
+      background:#fff;
+      color:var(--ink);
+      outline:none;
+    }
+    textarea{min-height:72px;resize:vertical}
+    .row{display:grid;gap:12px}
+    @media (min-width:520px){.row{grid-template-columns:1fr 1fr}}
+
+    .toggles{display:grid;gap:10px}
+    .toggle{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:10px 12px;
+      border:1px solid var(--border);
+      border-radius:14px;
+      background:rgba(255,247,230,.6);
+    }
+    .toggle strong{font-size:13px}
+    .toggle small{display:block;color:var(--muted);margin-top:2px}
+    .toggle input{width:44px;height:24px;accent-color: var(--brand2)}
+
+    .hint{font-size:12px;color:var(--muted);padding:0 14px 14px;line-height:1.45}
+
+    .previewWrap{padding:14px}
+    .previewFrame{width:100%;aspect-ratio:3/4;border:1px solid var(--border);border-radius:14px;overflow:hidden;background:#fff}
+    iframe{width:100%;height:100%;border:0;background:#fff}
+
+    .status{margin-left:12px;font-size:12px;color:var(--muted)}
+    .status.ok{color:var(--ok)}
+    .status.bad{color:var(--danger)}
+
+    .mini{padding:10px 14px 14px;border-top:1px solid var(--border);display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+    .mini code{font-size:12px;color:#7c2d12;background:rgba(255,232,191,.7);padding:4px 8px;border-radius:999px;border:1px solid var(--border)}
+
+    /* Template thumbnails */
+    .thumbs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:6px}
+    .thumb{
+      border:1px solid var(--border);
+      border-radius:14px;
+      background:#fff;
+      padding:10px;
+      cursor:pointer;
+      box-shadow:0 10px 22px rgba(217,119,6,.10);
+      position:relative;
+      transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+      user-select:none;
+    }
+    .thumb:active{transform:translateY(1px)}
+    .thumb:hover{box-shadow:0 14px 28px rgba(217,119,6,.14)}
+    .thumb.selected{outline:3px solid rgba(217,119,6,.25); border-color:#f0b56d}
+    .t-canvas{border-radius:10px;border:1px solid rgba(243,215,166,.9);overflow:hidden;aspect-ratio:3/4;background:#fff}
+    .t-top{height:34%;}
+    .t-body{padding:10px}
+    .t-line{height:10px;border-radius:999px;background:rgba(31,41,55,.14);margin:8px 0}
+    .t-line.sm{height:8px;opacity:.8}
+    .t-chip{display:inline-block;margin-top:6px;padding:6px 10px;border-radius:999px;border:1px solid rgba(243,215,166,.9);font-size:11px;color:#7c2d12;background:rgba(255,247,230,.6)}
+    .t-label{margin-top:8px;font-size:12px;color:#7c2d12;font-weight:900}
+
+    .thumb.pastel .t-top{background:linear-gradient(180deg, rgba(255,122,122,.55), rgba(255,122,122,0))}
+    .thumb.minimal .t-top{background:linear-gradient(180deg, rgba(180,83,9,.22), rgba(255,255,255,0))}
+    .thumb.neon .t-top{background:linear-gradient(180deg, rgba(99,102,241,.55), rgba(99,102,241,0))}
+    .thumb.royal .t-top{background:linear-gradient(180deg, rgba(30,64,175,.55), rgba(30,64,175,0))}
+
+    .thumb.neon .t-spark{
+      position:absolute;left:16px;right:16px;top:38px;height:18px;border-radius:999px;
+      background:repeating-linear-gradient(90deg, rgba(99,102,241,.0) 0 10px, rgba(99,102,241,.45) 10px 12px);
+      opacity:.9;filter:drop-shadow(0 6px 8px rgba(17,24,39,.12));
+      pointer-events:none;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="topbar">
+      <h1>Birthday Card Builder (HTML)</h1>
+      <div class="btnrow">
+        <button class="secondary" id="btnCopy" type="button">Copy HTML</button>
+        <button class="secondary" id="btnDownload" type="button">Download .html</button>
+        <button id="btnReset" class="secondary" type="button">Reset</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="grid">
+      <section class="panel">
+        <h2>Card Details</h2>
+
+        <form id="f">
+          <div class="row">
+            <label>
+              Language mode
+              <select id="langMode">
+                <option value="en" selected>English</option>
+                <option value="hi">Hindi (हिन्दी)</option>
+                <option value="both">Hindi + English</option>
+              </select>
+            </label>
+            <label>
+              Confetti density
+              <select id="density">
+                <option value="low">Low</option>
+                <option value="med" selected>Medium</option>
+                <option value="high">High</option>
+              </select>
+            </label>
+          </div>
+
+          <label>
+            Birthday person
+            <input id="person" value="Aarav" />
+          </label>
+
+          <div class="row">
+            <label>
+              Age (optional)
+              <input id="age" value="7" />
+            </label>
+            <label>
+              Theme (optional)
+              <input id="theme" value="Superhero" />
+            </label>
+          </div>
+
+          <div class="row">
+            <label>
+              Date
+              <input id="date" value="23 Jan 2026" />
+            </label>
+            <label>
+              Time
+              <input id="time" value="6:00 PM" />
+            </label>
+          </div>
+
+          <label>
+            Venue
+            <textarea id="venue">Home, House No -, Locality, City, Pincode</textarea>
+          </label>
+
+          <div class="row">
+            <label>
+              Host / RSVP Name
+              <input id="host" value="Deepak Roy" />
+            </label>
+            <label>
+              Phone (optional)
+              <input id="phone" value="+91-__________" />
+            </label>
+          </div>
+
+          <label>
+            Photo URL (optional)
+            <input id="photo" value="" placeholder="https://… (leave empty for initials avatar)" />
+          </label>
+
+          <label>
+            Design style
+            <select id="design">
+              <option value="pastel" selected>Pastel Balloons</option>
+              <option value="minimal">Minimal Ivory</option>
+              <option value="neon">Neon Party</option>
+              <option value="royal">Royal Blue & Gold</option>
+            </select>
+
+            <div class="thumbs" id="thumbs" aria-label="Template thumbnails">
+              <div class="thumb pastel selected" data-design="pastel" role="button" tabindex="0" aria-label="Pastel Balloons">
+                <div class="t-canvas">
+                  <div class="t-top"></div>
+                  <div class="t-body">
+                    <div class="t-line"></div>
+                    <div class="t-line sm" style="width:70%"></div>
+                    <div class="t-line" style="width:85%"></div>
+                    <span class="t-chip">Balloons</span>
+                  </div>
+                </div>
+                <div class="t-label">Pastel</div>
+              </div>
+
+              <div class="thumb minimal" data-design="minimal" role="button" tabindex="0" aria-label="Minimal Ivory">
+                <div class="t-canvas">
+                  <div class="t-top"></div>
+                  <div class="t-body">
+                    <div class="t-line"></div>
+                    <div class="t-line sm" style="width:65%"></div>
+                    <div class="t-line" style="width:78%"></div>
+                    <span class="t-chip">Clean</span>
+                  </div>
+                </div>
+                <div class="t-label">Minimal</div>
+              </div>
+
+              <div class="thumb neon" data-design="neon" role="button" tabindex="0" aria-label="Neon Party">
+                <div class="t-spark" aria-hidden="true"></div>
+                <div class="t-canvas">
+                  <div class="t-top"></div>
+                  <div class="t-body">
+                    <div class="t-line"></div>
+                    <div class="t-line sm" style="width:72%"></div>
+                    <div class="t-line" style="width:88%"></div>
+                    <span class="t-chip">Neon</span>
+                  </div>
+                </div>
+                <div class="t-label">Neon</div>
+              </div>
+
+              <div class="thumb royal" data-design="royal" role="button" tabindex="0" aria-label="Royal Blue & Gold">
+                <div class="t-canvas">
+                  <div class="t-top"></div>
+                  <div class="t-body">
+                    <div class="t-line"></div>
+                    <div class="t-line sm" style="width:68%"></div>
+                    <div class="t-line" style="width:82%"></div>
+                    <span class="t-chip">Royal</span>
+                  </div>
+                </div>
+                <div class="t-label">Royal</div>
+              </div>
+            </div>
+          </label>
+
+          <div class="toggles" aria-label="Effects">
+            <div class="toggle">
+              <div>
+                <strong>Confetti</strong>
+                <small>Confetti falls gently behind the card.</small>
+              </div>
+              <input id="tConfetti" type="checkbox" checked />
+            </div>
+            <div class="toggle">
+              <div>
+                <strong>Floating balloons</strong>
+                <small>Balloon shapes float up behind the card.</small>
+              </div>
+              <input id="tBalloons" type="checkbox" checked />
+            </div>
+            <div class="toggle">
+              <div>
+                <strong>Birthday song button</strong>
+                <small>Tap ♪ to play a short tune (needs internet).</small>
+              </div>
+              <input id="tMusic" type="checkbox" checked />
+            </div>
+            <div class="toggle">
+              <div>
+                <strong>Google Maps venue</strong>
+                <small>Show map + directions button (needs internet).</small>
+              </div>
+              <input id="tMap" type="checkbox" checked />
+            </div>
+          </div>
+        </form>
+
+        <div class="hint">
+          Tip: Choose a template, fill details, then download a single-file birthday invite.
+          Offline works except for map + music.
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Live Preview</h2>
+        <div class="previewWrap">
+          <div class="previewFrame"><iframe id="pv" title="Preview"></iframe></div>
+        </div>
+        <div class="mini">
+          <div>
+            <code id="mode">mode: —</code>
+            <span class="status" id="status">Ready</span>
+          </div>
+          <button id="btnRefresh" type="button">Refresh Preview</button>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    (function(){
+      'use strict';
+
+      function $(id){ return document.getElementById(id); }
+
+      var els = {
+        langMode: $('langMode'),
+        person: $('person'),
+        age: $('age'),
+        theme: $('theme'),
+        date: $('date'),
+        time: $('time'),
+        venue: $('venue'),
+        host: $('host'),
+        phone: $('phone'),
+        photo: $('photo'),
+        design: $('design'),
+        density: $('density'),
+        tConfetti: $('tConfetti'),
+        tBalloons: $('tBalloons'),
+        tMusic: $('tMusic'),
+        tMap: $('tMap'),
+        thumbs: $('thumbs'),
+        pv: $('pv'),
+        mode: $('mode'),
+        status: $('status')
+      };
+
+      function escHtml(str){
+        return String(str)
+          .replace(/&/g,'&amp;')
+          .replace(/</g,'&lt;')
+          .replace(/>/g,'&gt;')
+          .replace(/\"/g,'&quot;')
+          .replace(/'/g,'&#39;');
+      }
+
+      function initials(name){
+        var s = String(name || '').trim();
+        if(!s) return '🎉';
+        var parts = s.split(' ').filter(Boolean);
+        var a = parts[0] ? parts[0][0] : '';
+        var b = parts.length > 1 ? parts[parts.length - 1][0] : ((parts[0] && parts[0][1]) ? parts[0][1] : '');
+        return (a + b).toUpperCase();
+      }
+
+      function buildConfetti(density){
+        var sets = { low: 18, med: 32, high: 52 };
+        var n = sets[density] || 32;
+        var items = [];
+        for(var i=0;i<n;i++){
+          var x = Math.round((i+1) * (96/(n+1))) + (i%4===0? -2 : i%4===1? 1 : 0);
+          var s = String(6 + (i%6));
+          var d = (0.1 + (i%10)*0.12).toFixed(2);
+          var t = (5.5 + (i%7)*0.6).toFixed(1);
+          var r = String(10 + (i%9)*3);
+          items.push('<span class="cf" style="--x:'+x+'%;--s:'+s+'px;--d:'+d+'s;--t:'+t+'s;--r:'+r+'deg"></span>');
+        }
+        return '<div class="confetti" aria-hidden="true">' + items.join('') + '</div>';
+      }
+
+      function buildBalloons(density){
+        var sets = { low: 7, med: 11, high: 16 };
+        var n = sets[density] || 11;
+        var items = [];
+        for(var i=0;i<n;i++){
+          var x = Math.round((i+1) * (92/(n+1))) + (i%3===0? -3 : i%3===1? 2 : 0);
+          var s = 44 + (i%6)*6;
+          var t = (10 + (i%6)*1.2).toFixed(1);
+          var w = (3.2 + (i%5)*0.35).toFixed(2);
+          var d = (i%9)*0.35;
+          items.push('<span class="balloon" style="--x:'+x+'%;--s:'+s+'px;--t:'+t+'s;--w:'+w+'s;--d:'+d+'s"></span>');
+        }
+        return '<div class="balloons" aria-hidden="true">' + items.join('') + '</div>';
+      }
+
+      function buildInviteHTML(){
+        var NL = '\n';
+
+        var langMode = els.langMode.value; // en|hi|both
+        var person = (els.person.value || '').trim() || 'Aarav';
+        var age = (els.age.value || '').trim();
+        var theme = (els.theme.value || '').trim();
+        var date = (els.date.value || '').trim() || '23 Jan 2026';
+        var time = (els.time.value || '').trim() || '6:00 PM';
+        var venueRaw = (els.venue.value || '').trim() || '';
+        var venueHtml = escHtml(venueRaw).split(NL).join('<br>');
+        var host = (els.host.value || '').trim() || 'Host';
+        var phone = (els.phone.value || '').trim() || '+91-__________';
+        var photo = (els.photo.value || '').trim();
+
+        var design = els.design.value;
+        var density = els.density.value;
+
+        var onConfetti = !!els.tConfetti.checked;
+        var onBalloons = !!els.tBalloons.checked;
+        var onMusic = !!els.tMusic.checked;
+        var onMap = !!els.tMap.checked;
+
+        var I18N = {
+          en: {
+            pageTitle: 'Birthday Invitation',
+            headline: "YOU'RE INVITED!",
+            sub: 'Join us to celebrate',
+            when: 'When',
+            where: 'Where',
+            rsvp: 'RSVP',
+            print: 'Print',
+            whatsapp: 'WhatsApp',
+            directions: '📍 Get Directions',
+            toggleLabel: 'हिन्दी'
+          },
+          hi: {
+            pageTitle: 'जन्मदिन आमंत्रण',
+            headline: 'आप आमंत्रित हैं!',
+            sub: 'आइए साथ में मनाते हैं',
+            when: 'तारीख / समय',
+            where: 'स्थान',
+            rsvp: 'आर.एस.वी.पी.',
+            print: 'प्रिंट',
+            whatsapp: 'व्हाट्सएप',
+            directions: '📍 मार्गदर्शन',
+            toggleLabel: 'English'
+          }
+        };
+
+        var ageLineEN = '';
+        if(age){
+          var num = Number(age);
+          if(String(num) === age){
+            ageLineEN = age + (num === 1 ? ' year' : ' years');
+          } else {
+            ageLineEN = age;
+          }
+        }
+        var ageLineHI = age ? (age + ' वर्ष') : '';
+
+        var waHI = [
+          'जन्मदिन आमंत्रण',
+          person + (age ? ' (' + ageLineHI + ')' : ''),
+          'दिनांक: ' + date,
+          'समय: ' + time,
+          'स्थान: ' + venueRaw,
+          'आरएसवीपी: ' + host + (phone ? ' (' + phone + ')' : '')
+        ].join(NL);
+
+        var waEN = [
+          'Birthday Invitation',
+          person + (age ? ' (' + ageLineEN + ')' : ''),
+          'Date: ' + date,
+          'Time: ' + time,
+          'Venue: ' + venueRaw,
+          'RSVP: ' + host + (phone ? ' (' + phone + ')' : '')
+        ].join(NL);
+
+        var waBOTH = waHI + NL + NL + '---' + NL + NL + waEN;
+
+        var designCSSMap = {
+          pastel: ':root{--panel:#fffdf8;--border:#f3a44a;--accent:#d06a00;--ink:#2a1d12;--muted:#6a4429;--bgTop:rgba(255,122,122,.28);}',
+          minimal: ':root{--panel:#fffefb;--border:#e9d7b7;--accent:#b45309;--ink:#1f2937;--muted:#6b7280;--bgTop:rgba(180,83,9,.10);}',
+          neon: ':root{--panel:#0b1020;--border:#6366f1;--accent:#a78bfa;--ink:#e5e7eb;--muted:#c7d2fe;--bgTop:rgba(99,102,241,.35);}',
+          royal: ':root{--panel:#fffdf7;--border:#caa04a;--accent:#a16207;--ink:#111827;--muted:#374151;--bgTop:rgba(30,64,175,.28);}'
+        };
+        var designCSS = designCSSMap[design] || '';
+
+        var extraDecorMap = {
+          pastel: '.top-decor{background:radial-gradient(220px 170px at 18% 75%, rgba(255,194,106,.95), transparent 72%),radial-gradient(220px 170px at 50% 78%, rgba(255,122,122,.55), transparent 70%),radial-gradient(240px 190px at 82% 75%, rgba(110,231,183,.55), transparent 70%),linear-gradient(180deg, var(--bgTop), transparent);} .sticker{background:rgba(255,255,255,.92)}',
+          minimal: '.top-decor{opacity:.75;filter:saturate(.85)} .card::before{border-color:rgba(180,83,9,.22)}',
+          neon: '.frame{background:rgba(99,102,241,.25)} .card::before{border-color:rgba(167,139,250,.55)} .sticker{background:rgba(15,23,42,.7);border-color:rgba(99,102,241,.6)} .btn{background:linear-gradient(180deg, rgba(167,139,250,.95), rgba(99,102,241,.95))} .btn.whatsapp{background:linear-gradient(180deg,#25D366,#128C7E)} .avatar{background:rgba(99,102,241,.18);border-color:rgba(167,139,250,.55)} .mono{background:rgba(15,23,42,.7);border-color:rgba(99,102,241,.55)} .subline{color:var(--muted)}',
+          royal: '.top-decor{background:radial-gradient(220px 170px at 18% 78%, rgba(255,194,106,.85), transparent 72%),radial-gradient(260px 190px at 52% 76%, rgba(255,217,161,.75), transparent 72%),radial-gradient(240px 190px at 82% 78%, rgba(255,194,106,.75), transparent 72%),linear-gradient(180deg, var(--bgTop), transparent);} .sticker{background:rgba(255,255,255,.92)}'
+        };
+        var extraDecor = extraDecorMap[design] || '';
+
+        var confettiHTML = onConfetti ? buildConfetti(density) : '';
+        var balloonsHTML = onBalloons ? buildBalloons(density) : '';
+
+        var defaultLang = (langMode === 'both') ? 'en' : langMode;
+        var venueQuery = venueRaw || person;
+
+        // IMPORTANT: no template literals (backticks) in the generated HTML string.
+        // This prevents breakage when the user embeds the output with document.write().
+
+        var out = [];
+        out.push('<!doctype html>');
+        out.push('<html lang="' + defaultLang + '">');
+        out.push('<head>');
+        out.push('<meta charset="utf-8" />');
+        out.push('<meta name="viewport" content="width=device-width,initial-scale=1" />');
+        out.push('<title>' + escHtml(I18N[defaultLang].pageTitle) + ' | ' + escHtml(person) + '</title>');
+        out.push('<style>');
+        out.push(designCSS);
+        out.push(':root{--saffron-50:#fff7e6;--saffron-100:#ffe8bf;--saffron-200:#ffd9a1;--saffron-300:#ffc26a;--saffron-400:#ffa84a;--saffron-500:#ff8a00;--shadow:0 24px 70px rgba(42,29,18,.18);}');
+        out.push('*{box-sizing:border-box}');
+        out.push('body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:linear-gradient(180deg,var(--saffron-50),#fff);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}');
+        out.push('.wrap{width:min(860px,100%)}');
+        out.push('.frame{background:var(--border);padding:22px;border-radius:14px;box-shadow:var(--shadow)}');
+        out.push('.card{position:relative;background:var(--panel);border-radius:10px;overflow:hidden;min-height:1080px}');
+        out.push('.card::before{content:"";position:absolute;inset:18px;border:2px solid rgba(243,164,74,.45);pointer-events:none;z-index:3}');
+        out.push('.top-decor{position:absolute;top:0;left:0;right:0;height:260px;background:radial-gradient(180px 140px at 18% 80%, rgba(255,194,106,.95), transparent 70%),radial-gradient(220px 170px at 38% 72%, rgba(255,217,161,.95), transparent 72%),radial-gradient(260px 190px at 62% 78%, rgba(255,194,106,.9), transparent 72%),radial-gradient(210px 160px at 82% 85%, rgba(255,217,161,.9), transparent 72%),linear-gradient(180deg, rgba(255,168,74,.6), rgba(255,168,74,0));border-bottom-left-radius:50% 35%;border-bottom-right-radius:50% 35%;pointer-events:none;z-index:1}');
+        out.push('.lang-pill{position:absolute;top:26px;left:26px;z-index:7;border:1px solid rgba(243,164,74,.55);background:#fffaf2;color:#7c2d12;border-radius:999px;padding:10px 14px;font-weight:900;cursor:pointer;box-shadow:0 6px 18px rgba(42,29,18,.18)}');
+        out.push('.lang-pill:active{transform:translateY(1px)}');
+        if(onMusic){
+          out.push('.music-btn{position:absolute;top:26px;right:26px;z-index:7;border:none;background:#fffaf2;border-radius:50%;width:46px;height:46px;font-size:22px;cursor:pointer;box-shadow:0 6px 18px rgba(42,29,18,.18)}');
+          out.push('.music-btn:active{transform:scale(.95)}');
+        }
+
+        out.push('.confetti{position:absolute;inset:0;pointer-events:none;z-index:0;overflow:hidden}');
+        out.push('.cf{position:absolute;top:-24px;left:var(--x);width:var(--s);height:calc(var(--s) * 1.35);border-radius:3px;background:linear-gradient(180deg, rgba(255,138,0,.95), rgba(255,183,3,.95));transform:rotate(var(--r));animation:fall var(--t) linear infinite;animation-delay:var(--d);opacity:.35}');
+        out.push('.cf:nth-child(3n){background:linear-gradient(180deg, rgba(255,122,122,.95), rgba(255,122,122,.55))}');
+        out.push('.cf:nth-child(4n){background:linear-gradient(180deg, rgba(110,231,183,.95), rgba(110,231,183,.55))}');
+        out.push('.cf:nth-child(5n){background:linear-gradient(180deg, rgba(99,102,241,.95), rgba(99,102,241,.55))}');
+        out.push('@keyframes fall{0%{transform:translateY(0) rotate(var(--r))}100%{transform:translateY(1200px) rotate(calc(var(--r) + 180deg))}}');
+
+        out.push('.balloons{position:absolute;inset:0;pointer-events:none;z-index:0;overflow:hidden}');
+        out.push('.balloon{position:absolute;bottom:-140px;left:var(--x);width:var(--s);height:calc(var(--s) * 1.25);background:radial-gradient(circle at 30% 30%, rgba(255,255,255,.85), rgba(255,255,255,0) 35%),radial-gradient(circle at 35% 35%, rgba(255,217,161,.95), rgba(255,138,0,.55));border-radius:55% 55% 55% 55% / 60% 60% 45% 45%;opacity:.22;animation:floatUp var(--t) linear infinite, sway var(--w) ease-in-out infinite;animation-delay:var(--d)}');
+        out.push('.balloon::after{content:"";position:absolute;left:50%;bottom:-26px;width:2px;height:34px;background:rgba(42,29,18,.18);transform:translateX(-50%)}');
+        out.push('.balloon:nth-child(3n){background:radial-gradient(circle at 30% 30%, rgba(255,255,255,.85), rgba(255,255,255,0) 35%),radial-gradient(circle at 35% 35%, rgba(255,122,122,.95), rgba(255,122,122,.45))}');
+        out.push('.balloon:nth-child(4n){background:radial-gradient(circle at 30% 30%, rgba(255,255,255,.85), rgba(255,255,255,0) 35%),radial-gradient(circle at 35% 35%, rgba(99,102,241,.95), rgba(99,102,241,.45))}');
+        out.push('.balloon:nth-child(5n){background:radial-gradient(circle at 30% 30%, rgba(255,255,255,.85), rgba(255,255,255,0) 35%),radial-gradient(circle at 35% 35%, rgba(110,231,183,.95), rgba(110,231,183,.45))}');
+        out.push('@keyframes floatUp{from{transform:translateY(0)}to{transform:translateY(-1400px)}}');
+        out.push('@keyframes sway{0%,100%{margin-left:-18px}50%{margin-left:18px}}');
+
+        out.push('.content{position:relative;padding:120px 44px 44px;display:flex;flex-direction:column;gap:18px;min-height:1080px;z-index:4}');
+        out.push('.center{text-align:center}');
+        out.push('.avatar{width:118px;height:118px;border-radius:28px;margin:0 auto;border:2px solid rgba(243,164,74,.6);background:#fff7e6;display:grid;place-items:center;overflow:hidden;box-shadow:0 14px 30px rgba(42,29,18,.12)}');
+        out.push('.avatar img{width:100%;height:100%;object-fit:cover;display:block}');
+        out.push('.avatar .ini{font-weight:1000;font-size:34px;letter-spacing:.08em;color:rgba(42,29,18,.9)}');
+        out.push('.kicker{display:inline-block;margin:0 auto;padding:8px 14px;border-radius:999px;border:1px solid rgba(243,164,74,.55);background:rgba(255,255,255,.75);font-weight:1000;letter-spacing:.12em;text-transform:uppercase;font-size:12px}');
+        out.push('.headline{margin:10px 0 0;font-weight:1000;letter-spacing:.08em;font-size:44px}');
+        out.push('.subline{margin:6px 0 0;color:var(--muted);letter-spacing:.05em}');
+        out.push('.name{margin:8px 0 0;font-size:42px;font-weight:1000;letter-spacing:.08em}');
+        out.push('.meta{margin:10px 0 0;color:var(--muted);font-weight:800}');
+        out.push('.sticker{max-width:680px;margin:10px auto 0;border:2px solid rgba(243,164,74,.55);border-radius:18px;background:rgba(255,250,242,.9);padding:16px 18px}');
+        out.push('.sticker h3{margin:0 0 8px;color:var(--accent);letter-spacing:.14em;text-transform:uppercase;font-size:13px}');
+        out.push('.sticker p{margin:0;line-height:1.6}');
+        out.push('.grid2{display:grid;gap:12px;grid-template-columns:1fr}');
+        out.push('@media (min-width:640px){.grid2{grid-template-columns:1fr 1fr}}');
+        out.push('.mono{border:2px solid rgba(243,164,74,.45);border-radius:16px;background:rgba(255,250,242,.9);padding:14px 14px}');
+        out.push('.mono h4{margin:0 0 6px;color:var(--accent);letter-spacing:.14em;text-transform:uppercase;font-size:12px}');
+        out.push('.mono .val{font-weight:900}');
+
+        if(onMap){
+          out.push('.map{margin-top:12px;border-radius:14px;overflow:hidden;border:2px solid rgba(243,164,74,.45);aspect-ratio:16/9}');
+          out.push('.map iframe{width:100%;height:100%;border:0}');
+          out.push('.location-actions{margin-top:10px;display:flex;justify-content:center;gap:10px;flex-wrap:wrap}');
+          out.push('.loc-btn{padding:10px 14px;border-radius:999px;border:2px solid rgba(243,164,74,.55);background:#fff;color:var(--accent);font-weight:1000;cursor:pointer}');
+        }
+
+        out.push('.bottom{margin-top:auto;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-end}');
+        out.push('.rsvp{border:2px solid rgba(243,164,74,.55);padding:14px 16px;border-radius:16px;background:rgba(255,250,242,.9)}');
+        out.push('.actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}');
+        out.push('.btn{border:none;border-radius:999px;padding:12px 18px;color:#fff;background:linear-gradient(180deg,var(--saffron-400),var(--saffron-500));cursor:pointer;font-weight:1000}');
+        out.push('.btn.whatsapp{background:linear-gradient(180deg,#25D366,#128C7E)}');
+        out.push(extraDecor);
+        out.push('@media print{.confetti,.balloons,.actions,.map,.location-actions,.music-btn,.lang-pill{display:none}body{background:#fff}}');
+        out.push('</style>');
+        out.push('</head>');
+        out.push('<body>');
+        out.push('<main class="wrap">');
+        out.push('<div class="frame">');
+        out.push('<section class="card">');
+        out.push('<div class="top-decor"></div>');
+
+        if(langMode !== 'both') out.push('<button class="lang-pill" id="langBtn" type="button"></button>');
+        if(onMusic) out.push('<button class="music-btn" id="musicBtn" type="button" title="Music">♪</button>');
+        out.push(confettiHTML);
+        out.push(balloonsHTML);
+
+        out.push('<div class="content">');
+        out.push('<header class="center">');
+        out.push('<div class="avatar" aria-label="Photo">');
+
+        if(photo){
+          // safe fallback to initials if image fails
+          out.push('<img src="' + escHtml(photo) + '" alt="' + escHtml(person) + '" onerror="this.remove();document.getElementById(\"ini\").style.display=\"grid\";">');
+        }
+        out.push('<div class="ini" id="ini">' + escHtml(initials(person)) + '</div>');
+        out.push('</div>');
+
+        if(langMode === 'both'){
+          out.push('<div class="kicker">' + escHtml(I18N.en.headline) + ' / ' + escHtml(I18N.hi.headline) + '</div>');
+          out.push('<h1 class="headline">' + escHtml(person) + '</h1>');
+          out.push('<p class="subline">' + escHtml(I18N.en.sub) + ' / ' + escHtml(I18N.hi.sub) + '</p>');
+        } else {
+          out.push('<div class="kicker" data-i="headline"></div>');
+          out.push('<h1 class="headline">' + escHtml(person) + '</h1>');
+          out.push('<p class="subline" data-i="sub"></p>');
+        }
+
+        out.push('<div class="name">🎂 Happy Birthday' + (age ? ' <span style="opacity:.85">(' + escHtml(age) + ')</span>' : '') + '</div>');
+        if(theme) out.push('<div class="meta">Theme: ' + escHtml(theme) + '</div>');
+
+        out.push('</header>');
+
+        out.push('<section class="sticker">');
+        out.push('<div class="grid2">');
+        out.push('<div class="mono">');
+        if(langMode === 'both') out.push('<h4>' + escHtml(I18N.en.when) + ' / ' + escHtml(I18N.hi.when) + '</h4>');
+        else out.push('<h4 data-i="when"></h4>');
+        out.push('<div class="val">' + escHtml(date) + ' • ' + escHtml(time) + '</div>');
+        out.push('</div>');
+
+        out.push('<div class="mono">');
+        if(langMode === 'both') out.push('<h4>' + escHtml(I18N.en.rsvp) + ' / ' + escHtml(I18N.hi.rsvp) + '</h4>');
+        else out.push('<h4 data-i="rsvp"></h4>');
+        out.push('<div class="val">' + escHtml(host) + (phone ? (' • ' + escHtml(phone)) : '') + '</div>');
+        out.push('</div>');
+
+        out.push('</div>');
+        out.push('</section>');
+
+        out.push('<section class="sticker">');
+        if(langMode === 'both') out.push('<h3>' + escHtml(I18N.en.where) + ' / ' + escHtml(I18N.hi.where) + '</h3>');
+        else out.push('<h3 data-i="where"></h3>');
+        out.push('<p>' + venueHtml + '</p>');
+
+        if(onMap){
+          out.push('<div class="location-actions"><button class="loc-btn" id="dirBtn" type="button"></button></div>');
+          out.push('<div class="map"><iframe loading="lazy" src="https://www.google.com/maps?q=' + encodeURIComponent(venueQuery) + '&output=embed"></iframe></div>');
+        }
+
+        out.push('</section>');
+
+        out.push('<section class="bottom">');
+        out.push('<div class="rsvp"><strong>' + escHtml(host) + '</strong><br><span style="opacity:.85">📞 ' + escHtml(phone) + '</span></div>');
+        out.push('<div class="actions">');
+        out.push('<button class="btn" id="printBtn" type="button"></button>');
+        out.push('<button class="btn whatsapp" id="waBtn" type="button"></button>');
+        out.push('</div>');
+        out.push('</section>');
+
+        out.push('</div>');
+
+        // Inline script for the generated invite
+        out.push('<script>');
+        out.push('var I18N=' + JSON.stringify(I18N) + ';');
+        out.push('var MODE=' + JSON.stringify(langMode) + ';');
+        out.push('var LANG=' + JSON.stringify(langMode === 'both' ? 'en' : defaultLang) + ';');
+        out.push('var mapQ=' + JSON.stringify(venueQuery) + ';');
+        out.push('var waHI=' + JSON.stringify(waHI) + ';');
+        out.push('var waEN=' + JSON.stringify(waEN) + ';');
+        out.push('var waBOTH=' + JSON.stringify(waBOTH) + ';');
+        out.push('var PERSON=' + JSON.stringify(person) + ';');
+
+        out.push('function setActionLabels(){');
+        out.push('  var printBtn=document.getElementById("printBtn");');
+        out.push('  var waBtn=document.getElementById("waBtn");');
+        out.push('  var dirBtn=document.getElementById("dirBtn");');
+        out.push('  if(MODE==="both"){');
+        out.push('    if(printBtn) printBtn.textContent="🖨️ "+I18N.en.print+" / "+I18N.hi.print;');
+        out.push('    if(waBtn) waBtn.textContent="📲 "+I18N.en.whatsapp+" / "+I18N.hi.whatsapp;');
+        out.push('    if(dirBtn) dirBtn.textContent=I18N.en.directions;');
+        out.push('    document.title=I18N.en.pageTitle+" | "+PERSON;');
+        out.push('    return;');
+        out.push('  }');
+        out.push('  var t=I18N[LANG];');
+        out.push('  if(printBtn) printBtn.textContent="🖨️ "+t.print;');
+        out.push('  if(waBtn) waBtn.textContent="📲 "+t.whatsapp;');
+        out.push('  if(dirBtn) dirBtn.textContent=t.directions;');
+        out.push('}');
+
+        out.push('function applyLang(){');
+        out.push('  if(MODE==="both") return;');
+        out.push('  document.documentElement.lang=LANG;');
+        out.push('  var t=I18N[LANG];');
+        out.push('  document.title=t.pageTitle+" | "+PERSON;');
+        out.push('  var nodes=document.querySelectorAll("[data-i]");');
+        out.push('  for(var i=0;i<nodes.length;i++){var el=nodes[i]; el.textContent=t[el.getAttribute("data-i")]||"";}');
+        out.push('  var langBtn=document.getElementById("langBtn");');
+        out.push('  if(langBtn) langBtn.textContent=t.toggleLabel;');
+        out.push('  setActionLabels();');
+        out.push('}');
+
+        out.push('function toggleLang(){ if(MODE==="both") return; LANG=(LANG==="en")?"hi":"en"; applyLang(); }');
+        out.push('function shareWA(){ var txt=(MODE==="both")?waBOTH:((LANG==="hi")?waHI:waEN); window.open("https://wa.me/?text="+encodeURIComponent(txt),"_blank"); }');
+        out.push('function openMaps(){ window.open("https://www.google.com/maps?q="+encodeURIComponent(mapQ),"_blank"); }');
+        out.push('function playMusic(){ try{ var a=new Audio("https://cdn.pixabay.com/download/audio/2022/03/15/audio_5a8c2c7b77.mp3?filename=happy-birthday-to-you-110286.mp3"); a.volume=0.35; a.play(); }catch(e){} }');
+
+        out.push('var lb=document.getElementById("langBtn"); if(lb) lb.addEventListener("click",toggleLang);');
+        out.push('var wb=document.getElementById("waBtn"); if(wb) wb.addEventListener("click",shareWA);');
+        out.push('var pb=document.getElementById("printBtn"); if(pb) pb.addEventListener("click",function(){window.print();});');
+        out.push('var db=document.getElementById("dirBtn"); if(db) db.addEventListener("click",openMaps);');
+        out.push('var mb=document.getElementById("musicBtn"); if(mb) mb.addEventListener("click",playMusic);');
+
+        out.push('applyLang(); setActionLabels();');
+        out.push('<\\/script>');
+
+        out.push('</section>');
+        out.push('</div>');
+        out.push('</main>');
+        out.push('</body>');
+        out.push('</html>');
+
+        return out.join('\n');
+      }
+
+      function refreshPreview(){
+        try{
+          var html = buildInviteHTML();
+          els.pv.srcdoc = html;
+          els.mode.textContent = 'mode: ' + els.langMode.value + ' • design: ' + els.design.value + ' • density: ' + els.density.value;
+          els.status.textContent = 'Preview updated';
+          els.status.className = 'status ok';
+        }catch(e){
+          els.status.textContent = 'Error: ' + e.message;
+          els.status.className = 'status bad';
+        }
+      }
+
+      function downloadHTML(){
+        var html = buildInviteHTML();
+        var blob = new Blob([html], {type:'text/html'});
+        var a = document.createElement('a');
+        var url = URL.createObjectURL(blob);
+        a.href = url;
+        a.download = 'birthday-invite.html';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+        els.status.textContent = 'Downloaded birthday-invite.html';
+        els.status.className = 'status ok';
+      }
+
+      function copyHTML(){
+        var html = buildInviteHTML();
+        if(navigator.clipboard && navigator.clipboard.writeText){
+          return navigator.clipboard.writeText(html).then(function(){return true;});
+        }
+        var ta = document.createElement('textarea');
+        ta.value = html;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        var ok = false;
+        try{ ok = document.execCommand('copy'); }catch(e){ ok = false; }
+        ta.remove();
+        return Promise.resolve(ok);
+      }
+
+      function setSelectedThumb(design){
+        var all = document.querySelectorAll('.thumb');
+        for(var i=0;i<all.length;i++){
+          var t = all[i];
+          t.classList.toggle('selected', t.getAttribute('data-design') === design);
+        }
+      }
+
+      function resetForm(){
+        els.langMode.value = 'en';
+        els.person.value = 'Aarav';
+        els.age.value = '7';
+        els.theme.value = 'Superhero';
+        els.date.value = '23 Jan 2026';
+        els.time.value = '6:00 PM';
+        els.venue.value = 'Home, House No -, Locality, City, Pincode';
+        els.host.value = 'Deepak Roy';
+        els.phone.value = '+91-__________';
+        els.photo.value = '';
+        els.design.value = 'pastel';
+        els.density.value = 'med';
+        els.tConfetti.checked = true;
+        els.tBalloons.checked = true;
+        els.tMusic.checked = true;
+        els.tMap.checked = true;
+        setSelectedThumb('pastel');
+        refreshPreview();
+      }
+
+      // Debounced live updates
+      var tmr = null;
+      function scheduleRefresh(){
+        if(tmr) clearTimeout(tmr);
+        tmr = setTimeout(refreshPreview, 80);
+      }
+
+      (function(){
+        var fields = document.querySelectorAll('#f input, #f textarea, #f select');
+        for(var i=0;i<fields.length;i++){
+          fields[i].addEventListener('input', scheduleRefresh);
+          fields[i].addEventListener('change', scheduleRefresh);
+        }
+      })();
+
+      // Thumbnail click -> select design
+      els.thumbs.addEventListener('click', function(e){
+        var thumb = e.target && e.target.closest ? e.target.closest('.thumb') : null;
+        if(!thumb) return;
+        var d = thumb.getAttribute('data-design');
+        els.design.value = d;
+        setSelectedThumb(d);
+        refreshPreview();
+      });
+
+      // Keyboard support
+      els.thumbs.addEventListener('keydown', function(e){
+        if(e.key !== 'Enter' && e.key !== ' ') return;
+        var thumb = e.target && e.target.closest ? e.target.closest('.thumb') : null;
+        if(!thumb) return;
+        e.preventDefault();
+        var d = thumb.getAttribute('data-design');
+        els.design.value = d;
+        setSelectedThumb(d);
+        refreshPreview();
+      });
+
+      $('btnRefresh').addEventListener('click', refreshPreview);
+      $('btnDownload').addEventListener('click', function(e){ e.preventDefault(); downloadHTML(); });
+      $('btnCopy').addEventListener('click', function(e){
+        e.preventDefault();
+        copyHTML().then(function(ok){
+          els.status.textContent = ok ? 'Copied HTML to clipboard' : 'Copy failed (try HTTPS)';
+          els.status.className = ok ? 'status ok' : 'status bad';
+        }).catch(function(){
+          els.status.textContent = 'Clipboard blocked (try HTTPS / localhost)';
+          els.status.className = 'status bad';
+        });
+      });
+      $('btnReset').addEventListener('click', function(e){ e.preventDefault(); resetForm(); });
+
+      // Sync thumbs when dropdown changes
+      els.design.addEventListener('change', function(){ setSelectedThumb(els.design.value); });
+
+      // First render
+      setSelectedThumb(els.design.value);
+      refreshPreview();
+    })();
+  </script>
+</body>
+</html>

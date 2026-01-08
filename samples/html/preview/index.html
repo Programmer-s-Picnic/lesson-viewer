@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>HTML Live Preview (Editor + iframe)</title>
+    <style>
+      :root {
+        --bg: #fff7e6; /* light saffron */
+        --card: #ffffff;
+        --ink: #1f2937;
+        --muted: #6b7280;
+        --brand: #d97706;
+        --border: #f3d7a6;
+        --shadow: 0 18px 45px rgba(31, 41, 55, 0.14);
+        --danger: #b91c1c;
+        --ok: #166534;
+        --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        --sans: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
+          "Apple Color Emoji", "Segoe UI Emoji";
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: var(--sans);
+        background: var(--bg);
+        color: var(--ink);
+      }
+      header {
+        max-width: 1200px;
+        margin: 18px auto 0;
+        padding: 0 16px;
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        justify-content: space-between;
+        flex-wrap: wrap;
+      }
+      .title {
+        background: var(--card);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+        border-radius: 14px;
+        padding: 14px 16px;
+        flex: 1 1 420px;
+        min-width: 280px;
+      }
+      .title h1 {
+        margin: 0;
+        font-size: 18px;
+        color: var(--brand);
+        letter-spacing: 0.2px;
+      }
+      .title p {
+        margin: 6px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.4;
+      }
+
+      .actions {
+        background: var(--card);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+        border-radius: 14px;
+        padding: 12px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex: 0 1 auto;
+      }
+      button {
+        border: 1px solid var(--border);
+        background: linear-gradient(180deg, #fff, #fff7ea);
+        color: var(--ink);
+        padding: 9px 12px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 13px;
+        transition: transform 0.06s ease, box-shadow 0.15s ease;
+        box-shadow: 0 8px 18px rgba(31, 41, 55, 0.08);
+      }
+      button:hover {
+        transform: translateY(-1px);
+      }
+      button:active {
+        transform: translateY(0px);
+      }
+      .primary {
+        border-color: #f2c77c;
+        background: linear-gradient(180deg, #fffbf2, #fff0d4);
+      }
+      .danger {
+        border-color: #ffd0d0;
+        background: linear-gradient(180deg, #fff, #fff2f2);
+        color: var(--danger);
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: #fffaf0;
+        font-size: 12px;
+        color: var(--muted);
+        user-select: none;
+        white-space: nowrap;
+      }
+      .chip input {
+        transform: translateY(1px);
+      }
+
+      main {
+        max-width: 1200px;
+        margin: 12px auto 24px;
+        padding: 0 16px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+      @media (max-width: 980px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .panel {
+        background: var(--card);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+        border-radius: 14px;
+        overflow: hidden;
+        min-height: 540px;
+        display: flex;
+        flex-direction: column;
+      }
+      .panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--border);
+        background: #fffaf0;
+      }
+      .panel-head strong {
+        color: var(--brand);
+        font-size: 13px;
+        letter-spacing: 0.2px;
+      }
+      .panel-head .hint {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      textarea {
+        width: 100%;
+        height: 100%;
+        flex: 1;
+        border: 0;
+        outline: none;
+        padding: 14px;
+        font-family: var(--mono);
+        font-size: 13px;
+        line-height: 1.45;
+        resize: none;
+        background: #fff;
+        color: #0f172a;
+        tab-size: 2;
+      }
+
+      iframe {
+        width: 100%;
+        height: 100%;
+        flex: 1;
+        border: 0;
+        background: #fff;
+      }
+
+      .status {
+        margin-top: 10px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        box-shadow: 0 10px 26px rgba(31, 41, 55, 0.1);
+        border-radius: 14px;
+        padding: 10px 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .status b {
+        color: var(--ink);
+      }
+      .kbd {
+        font-family: var(--mono);
+        font-size: 12px;
+        padding: 2px 7px;
+        border: 1px solid var(--border);
+        border-bottom-width: 2px;
+        border-radius: 8px;
+        background: #fff;
+        color: var(--ink);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="title">
+        <h1>HTML Live Preview</h1>
+        <p>
+          Paste or type HTML on the left. Preview updates on the right (iframe).
+          Works offline.
+        </p>
+      </div>
+
+      <div class="actions">
+        <button
+          class="primary"
+          id="btnRun"
+          title="Update preview (Ctrl/⌘ + Enter)"
+        >
+          Run
+        </button>
+        <button id="btnSave" title="Save to browser storage">Save</button>
+        <button id="btnLoad" title="Load from browser storage">Load</button>
+        <button class="danger" id="btnClear" title="Clear editor">Clear</button>
+        <span class="chip" title="Update preview while typing">
+          <input type="checkbox" id="autoRun" checked />
+          <label for="autoRun">Auto-run</label>
+        </span>
+      </div>
+    </header>
+
+    <main>
+      <div class="grid">
+        <section class="panel" aria-label="Editor panel">
+          <div class="panel-head">
+            <strong>Editor</strong>
+            <span class="hint"
+              >Tip: <span class="kbd">Ctrl</span> +
+              <span class="kbd">Enter</span> to run</span
+            >
+          </div>
+          <textarea id="editor" spellcheck="false"></textarea>
+        </section>
+
+        <section class="panel" aria-label="Preview panel">
+          <div class="panel-head">
+            <strong>Preview (iframe)</strong>
+            <span class="hint">Uses <code>srcdoc</code></span>
+          </div>
+          <iframe
+            id="preview"
+            sandbox="allow-forms allow-modals allow-pointer-lock allow-popups allow-presentation allow-same-origin allow-scripts"
+          ></iframe>
+        </section>
+      </div>
+
+      <div class="status" id="status">
+        <div>Status: <b id="statusText">Ready</b></div>
+        <div>
+          Shortcuts:
+          <span class="kbd">Ctrl</span> + <span class="kbd">Enter</span> Run
+          &nbsp;•&nbsp; <span class="kbd">Ctrl</span> +
+          <span class="kbd">S</span> Save &nbsp;•&nbsp;
+          <span class="kbd">Ctrl</span> + <span class="kbd">L</span> Load
+        </div>
+      </div>
+    </main>
+
+    <script>
+      const STORAGE_KEY = "html_live_preview_code_v1";
+
+      const editor = document.getElementById("editor");
+      const preview = document.getElementById("preview");
+      const autoRun = document.getElementById("autoRun");
+
+      const statusText = document.getElementById("statusText");
+      const btnRun = document.getElementById("btnRun");
+      const btnSave = document.getElementById("btnSave");
+      const btnLoad = document.getElementById("btnLoad");
+      const btnClear = document.getElementById("btnClear");
+
+      const DEFAULT_HTML = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Preview</title>
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,sans-serif;margin:24px}
+    h1{margin:0 0 10px}
+    .card{padding:14px;border:1px solid #ddd;border-radius:12px}
+    button{padding:10px 12px;border-radius:10px;border:1px solid #ccc;background:#fff;cursor:pointer}
+  </style>
+</head>
+<body>
+  <h1>Hello 👋</h1>
+  <div class="card">
+    This is a live preview. Edit the HTML on the left.
+    <br /><br />
+    <button onclick="document.body.insertAdjacentHTML('beforeend','<p>Clicked!</p>')">Click me</button>
+  </div>
+</body>
+</html>`;
+
+      function setStatus(msg) {
+        statusText.innerHTML = msg;
+      }
+
+      function runPreview() {
+        // Write the user's HTML directly into the iframe via srcdoc
+        preview.srcdoc =editor.value || "<!doctype html><title>Empty</title><p>(No HTML)</p>";
+        setStatus("Rendered at " + new Date().toLocaleTimeString());
+      }
+
+      function saveCode() {
+        try {
+          localStorage.setItem(STORAGE_KEY, editor.value);
+          setStatus("Saved");
+        } catch (e) {
+          console.error(e);
+          setStatus("Save failed (storage blocked?)");
+        }
+      }
+
+      function loadCode() {
+        try {
+          const v = localStorage.getItem(STORAGE_KEY);
+          if (v === null) {
+            setStatus("Nothing saved yet");
+            return;
+          }
+          editor.value = v;
+          runPreview();
+          setStatus("Loaded");
+        } catch (e) {
+          console.error(e);
+          setStatus("Load failed (storage blocked?)");
+        }
+      }
+
+      function clearEditor() {
+        editor.value = "";
+        runPreview();
+        setStatus("Cleared");
+      }
+
+      // Auto-run (debounced)
+      let t = null;
+      editor.addEventListener("input", () => {
+        if (!autoRun.checked) return;
+        clearTimeout(t);
+        t = setTimeout(runPreview, 250);
+      });
+
+      // Buttons
+      btnRun.addEventListener("click", runPreview);
+      btnSave.addEventListener("click", saveCode);
+      btnLoad.addEventListener("click", loadCode);
+      btnClear.addEventListener("click", clearEditor);
+
+      // Keyboard shortcuts
+      document.addEventListener("keydown", (e) => {
+        const key = e.key.toLowerCase();
+        const ctrl = e.ctrlKey || e.metaKey;
+
+        if (ctrl && key === "enter") {
+          e.preventDefault();
+          runPreview();
+        }
+        if (ctrl && key === "s") {
+          e.preventDefault();
+          saveCode();
+        }
+        if (ctrl && key === "l") {
+          e.preventDefault();
+          loadCode();
+        }
+      });
+
+      // Initialize
+      (function init() {
+        // Try loading saved content; otherwise use default
+        const saved = localStorage.getItem(STORAGE_KEY);
+        editor.value = saved ?? DEFAULT_HTML;
+        runPreview();
+        setStatus(saved ? "Loaded saved code" : "Loaded sample code");
+      })();
+    </script>
+  </body>
+</html>
