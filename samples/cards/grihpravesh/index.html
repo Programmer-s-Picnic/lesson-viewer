@@ -1,0 +1,792 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Grih Pravesh Card Builder (HTML)</title>
+  <style>
+    :root{
+      --bg:#fff7e6;
+      --card:#ffffff;
+      --ink:#1f2937;
+      --muted:#6b7280;
+      --brand:#d97706;
+      --brand2:#ff8a00;
+      --border:#f3d7a6;
+      --shadow:0 18px 45px rgba(31,41,55,.14);
+      --ok:#166534;
+      --danger:#b91c1c;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      background:
+        radial-gradient(900px 600px at 15% 10%, rgba(255,138,0,.18), transparent 60%),
+        radial-gradient(900px 600px at 85% 10%, rgba(255,194,106,.28), transparent 55%),
+        linear-gradient(180deg, var(--bg), #fff);
+      color:var(--ink);
+    }
+    header{
+      padding:18px 16px;
+      border-bottom:1px solid var(--border);
+      background:rgba(255,255,255,.7);
+      backdrop-filter: blur(6px);
+      position:sticky;
+      top:0;
+      z-index:10;
+    }
+    .topbar{
+      max-width:1200px;
+      margin:0 auto;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+    h1{margin:0;font-size:18px;letter-spacing:.2px;color:var(--brand)}
+    .btnrow{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+    button{
+      border:none;
+      border-radius:999px;
+      padding:10px 14px;
+      background:linear-gradient(180deg, #ffb85c, var(--brand2));
+      color:#fff;
+      cursor:pointer;
+      font-weight:700;
+      box-shadow:0 10px 22px rgba(217,119,6,.18);
+    }
+    button.secondary{background:#fff;color:var(--brand);border:1px solid var(--border);box-shadow:none}
+    button:active{transform:translateY(1px)}.wrap{max-width:1200px;margin:18px auto;padding:0 16px 24px}
+.grid{display:grid;gap:14px}
+@media (min-width:1000px){.grid{grid-template-columns:420px 1fr;align-items:start}}
+
+.panel{
+  background:rgba(255,255,255,.86);
+  border:1px solid var(--border);
+  border-radius:18px;
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+.panel h2{
+  margin:0;
+  padding:14px 14px 10px;
+  font-size:14px;
+  color:#7c2d12;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  border-bottom:1px solid var(--border);
+  background:linear-gradient(180deg, rgba(255,232,191,.65), rgba(255,255,255,.6));
+}
+
+form{padding:14px;display:grid;gap:12px}
+label{font-size:12px;color:var(--muted);display:grid;gap:6px}
+input, textarea, select{
+  width:100%;
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:10px 10px;
+  font:inherit;
+  background:#fff;
+  color:var(--ink);
+  outline:none;
+}
+textarea{min-height:74px;resize:vertical}
+.row{display:grid;gap:12px}
+@media (min-width:520px){.row{grid-template-columns:1fr 1fr}}
+
+.toggles{display:grid;gap:10px}
+.toggle{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:10px 12px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:rgba(255,247,230,.6);
+}
+.toggle strong{font-size:13px}
+.toggle small{display:block;color:var(--muted);margin-top:2px}
+.toggle input{width:44px;height:24px;accent-color: var(--brand2)}
+
+.hint{font-size:12px;color:var(--muted);padding:0 14px 14px;line-height:1.45}
+
+.previewWrap{padding:14px}
+.previewFrame{width:100%;aspect-ratio:3/4;border:1px solid var(--border);border-radius:14px;overflow:hidden;background:#fff}
+iframe{width:100%;height:100%;border:0;background:#fff}
+
+.status{margin-left:12px;font-size:12px;color:var(--muted)}
+.status.ok{color:var(--ok)}
+.status.bad{color:var(--danger)}
+
+.mini{padding:10px 14px 14px;border-top:1px solid var(--border);display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.mini code{font-size:12px;color:#7c2d12;background:rgba(255,232,191,.7);padding:4px 8px;border-radius:999px;border:1px solid var(--border)}
+
+/* Template thumbnails */
+.thumbs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:6px}
+.thumb{
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:#fff;
+  padding:10px;
+  cursor:pointer;
+  box-shadow:0 10px 22px rgba(217,119,6,.10);
+  position:relative;
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+}
+.thumb:active{transform:translateY(1px)}
+.thumb:hover{box-shadow:0 14px 28px rgba(217,119,6,.14)}
+.thumb.selected{outline:3px solid rgba(217,119,6,.25); border-color:#f0b56d}
+.t-canvas{border-radius:10px;border:1px solid rgba(243,215,166,.9);overflow:hidden;aspect-ratio:3/4}
+.t-top{height:34%;}
+.t-body{padding:10px}
+.t-line{height:10px;border-radius:999px;background:rgba(31,41,55,.14);margin:8px 0}
+.t-line.sm{height:8px;opacity:.8}
+.t-chip{display:inline-block;margin-top:6px;padding:6px 10px;border-radius:999px;border:1px solid rgba(243,215,166,.9);font-size:11px;color:#7c2d12;background:rgba(255,247,230,.6)}
+.t-label{margin-top:8px;font-size:12px;color:#7c2d12;font-weight:800}
+
+.thumb.classic .t-top{background:linear-gradient(180deg, rgba(255,168,74,.75), rgba(255,168,74,0))}
+.thumb.minimal .t-top{background:linear-gradient(180deg, rgba(180,83,9,.22), rgba(255,255,255,0))}
+.thumb.festive .t-top{background:linear-gradient(180deg, rgba(255,183,3,.65), rgba(255,183,3,0))}
+.thumb.royal .t-top{background:linear-gradient(180deg, rgba(30,64,175,.55), rgba(30,64,175,0))}
+
+.thumb.festive .t-garland{position:absolute;left:14px;right:14px;top:40px;height:16px;border-radius:999px;
+  background:repeating-radial-gradient(circle at 10px 8px, #ffb703 0 6px, transparent 7px);
+  opacity:.9;filter:drop-shadow(0 6px 8px rgba(42,29,18,.12));
+}
+
+  </style>
+</head>
+<body>
+  <header>
+    <div class="topbar">
+      <h1>Grih Pravesh Card Builder (HTML)</h1>
+      <div class="btnrow">
+        <button class="secondary" id="btnCopy">Copy HTML</button>
+        <button class="secondary" id="btnDownload">Download .html</button>
+        <button id="btnReset" class="secondary">Reset</button>
+      </div>
+    </div>
+  </header>  <main class="wrap">
+    <div class="grid">
+      <section class="panel">
+        <h2>Card Details</h2>
+        <form id="f"><div class="row">
+        <label>
+          Language mode
+          <select id="langMode">
+            <option value="hi" selected>Hindi (हिन्दी)</option>
+            <option value="en">English</option>
+            <option value="both">Hindi + English</option>
+          </select>
+        </label>
+        <label>
+          Flower density
+          <select id="density">
+            <option value="low">Low</option>
+            <option value="med" selected>Medium</option>
+            <option value="high">High</option>
+          </select>
+        </label>
+      </div>
+
+      <label>
+        House Owner / गृह स्वामी
+        <input id="owner" value="Deepak Roy" />
+      </label>
+
+      <label>
+        Address / पता
+        <textarea id="address">Sa-18/132, Nai Basti, Pandepur, Varanasi 221007.</textarea>
+      </label>
+
+      <div class="row">
+        <label>
+          Date / दिनांक
+          <input id="date" value="23 Jan 2026" />
+        </label>
+        <label>
+          Phone (optional)
+          <input id="phone" value="+91-__________" />
+        </label>
+      </div>
+
+      <label>
+        Map Query (for embed + directions)
+        <input id="mapq" value="Sa-18/132 Nai Basti Pandepur Varanasi" />
+      </label>
+
+      <label>
+        Design style
+        <select id="design">
+          <option value="classic" selected>Classic Border</option>
+          <option value="minimal">Minimal Ivory</option>
+          <option value="festive">Festive Marigold</option>
+          <option value="royal">Royal Blue & Gold</option>
+        </select>
+        <div class="thumbs" id="thumbs">
+          <div class="thumb classic selected" data-design="classic" role="button" tabindex="0" aria-label="Classic Border">
+            <div class="t-canvas">
+              <div class="t-top"></div>
+              <div class="t-body">
+                <div class="t-line"></div>
+                <div class="t-line sm" style="width:70%"></div>
+                <div class="t-line" style="width:85%"></div>
+                <span class="t-chip">Saffron</span>
+              </div>
+            </div>
+            <div class="t-label">Classic</div>
+          </div>
+          <div class="thumb minimal" data-design="minimal" role="button" tabindex="0" aria-label="Minimal Ivory">
+            <div class="t-canvas">
+              <div class="t-top"></div>
+              <div class="t-body">
+                <div class="t-line"></div>
+                <div class="t-line sm" style="width:65%"></div>
+                <div class="t-line" style="width:78%"></div>
+                <span class="t-chip">Minimal</span>
+              </div>
+            </div>
+            <div class="t-label">Minimal</div>
+          </div>
+          <div class="thumb festive" data-design="festive" role="button" tabindex="0" aria-label="Festive Marigold">
+            <div class="t-garland" aria-hidden="true"></div>
+            <div class="t-canvas">
+              <div class="t-top"></div>
+              <div class="t-body">
+                <div class="t-line"></div>
+                <div class="t-line sm" style="width:72%"></div>
+                <div class="t-line" style="width:88%"></div>
+                <span class="t-chip">Garland</span>
+              </div>
+            </div>
+            <div class="t-label">Festive</div>
+          </div>
+          <div class="thumb royal" data-design="royal" role="button" tabindex="0" aria-label="Royal Blue & Gold">
+            <div class="t-canvas">
+              <div class="t-top"></div>
+              <div class="t-body">
+                <div class="t-line"></div>
+                <div class="t-line sm" style="width:68%"></div>
+                <div class="t-line" style="width:82%"></div>
+                <span class="t-chip">Royal</span>
+              </div>
+            </div>
+            <div class="t-label">Royal</div>
+          </div>
+        </div>
+      </label>
+
+      <div class="toggles" aria-label="Effects">
+        <div class="toggle">
+          <div>
+            <strong>Rangoli formation</strong>
+            <small>Rangoli forms on load and settles as a soft background.</small>
+          </div>
+          <input id="tRangoli" type="checkbox" checked />
+        </div>
+        <div class="toggle">
+          <div>
+            <strong>Floating roses + petals</strong>
+            <small>Animated roses/petals floating up behind the card.</small>
+          </div>
+          <input id="tFlowers" type="checkbox" checked />
+        </div>
+        <div class="toggle">
+          <div>
+            <strong>Temple bell button</strong>
+            <small>Tap the bell to play a short temple bell sound.</small>
+          </div>
+          <input id="tBell" type="checkbox" checked />
+        </div>
+        <div class="toggle">
+          <div>
+            <strong>Location block + map</strong>
+            <small>Shows address + embed map + "Get Directions" button.</small>
+          </div>
+          <input id="tMap" type="checkbox" checked />
+        </div>
+      </div>
+    </form>
+    <div class="hint">
+      Tip: Pick a template thumbnail, edit details, and download a single-file invite.
+      Offline works except for map + bell audio.
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Live Preview</h2>
+    <div class="previewWrap">
+      <div class="previewFrame"><iframe id="pv" title="Preview"></iframe></div>
+    </div>
+    <div class="mini">
+      <div>
+        <code id="mode">mode: hindi</code>
+        <span class="status" id="status">Ready</span>
+      </div>
+      <button id="btnRefresh">Refresh Preview</button>
+    </div>
+  </section>
+</div>
+
+  </main>  <script>
+    const $ = (id) => document.getElementById(id);
+
+    const els = {
+      langMode: $('langMode'),
+      owner: $('owner'),
+      address: $('address'),
+      date: $('date'),
+      phone: $('phone'),
+      mapq: $('mapq'),
+      design: $('design'),
+      density: $('density'),
+      tRangoli: $('tRangoli'),
+      tFlowers: $('tFlowers'),
+      tBell: $('tBell'),
+      tMap: $('tMap'),
+      thumbs: $('thumbs'),
+      pv: $('pv'),
+      mode: $('mode'),
+      status: $('status')
+    };
+
+    function escHtml(str){
+      return String(str)
+        .replaceAll('&','&amp;')
+        .replaceAll('<','&lt;')
+        .replaceAll('>','&gt;')
+        .replaceAll('"','&quot;')
+        .replaceAll("'",'&#39;');
+    }
+
+    function buildFloaters(density){
+      const sets = { low: 8, med: 14, high: 22 };
+      const n = sets[density] ?? 14;
+      const items = [];
+      for(let i=0;i<n;i++){
+        const isRose = i % 2 === 0;
+        const x = Math.round((i+1) * (92/(n+1))) + (i%3===0? -2 : i%3===1? 1 : 0);
+        const s = isRose ? (34 + (i%5)*4) : (20 + (i%4)*2);
+        const t = isRose ? (18 + (i%6)*2) : (14 + (i%5)*2);
+        const w = (3.2 + (i%5)*0.4).toFixed(1);
+        const r = (11 + (i%7)*1.2).toFixed(1);
+        const o = isRose ? 0.22 : 0.34;
+        items.push(`<span class="${isRose?'rose':'petal'}" style="--x:${x}%;--s:${s}px;--t:${t}s;--w:${w}s;--r:${r}s;--o:${o}"></span>`);
+      }
+      return `<div class="floaters" aria-hidden="true">${items.join('')}<\/div>`;
+    }
+
+    function buildInviteHTML(){
+      const langMode = els.langMode.value; // hi | en | both
+      const owner = els.owner.value.trim() || 'Deepak Roy';
+      const addressRaw = els.address.value.trim() || '';
+      const addressHtml = escHtml(addressRaw).replaceAll('\n','<br>');
+      const date = els.date.value.trim() || '23 Jan 2026';
+      const phone = els.phone.value.trim() || '+91-__________';
+      const mapq = els.mapq.value.trim() || owner;
+
+      const design = els.design.value;
+      const density = els.density.value;
+
+      const onRangoli = els.tRangoli.checked;
+      const onFlowers = els.tFlowers.checked;
+      const onBell = els.tBell.checked;
+      const onMap = els.tMap.checked;
+
+      const I18N = {
+        hi: {
+          pageTitle: 'गृह प्रवेश आमंत्रण',
+          title: 'गृह प्रवेश',
+          subtitle: 'नवगृह प्रवेश समारोह',
+          mantra: '॥ श्री गणेशाय नमः ॥',
+          familyInvite: 'सपरिवार सादर आमंत्रण',
+          venueLoc: 'स्थान एवं लोकेशन',
+          awaiting: 'प्रतीक्षारत',
+          print: 'प्रिंट',
+          whatsapp: 'व्हाट्सएप',
+          directions: '📍 मार्गदर्शन',
+          datePrefix: 'दिनांक: ',
+          toggleLabel: 'English'
+        },
+        en: {
+          pageTitle: 'Grih Pravesh Invitation',
+          title: 'GRIHA PRAVESH',
+          subtitle: 'HOUSEWARMING CEREMONY',
+          mantra: '|| Shree Ganeshay Namah ||',
+          familyInvite: 'With Family — Cordial Invitation',
+          venueLoc: 'Venue & Location',
+          awaiting: 'Awaiting',
+          print: 'Print',
+          whatsapp: 'WhatsApp',
+          directions: '📍 Get Directions',
+          datePrefix: 'Date: ',
+          toggleLabel: 'हिन्दी'
+        }
+      };
+
+      const waHI = `गृह प्रवेश आमंत्रण\nगृह स्वामी: ${owner}\nदिनांक: ${date}\nपता: ${addressRaw}`;
+      const waEN = `Grih Pravesh Invitation\nHouse Owner: ${owner}\nDate: ${date}\nAddress: ${addressRaw}`;
+      const waBOTH = `${waHI}\n\n---\n\n${waEN}`;
+
+      const designCSS = {
+        classic: `:root{--panel:#fffdf7;--border:#f3a44a;--accent:#d06a00;--ink:#2a1d12;--muted:#6a4429;}`,
+        minimal: `:root{--panel:#fffefb;--border:#e9d7b7;--accent:#b45309;--ink:#1f2937;--muted:#6b7280;}`,
+        festive: `:root{--panel:#fffdf7;--border:#f1a552;--accent:#b45309;--ink:#2a1d12;--muted:#6a4429;}`,
+        royal: `:root{--panel:#fffdf7;--border:#caa04a;--accent:#a16207;--ink:#111827;--muted:#374151;}`
+      }[design] || '';
+
+      const extraDecor = {
+        classic: '',
+        minimal: `.top-decor{opacity:.6;filter:saturate(.8)} .card::before{border-color:rgba(180,83,9,.22)}`,
+        festive: `.garland{position:absolute;top:92px;left:50%;transform:translateX(-50%);width:min(520px,92%);height:56px;z-index:2;pointer-events:none;
+                  background:
+                    radial-gradient(circle at 5% 30%, #ffb703 0 12px, transparent 13px),
+                    radial-gradient(circle at 15% 30%, #ffd27a 0 12px, transparent 13px),
+                    radial-gradient(circle at 25% 30%, #ffb703 0 12px, transparent 13px),
+                    radial-gradient(circle at 35% 30%, #ffd27a 0 12px, transparent 13px),
+                    radial-gradient(circle at 45% 30%, #ffb703 0 12px, transparent 13px),
+                    radial-gradient(circle at 55% 30%, #ffd27a 0 12px, transparent 13px),
+                    radial-gradient(circle at 65% 30%, #ffb703 0 12px, transparent 13px),
+                    radial-gradient(circle at 75% 30%, #ffd27a 0 12px, transparent 13px),
+                    radial-gradient(circle at 85% 30%, #ffb703 0 12px, transparent 13px),
+                    radial-gradient(circle at 95% 30%, #ffd27a 0 12px, transparent 13px);
+                  filter: drop-shadow(0 8px 14px rgba(42,29,18,.18));
+                 }
+                 .garland::after{content:"";position:absolute;left:2%;right:2%;top:10px;height:2px;background:rgba(180,83,9,.35);border-radius:999px}
+                 .top-decor{opacity:.85}`,
+        royal: `.top-decor{background:
+                  radial-gradient(180px 140px at 18% 80%, rgba(255,194,106,.75), transparent 70%),
+                  radial-gradient(220px 170px at 38% 72%, rgba(255,217,161,.75), transparent 72%),
+                  radial-gradient(260px 190px at 62% 78%, rgba(255,194,106,.68), transparent 72%),
+                  radial-gradient(210px 160px at 82% 85%, rgba(255,217,161,.68), transparent 72%),
+                  linear-gradient(180deg, rgba(30,64,175,.55), rgba(30,64,175,0));}
+                 .logo{background:linear-gradient(180deg, rgba(30,64,175,.06), rgba(255,255,255,.85))}
+                 .card::before{border-color:rgba(202,160,74,.55)}`
+      }[design] || '';
+
+      const extraNode = (design === 'festive') ? '<div class="garland" aria-hidden="true"></div>' : '';
+      const floatersHTML = onFlowers ? buildFloaters(density) : '';
+
+      const defaultLang = (langMode === 'both') ? 'hi' : langMode;
+
+      return `<!doctype html>
+<html lang="${defaultLang}">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>${escHtml(I18N[defaultLang].pageTitle)} | ${escHtml(owner)}</title>
+<style>
+${designCSS}
+:root{
+  --saffron-50:#fff7e6;--saffron-100:#ffe8bf;--saffron-200:#ffd9a1;--saffron-300:#ffc26a;--saffron-400:#ffa84a;--saffron-500:#ff8a00;
+  --rose-1:#ffb3b3;--rose-2:#ff7a7a;--rose-3:#e94b4b;--marigold-1:#ffd27a;--marigold-2:#ffb703;
+  --shadow:0 24px 70px rgba(42,29,18,.18);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Noto Serif Devanagari","Mangal","Kalimati",system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; color:var(--ink);
+  background:linear-gradient(180deg,var(--saffron-50),#fff);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.wrap{width:min(860px,100%)}
+.frame{background:var(--border);padding:22px;border-radius:14px;box-shadow:var(--shadow)}
+.card{position:relative;background:var(--panel);border-radius:10px;overflow:hidden;min-height:1080px}
+.card::before{content:"";position:absolute;inset:18px;border:2px solid rgba(243,164,74,.45);pointer-events:none;z-index:3}
+.top-decor{position:absolute;top:0;left:0;right:0;height:240px;background:
+  radial-gradient(180px 140px at 18% 80%, rgba(255,194,106,.95), transparent 70%),
+  radial-gradient(220px 170px at 38% 72%, rgba(255,217,161,.95), transparent 72%),
+  radial-gradient(260px 190px at 62% 78%, rgba(255,194,106,.9), transparent 72%),
+  radial-gradient(210px 160px at 82% 85%, rgba(255,217,161,.9), transparent 72%),
+  linear-gradient(180deg, rgba(255,168,74,.6), rgba(255,168,74,0));
+  border-bottom-left-radius:50% 35%;border-bottom-right-radius:50% 35%;pointer-events:none;z-index:1}
+${onRangoli ? `.rangoli{position:absolute;top:170px;left:50%;width:320px;height:320px;transform:translateX(-50%) scale(.2);border-radius:50%;opacity:0;
+  background:radial-gradient(circle at center, rgba(255,255,255,.9) 0 8%, transparent 9%),
+  conic-gradient(var(--marigold-2),var(--rose-2),var(--saffron-400),var(--rose-3),var(--marigold-1),var(--saffron-300),var(--rose-1),var(--marigold-2));
+  animation:rangoliIn 2.8s ease-out forwards;z-index:2}
+@keyframes rangoliIn{0%{transform:translateX(-50%) scale(.2);opacity:0}60%{opacity:1}100%{transform:translateX(-50%) scale(1);opacity:.25}}` : ''}
+
+/* Toggle button for single-language modes */
+.lang-pill{position:absolute;top:26px;left:26px;z-index:7;border:1px solid rgba(243,164,74,.55);background:#fffaf2;color:#7c2d12;
+  border-radius:999px;padding:10px 14px;font-weight:900;cursor:pointer;box-shadow:0 6px 18px rgba(42,29,18,.18)}
+.lang-pill:active{transform:translateY(1px)}
+
+${onBell ? `.bell-btn{position:absolute;top:26px;right:26px;z-index:7;border:none;background:#fffaf2;border-radius:50%;width:46px;height:46px;font-size:22px;cursor:pointer;box-shadow:0 6px 18px rgba(42,29,18,.18)}
+.bell-btn:active{transform:scale(.95)}` : ''}
+
+/* Floaters */
+.floaters{position:absolute;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.rose,.petal{position:absolute;bottom:-100px;left:var(--x);width:var(--s);height:var(--s);opacity:var(--o);
+  animation:floatUp var(--t) linear infinite,sway var(--w) ease-in-out infinite,spin var(--r) linear infinite}
+.rose::before{content:"";position:absolute;inset:0;border-radius:50%;background:
+  radial-gradient(circle at 50% 50%, #fff 0 18%, transparent 19%),
+  radial-gradient(circle at 35% 40%, var(--rose-1) 0 38%, transparent 39%),
+  radial-gradient(circle at 65% 40%, var(--rose-2) 0 38%, transparent 39%),
+  radial-gradient(circle at 40% 65%, var(--rose-3) 0 38%, transparent 39%),
+  radial-gradient(circle at 60% 65%, var(--rose-2) 0 38%, transparent 39%);
+  box-shadow:0 10px 22px rgba(42,29,18,.12)}
+.petal::before{content:"";position:absolute;inset:0;border-radius:60% 60% 60% 60% / 70% 70% 50% 50%;
+  background:radial-gradient(circle at 30% 30%, var(--marigold-1), var(--marigold-2));
+  box-shadow:0 8px 18px rgba(42,29,18,.12)}
+@keyframes floatUp{from{transform:translateY(0)}to{transform:translateY(-1400px)}}
+@keyframes sway{0%,100%{margin-left:-22px}50%{margin-left:22px}}
+@keyframes spin{from{rotate:0deg}to{rotate:360deg}}
+
+.content{position:relative;padding:160px 44px 44px;display:flex;flex-direction:column;gap:24px;min-height:1080px;z-index:4}
+.top-center{text-align:center}
+.ganesh{width:72px;height:72px;border-radius:18px;display:grid;place-items:center;background:#fff7e6;border:2px solid rgba(243,164,74,.6);font-size:36px;margin:0 auto 6px}
+
+/* bilingual helpers */
+.bh{font-size:13px;letter-spacing:.14em;color:var(--muted)}
+.be{font-size:12px;letter-spacing:.18em;color:rgba(106,68,41,.72);margin-top:6px}
+
+.title{margin:12px 0 0;font-weight:900;letter-spacing:.14em;font-size:44px}
+.subtitle{margin:0;font-size:15px;letter-spacing:.1em;color:var(--muted)}
+.logo-block{text-align:center}
+.logo{display:inline-block;padding:20px 24px;border:2px solid rgba(243,164,74,.55);border-radius:14px;background:#fffaf2}
+.logo .name{font-size:32px;font-weight:900;letter-spacing:.14em}
+.logo .sub{font-size:13px;letter-spacing:.22em;color:var(--muted)}
+.date-pill{margin-top:16px;display:inline-block;padding:12px 22px;border-radius:999px;border:2px solid rgba(243,164,74,.6);background:#fff;font-weight:900}
+.address{margin:26px auto 0;max-width:620px;text-align:center;padding:18px 20px;border:2px solid rgba(243,164,74,.6);border-radius:16px;background:#fffaf2}
+.address h4{margin:0 0 6px;color:var(--accent);letter-spacing:.14em;font-size:14px;text-transform:uppercase}
+.address p{margin:0;font-size:16px;line-height:1.6}
+${onMap ? `.map{margin-top:14px;border-radius:14px;overflow:hidden;border:2px solid rgba(243,164,74,.45);aspect-ratio:16/9}
+.map iframe{width:100%;height:100%;border:0}
+.location-actions{margin-top:10px;display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+.loc-btn{padding:10px 14px;border-radius:999px;border:2px solid rgba(243,164,74,.55);background:#fff;color:var(--accent);font-weight:900;cursor:pointer}` : ''}
+.bottom{margin-top:auto;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:flex-end}
+.awaiting{border:2px solid rgba(243,164,74,.55);padding:16px 18px;border-radius:14px;background:#fffaf2}
+.actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.btn{border:none;border-radius:999px;padding:12px 18px;color:#fff;background:linear-gradient(180deg,var(--saffron-400),var(--saffron-500));cursor:pointer;font-weight:900}
+.btn.whatsapp{background:linear-gradient(180deg,#25D366,#128C7E)}
+${extraDecor}
+@media print{.floaters,.actions,.map,.location-actions,.bell-btn,.lang-pill,.garland{display:none}body{background:#fff}}
+</style></head>
+<body>
+  <main class="wrap">
+    <div class="frame">
+      <section class="card">
+        <div class="top-decor"></div>
+        ${extraNode}
+        ${onRangoli ? '<div class="rangoli" aria-hidden="true"></div>' : ''}
+        ${langMode === 'both' ? '' : '<button class="lang-pill" id="langBtn" type="button"></button>'}
+        ${onBell ? '<button class="bell-btn" onclick="playBell()" title="Bell">🔔</button>' : ''}
+        ${onFlowers ? floatersHTML : ''}<div class="content">
+      <header class="top-center">
+        <div class="ganesh">ॐ</div>
+        ${langMode === 'both' ? `
+          <div class="bh">${escHtml(I18N.hi.mantra)}<\/div>
+          <div class="be">${escHtml(I18N.en.mantra)}<\/div>
+          <h1 class="title">${escHtml(I18N.hi.title)}<\/h1>
+          <div class="be" style="font-size:13px;letter-spacing:.14em;margin-top:8px">${escHtml(I18N.en.title)}<\/div>
+          <p class="subtitle">${escHtml(I18N.hi.subtitle)}<\/p>
+          <div class="be" style="margin-top:6px">${escHtml(I18N.en.subtitle)}<\/div>
+        ` : `
+          <div class="mantra" data-i="mantra"><\/div>
+          <h1 class="title" data-i="title"><\/h1>
+          <p class="subtitle" data-i="subtitle"><\/p>
+        `}
+      </header>
+
+      <section class="logo-block">
+        <div class="logo">
+          <div class="name">${escHtml(owner)}<\/div>
+          ${langMode === 'both' ? `
+            <div class="sub">${escHtml(I18N.hi.familyInvite)}<\/div>
+            <div class="be">${escHtml(I18N.en.familyInvite)}<\/div>
+          ` : `<div class="sub" data-i="familyInvite"><\/div>`}
+        </div>
+        ${langMode === 'both' ? `
+          <div class="date-pill">${escHtml(I18N.hi.datePrefix + date)}<\/div>
+          <div class="be" style="text-align:center;margin-top:10px">${escHtml(I18N.en.datePrefix + date)}<\/div>
+        ` : `<div class="date-pill" id="dateLine"><\/div>`}
+      </section>
+
+      <section class="address">
+        ${langMode === 'both' ? `
+          <h4>${escHtml(I18N.hi.venueLoc)}<\/h4>
+          <div class="be" style="margin:6px 0 12px">${escHtml(I18N.en.venueLoc)}<\/div>
+        ` : `<h4 data-i="venueLoc"><\/h4>`}
+        <p>${addressHtml}<\/p>
+        ${onMap ? `<div class="location-actions"><button class="loc-btn" id="dirBtn" type="button"><\/button><\/div>
+        <div class="map"><iframe loading="lazy" src="https://www.google.com/maps?q=${encodeURIComponent(mapq)}&output=embed"><\/iframe><\/div>` : ''}
+      </section>
+
+      <section class="bottom">
+        <div class="awaiting">
+          ${langMode === 'both' ? `
+            <strong>${escHtml(I18N.hi.awaiting)}<\/strong><br>
+            <span class="be" style="display:block;margin-top:4px">${escHtml(I18N.en.awaiting)}<\/span>
+          ` : `<strong data-i="awaiting"><\/strong><br>`}
+          ${escHtml(owner)}<br>
+          📞 ${escHtml(phone)}
+        </div>
+        <div class="actions">
+          <button class="btn" id="printBtn" type="button"><\/button>
+          <button class="btn whatsapp" id="waBtn" type="button"><\/button>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      const I18N = ${JSON.stringify(I18N)};
+      const MODE = ${JSON.stringify(langMode)}; // hi|en|both
+      let LANG = ${JSON.stringify(langMode === 'both' ? 'hi' : defaultLang)};
+
+      const mapQ = '${encodeURIComponent(mapq)}';
+      const waHI = ${JSON.stringify(waHI)};
+      const waEN = ${JSON.stringify(waEN)};
+      const waBOTH = ${JSON.stringify(waBOTH)};
+
+      function applyLang(){
+        if(MODE === 'both') return; // bilingual is static
+        document.documentElement.lang = LANG;
+        const t = I18N[LANG];
+        document.title = t.pageTitle + ' | ' + ${JSON.stringify(owner)};
+        document.querySelectorAll('[data-i]').forEach(el=>{ el.textContent = t[el.getAttribute('data-i')] || ''; });
+        const langBtn = document.getElementById('langBtn');
+        if(langBtn) langBtn.textContent = t.toggleLabel;
+        const dateLine = document.getElementById('dateLine');
+        if(dateLine) dateLine.textContent = t.datePrefix + ${JSON.stringify(date)};
+        const dirBtn = document.getElementById('dirBtn');
+        if(dirBtn) dirBtn.textContent = t.directions;
+      }
+
+      function toggleLang(){
+        if(MODE === 'both') return;
+        LANG = (LANG === 'hi') ? 'en' : 'hi';
+        applyLang();
+      }
+
+      function shareWA(){
+        const txt = (MODE === 'both') ? waBOTH : ((LANG === 'hi') ? waHI : waEN);
+        window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank');
+      }
+
+      function openMaps(){ window.open('https://www.google.com/maps?q=' + mapQ, '_blank'); }
+      function playBell(){
+        try{ const a = new Audio('https://cdn.pixabay.com/download/audio/2022/03/15/audio_4a0b6e5b7a.mp3?filename=temple-bell-110624.mp3'); a.volume=0.4; a.play(); }catch(e){}
+      }
+
+      document.getElementById('langBtn')?.addEventListener('click', toggleLang);
+      document.getElementById('waBtn')?.addEventListener('click', shareWA);
+      document.getElementById('printBtn')?.addEventListener('click', ()=>window.print());
+      document.getElementById('dirBtn')?.addEventListener('click', openMaps);
+
+      // Label action buttons
+      function setActionLabels(){
+        if(MODE === 'both'){
+          document.getElementById('printBtn').textContent = '🖨️ ' + I18N.hi.print + ' / ' + I18N.en.print;
+          document.getElementById('waBtn').textContent = '📲 ' + I18N.hi.whatsapp + ' / ' + I18N.en.whatsapp;
+          const d = document.getElementById('dirBtn');
+          if(d) d.textContent = I18N.en.directions; // keep English icon label for map
+          document.title = I18N.hi.pageTitle + ' | ' + ${JSON.stringify(owner)};
+          return;
+        }
+        const t = I18N[LANG];
+        document.getElementById('printBtn').textContent = '🖨️ ' + t.print;
+        document.getElementById('waBtn').textContent = '📲 ' + t.whatsapp;
+      }
+
+      applyLang();
+      setActionLabels();
+    <\/script>
+  </section>
+</div>
+
+  </main>
+</body>
+</html>`;
+    }function refreshPreview(){
+  try{
+    const html = buildInviteHTML();
+    els.pv.srcdoc = html;
+    els.mode.textContent = `mode: ${els.langMode.value} • design: ${els.design.value} • density: ${els.density.value}`;
+    els.status.textContent = 'Preview updated';
+    els.status.className = 'status ok';
+  }catch(e){
+    els.status.textContent = 'Error: ' + e.message;
+    els.status.className = 'status bad';
+  }
+}
+
+function downloadHTML(){
+  const html = buildInviteHTML();
+  const blob = new Blob([html], {type:'text/html'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'grih-pravesh-invite.html';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+}
+
+async function copyHTML(){
+  const html = buildInviteHTML();
+  await navigator.clipboard.writeText(html);
+  els.status.textContent = 'Copied HTML to clipboard';
+  els.status.className = 'status ok';
+}
+
+function setSelectedThumb(design){
+  document.querySelectorAll('.thumb').forEach(t=>t.classList.toggle('selected', t.dataset.design === design));
+}
+
+function resetForm(){
+  $('langMode').value = 'hi';
+  $('owner').value = 'Deepak Roy';
+  $('address').value = 'Sa-18/132, Nai Basti, Pandepur, Varanasi 221007.';
+  $('date').value = '23 Jan 2026';
+  $('phone').value = '+91-__________';
+  $('mapq').value = 'Sa-18/132 Nai Basti Pandepur Varanasi';
+  $('design').value = 'classic';
+  $('density').value = 'med';
+  $('tRangoli').checked = true;
+  $('tFlowers').checked = true;
+  $('tBell').checked = true;
+  $('tMap').checked = true;
+  setSelectedThumb('classic');
+  refreshPreview();
+}
+
+// Builder events
+document.querySelectorAll('#f input, #f textarea, #f select').forEach(el => {
+  el.addEventListener('input', refreshPreview);
+  el.addEventListener('change', refreshPreview);
+});
+
+// Thumbnail click -> select design
+els.thumbs.addEventListener('click', (e)=>{
+  const thumb = e.target.closest('.thumb');
+  if(!thumb) return;
+  els.design.value = thumb.dataset.design;
+  setSelectedThumb(thumb.dataset.design);
+  refreshPreview();
+});
+// Keyboard support
+els.thumbs.addEventListener('keydown', (e)=>{
+  if(e.key !== 'Enter' && e.key !== ' ') return;
+  const thumb = e.target.closest('.thumb');
+  if(!thumb) return;
+  e.preventDefault();
+  els.design.value = thumb.dataset.design;
+  setSelectedThumb(thumb.dataset.design);
+  refreshPreview();
+});
+
+$('btnRefresh').addEventListener('click', refreshPreview);
+$('btnDownload').addEventListener('click', (e)=>{e.preventDefault(); downloadHTML();});
+$('btnCopy').addEventListener('click', async (e)=>{e.preventDefault();
+  try{ await copyHTML(); }catch{ els.status.textContent='Clipboard blocked (try HTTPS)'; els.status.className='status bad'; }
+});
+$('btnReset').addEventListener('click', (e)=>{e.preventDefault(); resetForm();});
+
+// Sync thumbs when dropdown changes
+els.design.addEventListener('change', ()=>setSelectedThumb(els.design.value));
+
+// First render
+refreshPreview();
+
+  </script>
+</body>
+</html>
