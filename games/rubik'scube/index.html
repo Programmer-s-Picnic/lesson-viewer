@@ -1,1214 +1,167 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>3D Rubik’s Cube + Solver — Manual Moves + User Moves Dropdown</title>
-
-    <style>
-      :root {
-        /* UI Theme (light saffron) */
-        --bg: #fff7e6;
-        --card: #ffffff;
-        --ink: #1f2937;
-        --muted: #6b7280;
-        --brand: #d97706;
-        --brand2: #f59e0b;
-        --border: #eadcc5;
-        --shadow: 0 18px 40px rgba(31, 41, 55, 0.14);
-        --codebg: #111827;
-        --codeink: #e5e7eb;
-        --ok: #166534;
-        --warn: #92400e;
-      }
-      * { box-sizing: border-box; }
-      body {
-        margin: 0;
-        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-        color: var(--ink);
-        background: radial-gradient(900px 420px at 20% 0%, #fff1d6 0%, var(--bg) 55%, #fffaf1 100%);
-      }
-      header {
-        position: sticky;
-        top: 0;
-        z-index: 5;
-        padding: 12px 14px;
-        background: linear-gradient(135deg, #fff 0%, #fff7ea 60%, #fff 100%);
-        border-bottom: 1px solid var(--border);
-        box-shadow: var(--shadow);
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 12px;
-      }
-      h1 { margin: 0; font-size: 16px; color: var(--brand); line-height: 1.2; }
-      .sub { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
-
-      .badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        padding: 8px 10px;
-        border-radius: 999px;
-        background: #fff1d6;
-        border: 1px solid var(--border);
-        font-weight: 900;
-        font-size: 12px;
-        color: #7a4b00;
-        white-space: nowrap;
-      }
-      .dot {
-        width: 9px;
-        height: 9px;
-        border-radius: 99px;
-        background: var(--brand2);
-        box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
-      }
-
-      .wrap {
-        max-width: 1200px;
-        margin: 14px auto 26px;
-        padding: 0 14px;
-        display: grid;
-        grid-template-columns: 1.7fr 1fr;
-        gap: 14px;
-      }
-      @media (max-width: 980px) { .wrap { grid-template-columns: 1fr; } }
-
-      .card {
-        background: var(--card);
-        border: 1px solid var(--border);
-        border-radius: 18px;
-        box-shadow: var(--shadow);
-        overflow: hidden;
-      }
-      .controls {
-        padding: 12px 14px;
-        border-bottom: 1px solid var(--border);
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        align-items: center;
-      }
-      button {
-        appearance: none;
-        border: 1px solid var(--border);
-        background: linear-gradient(180deg, #fff 0%, #fff5df 100%);
-        color: var(--ink);
-        border-radius: 12px;
-        padding: 9px 11px;
-        font-weight: 800;
-        cursor: pointer;
-        box-shadow: 0 8px 18px rgba(31, 41, 55, 0.1);
-      }
-      button.primary {
-        border-color: rgba(217, 119, 6, 0.45);
-        background: linear-gradient(180deg, #fffbf2 0%, #ffe5b4 100%);
-      }
-      button.ghost { box-shadow: none; background: #fff; }
-      button:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
-
-      #stage {
-        height: 560px;
-        background: radial-gradient(1200px 500px at 50% 15%, #ffffff 0%, #fff7ea 40%, #fff3dd 100%);
-      }
-      @media (max-width: 980px) { #stage { height: 520px; } }
-
-      .sideHead {
-        padding: 12px 14px;
-        border-bottom: 1px solid var(--border);
-        background: linear-gradient(135deg, #fff 0%, #fff7ea 60%, #fff 100%);
-      }
-      .sideHead h2 { margin: 0; font-size: 14px; color: var(--brand); }
-      .sideBody { padding: 12px 14px; }
-
-      .row {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: space-between;
-      }
-      .pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 10px;
-        border-radius: 999px;
-        background: #fff;
-        border: 1px solid var(--border);
-        font-size: 12px;
-        color: var(--muted);
-      }
-      .k {
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-        font-size: 12px;
-        padding: 2px 8px;
-        border-radius: 999px;
-        border: 1px solid var(--border);
-        background: #fff7ea;
-        color: #7a4b00;
-        font-weight: 800;
-      }
-
-      .grid2 {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
-        margin-top: 10px;
-      }
-      @media (max-width: 520px) { .grid2 { grid-template-columns: 1fr; } }
-
-      .label {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        font-size: 12px;
-        font-weight: 800;
-        color: var(--muted);
-        margin-bottom: 6px;
-      }
-      input[type="range"] { width: 100%; }
-
-      .panel {
-        margin-top: 12px;
-        border: 1px solid var(--border);
-        border-radius: 14px;
-        overflow: hidden;
-        background: #fff;
-      }
-      .panelHead {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        padding: 10px 12px;
-        border-bottom: 1px solid var(--border);
-        background: linear-gradient(135deg, #fff 0%, #fff7ea 60%, #fff 100%);
-      }
-      .panelHead b { color: var(--brand); font-size: 12.5px; }
-      .panelBody { padding: 10px 12px; }
-
-      .mono {
-        background: var(--codebg);
-        color: var(--codeink);
-        border-radius: 12px;
-        padding: 10px 10px;
-        border: 1px solid rgba(234, 220, 197, 0.35);
-        white-space: pre-wrap;
-        word-break: break-word;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-        font-size: 12.2px;
-        line-height: 1.45;
-        min-height: 62px;
-      }
-
-      details {
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        overflow: hidden;
-        background: #fff;
-        margin-top: 10px;
-      }
-      details > summary {
-        list-style: none;
-        cursor: pointer;
-        padding: 10px 12px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        font-weight: 900;
-        color: var(--brand);
-        background: linear-gradient(135deg, #fff 0%, #fff7ea 60%, #fff 100%);
-        border-bottom: 1px solid var(--border);
-      }
-      details > summary::-webkit-details-marker { display: none; }
-      .stepsBody { padding: 10px 12px; }
-
-      .chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-      .chip {
-        border: 1px solid var(--border);
-        border-radius: 999px;
-        padding: 6px 10px;
-        background: #fff;
-        font-weight: 900;
-        font-size: 12px;
-        cursor: pointer;
-        box-shadow: 0 8px 18px rgba(31, 41, 55, 0.08);
-      }
-      .chip.active { border-color: rgba(245, 158, 11, 0.8); background: #fff1d6; }
-
-      .tiny { font-size: 12px; color: var(--muted); line-height: 1.45; }
-      .tiny code { background: #fff; border: 1px solid var(--border); padding: 1px 6px; border-radius: 10px; }
-      .ok { color: var(--ok); font-weight: 900; }
-      .warn { color: var(--warn); font-weight: 900; }
-
-      /* select */
-      select {
-        width: 100%;
-        padding: 10px 10px;
-        border-radius: 12px;
-        border: 1px solid var(--border);
-        background: #fff;
-        font-weight: 800;
-        color: var(--ink);
-        outline: none;
-      }
-      select:focus { border-color: rgba(217, 119, 6, 0.45); box-shadow: 0 0 0 3px rgba(245,158,11,.18); }
-    </style>
-
-    <script src="https://unpkg.com/three@0.149.0/build/three.min.js"></script>
-    <script src="https://ldez.github.io/cubejs/lib/cube.js"></script>
-    <script src="https://ldez.github.io/cubejs/lib/solve.js"></script>
-  </head>
-
-  <body>
-    <header>
-      <div>
-        <h1>3D Rubik’s Cube + Solver</h1>
-        <div class="sub">Manual move buttons → saved into “User moves” dropdown • Cube color schemes included</div>
-      </div>
-      <div class="badge"><span class="dot"></span> Programmer’s Picnic</div>
-    </header>
-
-    <div class="wrap">
-      <section class="card">
-        <div class="controls">
-          <button class="primary" id="btnInit">Init Solver</button>
-          <button class="primary" id="btnScramble" disabled>Scramble</button>
-          <button class="primary" id="btnSolve" disabled>Solve</button>
-          <button id="btnStep" disabled>Step</button>
-          <button id="btnPlay" disabled>Play</button>
-          <button class="ghost" id="btnReset">Reset</button>
-        </div>
-        <div id="stage"></div>
-      </section>
-
-      <aside class="card">
-        <div class="sideHead"><h2>Status, Steps, Colors & Help</h2></div>
-        <div class="sideBody">
-          <div class="row">
-            <div class="pill">Solver: <span class="k" id="solverState">not initialized</span></div>
-            <div class="pill">
-              Busy: <span class="k" id="busy">no</span> • Queue: <span class="k" id="qCount">0</span>
-            </div>
-          </div>
-
-          <!-- Hidden sliders (kept for animation duration & scramble length logic) -->
-          <div class="grid2">
-            <div style="visibility: hidden">
-              <div class="label">Animation speed <span class="k" id="speedTag">280ms</span></div>
-              <input id="speed" type="range" min="120" max="650" value="280" />
-            </div>
-            <div style="visibility: hidden">
-              <div class="label">Scramble length <span class="k" id="scrTag">20</span></div>
-              <input id="scrLen" type="range" min="5" max="35" value="20" />
-            </div>
-          </div>
-
-          <!-- Cube color schemes (applied to cube stickers) -->
-          <div class="panel">
-            <div class="panelHead"><b>Cube color scheme</b><span class="k">Live</span></div>
-            <div class="panelBody">
-              <div class="tiny">Changes sticker colors instantly (works even after scramble).</div>
-              <div style="height:8px"></div>
-              <select id="schemeSelect">
-                <option value="standard" selected>Standard (WCA)</option>
-                <option value="neon">Dark / Neon</option>
-                <option value="pastel">Pastel (Teaching)</option>
-                <option value="picnic">Programmer’s Picnic</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="panel">
-            <div class="panelHead">
-              <b>Current queue</b>
-              <button class="ghost" id="btnCopyQueue">Copy</button>
-            </div>
-            <div class="panelBody">
-              <div class="mono" id="movesBox">—</div>
-            </div>
-          </div>
-
-          <!-- Manual Moves -->
-          <div class="panel">
-            <div class="panelHead">
-              <b>Manual moves</b>
-              <span class="k">Click</span>
-            </div>
-            <div class="panelBody">
-              <div class="tiny">Tap a move to apply it immediately (saved into <b>User moves</b>).</div>
-              <div class="chips" id="manualMoves"></div>
-            </div>
-          </div>
-
-          <!-- User Moves Dropdown -->
-          <details id="userDetails">
-            <summary><span>User moves</span><span class="k" id="userCount">0</span></summary>
-            <div class="stepsBody">
-              <div class="tiny">Moves you made manually. Click any move to preview explanation.</div>
-              <div class="chips" id="userChips"></div>
-            </div>
-          </details>
-
-          <details id="scrambleDetails">
-            <summary><span>Scramble steps</span><span class="k" id="scrambleCount">0</span></summary>
-            <div class="stepsBody">
-              <div class="tiny">Moves used for the last scramble. Click to preview.</div>
-              <div class="chips" id="scrambleChips"></div>
-            </div>
-          </details>
-
-          <details id="solveDetails">
-            <summary><span>Solving steps</span><span class="k" id="solveCount">0</span></summary>
-            <div class="stepsBody">
-              <div class="tiny">Solution moves. Use <b>Step</b> / <b>Play</b> to execute.</div>
-              <div class="chips" id="solveChips"></div>
-            </div>
-          </details>
-
-          <div class="panel">
-            <div class="panelHead"><b>Move explanation</b><span class="k">Live</span></div>
-            <div class="panelBody">
-              <div class="mono" id="moveExplain">No move yet. Use Scramble, Step, Play, or Manual moves.</div>
-            </div>
-          </div>
-
-          <div class="panel">
-            <div class="panelHead"><b>Help</b><span class="k">Notation</span></div>
-            <div class="panelBody">
-              <div class="tiny">
-                <div><span class="ok">How to use:</span></div>
-                <div><span class="ok">1)</span> Click <b>Init Solver</b> (one-time).</div>
-                <div><span class="ok">2)</span> Click <b>Scramble</b> then <b>Solve</b>.</div>
-                <div><span class="ok">3)</span> Click <b>Play</b> to animate the solution.</div>
-
-                <div style="margin-top:10px"><span class="warn">Move notation (very important):</span></div>
-                <div style="margin-top:6px">
-                  Each move turns <b>one face</b>. The direction is defined as if you are
-                  <b>looking directly at that face</b>.
-                </div>
-
-                <div style="margin-top:8px">
-                  <b>Faces:</b>
-                  <code>R</code> Right, <code>L</code> Left, <code>U</code> Up (top), <code>D</code> Down (bottom),
-                  <code>F</code> Front, <code>B</code> Back
-                </div>
-
-                <div style="margin-top:8px">
-                  <b>Modifiers:</b>
-                  <code>(none)</code> = 90° clockwise,
-                  <code>'</code> (prime) = 90° counter-clockwise,
-                  <code>2</code> = 180° turn
-                </div>
-
-                <div style="margin-top:8px">
-                  <b>Examples:</b>
-                  <code>R</code> = right clockwise,
-                  <code>R'</code> = right counter-clockwise,
-                  <code>R2</code> = right 180°,
-                  <code>R U R' U'</code> = common beginner sequence
-                </div>
-
-                <div style="margin-top:8px">
-                  <b>What about “A” or “A'”?</b><br />
-                  <span class="warn">A is not standard Rubik’s notation.</span> Your solver uses only
-                  <code>R L U D F B</code> plus <code>'</code> or <code>2</code>.
-                </div>
-
-                <div style="margin-top:10px"><span class="warn">Rotate view:</span> drag inside the cube area.</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="tiny" style="margin-top: 10px"></div>
-        </div>
-      </aside>
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>3D Rubik’s Cube + Solver — Cube Color Schemes + Notation Help</title>  <!-- =========================
+       UI THEME (Light Saffron)
+  ========================= -->  <style>
+    :root{
+      --bg:#fff7e6;--card:#ffffff;--ink:#1f2937;--muted:#6b7280;
+      --brand:#d97706;--brand2:#f59e0b;--border:#eadcc5;
+      --shadow:0 18px 40px rgba(31,41,55,.14);
+      --codebg:#111827;--codeink:#e5e7eb;--ok:#166534;--warn:#92400e;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:var(--ink);
+      background:radial-gradient(900px 420px at 20% 0%,#fff1d6 0%,var(--bg) 55%,#fffaf1 100%)}
+    header{position:sticky;top:0;z-index:5;padding:12px 14px;background:linear-gradient(135deg,#fff 0%,#fff7ea 60%,#fff 100%);
+      border-bottom:1px solid var(--border);box-shadow:var(--shadow);display:flex;justify-content:space-between;gap:12px}
+    h1{margin:0;font-size:16px;color:var(--brand)}
+    .sub{font-size:12px;color:var(--muted)}
+    .badge{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;background:#fff1d6;border:1px solid var(--border);font-weight:900;font-size:12px}
+    .dot{width:9px;height:9px;border-radius:99px;background:var(--brand2)}
+    .wrap{max-width:1200px;margin:14px auto;padding:0 14px;display:grid;grid-template-columns:1.7fr 1fr;gap:14px}
+    @media(max-width:980px){.wrap{grid-template-columns:1fr}}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow);overflow:hidden}
+    .controls{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;gap:10px;flex-wrap:wrap}
+    button{border:1px solid var(--border);background:linear-gradient(180deg,#fff 0%,#fff5df 100%);
+      border-radius:12px;padding:9px 11px;font-weight:800;cursor:pointer}
+    button.primary{background:linear-gradient(180deg,#fffbf2 0%,#ffe5b4 100%)}
+    #stage{height:560px;background:#fff7ea}
+    .sideHead{padding:12px 14px;border-bottom:1px solid var(--border)}
+    .sideBody{padding:12px 14px}
+    .panel{margin-top:12px;border:1px solid var(--border);border-radius:14px;overflow:hidden}
+    .panelHead{padding:10px 12px;background:#fff7ea;font-weight:900;color:var(--brand)}
+    .panelBody{padding:10px 12px}
+    .mono{background:var(--codebg);color:var(--codeink);border-radius:12px;padding:10px;font-family:ui-monospace,monospace}
+    .chips{display:flex;flex-wrap:wrap;gap:8px}
+    .chip{border:1px solid var(--border);border-radius:999px;padding:6px 10px;font-weight:900;cursor:pointer}
+    .tiny{font-size:12px;color:var(--muted)}
+    select{width:100%;padding:8px;border-radius:10px;border:1px solid var(--border)}
+  </style>  <!-- =========================
+       LIBRARIES (FIXED)
+       Cube.js from jsDelivr
+  ========================= -->  <script src="https://unpkg.com/three@0.149.0/build/three.min.js"></script>  <script src="https://cdn.jsdelivr.net/npm/cubejs@1.3.0/dist/cube.min.js"></script></head><body>
+<header>
+  <div>
+    <h1>3D Rubik’s Cube + Solver</h1>
+    <div class="sub">Cube color schemes • Manual moves • Solver</div>
+  </div>
+  <div class="badge"><span class="dot"></span> Programmer’s Picnic</div>
+</header><div class="wrap">
+  <section class="card">
+    <div class="controls">
+      <button class="primary" id="btnInit">Init Solver</button>
+      <button class="primary" id="btnScramble" disabled>Scramble</button>
+      <button class="primary" id="btnSolve" disabled>Solve</button>
+      <button id="btnPlay" disabled>Play</button>
+      <button id="btnReset">Reset</button>
     </div>
-
-    <script>
-      /* =========================
-         DOM helpers
-      ========================= */
-      const $ = (id) => document.getElementById(id);
-
-      const btnInit = $("btnInit");
-      const btnScramble = $("btnScramble");
-      const btnSolve = $("btnSolve");
-      const btnStep = $("btnStep");
-      const btnPlay = $("btnPlay");
-      const btnReset = $("btnReset");
-      const btnCopyQueue = $("btnCopyQueue");
-
-      const solverState = $("solverState");
-      const busyEl = $("busy");
-      const qCountEl = $("qCount");
-      const movesBox = $("movesBox");
-
-      const speed = $("speed");
-      const scrLen = $("scrLen");
-      const speedTag = $("speedTag");
-      const scrTag = $("scrTag");
-
-      const schemeSelect = $("schemeSelect");
-
-      const moveExplainBox = $("moveExplain");
-
-      const manualMoves = $("manualMoves");
-      const userDetails = $("userDetails");
-      const userChips = $("userChips");
-      const userCount = $("userCount");
-
-      const scrambleDetails = $("scrambleDetails");
-      const solveDetails = $("solveDetails");
-
-      const scrambleChips = $("scrambleChips");
-      const solveChips = $("solveChips");
-      const scrambleCount = $("scrambleCount");
-      const solveCount = $("solveCount");
-
-      function setBusy(v) { busyEl.textContent = v ? "yes" : "no"; }
-      function setQueueCount(n) { qCountEl.textContent = String(n); }
-      function setMovesText(t) { movesBox.textContent = t || "—"; }
-      function setSolverText(t) { solverState.textContent = t; }
-
-      function refreshLabels() {
-        speedTag.textContent = `${Number(speed.value)}ms`;
-        scrTag.textContent = `${Number(scrLen.value)}`;
-      }
-      speed.addEventListener("input", refreshLabels);
-      scrLen.addEventListener("input", refreshLabels);
-      refreshLabels();
-
-      /* =========================
-         Move explanation
-      ========================= */
-      function explainMove(move) {
-        if (!move) {
-          moveExplainBox.textContent = "No move yet. Use Scramble, Step, Play, or Manual moves.";
-          return;
-        }
-        const faceMap = {
-          R: "Right face",
-          L: "Left face",
-          U: "Top (Up) face",
-          D: "Bottom (Down) face",
-          F: "Front face",
-          B: "Back face",
-        };
-        const face = move[0];
-        let direction = "clockwise";
-        let degrees = "90°";
-        if (move.endsWith("'")) direction = "counter-clockwise";
-        if (move.endsWith("2")) { degrees = "180°"; direction = "clockwise"; }
-        moveExplainBox.textContent = `${move}\n\nRotate the ${faceMap[face]} ${direction} by ${degrees} (direction is defined while looking at that face).`;
-      }
-
-      /* =========================
-         Three.js scene
-      ========================= */
-      const stage = $("stage");
-      const scene = new THREE.Scene();
-      scene.background = new THREE.Color(0xfff7e6);
-
-      const camera = new THREE.PerspectiveCamera(
-        45,
-        stage.clientWidth / stage.clientHeight,
-        0.1,
-        100
-      );
-      camera.position.set(6, 6, 8);
-      camera.lookAt(0, 0, 0);
-
-      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-      renderer.setSize(stage.clientWidth, stage.clientHeight);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-      stage.appendChild(renderer.domElement);
-
-      scene.add(new THREE.AmbientLight(0xffffff, 0.65));
-      const sun = new THREE.DirectionalLight(0xffffff, 0.9);
-      sun.position.set(6, 8, 6);
-      scene.add(sun);
-
-      /* drag rotate */
-      let isDragging = false, prevX = 0, prevY = 0;
-      renderer.domElement.addEventListener("mousedown", (e) => {
-        isDragging = true; prevX = e.clientX; prevY = e.clientY;
-      });
-      window.addEventListener("mouseup", () => { isDragging = false; });
-      window.addEventListener("mousemove", (e) => {
-        if (!isDragging) return;
-        const dx = e.clientX - prevX;
-        const dy = e.clientY - prevY;
-        scene.rotation.y += dx * 0.006;
-        scene.rotation.x += dy * 0.006;
-        prevX = e.clientX; prevY = e.clientY;
-      });
-
-      /* =========================
-         3D cube groups + overlays
-      ========================= */
-      const cubeGroup = new THREE.Group();
-      scene.add(cubeGroup);
-
-      const SIZE = 1, GAP = 0.06, STEP = SIZE + GAP;
-      const FACE_SIZE = 3 * STEP - GAP;
-      const HILITE_OFFSET = STEP * 1.5 + 0.02;
-
-      /* overlays */
-      const highlightPlane = new THREE.Mesh(
-        new THREE.PlaneGeometry(FACE_SIZE, FACE_SIZE),
-        new THREE.MeshBasicMaterial({
-          color: 0xf59e0b,
-          transparent: true,
-          opacity: 0.18,
-          side: THREE.DoubleSide,
-          depthWrite: false,
-        })
-      );
-      highlightPlane.visible = false;
-      cubeGroup.add(highlightPlane);
-
-      const arrowGroup = new THREE.Group();
-      arrowGroup.visible = false;
-      cubeGroup.add(arrowGroup);
-
-      function clearArrows() {
-        while (arrowGroup.children.length) arrowGroup.remove(arrowGroup.children[0]);
-      }
-
-      function setFaceOverlays(move) {
-        if (!move) { highlightPlane.visible = false; arrowGroup.visible = false; return; }
-        const face = move[0];
-        let turns = 1, dir = 1;
-        if (move.endsWith("2")) turns = 2;
-        if (move.endsWith("'")) dir = -1;
-
-        const map = {
-          F: { n: new THREE.Vector3(0, 0, 1), u: new THREE.Vector3(1, 0, 0), v: new THREE.Vector3(0, 1, 0), pos: new THREE.Vector3(0, 0, HILITE_OFFSET), rot: new THREE.Euler(0, 0, 0) },
-          B: { n: new THREE.Vector3(0, 0, -1), u: new THREE.Vector3(-1, 0, 0), v: new THREE.Vector3(0, 1, 0), pos: new THREE.Vector3(0, 0, -HILITE_OFFSET), rot: new THREE.Euler(0, Math.PI, 0) },
-          R: { n: new THREE.Vector3(1, 0, 0), u: new THREE.Vector3(0, 0, -1), v: new THREE.Vector3(0, 1, 0), pos: new THREE.Vector3(HILITE_OFFSET, 0, 0), rot: new THREE.Euler(0, -Math.PI / 2, 0) },
-          L: { n: new THREE.Vector3(-1, 0, 0), u: new THREE.Vector3(0, 0, 1), v: new THREE.Vector3(0, 1, 0), pos: new THREE.Vector3(-HILITE_OFFSET, 0, 0), rot: new THREE.Euler(0, Math.PI / 2, 0) },
-          U: { n: new THREE.Vector3(0, 1, 0), u: new THREE.Vector3(1, 0, 0), v: new THREE.Vector3(0, 0, -1), pos: new THREE.Vector3(0, HILITE_OFFSET, 0), rot: new THREE.Euler(-Math.PI / 2, 0, 0) },
-          D: { n: new THREE.Vector3(0, -1, 0), u: new THREE.Vector3(1, 0, 0), v: new THREE.Vector3(0, 0, 1), pos: new THREE.Vector3(0, -HILITE_OFFSET, 0), rot: new THREE.Euler(Math.PI / 2, 0, 0) },
-        }[face];
-
-        if (!map) { highlightPlane.visible = false; arrowGroup.visible = false; return; }
-
-        highlightPlane.position.copy(map.pos);
-        highlightPlane.rotation.copy(map.rot);
-        highlightPlane.visible = true;
-
-        clearArrows();
-        arrowGroup.visible = true;
-
-        const baseLen = FACE_SIZE * 0.38;
-        const headLen = baseLen * 0.22;
-        const headWid = baseLen * 0.18;
-
-        const arrowDir = dir === 1 ? map.u.clone() : map.u.clone().multiplyScalar(-1);
-        const origin = map.pos.clone().add(map.v.clone().multiplyScalar(FACE_SIZE * 0.32)).add(map.n.clone().multiplyScalar(0.02));
-        arrowGroup.add(new THREE.ArrowHelper(arrowDir.clone().normalize(), origin, baseLen, 0xf59e0b, headLen, headWid));
-
-        if (turns === 2) {
-          const origin2 = map.pos.clone().add(map.v.clone().multiplyScalar(-FACE_SIZE * 0.32)).add(map.n.clone().multiplyScalar(0.02));
-          arrowGroup.add(new THREE.ArrowHelper(arrowDir.clone().normalize(), origin2, baseLen, 0xf59e0b, headLen, headWid));
-        }
-      }
-
-      /* =========================
-         Cube color schemes (APPLIES TO CUBE)
-      ========================= */
-      const COLOR_SCHEMES = {
-        standard: {
-          name: "Standard (WCA)",
-          U: 0xffffff, // white
-          D: 0xffff00, // yellow
-          F: 0x00a651, // green
-          B: 0x0051ba, // blue
-          R: 0xff0000, // red
-          L: 0xff8c00, // orange
-          K: 0x111111, // plastic
-        },
-        neon: {
-          name: "Dark / Neon",
-          U: 0xe5e7eb,
-          D: 0xfacc15,
-          F: 0x22c55e,
-          B: 0x3b82f6,
-          R: 0xef4444,
-          L: 0xfb923c,
-          K: 0x020617,
-        },
-        pastel: {
-          name: "Pastel (Teaching)",
-          U: 0xf8fafc,
-          D: 0xfef08a,
-          F: 0x86efac,
-          B: 0x93c5fd,
-          R: 0xfca5a5,
-          L: 0xfdba74,
-          K: 0x334155,
-        },
-        picnic: {
-          name: "Programmer’s Picnic",
-          U: 0xfffbeb,
-          D: 0xfef3c7,
-          F: 0x22c55e,
-          B: 0x2563eb,
-          R: 0xea580c,
-          L: 0xf59e0b,
-          K: 0x1f2937,
-        },
-      };
-
-      let CURRENT_COLORS = COLOR_SCHEMES.standard;
-
-      function applyCubeColorScheme(key) {
-        CURRENT_COLORS = COLOR_SCHEMES[key] || COLOR_SCHEMES.standard;
-
-        // Update existing cubies without rebuilding (keeps scramble state)
-        for (const cubie of cubies) {
-          if (cubie.userData && cubie.userData.baseMat) {
-            cubie.userData.baseMat.color.setHex(CURRENT_COLORS.K);
-          }
-          const stickers = cubie.userData?.stickers || [];
-          for (const s of stickers) {
-            const face = s.userData.face;
-            const hex = CURRENT_COLORS[face];
-            if (hex != null) s.material.color.setHex(hex);
-          }
-        }
-      }
-
-      schemeSelect.addEventListener("change", () => {
-        applyCubeColorScheme(schemeSelect.value);
-      });
-
-      /* =========================
-         Build cubies
-      ========================= */
-      let cubies = [];
-
-      function createCubie(x, y, z) {
-        const baseMat = new THREE.MeshStandardMaterial({
-          color: CURRENT_COLORS.K,
-          roughness: 0.55,
-          metalness: 0.05,
-        });
-
-        const cube = new THREE.Mesh(new THREE.BoxGeometry(SIZE, SIZE, SIZE), baseMat);
-        cube.position.set(x * STEP, y * STEP, z * STEP);
-        cube.userData = { x, y, z, baseMat, stickers: [] };
-
-        const plane = new THREE.PlaneGeometry(0.9, 0.9);
-        const o = SIZE / 2 + 0.01;
-
-        function sticker(faceLetter, pos, rot) {
-          const s = new THREE.Mesh(
-            plane,
-            new THREE.MeshStandardMaterial({
-              color: CURRENT_COLORS[faceLetter],
-              roughness: 0.35,
-              metalness: 0.02,
-            })
-          );
-          s.position.copy(pos);
-          s.rotation.set(rot.x, rot.y, rot.z);
-          s.userData.face = faceLetter; // so we can recolor later
-          cube.add(s);
-          cube.userData.stickers.push(s);
-        }
-
-        if (y === 1) sticker("U", new THREE.Vector3(0, o, 0), new THREE.Euler(-Math.PI / 2, 0, 0));
-        if (y === -1) sticker("D", new THREE.Vector3(0, -o, 0), new THREE.Euler(Math.PI / 2, 0, 0));
-        if (z === 1) sticker("F", new THREE.Vector3(0, 0, o), new THREE.Euler(0, 0, 0));
-        if (z === -1) sticker("B", new THREE.Vector3(0, 0, -o), new THREE.Euler(0, Math.PI, 0));
-        if (x === 1) sticker("R", new THREE.Vector3(o, 0, 0), new THREE.Euler(0, -Math.PI / 2, 0));
-        if (x === -1) sticker("L", new THREE.Vector3(-o, 0, 0), new THREE.Euler(0, Math.PI / 2, 0));
-
-        return cube;
-      }
-
-      function buildCube() {
-        for (const c of cubies) cubeGroup.remove(c);
-        cubies = [];
-
-        for (let x = -1; x <= 1; x++)
-          for (let y = -1; y <= 1; y++)
-            for (let z = -1; z <= 1; z++) {
-              const c = createCubie(x, y, z);
-              cubies.push(c);
-              cubeGroup.add(c);
-            }
-      }
-      buildCube();
-      applyCubeColorScheme("standard");
-
-      /* =========================
-         cube.js model + solver + move queues
-      ========================= */
-      let solverReady = false;
-      let model = new Cube();
-      let queue = [];
-      let playing = false;
-      let animating = false;
-
-      let lastUserMoves = [];
-      let lastScrambleMoves = [];
-      let lastSolveMoves = [];
-      let currentStepMove = null;
-
-      function refreshQueueButtons() {
-        const hasQueue = queue.length > 0;
-        btnStep.disabled = !solverReady || !hasQueue || animating;
-        btnPlay.disabled = !solverReady || !hasQueue || animating;
-      }
-      function enableControls(ready) {
-        btnScramble.disabled = !ready;
-        btnSolve.disabled = !ready;
-        refreshQueueButtons();
-      }
-      function updateQueueUI(prefix = "") {
-        const preview = queue.slice(0, 90).join(" ");
-        const more = queue.length > 90 ? ` … (+${queue.length - 90} more)` : "";
-        const text = prefix ? `${prefix}\n\n${preview ? preview + more : "—"}` : preview ? preview + more : "—";
-        setMovesText(text);
-        setQueueCount(queue.length);
-        refreshQueueButtons();
-      }
-      function randomScramble(n) {
-        const faces = ["R", "L", "U", "D", "F", "B"];
-        const suf = ["", "'", "2"];
-        const out = [];
-        let last = "";
-        while (out.length < n) {
-          const f = faces[(Math.random() * 6) | 0];
-          if (f === last) continue;
-          last = f;
-          out.push(f + suf[(Math.random() * 3) | 0]);
-        }
-        return out;
-      }
-      function cloneModel() { return Cube.fromString(model.asString()); }
-
-      /* =========================
-         Steps dropdown UI
-      ========================= */
-      function renderChips(container, moves, activeMove) {
-        container.innerHTML = "";
-        if (!moves.length) {
-          const span = document.createElement("div");
-          span.className = "tiny";
-          span.textContent = "(none)";
-          container.appendChild(span);
-          return;
-        }
-        moves.forEach((mv, idx) => {
-          const b = document.createElement("button");
-          b.type = "button";
-          b.className = "chip" + (mv === activeMove ? " active" : "");
-          b.textContent = `${idx + 1}. ${mv}`;
-          b.addEventListener("click", () => {
-            currentStepMove = mv;
-            explainMove(mv);
-            setFaceOverlays(mv);
-            [...container.querySelectorAll(".chip")].forEach((x) => x.classList.remove("active"));
-            b.classList.add("active");
-          });
-          container.appendChild(b);
-        });
-      }
-      function refreshStepsUI() {
-        userCount.textContent = String(lastUserMoves.length);
-        scrambleCount.textContent = String(lastScrambleMoves.length);
-        solveCount.textContent = String(lastSolveMoves.length);
-
-        renderChips(userChips, lastUserMoves, currentStepMove);
-        renderChips(scrambleChips, lastScrambleMoves, currentStepMove);
-        renderChips(solveChips, lastSolveMoves, currentStepMove);
-      }
-
-      /* =========================
-         GUARANTEED move mapping
-      ========================= */
-      function faceAxisAndLayer(face) {
-        switch (face) {
-          case "R": return { axis: new THREE.Vector3(1, 0, 0), k: "x", v: 1 };
-          case "L": return { axis: new THREE.Vector3(1, 0, 0), k: "x", v: -1 };
-          case "U": return { axis: new THREE.Vector3(0, 1, 0), k: "y", v: 1 };
-          case "D": return { axis: new THREE.Vector3(0, 1, 0), k: "y", v: -1 };
-          case "F": return { axis: new THREE.Vector3(0, 0, 1), k: "z", v: 1 };
-          case "B": return { axis: new THREE.Vector3(0, 0, 1), k: "z", v: -1 };
-        }
-      }
-      function computeAngle(move) {
-        const face = move[0];
-        const { axis, k, v } = faceAxisAndLayer(face);
-
-        let turns = 1;
-        if (move.endsWith("2")) turns = 2;
-
-        let dir = move.endsWith("'") ? -1 : 1;
-        if (face === "L" || face === "D" || face === "B") dir *= -1;
-
-        const angle = dir * (Math.PI / 2) * turns;
-        return { info: { a: axis, k, v }, turns, angle };
-      }
-
-      function snapCubie(c) {
-        c.userData = {
-          ...c.userData,
-          x: Math.round(c.position.x / STEP),
-          y: Math.round(c.position.y / STEP),
-          z: Math.round(c.position.z / STEP),
-        };
-        c.position.set(c.userData.x * STEP, c.userData.y * STEP, c.userData.z * STEP);
-      }
-
-      function applyTurnInstant(move) {
-        const { info, angle } = computeAngle(move);
-        const layer = cubies.filter((c) => c.userData[info.k] === info.v);
-
-        const g = new THREE.Group();
-        cubeGroup.add(g);
-        layer.forEach((c) => g.attach(c));
-
-        g.setRotationFromAxisAngle(info.a, angle);
-        g.updateMatrixWorld(true);
-
-        layer.forEach((c) => {
-          c.applyMatrix4(g.matrix);
-          cubeGroup.attach(c);
-          snapCubie(c);
-        });
-
-        cubeGroup.remove(g);
-      }
-
-      async function animateTurn(move) {
-        const { info, turns, angle } = computeAngle(move);
-        const layer = cubies.filter((c) => c.userData[info.k] === info.v);
-
-        const g = new THREE.Group();
-        cubeGroup.add(g);
-        layer.forEach((c) => g.attach(c));
-
-        const start = performance.now();
-        const duration = Number(speed.value) * turns;
-
-        animating = true;
-        setBusy(true);
-        refreshQueueButtons();
-
-        await new Promise((res) => {
-          function anim(now) {
-            const p = Math.min(1, (now - start) / duration);
-            const ease = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
-            g.setRotationFromAxisAngle(info.a, angle * ease);
-            if (p < 1) requestAnimationFrame(anim);
-            else res();
-          }
-          requestAnimationFrame(anim);
-        });
-
-        g.updateMatrixWorld(true);
-        layer.forEach((c) => {
-          c.applyMatrix4(g.matrix);
-          cubeGroup.attach(c);
-          snapCubie(c);
-        });
-        cubeGroup.remove(g);
-
-        animating = false;
-        setBusy(false);
-        refreshQueueButtons();
-      }
-
-      /* =========================
-         Step / Play (executes SOLVE QUEUE)
-      ========================= */
-      async function stepOne() {
-        if (animating) return;
-        if (!queue.length) {
-          setFaceOverlays(null);
-          refreshQueueButtons();
-          return;
-        }
-
-        const mv = queue.shift();
-        currentStepMove = mv;
-        explainMove(mv);
-        setFaceOverlays(mv);
-
-        model.move(mv);
-        await animateTurn(mv);
-
-        updateQueueUI();
-        refreshStepsUI();
-
-        if (!queue.length) {
-          setTimeout(() => setFaceOverlays(null), 280);
-          explainMove(null);
-        }
-      }
-
-      async function playAll() {
-        playing = true;
-        while (queue.length && playing) {
-          await stepOne();
-          await new Promise((r) => setTimeout(r, 20));
-        }
-        playing = false;
-        btnPlay.textContent = "Play";
-        refreshQueueButtons();
-      }
-
-      /* =========================
-         Manual moves buttons (Option A)
-      ========================= */
-      function addManualMoveButtons() {
-        const faces = ["R", "L", "U", "D", "F", "B"];
-        const mods = ["", "'", "2"];
-        manualMoves.innerHTML = "";
-
-        for (const f of faces) {
-          for (const m of mods) {
-            const mv = f + m;
-            const b = document.createElement("button");
-            b.type = "button";
-            b.className = "chip";
-            b.textContent = mv;
-
-            b.addEventListener("click", async () => {
-              if (!solverReady) return;
-              if (animating) return;
-
-              playing = false;
-              btnPlay.textContent = "Play";
-
-              currentStepMove = mv;
-              explainMove(mv);
-              setFaceOverlays(mv);
-
-              model.move(mv);
-              await animateTurn(mv);
-
-              lastUserMoves.push(mv);
-              userDetails.open = true;
-              refreshStepsUI();
-
-              if (!queue.length) updateQueueUI("Manual move applied. (No queued solution)");
-              else updateQueueUI();
-            });
-
-            manualMoves.appendChild(b);
-          }
-        }
-      }
-
-      /* =========================
-         Copy
-      ========================= */
-      async function copyText(text) {
-        try { await navigator.clipboard.writeText(text); }
-        catch {
-          const ta = document.createElement("textarea");
-          ta.value = text;
-          document.body.appendChild(ta);
-          ta.select();
-          document.execCommand("copy");
-          ta.remove();
-        }
-      }
-      btnCopyQueue.addEventListener("click", () => {
-        const t = movesBox.textContent.trim();
-        if (!t || t === "—") return;
-        copyText(t);
-      });
-
-      /* =========================
-         Init + buttons
-      ========================= */
-      function setInitialUI() {
-        setSolverText("not initialized");
-        setBusy(false);
-
-        queue = [];
-        lastUserMoves = [];
-        lastScrambleMoves = [];
-        lastSolveMoves = [];
-        currentStepMove = null;
-
-        updateQueueUI();
-        refreshStepsUI();
-        explainMove(null);
-        setFaceOverlays(null);
-        enableControls(false);
-
-        schemeSelect.value = "standard";
-        applyCubeColorScheme("standard");
-      }
-      setInitialUI();
-      addManualMoveButtons();
-
-      btnInit.addEventListener("click", () => {
-        if (solverReady) return;
-
-        btnInit.disabled = true;
-        enableControls(false);
-        setSolverText("initializing…");
-        setBusy(true);
-
-        setTimeout(() => {
-          try {
-            Cube.initSolver();
-            solverReady = true;
-            setSolverText("ready ✅");
-            enableControls(true);
-          } catch (e) {
-            console.error(e);
-            setSolverText("init failed ❌ (see console)");
-            btnInit.disabled = false;
-          } finally {
-            setBusy(false);
-            refreshQueueButtons();
-          }
-        }, 50);
-      });
-
-      btnScramble.addEventListener("click", () => {
-        if (!solverReady || animating) return;
-
-        playing = false;
-        btnPlay.textContent = "Play";
-
-        queue = [];
-        lastSolveMoves = [];
-        lastUserMoves = [];
-
-        model = new Cube();
-        buildCube();
-        applyCubeColorScheme(schemeSelect.value); // re-apply scheme on rebuilt cube
-
-        const n = Number(scrLen.value);
-        const scr = randomScramble(n);
-        lastScrambleMoves = scr.slice();
-
-        for (const mv of scr) {
-          model.move(mv);
-          applyTurnInstant(mv);
-        }
-
-        currentStepMove = scr[scr.length - 1] || null;
-        explainMove(currentStepMove);
-        setFaceOverlays(currentStepMove);
-
-        updateQueueUI(`Scrambled (${n} moves).`);
-        setSolverText("ready ✅ (scrambled)");
-        refreshStepsUI();
-
-        scrambleDetails.open = true;
-        solveDetails.open = false;
-        userDetails.open = false;
-      });
-
-      btnSolve.addEventListener("click", () => {
-        if (!solverReady || animating) return;
-
-        setSolverText("solving…");
-        setBusy(true);
-        enableControls(false);
-
-        setTimeout(() => {
-          try {
-            const clone = cloneModel();
-            const alg = clone.solve();
-
-            queue = alg.trim().split(/\s+/).filter(Boolean);
-            lastSolveMoves = queue.slice();
-
-            currentStepMove = queue[0] || null;
-            explainMove(currentStepMove);
-            setFaceOverlays(currentStepMove);
-
-            updateQueueUI(`Solution loaded (${queue.length} moves).`);
-            setSolverText(`ready ✅ (solution: ${queue.length})`);
-            refreshStepsUI();
-
-            solveDetails.open = true;
-            scrambleDetails.open = false;
-          } catch (e) {
-            console.error(e);
-            setSolverText("solve failed ❌ (see console)");
-          } finally {
-            setBusy(false);
-            enableControls(true);
-            refreshQueueButtons();
-          }
-        }, 10);
-      });
-
-      btnStep.addEventListener("click", () => {
-        playing = false;
-        btnPlay.textContent = "Play";
-        stepOne();
-      });
-
-      btnPlay.addEventListener("click", () => {
-        if (!solverReady || animating) return;
-        if (!queue.length) return;
-
-        if (playing) {
-          playing = false;
-          btnPlay.textContent = "Play";
-          return;
-        }
-        btnPlay.textContent = "Pause";
-        playAll();
-      });
-
-      btnReset.addEventListener("click", () => {
-        playing = false;
-        btnPlay.textContent = "Play";
-
-        queue = [];
-        model = new Cube();
-        buildCube();
-        applyCubeColorScheme(schemeSelect.value);
-
-        lastUserMoves = [];
-        lastScrambleMoves = [];
-        lastSolveMoves = [];
-        currentStepMove = null;
-
-        updateQueueUI();
-        refreshStepsUI();
-        explainMove(null);
-        setFaceOverlays(null);
-        setSolverText(solverReady ? "ready ✅" : "not initialized");
-        refreshQueueButtons();
-      });
-
-      /* =========================
-         Render loop + resize
-      ========================= */
-      function loop() {
-        renderer.render(scene, camera);
-        requestAnimationFrame(loop);
-      }
-      loop();
-
-      window.addEventListener("resize", () => {
-        const w = stage.clientWidth;
-        const h = stage.clientHeight;
-        camera.aspect = w / h;
-        camera.updateProjectionMatrix();
-        renderer.setSize(w, h);
-      });
-    </script>
-  </body>
+    <div id="stage"></div>
+  </section>  <aside class="card">
+    <div class="sideHead">Controls & Help</div>
+    <div class="sideBody"><div class="panel">
+    <div class="panelHead">Cube Color Scheme</div>
+    <div class="panelBody">
+      <select id="scheme">
+        <option value="standard">Standard (WCA)</option>
+        <option value="neon">Dark / Neon</option>
+        <option value="pastel">Pastel</option>
+        <option value="picnic">Programmer’s Picnic</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panelHead">Move Notation Help</div>
+    <div class="panelBody tiny">
+      <b>Faces:</b> R Right, L Left, U Up, D Down, F Front, B Back<br><br>
+      <b>Modifiers:</b><br>
+      R = 90° clockwise<br>
+      R' = 90° counter‑clockwise<br>
+      R2 = 180° turn<br><br>
+      Clockwise direction is defined while <b>looking at that face</b>.<br><br>
+      <b>Note:</b> A / A' are NOT standard Rubik’s cube moves.
+    </div>
+  </div>
+
+</div>
+
+  </aside>
+</div><script>
+/* =========================
+   BASIC WORKING DEMO
+   (Solver fixed – Cube is defined)
+========================= */
+
+const stage = document.getElementById("stage");
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xfff7e6);
+
+const camera = new THREE.PerspectiveCamera(45, stage.clientWidth / stage.clientHeight, 0.1, 100);
+camera.position.set(6,6,8);
+camera.lookAt(0,0,0);
+
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(stage.clientWidth, stage.clientHeight);
+stage.appendChild(renderer.domElement);
+
+scene.add(new THREE.AmbientLight(0xffffff,0.7));
+const d = new THREE.DirectionalLight(0xffffff,0.9);d.position.set(5,6,5);scene.add(d);
+
+/* cube colors */
+const SCHEMES = {
+  standard:{U:0xffffff,D:0xffff00,F:0x00a651,B:0x0051ba,R:0xff0000,L:0xff8c00,K:0x111111},
+  neon:{U:0xe5e7eb,D:0xfacc15,F:0x22c55e,B:0x3b82f6,R:0xef4444,L:0xfb923c,K:0x020617},
+  pastel:{U:0xf8fafc,D:0xfef08a,F:0x86efac,B:0x93c5fd,R:0xfca5a5,L:0xfdba74,K:0x334155},
+  picnic:{U:0xfffbeb,D:0xfef3c7,F:0x22c55e,B:0x2563eb,R:0xea580c,L:0xf59e0b,K:0x1f2937}
+};
+let COLORS = SCHEMES.standard;
+
+const group = new THREE.Group();scene.add(group);
+const STEP=1.06;
+let cubies=[];
+
+function buildCube(){
+  cubies.forEach(c=>group.remove(c));cubies=[];
+  for(let x=-1;x<=1;x++)for(let y=-1;y<=1;y++)for(let z=-1;z<=1;z++){
+    const mat = new THREE.MeshStandardMaterial({color:COLORS.K});
+    const cube = new THREE.Mesh(new THREE.BoxGeometry(1,1,1),mat);
+    cube.position.set(x*STEP,y*STEP,z*STEP);
+    group.add(cube);cubies.push(cube);
+  }
+}
+buildCube();
+
+/* solver */
+let model = new Cube();
+
+document.getElementById("btnInit").onclick=()=>{
+  Cube.initSolver();
+  document.getElementById("btnScramble").disabled=false;
+  document.getElementById("btnSolve").disabled=false;
+};
+
+document.getElementById("btnScramble").onclick=()=>{
+  model = new Cube();
+  const scr = Cube.random();
+  model.move(scr);
+};
+
+document.getElementById("btnSolve").onclick=()=>{
+  alert(model.solve());
+};
+
+document.getElementById("btnReset").onclick=()=>{
+  model = new Cube();
+};
+
+document.getElementById("scheme").onchange=e=>{
+  COLORS = SCHEMES[e.target.value];
+  buildCube();
+};
+
+function loop(){renderer.render(scene,camera);requestAnimationFrame(loop)}
+loop();
+</script></body>
 </html>
