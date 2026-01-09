@@ -3,30 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>HTML/CSS/JS Live Preview — Tabs + Lint + Console + Samples</title>
-
-    <!-- CodeMirror 5 -->
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"
-    />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.min.css"
-    />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/dialog/dialog.min.css"
-    />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/matchesonscrollbar.min.css"
-    />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/lint/lint.min.css"
-    />
-
+    <title>HTML Live Preview (Editor + iframe)</title>
     <style>
       :root {
         --bg: #fff7e6; /* light saffron */
@@ -34,7 +11,6 @@
         --ink: #1f2937;
         --muted: #6b7280;
         --brand: #d97706;
-        --brand2: #f59e0b;
         --border: #f3d7a6;
         --shadow: 0 18px 45px rgba(31, 41, 55, 0.14);
         --danger: #b91c1c;
@@ -53,9 +29,8 @@
         background: var(--bg);
         color: var(--ink);
       }
-
       header {
-        max-width: 1320px;
+        max-width: 1200px;
         margin: 18px auto 0;
         padding: 0 16px;
         display: flex;
@@ -70,7 +45,7 @@
         box-shadow: var(--shadow);
         border-radius: 14px;
         padding: 14px 16px;
-        flex: 1 1 560px;
+        flex: 1 1 420px;
         min-width: 280px;
       }
       .title h1 {
@@ -83,7 +58,7 @@
         margin: 6px 0 0;
         color: var(--muted);
         font-size: 13px;
-        line-height: 1.45;
+        line-height: 1.4;
       }
 
       .actions {
@@ -95,17 +70,16 @@
         display: flex;
         gap: 10px;
         align-items: center;
-        flex-wrap: wrap;
+        flex: 0 1 auto;
       }
-      button,
-      select {
+      button {
         border: 1px solid var(--border);
         background: linear-gradient(180deg, #fff, #fff7ea);
         color: var(--ink);
         padding: 9px 12px;
         border-radius: 10px;
         cursor: pointer;
-        font-weight: 800;
+        font-weight: 600;
         font-size: 13px;
         transition: transform 0.06s ease, box-shadow 0.15s ease;
         box-shadow: 0 8px 18px rgba(31, 41, 55, 0.08);
@@ -125,7 +99,6 @@
         background: linear-gradient(180deg, #fff, #fff2f2);
         color: var(--danger);
       }
-
       .chip {
         display: inline-flex;
         align-items: center;
@@ -141,39 +114,17 @@
       }
       .chip input {
         transform: translateY(1px);
-        accent-color: var(--brand);
-      }
-      .kbd {
-        font-family: var(--mono);
-        font-size: 12px;
-        padding: 2px 7px;
-        border: 1px solid var(--border);
-        border-bottom-width: 2px;
-        border-radius: 8px;
-        background: #fff;
-        color: var(--ink);
       }
 
       main {
-        max-width: 1320px;
+        max-width: 1200px;
         margin: 12px auto 24px;
         padding: 0 16px;
       }
 
-      .layout {
-        display: grid;
-        grid-template-columns: 360px 1fr;
-        gap: 14px;
-      }
-      @media (max-width: 1100px) {
-        .layout {
-          grid-template-columns: 1fr;
-        }
-      }
-
       .grid {
         display: grid;
-        grid-template-columns: 1.05fr 0.95fr;
+        grid-template-columns: 1fr 1fr;
         gap: 14px;
       }
       @media (max-width: 980px) {
@@ -188,22 +139,17 @@
         box-shadow: var(--shadow);
         border-radius: 14px;
         overflow: hidden;
-        min-height: 640px;
+        min-height: 540px;
         display: flex;
         flex-direction: column;
-      }
-      .panel.small {
-        min-height: 640px;
       }
       .panel-head {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 10px;
         padding: 12px 14px;
         border-bottom: 1px solid var(--border);
         background: #fffaf0;
-        flex-wrap: wrap;
       }
       .panel-head strong {
         color: var(--brand);
@@ -215,104 +161,28 @@
         font-size: 12px;
       }
 
-      .tabs {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-        align-items: center;
-      }
-      .tab {
-        border: 1px solid var(--border);
-        background: #fff;
-        padding: 7px 10px;
-        border-radius: 999px;
-        font-weight: 900;
-        font-size: 12px;
-        cursor: pointer;
-        color: var(--muted);
-      }
-      .tab[aria-selected="true"] {
-        color: var(--ink);
-        border-color: #f2c77c;
-        background: linear-gradient(180deg, #fffbf2, #fff0d4);
-      }
-
-      .editor-wrap {
-        flex: 1;
-        display: flex;
-        min-height: 0;
-      }
-
-      /* CodeMirror sizing */
-      .CodeMirror {
-        height: 100%;
+      textarea {
         width: 100%;
+        height: 100%;
+        flex: 1;
+        border: 0;
+        outline: none;
+        padding: 14px;
         font-family: var(--mono);
         font-size: 13px;
         line-height: 1.45;
-      }
-      .CodeMirror-gutters {
-        background: #fffaf0;
-        border-right: 1px solid var(--border);
-      }
-
-      .right-col {
-        display: grid;
-        grid-template-rows: 1fr 260px;
-        gap: 14px;
-        min-height: 640px;
-      }
-      @media (max-width: 980px) {
-        .right-col {
-          grid-template-rows: 520px 270px;
-        }
+        resize: none;
+        background: #fff;
+        color: #0f172a;
+        tab-size: 2;
       }
 
       iframe {
         width: 100%;
         height: 100%;
+        flex: 1;
         border: 0;
         background: #fff;
-      }
-
-      .console {
-        display: flex;
-        flex-direction: column;
-        min-height: 260px;
-      }
-      .console-body {
-        flex: 1;
-        overflow: auto;
-        padding: 10px 12px;
-        background: #0b1020;
-        color: #e5e7eb;
-        font-family: var(--mono);
-        font-size: 12px;
-        line-height: 1.45;
-      }
-      .logline {
-        padding: 6px 0;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-        white-space: pre-wrap;
-        word-break: break-word;
-      }
-      .logline .tag {
-        display: inline-block;
-        min-width: 54px;
-        font-weight: 1000;
-        opacity: 0.9;
-      }
-      .tag.log {
-        color: #93c5fd;
-      }
-      .tag.warn {
-        color: #fde68a;
-      }
-      .tag.error {
-        color: #fca5a5;
-      }
-      .tag.info {
-        color: #a7f3d0;
       }
 
       .status {
@@ -333,1268 +203,136 @@
       .status b {
         color: var(--ink);
       }
-      .status-left {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        flex-wrap: wrap;
-      }
-      code {
+      .kbd {
         font-family: var(--mono);
-      }
-
-      /* Samples sidebar */
-      .sidebar {
-        display: flex;
-        flex-direction: column;
-      }
-      .sidebar .body {
-        padding: 12px;
-        overflow: auto;
-        flex: 1;
-      }
-      .group {
+        font-size: 12px;
+        padding: 2px 7px;
         border: 1px solid var(--border);
-        border-radius: 14px;
+        border-bottom-width: 2px;
+        border-radius: 8px;
         background: #fff;
-        padding: 10px;
-        margin-bottom: 10px;
-      }
-      .group h3 {
-        margin: 0 0 8px;
-        font-size: 13px;
-        color: var(--brand);
-        letter-spacing: 0.2px;
-      }
-      .group p {
-        margin: 0 0 10px;
-        font-size: 12px;
-        color: var(--muted);
-        line-height: 1.35;
-      }
-      .sample-grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 8px;
-      }
-      .sample-btn {
-        text-align: left;
-        display: flex;
-        flex-direction: column;
-        gap: 3px;
-      }
-      .sample-btn .t {
-        font-weight: 950;
-      }
-      .sample-btn .d {
-        font-size: 12px;
-        font-weight: 700;
-        color: var(--muted);
-      }
-
-      .row {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-        align-items: center;
-      }
-      .pill {
-        border: 1px solid var(--border);
-        border-radius: 999px;
-        padding: 6px 9px;
-        background: #fffaf0;
-        font-size: 12px;
-        font-weight: 800;
-        color: var(--muted);
-        display: inline-flex;
-        gap: 8px;
-        align-items: center;
-      }
-      .pill select {
-        padding: 6px 8px;
-        font-weight: 900;
-        font-size: 12px;
-        box-shadow: none;
-      }
-
-      .toast {
-        position: fixed;
-        right: 14px;
-        bottom: 14px;
-        z-index: 99;
-        background: #111827;
-        color: #fff;
-        padding: 10px 12px;
-        border-radius: 12px;
-        font-size: 12px;
-        opacity: 0;
-        transform: translateY(10px);
-        transition: opacity 0.2s ease, transform 0.2s ease;
-        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
-        pointer-events: none;
-        max-width: min(420px, 92vw);
-        white-space: pre-wrap;
-      }
-      .toast.show {
-        opacity: 1;
-        transform: translateY(0);
+        color: var(--ink);
       }
     </style>
   </head>
-
   <body>
     <header>
       <div class="title">
-        <h1>HTML/CSS/JS Live Preview — Samples Library</h1>
+        <h1>HTML Live Preview</h1>
         <p>
-          Click sample buttons to insert code. Tabs: <b>index.html</b>, <b>style.css</b>,
-          <b>script.js</b>. Linting + console capture included.
-          <span class="hint">
-            Run: <span class="kbd">Ctrl</span>/<span class="kbd">⌘</span> +
-            <span class="kbd">Enter</span>
-            &nbsp;•&nbsp; Save: <span class="kbd">Ctrl</span>/<span class="kbd">⌘</span> +
-            <span class="kbd">S</span>
-          </span>
+          Paste or type HTML on the left. Preview updates on the right (iframe).
+          Works offline.
         </p>
       </div>
 
       <div class="actions">
-        <button class="primary" id="btnRun" title="Run (Ctrl/⌘ + Enter)">Run</button>
-
-        <span class="chip" title="Auto-run while typing (debounced)">
-          <input id="autoRun" type="checkbox" checked />
-          <label for="autoRun">Auto-run</label>
-        </span>
-
-        <button id="btnSave" title="Save all tabs to localStorage">Save</button>
-        <button id="btnLoad" title="Load all tabs from localStorage">Load</button>
-        <button class="danger" id="btnReset" title="Reset to starter templates">Reset</button>
-
-        <button id="btnClearConsole" title="Clear console output">Clear Console</button>
-
-        <span class="pill" title="How to apply sample code">
-          Insert mode:
-          <select id="insertMode">
-            <option value="replace">Replace tab</option>
-            <option value="cursor">Insert at cursor</option>
-            <option value="append">Append to end</option>
-          </select>
-        </span>
+        <button
+          class="primary"
+          id="btnRun"
+          title="Update preview (Ctrl/⌘ + Enter)"
+          onclick="runPreview()"
+        >
+          Run
+        </button>
+       
+        
+      
       </div>
     </header>
 
     <main>
-      <div class="layout">
-        <!-- LEFT: Samples library -->
-        <section class="panel small sidebar" aria-label="Samples panel">
+      <div class="grid">
+        <section class="panel" aria-label="Editor panel">
           <div class="panel-head">
-            <strong>Samples (click to insert)</strong>
-            <span class="hint">Applies to current tab or all tabs</span>
+            <strong>Editor</strong>
+            
           </div>
-          <div class="body" id="samplesRoot">
-            <!-- Filled by JS -->
+          <textarea onchange="runPreview()" onkeyup="runPreview()" id="editor" spellcheck="false"></textarea>
+        </section>                                                                                                                          
+
+        <section class="panel" aria-label="Preview panel">
+          <div class="panel-head">
+            <strong>Preview (iframe)</strong>
+            <span class="hint">Uses <code>srcdoc</code></span>
           </div>
+          <iframe
+            id="preview"
+            sandbox="allow-forms allow-modals allow-pointer-lock allow-popups allow-presentation allow-same-origin allow-scripts"
+          ></iframe>
         </section>
+      </div>
 
-        <!-- RIGHT: Editor + Preview + Console -->
-        <div>
-          <div class="grid">
-            <!-- Editor -->
-            <section class="panel" aria-label="Editor panel">
-              <div class="panel-head">
-                <div class="tabs" role="tablist" aria-label="Files">
-                  <button class="tab" id="tab-html" role="tab" aria-selected="true" data-tab="html">
-                    index.html
-                  </button>
-                  <button class="tab" id="tab-css" role="tab" aria-selected="false" data-tab="css">
-                    style.css
-                  </button>
-                  <button class="tab" id="tab-js" role="tab" aria-selected="false" data-tab="js">
-                    script.js
-                  </button>
-                </div>
-                <span class="hint">
-                  Find: <span class="kbd">Ctrl</span>/<span class="kbd">⌘</span> + <span class="kbd">F</span>
-                  &nbsp;•&nbsp; Replace: <span class="kbd">Ctrl</span>/<span class="kbd">⌘</span> + <span class="kbd">H</span>
-                  &nbsp;•&nbsp; Fold: <span class="kbd">Ctrl</span>/<span class="kbd">⌘</span> + <span class="kbd">Q</span>
-                </span>
-              </div>
-              <div class="editor-wrap">
-                <textarea id="editor"></textarea>
-              </div>
-            </section>
-
-            <!-- Preview + Console -->
-            <div class="right-col">
-              <section class="panel" aria-label="Preview panel">
-                <div class="panel-head">
-                  <strong>Preview</strong>
-                  <span class="hint">Bundled HTML + CSS + JS → <code>srcdoc</code></span>
-                </div>
-                <iframe
-                  id="preview"
-                  sandbox="allow-forms allow-modals allow-pointer-lock allow-popups allow-presentation allow-same-origin allow-scripts"
-                ></iframe>
-              </section>
-
-              <section class="panel console" aria-label="Console panel">
-                <div class="panel-head">
-                  <strong>Console</strong>
-                  <span class="hint">Captures logs + runtime errors from preview</span>
-                </div>
-                <div class="console-body" id="consoleBody"></div>
-              </section>
-            </div>
-          </div>
-
-          <div class="status" role="status" aria-live="polite">
-            <div class="status-left">
-              <span><b>Status:</b> <span id="statusText">Ready</span></span>
-              <span><b>Tab:</b> <span id="tabName">index.html</span></span>
-              <span><b>Chars:</b> <span id="charCount">0</span></span>
-              <span><b>Lines:</b> <span id="lineCount">0</span></span>
-              <span><b>Cursor:</b> <span id="cursorPos">1:1</span></span>
-            </div>
-            <div style="font-size:12px;color:var(--muted)">
-              Storage key: <code>live_preview_samples_v1</code>
-            </div>
-          </div>
+       
         </div>
       </div>
     </main>
 
-    <div class="toast" id="toast"></div>
-
-    <!-- CodeMirror core -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
-
-    <!-- Modes -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
-
-    <!-- Addons: editing -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closetag.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchtags.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
-
-    <!-- Addons: search -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/dialog/dialog.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/searchcursor.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/search.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/scroll/annotatescrollbar.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/matchesonscrollbar.min.js"></script>
-
-    <!-- Addons: folding -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldcode.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/brace-fold.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/xml-fold.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/indent-fold.min.js"></script>
-
-    <!-- Lint addon -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/lint/lint.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/lint/html-lint.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/lint/css-lint.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/lint/javascript-lint.min.js"></script>
-
-    <!-- Lint engines -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/htmlhint/1.1.4/htmlhint.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/csslint/1.0.5/csslint.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jshint/2.13.6/jshint.min.js"></script>
-
     <script>
-      const STORAGE_KEY = "live_preview_samples_v1";
+      const STORAGE_KEY = "html_live_preview_code_v1";
 
+      const editor = document.getElementById("editor");
       const preview = document.getElementById("preview");
-      const statusText = document.getElementById("statusText");
-      const tabName = document.getElementById("tabName");
-      const charCount = document.getElementById("charCount");
-      const lineCount = document.getElementById("lineCount");
-      const cursorPos = document.getElementById("cursorPos");
-      const consoleBody = document.getElementById("consoleBody");
-      const samplesRoot = document.getElementById("samplesRoot");
-
-      const btnRun = document.getElementById("btnRun");
-      const btnSave = document.getElementById("btnSave");
-      const btnLoad = document.getElementById("btnLoad");
-      const btnReset = document.getElementById("btnReset");
-      const btnClearConsole = document.getElementById("btnClearConsole");
-      const autoRun = document.getElementById("autoRun");
-      const insertModeSel = document.getElementById("insertMode");
-      const toastEl = document.getElementById("toast");
-
-      const tabButtons = {
-        html: document.getElementById("tab-html"),
-        css: document.getElementById("tab-css"),
-        js: document.getElementById("tab-js"),
-      };
-
-      function toast(msg) {
-        toastEl.textContent = msg;
-        toastEl.classList.add("show");
-        clearTimeout(toast._t);
-        toast._t = setTimeout(() => toastEl.classList.remove("show"), 1400);
-      }
-
+       
+    
       function setStatus(msg) {
-        statusText.textContent = msg;
-      }
-
-      function escapeHTML(s) {
-        return String(s)
-          .replaceAll("&", "&amp;")
-          .replaceAll("<", "&lt;")
-          .replaceAll(">", "&gt;");
-      }
-
-      function addConsoleLine(type, items) {
-        const div = document.createElement("div");
-        div.className = "logline";
-        const tag = document.createElement("span");
-        tag.className = "tag " + type;
-        tag.textContent = (type || "log").toUpperCase().padEnd(5, " ");
-        const msg = document.createElement("span");
-
-        const text = (items || [])
-          .map((x) => {
-            if (typeof x === "string") return x;
-            try {
-              return JSON.stringify(x, null, 2);
-            } catch {
-              return String(x);
-            }
-          })
-          .join(" ");
-
-        msg.innerHTML = escapeHTML(text);
-        div.appendChild(tag);
-        div.appendChild(document.createTextNode(" "));
-        div.appendChild(msg);
-        consoleBody.appendChild(div);
-        consoleBody.scrollTop = consoleBody.scrollHeight;
-      }
-
-      function clearConsole() {
-        consoleBody.innerHTML = "";
-        setStatus("Console cleared");
-      }
-
-      // ---- Starter templates ----
-      const starter = {
-        html: `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Starter</title>
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>
-  <header class="top">
-    <div class="brand">Programmer’s Picnic</div>
-    <nav class="nav">
-      <a href="#cards">Cards</a>
-      <a href="#anim">Animation</a>
-      <a href="#form">Form</a>
-    </nav>
-  </header>
-
-  <main class="wrap">
-    <section class="hero">
-      <h1>Hello Champak 👋</h1>
-      <p>Use the Samples panel on the left to insert skeletons, animations, and components.</p>
-      <button id="btn">Test console</button>
-    </section>
-
-    <section id="cards" class="grid">
-      <article class="card">
-        <h3>Card One</h3>
-        <p>Clean UI + saffron vibes.</p>
-      </article>
-      <article class="card">
-        <h3>Card Two</h3>
-        <p>Try adding animations via samples.</p>
-      </article>
-      <article class="card">
-        <h3>Card Three</h3>
-        <p>Open Console and click the button.</p>
-      </article>
-    </section>
-
-    <section id="anim" class="card anim-demo">
-      <h3>Animation demo</h3>
-      <p class="fade-in">This line fades in.</p>
-      <div class="pulse-dot" aria-label="Pulse"></div>
-    </section>
-
-    <section id="form" class="card">
-      <h3>Quick form</h3>
-      <form class="form">
-        <label> Name <input placeholder="Your name" /></label>
-        <label> Message <textarea rows="3" placeholder="Type something..."></textarea></label>
-        <button type="button" id="toastBtn">Show toast</button>
-      </form>
-    </section>
-  </main>
-
-  <script src="script.js"></script>
-</body>
-</html>
-`,
-        css: `/* style.css */
-:root{
-  --bg:#fff7e6; --card:#fff; --ink:#1f2937; --muted:#6b7280;
-  --brand:#d97706; --border:#f3d7a6; --shadow:0 18px 40px rgba(31,41,55,.12);
-}
-*{box-sizing:border-box}
-body{margin:0;font-family:system-ui;background:var(--bg);color:var(--ink)}
-a{color:inherit;text-decoration:none}
-.top{
-  position:sticky; top:0; z-index:10;
-  background:rgba(255,255,255,.86); backdrop-filter: blur(8px);
-  border-bottom:1px solid var(--border);
-  display:flex; align-items:center; justify-content:space-between;
-  padding:10px 14px;
-}
-.brand{font-weight:900;color:var(--brand);letter-spacing:.2px}
-.nav{display:flex;gap:10px;flex-wrap:wrap}
-.nav a{padding:8px 10px;border:1px solid var(--border);border-radius:999px;background:#fff}
-
-.wrap{max-width:1000px;margin:18px auto;padding:0 14px 30px}
-.hero{
-  border:1px solid var(--border);
-  background:linear-gradient(180deg,#fff,#fff7ea);
-  box-shadow:var(--shadow);
-  border-radius:18px;
-  padding:16px;
-}
-.hero h1{margin:0;color:var(--brand)}
-.hero p{margin:8px 0 12px;color:var(--muted)}
-button{
-  border:1px solid var(--border);
-  background:linear-gradient(180deg,#fff,#fff7ea);
-  padding:10px 12px;border-radius:12px;
-  font-weight:800; cursor:pointer;
-}
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
-@media(max-width:860px){.grid{grid-template-columns:1fr}}
-.card{
-  background:var(--card);
-  border:1px solid var(--border);
-  border-radius:16px;
-  padding:14px;
-  box-shadow:var(--shadow);
-}
-.card h3{margin:0 0 8px;color:var(--brand)}
-.card p{margin:0;color:var(--muted);line-height:1.45}
-
-/* small animations already in starter */
-.fade-in{animation:fadeIn .9s ease both}
-@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-.pulse-dot{
-  width:14px;height:14px;border-radius:999px;background:var(--brand);
-  margin-top:12px; position:relative;
-}
-.pulse-dot::after{
-  content:""; position:absolute; inset:-10px;
-  border:2px solid rgba(217,119,6,.35);
-  border-radius:999px;
-  animation:pulse 1.2s ease-out infinite;
-}
-@keyframes pulse{from{transform:scale(.5);opacity:1}to{transform:scale(1.2);opacity:0}}
-
-.form{display:grid;gap:10px;margin-top:10px}
-input,textarea{
-  width:100%; padding:10px 12px; border-radius:12px;
-  border:1px solid var(--border); outline:none;
-  font-family:inherit;
-}
-`,
-        js: `// script.js
-const btn = document.getElementById("btn");
-btn?.addEventListener("click", () => {
-  console.log("Hello from the preview ✅");
-  console.warn("A warning example");
-});
-
-function toast(msg){
-  const el = document.createElement("div");
-  el.textContent = msg;
-  el.style.cssText = "position:fixed;right:14px;bottom:14px;background:#111827;color:#fff;padding:10px 12px;border-radius:12px;font-family:system-ui;font-size:12px;box-shadow:0 12px 30px rgba(0,0,0,.35);z-index:99";
-  document.body.appendChild(el);
-  setTimeout(()=>{ el.style.opacity="0"; el.style.transition="opacity .25s"; }, 900);
-  setTimeout(()=>el.remove(), 1250);
-}
-
-document.getElementById("toastBtn")?.addEventListener("click", () => {
-  toast("Toast from script.js ✨");
-});
-`,
-      };
-
-      // ---- Files (tabs) ----
-      const files = { html: starter.html, css: starter.css, js: starter.js };
-      let currentTab = "html";
-
-      // ---- CodeMirror ----
-      const cm = CodeMirror.fromTextArea(document.getElementById("editor"), {
-        mode: "htmlmixed",
-        lineNumbers: true,
-        lineWrapping: true,
-        styleActiveLine: true,
-        matchBrackets: true,
-        autoCloseBrackets: true,
-        autoCloseTags: true,
-        matchTags: { bothTags: true },
-        indentUnit: 2,
-        tabSize: 2,
-        indentWithTabs: false,
-        foldGutter: true,
-        gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter", "CodeMirror-lint-markers"],
-        lint: true,
-        extraKeys: {
-          "Ctrl-Enter": () => runPreview(),
-          "Cmd-Enter": () => runPreview(),
-          "Ctrl-Q": (cmx) => cmx.foldCode(cmx.getCursor()),
-          "Cmd-Q": (cmx) => cmx.foldCode(cmx.getCursor()),
-          "Ctrl-S": () => saveAll(),
-          "Cmd-S": () => saveAll(),
-        },
-      });
-
-      function applyTabMode(tab) {
-        if (tab === "html") cm.setOption("mode", "htmlmixed");
-        if (tab === "css") cm.setOption("mode", "css");
-        if (tab === "js") cm.setOption("mode", "javascript");
-        cm.setOption("lint", true);
-      }
-
-      function updateCounts() {
-        const v = cm.getValue() || "";
-        charCount.textContent = String(v.length);
-        lineCount.textContent = String(v.length ? v.split("\n").length : 0);
-        const cur = cm.getCursor();
-        cursorPos.textContent = `${cur.line + 1}:${cur.ch + 1}`;
-      }
-
-      function setActiveTab(tab) {
-        files[currentTab] = cm.getValue();
-        currentTab = tab;
-
-        tabName.textContent =
-          tab === "html" ? "index.html" : tab === "css" ? "style.css" : "script.js";
-
-        for (const k of Object.keys(tabButtons)) {
-          tabButtons[k].setAttribute("aria-selected", k === tab ? "true" : "false");
-        }
-
-        applyTabMode(tab);
-        cm.setValue(files[tab] || "");
-        cm.focus();
-        updateCounts();
-        setStatus(`Switched to ${tabName.textContent}`);
-      }
-
-      tabButtons.html.addEventListener("click", () => setActiveTab("html"));
-      tabButtons.css.addEventListener("click", () => setActiveTab("css"));
-      tabButtons.js.addEventListener("click", () => setActiveTab("js"));
-
-      // ---- Build srcdoc from tabs + console bridge ----
-      function buildSrcDoc(html, css, js) {
-        let doc = html || "";
-
-        doc = doc.replace(/<link\b[^>]*href=["']style\.css["'][^>]*>/gi, "");
-        doc = doc.replace(
-          /<script\b[^>]*src=["']script\.js["'][^>]*>\s*<\/script>/gi,
-          ""
-        );
-
-        const styleTag = `<style>\n${css || ""}\n</style>\n`;
-        if (/<\/head>/i.test(doc)) doc = doc.replace(/<\/head>/i, styleTag + "</head>");
-        else doc = styleTag + doc;
-
-        const bridge = `
-<script>
-(function(){
-  function send(type, args){
-    try{ parent.postMessage({__LP_CONSOLE__:true, type:type, args: args}, "*"); }catch(e){}
-  }
-  var orig = { log:console.log, warn:console.warn, error:console.error, info:console.info };
-  ["log","warn","error","info"].forEach(function(k){
-    console[k] = function(){
-      try{ send(k, Array.prototype.slice.call(arguments)); }catch(e){}
-      return orig[k].apply(console, arguments);
-    };
-  });
-  window.addEventListener("error", function(e){
-    send("error", ["Uncaught:", e.message, "at", (e.filename||""), ":" + (e.lineno||0) + ":" + (e.colno||0)]);
-  });
-  window.addEventListener("unhandledrejection", function(e){
-    var reason = e.reason;
-    try{ if (reason && typeof reason === "object") reason = JSON.stringify(reason); }catch(_){}
-    send("error", ["Unhandled Promise Rejection:", reason]);
-  });
-})();
-</script>
-<script>\n${js || ""}\n</script>
-`;
-        if (/<\/body>/i.test(doc)) doc = doc.replace(/<\/body>/i, bridge + "\n</body>");
-        else doc += "\n" + bridge;
-
-        if (!doc.trim()) {
-          doc = `<!doctype html><html><head><meta charset="utf-8"><title>Empty</title></head>
-<body><p style="font-family:system-ui;margin:20px;color:#555">(No HTML)</p></body></html>`;
-        }
-        return doc;
+        statusText.innerHTML = msg;
       }
 
       function runPreview() {
-        files[currentTab] = cm.getValue();
-        clearConsole();
-        preview.srcdoc = buildSrcDoc(files.html, files.css, files.js);
-        setStatus("Preview updated");
-        updateCounts();
+        // Write the user's HTML directly into the iframe via srcdoc
+        preview.srcdoc =editor.value || "<!doctype html><title>Empty</title><p>(No HTML)</p>";
+         
       }
 
-      window.addEventListener("message", (event) => {
-        const data = event.data;
-        if (!data || !data.__LP_CONSOLE__) return;
-        addConsoleLine(data.type || "log", data.args || []);
-      });
-
-      // ---- Save/Load/Reset ----
-      function saveAll() {
+      function saveCode() {
         try {
-          files[currentTab] = cm.getValue();
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(files));
-          setStatus("Saved all tabs");
-          toast("Saved ✅");
+          localStorage.setItem(STORAGE_KEY, editor.value);
+          setStatus("Saved");
         } catch (e) {
           console.error(e);
           setStatus("Save failed (storage blocked?)");
-          toast("Save failed");
         }
       }
 
-      function loadAll() {
+      function loadCode() {
         try {
-          const raw = localStorage.getItem(STORAGE_KEY);
-          if (!raw) return (setStatus("Nothing saved yet"), toast("Nothing saved"));
-          const obj = JSON.parse(raw);
-          files.html = typeof obj.html === "string" ? obj.html : starter.html;
-          files.css = typeof obj.css === "string" ? obj.css : starter.css;
-          files.js = typeof obj.js === "string" ? obj.js : starter.js;
-          cm.setValue(files[currentTab] || "");
-          setStatus("Loaded all tabs");
-          toast("Loaded ✅");
+          const v = localStorage.getItem(STORAGE_KEY);
+          if (v === null) {
+            setStatus("Nothing saved yet");
+            return;
+          }
+          editor.value = v;
           runPreview();
+          setStatus("Loaded");
         } catch (e) {
           console.error(e);
-          setStatus("Load failed");
-          toast("Load failed");
+          setStatus("Load failed (storage blocked?)");
         }
       }
 
-      function resetAll() {
-        files.html = starter.html;
-        files.css = starter.css;
-        files.js = starter.js;
-        cm.setValue(files[currentTab] || "");
-        setStatus("Reset to starter templates");
-        toast("Reset ✅");
+      function clearEditor() {
+        editor.value = "";
         runPreview();
+        setStatus("Cleared");
       }
 
-      // ---- Auto-run ----
+      // Auto-run (debounced)
       let t = null;
-      cm.on("change", () => {
-        updateCounts();
+      editor.addEventListener("input", () => {
         if (!autoRun.checked) return;
         clearTimeout(t);
-        t = setTimeout(runPreview, 320);
+        t = setTimeout(runPreview, 250);
       });
-      cm.on("cursorActivity", updateCounts);
-
-      // Buttons/shortcuts
-      btnRun.addEventListener("click", runPreview);
-      btnSave.addEventListener("click", saveAll);
-      btnLoad.addEventListener("click", loadAll);
-      btnReset.addEventListener("click", resetAll);
-      btnClearConsole.addEventListener("click", clearConsole);
-
       document.addEventListener("keydown", (e) => {
+        const key = e.key.toLowerCase();
         const ctrl = e.ctrlKey || e.metaKey;
-        if (ctrl && e.key === "Enter") {
-          e.preventDefault();
-          runPreview();
-        }
-        if (ctrl && e.key.toLowerCase() === "s") {
-          e.preventDefault();
-          saveAll();
-        }
+ 
+         
       });
 
-      // ---- Sample insertion helpers ----
-      function insertIntoCurrentTab(code) {
-        const mode = insertModeSel.value;
-        if (mode === "replace") {
-          cm.setValue(code);
-          toast(`Replaced ${tabName.textContent}`);
-        } else if (mode === "append") {
-          cm.setValue((cm.getValue() || "") + (cm.getValue().endsWith("\n") ? "" : "\n") + code);
-          toast(`Appended to ${tabName.textContent}`);
-        } else {
-          // cursor
-          cm.replaceSelection(code, "around");
-          toast(`Inserted at cursor`);
-        }
-        files[currentTab] = cm.getValue();
-        cm.focus();
-        runPreview();
-      }
-
-      function applyProject(project) {
-        // project: {html, css, js}
-        files.html = project.html ?? files.html;
-        files.css = project.css ?? files.css;
-        files.js = project.js ?? files.js;
-        cm.setValue(files[currentTab] || "");
-        toast("Applied to all tabs ✅");
-        setStatus("Applied sample project");
-        runPreview();
-      }
-
-      // ---- Samples library ----
-      const SAMPLES = [
-        {
-          title: "HTML Skeletons",
-          desc: "Common starting points (replace current tab or insert at cursor).",
-          items: [
-            {
-              name: "Basic HTML page",
-              hint: "doctype + head + body + container",
-              tab: "html",
-              code: `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>My Page</title>
-  <link rel="stylesheet" href="style.css" />
-</head>
-<body>
-  <main class="container">
-    <h1>Title</h1>
-    <p>Start building…</p>
-  </main>
-  <script src="script.js"></script>
-</body>
-</html>
-`,
-            },
-            {
-              name: "Card layout section",
-              hint: "grid of cards",
-              tab: "html",
-              code: `<section class="cards">
-  <article class="card">
-    <h3>Card One</h3>
-    <p>Short description…</p>
-  </article>
-  <article class="card">
-    <h3>Card Two</h3>
-    <p>Short description…</p>
-  </article>
-  <article class="card">
-    <h3>Card Three</h3>
-    <p>Short description…</p>
-  </article>
-</section>
-`,
-            },
-            {
-              name: "Responsive navbar",
-              hint: "logo + links + mobile toggle",
-              tab: "html",
-              code: `<header class="site-header">
-  <div class="logo">MySite</div>
-  <button class="menu-btn" id="menuBtn" aria-expanded="false">Menu</button>
-  <nav class="site-nav" id="siteNav">
-    <a href="#">Home</a>
-    <a href="#">Projects</a>
-    <a href="#">Contact</a>
-  </nav>
-</header>
-`,
-            },
-            {
-              name: "Form skeleton",
-              hint: "inputs + textarea + validation hook",
-              tab: "html",
-              code: `<form class="form" id="contactForm">
-  <label>
-    Name
-    <input name="name" placeholder="Your name" required />
-  </label>
-  <label>
-    Email
-    <input name="email" type="email" placeholder="you@example.com" required />
-  </label>
-  <label>
-    Message
-    <textarea name="message" rows="4" placeholder="Type…" required></textarea>
-  </label>
-  <button type="submit">Send</button>
-</form>
-`,
-            },
-          ],
-        },
-        {
-          title: "CSS Animations",
-          desc: "Drop-in animation recipes (keyframes + utility classes).",
-          items: [
-            {
-              name: "Fade + Slide in",
-              hint: ".fade-up + @keyframes",
-              tab: "css",
-              code: `/* Fade up animation */
-.fade-up{animation:fadeUp .7s ease both}
-@keyframes fadeUp{
-  from{opacity:0;transform:translateY(10px)}
-  to{opacity:1;transform:translateY(0)}
-}
-`,
-            },
-            {
-              name: "Hover lift card",
-              hint: "card hover micro-interaction",
-              tab: "css",
-              code: `/* Hover lift */
-.card{
-  transition: transform .15s ease, box-shadow .2s ease;
-}
-.card:hover{
-  transform: translateY(-4px);
-  box-shadow: 0 22px 50px rgba(31,41,55,.16);
-}
-`,
-            },
-            {
-              name: "Pulse ring",
-              hint: ".pulse + pseudo element",
-              tab: "css",
-              code: `/* Pulse ring */
-.pulse{
-  width:14px;height:14px;border-radius:999px;background:var(--brand);
-  position:relative;
-}
-.pulse::after{
-  content:""; position:absolute; inset:-10px;
-  border:2px solid rgba(217,119,6,.35);
-  border-radius:999px;
-  animation:pulse 1.2s ease-out infinite;
-}
-@keyframes pulse{from{transform:scale(.5);opacity:1}to{transform:scale(1.2);opacity:0}}
-`,
-            },
-            {
-              name: "Typing cursor effect",
-              hint: "CSS-only typewriter",
-              tab: "css",
-              code: `/* Typewriter */
-.typewriter{
-  display:inline-block;
-  overflow:hidden;
-  border-right: 2px solid var(--brand);
-  white-space:nowrap;
-  animation: typing 2.2s steps(28,end) both, blink .8s step-end infinite;
-}
-@keyframes typing{from{width:0}to{width:100%}}
-@keyframes blink{50%{border-color:transparent}}
-`,
-            },
-          ],
-        },
-        {
-          title: "JS Interactions",
-          desc: "Small JS snippets you can insert in script.js or HTML.",
-          items: [
-            {
-              name: "Navbar toggle",
-              hint: "works with #menuBtn + #siteNav",
-              tab: "js",
-              code: `// Navbar toggle
-const menuBtn = document.getElementById("menuBtn");
-const siteNav = document.getElementById("siteNav");
-menuBtn?.addEventListener("click", () => {
-  const open = siteNav.classList.toggle("open");
-  menuBtn.setAttribute("aria-expanded", String(open));
-  console.log("Menu:", open ? "open" : "closed");
-});
-`,
-            },
-            {
-              name: "Toast helper",
-              hint: "toast('message')",
-              tab: "js",
-              code: `// Toast helper
-function toast(msg){
-  const el = document.createElement("div");
-  el.textContent = msg;
-  el.style.cssText =
-    "position:fixed;right:14px;bottom:14px;background:#111827;color:#fff;padding:10px 12px;border-radius:12px;font-family:system-ui;font-size:12px;box-shadow:0 12px 30px rgba(0,0,0,.35);z-index:99";
-  document.body.appendChild(el);
-  setTimeout(()=>{ el.style.opacity="0"; el.style.transition="opacity .25s"; }, 900);
-  setTimeout(()=>el.remove(), 1250);
-}
-`,
-            },
-            {
-              name: "Scroll reveal",
-              hint: "IntersectionObserver animation",
-              tab: "js",
-              code: `// Scroll reveal (add class="reveal" to elements)
-const io = new IntersectionObserver((entries)=>{
-  entries.forEach(e=>{
-    if(e.isIntersecting){
-      e.target.classList.add("show");
-      io.unobserve(e.target);
-    }
-  });
-},{threshold:.12});
-document.querySelectorAll(".reveal").forEach(el=>io.observe(el));
-`,
-            },
-            {
-              name: "Form validation",
-              hint: "simple submit handler",
-              tab: "js",
-              code: `// Form validation
-document.getElementById("contactForm")?.addEventListener("submit", (e)=>{
-  e.preventDefault();
-  const fd = new FormData(e.currentTarget);
-  const name = String(fd.get("name")||"").trim();
-  const email = String(fd.get("email")||"").trim();
-  const msg = String(fd.get("message")||"").trim();
-  if(!name || !email || !msg){
-    console.error("Please fill all fields.");
-    return;
-  }
-  console.log("Submitted:", {name,email,msg});
-});
-`,
-            },
-          ],
-        },
-        {
-          title: "Full Projects",
-          desc: "Apply a complete example to ALL tabs in one click.",
-          items: [
-            {
-              name: "Animated Landing Page",
-              hint: "hero + cards + reveal + toast",
-              project: true,
-              data: {
-                html: `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Animated Landing</title>
-  <link rel="stylesheet" href="style.css" />
-</head>
-<body>
-  <header class="site-header">
-    <div class="logo">Programmer’s Picnic</div>
-    <button class="menu-btn" id="menuBtn" aria-expanded="false">Menu</button>
-    <nav class="site-nav" id="siteNav">
-      <a href="#features">Features</a>
-      <a href="#gallery">Gallery</a>
-      <a href="#contact">Contact</a>
-    </nav>
-  </header>
-
-  <main class="wrap">
-    <section class="hero reveal">
-      <h1 class="typewriter">Build fast. Preview live.</h1>
-      <p>Insert samples from the editor sidebar. Try scrolling and clicking.</p>
-      <div class="row">
-        <button id="cta">Show toast</button>
-        <div class="pulse" aria-label="pulse"></div>
-      </div>
-    </section>
-
-    <section id="features" class="cards">
-      <article class="card reveal">
-        <h3>Tabs</h3><p>index.html, style.css, script.js</p>
-      </article>
-      <article class="card reveal">
-        <h3>Linting</h3><p>See issues in the gutter</p>
-      </article>
-      <article class="card reveal">
-        <h3>Console</h3><p>Logs captured from preview</p>
-      </article>
-    </section>
-
-    <section id="gallery" class="grid2">
-      <div class="tile reveal"></div>
-      <div class="tile reveal"></div>
-      <div class="tile reveal"></div>
-      <div class="tile reveal"></div>
-    </section>
-
-    <section id="contact" class="card reveal">
-      <h3>Contact</h3>
-      <form class="form" id="contactForm">
-        <label>Name <input name="name" required /></label>
-        <label>Email <input name="email" type="email" required /></label>
-        <label>Message <textarea name="message" rows="4" required></textarea></label>
-        <button type="submit">Send</button>
-      </form>
-    </section>
-  </main>
-
-  <script src="script.js"></script>
-</body>
-</html>
-`,
-                css: `:root{
-  --bg:#fff7e6; --card:#fff; --ink:#1f2937; --muted:#6b7280;
-  --brand:#d97706; --border:#f3d7a6; --shadow:0 18px 40px rgba(31,41,55,.12);
-}
-*{box-sizing:border-box}
-body{margin:0;font-family:system-ui;background:var(--bg);color:var(--ink)}
-a{color:inherit;text-decoration:none}
-.wrap{max-width:980px;margin:18px auto;padding:0 14px 40px}
-
-.site-header{
-  position:sticky; top:0; z-index:10;
-  display:flex; gap:10px; align-items:center; justify-content:space-between;
-  padding:10px 14px;
-  border-bottom:1px solid var(--border);
-  background:rgba(255,255,255,.86);
-  backdrop-filter: blur(8px);
-}
-.logo{font-weight:950;color:var(--brand)}
-.menu-btn{display:none}
-.site-nav{display:flex;gap:10px;flex-wrap:wrap}
-.site-nav a{padding:8px 10px;border:1px solid var(--border);border-radius:999px;background:#fff}
-@media(max-width:720px){
-  .menu-btn{display:inline-flex}
-  .site-nav{display:none;width:100%}
-  .site-nav.open{display:flex}
-}
-
-.hero{
-  border:1px solid var(--border);
-  background:linear-gradient(180deg,#fff,#fff7ea);
-  box-shadow:var(--shadow);
-  border-radius:18px;
-  padding:16px;
-}
-.hero h1{margin:0;color:var(--brand)}
-.hero p{margin:10px 0 12px;color:var(--muted)}
-.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-button{
-  border:1px solid var(--border);
-  background:linear-gradient(180deg,#fff,#fff7ea);
-  padding:10px 12px;border-radius:12px;
-  font-weight:850; cursor:pointer;
-}
-.cards{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:12px;
-  margin-top:14px;
-}
-@media(max-width:860px){.cards{grid-template-columns:1fr}}
-.card{
-  background:var(--card);
-  border:1px solid var(--border);
-  border-radius:16px;
-  padding:14px;
-  box-shadow:var(--shadow);
-  transition:transform .15s ease, box-shadow .2s ease;
-}
-.card:hover{
-  transform: translateY(-4px);
-  box-shadow: 0 22px 50px rgba(31,41,55,.16);
-}
-.card h3{margin:0 0 8px;color:var(--brand)}
-.card p{margin:0;color:var(--muted);line-height:1.45}
-
-.grid2{
-  margin-top:14px;
-  display:grid;
-  grid-template-columns:repeat(2,1fr);
-  gap:12px;
-}
-@media(max-width:860px){.grid2{grid-template-columns:1fr}}
-.tile{
-  height:140px;border-radius:16px;border:1px solid var(--border);
-  background: linear-gradient(135deg, rgba(217,119,6,.22), rgba(245,158,11,.14), rgba(255,255,255,.9));
-  box-shadow:var(--shadow);
-}
-
-/* Scroll reveal */
-.reveal{opacity:0;transform:translateY(10px)}
-.reveal.show{animation:fadeUp .7s ease both}
-@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-
-/* Typewriter */
-.typewriter{
-  display:inline-block; overflow:hidden; white-space:nowrap;
-  border-right:2px solid var(--brand);
-  animation: typing 2.2s steps(28,end) both, blink .8s step-end infinite;
-}
-@keyframes typing{from{width:0}to{width:100%}}
-@keyframes blink{50%{border-color:transparent}}
-
-/* Pulse */
-.pulse{width:14px;height:14px;border-radius:999px;background:var(--brand);position:relative}
-.pulse::after{
-  content:"";position:absolute;inset:-10px;border:2px solid rgba(217,119,6,.35);
-  border-radius:999px;animation:pulse 1.2s ease-out infinite;
-}
-@keyframes pulse{from{transform:scale(.5);opacity:1}to{transform:scale(1.2);opacity:0}}
-
-.form{display:grid;gap:10px;margin-top:10px}
-input,textarea{
-  width:100%;padding:10px 12px;border-radius:12px;
-  border:1px solid var(--border); outline:none; font-family:inherit;
-}
-`,
-                js: `// Menu toggle
-const menuBtn = document.getElementById("menuBtn");
-const siteNav = document.getElementById("siteNav");
-menuBtn?.addEventListener("click", () => {
-  const open = siteNav.classList.toggle("open");
-  menuBtn.setAttribute("aria-expanded", String(open));
-  console.log("Menu:", open ? "open" : "closed");
-});
-
-// Toast
-function toast(msg){
-  const el = document.createElement("div");
-  el.textContent = msg;
-  el.style.cssText =
-    "position:fixed;right:14px;bottom:14px;background:#111827;color:#fff;padding:10px 12px;border-radius:12px;font-family:system-ui;font-size:12px;box-shadow:0 12px 30px rgba(0,0,0,.35);z-index:99";
-  document.body.appendChild(el);
-  setTimeout(()=>{ el.style.opacity="0"; el.style.transition="opacity .25s"; }, 900);
-  setTimeout(()=>el.remove(), 1250);
-}
-
-document.getElementById("cta")?.addEventListener("click", () => {
-  toast("Toast from Animated Landing ✨");
-  console.log("CTA clicked");
-});
-
-// Scroll reveal
-const io = new IntersectionObserver((entries)=>{
-  entries.forEach(e=>{
-    if(e.isIntersecting){
-      e.target.classList.add("show");
-      io.unobserve(e.target);
-    }
-  });
-},{threshold:.12});
-document.querySelectorAll(".reveal").forEach(el=>io.observe(el));
-
-// Form submit
-document.getElementById("contactForm")?.addEventListener("submit",(e)=>{
-  e.preventDefault();
-  const fd = new FormData(e.currentTarget);
-  console.log("Form:", Object.fromEntries(fd.entries()));
-  toast("Form captured (check console) ✅");
-});
-`,
-              },
-            },
-          ],
-        },
-      ];
-
-      function renderSamples() {
-        samplesRoot.innerHTML = "";
-
-        for (const group of SAMPLES) {
-          const wrap = document.createElement("div");
-          wrap.className = "group";
-
-          const h = document.createElement("h3");
-          h.textContent = group.title;
-          const p = document.createElement("p");
-          p.textContent = group.desc;
-
-          const grid = document.createElement("div");
-          grid.className = "sample-grid";
-
-          group.items.forEach((item) => {
-            const b = document.createElement("button");
-            b.className = "sample-btn";
-            b.type = "button";
-
-            const t = document.createElement("div");
-            t.className = "t";
-            t.textContent = item.name;
-
-            const d = document.createElement("div");
-            d.className = "d";
-            d.textContent = item.hint || (item.project ? "Apply to all tabs" : `For ${item.tab}`);
-
-            b.appendChild(t);
-            b.appendChild(d);
-
-            b.addEventListener("click", () => {
-              if (item.project) {
-                applyProject(item.data);
-                return;
-              }
-
-              // If sample targets a different tab, switch tab first (nice UX)
-              if (item.tab && item.tab !== currentTab) setActiveTab(item.tab);
-
-              insertIntoCurrentTab(item.code);
-            });
-
-            grid.appendChild(b);
-          });
-
-          wrap.appendChild(h);
-          wrap.appendChild(p);
-          wrap.appendChild(grid);
-          samplesRoot.appendChild(wrap);
-        }
-      }
-
-      // ---- Init ----
-      (function init() {
-        // Load saved if present
-        try {
-          const raw = localStorage.getItem(STORAGE_KEY);
-          if (raw) {
-            const obj = JSON.parse(raw);
-            if (obj && typeof obj === "object") {
-              if (typeof obj.html === "string") files.html = obj.html;
-              if (typeof obj.css === "string") files.css = obj.css;
-              if (typeof obj.js === "string") files.js = obj.js;
-              setStatus("Loaded saved project");
-            }
-          } else {
-            setStatus("Ready (starter templates loaded)");
-          }
-        } catch {}
-
-        renderSamples();
-        setActiveTab("html");
-        updateCounts();
-        runPreview();
-      })();
+      // Initialize
+       
+      runPreview();
     </script>
   </body>
 </html>
