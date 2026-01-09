@@ -1,10 +1,20 @@
-
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>HTML Live Preview (Editor + iframe)</title>
+    <title>HTML Live Preview (Syntax Highlighting + iframe)</title>
+
+    <!-- ✅ CodeMirror (CDN). For full offline: download these and point href/src to local files. -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/eclipse.min.css"
+    />
+
     <style>
       :root {
         --bg: #fff7e6; /* light saffron */
@@ -21,9 +31,7 @@
         --sans: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
           "Apple Color Emoji", "Segoe UI Emoji";
       }
-      * {
-        box-sizing: border-box;
-      }
+      * { box-sizing: border-box; }
       body {
         margin: 0;
         font-family: var(--sans);
@@ -72,6 +80,7 @@
         gap: 10px;
         align-items: center;
         flex: 0 1 auto;
+        flex-wrap: wrap;
       }
       button {
         border: 1px solid var(--border);
@@ -85,12 +94,8 @@
         transition: transform 0.06s ease, box-shadow 0.15s ease;
         box-shadow: 0 8px 18px rgba(31, 41, 55, 0.08);
       }
-      button:hover {
-        transform: translateY(-1px);
-      }
-      button:active {
-        transform: translateY(0px);
-      }
+      button:hover { transform: translateY(-1px); }
+      button:active { transform: translateY(0px); }
       .primary {
         border-color: #f2c77c;
         background: linear-gradient(180deg, #fffbf2, #fff0d4);
@@ -100,6 +105,7 @@
         background: linear-gradient(180deg, #fff, #fff2f2);
         color: var(--danger);
       }
+
       .chip {
         display: inline-flex;
         align-items: center;
@@ -113,9 +119,7 @@
         user-select: none;
         white-space: nowrap;
       }
-      .chip input {
-        transform: translateY(1px);
-      }
+      .chip input { transform: translateY(1px); }
 
       main {
         max-width: 1200px;
@@ -129,9 +133,7 @@
         gap: 14px;
       }
       @media (max-width: 980px) {
-        .grid {
-          grid-template-columns: 1fr;
-        }
+        .grid { grid-template-columns: 1fr; }
       }
 
       .panel {
@@ -151,6 +153,7 @@
         padding: 12px 14px;
         border-bottom: 1px solid var(--border);
         background: #fffaf0;
+        gap: 10px;
       }
       .panel-head strong {
         color: var(--brand);
@@ -160,22 +163,25 @@
       .panel-head .hint {
         color: var(--muted);
         font-size: 12px;
+        white-space: nowrap;
       }
 
-      textarea {
-        width: 100%;
-        height: 100%;
+      /* CodeMirror sizing inside panel */
+      .cm-wrap {
         flex: 1;
-        border: 0;
-        outline: none;
-        padding: 14px;
+        display: flex;
+      }
+      .CodeMirror {
+        height: 100%;
+        width: 100%;
         font-family: var(--mono);
         font-size: 13px;
         line-height: 1.45;
-        resize: none;
         background: #fff;
-        color: #0f172a;
-        tab-size: 2;
+      }
+      .CodeMirror-gutters {
+        background: #fffaf0;
+        border-right: 1px solid var(--border);
       }
 
       iframe {
@@ -201,9 +207,7 @@
         color: var(--muted);
         font-size: 12px;
       }
-      .status b {
-        color: var(--ink);
-      }
+      .status b { color: var(--ink); }
       .kbd {
         font-family: var(--mono);
         font-size: 12px;
@@ -214,30 +218,37 @@
         background: #fff;
         color: var(--ink);
       }
+      .ok { color: var(--ok); font-weight: 700; }
+      .bad { color: var(--danger); font-weight: 700; }
     </style>
   </head>
+
   <body>
     <header>
       <div class="title">
         <h1>HTML Live Preview</h1>
         <p>
-          Paste or type HTML on the left. Preview updates on the right (iframe).
-          Works offline.
+          Type HTML on the left (syntax highlighting). Preview updates on the right (iframe).
+          <b>Ctrl/⌘ + Enter</b> runs instantly.
         </p>
       </div>
 
       <div class="actions">
-        <button
-          class="primary"
-          id="btnRun"
-          title="Update preview (Ctrl/⌘ + Enter)"
-          onclick="runPreview()"
-        >
+        <button class="primary" id="btnRun" title="Update preview (Ctrl/⌘ + Enter)">
           Run
         </button>
-       
-        
-      
+        <button id="btnSave" title="Save to localStorage">Save</button>
+        <button id="btnLoad" title="Load from localStorage">Load</button>
+        <button class="danger" id="btnClear" title="Clear editor">Clear</button>
+
+        <label class="chip" title="Auto-run while typing (debounced)">
+          <input type="checkbox" id="autoRun" checked />
+          Auto-run
+        </label>
+
+        <span class="chip" title="Sandbox helps isolate preview content">
+          Sandbox: <span class="ok">ON</span>
+        </span>
       </div>
     </header>
 
@@ -246,10 +257,14 @@
         <section class="panel" aria-label="Editor panel">
           <div class="panel-head">
             <strong>Editor</strong>
-            
+            <span class="hint">HTML/CSS/JS highlighting</span>
           </div>
-          <textarea onchange="runPreview()" onkeyup="runPreview()" id="editor" spellcheck="false"></textarea>
-        </section>                                                                                                                          
+
+          <!-- CodeMirror will attach to this textarea -->
+          <div class="cm-wrap">
+            <textarea id="editor" spellcheck="false"></textarea>
+          </div>
+        </section>
 
         <section class="panel" aria-label="Preview panel">
           <div class="panel-head">
@@ -258,40 +273,83 @@
           </div>
           <iframe
             id="preview"
-            sandbox="allow-forms allow-modals allow-pointer-lock allow-popups allow-presentation allow-same-origin allow-scripts"
+            sandbox="allow-forms allow-modals allow-pointer-lock allow-popups allow-presentation allow-scripts"
           ></iframe>
         </section>
       </div>
 
-       
+      <div class="status" aria-live="polite">
+        <div>
+          Status: <b id="statusText">Ready</b>
+        </div>
+        <div>
+          Shortcut: <span class="kbd">Ctrl</span> + <span class="kbd">Enter</span> /
+          <span class="kbd">⌘</span> + <span class="kbd">Enter</span>
         </div>
       </div>
     </main>
 
-    <script>
-      const STORAGE_KEY = "html_live_preview_code_v1";
+    <!-- ✅ CodeMirror JS (CDN). For full offline: download and point src to local files. -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
 
-      const editor = document.getElementById("editor");
+    <script>
+      const STORAGE_KEY = "html_live_preview_code_v2";
+
       const preview = document.getElementById("preview");
-       
-    
-      function setStatus(msg) {
-        statusText.innerHTML = msg;
+      const statusText = document.getElementById("statusText");
+      const autoRun = document.getElementById("autoRun");
+
+      const btnRun = document.getElementById("btnRun");
+      const btnSave = document.getElementById("btnSave");
+      const btnLoad = document.getElementById("btnLoad");
+      const btnClear = document.getElementById("btnClear");
+
+      function setStatus(msg, kind = "normal") {
+        statusText.textContent = msg;
+        statusText.classList.remove("ok", "bad");
+        if (kind === "ok") statusText.classList.add("ok");
+        if (kind === "bad") statusText.classList.add("bad");
+      }
+
+      // Initialize CodeMirror
+      const cm = CodeMirror.fromTextArea(document.getElementById("editor"), {
+        mode: "htmlmixed",
+        theme: "eclipse",
+        lineNumbers: true,
+        lineWrapping: true,
+        tabSize: 2,
+        indentUnit: 2,
+        indentWithTabs: false,
+        autoCloseTags: false, // keep simple; can be enabled with addon files
+        matchBrackets: true,
+      });
+
+      function getCode() {
+        return cm.getValue();
+      }
+      function setCode(v) {
+        cm.setValue(v);
       }
 
       function runPreview() {
-        // Write the user's HTML directly into the iframe via srcdoc
-        preview.srcdoc =editor.value || "<!doctype html><title>Empty</title><p>(No HTML)</p>";
-         
+        const code = getCode().trim();
+        preview.srcdoc =
+          code ||
+          "<!doctype html><title>Empty</title><p style='font-family:system-ui'> (No HTML) </p>";
+        setStatus("Preview updated", "ok");
       }
 
       function saveCode() {
         try {
-          localStorage.setItem(STORAGE_KEY, editor.value);
-          setStatus("Saved");
+          localStorage.setItem(STORAGE_KEY, getCode());
+          setStatus("Saved to localStorage", "ok");
         } catch (e) {
           console.error(e);
-          setStatus("Save failed (storage blocked?)");
+          setStatus("Save failed (storage blocked?)", "bad");
         }
       }
 
@@ -299,41 +357,62 @@
         try {
           const v = localStorage.getItem(STORAGE_KEY);
           if (v === null) {
-            setStatus("Nothing saved yet");
+            setStatus("Nothing saved yet", "bad");
             return;
           }
-          editor.value = v;
+          setCode(v);
           runPreview();
-          setStatus("Loaded");
+          setStatus("Loaded from localStorage", "ok");
         } catch (e) {
           console.error(e);
-          setStatus("Load failed (storage blocked?)");
+          setStatus("Load failed (storage blocked?)", "bad");
         }
       }
 
       function clearEditor() {
-        editor.value = "";
+        setCode("");
         runPreview();
-        setStatus("Cleared");
+        setStatus("Cleared", "ok");
       }
 
-      // Auto-run (debounced)
+      // Debounced auto-run
       let t = null;
-      editor.addEventListener("input", () => {
+      cm.on("change", () => {
         if (!autoRun.checked) return;
         clearTimeout(t);
         t = setTimeout(runPreview, 250);
-      });
-      document.addEventListener("keydown", (e) => {
-        const key = e.key.toLowerCase();
-        const ctrl = e.ctrlKey || e.metaKey;
- 
-         
+        setStatus("Typing…", "normal");
       });
 
-      // Initialize
-       
+      // Buttons
+      btnRun.addEventListener("click", runPreview);
+      btnSave.addEventListener("click", saveCode);
+      btnLoad.addEventListener("click", loadCode);
+      btnClear.addEventListener("click", clearEditor);
+
+      // Ctrl/⌘ + Enter
+      document.addEventListener("keydown", (e) => {
+        const ctrl = e.ctrlKey || e.metaKey;
+        if (ctrl && e.key === "Enter") {
+          e.preventDefault();
+          runPreview();
+        }
+      });
+
+      // Default sample + init
+     ;
+
+      // Load saved if exists, else sample
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        setCode(saved !== null ? saved : starter);
+      } catch {
+        setCode(starter);
+      }
+
       runPreview();
+      setStatus("Ready", "ok");
+      cm.focus();
     </script>
   </body>
 </html>
