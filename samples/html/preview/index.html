@@ -3,7 +3,26 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>HTML Live Preview (Editor + iframe)</title>
+    <title>HTML Live Preview — Pro Editor (Highlighting + Tools)</title>
+
+    <!-- CodeMirror 5 (Editor) -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/dialog/dialog.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/matchesonscrollbar.min.css"
+    />
+
     <style>
       :root {
         --bg: #fff7e6; /* light saffron */
@@ -11,6 +30,7 @@
         --ink: #1f2937;
         --muted: #6b7280;
         --brand: #d97706;
+        --brand2: #f59e0b;
         --border: #f3d7a6;
         --shadow: 0 18px 45px rgba(31, 41, 55, 0.14);
         --danger: #b91c1c;
@@ -45,7 +65,7 @@
         box-shadow: var(--shadow);
         border-radius: 14px;
         padding: 14px 16px;
-        flex: 1 1 420px;
+        flex: 1 1 520px;
         min-width: 280px;
       }
       .title h1 {
@@ -70,17 +90,17 @@
         display: flex;
         gap: 10px;
         align-items: center;
-        flex: 0 1 auto;
         flex-wrap: wrap;
       }
-      button {
+      button,
+      select {
         border: 1px solid var(--border);
         background: linear-gradient(180deg, #fff, #fff7ea);
         color: var(--ink);
         padding: 9px 12px;
         border-radius: 10px;
         cursor: pointer;
-        font-weight: 600;
+        font-weight: 700;
         font-size: 13px;
         transition: transform 0.06s ease, box-shadow 0.15s ease;
         box-shadow: 0 8px 18px rgba(31, 41, 55, 0.08);
@@ -117,13 +137,22 @@
         transform: translateY(1px);
         accent-color: var(--brand);
       }
+      .kbd {
+        font-family: var(--mono);
+        font-size: 12px;
+        padding: 2px 7px;
+        border: 1px solid var(--border);
+        border-bottom-width: 2px;
+        border-radius: 8px;
+        background: #fff;
+        color: var(--ink);
+      }
 
       main {
         max-width: 1200px;
         margin: 12px auto 24px;
         padding: 0 16px;
       }
-
       .grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -141,7 +170,7 @@
         box-shadow: var(--shadow);
         border-radius: 14px;
         overflow: hidden;
-        min-height: 540px;
+        min-height: 560px;
         display: flex;
         flex-direction: column;
       }
@@ -149,9 +178,11 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
+        gap: 10px;
         padding: 12px 14px;
         border-bottom: 1px solid var(--border);
         background: #fffaf0;
+        flex-wrap: wrap;
       }
       .panel-head strong {
         color: var(--brand);
@@ -162,21 +193,23 @@
         color: var(--muted);
         font-size: 12px;
       }
-
-      textarea {
-        width: 100%;
-        height: 100%;
+      .editor-wrap {
         flex: 1;
-        border: 0;
-        outline: none;
-        padding: 14px;
+        display: flex;
+        min-height: 0;
+      }
+
+      /* CodeMirror sizing */
+      .CodeMirror {
+        height: 100%;
+        width: 100%;
         font-family: var(--mono);
         font-size: 13px;
         line-height: 1.45;
-        resize: none;
-        background: #fff;
-        color: #0f172a;
-        tab-size: 2;
+      }
+      .CodeMirror-gutters {
+        background: #fffaf0;
+        border-right: 1px solid var(--border);
       }
 
       iframe {
@@ -205,21 +238,22 @@
       .status b {
         color: var(--ink);
       }
-      .kbd {
-        font-family: var(--mono);
-        font-size: 12px;
-        padding: 2px 7px;
-        border: 1px solid var(--border);
-        border-bottom-width: 2px;
-        border-radius: 8px;
-        background: #fff;
-        color: var(--ink);
-      }
       .status-left {
         display: flex;
-        gap: 10px;
         align-items: center;
+        gap: 12px;
         flex-wrap: wrap;
+      }
+
+      input[type="file"] {
+        display: none;
+      }
+      .tiny {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      code {
+        font-family: var(--mono);
       }
     </style>
   </head>
@@ -227,25 +261,38 @@
   <body>
     <header>
       <div class="title">
-        <h1>HTML Live Preview</h1>
+        <h1>HTML Live Preview — Pro Editor</h1>
         <p>
-          Paste or type HTML on the left. Preview updates on the right (iframe).
-          Works offline.
+          Syntax highlighting, auto-close tags/brackets, search, fold, beautify,
+          save/load, upload/download. Preview runs in an iframe.
+          <span class="tiny"
+            >Shortcut: <span class="kbd">Ctrl</span>/<span class="kbd">⌘</span> +
+            <span class="kbd">Enter</span></span
+          >
         </p>
       </div>
 
       <div class="actions">
-        <button class="primary" id="btnRun" title="Update preview (Ctrl/⌘ + Enter)">
+        <button class="primary" id="btnRun" title="Run (Ctrl/⌘ + Enter)">
           Run
         </button>
 
-        <span class="chip" title="When enabled, preview updates automatically as you type">
+        <span class="chip" title="Auto-run while typing (debounced)">
           <input id="autoRun" type="checkbox" checked />
           <label for="autoRun">Auto-run</label>
         </span>
 
+        <button id="btnBeautify" title="Format / Beautify HTML">Beautify</button>
+
         <button id="btnSave" title="Save code to localStorage">Save</button>
-        <button id="btnLoad" title="Load saved code from localStorage">Load</button>
+        <button id="btnLoad" title="Load code from localStorage">Load</button>
+
+        <label for="fileInput" style="display:inline-block">
+          <button type="button" id="btnUpload" title="Load an HTML file">Upload</button>
+        </label>
+        <input id="fileInput" type="file" accept=".html,.htm,.txt" />
+
+        <button id="btnDownload" title="Download as .html">Download</button>
         <button class="danger" id="btnClear" title="Clear editor">Clear</button>
       </div>
     </header>
@@ -254,10 +301,16 @@
       <div class="grid">
         <section class="panel" aria-label="Editor panel">
           <div class="panel-head">
-            <strong>Editor</strong>
-            <span class="hint">Tip: <span class="kbd">Ctrl</span> / <span class="kbd">⌘</span> + <span class="kbd">Enter</span></span>
+            <strong>Editor (CodeMirror)</strong>
+            <span class="hint">
+              Find: <span class="kbd">Ctrl</span>/<span class="kbd">⌘</span> + <span class="kbd">F</span>
+              &nbsp;•&nbsp; Replace: <span class="kbd">Ctrl</span>/<span class="kbd">⌘</span> + <span class="kbd">H</span>
+              &nbsp;•&nbsp; Fold: <span class="kbd">Ctrl</span>/<span class="kbd">⌘</span> + <span class="kbd">Q</span>
+            </span>
           </div>
-          <textarea id="editor" spellcheck="false"></textarea>
+          <div class="editor-wrap">
+            <textarea id="editor"></textarea>
+          </div>
         </section>
 
         <section class="panel" aria-label="Preview panel">
@@ -277,51 +330,147 @@
           <span><b>Status:</b> <span id="statusText">Ready</span></span>
           <span><b>Chars:</b> <span id="charCount">0</span></span>
           <span><b>Lines:</b> <span id="lineCount">0</span></span>
+          <span><b>Cursor:</b> <span id="cursorPos">1:1</span></span>
         </div>
-        <div>
-          <span class="hint">Storage key: <code>html_live_preview_code_v1</code></span>
+        <div class="tiny">
+          Storage key: <code>html_live_preview_pro_v1</code>
         </div>
       </div>
     </main>
 
+    <!-- CodeMirror JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+
+    <!-- Modes (HTML/CSS/JS mixed) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+
+    <!-- Addons: editing helpers -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closetag.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchtags.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
+
+    <!-- Addons: search -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/dialog/dialog.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/searchcursor.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/search.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/scroll/annotatescrollbar.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/matchesonscrollbar.min.js"></script>
+
+    <!-- Addons: folding -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/brace-fold.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/xml-fold.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/indent-fold.min.js"></script>
+
+    <!-- Beautifier -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.15.1/beautify-html.min.js"></script>
+
     <script>
-      const STORAGE_KEY = "html_live_preview_code_v1";
+      const STORAGE_KEY = "html_live_preview_pro_v1";
 
-      const editor = document.getElementById("editor");
       const preview = document.getElementById("preview");
-
       const btnRun = document.getElementById("btnRun");
+      const btnBeautify = document.getElementById("btnBeautify");
       const btnSave = document.getElementById("btnSave");
       const btnLoad = document.getElementById("btnLoad");
       const btnClear = document.getElementById("btnClear");
-
+      const btnDownload = document.getElementById("btnDownload");
       const autoRun = document.getElementById("autoRun");
+      const fileInput = document.getElementById("fileInput");
+
       const statusText = document.getElementById("statusText");
       const charCount = document.getElementById("charCount");
       const lineCount = document.getElementById("lineCount");
+      const cursorPos = document.getElementById("cursorPos");
 
       function setStatus(msg) {
         statusText.textContent = msg;
       }
 
+      // Create CodeMirror
+      const cm = CodeMirror.fromTextArea(document.getElementById("editor"), {
+        mode: "htmlmixed",
+        lineNumbers: true,
+        lineWrapping: true,
+        styleActiveLine: true,
+        matchBrackets: true,
+        autoCloseBrackets: true,
+        autoCloseTags: true,
+        matchTags: { bothTags: true },
+        indentUnit: 2,
+        tabSize: 2,
+        indentWithTabs: false,
+        foldGutter: true,
+        gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+        extraKeys: {
+          "Ctrl-Enter": () => runPreview(),
+          "Cmd-Enter": () => runPreview(),
+          "Ctrl-Q": (cmx) => cmx.foldCode(cmx.getCursor()),
+          "Cmd-Q": (cmx) => cmx.foldCode(cmx.getCursor()),
+          "Ctrl-S": () => saveCode(),
+          "Cmd-S": () => saveCode(),
+          "Ctrl-Shift-F": () => beautifyCode(),
+          "Cmd-Shift-F": () => beautifyCode(),
+        },
+      });
+
       function updateCounts() {
-        const v = editor.value || "";
+        const v = cm.getValue() || "";
         charCount.textContent = String(v.length);
         lineCount.textContent = String(v.length ? v.split("\n").length : 0);
+
+        const cur = cm.getCursor(); // {line, ch}
+        cursorPos.textContent = `${cur.line + 1}:${cur.ch + 1}`;
       }
 
       function runPreview() {
-        preview.srcdoc =
-          editor.value ||
+        const html =
+          cm.getValue() ||
           "<!doctype html><html><head><meta charset='utf-8'><title>Empty</title></head><body><p style='font-family:system-ui;margin:20px;color:#555'>(No HTML)</p></body></html>";
+        preview.srcdoc = html;
         setStatus("Preview updated");
         updateCounts();
       }
 
+      // Debounced auto-run
+      let t = null;
+      cm.on("change", () => {
+        updateCounts();
+        if (!autoRun.checked) return;
+        clearTimeout(t);
+        t = setTimeout(runPreview, 250);
+      });
+
+      cm.on("cursorActivity", updateCounts);
+
+      function beautifyCode() {
+        try {
+          const formatted = html_beautify(cm.getValue(), {
+            indent_size: 2,
+            wrap_line_length: 100,
+            end_with_newline: true,
+            preserve_newlines: true,
+            max_preserve_newlines: 2,
+          });
+          cm.setValue(formatted);
+          setStatus("Beautified");
+          runPreview();
+        } catch (e) {
+          console.error(e);
+          setStatus("Beautify failed");
+        }
+      }
+
       function saveCode() {
         try {
-          localStorage.setItem(STORAGE_KEY, editor.value);
-          setStatus("Saved to browser storage");
+          localStorage.setItem(STORAGE_KEY, cm.getValue());
+          setStatus("Saved");
         } catch (e) {
           console.error(e);
           setStatus("Save failed (storage blocked?)");
@@ -331,13 +480,10 @@
       function loadCode() {
         try {
           const v = localStorage.getItem(STORAGE_KEY);
-          if (v === null) {
-            setStatus("Nothing saved yet");
-            return;
-          }
-          editor.value = v;
+          if (v === null) return setStatus("Nothing saved yet");
+          cm.setValue(v);
+          setStatus("Loaded");
           runPreview();
-          setStatus("Loaded from browser storage");
         } catch (e) {
           console.error(e);
           setStatus("Load failed (storage blocked?)");
@@ -345,63 +491,100 @@
       }
 
       function clearEditor() {
-        editor.value = "";
-        runPreview();
+        cm.setValue("");
         setStatus("Cleared");
+        runPreview();
       }
 
-      // Debounced auto-run
-      let t = null;
-      editor.addEventListener("input", () => {
-        updateCounts();
-        if (!autoRun.checked) return;
-        clearTimeout(t);
-        t = setTimeout(runPreview, 250);
+      function downloadHTML() {
+        const blob = new Blob([cm.getValue()], { type: "text/html;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "live-preview.html";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        setStatus("Downloaded");
+      }
+
+      function uploadFile(file) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          cm.setValue(String(reader.result || ""));
+          setStatus("File loaded");
+          runPreview();
+        };
+        reader.onerror = () => setStatus("File read error");
+        reader.readAsText(file);
+      }
+
+      // Buttons
+      btnRun.addEventListener("click", runPreview);
+      btnBeautify.addEventListener("click", beautifyCode);
+      btnSave.addEventListener("click", saveCode);
+      btnLoad.addEventListener("click", loadCode);
+      btnClear.addEventListener("click", clearEditor);
+      btnDownload.addEventListener("click", downloadHTML);
+
+      fileInput.addEventListener("change", (e) => {
+        const f = e.target.files && e.target.files[0];
+        if (f) uploadFile(f);
+        fileInput.value = "";
       });
 
-      // Keyboard shortcut: Ctrl/Cmd + Enter
+      // Ctrl/Cmd+Enter also at document level (backup)
       document.addEventListener("keydown", (e) => {
         const ctrl = e.ctrlKey || e.metaKey;
         if (ctrl && e.key === "Enter") {
           e.preventDefault();
           runPreview();
         }
+        // Prevent browser Save dialog, use local save instead
+        if (ctrl && (e.key.toLowerCase() === "s")) {
+          e.preventDefault();
+          saveCode();
+        }
       });
 
-      // Buttons
-      btnRun.addEventListener("click", runPreview);
-      btnSave.addEventListener("click", saveCode);
-      btnLoad.addEventListener("click", loadCode);
-      btnClear.addEventListener("click", clearEditor);
-
-      // Starter template (only if nothing saved)
+      // Init starter template (or load saved)
       (function init() {
         let saved = null;
         try {
           saved = localStorage.getItem(STORAGE_KEY);
         } catch (e) {}
 
-        editor.value =
-          saved ??
-          `<!doctype html>
+        const starter = `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Hello</title>
+  <title>Hello Champak</title>
   <style>
     body{font-family:system-ui;margin:24px}
     h1{color:#d97706}
+    .card{border:1px solid #f3d7a6;border-radius:14px;padding:14px;background:#fff7e6}
   </style>
 </head>
 <body>
   <h1>Hello Champak 👋</h1>
-  <p>Edit HTML on the left, see it live on the right.</p>
+  <div class="card">
+    <p>Edit HTML on the left, see it live on the right.</p>
+    <ul>
+      <li><b>Run:</b> Ctrl/⌘ + Enter</li>
+      <li><b>Beautify:</b> Ctrl/⌘ + Shift + F</li>
+      <li><b>Save:</b> Ctrl/⌘ + S</li>
+      <li><b>Search:</b> Ctrl/⌘ + F</li>
+    </ul>
+  </div>
 </body>
 </html>`;
+
+        cm.setValue(saved ?? starter);
+        setStatus(saved ? "Loaded saved code automatically" : "Ready (starter template loaded)");
         updateCounts();
         runPreview();
-        setStatus(saved ? "Loaded saved code automatically" : "Ready (starter template loaded)");
       })();
     </script>
   </body>
