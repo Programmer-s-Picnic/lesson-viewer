@@ -71,6 +71,7 @@
         gap: 10px;
         align-items: center;
         flex: 0 1 auto;
+        flex-wrap: wrap;
       }
       button {
         border: 1px solid var(--border);
@@ -114,6 +115,7 @@
       }
       .chip input {
         transform: translateY(1px);
+        accent-color: var(--brand);
       }
 
       main {
@@ -213,8 +215,15 @@
         background: #fff;
         color: var(--ink);
       }
+      .status-left {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
     </style>
   </head>
+
   <body>
     <header>
       <div class="title">
@@ -226,17 +235,18 @@
       </div>
 
       <div class="actions">
-        <button
-          class="primary"
-          id="btnRun"
-          title="Update preview (Ctrl/⌘ + Enter)"
-          onclick="runPreview()"
-        >
+        <button class="primary" id="btnRun" title="Update preview (Ctrl/⌘ + Enter)">
           Run
         </button>
-       
-        
-      
+
+        <span class="chip" title="When enabled, preview updates automatically as you type">
+          <input id="autoRun" type="checkbox" checked />
+          <label for="autoRun">Auto-run</label>
+        </span>
+
+        <button id="btnSave" title="Save code to localStorage">Save</button>
+        <button id="btnLoad" title="Load saved code from localStorage">Load</button>
+        <button class="danger" id="btnClear" title="Clear editor">Clear</button>
       </div>
     </header>
 
@@ -245,10 +255,10 @@
         <section class="panel" aria-label="Editor panel">
           <div class="panel-head">
             <strong>Editor</strong>
-            
+            <span class="hint">Tip: <span class="kbd">Ctrl</span> / <span class="kbd">⌘</span> + <span class="kbd">Enter</span></span>
           </div>
-          <textarea onchange="runPreview()" onkeyup="runPreview()" id="editor" spellcheck="false"></textarea>
-        </section>                                                                                                                          
+          <textarea id="editor" spellcheck="false"></textarea>
+        </section>
 
         <section class="panel" aria-label="Preview panel">
           <div class="panel-head">
@@ -262,7 +272,14 @@
         </section>
       </div>
 
-       
+      <div class="status" role="status" aria-live="polite">
+        <div class="status-left">
+          <span><b>Status:</b> <span id="statusText">Ready</span></span>
+          <span><b>Chars:</b> <span id="charCount">0</span></span>
+          <span><b>Lines:</b> <span id="lineCount">0</span></span>
+        </div>
+        <div>
+          <span class="hint">Storage key: <code>html_live_preview_code_v1</code></span>
         </div>
       </div>
     </main>
@@ -272,22 +289,39 @@
 
       const editor = document.getElementById("editor");
       const preview = document.getElementById("preview");
-       
-    
+
+      const btnRun = document.getElementById("btnRun");
+      const btnSave = document.getElementById("btnSave");
+      const btnLoad = document.getElementById("btnLoad");
+      const btnClear = document.getElementById("btnClear");
+
+      const autoRun = document.getElementById("autoRun");
+      const statusText = document.getElementById("statusText");
+      const charCount = document.getElementById("charCount");
+      const lineCount = document.getElementById("lineCount");
+
       function setStatus(msg) {
-        statusText.innerHTML = msg;
+        statusText.textContent = msg;
+      }
+
+      function updateCounts() {
+        const v = editor.value || "";
+        charCount.textContent = String(v.length);
+        lineCount.textContent = String(v.length ? v.split("\n").length : 0);
       }
 
       function runPreview() {
-        // Write the user's HTML directly into the iframe via srcdoc
-        preview.srcdoc =editor.value || "<!doctype html><title>Empty</title><p>(No HTML)</p>";
-         
+        preview.srcdoc =
+          editor.value ||
+          "<!doctype html><html><head><meta charset='utf-8'><title>Empty</title></head><body><p style='font-family:system-ui;margin:20px;color:#555'>(No HTML)</p></body></html>";
+        setStatus("Preview updated");
+        updateCounts();
       }
 
       function saveCode() {
         try {
           localStorage.setItem(STORAGE_KEY, editor.value);
-          setStatus("Saved");
+          setStatus("Saved to browser storage");
         } catch (e) {
           console.error(e);
           setStatus("Save failed (storage blocked?)");
@@ -303,7 +337,7 @@
           }
           editor.value = v;
           runPreview();
-          setStatus("Loaded");
+          setStatus("Loaded from browser storage");
         } catch (e) {
           console.error(e);
           setStatus("Load failed (storage blocked?)");
@@ -316,23 +350,59 @@
         setStatus("Cleared");
       }
 
-      // Auto-run (debounced)
+      // Debounced auto-run
       let t = null;
       editor.addEventListener("input", () => {
+        updateCounts();
         if (!autoRun.checked) return;
         clearTimeout(t);
         t = setTimeout(runPreview, 250);
       });
+
+      // Keyboard shortcut: Ctrl/Cmd + Enter
       document.addEventListener("keydown", (e) => {
-        const key = e.key.toLowerCase();
         const ctrl = e.ctrlKey || e.metaKey;
- 
-         
+        if (ctrl && e.key === "Enter") {
+          e.preventDefault();
+          runPreview();
+        }
       });
 
-      // Initialize
-       
-      runPreview();
+      // Buttons
+      btnRun.addEventListener("click", runPreview);
+      btnSave.addEventListener("click", saveCode);
+      btnLoad.addEventListener("click", loadCode);
+      btnClear.addEventListener("click", clearEditor);
+
+      // Starter template (only if nothing saved)
+      (function init() {
+        let saved = null;
+        try {
+          saved = localStorage.getItem(STORAGE_KEY);
+        } catch (e) {}
+
+        editor.value =
+          saved ??
+          `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Hello</title>
+  <style>
+    body{font-family:system-ui;margin:24px}
+    h1{color:#d97706}
+  </style>
+</head>
+<body>
+  <h1>Hello Champak 👋</h1>
+  <p>Edit HTML on the left, see it live on the right.</p>
+</body>
+</html>`;
+        updateCounts();
+        runPreview();
+        setStatus(saved ? "Loaded saved code automatically" : "Ready (starter template loaded)");
+      })();
     </script>
   </body>
 </html>
