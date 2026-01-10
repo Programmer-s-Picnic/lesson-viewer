@@ -1,0 +1,568 @@
+<!--
+tabla web audio samples
+tabla instrument javascript
+tabla soundfont
+
+-->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Clickable Tabla — Dayan & Bayan (Web)</title>
+    <meta
+      name="description"
+      content="A simple clickable tabla web page: click/tap Dayan and Bayan to play bols using audio samples."
+    />
+    <meta name="author" content="Champak Roy" />
+
+    <style>
+      :root {
+        /* Light saffron theme */
+        --bg: #fff7e6;
+        --card: #ffffff;
+        --ink: #1f2937;
+        --muted: #6b7280;
+        --brand: #d97706;
+        --brand2: #f59e0b;
+        --border: #eadcc5;
+        --shadow: 0 18px 40px rgba(31, 41, 55, 0.14);
+        --ok: #166534;
+        --danger: #b91c1c;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica,
+          Arial, sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+      }
+      .container {
+        max-width: 1100px;
+        margin: 28px auto;
+        padding: 18px;
+      }
+      .hero {
+        background: linear-gradient(135deg, #fff1d6, #ffffff);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        box-shadow: var(--shadow);
+        padding: 18px;
+      }
+      h1 {
+        margin: 0 0 6px;
+        color: var(--brand);
+        font-size: 28px;
+      }
+      .sub {
+        margin: 0;
+        color: var(--muted);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 16px;
+        margin-top: 16px;
+      }
+      @media (max-width: 900px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        box-shadow: var(--shadow);
+        padding: 16px;
+      }
+
+      /* Tabla stage */
+      .stage {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 22px;
+        padding: 14px 6px;
+        flex-wrap: wrap;
+      }
+
+      .drumWrap {
+        text-align: center;
+      }
+      .drumLabel {
+        margin-top: 10px;
+        font-weight: 700;
+        color: var(--brand);
+        letter-spacing: 0.2px;
+      }
+      .hint {
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      /* Drum look */
+      .drum {
+        width: 260px;
+        height: 260px;
+        border-radius: 50%;
+        position: relative;
+        border: 1px solid var(--border);
+        box-shadow: 0 16px 30px rgba(31, 41, 55, 0.18);
+        cursor: pointer;
+        user-select: none;
+        touch-action: manipulation;
+        outline: none;
+        transform: translateZ(0);
+      }
+      .drum:active {
+        transform: scale(0.99);
+      }
+
+      .bayan {
+        background: radial-gradient(
+          circle at 40% 35%,
+          #fff,
+          #f6ede0 40%,
+          #e3d2ba 70%,
+          #d0b18c 100%
+        );
+      }
+      .dayan {
+        background: radial-gradient(
+          circle at 40% 35%,
+          #fff,
+          #f3efe6 40%,
+          #d8c29c 75%,
+          #c09a5a 100%
+        );
+      }
+
+      /* Rings */
+      .ring {
+        position: absolute;
+        inset: 14px;
+        border-radius: 50%;
+        border: 2px solid rgba(0, 0, 0, 0.1);
+        box-shadow: inset 0 0 0 10px rgba(255, 255, 255, 0.25);
+        pointer-events: none;
+      }
+      .ring2 {
+        position: absolute;
+        inset: 34px;
+        border-radius: 50%;
+        border: 2px solid rgba(0, 0, 0, 0.1);
+        pointer-events: none;
+      }
+
+      /* Syahi + zones */
+      .syahi {
+        position: absolute;
+        width: 92px;
+        height: 92px;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        border-radius: 50%;
+        background: radial-gradient(
+          circle at 35% 30%,
+          #3b3b3b,
+          #111 60%,
+          #000 100%
+        );
+        box-shadow: inset 0 0 0 6px rgba(255, 255, 255, 0.05);
+        pointer-events: none;
+      }
+
+      /* Click zones (transparent buttons) */
+      .zone {
+        position: absolute;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        letter-spacing: 0.3px;
+        color: rgba(255, 255, 255, 0);
+        background: rgba(255, 255, 255, 0);
+        border: 2px dashed rgba(217, 119, 6, 0);
+      }
+      .zone:focus-visible {
+        outline: 3px solid rgba(245, 158, 11, 0.55);
+        outline-offset: 3px;
+      }
+
+      /* Dayan zones: center (Tin), rim (Na) */
+      .zone.center {
+        width: 120px;
+        height: 120px;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+      }
+      .zone.rim {
+        inset: 18px;
+      }
+
+      /* Bayan zones: center (Ge), rim (Ke) */
+      .bayan .zone.center {
+        width: 132px;
+        height: 132px;
+      }
+      .bayan .zone.rim {
+        inset: 16px;
+      }
+
+      /* UI controls */
+      .row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+      }
+      .btn {
+        border: 1px solid var(--border);
+        background: linear-gradient(180deg, #fff, #fff7ea);
+        color: var(--ink);
+        padding: 10px 12px;
+        border-radius: 12px;
+        cursor: pointer;
+        font-weight: 700;
+      }
+      .btn.primary {
+        border-color: rgba(217, 119, 6, 0.45);
+        background: linear-gradient(180deg, #fff1d6, #ffe8bf);
+      }
+      .btn:active {
+        transform: translateY(1px);
+      }
+      .small {
+        font-size: 13px;
+        color: var(--muted);
+        margin: 10px 0 0;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border: 1px dashed rgba(217, 119, 6, 0.5);
+        border-radius: 999px;
+        background: #fffaf1;
+        color: var(--ink);
+        font-weight: 700;
+        margin-top: 10px;
+      }
+      .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--danger);
+      }
+      .dot.ok {
+        background: var(--ok);
+      }
+
+      .log {
+        margin-top: 12px;
+        border: 1px solid var(--border);
+        background: #fffaf1;
+        border-radius: 12px;
+        padding: 10px;
+        min-height: 92px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        font-size: 13px;
+        color: #111827;
+        white-space: pre-wrap;
+      }
+      .kbd {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        border: 1px solid var(--border);
+        background: #fff;
+        padding: 2px 6px;
+        border-radius: 7px;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <div class="hero">
+        <h1>Clickable Tabla (Dayan + Bayan)</h1>
+        <p class="sub">
+          Click/tap the drum zones to play bols. Works best after your first
+          click (browser audio unlock).
+        </p>
+        <div class="pill" id="statusPill">
+          <span class="dot" id="statusDot"></span>
+          <span id="statusText"
+            >Audio not unlocked yet — click any drum once</span
+          >
+        </div>
+        <p class="small">
+          Keyboard: <span class="kbd">N</span> Na,
+          <span class="kbd">T</span> Tin, <span class="kbd">G</span> Ge,
+          <span class="kbd">K</span> Ke
+        </p>
+      </div>
+
+      <div class="grid">
+        <!-- Tabla -->
+        <div class="card">
+          <h2 style="margin: 0 0 10px; color: var(--brand)">Play</h2>
+          <div class="stage" aria-label="Tabla stage">
+            <!-- BAYAN -->
+            <div class="drumWrap">
+              <div class="drum bayan" role="group" aria-label="Bayan drum">
+                <div class="ring"></div>
+                <div class="ring2"></div>
+                <div class="syahi"></div>
+
+                <!-- Rim = Ke -->
+                <button
+                  class="zone rim"
+                  data-bol="Ke"
+                  data-sound="bayan_ke"
+                  aria-label="Bayan rim: Ke"
+                ></button>
+                <!-- Center = Ge -->
+                <button
+                  class="zone center"
+                  data-bol="Ge"
+                  data-sound="bayan_ge"
+                  aria-label="Bayan center: Ge"
+                ></button>
+              </div>
+              <div class="drumLabel">Bayan (Left)</div>
+              <div class="hint">Rim: Ke • Center: Ge</div>
+            </div>
+
+            <!-- DAYAN -->
+            <div class="drumWrap">
+              <div class="drum dayan" role="group" aria-label="Dayan drum">
+                <div class="ring"></div>
+                <div class="ring2"></div>
+                <div class="syahi"></div>
+
+                <!-- Rim = Na -->
+                <button
+                  class="zone rim"
+                  data-bol="Na"
+                  data-sound="dayan_na"
+                  aria-label="Dayan rim: Na"
+                ></button>
+                <!-- Center = Tin -->
+                <button
+                  class="zone center"
+                  data-bol="Tin"
+                  data-sound="dayan_tin"
+                  aria-label="Dayan center: Tin"
+                ></button>
+              </div>
+              <div class="drumLabel">Dayan (Right)</div>
+              <div class="hint">Rim: Na • Center: Tin</div>
+            </div>
+          </div>
+
+          <div class="row">
+            <button class="btn primary" id="btnTest">
+              Test All (Na Tin Ge Ke)
+            </button>
+            <button class="btn" id="btnClear">Clear Log</button>
+          </div>
+
+          <div class="log" id="log" aria-live="polite">
+            Ready. Click a zone…
+          </div>
+          <p class="small">
+            Tip: On mobile, use tap. On desktop, click. First interaction
+            unlocks audio in most browsers.
+          </p>
+        </div>
+
+        <!-- Settings / Info -->
+        <div class="card" style="visibility: hidden;">
+          <h2 style="margin: 0 0 10px; color: var(--brand)">Setup</h2>
+          <p style="margin: 0; color: var(--muted)">
+            Put these audio files next to this HTML file:
+          </p>
+          <ul style="margin: 10px 0 0; color: var(--ink)">
+            <li><b>dayan_na.mp3</b></li>
+            <li><b>dayan_tin.mp3</b></li>
+            <li><b>bayan_ge.mp3</b></li>
+            <li><b>bayan_ke.mp3</b></li>
+          </ul>
+          <p class="small" style="margin-top: 10px">
+            If your files have different names, update the
+            <code>sounds</code> object in the script.
+          </p>
+
+          <hr
+            style="
+              border: none;
+              border-top: 1px solid var(--border);
+              margin: 14px 0;
+            "
+          />
+
+          <h3 style="margin: 0 0 8px; color: var(--brand)">
+            Next upgrades (optional)
+          </h3>
+          <ul style="margin: 0; color: var(--ink);display: none;">
+            <li>Add a tempo slider + metronome</li>
+            <li>Auto-play theka patterns (Teentaal, Keharwa)</li>
+            <li>Show bols animation while playing</li>
+            <li>More strike zones (Ta, Dha, Dhin, Tun)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Map sound keys to file paths
+      const sounds = {
+        dayan_na: "dayan_na.mp3",
+        dayan_tin: "dayan_tin.mp3",
+        bayan_ge: "bayan_ge.mp3",
+        bayan_ke: "bayan_ke.mp3",
+      };
+
+      const logEl = document.getElementById("log");
+      const statusDot = document.getElementById("statusDot");
+      const statusText = document.getElementById("statusText");
+
+      let audioUnlocked = false;
+      const audioCache = {};
+
+      function stamp() {
+        const d = new Date();
+        const hh = String(d.getHours()).padStart(2, "0");
+        const mm = String(d.getMinutes()).padStart(2, "0");
+        const ss = String(d.getSeconds()).padStart(2, "0");
+        return `${hh}:${mm}:${ss}`;
+      }
+
+      function log(msg) {
+        logEl.textContent += `\n[${stamp()}] ${msg}`;
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+
+      function setUnlocked(on) {
+        audioUnlocked = on;
+        statusDot.classList.toggle("ok", on);
+        statusText.textContent = on
+          ? "Audio unlocked — enjoy playing!"
+          : "Audio not unlocked yet — click any drum once";
+      }
+
+      function preloadAudio() {
+        for (const key of Object.keys(sounds)) {
+          const a = new Audio(sounds[key]);
+          a.preload = "auto";
+          audioCache[key] = a;
+        }
+      }
+
+      async function unlockAudioOnce() {
+        if (audioUnlocked) return;
+
+        // Some browsers require a play() call on a user gesture.
+        // We'll try a tiny silent play with one of the audio elements.
+        try {
+          preloadAudio();
+          const a = audioCache.dayan_na || new Audio(sounds.dayan_na);
+          a.muted = true;
+          const p = a.play();
+          if (p && typeof p.then === "function") await p;
+          a.pause();
+          a.currentTime = 0;
+          a.muted = false;
+          setUnlocked(true);
+          log("Audio unlocked.");
+        } catch (e) {
+          // Even if unlock fails, we keep trying on next user action.
+          log("Audio unlock attempt failed (try clicking again).");
+        }
+      }
+
+      function playSound(soundKey, bol) {
+        const file = sounds[soundKey];
+        if (!file) {
+          log(`Missing sound mapping for ${soundKey}`);
+          return;
+        }
+
+        // Always create a fresh clone for overlapping hits
+        const base = audioCache[soundKey] || new Audio(file);
+        const a = base.cloneNode(true);
+
+        a.currentTime = 0;
+        a.play()
+          .then(() => {
+            log(`Played: ${bol}`);
+          })
+          .catch(() => {
+            log(`Could not play "${bol}". Is the file present? (${file})`);
+          });
+      }
+
+      // Click handling for zones
+      document.addEventListener("click", async (e) => {
+        const btn = e.target.closest(".zone");
+        if (!btn) return;
+
+        await unlockAudioOnce();
+
+        const bol = btn.dataset.bol;
+        const soundKey = btn.dataset.sound;
+        playSound(soundKey, bol);
+      });
+
+      // Test all
+      document.getElementById("btnTest").addEventListener("click", async () => {
+        await unlockAudioOnce();
+        const seq = [
+          ["dayan_na", "Na"],
+          ["dayan_tin", "Tin"],
+          ["bayan_ge", "Ge"],
+          ["bayan_ke", "Ke"],
+        ];
+        log("Testing sequence: Na Tin Ge Ke");
+        let i = 0;
+        const timer = setInterval(() => {
+          const item = seq[i++];
+          if (!item) {
+            clearInterval(timer);
+            return;
+          }
+          playSound(item[0], item[1]);
+        }, 350);
+      });
+
+      // Clear log
+      document.getElementById("btnClear").addEventListener("click", () => {
+        logEl.textContent = "Ready. Click a zone…";
+      });
+
+      // Keyboard shortcuts
+      document.addEventListener("keydown", async (e) => {
+        const k = e.key.toLowerCase();
+        if (!["n", "t", "g", "k"].includes(k)) return;
+        await unlockAudioOnce();
+
+        if (k === "n") playSound("dayan_na", "Na");
+        if (k === "t") playSound("dayan_tin", "Tin");
+        if (k === "g") playSound("bayan_ge", "Ge");
+        if (k === "k") playSound("bayan_ke", "Ke");
+      });
+    </script>
+  </body>
+</html>
