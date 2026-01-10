@@ -1,568 +1,551 @@
-<!--
-tabla web audio samples
-tabla instrument javascript
-tabla soundfont
-
--->
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Clickable Tabla — Dayan & Bayan (Web)</title>
-    <meta
-      name="description"
-      content="A simple clickable tabla web page: click/tap Dayan and Bayan to play bols using audio samples."
-    />
-    <meta name="author" content="Champak Roy" />
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Clickable Tabla + Command Loops (1-4 + xN)</title>
+  <meta name="description" content="Clickable Tabla (Dayan/Bayan) + command sequence player with loop syntax like: 1,2 x4" />
+  <meta name="author" content="Champak Roy" />
 
-    <style>
-      :root {
-        /* Light saffron theme */
-        --bg: #fff7e6;
-        --card: #ffffff;
-        --ink: #1f2937;
-        --muted: #6b7280;
-        --brand: #d97706;
-        --brand2: #f59e0b;
-        --border: #eadcc5;
-        --shadow: 0 18px 40px rgba(31, 41, 55, 0.14);
-        --ok: #166534;
-        --danger: #b91c1c;
-      }
-      * {
-        box-sizing: border-box;
-      }
-      body {
-        margin: 0;
-        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica,
-          Arial, sans-serif;
-        background: var(--bg);
-        color: var(--ink);
-      }
-      .container {
-        max-width: 1100px;
-        margin: 28px auto;
-        padding: 18px;
-      }
-      .hero {
-        background: linear-gradient(135deg, #fff1d6, #ffffff);
-        border: 1px solid var(--border);
-        border-radius: 18px;
-        box-shadow: var(--shadow);
-        padding: 18px;
-      }
-      h1 {
-        margin: 0 0 6px;
-        color: var(--brand);
-        font-size: 28px;
-      }
-      .sub {
-        margin: 0;
-        color: var(--muted);
-      }
-      .grid {
-        display: grid;
-        grid-template-columns: 1.2fr 0.8fr;
-        gap: 16px;
-        margin-top: 16px;
-      }
-      @media (max-width: 900px) {
-        .grid {
-          grid-template-columns: 1fr;
-        }
-      }
+  <style>
+    :root{
+      /* Light saffron theme */
+      --bg:#fff7e6;
+      --card:#ffffff;
+      --ink:#1f2937;
+      --muted:#6b7280;
+      --brand:#d97706;
+      --brand2:#f59e0b;
+      --border:#eadcc5;
+      --shadow:0 18px 40px rgba(31,41,55,.14);
+      --ok:#166534;
+      --danger:#b91c1c;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+      background:var(--bg);
+      color:var(--ink);
+    }
+    .container{max-width:1120px;margin:28px auto;padding:18px}
+    .hero{
+      background:linear-gradient(135deg,#fff1d6, #ffffff);
+      border:1px solid var(--border);
+      border-radius:18px;
+      box-shadow:var(--shadow);
+      padding:18px;
+    }
+    h1{margin:0 0 6px;color:var(--brand);font-size:28px}
+    .sub{margin:0;color:var(--muted)}
+    .pill{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:8px 10px;
+      border:1px dashed rgba(217,119,6,.5);
+      border-radius:999px;
+      background:#fffaf1;
+      color:var(--ink);
+      font-weight:700;
+      margin-top:10px;
+    }
+    .dot{width:9px;height:9px;border-radius:50%;background:var(--danger)}
+    .dot.ok{background:var(--ok)}
+    .grid{display:grid;grid-template-columns:1.2fr .8fr;gap:16px;margin-top:16px}
+    @media (max-width: 920px){.grid{grid-template-columns:1fr}}
+    .card{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:18px;
+      box-shadow:var(--shadow);
+      padding:16px;
+    }
 
-      .card {
-        background: var(--card);
-        border: 1px solid var(--border);
-        border-radius: 18px;
-        box-shadow: var(--shadow);
-        padding: 16px;
-      }
+    /* Tabla stage */
+    .stage{display:flex;align-items:center;justify-content:center;gap:22px;padding:14px 6px;flex-wrap:wrap}
+    .drumWrap{text-align:center}
+    .drumLabel{margin-top:10px;font-weight:800;color:var(--brand);letter-spacing:.2px}
+    .hint{margin-top:4px;color:var(--muted);font-size:13px}
 
-      /* Tabla stage */
-      .stage {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 22px;
-        padding: 14px 6px;
-        flex-wrap: wrap;
-      }
+    .drum{
+      width:260px;height:260px;border-radius:50%;position:relative;
+      border:1px solid var(--border);
+      box-shadow:0 16px 30px rgba(31,41,55,.18);
+      cursor:pointer;user-select:none;touch-action:manipulation;
+      outline:none;transform:translateZ(0);
+    }
+    .drum:active{transform:scale(0.99)}
+    .bayan{
+      background:radial-gradient(circle at 40% 35%, #fff, #f6ede0 40%, #e3d2ba 70%, #d0b18c 100%);
+    }
+    .dayan{
+      background:radial-gradient(circle at 40% 35%, #fff, #f3efe6 40%, #d8c29c 75%, #c09a5a 100%);
+    }
+    .ring{
+      position:absolute;inset:14px;border-radius:50%;
+      border:2px solid rgba(0,0,0,.10);
+      box-shadow:inset 0 0 0 10px rgba(255,255,255,.25);
+      pointer-events:none;
+    }
+    .ring2{position:absolute;inset:34px;border-radius:50%;border:2px solid rgba(0,0,0,.10);pointer-events:none}
+    .syahi{
+      position:absolute;width:92px;height:92px;left:50%;top:50%;
+      transform:translate(-50%,-50%);border-radius:50%;
+      background:radial-gradient(circle at 35% 30%, #3b3b3b, #111 60%, #000 100%);
+      box-shadow:inset 0 0 0 6px rgba(255,255,255,.05);
+      pointer-events:none;
+    }
 
-      .drumWrap {
-        text-align: center;
-      }
-      .drumLabel {
-        margin-top: 10px;
-        font-weight: 700;
-        color: var(--brand);
-        letter-spacing: 0.2px;
-      }
-      .hint {
-        margin-top: 4px;
-        color: var(--muted);
-        font-size: 13px;
-      }
+    /* click zones */
+    .zone{
+      position:absolute;border-radius:50%;
+      background:rgba(255,255,255,0);
+      border:2px dashed rgba(217,119,6,0);
+      color:transparent;
+      cursor:pointer;
+    }
+    .zone:focus-visible{outline:3px solid rgba(245,158,11,.55);outline-offset:3px}
+    .zone.center{width:120px;height:120px;left:50%;top:50%;transform:translate(-50%,-50%)}
+    .zone.rim{inset:18px}
+    .bayan .zone.center{width:132px;height:132px}
+    .bayan .zone.rim{inset:16px}
 
-      /* Drum look */
-      .drum {
-        width: 260px;
-        height: 260px;
-        border-radius: 50%;
-        position: relative;
-        border: 1px solid var(--border);
-        box-shadow: 0 16px 30px rgba(31, 41, 55, 0.18);
-        cursor: pointer;
-        user-select: none;
-        touch-action: manipulation;
-        outline: none;
-        transform: translateZ(0);
-      }
-      .drum:active {
-        transform: scale(0.99);
-      }
+    /* controls */
+    .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+    .btn{
+      border:1px solid var(--border);
+      background:linear-gradient(180deg,#fff, #fff7ea);
+      color:var(--ink);
+      padding:10px 12px;border-radius:12px;cursor:pointer;font-weight:800;
+    }
+    .btn.primary{
+      border-color:rgba(217,119,6,.45);
+      background:linear-gradient(180deg,#fff1d6,#ffe8bf);
+    }
+    .btn:active{transform:translateY(1px)}
+    .small{font-size:13px;color:var(--muted);margin:10px 0 0}
+    .log{
+      margin-top:12px;border:1px solid var(--border);
+      background:#fffaf1;border-radius:12px;padding:10px;min-height:110px;
+      font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+      font-size:13px;color:#111827;white-space:pre-wrap;
+      overflow:auto;
+    }
+    .kbd{
+      font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+      border:1px solid var(--border);background:#fff;padding:2px 6px;border-radius:7px;font-size:12px
+    }
 
-      .bayan {
-        background: radial-gradient(
-          circle at 40% 35%,
-          #fff,
-          #f6ede0 40%,
-          #e3d2ba 70%,
-          #d0b18c 100%
-        );
-      }
-      .dayan {
-        background: radial-gradient(
-          circle at 40% 35%,
-          #fff,
-          #f3efe6 40%,
-          #d8c29c 75%,
-          #c09a5a 100%
-        );
-      }
+    /* command UI */
+    label{display:block;font-weight:800;color:var(--ink)}
+    input[type="text"]{
+      width:100%;margin-top:6px;padding:10px 12px;border-radius:12px;
+      border:1px solid var(--border);background:#fffaf1;font-size:15px
+    }
+    .bpmRow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    input[type="range"]{width:min(520px,100%)}
+    .chip{
+      display:inline-flex;align-items:center;gap:8px;
+      border:1px solid var(--border);background:#fffaf1;border-radius:999px;
+      padding:6px 10px;font-weight:800;color:var(--ink)
+    }
+    .now{
+      display:inline-flex;align-items:center;gap:8px;
+      border:1px solid rgba(217,119,6,.35);
+      background:#fff1d6;border-radius:12px;
+      padding:8px 10px;font-weight:900;color:#7c2d12;
+      margin-top:10px;
+    }
+    .pulse{
+      width:10px;height:10px;border-radius:50%;
+      background:var(--brand2);
+      box-shadow:0 0 0 0 rgba(245,158,11,.6);
+      animation:pulse 1s infinite;
+    }
+    @keyframes pulse{
+      0%{box-shadow:0 0 0 0 rgba(245,158,11,.55)}
+      70%{box-shadow:0 0 0 12px rgba(245,158,11,0)}
+      100%{box-shadow:0 0 0 0 rgba(245,158,11,0)}
+    }
+    code{
+      font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+      background:#fff;border:1px solid var(--border);padding:1px 6px;border-radius:7px
+    }
+  </style>
+</head>
 
-      /* Rings */
-      .ring {
-        position: absolute;
-        inset: 14px;
-        border-radius: 50%;
-        border: 2px solid rgba(0, 0, 0, 0.1);
-        box-shadow: inset 0 0 0 10px rgba(255, 255, 255, 0.25);
-        pointer-events: none;
-      }
-      .ring2 {
-        position: absolute;
-        inset: 34px;
-        border-radius: 50%;
-        border: 2px solid rgba(0, 0, 0, 0.1);
-        pointer-events: none;
-      }
+<body>
+  <div class="container">
+    <div class="hero">
+      <h1>Clickable Tabla + Command Loops</h1>
+      <p class="sub">Click/tap the drums to play. Or run number commands like <code>1,2 x4</code> (repeat 1,2 four times).</p>
 
-      /* Syahi + zones */
-      .syahi {
-        position: absolute;
-        width: 92px;
-        height: 92px;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%);
-        border-radius: 50%;
-        background: radial-gradient(
-          circle at 35% 30%,
-          #3b3b3b,
-          #111 60%,
-          #000 100%
-        );
-        box-shadow: inset 0 0 0 6px rgba(255, 255, 255, 0.05);
-        pointer-events: none;
-      }
-
-      /* Click zones (transparent buttons) */
-      .zone {
-        position: absolute;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 800;
-        letter-spacing: 0.3px;
-        color: rgba(255, 255, 255, 0);
-        background: rgba(255, 255, 255, 0);
-        border: 2px dashed rgba(217, 119, 6, 0);
-      }
-      .zone:focus-visible {
-        outline: 3px solid rgba(245, 158, 11, 0.55);
-        outline-offset: 3px;
-      }
-
-      /* Dayan zones: center (Tin), rim (Na) */
-      .zone.center {
-        width: 120px;
-        height: 120px;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%);
-      }
-      .zone.rim {
-        inset: 18px;
-      }
-
-      /* Bayan zones: center (Ge), rim (Ke) */
-      .bayan .zone.center {
-        width: 132px;
-        height: 132px;
-      }
-      .bayan .zone.rim {
-        inset: 16px;
-      }
-
-      /* UI controls */
-      .row {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        margin-top: 10px;
-      }
-      .btn {
-        border: 1px solid var(--border);
-        background: linear-gradient(180deg, #fff, #fff7ea);
-        color: var(--ink);
-        padding: 10px 12px;
-        border-radius: 12px;
-        cursor: pointer;
-        font-weight: 700;
-      }
-      .btn.primary {
-        border-color: rgba(217, 119, 6, 0.45);
-        background: linear-gradient(180deg, #fff1d6, #ffe8bf);
-      }
-      .btn:active {
-        transform: translateY(1px);
-      }
-      .small {
-        font-size: 13px;
-        color: var(--muted);
-        margin: 10px 0 0;
-      }
-      .pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 10px;
-        border: 1px dashed rgba(217, 119, 6, 0.5);
-        border-radius: 999px;
-        background: #fffaf1;
-        color: var(--ink);
-        font-weight: 700;
-        margin-top: 10px;
-      }
-      .dot {
-        width: 9px;
-        height: 9px;
-        border-radius: 50%;
-        background: var(--danger);
-      }
-      .dot.ok {
-        background: var(--ok);
-      }
-
-      .log {
-        margin-top: 12px;
-        border: 1px solid var(--border);
-        background: #fffaf1;
-        border-radius: 12px;
-        padding: 10px;
-        min-height: 92px;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-          "Liberation Mono", "Courier New", monospace;
-        font-size: 13px;
-        color: #111827;
-        white-space: pre-wrap;
-      }
-      .kbd {
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-          "Liberation Mono", "Courier New", monospace;
-        border: 1px solid var(--border);
-        background: #fff;
-        padding: 2px 6px;
-        border-radius: 7px;
-        font-size: 12px;
-      }
-    </style>
-  </head>
-
-  <body>
-    <div class="container">
-      <div class="hero">
-        <h1>Clickable Tabla (Dayan + Bayan)</h1>
-        <p class="sub">
-          Click/tap the drum zones to play bols. Works best after your first
-          click (browser audio unlock).
-        </p>
-        <div class="pill" id="statusPill">
-          <span class="dot" id="statusDot"></span>
-          <span id="statusText"
-            >Audio not unlocked yet — click any drum once</span
-          >
-        </div>
-        <p class="small">
-          Keyboard: <span class="kbd">N</span> Na,
-          <span class="kbd">T</span> Tin, <span class="kbd">G</span> Ge,
-          <span class="kbd">K</span> Ke
-        </p>
+      <div class="pill">
+        <span class="dot" id="statusDot"></span>
+        <span id="statusText">Audio not unlocked yet — click any drum once</span>
       </div>
 
-      <div class="grid">
-        <!-- Tabla -->
-        <div class="card">
-          <h2 style="margin: 0 0 10px; color: var(--brand)">Play</h2>
-          <div class="stage" aria-label="Tabla stage">
-            <!-- BAYAN -->
-            <div class="drumWrap">
-              <div class="drum bayan" role="group" aria-label="Bayan drum">
-                <div class="ring"></div>
-                <div class="ring2"></div>
-                <div class="syahi"></div>
+      <p class="small" style="margin-top:10px">
+        Keyboard: <span class="kbd">N</span> Na, <span class="kbd">T</span> Tin, <span class="kbd">G</span> Ge, <span class="kbd">K</span> Ke
+      </p>
+    </div>
 
-                <!-- Rim = Ke -->
-                <button
-                  class="zone rim"
-                  data-bol="Ke"
-                  data-sound="bayan_ke"
-                  aria-label="Bayan rim: Ke"
-                ></button>
-                <!-- Center = Ge -->
-                <button
-                  class="zone center"
-                  data-bol="Ge"
-                  data-sound="bayan_ge"
-                  aria-label="Bayan center: Ge"
-                ></button>
-              </div>
-              <div class="drumLabel">Bayan (Left)</div>
-              <div class="hint">Rim: Ke • Center: Ge</div>
+    <div class="grid">
+      <!-- LEFT: Tabla + Player -->
+      <div class="card">
+        <h2 style="margin:0 0 10px;color:var(--brand)">Play</h2>
+
+        <div class="stage" aria-label="Tabla stage">
+          <!-- BAYAN -->
+          <div class="drumWrap">
+            <div class="drum bayan" role="group" aria-label="Bayan drum">
+              <div class="ring"></div><div class="ring2"></div><div class="syahi"></div>
+              <button class="zone rim" data-bol="Ke" data-sound="bayan_ke" aria-label="Bayan rim: Ke"></button>
+              <button class="zone center" data-bol="Ge" data-sound="bayan_ge" aria-label="Bayan center: Ge"></button>
             </div>
+            <div class="drumLabel">Bayan (Left)</div>
+            <div class="hint">Rim: Ke • Center: Ge</div>
+          </div>
 
-            <!-- DAYAN -->
-            <div class="drumWrap">
-              <div class="drum dayan" role="group" aria-label="Dayan drum">
-                <div class="ring"></div>
-                <div class="ring2"></div>
-                <div class="syahi"></div>
-
-                <!-- Rim = Na -->
-                <button
-                  class="zone rim"
-                  data-bol="Na"
-                  data-sound="dayan_na"
-                  aria-label="Dayan rim: Na"
-                ></button>
-                <!-- Center = Tin -->
-                <button
-                  class="zone center"
-                  data-bol="Tin"
-                  data-sound="dayan_tin"
-                  aria-label="Dayan center: Tin"
-                ></button>
-              </div>
-              <div class="drumLabel">Dayan (Right)</div>
-              <div class="hint">Rim: Na • Center: Tin</div>
+          <!-- DAYAN -->
+          <div class="drumWrap">
+            <div class="drum dayan" role="group" aria-label="Dayan drum">
+              <div class="ring"></div><div class="ring2"></div><div class="syahi"></div>
+              <button class="zone rim" data-bol="Na" data-sound="dayan_na" aria-label="Dayan rim: Na"></button>
+              <button class="zone center" data-bol="Tin" data-sound="dayan_tin" aria-label="Dayan center: Tin"></button>
             </div>
+            <div class="drumLabel">Dayan (Right)</div>
+            <div class="hint">Rim: Na • Center: Tin</div>
           </div>
-
-          <div class="row">
-            <button class="btn primary" id="btnTest">
-              Test All (Na Tin Ge Ke)
-            </button>
-            <button class="btn" id="btnClear">Clear Log</button>
-          </div>
-
-          <div class="log" id="log" aria-live="polite">
-            Ready. Click a zone…
-          </div>
-          <p class="small">
-            Tip: On mobile, use tap. On desktop, click. First interaction
-            unlocks audio in most browsers.
-          </p>
         </div>
 
-        <!-- Settings / Info -->
-        <div class="card">
-          <h2 style="margin: 0 0 10px; color: var(--brand)">Setup</h2>
-          <p style="margin: 0; color: var(--muted)">
-            Put these audio files next to this HTML file:
-          </p>
-          <ul style="margin: 10px 0 0; color: var(--ink)">
-            <li><b>dayan_na.mp3</b></li>
-            <li><b>dayan_tin.mp3</b></li>
-            <li><b>bayan_ge.mp3</b></li>
-            <li><b>bayan_ke.mp3</b></li>
-          </ul>
-          <p class="small" style="margin-top: 10px">
-            If your files have different names, update the
-            <code>sounds</code> object in the script.
-          </p>
+        <div class="row">
+          <button class="btn primary" id="btnTest">Test All (Na Tin Ge Ke)</button>
+          <button class="btn" id="btnClear">Clear Log</button>
+        </div>
 
-          <hr
-            style="
-              border: none;
-              border-top: 1px solid var(--border);
-              margin: 14px 0;
-            "
-          />
+        <hr style="border:none;border-top:1px solid var(--border);margin:14px 0" />
 
-          <h3 style="margin: 0 0 8px; color: var(--brand)">
-            Next upgrades (optional)
-          </h3>
-          <ul style="margin: 0; color: var(--ink)">
-            <li>Add a tempo slider + metronome</li>
-            <li>Auto-play theka patterns (Teentaal, Keharwa)</li>
-            <li>Show bols animation while playing</li>
-            <li>More strike zones (Ta, Dha, Dhin, Tun)</li>
-          </ul>
+        <h3 style="margin:0 0 10px;color:var(--brand)">Command Player (with loops)</h3>
+
+        <label>
+          Enter commands (numbers 1–4). Loop with <code>xN</code> like <code>1,2 x4</code>
+          <input id="cmdInput" type="text" value="1,1,1  2,2,1  1,2 x4" />
+        </label>
+
+        <div class="bpmRow" style="margin-top:10px">
+          <label style="margin:0;min-width:160px">Tempo (BPM)</label>
+          <input id="bpm" type="range" min="40" max="240" value="120" />
+          <span class="chip"><span id="bpmLabel">120</span> BPM</span>
+        </div>
+
+        <div class="row">
+          <button class="btn primary" id="cmdPlay">Play Commands</button>
+          <button class="btn" id="cmdStop">Stop</button>
+          <button class="btn" id="presetA">Preset: 1,2 x4</button>
+          <button class="btn" id="presetB">Preset: 1,1,1 2,2,1</button>
+        </div>
+
+        <div class="small" style="margin-top:8px;line-height:1.55">
+          Mapping:
+          <b>1=Na</b>, <b>2=Tin</b>, <b>3=Ge</b>, <b>4=Ke</b>.
+          <br/>
+          Loop rule: <code>xN</code> repeats the phrase since start or since the last repeat/boundary.
+          Example: <code>1,2 x4</code> → 1,2,1,2,1,2,1,2.
+        </div>
+
+        <div class="now" id="nowPlaying" style="display:none">
+          <span class="pulse"></span>
+          <span id="nowText">Now: …</span>
+        </div>
+
+        <div class="log" id="log" aria-live="polite">Ready. Click a zone or run commands…</div>
+      </div>
+
+      <!-- RIGHT: Setup -->
+      <div class="card">
+        <h2 style="margin:0 0 10px;color:var(--brand)">Audio Files</h2>
+        <p style="margin:0;color:var(--muted)">
+          Put these audio files next to this HTML file:
+        </p>
+        <ul style="margin:10px 0 0;color:var(--ink)">
+          <li><b>dayan_na.mp3</b></li>
+          <li><b>dayan_tin.mp3</b></li>
+          <li><b>bayan_ge.mp3</b></li>
+          <li><b>bayan_ke.mp3</b></li>
+        </ul>
+        <p class="small">
+          If your files are named differently, update the <code>sounds</code> object in the script.
+        </p>
+
+        <hr style="border:none;border-top:1px solid var(--border);margin:14px 0" />
+
+        <h3 style="margin:0 0 8px;color:var(--brand)">Commands Cheatsheet</h3>
+        <div class="small" style="line-height:1.7">
+          • Simple: <code>1 2 3 4</code><br/>
+          • Commas ok: <code>1,1,1, 2,2,1</code><br/>
+          • Loop: <code>1,2 x4</code><br/>
+          • Mix: <code>1,1,1  2,2,1  1,2 x4</code><br/>
+        </div>
+
+        <hr style="border:none;border-top:1px solid var(--border);margin:14px 0" />
+
+        <h3 style="margin:0 0 8px;color:var(--brand)">Keyboard</h3>
+        <div class="small" style="line-height:1.9">
+          <span class="kbd">N</span> Na &nbsp;|&nbsp;
+          <span class="kbd">T</span> Tin &nbsp;|&nbsp;
+          <span class="kbd">G</span> Ge &nbsp;|&nbsp;
+          <span class="kbd">K</span> Ke
         </div>
       </div>
     </div>
+  </div>
 
-    <script>
-      // Map sound keys to file paths
-      const sounds = {
-        dayan_na: "dayan_na.mp3",
-        dayan_tin: "dayan_tin.mp3",
-        bayan_ge: "bayan_ge.mp3",
-        bayan_ke: "bayan_ke.mp3",
-      };
+  <script>
+    // Map sound keys to file paths (place these files next to this HTML)
+    const sounds = {
+      dayan_na: "dayan_na.mp3",
+      dayan_tin: "dayan_tin.mp3",
+      bayan_ge: "bayan_ge.mp3",
+      bayan_ke: "bayan_ke.mp3",
+    };
 
-      const logEl = document.getElementById("log");
-      const statusDot = document.getElementById("statusDot");
-      const statusText = document.getElementById("statusText");
+    const logEl = document.getElementById("log");
+    const statusDot = document.getElementById("statusDot");
+    const statusText = document.getElementById("statusText");
+    const nowPlaying = document.getElementById("nowPlaying");
+    const nowText = document.getElementById("nowText");
 
-      let audioUnlocked = false;
-      const audioCache = {};
+    let audioUnlocked = false;
+    const audioCache = {};
 
-      function stamp() {
-        const d = new Date();
-        const hh = String(d.getHours()).padStart(2, "0");
-        const mm = String(d.getMinutes()).padStart(2, "0");
-        const ss = String(d.getSeconds()).padStart(2, "0");
-        return `${hh}:${mm}:${ss}`;
+    function stamp() {
+      const d = new Date();
+      const hh = String(d.getHours()).padStart(2, "0");
+      const mm = String(d.getMinutes()).padStart(2, "0");
+      const ss = String(d.getSeconds()).padStart(2, "0");
+      return `${hh}:${mm}:${ss}`;
+    }
+
+    function log(msg) {
+      logEl.textContent += `\n[${stamp()}] ${msg}`;
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function setUnlocked(on) {
+      audioUnlocked = on;
+      statusDot.classList.toggle("ok", on);
+      statusText.textContent = on
+        ? "Audio unlocked — enjoy playing!"
+        : "Audio not unlocked yet — click any drum once";
+    }
+
+    function preloadAudio() {
+      for (const key of Object.keys(sounds)) {
+        const a = new Audio(sounds[key]);
+        a.preload = "auto";
+        audioCache[key] = a;
       }
+    }
 
-      function log(msg) {
-        logEl.textContent += `\n[${stamp()}] ${msg}`;
-        logEl.scrollTop = logEl.scrollHeight;
+    async function unlockAudioOnce() {
+      if (audioUnlocked) return;
+
+      try {
+        preloadAudio();
+        const a = audioCache.dayan_na || new Audio(sounds.dayan_na);
+        a.muted = true;
+        const p = a.play();
+        if (p && typeof p.then === "function") await p;
+        a.pause();
+        a.currentTime = 0;
+        a.muted = false;
+        setUnlocked(true);
+        log("Audio unlocked.");
+      } catch (e) {
+        log("Audio unlock attempt failed (click again).");
       }
+    }
 
-      function setUnlocked(on) {
-        audioUnlocked = on;
-        statusDot.classList.toggle("ok", on);
-        statusText.textContent = on
-          ? "Audio unlocked — enjoy playing!"
-          : "Audio not unlocked yet — click any drum once";
-      }
+    function playSound(soundKey, bol) {
+      const file = sounds[soundKey];
+      if (!file) { log(`Missing sound mapping for ${soundKey}`); return; }
 
-      function preloadAudio() {
-        for (const key of Object.keys(sounds)) {
-          const a = new Audio(sounds[key]);
-          a.preload = "auto";
-          audioCache[key] = a;
+      // clone so rapid hits can overlap
+      const base = audioCache[soundKey] || new Audio(file);
+      const a = base.cloneNode(true);
+      a.currentTime = 0;
+
+      a.play().then(() => {
+        nowText.textContent = `Now: ${bol}`;
+        nowPlaying.style.display = "inline-flex";
+        log(`Played: ${bol}`);
+      }).catch(() => {
+        log(`Could not play "${bol}". Is the file present? (${file})`);
+      });
+    }
+
+    // Click-to-play zones
+    document.addEventListener("click", async (e) => {
+      const btn = e.target.closest(".zone");
+      if (!btn) return;
+
+      await unlockAudioOnce();
+      playSound(btn.dataset.sound, btn.dataset.bol);
+    });
+
+    // Test all
+    document.getElementById("btnTest").addEventListener("click", async () => {
+      await unlockAudioOnce();
+      log("Testing sequence: Na Tin Ge Ke");
+      const seq = [
+        ["dayan_na", "Na"],
+        ["dayan_tin", "Tin"],
+        ["bayan_ge", "Ge"],
+        ["bayan_ke", "Ke"],
+      ];
+      let i = 0;
+      const timer = setInterval(() => {
+        const item = seq[i++];
+        if (!item) { clearInterval(timer); return; }
+        playSound(item[0], item[1]);
+      }, 350);
+    });
+
+    // Clear log
+    document.getElementById("btnClear").addEventListener("click", () => {
+      logEl.textContent = "Ready. Click a zone or run commands…";
+      nowPlaying.style.display = "none";
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener("keydown", async (e) => {
+      const k = e.key.toLowerCase();
+      if (!["n","t","g","k"].includes(k)) return;
+      await unlockAudioOnce();
+      if (k === "n") playSound("dayan_na", "Na");
+      if (k === "t") playSound("dayan_tin", "Tin");
+      if (k === "g") playSound("bayan_ge", "Ge");
+      if (k === "k") playSound("bayan_ke", "Ke");
+    });
+
+    // -------- Command Player with loops (xN) --------
+    const cmdInput = document.getElementById("cmdInput");
+    const cmdPlay = document.getElementById("cmdPlay");
+    const cmdStop = document.getElementById("cmdStop");
+    const bpm = document.getElementById("bpm");
+    const bpmLabel = document.getElementById("bpmLabel");
+    const presetA = document.getElementById("presetA");
+    const presetB = document.getElementById("presetB");
+
+    bpm.addEventListener("input", () => (bpmLabel.textContent = bpm.value));
+    presetA.addEventListener("click", () => (cmdInput.value = "1,2 x4"));
+    presetB.addEventListener("click", () => (cmdInput.value = "1,1,1  2,2,1"));
+
+    // number -> [soundKey, bol]
+    const numToBol = {
+      1: ["dayan_na", "Na"],
+      2: ["dayan_tin", "Tin"],
+      3: ["bayan_ge", "Ge"],
+      4: ["bayan_ke", "Ke"],
+    };
+
+    let cmdTimer = null;
+    let cmdIndex = 0;
+    let cmdSeq = [];
+
+    function stopCommands() {
+      if (cmdTimer) clearInterval(cmdTimer);
+      cmdTimer = null;
+      cmdIndex = 0;
+      nowPlaying.style.display = "none";
+    }
+
+    cmdStop.addEventListener("click", () => {
+      stopCommands();
+      log("Command player stopped.");
+    });
+
+    // Tokenizes: numbers (1-4) and repeats (xN / XN)
+    // Accepts separators: spaces/commas. Ignores unknown tokens.
+    // Loop rule: "xN" repeats the phrase since start OR since last repeat boundary.
+    // Example: "1,2 x4" => 1,2,1,2,1,2,1,2
+    function expandCommands(text) {
+      const tokens = (text || "")
+        .trim()
+        .split(/[\s,]+/)
+        .filter(Boolean);
+
+      const out = [];
+      let phraseStart = 0; // index in out where current phrase began
+
+      for (const tRaw of tokens) {
+        const t = tRaw.trim();
+        if (!t) continue;
+
+        // repeat token like x4 or X12
+        const m = /^x(\d+)$/i.exec(t);
+        if (m) {
+          const times = Math.max(0, Number(m[1]) || 0);
+          const phrase = out.slice(phraseStart);
+          if (phrase.length === 0) {
+            // nothing to repeat
+            continue;
+          }
+          // already have 1 phrase; add (times-1) more
+          for (let r = 1; r < times; r++) out.push(...phrase);
+          // after applying repeat, start a new phrase boundary
+          phraseStart = out.length;
+          continue;
+        }
+
+        // number token 1..4
+        const n = Number(t);
+        if (Number.isFinite(n) && n >= 1 && n <= 4) {
+          out.push(n);
+          continue;
+        }
+
+        // allow "1|2|3" style accidentally pasted? Try to extract digits 1-4
+        const digs = t.match(/[1-4]/g);
+        if (digs && digs.length) {
+          for (const d of digs) out.push(Number(d));
         }
       }
+      return out;
+    }
 
-      async function unlockAudioOnce() {
-        if (audioUnlocked) return;
+    cmdPlay.addEventListener("click", async () => {
+      await unlockAudioOnce();
 
-        // Some browsers require a play() call on a user gesture.
-        // We'll try a tiny silent play with one of the audio elements.
-        try {
-          preloadAudio();
-          const a = audioCache.dayan_na || new Audio(sounds.dayan_na);
-          a.muted = true;
-          const p = a.play();
-          if (p && typeof p.then === "function") await p;
-          a.pause();
-          a.currentTime = 0;
-          a.muted = false;
-          setUnlocked(true);
-          log("Audio unlocked.");
-        } catch (e) {
-          // Even if unlock fails, we keep trying on next user action.
-          log("Audio unlock attempt failed (try clicking again).");
-        }
+      cmdSeq = expandCommands(cmdInput.value);
+      if (cmdSeq.length === 0) {
+        log("No valid commands found. Use numbers 1-4 and loops like x4.");
+        return;
       }
 
-      function playSound(soundKey, bol) {
-        const file = sounds[soundKey];
-        if (!file) {
-          log(`Missing sound mapping for ${soundKey}`);
+      stopCommands();
+      cmdIndex = 0;
+
+      const beatMs = Math.max(60, Math.round(60000 / Number(bpm.value || 120)));
+      log(`Command player started @ ${bpm.value} BPM`);
+      log(`Expanded sequence (${cmdSeq.length} steps): ${cmdSeq.join(",")}`);
+
+      // play immediately
+      const first = numToBol[cmdSeq[0]];
+      if (first) playSound(first[0], first[1]);
+      cmdIndex = 1;
+
+      cmdTimer = setInterval(() => {
+        if (cmdIndex >= cmdSeq.length) {
+          stopCommands();
+          log("Command sequence finished.");
           return;
         }
-
-        // Always create a fresh clone for overlapping hits
-        const base = audioCache[soundKey] || new Audio(file);
-        const a = base.cloneNode(true);
-
-        a.currentTime = 0;
-        a.play()
-          .then(() => {
-            log(`Played: ${bol}`);
-          })
-          .catch(() => {
-            log(`Could not play "${bol}". Is the file present? (${file})`);
-          });
-      }
-
-      // Click handling for zones
-      document.addEventListener("click", async (e) => {
-        const btn = e.target.closest(".zone");
-        if (!btn) return;
-
-        await unlockAudioOnce();
-
-        const bol = btn.dataset.bol;
-        const soundKey = btn.dataset.sound;
-        playSound(soundKey, bol);
-      });
-
-      // Test all
-      document.getElementById("btnTest").addEventListener("click", async () => {
-        await unlockAudioOnce();
-        const seq = [
-          ["dayan_na", "Na"],
-          ["dayan_tin", "Tin"],
-          ["bayan_ge", "Ge"],
-          ["bayan_ke", "Ke"],
-        ];
-        log("Testing sequence: Na Tin Ge Ke");
-        let i = 0;
-        const timer = setInterval(() => {
-          const item = seq[i++];
-          if (!item) {
-            clearInterval(timer);
-            return;
-          }
-          playSound(item[0], item[1]);
-        }, 350);
-      });
-
-      // Clear log
-      document.getElementById("btnClear").addEventListener("click", () => {
-        logEl.textContent = "Ready. Click a zone…";
-      });
-
-      // Keyboard shortcuts
-      document.addEventListener("keydown", async (e) => {
-        const k = e.key.toLowerCase();
-        if (!["n", "t", "g", "k"].includes(k)) return;
-        await unlockAudioOnce();
-
-        if (k === "n") playSound("dayan_na", "Na");
-        if (k === "t") playSound("dayan_tin", "Tin");
-        if (k === "g") playSound("bayan_ge", "Ge");
-        if (k === "k") playSound("bayan_ke", "Ke");
-      });
-    </script>
-  </body>
+        const step = cmdSeq[cmdIndex++];
+        const m = numToBol[step];
+        if (m) playSound(m[0], m[1]);
+      }, beatMs);
+    });
+  </script>
+</body>
 </html>
