@@ -1,1239 +1,751 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Tabla + Sitar — Commands + Mix (Play Together)</title>
-    <meta
-      name="description"
-      content="Clickable Tabla + command loops + synthesized Sitar + sitar command sequences, with volume controls and simultaneous playback."
-    />
-    <meta name="author" content="Champak Roy" />
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Tabla + Sitar — Single Command Field (xN loops)</title>
+  <meta name="description" content="Single command input that can play Tabla and Sitar together, with xN loops, mixer, and clickable instruments." />
+  <meta name="author" content="Champak Roy" />
 
-    <style>
-      :root {
-        --bg: #fff7e6;
-        --card: #ffffff;
-        --ink: #1f2937;
-        --muted: #6b7280;
-        --brand: #d97706;
-        --brand2: #f59e0b;
-        --border: #eadcc5;
-        --shadow: 0 18px 40px rgba(31, 41, 55, 0.14);
-        --ok: #166534;
-        --danger: #b91c1c;
-      }
-      * {
-        box-sizing: border-box;
-      }
-      body {
-        margin: 0;
-        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica,
-          Arial, sans-serif;
-        background: var(--bg);
-        color: var(--ink);
-      }
-      .container {
-        max-width: 1200px;
-        margin: 28px auto;
-        padding: 18px;
-      }
-      .hero {
-        background: linear-gradient(135deg, #fff1d6, #ffffff);
-        border: 1px solid var(--border);
-        border-radius: 18px;
-        box-shadow: var(--shadow);
-        padding: 18px;
-      }
-      h1 {
-        margin: 0 0 6px;
-        color: var(--brand);
-        font-size: 28px;
-      }
-      .sub {
-        margin: 0;
-        color: var(--muted);
-      }
-      .pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 10px;
-        border: 1px dashed rgba(217, 119, 6, 0.5);
-        border-radius: 999px;
-        background: #fffaf1;
-        color: var(--ink);
-        font-weight: 700;
-        margin-top: 10px;
-      }
-      .dot {
-        width: 9px;
-        height: 9px;
-        border-radius: 50%;
-        background: var(--danger);
-      }
-      .dot.ok {
-        background: var(--ok);
-      }
-      .grid {
-        display: grid;
-        grid-template-columns: 1.28fr 0.72fr;
-        gap: 16px;
-        margin-top: 16px;
-      }
-      @media (max-width: 980px) {
-        .grid {
-          grid-template-columns: 1fr;
-        }
-      }
-      .card {
-        background: var(--card);
-        border: 1px solid var(--border);
-        border-radius: 18px;
-        box-shadow: var(--shadow);
-        padding: 16px;
-      }
+  <style>
+    :root{
+      --bg:#fff7e6; --card:#ffffff; --ink:#1f2937; --muted:#6b7280;
+      --brand:#d97706; --brand2:#f59e0b; --border:#eadcc5;
+      --shadow:0 18px 40px rgba(31,41,55,.14);
+      --ok:#166534; --danger:#b91c1c;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+    .container{max-width:1200px;margin:28px auto;padding:18px}
+    .hero{
+      background:linear-gradient(135deg,#fff1d6, #ffffff);
+      border:1px solid var(--border); border-radius:18px; box-shadow:var(--shadow); padding:18px;
+    }
+    h1{margin:0 0 6px;color:var(--brand);font-size:28px}
+    .sub{margin:0;color:var(--muted)}
+    .pill{
+      display:inline-flex;align-items:center;gap:8px;padding:8px 10px;
+      border:1px dashed rgba(217,119,6,.5);border-radius:999px;background:#fffaf1;
+      color:var(--ink);font-weight:700;margin-top:10px;
+    }
+    .dot{width:9px;height:9px;border-radius:50%;background:var(--danger)}
+    .dot.ok{background:var(--ok)}
+    .grid{display:grid;grid-template-columns:1.28fr .72fr;gap:16px;margin-top:16px}
+    @media (max-width: 980px){.grid{grid-template-columns:1fr}}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow);padding:16px}
 
-      /* Tabla */
-      .stage {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 22px;
-        padding: 14px 6px;
-        flex-wrap: wrap;
-      }
-      .drumWrap {
-        text-align: center;
-      }
-      .drumLabel {
-        margin-top: 10px;
-        font-weight: 800;
-        color: var(--brand);
-        letter-spacing: 0.2px;
-      }
-      .hint {
-        margin-top: 4px;
-        color: var(--muted);
-        font-size: 13px;
-      }
-      .drum {
-        width: 260px;
-        height: 260px;
-        border-radius: 50%;
-        position: relative;
-        border: 1px solid var(--border);
-        box-shadow: 0 16px 30px rgba(31, 41, 55, 0.18);
-        cursor: pointer;
-        user-select: none;
-        touch-action: manipulation;
-        outline: none;
-        transform: translateZ(0);
-      }
-      .drum:active {
-        transform: scale(0.99);
-      }
-      .bayan {
-        background: radial-gradient(
-          circle at 40% 35%,
-          #fff,
-          #f6ede0 40%,
-          #e3d2ba 70%,
-          #d0b18c 100%
-        );
-      }
-      .dayan {
-        background: radial-gradient(
-          circle at 40% 35%,
-          #fff,
-          #f3efe6 40%,
-          #d8c29c 75%,
-          #c09a5a 100%
-        );
-      }
-      .ring {
-        position: absolute;
-        inset: 14px;
-        border-radius: 50%;
-        border: 2px solid rgba(0, 0, 0, 0.1);
-        box-shadow: inset 0 0 0 10px rgba(255, 255, 255, 0.25);
-        pointer-events: none;
-      }
-      .ring2 {
-        position: absolute;
-        inset: 34px;
-        border-radius: 50%;
-        border: 2px solid rgba(0, 0, 0, 0.1);
-        pointer-events: none;
-      }
-      .syahi {
-        position: absolute;
-        width: 92px;
-        height: 92px;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%);
-        border-radius: 50%;
-        background: radial-gradient(
-          circle at 35% 30%,
-          #3b3b3b,
-          #111 60%,
-          #000 100%
-        );
-        box-shadow: inset 0 0 0 6px rgba(255, 255, 255, 0.05);
-        pointer-events: none;
-      }
-      .zone {
-        position: absolute;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0);
-        border: 2px dashed rgba(217, 119, 6, 0);
-        color: transparent;
-        cursor: pointer;
-      }
-      .zone:focus-visible {
-        outline: 3px solid rgba(245, 158, 11, 0.55);
-        outline-offset: 3px;
-      }
-      .zone.center {
-        width: 120px;
-        height: 120px;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%);
-      }
-      .zone.rim {
-        inset: 18px;
-      }
-      .bayan .zone.center {
-        width: 132px;
-        height: 132px;
-      }
-      .bayan .zone.rim {
-        inset: 16px;
-      }
+    .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+    .btn{
+      border:1px solid var(--border);
+      background:linear-gradient(180deg,#fff, #fff7ea);
+      color:var(--ink);
+      padding:10px 12px;border-radius:12px;cursor:pointer;font-weight:800;
+    }
+    .btn.primary{border-color:rgba(217,119,6,.45);background:linear-gradient(180deg,#fff1d6,#ffe8bf)}
+    .btn:active{transform:translateY(1px)}
+    .small{font-size:13px;color:var(--muted);margin:10px 0 0;line-height:1.6}
+    .log{
+      margin-top:12px;border:1px solid var(--border);background:#fffaf1;border-radius:12px;padding:10px;min-height:140px;
+      font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+      font-size:13px;color:#111827;white-space:pre-wrap;overflow:auto;
+    }
+    label{display:block;font-weight:900;color:var(--ink)}
+    input[type="text"]{
+      width:100%;margin-top:6px;padding:12px 12px;border-radius:14px;border:1px solid var(--border);
+      background:#fffaf1;font-size:15px
+    }
+    input[type="range"]{width:min(520px,100%)}
+    .bpmRow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
+    .chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);background:#fffaf1;border-radius:999px;padding:6px 10px;font-weight:900}
+    .now{
+      display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(217,119,6,.35);background:#fff1d6;border-radius:12px;
+      padding:8px 10px;font-weight:900;color:#7c2d12;margin-top:10px;
+    }
+    .pulse{
+      width:10px;height:10px;border-radius:50%;background:var(--brand2);
+      box-shadow:0 0 0 0 rgba(245,158,11,.6);animation:pulse 1s infinite;
+    }
+    @keyframes pulse{
+      0%{box-shadow:0 0 0 0 rgba(245,158,11,.55)}
+      70%{box-shadow:0 0 0 12px rgba(245,158,11,0)}
+      100%{box-shadow:0 0 0 0 rgba(245,158,11,0)}
+    }
+    code{
+      font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+      background:#fff;border:1px solid var(--border);padding:1px 6px;border-radius:7px
+    }
 
-      /* UI */
-      .row {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        margin-top: 10px;
-      }
-      .btn {
-        border: 1px solid var(--border);
-        background: linear-gradient(180deg, #fff, #fff7ea);
-        color: var(--ink);
-        padding: 10px 12px;
-        border-radius: 12px;
-        cursor: pointer;
-        font-weight: 800;
-      }
-      .btn.primary {
-        border-color: rgba(217, 119, 6, 0.45);
-        background: linear-gradient(180deg, #fff1d6, #ffe8bf);
-      }
-      .btn:active {
-        transform: translateY(1px);
-      }
-      .small {
-        font-size: 13px;
-        color: var(--muted);
-        margin: 10px 0 0;
-      }
-      .log {
-        margin-top: 12px;
-        border: 1px solid var(--border);
-        background: #fffaf1;
-        border-radius: 12px;
-        padding: 10px;
-        min-height: 130px;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-          "Liberation Mono", "Courier New", monospace;
-        font-size: 13px;
-        color: #111827;
-        white-space: pre-wrap;
-        overflow: auto;
-      }
-      label {
-        display: block;
-        font-weight: 800;
-        color: var(--ink);
-      }
-      input[type="text"] {
-        width: 100%;
-        margin-top: 6px;
-        padding: 10px 12px;
-        border-radius: 12px;
-        border: 1px solid var(--border);
-        background: #fffaf1;
-        font-size: 15px;
-      }
-      .bpmRow {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        flex-wrap: wrap;
-        margin-top: 10px;
-      }
-      input[type="range"] {
-        width: min(520px, 100%);
-      }
-      .chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        border: 1px solid var(--border);
-        background: #fffaf1;
-        border-radius: 999px;
-        padding: 6px 10px;
-        font-weight: 800;
-      }
-      .now {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        border: 1px solid rgba(217, 119, 6, 0.35);
-        background: #fff1d6;
-        border-radius: 12px;
-        padding: 8px 10px;
-        font-weight: 900;
-        color: #7c2d12;
-        margin-top: 10px;
-      }
-      .pulse {
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        background: var(--brand2);
-        box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6);
-        animation: pulse 1s infinite;
-      }
-      @keyframes pulse {
-        0% {
-          box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.55);
-        }
-        70% {
-          box-shadow: 0 0 0 12px rgba(245, 158, 11, 0);
-        }
-        100% {
-          box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
-        }
-      }
-      code {
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-          "Liberation Mono", "Courier New", monospace;
-        background: #fff;
-        border: 1px solid var(--border);
-        padding: 1px 6px;
-        border-radius: 7px;
-      }
+    /* Mixer */
+    .mix{
+      border:1px solid var(--border);border-radius:16px;background:linear-gradient(180deg,#fffaf1,#fff);
+      padding:12px;margin-top:12px;
+    }
+    .mixGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media(max-width:620px){.mixGrid{grid-template-columns:1fr}}
+    .kv{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .kv .name{font-weight:900;color:#7c2d12}
+    .kv .val{font-weight:900;color:var(--muted)}
+    .hint2{margin:8px 0 0;color:var(--muted);font-size:13px;line-height:1.5}
 
-      /* Mix panel */
-      .mix {
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        background: linear-gradient(180deg, #fffaf1, #fff);
-        padding: 12px;
-        margin-top: 12px;
-      }
-      .mixGrid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-      }
-      @media (max-width: 620px) {
-        .mixGrid {
-          grid-template-columns: 1fr;
-        }
-      }
-      .mix h3 {
-        margin: 0 0 10px;
-        color: var(--brand);
-      }
-      .kv {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-      }
-      .kv .name {
-        font-weight: 900;
-        color: #7c2d12;
-      }
-      .kv .val {
-        font-weight: 900;
-        color: var(--muted);
-      }
-      .hint2 {
-        margin: 8px 0 0;
-        color: var(--muted);
-        font-size: 13px;
-        line-height: 1.5;
-      }
+    /* Tabla visuals */
+    .stage{display:flex;align-items:center;justify-content:center;gap:22px;padding:14px 6px;flex-wrap:wrap}
+    .drumWrap{text-align:center}
+    .drumLabel{margin-top:10px;font-weight:800;color:var(--brand);letter-spacing:.2px}
+    .hint{margin-top:4px;color:var(--muted);font-size:13px}
+    .drum{
+      width:250px;height:250px;border-radius:50%;position:relative;border:1px solid var(--border);
+      box-shadow:0 16px 30px rgba(31,41,55,.18);
+      cursor:pointer;user-select:none;touch-action:manipulation;outline:none;transform:translateZ(0);
+    }
+    .drum:active{transform:scale(0.99)}
+    .bayan{background:radial-gradient(circle at 40% 35%, #fff, #f6ede0 40%, #e3d2ba 70%, #d0b18c 100%)}
+    .dayan{background:radial-gradient(circle at 40% 35%, #fff, #f3efe6 40%, #d8c29c 75%, #c09a5a 100%)}
+    .ring{position:absolute;inset:14px;border-radius:50%;border:2px solid rgba(0,0,0,.10);box-shadow:inset 0 0 0 10px rgba(255,255,255,.25);pointer-events:none}
+    .ring2{position:absolute;inset:34px;border-radius:50%;border:2px solid rgba(0,0,0,.10);pointer-events:none}
+    .syahi{
+      position:absolute;width:88px;height:88px;left:50%;top:50%;transform:translate(-50%,-50%);
+      border-radius:50%;background:radial-gradient(circle at 35% 30%, #3b3b3b, #111 60%, #000 100%);
+      box-shadow:inset 0 0 0 6px rgba(255,255,255,.05);pointer-events:none;
+    }
+    .zone{position:absolute;border-radius:50%;background:rgba(255,255,255,0);border:2px dashed rgba(217,119,6,0);cursor:pointer}
+    .zone:focus-visible{outline:3px solid rgba(245,158,11,.55);outline-offset:3px}
+    .zone.center{width:118px;height:118px;left:50%;top:50%;transform:translate(-50%,-50%)}
+    .zone.rim{inset:18px}
+    .bayan .zone.center{width:130px;height:130px}
+    .bayan .zone.rim{inset:16px}
 
-      /* Sitar board */
-      .sitarBoard {
-        border: 1px solid var(--border);
-        border-radius: 18px;
-        background: linear-gradient(180deg, #fffaf1, #fff);
-        box-shadow: var(--shadow);
-        padding: 14px;
-        margin-top: 14px;
-      }
-      .strings {
-        margin-top: 12px;
-        display: grid;
-        gap: 10px;
-      }
-      .stringRow {
-        display: grid;
-        grid-template-columns: 70px 1fr 92px;
-        gap: 10px;
-        align-items: center;
-      }
-      .noteTag {
-        font-weight: 900;
-        color: #7c2d12;
-        background: #fff1d6;
-        border: 1px solid rgba(217, 119, 6, 0.35);
-        border-radius: 999px;
-        padding: 6px 10px;
-        text-align: center;
-      }
-      .stringBtn {
-        width: 100%;
-        border: 1px solid var(--border);
-        border-radius: 14px;
-        padding: 10px 12px;
-        background: linear-gradient(180deg, #fff, #fff7ea);
-        cursor: pointer;
-        font-weight: 900;
-        color: var(--ink);
-        text-align: left;
-      }
-      .stringBtn:active {
-        transform: translateY(1px);
-      }
-      .freqTag {
-        text-align: right;
-        color: var(--muted);
-        font-weight: 800;
-        font-size: 13px;
-      }
-    </style>
-  </head>
+    /* Sitar */
+    .sitarBoard{border:1px solid var(--border);border-radius:18px;background:linear-gradient(180deg,#fffaf1,#fff);box-shadow:var(--shadow);padding:14px;margin-top:14px}
+    .strings{margin-top:12px;display:grid;gap:10px}
+    .stringRow{display:grid;grid-template-columns:70px 1fr 92px;gap:10px;align-items:center}
+    .noteTag{font-weight:900;color:#7c2d12;background:#fff1d6;border:1px solid rgba(217,119,6,.35);border-radius:999px;padding:6px 10px;text-align:center}
+    .stringBtn{
+      width:100%;border:1px solid var(--border);border-radius:14px;padding:10px 12px;
+      background:linear-gradient(180deg,#fff,#fff7ea);
+      cursor:pointer;font-weight:900;color:var(--ink);text-align:left;
+    }
+    .stringBtn:active{transform:translateY(1px)}
+    .freqTag{text-align:right;color:var(--muted);font-weight:800;font-size:13px}
+  </style>
+</head>
 
-  <body>
-    <div class="container">
-      <div class="hero">
-        <h1>Tabla + Sitar — Play Together</h1>
-        <p class="sub">
-          ✅ Tabla volume boost + a mixer. ✅ Run Tabla & Sitar command players
-          together (they won’t stop each other).
-        </p>
-        <div class="pill">
-          <span class="dot" id="statusDot"></span>
-          <span id="statusText"
-            >Audio not unlocked yet — click any drum or sitar string once</span
-          >
-        </div>
-      </div>
-
-      <div class="grid">
-        <!-- LEFT -->
-        <div class="card">
-          <h2 style="margin: 0 0 10px; color: var(--brand)">Tabla</h2>
-
-          <div class="stage" aria-label="Tabla stage">
-            <!-- BAYAN -->
-            <div class="drumWrap">
-              <div class="drum bayan" role="group" aria-label="Bayan drum">
-                <div class="ring"></div>
-                <div class="ring2"></div>
-                <div class="syahi"></div>
-                <button
-                  class="zone rim"
-                  data-bol="Ke"
-                  data-sound="bayan_ke"
-                  aria-label="Bayan rim: Ke"
-                ></button>
-                <button
-                  class="zone center"
-                  data-bol="Ge"
-                  data-sound="bayan_ge"
-                  aria-label="Bayan center: Ge"
-                ></button>
-              </div>
-              <div class="drumLabel">Bayan (Left)</div>
-              <div class="hint">Rim: Ke • Center: Ge</div>
-            </div>
-
-            <!-- DAYAN -->
-            <div class="drumWrap">
-              <div class="drum dayan" role="group" aria-label="Dayan drum">
-                <div class="ring"></div>
-                <div class="ring2"></div>
-                <div class="syahi"></div>
-                <button
-                  class="zone rim"
-                  data-bol="Na"
-                  data-sound="dayan_na"
-                  aria-label="Dayan rim: Na"
-                ></button>
-                <button
-                  class="zone center"
-                  data-bol="Tin"
-                  data-sound="dayan_tin"
-                  aria-label="Dayan center: Tin"
-                ></button>
-              </div>
-              <div class="drumLabel">Dayan (Right)</div>
-              <div class="hint">Rim: Na • Center: Tin</div>
-            </div>
-          </div>
-
-          <div class="row">
-            <button class="btn primary" id="btnTest">Test Tabla</button>
-            <button class="btn" id="btnClear">Clear Log</button>
-          </div>
-
-          <!-- MIXER -->
-          <div class="mix" aria-label="Mixer">
-            <h3>🎚️ Mixer (Volume)</h3>
-            <div class="mixGrid">
-              <div>
-                <div class="kv">
-                  <div class="name">Tabla Volume</div>
-                  <div class="val"><span id="tablaVolLabel">180</span>%</div>
-                </div>
-                <input
-                  id="tablaVol"
-                  type="range"
-                  min="50"
-                  max="300"
-                  value="180"
-                />
-                <div class="hint2">
-                  Increase if your MP3 samples are quiet. 180% is a good
-                  default.
-                </div>
-              </div>
-              <div>
-                <div class="kv">
-                  <div class="name">Sitar Volume</div>
-                  <div class="val"><span id="sitarVolLabel">85</span>%</div>
-                </div>
-                <input
-                  id="sitarVol"
-                  type="range"
-                  min="10"
-                  max="150"
-                  value="85"
-                />
-                <div class="hint2">
-                  Reduce if sitar dominates. This controls the WebAudio master
-                  gain.
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <hr
-            style="
-              border: none;
-              border-top: 1px solid var(--border);
-              margin: 14px 0;
-            "
-          />
-
-          <h3 style="margin: 0 0 10px; color: var(--brand)">
-            Tabla Command Player (xN loops)
-          </h3>
-          <label>
-            Numbers 1–4. Loop with <code>xN</code> like <code>1,2 x4</code>
-            <input
-              id="tablaCmdInput"
-              type="text"
-              value="1,1,1  2,2,1  1,2 x4"
-            />
-          </label>
-
-          <div class="bpmRow">
-            <label style="margin: 0; min-width: 160px">Tabla Tempo (BPM)</label>
-            <input id="tablaBpm" type="range" min="40" max="240" value="120" />
-            <span class="chip"><span id="tablaBpmLabel">120</span> BPM</span>
-          </div>
-
-          <div class="row">
-            <button class="btn primary" id="tablaCmdPlay">
-              Play Tabla Commands
-            </button>
-            <button class="btn" id="tablaCmdStop">Stop Tabla Commands</button>
-            <button class="btn" id="tablaPreset1">Preset: 1,2 x4</button>
-            <button class="btn" id="tablaPreset2">Preset: 1,1,1 2,2,1</button>
-          </div>
-
-          <div class="small" style="margin-top: 8px; line-height: 1.55">
-            Mapping: <b>1=Na</b>, <b>2=Tin</b>, <b>3=Ge</b>, <b>4=Ke</b>.
-          </div>
-
-          <!-- SITAR -->
-          <hr
-            style="
-              border: none;
-              border-top: 1px solid var(--border);
-              margin: 16px 0;
-            "
-          />
-          <h2 style="margin: 0 0 10px; color: var(--brand)">Sitar</h2>
-
-          <div class="sitarBoard">
-            <div class="row" style="margin-top: 0">
-              <button class="btn primary" id="sitarDemo">
-                Sitar Demo: Sa Re Ga Ma
-              </button>
-              <button class="btn" id="sitarStop">Stop Sitar (Fade)</button>
-            </div>
-
-            <div class="strings" id="strings"></div>
-
-            <hr
-              style="
-                border: none;
-                border-top: 1px solid var(--border);
-                margin: 14px 0;
-              "
-            />
-
-            <h3 style="margin: 0 0 10px; color: var(--brand)">
-              Sitar Command Player (xN loops)
-            </h3>
-            <label>
-              Use note names: <code>Sa Re Ga Ma Pa Dha Ni</code>. Loop with
-              <code>xN</code> like <code>Sa Re x4</code>
-              <input
-                id="sitarCmdInput"
-                type="text"
-                value="Sa Re Ga Ma  Sa Re x3  Pa Dha Ni x2"
-              />
-            </label>
-
-            <div class="bpmRow">
-              <label style="margin: 0; min-width: 160px"
-                >Sitar Tempo (BPM)</label
-              >
-              <input
-                id="sitarBpm"
-                type="range"
-                min="40"
-                max="240"
-                value="110"
-              />
-              <span class="chip"><span id="sitarBpmLabel">110</span> BPM</span>
-            </div>
-
-            <div class="row">
-              <button class="btn primary" id="sitarCmdPlay">
-                Play Sitar Commands
-              </button>
-              <button class="btn" id="sitarCmdStop">Stop Sitar Commands</button>
-              <button class="btn" id="sitarPreset1">Preset: Sa Re x4</button>
-              <button class="btn" id="sitarPreset2">
-                Preset: Sa Re Ga Ma Pa Dha Ni
-              </button>
-            </div>
-
-            <div class="small" style="margin-top: 8px; line-height: 1.55">
-              ✅ You can run Tabla and Sitar command players at the same time.
-            </div>
-          </div>
-
-          <div class="now" id="nowPlaying" style="display: none">
-            <span class="pulse"></span>
-            <span id="nowText">Now: …</span>
-          </div>
-
-          <div class="log" id="log" aria-live="polite">
-            Ready. Play tabla & sitar together…
-          </div>
-        </div>
-
-        <!-- RIGHT -->
-        <div class="card">
-          <h2 style="margin: 0 0 10px; color: var(--brand)">
-            Tabla Audio Files
-          </h2>
-          <p style="margin: 0; color: var(--muted)">
-            Put these MP3 files next to this HTML file:
-          </p>
-          <ul style="margin: 10px 0 0; color: var(--ink)">
-            <li><b>dayan_na.mp3</b></li>
-            <li><b>dayan_tin.mp3</b></li>
-            <li><b>bayan_ge.mp3</b></li>
-            <li><b>bayan_ke.mp3</b></li>
-          </ul>
-
-          <hr
-            style="
-              border: none;
-              border-top: 1px solid var(--border);
-              margin: 14px 0;
-            "
-          />
-
-          <h3 style="margin: 0 0 8px; color: var(--brand)">Play Together</h3>
-          <div class="small" style="line-height: 1.8">
-            • Click tabla while sitar is playing (works)<br />
-            • Start Tabla commands, then start Sitar commands (both run
-            together)<br />
-            • Use the Mixer to balance volumes
-          </div>
-        </div>
+<body>
+  <div class="container">
+    <div class="hero">
+      <h1>Single Command Field — Tabla + Sitar</h1>
+      <p class="sub">
+        Type both instruments in one field and play together. Loops supported with <code>xN</code>.
+      </p>
+      <div class="pill">
+        <span class="dot" id="statusDot"></span>
+        <span id="statusText">Audio not unlocked yet — click any drum or sitar string once</span>
       </div>
     </div>
 
-    <script>
-      // ---------- Logging + UI ----------
-      const logEl = document.getElementById("log");
-      const statusDot = document.getElementById("statusDot");
-      const statusText = document.getElementById("statusText");
-      const nowPlaying = document.getElementById("nowPlaying");
-      const nowText = document.getElementById("nowText");
+    <div class="grid">
+      <!-- LEFT -->
+      <div class="card">
+        <h2 style="margin:0 0 10px;color:var(--brand)">🎼 Combined Commands</h2>
 
-      function stamp() {
-        const d = new Date();
-        const hh = String(d.getHours()).padStart(2, "0");
-        const mm = String(d.getMinutes()).padStart(2, "0");
-        const ss = String(d.getSeconds()).padStart(2, "0");
-        return `${hh}:${mm}:${ss}`;
+        <label>
+          Single command field (Tabla + Sitar). Examples:
+          <div class="small" style="margin-top:6px">
+            • Tabla numbers: <code>1 2 3 4</code> (1=Na,2=Tin,3=Ge,4=Ke)<br/>
+            • Sitar notes: <code>Sa Re Ga Ma Pa Dha Ni</code><br/>
+            • Play together (same beat): <code>(1+Sa) (2+Re) (1+Sa) x2</code><br/>
+            • Multi-line: <code>T: 1,2 x4 | S: Sa Re x4</code>
+          </div>
+          <input id="comboInput" type="text" value="(1+Sa) (2+Re) (1+Sa) (4+Pa) x2  |  T: 1,2 x2  S: Sa Re x2" />
+        </label>
+
+        <div class="bpmRow">
+          <label style="margin:0;min-width:170px">Combo Tempo (BPM)</label>
+          <input id="comboBpm" type="range" min="40" max="240" value="120" />
+          <span class="chip"><span id="comboBpmLabel">120</span> BPM</span>
+        </div>
+
+        <div class="row">
+          <button class="btn primary" id="comboPlay">Play Combo</button>
+          <button class="btn" id="comboStop">Stop Combo</button>
+          <button class="btn" id="presetCombo1">Preset: (1+Sa) (2+Re) x4</button>
+          <button class="btn" id="presetCombo2">Preset: T: 1,2 x4  S: Sa Re x4</button>
+        </div>
+
+        <div class="mix" aria-label="Mixer">
+          <h3 style="margin:0 0 10px;color:var(--brand)">🎚️ Mixer (Volume)</h3>
+          <div class="mixGrid">
+            <div>
+              <div class="kv">
+                <div class="name">Tabla Volume</div>
+                <div class="val"><span id="tablaVolLabel">180</span>%</div>
+              </div>
+              <input id="tablaVol" type="range" min="50" max="300" value="180" />
+              <div class="hint2">
+                Browser audio max is 1.0, so best loudness comes from normalizing MP3 files.
+              </div>
+            </div>
+            <div>
+              <div class="kv">
+                <div class="name">Sitar Volume</div>
+                <div class="val"><span id="sitarVolLabel">85</span>%</div>
+              </div>
+              <input id="sitarVol" type="range" min="10" max="150" value="85" />
+              <div class="hint2">Controls WebAudio master gain.</div>
+            </div>
+          </div>
+        </div>
+
+        <hr style="border:none;border-top:1px solid var(--border);margin:16px 0" />
+
+        <h2 style="margin:0 0 10px;color:var(--brand)">Tabla (click)</h2>
+        <div class="stage" aria-label="Tabla stage">
+          <div class="drumWrap">
+            <div class="drum bayan" role="group" aria-label="Bayan drum">
+              <div class="ring"></div><div class="ring2"></div><div class="syahi"></div>
+              <button class="zone rim" data-bol="Ke" data-sound="bayan_ke" aria-label="Bayan rim: Ke"></button>
+              <button class="zone center" data-bol="Ge" data-sound="bayan_ge" aria-label="Bayan center: Ge"></button>
+            </div>
+            <div class="drumLabel">Bayan</div>
+            <div class="hint">Rim: Ke • Center: Ge</div>
+          </div>
+
+          <div class="drumWrap">
+            <div class="drum dayan" role="group" aria-label="Dayan drum">
+              <div class="ring"></div><div class="ring2"></div><div class="syahi"></div>
+              <button class="zone rim" data-bol="Na" data-sound="dayan_na" aria-label="Dayan rim: Na"></button>
+              <button class="zone center" data-bol="Tin" data-sound="dayan_tin" aria-label="Dayan center: Tin"></button>
+            </div>
+            <div class="drumLabel">Dayan</div>
+            <div class="hint">Rim: Na • Center: Tin</div>
+          </div>
+        </div>
+
+        <div class="row">
+          <button class="btn" id="btnTest">Test Tabla</button>
+          <button class="btn" id="btnClear">Clear Log</button>
+        </div>
+
+        <hr style="border:none;border-top:1px solid var(--border);margin:16px 0" />
+
+        <h2 style="margin:0 0 10px;color:var(--brand)">Sitar (pluck)</h2>
+        <div class="sitarBoard">
+          <div class="row" style="margin-top:0">
+            <button class="btn primary" id="sitarDemo">Sitar Demo: Sa Re Ga Ma</button>
+            <button class="btn" id="sitarStop">Stop Sitar (Fade)</button>
+          </div>
+          <div class="strings" id="strings"></div>
+        </div>
+
+        <div class="now" id="nowPlaying" style="display:none">
+          <span class="pulse"></span>
+          <span id="nowText">Now: …</span>
+        </div>
+
+        <div class="log" id="log">Ready. Use the single command field to play both together…</div>
+      </div>
+
+      <!-- RIGHT -->
+      <div class="card">
+        <h2 style="margin:0 0 10px;color:var(--brand)">How the single field works</h2>
+        <div class="small">
+          <b>1) Beat tokens</b><br/>
+          Each beat can contain Tabla and/or Sitar.<br/><br/>
+
+          <b>A) Same beat (together)</b><br/>
+          Use parentheses with <code>+</code>:<br/>
+          <code>(1+Sa)</code> plays Tabla “1” and Sitar “Sa” at the same time.<br/><br/>
+
+          <b>B) Separate streams in one field</b><br/>
+          Use prefixes anywhere:<br/>
+          <code>T: 1,2 x4</code> and <code>S: Sa Re x4</code><br/>
+          Both will start together when you press Play.<br/><br/>
+
+          <b>2) Loops</b><br/>
+          Use <code>xN</code> to repeat the phrase since the last <code>|</code> boundary.<br/><br/>
+
+          <b>3) Boundaries</b><br/>
+          Use <code>|</code> to reset phrase boundary for loops.
+        </div>
+
+        <hr style="border:none;border-top:1px solid var(--border);margin:14px 0" />
+
+        <h3 style="margin:0 0 8px;color:var(--brand)">Tabla Mapping</h3>
+        <div class="small">
+          <code>1=Na</code>, <code>2=Tin</code>, <code>3=Ge</code>, <code>4=Ke</code>
+        </div>
+
+        <hr style="border:none;border-top:1px solid var(--border);margin:14px 0" />
+
+        <h3 style="margin:0 0 8px;color:var(--brand)">Tabla MP3 Files</h3>
+        <div class="small">
+          Place next to this HTML:<br/>
+          <code>dayan_na.mp3</code><br/>
+          <code>dayan_tin.mp3</code><br/>
+          <code>bayan_ge.mp3</code><br/>
+          <code>bayan_ke.mp3</code>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ---------------- UI helpers ----------------
+    const logEl = document.getElementById("log");
+    const statusDot = document.getElementById("statusDot");
+    const statusText = document.getElementById("statusText");
+    const nowPlaying = document.getElementById("nowPlaying");
+    const nowText = document.getElementById("nowText");
+
+    function stamp(){
+      const d=new Date();
+      const hh=String(d.getHours()).padStart(2,"0");
+      const mm=String(d.getMinutes()).padStart(2,"0");
+      const ss=String(d.getSeconds()).padStart(2,"0");
+      return `${hh}:${mm}:${ss}`;
+    }
+    function log(msg){
+      logEl.textContent += `\n[${stamp()}] ${msg}`;
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+    function setNow(text){
+      nowText.textContent = text;
+      nowPlaying.style.display = "inline-flex";
+    }
+
+    // ---------------- Audio unlock ----------------
+    let audioUnlocked = false;
+
+    // ---------------- Tabla audio (files) ----------------
+    const sounds = {
+      dayan_na: "dayan_na.mp3",
+      dayan_tin: "dayan_tin.mp3",
+      bayan_ge: "bayan_ge.mp3",
+      bayan_ke: "bayan_ke.mp3",
+    };
+    const audioCache = {};
+    let tablaVolume = 1.0; // HTMLAudio max 1.0
+
+    function preloadTablaAudio(){
+      for(const key of Object.keys(sounds)){
+        const a = new Audio(sounds[key]);
+        a.preload = "auto";
+        audioCache[key] = a;
       }
-      function log(msg) {
-        logEl.textContent += `\n[${stamp()}] ${msg}`;
-        logEl.scrollTop = logEl.scrollHeight;
+    }
+    function playTabla(soundKey, bol){
+      const file = sounds[soundKey];
+      if(!file){ log(`Missing tabla mapping for ${soundKey}`); return; }
+      const base = audioCache[soundKey] || new Audio(file);
+      const a = base.cloneNode(true);
+      a.currentTime = 0;
+      a.volume = tablaVolume;
+      a.play().then(()=>{
+        setNow(`Now: Tabla ${bol}`);
+        log(`Tabla: ${bol}`);
+      }).catch(()=>log(`Could not play Tabla "${bol}". File missing? (${file})`));
+    }
+
+    // ---------------- Sitar (WebAudio) ----------------
+    let audioCtx = null;
+    let sitarMaster = null;
+    const activeSitarNodes = new Set();
+
+    function ensureAudioContext(){
+      if(!audioCtx){
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        sitarMaster = audioCtx.createGain();
+        sitarMaster.gain.value = 0.85;
+        sitarMaster.connect(audioCtx.destination);
       }
-      function setNow(text) {
-        nowText.textContent = text;
-        nowPlaying.style.display = "inline-flex";
-      }
+      if(audioCtx.state === "suspended") audioCtx.resume();
+    }
 
-      // ---------- Audio unlock ----------
-      let audioUnlocked = false;
-
-      // ---------- Tabla (file audio) ----------
-      const sounds = {
-        dayan_na: "dayan_na.mp3",
-        dayan_tin: "dayan_tin.mp3",
-        bayan_ge: "bayan_ge.mp3",
-        bayan_ke: "bayan_ke.mp3",
-      };
-      const audioCache = {};
-      let tablaVolume = 1.8; // default 180%
-
-      function preloadTablaAudio() {
-        for (const key of Object.keys(sounds)) {
-          const a = new Audio(sounds[key]);
-          a.preload = "auto";
-          audioCache[key] = a;
-        }
-      }
-
-      function playTabla(soundKey, bol) {
-        const file = sounds[soundKey];
-        if (!file) {
-          log(`Missing tabla mapping for ${soundKey}`);
-          return;
-        }
-
-        const base = audioCache[soundKey] || new Audio(file);
-        const a = base.cloneNode(true);
-        a.currentTime = 0;
-
-        // ✅ Volume boost here
-        a.volume = Math.max(0, Math.min(1, tablaVolume)); // clamp 0..1
-        // Note: HTMLAudio volume max is 1. So we boost by mixing approach:
-        // If samples are very quiet, you should also normalize MP3s. Still, slider helps.
-
-        a.play()
-          .then(() => {
-            setNow(`Now: Tabla ${bol}`);
-            log(`Tabla: ${bol}`);
-          })
-          .catch(() =>
-            log(`Could not play Tabla "${bol}". File missing? (${file})`)
-          );
-      }
-
-      // IMPORTANT: HTMLAudio volume cannot exceed 1.0.
-      // To give *true* extra loudness, the best method is to normalize the MP3 files.
-      // The slider controls relative volume; set default high and normalize files for best results.
-
-      // ---------- Sitar (WebAudio synth) ----------
-      let audioCtx = null;
-      let sitarMaster = null;
-      const activeSitarNodes = new Set();
-
-      function ensureAudioContext() {
-        if (!audioCtx) {
-          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-          sitarMaster = audioCtx.createGain();
-          sitarMaster.gain.value = 0.85;
-          sitarMaster.connect(audioCtx.destination);
-        }
-        if (audioCtx.state === "suspended") audioCtx.resume();
-      }
-
-      async function unlockAudioOnce() {
-        if (audioUnlocked) return;
-        try {
-          ensureAudioContext();
-          preloadTablaAudio();
-
-          // unlock <audio> with muted play
-          const a = audioCache.dayan_na || new Audio(sounds.dayan_na);
-          a.muted = true;
-          const p = a.play();
-          if (p && typeof p.then === "function") await p;
-          a.pause();
-          a.currentTime = 0;
-          a.muted = false;
-
-          audioUnlocked = true;
-          statusDot.classList.add("ok");
-          statusText.textContent = "Audio unlocked — enjoy playing together!";
-          log("Audio unlocked.");
-        } catch (e) {
-          log("Audio unlock attempt failed (click again).");
-        }
-      }
-
-      // ---------- Mixer (volume sliders) ----------
-      const tablaVol = document.getElementById("tablaVol");
-      const tablaVolLabel = document.getElementById("tablaVolLabel");
-      const sitarVol = document.getElementById("sitarVol");
-      const sitarVolLabel = document.getElementById("sitarVolLabel");
-
-      function setTablaVolFromUI() {
-        const pct = Number(tablaVol.value || 180);
-        tablaVolLabel.textContent = pct;
-        // Map 50..300% to 0.25..1.0 (HTMLAudio max 1.0)
-        // (True boosting beyond 1.0 needs normalization of MP3s.)
-        tablaVolume = Math.max(0, Math.min(1, pct / 180)); // 180% => 1.0
-      }
-      setTablaVolFromUI();
-      tablaVol.addEventListener("input", setTablaVolFromUI);
-
-      function setSitarVolFromUI() {
-        const pct = Number(sitarVol.value || 85);
-        sitarVolLabel.textContent = pct;
+    async function unlockAudioOnce(){
+      if(audioUnlocked) return;
+      try{
         ensureAudioContext();
-        if (sitarMaster)
-          sitarMaster.gain.value = Math.max(0, Math.min(2, pct / 100));
+        preloadTablaAudio();
+
+        const a = audioCache.dayan_na || new Audio(sounds.dayan_na);
+        a.muted = true;
+        const p = a.play();
+        if(p && typeof p.then === "function") await p;
+        a.pause(); a.currentTime = 0; a.muted = false;
+
+        audioUnlocked = true;
+        statusDot.classList.add("ok");
+        statusText.textContent = "Audio unlocked — ready!";
+        log("Audio unlocked.");
+      }catch(e){
+        log("Audio unlock attempt failed (click again).");
       }
-      // defer creation until first unlock, but keep label correct
-      sitarVolLabel.textContent = sitarVol.value;
-      sitarVol.addEventListener("input", () => {
-        sitarVolLabel.textContent = sitarVol.value;
-        if (audioCtx) setSitarVolFromUI();
+    }
+
+    const sitarNotes = [
+      { name:"Sa", hz:261.63 },
+      { name:"Re", hz:293.66 },
+      { name:"Ga", hz:329.63 },
+      { name:"Ma", hz:349.23 },
+      { name:"Pa", hz:392.00 },
+      { name:"Dha", hz:440.00 },
+      { name:"Ni", hz:493.88 },
+    ];
+    const sitarMap = Object.fromEntries(sitarNotes.map(n=>[n.name.toLowerCase(), n]));
+
+    function pluckSitar(freq, label){
+      ensureAudioContext();
+
+      const now = audioCtx.currentTime;
+
+      const burstDur = 0.045;
+      const noiseBuf = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate * burstDur), audioCtx.sampleRate);
+      const ch = noiseBuf.getChannelData(0);
+      for(let i=0;i<ch.length;i++) ch[i] = (Math.random()*2-1)*0.9;
+
+      const src = audioCtx.createBufferSource();
+      src.buffer = noiseBuf;
+
+      const delay = audioCtx.createDelay(1.0);
+      delay.delayTime.value = 1 / freq;
+
+      const feedback = audioCtx.createGain();
+      feedback.gain.value = 0.985;
+
+      const damp = audioCtx.createBiquadFilter();
+      damp.type = "lowpass";
+      damp.frequency.value = 2200;
+      damp.Q.value = 0.7;
+
+      const zing = audioCtx.createBiquadFilter();
+      zing.type = "bandpass";
+      zing.frequency.value = Math.min(5200, freq * 8);
+      zing.Q.value = 8;
+
+      const amp = audioCtx.createGain();
+      amp.gain.setValueAtTime(0.0001, now);
+      amp.gain.exponentialRampToValueAtTime(0.9, now+0.005);
+      amp.gain.exponentialRampToValueAtTime(0.0001, now+1.6);
+
+      src.connect(delay);
+      delay.connect(damp);
+      damp.connect(zing);
+      zing.connect(amp);
+      amp.connect(sitarMaster);
+
+      damp.connect(feedback);
+      feedback.connect(delay);
+
+      src.start(now);
+      src.stop(now + burstDur);
+
+      const pack = {src, delay, damp, zing, feedback, amp};
+      activeSitarNodes.add(pack);
+
+      src.onended = () => setTimeout(()=>{
+        try{ src.disconnect(); delay.disconnect(); damp.disconnect(); zing.disconnect(); feedback.disconnect(); amp.disconnect(); }catch(_){}
+        activeSitarNodes.delete(pack);
+      }, 1800);
+
+      setNow(`Now: Sitar ${label}`);
+      log(`Sitar: ${label}`);
+    }
+
+    function pluckSitarByName(name){
+      const n = sitarMap[(name||"").toLowerCase()];
+      if(!n) return false;
+      pluckSitar(n.hz, n.name);
+      return true;
+    }
+
+    function stopSitarAll(){
+      if(!audioCtx) return;
+      activeSitarNodes.forEach(pack=>{
+        try{
+          pack.amp.gain.cancelScheduledValues(audioCtx.currentTime);
+          pack.amp.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+        }catch(_){}
       });
+      log("Sitar stopped (fade out).");
+    }
 
-      // ---------- Tabla zone clicks ----------
-      document.addEventListener("click", async (e) => {
-        const btn = e.target.closest(".zone");
-        if (!btn) return;
-        await unlockAudioOnce();
-        playTabla(btn.dataset.sound, btn.dataset.bol);
+    // ---------------- Mixer ----------------
+    const tablaVol = document.getElementById("tablaVol");
+    const tablaVolLabel = document.getElementById("tablaVolLabel");
+    const sitarVol = document.getElementById("sitarVol");
+    const sitarVolLabel = document.getElementById("sitarVolLabel");
+
+    function applyTablaVol(){
+      const pct = Number(tablaVol.value || 180);
+      tablaVolLabel.textContent = pct;
+      // Map 50..300% to 0.25..1.0 (HTMLAudio cannot exceed 1.0)
+      tablaVolume = Math.max(0, Math.min(1, pct / 180));
+    }
+    function applySitarVol(){
+      const pct = Number(sitarVol.value || 85);
+      sitarVolLabel.textContent = pct;
+      if(audioCtx && sitarMaster){
+        sitarMaster.gain.value = Math.max(0, Math.min(2, pct/100));
+      }
+    }
+    applyTablaVol();
+    sitarVolLabel.textContent = sitarVol.value;
+    tablaVol.addEventListener("input", applyTablaVol);
+    sitarVol.addEventListener("input", ()=>{ sitarVolLabel.textContent = sitarVol.value; applySitarVol(); });
+
+    // ---------------- Click instruments ----------------
+    document.addEventListener("click", async (e) => {
+      const z = e.target.closest(".zone");
+      if(!z) return;
+      await unlockAudioOnce();
+      playTabla(z.dataset.sound, z.dataset.bol);
+    });
+
+    document.getElementById("btnTest").addEventListener("click", async ()=>{
+      await unlockAudioOnce();
+      log("Testing Tabla: Na Tin Ge Ke");
+      const seq=[["dayan_na","Na"],["dayan_tin","Tin"],["bayan_ge","Ge"],["bayan_ke","Ke"]];
+      let i=0;
+      const t=setInterval(()=>{
+        const it=seq[i++]; if(!it){clearInterval(t); return;}
+        playTabla(it[0], it[1]);
+      }, 320);
+    });
+
+    document.getElementById("btnClear").addEventListener("click", ()=>{
+      logEl.textContent = "Ready. Use the single command field to play both together…";
+      nowPlaying.style.display = "none";
+    });
+
+    // ---------------- Render sitar buttons ----------------
+    const stringsEl = document.getElementById("strings");
+    function renderSitar(){
+      stringsEl.innerHTML="";
+      sitarNotes.forEach(n=>{
+        const row=document.createElement("div"); row.className="stringRow";
+        const tag=document.createElement("div"); tag.className="noteTag"; tag.textContent=n.name;
+        const btn=document.createElement("button"); btn.className="stringBtn"; btn.type="button"; btn.textContent=`Pluck ${n.name}`;
+        btn.addEventListener("click", async ()=>{ await unlockAudioOnce(); pluckSitar(n.hz, n.name); });
+        const freq=document.createElement("div"); freq.className="freqTag"; freq.textContent=`${n.hz.toFixed(2)} Hz`;
+        row.append(tag, btn, freq); stringsEl.appendChild(row);
       });
+    }
+    renderSitar();
 
-      document.getElementById("btnTest").addEventListener("click", async () => {
-        await unlockAudioOnce();
-        log("Testing Tabla: Na Tin Ge Ke");
-        const seq = [
-          ["dayan_na", "Na"],
-          ["dayan_tin", "Tin"],
-          ["bayan_ge", "Ge"],
-          ["bayan_ke", "Ke"],
-        ];
-        let i = 0;
-        const t = setInterval(() => {
-          const it = seq[i++];
-          if (!it) {
-            clearInterval(t);
-            return;
-          }
-          playTabla(it[0], it[1]);
-        }, 320);
-      });
+    document.getElementById("sitarDemo").addEventListener("click", async ()=>{
+      await unlockAudioOnce();
+      applySitarVol();
+      log("Sitar demo: Sa Re Ga Ma");
+      const seq=["Sa","Re","Ga","Ma"]; let i=0;
+      const t=setInterval(()=>{
+        const name=seq[i++]; if(!name){clearInterval(t); return;}
+        pluckSitarByName(name);
+      }, 420);
+    });
+    document.getElementById("sitarStop").addEventListener("click", async ()=>{ await unlockAudioOnce(); stopSitarAll(); });
 
-      document.getElementById("btnClear").addEventListener("click", () => {
-        logEl.textContent = "Ready. Play tabla & sitar together…";
-        nowPlaying.style.display = "none";
-      });
+    // ---------------- Single-field command engine ----------------
+    const comboInput = document.getElementById("comboInput");
+    const comboPlay = document.getElementById("comboPlay");
+    const comboStop = document.getElementById("comboStop");
+    const comboBpm = document.getElementById("comboBpm");
+    const comboBpmLabel = document.getElementById("comboBpmLabel");
+    comboBpm.addEventListener("input", ()=> comboBpmLabel.textContent = comboBpm.value);
 
-      // ---------- Tabla Command Player ----------
-      const tablaCmdInput = document.getElementById("tablaCmdInput");
-      const tablaCmdPlay = document.getElementById("tablaCmdPlay");
-      const tablaCmdStop = document.getElementById("tablaCmdStop");
-      const tablaBpm = document.getElementById("tablaBpm");
-      const tablaBpmLabel = document.getElementById("tablaBpmLabel");
-      const tablaPreset1 = document.getElementById("tablaPreset1");
-      const tablaPreset2 = document.getElementById("tablaPreset2");
+    const presetCombo1 = document.getElementById("presetCombo1");
+    const presetCombo2 = document.getElementById("presetCombo2");
+    presetCombo1.addEventListener("click", ()=> comboInput.value = "(1+Sa) (2+Re) x4");
+    presetCombo2.addEventListener("click", ()=> comboInput.value = "T: 1,2 x4  S: Sa Re x4");
 
-      tablaBpm.addEventListener(
-        "input",
-        () => (tablaBpmLabel.textContent = tablaBpm.value)
-      );
-      tablaPreset1.addEventListener(
-        "click",
-        () => (tablaCmdInput.value = "1,2 x4")
-      );
-      tablaPreset2.addEventListener(
-        "click",
-        () => (tablaCmdInput.value = "1,1,1 2,2,1")
-      );
+    // mapping
+    const numToBol = {
+      1: ["dayan_na","Na"],
+      2: ["dayan_tin","Tin"],
+      3: ["bayan_ge","Ge"],
+      4: ["bayan_ke","Ke"],
+    };
 
-      const numToBol = {
-        1: ["dayan_na", "Na"],
-        2: ["dayan_tin", "Tin"],
-        3: ["bayan_ge", "Ge"],
-        4: ["bayan_ke", "Ke"],
-      };
+    // Timers for combo
+    let comboTimer = null;
+    let comboIdx = 0;
+    let comboSeq = []; // array of {tabla?:number, sitar?:string} beat events
 
-      let tablaTimer = null,
-        tablaIdx = 0,
-        tablaSeq = [];
-      function stopTablaCommands() {
-        if (tablaTimer) clearInterval(tablaTimer);
-        tablaTimer = null;
-        tablaIdx = 0;
+    function stopCombo(){
+      if(comboTimer) clearInterval(comboTimer);
+      comboTimer = null;
+      comboIdx = 0;
+      log("Combo stopped.");
+    }
+    comboStop.addEventListener("click", stopCombo);
+
+    // Expand helpers (xN loops) for tokens
+    function applyLoopsToTokens(tokens){
+      const out = [];
+      let phraseStart = 0;
+      for(const t of tokens){
+        if(!t) continue;
+        if(t === "|" || t === "/"){ phraseStart = out.length; continue; }
+        const m = /^x(\d+)$/i.exec(t);
+        if(m){
+          const times = Math.max(0, Number(m[1])||0);
+          const phrase = out.slice(phraseStart);
+          if(!phrase.length) continue;
+          for(let r=1;r<times;r++) out.push(...phrase);
+          phraseStart = out.length;
+          continue;
+        }
+        out.push(t);
+      }
+      return out;
+    }
+
+    // Parse combo input:
+    // 1) Beat-form: (1+Sa) (2+Re) ...
+    // 2) Stream-form in one line: T: ... S: ...
+    function parseCombo(text){
+      const s = (text||"").trim();
+      if(!s) return [];
+
+      // If contains "T:" or "S:" treat as dual-stream
+      const hasT = /\bT\s*:/i.test(s);
+      const hasS = /\bS\s*:/i.test(s);
+      if(hasT || hasS){
+        const tPart = (s.match(/\bT\s*:\s*([^]*)/i)?.[1] ?? "");
+        // split out S: from within tPart if present
+        let tablaStr = tPart;
+        let sitarStr = "";
+        const mS = tablaStr.match(/\bS\s*:\s*([^]*)/i);
+        if(mS){
+          sitarStr = mS[1] || "";
+          tablaStr = tablaStr.slice(0, mS.index).trim();
+        }else{
+          // alternatively extract S: from original if T: missing
+          const mS2 = s.match(/\bS\s*:\s*([^]*)/i);
+          if(mS2) sitarStr = mS2[1] || "";
+        }
+
+        const tablaSteps = expandTablaStream(tablaStr);
+        const sitarSteps = expandSitarStream(sitarStr);
+
+        const len = Math.max(tablaSteps.length, sitarSteps.length);
+        const beats = [];
+        for(let i=0;i<len;i++){
+          const ev = {};
+          if(tablaSteps[i] != null) ev.tabla = tablaSteps[i];
+          if(sitarSteps[i] != null) ev.sitar = sitarSteps[i];
+          beats.push(ev);
+        }
+        return beats;
       }
 
-      function expandNumberCommands(text) {
-        const tokens = (text || "")
-          .trim()
-          .split(/[\s,]+/)
-          .filter(Boolean);
-        const out = [];
-        let phraseStart = 0;
-        for (const raw of tokens) {
-          const t = raw.trim();
-          if (!t) continue;
-          if (t === "|" || t === "/") {
-            phraseStart = out.length;
-            continue;
+      // Otherwise beat-form tokens: (1+Sa) or (1) or (Sa) or 1 or Sa
+      // Tokenize by spaces but keep parenthesis groups
+      const rawTokens = s
+        .replace(/,+/g," ")
+        .match(/\([^)]+\)|\S+/g) || [];
+
+      const expanded = applyLoopsToTokens(rawTokens.map(t=>t.trim()));
+
+      const beats = [];
+      for(const tok of expanded){
+        if(!tok) continue;
+
+        // parenthesis group
+        if(tok.startsWith("(") && tok.endsWith(")")){
+          const inner = tok.slice(1,-1).trim();
+          const parts = inner.split("+").map(x=>x.trim()).filter(Boolean);
+          const ev = {};
+          for(const p of parts){
+            // tabla number?
+            const n = Number(p);
+            if(Number.isFinite(n) && n>=1 && n<=4){ ev.tabla = n; continue; }
+            // sitar note?
+            if(sitarMap[p.toLowerCase()]){ ev.sitar = sitarMap[p.toLowerCase()].name; continue; }
           }
-          const m = /^x(\d+)$/i.exec(t);
-          if (m) {
-            const times = Math.max(0, Number(m[1]) || 0);
-            const phrase = out.slice(phraseStart);
-            if (!phrase.length) continue;
-            for (let r = 1; r < times; r++) out.push(...phrase);
-            phraseStart = out.length;
-            continue;
-          }
-          const n = Number(t);
-          if (Number.isFinite(n) && n >= 1 && n <= 4) {
-            out.push(n);
-            continue;
-          }
+          if(ev.tabla != null || ev.sitar != null) beats.push(ev);
+          continue;
+        }
+
+        // single token
+        const ev = {};
+        const n = Number(tok);
+        if(Number.isFinite(n) && n>=1 && n<=4){ ev.tabla = n; beats.push(ev); continue; }
+        if(sitarMap[tok.toLowerCase()]){ ev.sitar = sitarMap[tok.toLowerCase()].name; beats.push(ev); continue; }
+        // ignore unknown
+      }
+      return beats;
+    }
+
+    // Stream expanders
+    function expandTablaStream(text){
+      const tokens = (text||"").trim().split(/[\s,]+/).filter(Boolean);
+      const looped = applyLoopsToTokens(tokens);
+      const out = [];
+      for(const t of looped){
+        if(t==="|" || t==="/") continue;
+        const n = Number(t);
+        if(Number.isFinite(n) && n>=1 && n<=4) out.push(n);
+        else {
           const digs = t.match(/[1-4]/g);
-          if (digs) digs.forEach((d) => out.push(Number(d)));
+          if(digs) digs.forEach(d=>out.push(Number(d)));
         }
-        return out;
+      }
+      return out;
+    }
+
+    function expandSitarStream(text){
+      const tokens = (text||"").replace(/,+/g," ").trim().split(/\s+/).filter(Boolean);
+      const looped = applyLoopsToTokens(tokens);
+      const out = [];
+      for(const t of looped){
+        if(t==="|" || t==="/") continue;
+        const key = t.toLowerCase();
+        if(sitarMap[key]) out.push(sitarMap[key].name);
+      }
+      return out;
+    }
+
+    comboPlay.addEventListener("click", async ()=>{
+      await unlockAudioOnce();
+      applySitarVol();
+
+      comboSeq = parseCombo(comboInput.value);
+      if(!comboSeq.length){
+        log("No valid combo commands found. Use (1+Sa) style OR T: ... S: ...");
+        return;
       }
 
-      tablaCmdStop.addEventListener("click", () => {
-        stopTablaCommands();
-        log("Tabla command player stopped.");
-      });
+      stopCombo();
+      comboIdx = 0;
 
-      tablaCmdPlay.addEventListener("click", async () => {
-        await unlockAudioOnce();
-        tablaSeq = expandNumberCommands(tablaCmdInput.value);
-        if (!tablaSeq.length) {
-          log("No valid Tabla commands. Use 1-4 and xN.");
+      const beatMs = Math.max(60, Math.round(60000/Number(comboBpm.value||120)));
+      log(`Combo started @ ${comboBpm.value} BPM (beats: ${comboSeq.length})`);
+
+      // first beat immediately
+      playBeat(comboSeq[0]);
+      comboIdx = 1;
+
+      comboTimer = setInterval(()=>{
+        if(comboIdx >= comboSeq.length){
+          stopCombo();
+          log("Combo finished.");
           return;
         }
-        stopTablaCommands();
-        tablaIdx = 0;
-        const beatMs = Math.max(
-          60,
-          Math.round(60000 / Number(tablaBpm.value || 120))
-        );
-        log(`Tabla commands @ ${tablaBpm.value} BPM`);
-        log(`Tabla expanded (${tablaSeq.length}): ${tablaSeq.join(",")}`);
-        const first = numToBol[tablaSeq[0]];
-        if (first) playTabla(first[0], first[1]);
-        tablaIdx = 1;
-        tablaTimer = setInterval(() => {
-          if (tablaIdx >= tablaSeq.length) {
-            stopTablaCommands();
-            log("Tabla sequence finished.");
-            return;
-          }
-          const step = tablaSeq[tablaIdx++];
-          const m = numToBol[step];
-          if (m) playTabla(m[0], m[1]);
-        }, beatMs);
-      });
+        playBeat(comboSeq[comboIdx++]);
+      }, beatMs);
+    });
 
-      // ---------- Sitar notes + synth ----------
-      const sitarNotes = [
-        { name: "Sa", hz: 261.63 },
-        { name: "Re", hz: 293.66 },
-        { name: "Ga", hz: 329.63 },
-        { name: "Ma", hz: 349.23 },
-        { name: "Pa", hz: 392.0 },
-        { name: "Dha", hz: 440.0 },
-        { name: "Ni", hz: 493.88 },
-      ];
-      const sitarMap = Object.fromEntries(
-        sitarNotes.map((n) => [n.name.toLowerCase(), n])
-      );
-      const stringsEl = document.getElementById("strings");
-
-      function renderSitar() {
-        stringsEl.innerHTML = "";
-        sitarNotes.forEach((n) => {
-          const row = document.createElement("div");
-          row.className = "stringRow";
-          const tag = document.createElement("div");
-          tag.className = "noteTag";
-          tag.textContent = n.name;
-          const btn = document.createElement("button");
-          btn.className = "stringBtn";
-          btn.type = "button";
-          btn.textContent = `Pluck ${n.name}`;
-          btn.addEventListener("click", async () => {
-            await unlockAudioOnce();
-            pluckSitar(n.hz, n.name);
-          });
-          const freq = document.createElement("div");
-          freq.className = "freqTag";
-          freq.textContent = `${n.hz.toFixed(2)} Hz`;
-          row.append(tag, btn, freq);
-          stringsEl.appendChild(row);
-        });
+    function playBeat(ev){
+      // ✅ This is where "together" happens:
+      // We fire tabla and sitar in the same tick.
+      if(ev.tabla != null){
+        const m = numToBol[ev.tabla];
+        if(m) playTabla(m[0], m[1]);
       }
-
-      function pluckSitar(freq, label) {
-        ensureAudioContext();
-        // ensure mixer applies
-        if (sitarMaster)
-          sitarMaster.gain.value = Math.max(
-            0,
-            Math.min(2, Number(sitarVol.value || 85) / 100)
-          );
-
-        const now = audioCtx.currentTime;
-        const burstDur = 0.045;
-        const noiseBuf = audioCtx.createBuffer(
-          1,
-          Math.floor(audioCtx.sampleRate * burstDur),
-          audioCtx.sampleRate
-        );
-        const ch = noiseBuf.getChannelData(0);
-        for (let i = 0; i < ch.length; i++)
-          ch[i] = (Math.random() * 2 - 1) * 0.9;
-
-        const src = audioCtx.createBufferSource();
-        src.buffer = noiseBuf;
-
-        const delay = audioCtx.createDelay(1.0);
-        delay.delayTime.value = 1 / freq;
-
-        const feedback = audioCtx.createGain();
-        feedback.gain.value = 0.985;
-
-        const damp = audioCtx.createBiquadFilter();
-        damp.type = "lowpass";
-        damp.frequency.value = 2200;
-        damp.Q.value = 0.7;
-
-        const zing = audioCtx.createBiquadFilter();
-        zing.type = "bandpass";
-        zing.frequency.value = Math.min(5200, freq * 8);
-        zing.Q.value = 8;
-
-        const amp = audioCtx.createGain();
-        amp.gain.setValueAtTime(0.0001, now);
-        amp.gain.exponentialRampToValueAtTime(0.9, now + 0.005);
-        amp.gain.exponentialRampToValueAtTime(0.0001, now + 1.6);
-
-        src.connect(delay);
-        delay.connect(damp);
-        damp.connect(zing);
-        zing.connect(amp);
-        amp.connect(sitarMaster);
-
-        damp.connect(feedback);
-        feedback.connect(delay);
-
-        src.start(now);
-        src.stop(now + burstDur);
-
-        const pack = { src, delay, damp, zing, feedback, amp };
-        activeSitarNodes.add(pack);
-
-        src.onended = () =>
-          setTimeout(() => {
-            try {
-              src.disconnect();
-              delay.disconnect();
-              damp.disconnect();
-              zing.disconnect();
-              feedback.disconnect();
-              amp.disconnect();
-            } catch (_) {}
-            activeSitarNodes.delete(pack);
-          }, 1800);
-
-        setNow(`Now: Sitar ${label}`);
-        log(`Sitar: ${label}`);
+      if(ev.sitar != null){
+        pluckSitarByName(ev.sitar);
       }
-
-      function pluckSitarByName(name) {
-        const n = sitarMap[(name || "").toLowerCase()];
-        if (!n) return false;
-        pluckSitar(n.hz, n.name);
-        return true;
-      }
-
-      function stopSitarAll() {
-        if (!audioCtx) return;
-        activeSitarNodes.forEach((pack) => {
-          try {
-            pack.amp.gain.cancelScheduledValues(audioCtx.currentTime);
-            pack.amp.gain.setValueAtTime(0.0001, audioCtx.currentTime);
-          } catch (_) {}
-        });
-        log("Sitar stopped (fade out).");
-      }
-
-      document
-        .getElementById("sitarStop")
-        .addEventListener("click", async () => {
-          await unlockAudioOnce();
-          stopSitarAll();
-        });
-
-      document
-        .getElementById("sitarDemo")
-        .addEventListener("click", async () => {
-          await unlockAudioOnce();
-          log("Sitar demo: Sa Re Ga Ma");
-          const seq = ["Sa", "Re", "Ga", "Ma"];
-          let i = 0;
-          const t = setInterval(() => {
-            const name = seq[i++];
-            if (!name) {
-              clearInterval(t);
-              return;
-            }
-            pluckSitarByName(name);
-          }, 420);
-        });
-
-      // ---------- Sitar Command Player ----------
-      const sitarCmdInput = document.getElementById("sitarCmdInput");
-      const sitarCmdPlay = document.getElementById("sitarCmdPlay");
-      const sitarCmdStop = document.getElementById("sitarCmdStop");
-      const sitarBpm = document.getElementById("sitarBpm");
-      const sitarBpmLabel = document.getElementById("sitarBpmLabel");
-      const sitarPreset1 = document.getElementById("sitarPreset1");
-      const sitarPreset2 = document.getElementById("sitarPreset2");
-
-      sitarBpm.addEventListener(
-        "input",
-        () => (sitarBpmLabel.textContent = sitarBpm.value)
-      );
-      sitarPreset1.addEventListener(
-        "click",
-        () => (sitarCmdInput.value = "Sa Re x4")
-      );
-      sitarPreset2.addEventListener(
-        "click",
-        () => (sitarCmdInput.value = "Sa Re Ga Ma Pa Dha Ni")
-      );
-
-      let sitarTimer = null,
-        sitarIdx = 0,
-        sitarSeq = [];
-      function stopSitarCommands() {
-        if (sitarTimer) clearInterval(sitarTimer);
-        sitarTimer = null;
-        sitarIdx = 0;
-      }
-      sitarCmdStop.addEventListener("click", () => stopSitarCommands());
-
-      function expandSitarCommands(text) {
-        const tokens = (text || "")
-          .replace(/[,]+/g, " ")
-          .trim()
-          .split(/\s+/)
-          .filter(Boolean);
-        const out = [];
-        let phraseStart = 0;
-        for (const raw of tokens) {
-          const t = raw.trim();
-          if (!t) continue;
-          if (t === "|" || t === "/") {
-            phraseStart = out.length;
-            continue;
-          }
-          const m = /^x(\d+)$/i.exec(t);
-          if (m) {
-            const times = Math.max(0, Number(m[1]) || 0);
-            const phrase = out.slice(phraseStart);
-            if (!phrase.length) continue;
-            for (let r = 1; r < times; r++) out.push(...phrase);
-            phraseStart = out.length;
-            continue;
-          }
-          const key = t.toLowerCase();
-          if (sitarMap[key]) out.push(sitarMap[key].name);
-        }
-        return out;
-      }
-
-      sitarCmdPlay.addEventListener("click", async () => {
-        await unlockAudioOnce();
-        sitarSeq = expandSitarCommands(sitarCmdInput.value);
-        if (!sitarSeq.length) {
-          log("No valid Sitar commands. Use Sa/Re/Ga/Ma/Pa/Dha/Ni and xN.");
-          return;
-        }
-        stopSitarCommands();
-        sitarIdx = 0;
-        const beatMs = Math.max(
-          60,
-          Math.round(60000 / Number(sitarBpm.value || 110))
-        );
-        log(`Sitar commands @ ${sitarBpm.value} BPM`);
-        log(`Sitar expanded (${sitarSeq.length}): ${sitarSeq.join(" ")}`);
-        pluckSitarByName(sitarSeq[0]);
-        sitarIdx = 1;
-        sitarTimer = setInterval(() => {
-          if (sitarIdx >= sitarSeq.length) {
-            stopSitarCommands();
-            log("Sitar sequence finished.");
-            return;
-          }
-          pluckSitarByName(sitarSeq[sitarIdx++]);
-        }, beatMs);
-      });
-
-      // ✅ They already play together because:
-      // - Tabla uses HTMLAudio instances (independent)
-      // - Sitar uses WebAudio synth (independent)
-      // - Command timers are separate (tablaTimer vs sitarTimer)
-
-      // Initial render
-      renderSitar();
-
-      // NOTE about true volume increase:
-      // HTMLAudio volume max is 1.0. If your MP3 is recorded quiet,
-      // normalize the MP3 (increase gain) for best results.
-    </script>
-  </body>
+      if(ev.tabla != null && ev.sitar != null) setNow(`Now: Tabla+Sitar (${ev.tabla} + ${ev.sitar})`);
+    }
+  </script>
+</body>
 </html>
