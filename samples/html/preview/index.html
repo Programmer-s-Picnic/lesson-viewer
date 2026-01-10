@@ -84,7 +84,8 @@
         flex: 0 1 auto;
         flex-wrap: wrap;
       }
-      button {
+      button,
+      select {
         border: 1px solid var(--border);
         background: linear-gradient(180deg, #fff, #fff7ea);
         color: var(--ink);
@@ -96,10 +97,15 @@
         transition: transform 0.06s ease, box-shadow 0.15s ease;
         box-shadow: 0 8px 18px rgba(31, 41, 55, 0.08);
       }
-      button:hover {
+      select {
+        cursor: pointer;
+      }
+      button:hover,
+      select:hover {
         transform: translateY(-1px);
       }
-      button:active {
+      button:active,
+      select:active {
         transform: translateY(0px);
       }
       .primary {
@@ -220,16 +226,6 @@
       .status b {
         color: var(--ink);
       }
-      .kbd {
-        font-family: var(--mono);
-        font-size: 12px;
-        padding: 2px 7px;
-        border: 1px solid var(--border);
-        border-bottom-width: 2px;
-        border-radius: 8px;
-        background: #fff;
-        color: var(--ink);
-      }
       .ok {
         color: var(--ok);
         font-weight: 700;
@@ -253,13 +249,10 @@
       </div>
 
       <div class="actions">
-        <button
-          class="primary"
-          id="btnRun"
-          title="Update preview (Ctrl/⌘ + Enter)"
-        >
+        <button class="primary" id="btnRun" title="Update preview (Ctrl/⌘ + Enter)">
           Run
         </button>
+
         <button id="btnSave" title="Save to localStorage">Save</button>
         <button id="btnLoad" title="Load from localStorage">Load</button>
         <button class="danger" id="btnClear" title="Clear editor">Clear</button>
@@ -268,6 +261,39 @@
           <input type="checkbox" id="autoRun" checked />
           Auto-run
         </label>
+
+        <!-- ✅ No JSON: templates are plain functions that return strings -->
+        <select id="templateSelect" title="Insert ready-made content">
+          <option value="" selected>➕ Add content…</option>
+          <optgroup label="Starters">
+            <option value="tpl_html5">HTML5 skeleton (full page)</option>
+            <option value="tpl_basic">Basic page (header + sections)</option>
+            <option value="tpl_landing">Simple landing (hero + cards)</option>
+          </optgroup>
+          <optgroup label="Snippets">
+            <option value="tpl_heading">Heading + paragraph</option>
+            <option value="tpl_image">Image block</option>
+            <option value="tpl_list">List</option>
+            <option value="tpl_table">Table</option>
+            <option value="tpl_form">Form</option>
+            <option value="tpl_style">Style tag starter</option>
+            <option value="tpl_script">Script tag starter</option>
+          </optgroup>
+          <optgroup label="Components">
+            <option value="tpl_navbar">Navbar</option>
+            <option value="tpl_cards">3 cards row</option>
+            <option value="tpl_footer">Footer</option>
+          </optgroup>
+        </select>
+
+        <button id="btnInsert" title="Insert into editor at cursor">Insert</button>
+        <button
+          id="btnReplace"
+          class="danger"
+          title="Replace editor with selected template"
+        >
+          Replace
+        </button>
 
         <span class="chip" title="Sandbox helps isolate preview content">
           Sandbox: <span class="ok">ON</span>
@@ -303,7 +329,6 @@
 
       <div class="status" aria-live="polite">
         <div>Status: <b id="statusText">Ready</b></div>
-        
       </div>
     </main>
 
@@ -326,12 +351,37 @@
       const btnLoad = document.getElementById("btnLoad");
       const btnClear = document.getElementById("btnClear");
 
+      const templateSelect = document.getElementById("templateSelect");
+      const btnInsert = document.getElementById("btnInsert");
+      const btnReplace = document.getElementById("btnReplace");
+
       function setStatus(msg, kind = "normal") {
         statusText.textContent = msg;
         statusText.classList.remove("ok", "bad");
         if (kind === "ok") statusText.classList.add("ok");
         if (kind === "bad") statusText.classList.add("bad");
       }
+
+      // ✅ Starter (default)
+      const starter = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>My Page</title>
+  <style>
+    body{font-family:system-ui;margin:0;padding:24px;background:#fff}
+    .card{border:1px solid #e5e7eb;border-radius:14px;padding:16px;max-width:900px}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Hello, HTML!</h1>
+    <p>Edit this code on the left. Preview updates on the right.</p>
+  </div>
+</body>
+</html>
+`;
 
       // Initialize CodeMirror
       const cm = CodeMirror.fromTextArea(document.getElementById("editor"), {
@@ -342,8 +392,6 @@
         tabSize: 2,
         indentUnit: 2,
         indentWithTabs: false,
-        autoCloseTags: false, // keep simple; can be enabled with addon files
-        matchBrackets: true,
       });
 
       function getCode() {
@@ -357,7 +405,7 @@
         const code = getCode().trim();
         preview.srcdoc =
           code ||
-          "<!doctype html><title>Empty</title><p style='font-family:system-ui'> (No HTML) </p>";
+          "<!doctype html><title>Empty</title><p style='font-family:system-ui'>(No HTML)</p>";
         setStatus("Preview updated", "ok");
       }
 
@@ -393,6 +441,245 @@
         setStatus("Cleared", "ok");
       }
 
+      // ===== Templates (NO JSON, NO big object): simple switch calling functions =====
+      function tpl_html5() {
+        return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>HTML5 Skeleton</title>
+</head>
+<body>
+
+</body>
+</html>
+`;
+      }
+
+      function tpl_basic() {
+        return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Basic Page</title>
+  <style>
+    body{font-family:system-ui;margin:0}
+    header{padding:18px 22px;background:#f6f7f9;border-bottom:1px solid #e5e7eb}
+    main{padding:22px;max-width:980px;margin:0 auto}
+    section{padding:14px 0;border-bottom:1px dashed #e5e7eb}
+    footer{padding:18px 22px;color:#6b7280}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Basic Page</h1>
+    <p>A simple layout with sections.</p>
+  </header>
+
+  <main>
+    <section>
+      <h2>Section 1</h2>
+      <p>Write something here…</p>
+    </section>
+    <section>
+      <h2>Section 2</h2>
+      <ul>
+        <li>Point A</li>
+        <li>Point B</li>
+        <li>Point C</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>© 2026</footer>
+</body>
+</html>
+`;
+      }
+
+      function tpl_landing() {
+        return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Simple Landing</title>
+  <style>
+    body{font-family:system-ui;margin:0;background:#0b1220;color:#e5e7eb}
+    .wrap{max-width:1040px;margin:0 auto;padding:28px}
+    .hero{padding:34px;border:1px solid rgba(255,255,255,.12);border-radius:18px;background:rgba(255,255,255,.06)}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:14px}
+    .card{padding:16px;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:rgba(255,255,255,.06)}
+    .btn{display:inline-block;margin-top:10px;padding:10px 14px;border-radius:12px;background:#f59e0b;color:#111827;text-decoration:none;font-weight:700}
+    @media(max-width:900px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <h1>Build something cool</h1>
+      <p>Paste your HTML here and preview on the right.</p>
+      <a class="btn" href="#features">See features</a>
+    </div>
+
+    <div id="features" class="grid">
+      <div class="card"><h3>Fast</h3><p>Instant preview with srcdoc.</p></div>
+      <div class="card"><h3>Offline</h3><p>Works without internet.</p></div>
+      <div class="card"><h3>Simple</h3><p>Just type and run.</p></div>
+    </div>
+  </div>
+</body>
+</html>
+`;
+      }
+
+      function tpl_heading() {
+        return `<h1>Heading</h1>
+<p>This is a paragraph. Replace this text with your own.</p>
+`;
+      }
+
+      function tpl_image() {
+        return `<figure>
+  <img src="https://picsum.photos/900/380" alt="Sample image" style="max-width:100%;border-radius:14px" />
+  <figcaption style="color:#6b7280">Caption goes here…</figcaption>
+</figure>
+`;
+      }
+
+      function tpl_list() {
+        return `<ul>
+  <li>First item</li>
+  <li>Second item</li>
+  <li>Third item</li>
+</ul>
+`;
+      }
+
+      function tpl_table() {
+        return `<table border="1" cellpadding="10" style="border-collapse:collapse;width:100%;max-width:900px">
+  <thead>
+    <tr><th>Name</th><th>Role</th><th>City</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Asha</td><td>Developer</td><td>Varanasi</td></tr>
+    <tr><td>Ravi</td><td>Designer</td><td>Delhi</td></tr>
+  </tbody>
+</table>
+`;
+      }
+
+      function tpl_form() {
+        return `<form onsubmit="event.preventDefault(); alert('Submitted!');" style="max-width:520px">
+  <label>Name<br><input name="name" required style="width:100%;padding:10px;border-radius:10px;border:1px solid #ddd"></label><br><br>
+  <label>Email<br><input type="email" name="email" required style="width:100%;padding:10px;border-radius:10px;border:1px solid #ddd"></label><br><br>
+  <button type="submit" style="padding:10px 14px;border-radius:12px;border:1px solid #ddd;background:#fff7ea;font-weight:700;cursor:pointer">
+    Submit
+  </button>
+</form>
+`;
+      }
+
+      function tpl_style() {
+        return `<style>
+  /* Add your CSS here */
+  body { font-family: system-ui; }
+</style>
+`;
+      }
+
+      function tpl_script() {
+        return `<script>
+  // Add your JavaScript here
+  console.log("Hello from script!");
+</script>
+`;
+      }
+
+      function tpl_navbar() {
+        return `<nav style="display:flex;gap:12px;align-items:center;justify-content:space-between;padding:14px 18px;border:1px solid #e5e7eb;border-radius:14px;max-width:980px">
+  <strong>MySite</strong>
+  <div style="display:flex;gap:10px">
+    <a href="#" style="text-decoration:none;color:#111827">Home</a>
+    <a href="#" style="text-decoration:none;color:#111827">About</a>
+    <a href="#" style="text-decoration:none;color:#111827">Contact</a>
+  </div>
+</nav>
+`;
+      }
+
+      function tpl_cards() {
+        return `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:980px">
+  <div style="border:1px solid #e5e7eb;border-radius:16px;padding:14px">
+    <h3>Card 1</h3><p>Describe something.</p>
+  </div>
+  <div style="border:1px solid #e5e7eb;border-radius:16px;padding:14px">
+    <h3>Card 2</h3><p>Describe something.</p>
+  </div>
+  <div style="border:1px solid #e5e7eb;border-radius:16px;padding:14px">
+    <h3>Card 3</h3><p>Describe something.</p>
+  </div>
+</div>
+`;
+      }
+
+      function tpl_footer() {
+        return `<footer style="margin-top:18px;padding:18px;border-top:1px solid #e5e7eb;color:#6b7280">
+  © 2026 • Your footer text
+</footer>
+`;
+      }
+
+      function getTemplateByKey(key) {
+        switch (key) {
+          case "tpl_html5":
+            return tpl_html5();
+          case "tpl_basic":
+            return tpl_basic();
+          case "tpl_landing":
+            return tpl_landing();
+          case "tpl_heading":
+            return tpl_heading();
+          case "tpl_image":
+            return tpl_image();
+          case "tpl_list":
+            return tpl_list();
+          case "tpl_table":
+            return tpl_table();
+          case "tpl_form":
+            return tpl_form();
+          case "tpl_style":
+            return tpl_style();
+          case "tpl_script":
+            return tpl_script();
+          case "tpl_navbar":
+            return tpl_navbar();
+          case "tpl_cards":
+            return tpl_cards();
+          case "tpl_footer":
+            return tpl_footer();
+          default:
+            return null;
+        }
+      }
+
+      function insertAtCursor(text) {
+        const doc = cm.getDoc();
+        const cursor = doc.getCursor();
+        doc.replaceRange(text, cursor);
+        cm.focus();
+        runPreview();
+      }
+
+      function replaceAll(text) {
+        setCode(text);
+        cm.focus();
+        runPreview();
+      }
+      // ===== End templates =====
+
       // Debounced auto-run
       let t = null;
       cm.on("change", () => {
@@ -408,6 +695,24 @@
       btnLoad.addEventListener("click", loadCode);
       btnClear.addEventListener("click", clearEditor);
 
+      btnInsert.addEventListener("click", () => {
+        const key = templateSelect.value;
+        if (!key) return setStatus("Pick something from “Add content…” first");
+        const tpl = getTemplateByKey(key);
+        if (!tpl) return setStatus("Template not found", "bad");
+        insertAtCursor(tpl);
+        setStatus("Inserted", "ok");
+      });
+
+      btnReplace.addEventListener("click", () => {
+        const key = templateSelect.value;
+        if (!key) return setStatus("Pick something from “Add content…” first");
+        const tpl = getTemplateByKey(key);
+        if (!tpl) return setStatus("Template not found", "bad");
+        replaceAll(tpl);
+        setStatus("Replaced", "ok");
+      });
+
       // Ctrl/⌘ + Enter
       document.addEventListener("keydown", (e) => {
         const ctrl = e.ctrlKey || e.metaKey;
@@ -417,8 +722,7 @@
         }
       });
 
-      // Default sample + init
-      // Load saved if exists, else sample
+      // Init: Load saved if exists, else starter
       try {
         const saved = localStorage.getItem(STORAGE_KEY);
         setCode(saved !== null ? saved : starter);
