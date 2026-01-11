@@ -1,0 +1,1181 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Monthly Master Calendar — GitHub JSON Loader</title>
+  <meta name="description" content="Monthly master calendar with master-detail tasks/weeks. Loads JSON from GitHub raw URL, saves edits locally, export/import JSON." />
+  <meta name="author" content="Champak Roy" />
+
+  <style>
+    :root{
+      --bg:#fff7e6;
+      --card:#ffffff;
+      --ink:#1f2937;
+      --muted:#6b7280;
+      --brand:#d97706;
+      --brand2:#f59e0b;
+      --border:#eadcc5;
+      --shadow:0 18px 40px rgba(31,41,55,.14);
+      --ok:#166534;
+      --warn:#92400e;
+      --danger:#b91c1c;
+      --soft:#fff1d6;
+      --soft2:#fffaf1;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+      background:var(--bg);
+      color:var(--ink);
+    }
+    .wrap{max-width:1250px;margin:18px auto;padding:16px}
+    .hero{
+      background:linear-gradient(135deg,#fff,var(--soft));
+      border:1px solid var(--border);
+      border-radius:18px;
+      box-shadow:var(--shadow);
+      padding:14px 14px 12px;
+      display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;
+    }
+    .hero h1{margin:0;font-size:20px;color:var(--brand);letter-spacing:.2px}
+    .hero p{margin:6px 0 0;color:var(--muted);max-width:900px;font-size:13px;line-height:1.35}
+    .badge{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:6px 10px;border-radius:999px;border:1px solid var(--border);
+      background:#fff;font-size:12px;color:var(--muted);white-space:nowrap;
+    }
+    .badge b{color:var(--ink)}
+    .row{margin-top:14px;display:grid;grid-template-columns:460px 1fr;gap:14px}
+    @media (max-width: 1000px){.row{grid-template-columns:1fr}}
+    .card{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:18px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .cardHead{
+      padding:12px 12px 10px;border-bottom:1px solid var(--border);
+      background:linear-gradient(180deg,#fff,var(--soft2));
+      display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+    }
+    .cardHead h2{margin:0;font-size:14px;color:var(--brand)}
+    .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
+    .btn{
+      border:none;border-radius:12px;padding:9px 10px;cursor:pointer;
+      font-weight:800;font-size:12px;color:#fff;
+      background:linear-gradient(135deg,var(--brand),var(--brand2));
+      box-shadow:0 10px 18px rgba(217,119,6,.22);
+    }
+    .btn:active{transform:translateY(1px)}
+    .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--border);box-shadow:none}
+    .btn.ok{background:linear-gradient(135deg,#15803d,#16a34a)}
+    .btn.warn{background:linear-gradient(135deg,#b45309,#f59e0b)}
+    .btn.danger{background:linear-gradient(135deg,#991b1b,#ef4444)}
+    .btn.small{padding:7px 9px;font-size:12px;border-radius:10px}
+    .btn.full{width:100%}
+    .pane{padding:12px}
+    label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:800}
+    input[type="text"], input[type="url"], textarea, select{
+      width:100%;border:1px solid var(--border);border-radius:12px;padding:10px 11px;
+      font-size:13px;outline:none;background:#fff;
+    }
+    textarea{min-height:90px;resize:vertical}
+    input:focus, textarea:focus, select:focus{box-shadow:0 0 0 4px rgba(245,158,11,.18);border-color:#f3d7a6}
+
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace}
+
+    .treeTop{
+      display:flex;gap:10px;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;
+      padding:10px;border:1px solid var(--border);border-radius:14px;background:#fff;
+      margin-bottom:10px;
+    }
+
+    .tree{
+      border:1px solid var(--border);
+      border-radius:14px;
+      overflow:hidden;
+      background:#fff;
+      max-height:600px;
+      overflow:auto;
+    }
+    .group{border-bottom:1px solid #f2e6cf}
+    .group:last-child{border-bottom:none}
+    .groupHead{
+      padding:10px;
+      background:linear-gradient(180deg,#fff,var(--soft2));
+      display:flex;align-items:flex-start;justify-content:space-between;gap:10px;
+      cursor:pointer;
+    }
+    .groupHead:hover{background:#fff7e6}
+    .gTitle{font-weight:900}
+    .gMeta{margin-top:4px;color:var(--muted);font-size:12px;line-height:1.25}
+    .pill{
+      font-size:11px;font-weight:900;border-radius:999px;padding:6px 8px;border:1px solid var(--border);
+      background:#fff;white-space:nowrap;color:var(--muted)
+    }
+    .weeks{padding:8px 10px 12px;display:none;background:#fff}
+    .group.open .weeks{display:block}
+    .weekItem{
+      padding:9px 9px;
+      border:1px solid #f2e6cf;
+      border-radius:12px;
+      margin-top:8px;
+      display:grid;
+      grid-template-columns: 1fr auto;
+      gap:10px;
+      align-items:center;
+      cursor:pointer;
+      background:#fff;
+    }
+    .weekItem:hover{background:#fffaf1}
+    .weekItem.active{
+      outline:2px solid rgba(245,158,11,.25);
+      outline-offset:-2px;
+      background:linear-gradient(180deg,#fff7e6,#fff);
+    }
+    .wTop{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap}
+    .dot{width:10px;height:10px;border-radius:999px;flex:0 0 auto;margin-top:4px;background:#94a3b8}
+    .dot.todo{background:#94a3b8}
+    .dot.inprogress{background:#f59e0b}
+    .dot.done{background:#16a34a}
+    .dot.cancelled{background:#ef4444}
+    .wTitle{font-weight:900}
+    .wMeta{margin-top:3px;color:var(--muted);font-size:12px;line-height:1.25}
+    .hr{height:1px;background:var(--border);margin:10px 0}
+    .empty{padding:16px 12px;color:var(--muted);font-size:13px}
+
+    .footerBar{
+      display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;
+      padding:10px 12px;border-top:1px solid var(--border);background:var(--soft2);
+    }
+
+    .commentBox{
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:10px;
+      background:#fff;
+    }
+    .commentList{margin-top:10px;display:flex;flex-direction:column;gap:8px;max-height:240px;overflow:auto;padding-right:4px}
+    .comment{border:1px solid #f2e6cf;border-radius:12px;padding:10px;background:#fffaf1}
+    .commentTop{display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--muted);font-size:12px;margin-bottom:6px}
+    .commentText{font-size:13px;white-space:pre-wrap}
+
+    .smallNote{font-size:12px;color:var(--muted);line-height:1.3;margin-top:6px}
+    .toggleRow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .toggleRow input{width:auto}
+    .statusLine{font-size:12px;color:var(--muted)}
+    .statusLine b{color:var(--ink)}
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <div>
+        <h1>Monthly Master Calendar — Load JSON from GitHub</h1>
+        <p>
+          Loads the monthly plan JSON from a GitHub <b>raw</b> URL. Your edits are saved in <b>LocalStorage</b>.
+          When you want to update GitHub, use <b>Export JSON</b> and commit it.
+        </p>
+      </div>
+      <div class="badge">Key: <b class="mono" id="storeKeyLabel">CR_MONTHLY_TASKS_WEEKS_V3</b></div>
+    </div>
+
+    <div class="row">
+      <!-- MASTER -->
+      <section class="card">
+        <div class="cardHead">
+          <h2>Master (Tasks List)</h2>
+          <div class="toolbar">
+            <button class="btn ghost small" id="btnExpandAll">Expand All</button>
+            <button class="btn ghost small" id="btnCollapseAll">Collapse All</button>
+            <button class="btn ghost small" id="btnSeed">Reset Default</button>
+            <button class="btn ghost small" id="btnClear">Clear All</button>
+            <button class="btn small" id="btnNewTask">+ New Task</button>
+          </div>
+        </div>
+
+        <div class="pane">
+          <div class="treeTop">
+            <div style="flex:1;min-width:240px">
+              <label>GitHub JSON URL (raw)</label>
+              <input id="ghUrl" type="url" placeholder="https://raw.githubusercontent.com/USER/REPO/branch/path/monthly_tasks_weeks.json" />
+              <div class="toggleRow" style="margin-top:8px">
+                <button class="btn small" id="btnLoadGitHub">Load from GitHub</button>
+                <button class="btn ghost small" id="btnReplaceWithGitHub" title="Replace local data with GitHub data">Replace local with GitHub</button>
+                <label class="toggleRow" style="gap:6px;cursor:pointer">
+                  <input id="ghAuto" type="checkbox" />
+                  <span style="font-size:12px;color:var(--muted);font-weight:800">Use GitHub on startup</span>
+                </label>
+              </div>
+              <div class="smallNote">
+                Tip: Open your JSON file on GitHub → click “Raw” → copy that URL.
+              </div>
+              <div class="statusLine" id="ghStatus" style="margin-top:6px">GitHub: <b>not loaded</b></div>
+            </div>
+
+            <div style="min-width:210px">
+              <label>Search</label>
+              <input id="q" type="text" placeholder="Search task/week/topics/link..." />
+              <div style="height:10px"></div>
+              <label>Status</label>
+              <select id="statusFilter">
+                <option value="all">All</option>
+                <option value="todo">Todo</option>
+                <option value="in-progress">In-Progress</option>
+                <option value="done">Done</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+              <div class="toolbar" style="margin-top:10px;justify-content:flex-start">
+                <button class="btn ghost small" id="btnExport">Export JSON</button>
+                <label class="btn ghost small" style="display:inline-flex;gap:8px;align-items:center;cursor:pointer">
+                  Import JSON
+                  <input id="fileImport" type="file" accept="application/json" style="display:none" />
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="tree" id="tree"></div>
+
+          <div class="empty" style="padding-top:10px">
+            Tip: Click a <b>Task</b> to expand/collapse. Click a <b>Week</b> to edit in the detail panel.
+          </div>
+        </div>
+      </section>
+
+      <!-- DETAIL -->
+      <section class="card">
+        <div class="cardHead">
+          <h2>Detail (Selected Week)</h2>
+          <div class="toolbar">
+            <button class="btn ok small" id="btnDone" disabled>Done</button>
+            <button class="btn warn small" id="btnProgress" disabled>In-Progress</button>
+            <button class="btn danger small" id="btnCancel" disabled>Cancelled</button>
+            <button class="btn ghost small" id="btnDeleteWeek" disabled>Delete Week</button>
+          </div>
+        </div>
+
+        <div class="pane" id="detailPane">
+          <div class="empty">Select a Week from the left to view / update details.</div>
+        </div>
+
+        <div class="footerBar">
+          <div class="badge">Last saved: <b id="lastSaved">—</b></div>
+          <div class="toolbar" style="min-width:240px">
+            <button class="btn full" id="btnUpdate" disabled>Update Week</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+<script>
+(() => {
+  "use strict";
+
+  const STORE_KEY = "CR_MONTHLY_TASKS_WEEKS_V3";
+  const GH_URL_KEY = STORE_KEY + "_GITHUB_URL";
+  const GH_AUTO_KEY = STORE_KEY + "_GITHUB_AUTO";
+  const GH_CACHE_KEY = STORE_KEY + "_GITHUB_CACHE"; // last fetched JSON
+  const GH_CACHE_AT_KEY = STORE_KEY + "_GITHUB_CACHE_AT";
+
+  const el = {
+    storeKeyLabel: document.getElementById("storeKeyLabel"),
+
+    ghUrl: document.getElementById("ghUrl"),
+    ghAuto: document.getElementById("ghAuto"),
+    btnLoadGitHub: document.getElementById("btnLoadGitHub"),
+    btnReplaceWithGitHub: document.getElementById("btnReplaceWithGitHub"),
+    ghStatus: document.getElementById("ghStatus"),
+
+    q: document.getElementById("q"),
+    statusFilter: document.getElementById("statusFilter"),
+    tree: document.getElementById("tree"),
+    detailPane: document.getElementById("detailPane"),
+
+    btnExpandAll: document.getElementById("btnExpandAll"),
+    btnCollapseAll: document.getElementById("btnCollapseAll"),
+    btnSeed: document.getElementById("btnSeed"),
+    btnClear: document.getElementById("btnClear"),
+    btnNewTask: document.getElementById("btnNewTask"),
+
+    btnExport: document.getElementById("btnExport"),
+    fileImport: document.getElementById("fileImport"),
+
+    btnDone: document.getElementById("btnDone"),
+    btnProgress: document.getElementById("btnProgress"),
+    btnCancel: document.getElementById("btnCancel"),
+    btnDeleteWeek: document.getElementById("btnDeleteWeek"),
+    btnUpdate: document.getElementById("btnUpdate"),
+    lastSaved: document.getElementById("lastSaved")
+  };
+
+  el.storeKeyLabel.textContent = STORE_KEY;
+
+  const nowISO = () => new Date().toISOString();
+  const uid = (p="id") => p + "_" + Math.random().toString(36).slice(2) + "_" + Date.now().toString(36);
+
+  const safeJSONParse = (s) => { try { return JSON.parse(s); } catch { return null; } };
+  const fmtLocal = (iso) => { try { return new Date(iso).toLocaleString(); } catch { return iso || "—"; } };
+  const esc = (s) => (s ?? "").toString()
+    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+  const cleanURL = (u) => (u || "").trim();
+
+  function downloadText(filename, text, mime="application/json"){
+    const blob = new Blob([text], {type:mime});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 1500);
+  }
+
+  function makeWeek({weekNo=1, title="", topics="", link="", status="todo"} = {}){
+    return { id: uid("w"), weekNo, title: title || `Week ${weekNo}`, topics: topics || "", link: link || "", status, comments: [], createdAt: nowISO(), updatedAt: nowISO() };
+  }
+  function makeTask({title="New Task", timeSlot="", notes="", weeksCount=4} = {}){
+    const t = { id: uid("t"), title, timeSlot, notes, isOpen: true, createdAt: nowISO(), updatedAt: nowISO(), weeks: [] };
+    for(let i=1;i<=weeksCount;i++) t.weeks.push(makeWeek({weekNo:i}));
+    return t;
+  }
+
+  function setWeeks(task, presets){
+    presets.forEach((p, i) => {
+      if(!task.weeks[i]) return;
+      if(p.title) task.weeks[i].title = p.title;
+      if(p.topics) task.weeks[i].topics = p.topics;
+      if(p.link) task.weeks[i].link = p.link;
+      if(p.status) task.weeks[i].status = p.status;
+    });
+    return task;
+  }
+
+  function buildDefaultTasks(){
+    const tasks = [];
+
+    const t1 = makeTask({ title:"7 PM Classes", timeSlot:"7:00 PM", notes:"Core teaching plan. Everything else is derived from this.", weeksCount:4 });
+    setWeeks(t1, [
+      {title:"Week 1 – Re-engagement & Basics", topics:"Restart learning habit\nVery short lessons (5–7 lines)\nDaily 1 question challenge\nPolls YES/NO, A/B\nPersonal DM to inactive students\nWeekend recap", link:""},
+      {title:"Week 2 – Consistency & Patterns", topics:"Pattern programs\nLoops + if/else\n2 small assignments\nOne doubt-clearing class\nMid-week feedback poll", link:""},
+      {title:"Week 3 – Mini Project & Confidence", topics:"Mini project walkthrough\nDebugging mindset\nExplain code verbally\nStudent spotlight\nTestimonial collection", link:""},
+      {title:"Week 4 – Revision & Next Month", topics:"Full revision\nMega practice set\nBest doubts\nNext month preview\nEarly-bird announcement", link:""}
+    ]);
+    tasks.push(t1);
+
+    const t2 = makeTask({ title:"Book Schedule", notes:"Book created from classes + videos.", weeksCount:4 });
+    setWeeks(t2, [
+      {title:"Week 1 – Outline", topics:"Decide book title\nTable of contents\nChapter outline\nLearning objectives", link:""},
+      {title:"Week 2 – Draft 1", topics:"Write Chapters 1–2\nAdd examples\nAdd exercises", link:""},
+      {title:"Week 3 – Draft 2", topics:"Write Chapters 3–4\nAssignments\nCommon mistakes section", link:""},
+      {title:"Week 4 – Edit & Compile", topics:"Editing\nFormatting\nCover idea\nPDF export plan", link:""}
+    ]);
+    tasks.push(t2);
+
+    const t3 = makeTask({ title:"Video", notes:"Videos derived from 7 PM classes.", weeksCount:4 });
+    setWeeks(t3, [
+      {title:"Week 1 – Start", topics:"2 shorts: motivation + basics\n1 long: restarting coding journey", link:""},
+      {title:"Week 2 – Patterns", topics:"2 shorts: patterns\n1 long: loop logic explained", link:""},
+      {title:"Week 3 – Project", topics:"2 shorts: debugging tips\n1 long: mini project build", link:""},
+      {title:"Week 4 – Recap", topics:"2 shorts: revision\n1 long: next month roadmap", link:""}
+    ]);
+    tasks.push(t3);
+
+    const t4 = makeTask({ title:"LinkedIn Post", notes:"Weekly LinkedIn plan. Link = post URL.", weeksCount:4 });
+    setWeeks(t4, [
+      {title:"Week 1", topics:"Why learners lose momentum\nPoll: biggest struggle\nShort lesson post", link:""},
+      {title:"Week 2", topics:"Pattern explanation\nStudent progress story", link:""},
+      {title:"Week 3", topics:"Mini project insight\nTestimonial post", link:""},
+      {title:"Week 4", topics:"Month recap\nNext month announcement", link:""}
+    ]);
+    tasks.push(t4);
+
+    const t5 = makeTask({ title:"Twitter / X", notes:"Daily tips + weekly thread. Link = thread URL.", weeksCount:4 });
+    setWeeks(t5, [
+      {title:"Week 1", topics:"Daily tips\nThread: restarting coding", link:""},
+      {title:"Week 2", topics:"Pattern tips\nThread: loop mistakes", link:""},
+      {title:"Week 3", topics:"Debugging tips\nThread: think like a programmer", link:""},
+      {title:"Week 4", topics:"Revision tips\nThread: learning roadmap", link:""}
+    ]);
+    tasks.push(t5);
+
+    const t6 = makeTask({ title:"Facebook", notes:"Share blog/video + community posts. Link = post URL.", weeksCount:4 });
+    setWeeks(t6, [
+      {title:"Week 1", topics:"Class highlight\nLesson screenshot", link:""},
+      {title:"Week 2", topics:"Blog share\nVideo share", link:""},
+      {title:"Week 3", topics:"Testimonial\nBatch promotion", link:""},
+      {title:"Week 4", topics:"Month recap\nRegistration reminder", link:""}
+    ]);
+    tasks.push(t6);
+
+    const t7 = makeTask({ title:"WhatsApp Status", notes:"Daily status plan. Link = template folder.", weeksCount:4 });
+    setWeeks(t7, [
+      {title:"Week 1", topics:"Daily lesson topic\nYES/NO polls", link:""},
+      {title:"Week 2", topics:"Code snippets\nStudent wins", link:""},
+      {title:"Week 3", topics:"Testimonials\nSeat availability", link:""},
+      {title:"Week 4", topics:"Month summary\nFinal reminder", link:""}
+    ]);
+    tasks.push(t7);
+
+    const t8 = makeTask({ title:"Marketing for Next Month 7 PM Classes", notes:"Marketing assets + outreach. Link = landing/WhatsApp invite.", weeksCount:4 });
+    setWeeks(t8, [
+      {title:"Week 1", topics:"Finalize syllabus\nCollect testimonials", link:""},
+      {title:"Week 2", topics:"Poster\nPromo messages\nInvite video", link:""},
+      {title:"Week 3", topics:"Soft launch\nPersonal follow-ups", link:""},
+      {title:"Week 4", topics:"Final push\nClose registrations\nOnboarding", link:""}
+    ]);
+    tasks.push(t8);
+
+    const t9 = makeTask({ title:"Health Hazards", timeSlot:"7:00–7:30 AM (optional)", notes:"Daily micro health tips series.", weeksCount:4 });
+    setWeeks(t9, [
+      {title:"Week 1", topics:"Sleep\nScreen time\nPosture", link:""},
+      {title:"Week 2", topics:"Sugar\nEye strain\nBreathing", link:""},
+      {title:"Week 3", topics:"Stress\nBack pain\nWalking", link:""},
+      {title:"Week 4", topics:"Monthly recap\n7-day challenge", link:""}
+    ]);
+    tasks.push(t9);
+
+    return tasks;
+  }
+
+  function seedDefault(){
+    const tasks = buildDefaultTasks();
+    return { version: 3, title: "Monthly Master Calendar", tasks, selected: { taskId: tasks[0].id, weekId: tasks[0].weeks[0].id }, lastSavedAt: nowISO() };
+  }
+
+  function normalizeState(s){
+    if(!s || !Array.isArray(s.tasks)) return seedDefault();
+
+    const out = {
+      version: s.version || 1,
+      title: s.title || "Monthly Master Calendar",
+      tasks: [],
+      selected: s.selected && s.selected.taskId ? s.selected : {taskId:null, weekId:null},
+      lastSavedAt: s.lastSavedAt || nowISO()
+    };
+
+    for(const t of s.tasks){
+      const nt = {
+        id: t.id || uid("t"),
+        title: t.title || "Task",
+        timeSlot: t.timeSlot || "",
+        notes: t.notes || "",
+        isOpen: (typeof t.isOpen === "boolean") ? t.isOpen : true,
+        createdAt: t.createdAt || nowISO(),
+        updatedAt: t.updatedAt || nowISO(),
+        weeks: []
+      };
+      if(Array.isArray(t.weeks)){
+        nt.weeks = t.weeks.map((w, idx) => ({
+          id: w.id || uid("w"),
+          weekNo: (typeof w.weekNo === "number") ? w.weekNo : (idx+1),
+          title: w.title || `Week ${((typeof w.weekNo==="number")?w.weekNo:(idx+1))}`,
+          topics: w.topics || "",
+          link: w.link || "",
+          status: ["todo","in-progress","done","cancelled"].includes(w.status) ? w.status : "todo",
+          comments: Array.isArray(w.comments) ? w.comments.map(c => ({ id: c.id || uid("c"), at: c.at || nowISO(), text: c.text || "" })) : [],
+          createdAt: w.createdAt || nowISO(),
+          updatedAt: w.updatedAt || nowISO()
+        }));
+      }
+      if(nt.weeks.length === 0){
+        for(let i=1;i<=4;i++) nt.weeks.push(makeWeek({weekNo:i}));
+      }
+      out.tasks.push(nt);
+    }
+
+    // selection fix
+    const selT = out.tasks.find(x => x.id === out.selected.taskId) || out.tasks[0] || null;
+    if(!selT){
+      out.selected = {taskId:null, weekId:null};
+      return out;
+    }
+    const selW = selT.weeks.find(x => x.id === out.selected.weekId) || selT.weeks[0] || null;
+    out.selected = {taskId: selT.id, weekId: selW ? selW.id : null};
+
+    return out;
+  }
+
+  let state = null;
+
+  function saveState(){
+    state.lastSavedAt = nowISO();
+    localStorage.setItem(STORE_KEY, JSON.stringify(state));
+    el.lastSaved.textContent = fmtLocal(state.lastSavedAt);
+  }
+
+  function loadLocalState(){
+    const raw = localStorage.getItem(STORE_KEY);
+    const parsed = raw ? safeJSONParse(raw) : null;
+    return normalizeState(parsed);
+  }
+
+  function setGitHubStatus(msg){
+    el.ghStatus.innerHTML = "GitHub: <b>" + msg + "</b>";
+  }
+
+  async function fetchGitHubJSON(url){
+    // Raw GitHub sometimes caches; add a cache-buster
+    const bust = (url.includes("?") ? "&" : "?") + "t=" + Date.now();
+    const res = await fetch(url + bust, { cache: "no-store" });
+    if(!res.ok){
+      throw new Error("HTTP " + res.status + " " + res.statusText);
+    }
+    const data = await res.json();
+    if(!data || !Array.isArray(data.tasks)){
+      throw new Error("Invalid JSON: expected { tasks: [...] }");
+    }
+    return data;
+  }
+
+  // Merge strategy: keep local edits, but add tasks from GitHub that don't exist by title.
+  function mergeByTaskTitleKeepLocal(localState, githubState){
+    const local = normalizeState(localState);
+    const gh = normalizeState(githubState);
+
+    const mapLocal = new Map(local.tasks.map(t => [(t.title || "").trim().toLowerCase(), t]));
+    const mergedTasks = [...local.tasks];
+
+    for(const gt of gh.tasks){
+      const key = (gt.title || "").trim().toLowerCase();
+      if(!mapLocal.has(key)){
+        mergedTasks.push(gt); // add missing task from GitHub
+      }
+    }
+
+    local.tasks = mergedTasks;
+
+    // Keep selection valid
+    const selT = local.tasks.find(x => x.id === local.selected.taskId) || local.tasks[0] || null;
+    local.selected.taskId = selT ? selT.id : null;
+    local.selected.weekId = selT ? (selT.weeks[0] ? selT.weeks[0].id : null) : null;
+
+    local.version = Math.max(local.version || 1, gh.version || 1, 3);
+    return local;
+  }
+
+  async function loadFromGitHub({ replaceLocal = false } = {}){
+    const url = cleanURL(el.ghUrl.value);
+    if(!url){
+      alert("Paste your GitHub RAW JSON URL first.");
+      return;
+    }
+
+    setGitHubStatus("loading…");
+
+    try{
+      const ghData = await fetchGitHubJSON(url);
+
+      // cache GitHub copy
+      localStorage.setItem(GH_CACHE_KEY, JSON.stringify(ghData));
+      localStorage.setItem(GH_CACHE_AT_KEY, nowISO());
+
+      if(replaceLocal){
+        state = normalizeState(ghData);
+        saveState();
+        setGitHubStatus("loaded (replaced local)");
+      }else{
+        // merge: keep local edits
+        const local = loadLocalState();
+        state = mergeByTaskTitleKeepLocal(local, ghData);
+        saveState();
+        setGitHubStatus("loaded (merged with local)");
+      }
+
+      renderAll();
+    }catch(err){
+      console.error(err);
+      setGitHubStatus("failed");
+      alert("GitHub load failed:\n" + err.message);
+    }
+  }
+
+  function downloadExport(){
+    downloadText("monthly_tasks_weeks.json", JSON.stringify(state, null, 2));
+  }
+
+  function importJSON(file){
+    const reader = new FileReader();
+    reader.onload = () => {
+      const parsed = safeJSONParse(reader.result);
+      if(!parsed || !Array.isArray(parsed.tasks)){
+        alert("Invalid JSON. Expected { tasks: [...] }");
+        return;
+      }
+      state = normalizeState(parsed);
+      saveState();
+      renderAll();
+      alert("Imported successfully.");
+    };
+    reader.readAsText(file);
+  }
+
+  function matchesQueryTaskOrWeek(t, q){
+    if(!q) return true;
+    q = q.toLowerCase();
+    const taskHay = [t.title, t.timeSlot, t.notes].join(" ").toLowerCase();
+    if(taskHay.includes(q)) return true;
+    for(const w of t.weeks){
+      const wHay = [w.title, w.topics, w.link, w.status].join(" ").toLowerCase();
+      if(wHay.includes(q)) return true;
+    }
+    return false;
+  }
+
+  function matchesStatus(week, filter){
+    if(filter === "all") return true;
+    return week.status === filter;
+  }
+
+  function dotClass(status){
+    if(status === "done") return "done";
+    if(status === "cancelled") return "cancelled";
+    if(status === "in-progress") return "inprogress";
+    return "todo";
+  }
+
+  function getSelected(){
+    const t = state.tasks.find(x => x.id === state.selected.taskId) || null;
+    const w = t ? (t.weeks.find(x => x.id === state.selected.weekId) || null) : null;
+    return {t, w};
+  }
+
+  function renderMaster(){
+    const q = el.q.value.trim();
+    const sf = el.statusFilter.value;
+
+    if(state.tasks.length === 0){
+      el.tree.innerHTML = `<div class="empty">No tasks. Click “+ New Task”.</div>`;
+      return;
+    }
+
+    const html = state.tasks
+      .filter(t => matchesQueryTaskOrWeek(t, q))
+      .map(t => {
+        const weeks = t.weeks.filter(w => matchesStatus(w, sf));
+        const weeksHtml = (weeks.length === 0)
+          ? `<div class="empty" style="padding:8px 6px">No weeks match current filters.</div>`
+          : weeks.map(w => {
+              const active = (state.selected.taskId === t.id && state.selected.weekId === w.id) ? "active" : "";
+              const metaBits = [];
+              const link = (w.link || "").trim();
+              if(link) metaBits.push(`Link: ${esc(link)}`);
+              const topicsPreview = (w.topics || "").trim().split("\n").filter(Boolean)[0] || "";
+              if(topicsPreview) metaBits.push(`Topics: ${esc(topicsPreview)}${(w.topics || "").includes("\n") ? " …" : ""}`);
+
+              return `
+                <div class="weekItem ${active}" data-task="${esc(t.id)}" data-week="${esc(w.id)}" title="Click to edit this week">
+                  <div>
+                    <div class="wTop">
+                      <span class="dot ${dotClass(w.status)}"></span>
+                      <div>
+                        <div class="wTitle">${esc(w.title || ("Week " + w.weekNo))}</div>
+                        <div class="wMeta">${metaBits.length ? metaBits.join(" • ") : "No topics/link yet."}</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="pill">${esc(w.status)}</div>
+                </div>
+              `;
+            }).join("");
+
+        return `
+          <div class="group ${t.isOpen ? "open" : ""}" data-group="${esc(t.id)}">
+            <div class="groupHead" data-toggle="${esc(t.id)}" title="Click to expand/collapse">
+              <div>
+                <div class="gTitle">
+                  ${esc(t.title)}
+                  ${t.timeSlot ? `<span class="pill" style="margin-left:6px">${esc(t.timeSlot)}</span>` : ""}
+                </div>
+                <div class="gMeta">${t.notes ? esc(t.notes) : "Task container for weekly topics + weekly links."}</div>
+              </div>
+              <div class="toolbar" style="gap:6px">
+                <button class="btn ghost small" data-addweek="${esc(t.id)}" title="Add week">+ Week</button>
+                <button class="btn ghost small" data-edittask="${esc(t.id)}" title="Edit task">Edit</button>
+                <button class="btn ghost small" data-deltask="${esc(t.id)}" title="Delete task">Delete</button>
+              </div>
+            </div>
+            <div class="weeks">${weeksHtml}</div>
+          </div>
+        `;
+      }).join("");
+
+    el.tree.innerHTML = html || `<div class="empty">Nothing matches your search/filters.</div>`;
+
+    // expand/collapse
+    [...el.tree.querySelectorAll("[data-toggle]")].forEach(node => {
+      node.addEventListener("click", (e) => {
+        if(e.target && e.target.closest("button")) return;
+        const id = node.getAttribute("data-toggle");
+        const t = state.tasks.find(x => x.id === id);
+        if(!t) return;
+        t.isOpen = !t.isOpen;
+        t.updatedAt = nowISO();
+        saveState();
+        renderMaster();
+      });
+    });
+
+    // week select
+    [...el.tree.querySelectorAll(".weekItem")].forEach(node => {
+      node.addEventListener("click", () => {
+        state.selected.taskId = node.getAttribute("data-task");
+        state.selected.weekId = node.getAttribute("data-week");
+        saveState();
+        renderAll();
+      });
+    });
+
+    // add week
+    [...el.tree.querySelectorAll("button[data-addweek]")].forEach(btn => {
+      btn.addEventListener("click", () => {
+        const tid = btn.getAttribute("data-addweek");
+        const t = state.tasks.find(x => x.id === tid);
+        if(!t) return;
+        const nextNo = (t.weeks.reduce((m,w)=>Math.max(m, w.weekNo||0), 0) || 0) + 1;
+        const w = makeWeek({weekNo: nextNo, title: `Week ${nextNo}`});
+        t.weeks.push(w);
+        t.updatedAt = nowISO();
+        state.selected = {taskId: t.id, weekId: w.id};
+        saveState();
+        renderAll();
+      });
+    });
+
+    // edit task
+    [...el.tree.querySelectorAll("button[data-edittask]")].forEach(btn => {
+      btn.addEventListener("click", () => {
+        const tid = btn.getAttribute("data-edittask");
+        const t = state.tasks.find(x => x.id === tid);
+        if(!t) return;
+        const newTitle = prompt("Task Title:", t.title);
+        if(newTitle === null) return;
+        const newTime = prompt("Time Slot (optional):", t.timeSlot || "");
+        if(newTime === null) return;
+        const newNotes = prompt("Task Notes (optional):", t.notes || "");
+        if(newNotes === null) return;
+        t.title = (newTitle || "").trim() || "Task";
+        t.timeSlot = (newTime || "").trim();
+        t.notes = (newNotes || "").trim();
+        t.updatedAt = nowISO();
+        saveState();
+        renderAll();
+      });
+    });
+
+    // delete task
+    [...el.tree.querySelectorAll("button[data-deltask]")].forEach(btn => {
+      btn.addEventListener("click", () => {
+        const tid = btn.getAttribute("data-deltask");
+        const t = state.tasks.find(x => x.id === tid);
+        if(!t) return;
+        const ok = confirm(`Delete task "${t.title}" and all its weeks?`);
+        if(!ok) return;
+        state.tasks = state.tasks.filter(x => x.id !== tid);
+        const t0 = state.tasks[0] || null;
+        state.selected.taskId = t0 ? t0.id : null;
+        state.selected.weekId = t0 ? (t0.weeks[0] ? t0.weeks[0].id : null) : null;
+        saveState();
+        renderAll();
+      });
+    });
+  }
+
+  function enableDetail(enabled){
+    el.btnDone.disabled = !enabled;
+    el.btnProgress.disabled = !enabled;
+    el.btnCancel.disabled = !enabled;
+    el.btnDeleteWeek.disabled = !enabled;
+    el.btnUpdate.disabled = !enabled;
+  }
+
+  function renderCommentsHTML(w){
+    const arr = Array.isArray(w.comments) ? w.comments : [];
+    if(arr.length === 0) return `<div class="empty" style="padding:10px 0">No comments yet.</div>`;
+    const sorted = arr.slice().sort((a,b)=>(b.at||"").localeCompare(a.at||""));
+    return sorted.map(c => `
+      <div class="comment">
+        <div class="commentTop">
+          <span class="mono">${esc(fmtLocal(c.at))}</span>
+          <button class="btn ghost small" data-delc="${esc(c.id)}">Delete</button>
+        </div>
+        <div class="commentText">${esc(c.text)}</div>
+      </div>
+    `).join("");
+  }
+
+  function renderDetail(){
+    const {t, w} = getSelected();
+    if(!t || !w){
+      enableDetail(false);
+      el.detailPane.innerHTML = `<div class="empty">Select a Week from the left to view / update details.</div>`;
+      return;
+    }
+    enableDetail(true);
+
+    const linkVal = w.link || "";
+
+    el.detailPane.innerHTML = `
+      <div class="pane" style="padding:0">
+        <div style="padding:12px">
+          <div class="badge" style="margin-bottom:10px">
+            Task: <b>${esc(t.title)}</b>
+            ${t.timeSlot ? `• <span class="mono">${esc(t.timeSlot)}</span>` : ""}
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div>
+              <label>Week Title</label>
+              <input id="d_title" type="text" value="${esc(w.title)}" />
+            </div>
+            <div>
+              <label>Status</label>
+              <select id="d_status">
+                <option value="todo">todo</option>
+                <option value="in-progress">in-progress</option>
+                <option value="done">done</option>
+                <option value="cancelled">cancelled</option>
+              </select>
+            </div>
+
+            <div class="wide" style="grid-column:1/-1">
+              <label>Week Topics (one per line)</label>
+              <textarea id="d_topics">${esc(w.topics)}</textarea>
+            </div>
+
+            <div class="wide" style="grid-column:1/-1">
+              <label>Week Link (Zoom/Meet/Doc/Playlist/Post URL)</label>
+              <input id="d_link" type="url" placeholder="https://..." value="${esc(linkVal)}" />
+              <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+                <button class="btn ghost small" id="btnOpenLink" ${linkVal.trim()? "" : "disabled"}>Open Link</button>
+                <button class="btn ghost small" id="btnCopyLink" ${linkVal.trim()? "" : "disabled"}>Copy Link</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="hr"></div>
+
+          <div style="color:var(--muted);font-size:12px;line-height:1.35">
+            <b>Created:</b> <span class="mono">${esc(fmtLocal(w.createdAt))}</span> &nbsp;•&nbsp;
+            <b>Updated:</b> <span class="mono">${esc(fmtLocal(w.updatedAt))}</span>
+          </div>
+
+          <div class="hr"></div>
+
+          <div class="commentBox">
+            <div style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+              <div>
+                <div style="font-weight:900;color:var(--brand)">Comments</div>
+                <div style="color:var(--muted);font-size:12px;line-height:1.35;margin-top:4px">
+                  Use comments for progress logs, student feedback, changes, reminders.
+                </div>
+              </div>
+              <div class="toolbar">
+                <button class="btn ghost small" id="btnAddComment">+ Add Comment</button>
+              </div>
+            </div>
+
+            <div id="commentEditor" style="display:none;margin-top:10px">
+              <label>New Comment</label>
+              <textarea id="d_newComment" placeholder="Type your comment..."></textarea>
+              <div class="toolbar" style="margin-top:8px;justify-content:flex-end">
+                <button class="btn ghost small" id="btnCancelComment">Cancel</button>
+                <button class="btn small" id="btnSaveComment">Save Comment</button>
+              </div>
+            </div>
+
+            <div class="commentList" id="commentList">${renderCommentsHTML(w)}</div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const st = document.getElementById("d_status");
+    if(st) st.value = w.status;
+
+    const btnOpen = document.getElementById("btnOpenLink");
+    const btnCopy = document.getElementById("btnCopyLink");
+
+    if(btnOpen){
+      btnOpen.addEventListener("click", () => {
+        const url = cleanURL(document.getElementById("d_link")?.value || "");
+        if(!url) return;
+        window.open(url, "_blank", "noopener,noreferrer");
+      });
+    }
+
+    if(btnCopy){
+      btnCopy.addEventListener("click", async () => {
+        const url = cleanURL(document.getElementById("d_link")?.value || "");
+        if(!url) return;
+        try{
+          await navigator.clipboard.writeText(url);
+          alert("Link copied.");
+        }catch{
+          alert("Copy failed. Copy manually from the field.");
+        }
+      });
+    }
+
+    const btnAdd = document.getElementById("btnAddComment");
+    const editor = document.getElementById("commentEditor");
+    const btnCancelC = document.getElementById("btnCancelComment");
+    const btnSaveC = document.getElementById("btnSaveComment");
+
+    if(btnAdd && editor){
+      btnAdd.addEventListener("click", () => {
+        editor.style.display = "block";
+        document.getElementById("d_newComment")?.focus();
+      });
+    }
+    if(btnCancelC && editor){
+      btnCancelC.addEventListener("click", () => {
+        editor.style.display = "none";
+        const ta = document.getElementById("d_newComment");
+        if(ta) ta.value = "";
+      });
+    }
+    if(btnSaveC){
+      btnSaveC.addEventListener("click", () => {
+        const ta = document.getElementById("d_newComment");
+        const text = (ta ? ta.value.trim() : "");
+        if(!text) return;
+        addComment(t.id, w.id, text);
+        if(editor) editor.style.display = "none";
+        if(ta) ta.value = "";
+        renderAll();
+      });
+    }
+
+    wireCommentDelete();
+  }
+
+  function wireCommentDelete(){
+    const {t, w} = getSelected();
+    if(!t || !w) return;
+    const list = document.getElementById("commentList");
+    if(!list) return;
+    [...list.querySelectorAll("button[data-delc]")].forEach(btn => {
+      btn.addEventListener("click", () => {
+        const cid = btn.getAttribute("data-delc");
+        deleteComment(t.id, w.id, cid);
+        renderAll();
+      });
+    });
+  }
+
+  function newTask(){
+    const title = prompt("Task Title:", "New Task");
+    if(title === null) return;
+    const time = prompt("Time Slot (optional):", "");
+    if(time === null) return;
+    const weeksCountStr = prompt("How many weeks? (default 4):", "4");
+    if(weeksCountStr === null) return;
+
+    let weeksCount = parseInt(weeksCountStr, 10);
+    if(!Number.isFinite(weeksCount) || weeksCount < 1) weeksCount = 4;
+    if(weeksCount > 12) weeksCount = 12;
+
+    const t = makeTask({title: (title||"Task").trim() || "Task", timeSlot:(time||"").trim(), notes:"", weeksCount});
+    state.tasks.unshift(t);
+    state.selected = {taskId: t.id, weekId: t.weeks[0]?.id || null};
+    saveState();
+    renderAll();
+  }
+
+  function setWeekStatus(status){
+    const {t, w} = getSelected();
+    if(!t || !w) return;
+    w.status = status;
+    w.updatedAt = nowISO();
+    t.updatedAt = nowISO();
+    saveState();
+    renderAll();
+  }
+
+  function updateWeekFromDetail(){
+    const {t, w} = getSelected();
+    if(!t || !w) return;
+
+    const title = (document.getElementById("d_title")?.value || "").trim();
+    const status = document.getElementById("d_status")?.value || "todo";
+    const topics = (document.getElementById("d_topics")?.value || "");
+    const link = cleanURL(document.getElementById("d_link")?.value || "");
+
+    w.title = title || w.title || `Week ${w.weekNo}`;
+    w.status = ["todo","in-progress","done","cancelled"].includes(status) ? status : "todo";
+    w.topics = topics;
+    w.link = link;
+    w.updatedAt = nowISO();
+    t.updatedAt = nowISO();
+
+    saveState();
+    renderAll();
+  }
+
+  function deleteWeek(){
+    const {t, w} = getSelected();
+    if(!t || !w) return;
+    const ok = confirm(`Delete "${w.title}" from "${t.title}"?`);
+    if(!ok) return;
+
+    t.weeks = t.weeks.filter(x => x.id !== w.id);
+    t.weeks.forEach((wk, i) => wk.weekNo = i + 1);
+
+    const w0 = t.weeks[0] || null;
+    state.selected.weekId = w0 ? w0.id : null;
+    t.updatedAt = nowISO();
+    saveState();
+    renderAll();
+  }
+
+  function addComment(taskId, weekId, text){
+    const t = state.tasks.find(x => x.id === taskId);
+    if(!t) return;
+    const w = t.weeks.find(x => x.id === weekId);
+    if(!w) return;
+    w.comments = Array.isArray(w.comments) ? w.comments : [];
+    w.comments.unshift({id: uid("c"), at: nowISO(), text});
+    w.updatedAt = nowISO();
+    t.updatedAt = nowISO();
+    saveState();
+  }
+
+  function deleteComment(taskId, weekId, cid){
+    const t = state.tasks.find(x => x.id === taskId);
+    if(!t) return;
+    const w = t.weeks.find(x => x.id === weekId);
+    if(!w || !Array.isArray(w.comments)) return;
+    w.comments = w.comments.filter(c => c.id !== cid);
+    w.updatedAt = nowISO();
+    t.updatedAt = nowISO();
+    saveState();
+  }
+
+  function exportJSON(){
+    downloadText("monthly_tasks_weeks.json", JSON.stringify(state, null, 2));
+  }
+
+  function importJSON(file){
+    const reader = new FileReader();
+    reader.onload = () => {
+      const parsed = safeJSONParse(reader.result);
+      if(!parsed || !Array.isArray(parsed.tasks)){
+        alert("Invalid JSON. Expected { tasks: [...] }");
+        return;
+      }
+      state = normalizeState(parsed);
+      saveState();
+      renderAll();
+      alert("Imported successfully.");
+    };
+    reader.readAsText(file);
+  }
+
+  function resetDefault(){
+    const ok = confirm("Reset to default? This overwrites current local data.");
+    if(!ok) return;
+    state = seedDefault();
+    saveState();
+    renderAll();
+  }
+
+  function clearAll(){
+    const ok = confirm("Clear ALL tasks locally? (Export first if needed)");
+    if(!ok) return;
+    state.tasks = [];
+    state.selected = {taskId:null, weekId:null};
+    saveState();
+    renderAll();
+  }
+
+  function expandAll(){
+    state.tasks.forEach(t => t.isOpen = true);
+    saveState();
+    renderMaster();
+  }
+
+  function collapseAll(){
+    state.tasks.forEach(t => t.isOpen = false);
+    saveState();
+    renderMaster();
+  }
+
+  function renderAll(){
+    el.lastSaved.textContent = fmtLocal(state.lastSavedAt);
+    renderMaster();
+    renderDetail();
+  }
+
+  // ---- GitHub settings persistence ----
+  function loadGitHubSettings(){
+    el.ghUrl.value = localStorage.getItem(GH_URL_KEY) || "";
+    el.ghAuto.checked = (localStorage.getItem(GH_AUTO_KEY) === "1");
+    const at = localStorage.getItem(GH_CACHE_AT_KEY);
+    if(at) setGitHubStatus("cached (" + fmtLocal(at) + ")");
+  }
+  function saveGitHubSettings(){
+    localStorage.setItem(GH_URL_KEY, cleanURL(el.ghUrl.value));
+    localStorage.setItem(GH_AUTO_KEY, el.ghAuto.checked ? "1" : "0");
+  }
+
+  // events
+  el.btnNewTask.addEventListener("click", newTask);
+  el.btnExport.addEventListener("click", exportJSON);
+  el.fileImport.addEventListener("change", (e) => {
+    const f = e.target.files && e.target.files[0];
+    if(f) importJSON(f);
+    e.target.value = "";
+  });
+  el.btnSeed.addEventListener("click", resetDefault);
+  el.btnClear.addEventListener("click", clearAll);
+  el.btnExpandAll.addEventListener("click", expandAll);
+  el.btnCollapseAll.addEventListener("click", collapseAll);
+
+  el.q.addEventListener("input", renderMaster);
+  el.statusFilter.addEventListener("change", renderMaster);
+
+  el.btnDone.addEventListener("click", () => setWeekStatus("done"));
+  el.btnProgress.addEventListener("click", () => setWeekStatus("in-progress"));
+  el.btnCancel.addEventListener("click", () => setWeekStatus("cancelled"));
+  el.btnDeleteWeek.addEventListener("click", deleteWeek);
+  el.btnUpdate.addEventListener("click", updateWeekFromDetail);
+
+  el.ghUrl.addEventListener("change", saveGitHubSettings);
+  el.ghAuto.addEventListener("change", saveGitHubSettings);
+
+  el.btnLoadGitHub.addEventListener("click", async () => {
+    saveGitHubSettings();
+    await loadFromGitHub({ replaceLocal: false });
+  });
+
+  el.btnReplaceWithGitHub.addEventListener("click", async () => {
+    const ok = confirm("Replace your LOCAL data with GitHub data? (Your local edits will be overwritten)");
+    if(!ok) return;
+    saveGitHubSettings();
+    await loadFromGitHub({ replaceLocal: true });
+  });
+
+  // init
+  loadGitHubSettings();
+  state = loadLocalState();
+  saveState();
+  renderAll();
+
+  // auto load from GitHub on startup (optional)
+  (async () => {
+    if(el.ghAuto.checked && cleanURL(el.ghUrl.value)){
+      await loadFromGitHub({ replaceLocal: false });
+    }
+  })();
+
+})();
+</script>
+</body>
+</html>

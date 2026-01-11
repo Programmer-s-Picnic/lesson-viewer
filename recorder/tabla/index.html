@@ -1,368 +1,314 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Tabla — NO MIC</title>
-    <style>
-      :root {
-        --bg: #fff7e6;
-        --card: #fff;
-        --ink: #1f2937;
-        --muted: #6b7280;
-        --brand: #d97706;
-        --border: #eadcc5;
-        --shadow: 0 18px 40px rgba(31, 41, 55, 0.14);
-      }
-      * {
-        box-sizing: border-box;
-      }
-      body {
-        margin: 0;
-        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial,
-          sans-serif;
-        background: var(--bg);
-        color: var(--ink);
-      }
-      .wrap {
-        max-width: 900px;
-        margin: 18px auto;
-        padding: 14px;
-      }
-      .card {
-        background: var(--card);
-        border: 1px solid var(--border);
-        border-radius: 18px;
-        box-shadow: var(--shadow);
-        padding: 14px;
-      }
-      h1 {
-        margin: 0 0 8px;
-        color: var(--brand);
-        font-size: 22px;
-      }
-      .small {
-        color: var(--muted);
-        font-size: 13px;
-        line-height: 1.6;
-      }
-      .row {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        margin-top: 10px;
-      }
-      .btn {
-        border: 1px solid var(--border);
-        background: #fff;
-        padding: 10px 12px;
-        border-radius: 12px;
-        cursor: pointer;
-        font-weight: 800;
-      }
-      .btn.primary {
-        background: #fff1d6;
-        border-color: rgba(217, 119, 6, 0.4);
-      }
-      input[type="text"] {
-        width: 100%;
-        margin-top: 6px;
-        padding: 10px 12px;
-        border-radius: 12px;
-        border: 1px solid var(--border);
-        background: #fffaf1;
-      }
-      input[type="range"] {
-        width: min(520px, 100%);
-      }
-      .chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        border: 1px solid var(--border);
-        background: #fffaf1;
-        border-radius: 999px;
-        padding: 6px 10px;
-        font-weight: 800;
-      }
-      .stage {
-        display: flex;
-        gap: 16px;
-        justify-content: center;
-        flex-wrap: wrap;
-        margin-top: 12px;
-      }
-      .drum {
-        width: 220px;
-        height: 220px;
-        border-radius: 50%;
-        position: relative;
-        border: 1px solid var(--border);
-        box-shadow: 0 16px 30px rgba(31, 41, 55, 0.18);
-      }
-      .bayan {
-        background: radial-gradient(
-          circle at 40% 35%,
-          #fff,
-          #f6ede0 40%,
-          #e3d2ba 70%,
-          #d0b18c 100%
-        );
-      }
-      .dayan {
-        background: radial-gradient(
-          circle at 40% 35%,
-          #fff,
-          #f3efe6 40%,
-          #d8c29c 75%,
-          #c09a5a 100%
-        );
-      }
-      .ring {
-        position: absolute;
-        inset: 12px;
-        border-radius: 50%;
-        border: 2px solid rgba(0, 0, 0, 0.1);
-        pointer-events: none;
-      }
-      .syahi {
-        position: absolute;
-        width: 80px;
-        height: 80px;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%);
-        border-radius: 50%;
-        background: radial-gradient(
-          circle at 35% 30%,
-          #3b3b3b,
-          #111 60%,
-          #000 100%
-        );
-        pointer-events: none;
-      }
-      .zone {
-        position: absolute;
-        border-radius: 50%;
-        background: transparent;
-        border: 0;
-        cursor: pointer;
-      }
-      .zone.rim {
-        inset: 14px;
-      }
-      .zone.center {
-        width: 120px;
-        height: 120px;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%);
-      }
-      .label {
-        text-align: center;
-        font-weight: 900;
-        color: var(--brand);
-        margin-top: 8px;
-      }
-      .log {
-        margin-top: 12px;
-        border: 1px solid var(--border);
-        background: #fffaf1;
-        border-radius: 12px;
-        padding: 10px;
-        min-height: 90px;
-        white-space: pre-wrap;
-        font-family: ui-monospace, Consolas, monospace;
-        font-size: 13px;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="wrap">
-      <div class="card">
-        <h1>Tabla (NO MIC)</h1>
-        <div class="small">
-          Needs MP3 files in same folder:<br />
-          <b>dayan_na.mp3</b>, <b>dayan_tin.mp3</b>, <b>bayan_ge.mp3</b>,
-          <b>bayan_ke.mp3</b><br />
-          Mapping: <b>1=Na, 2=Tin, 3=Ge, 4=Ke</b>. Loop: <code>xN</code> e.g.
-          <code>1,2 x4</code>
-        </div>
-
-        <label style="width: 100%; font-weight: 900; margin-top: 12px">
-          Tabla commands
-          <input id="tablaInput" type="text" value="1,2 x4  3,4 x2" />
-        </label>
-
-        <div class="row">
-          <button class="btn primary" id="play">Play</button>
-          <button class="btn" id="stop">Stop</button>
-          <button class="btn" id="test">Test (1 2 3 4)</button>
-        </div>
-
-        <div class="row" style="align-items: center">
-          <div style="font-weight: 900; min-width: 120px">Tempo</div>
-          <input id="bpm" type="range" min="40" max="240" value="120" />
-          <span class="chip"><span id="bpmLabel">120</span> BPM</span>
-        </div>
-
-        <div class="stage">
-          <div>
-            <div class="drum bayan">
-              <div class="ring"></div>
-              <div class="syahi"></div>
-              <button class="zone rim" data-n="4" title="Ke"></button>
-              <button class="zone center" data-n="3" title="Ge"></button>
-            </div>
-            <div class="label">Bayan (3/4)</div>
-          </div>
-          <div>
-            <div class="drum dayan">
-              <div class="ring"></div>
-              <div class="syahi"></div>
-              <button class="zone rim" data-n="1" title="Na"></button>
-              <button class="zone center" data-n="2" title="Tin"></button>
-            </div>
-            <div class="label">Dayan (1/2)</div>
-          </div>
-        </div>
-
-        <div class="log" id="log">Ready.</div>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Tabla — MP3 (NO MIC)</title>
+  <style>
+    :root{
+      --bg:#fff7e6;--card:#fff;--ink:#1f2937;--muted:#6b7280;--brand:#d97706;
+      --border:#eadcc5;--shadow:0 18px 40px rgba(31,41,55,.14);--ok:#166534;--danger:#b91c1c
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+    .wrap{max-width:920px;margin:18px auto;padding:14px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow);padding:14px}
+    h1{margin:0 0 6px;color:var(--brand);font-size:22px}
+    .small{color:var(--muted);font-size:13px;line-height:1.6}
+    .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center}
+    .btn{border:1px solid var(--border);background:#fff;padding:10px 12px;border-radius:12px;cursor:pointer;font-weight:900}
+    .btn.primary{background:#fff1d6;border-color:rgba(217,119,6,.4)}
+    .btn.ghost{background:#fffaf1}
+    input[type="text"]{width:100%;margin-top:6px;padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:#fffaf1}
+    input[type="range"]{width:min(520px,100%)}
+    .chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);background:#fffaf1;border-radius:999px;padding:6px 10px;font-weight:900}
+    .stage{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+    .drum{width:220px;height:220px;border-radius:50%;position:relative;border:1px solid var(--border);box-shadow:0 16px 30px rgba(31,41,55,.18)}
+    .bayan{background:radial-gradient(circle at 40% 35%, #fff, #f6ede0 40%, #e3d2ba 70%, #d0b18c 100%)}
+    .dayan{background:radial-gradient(circle at 40% 35%, #fff, #f3efe6 40%, #d8c29c 75%, #c09a5a 100%)}
+    .ring{position:absolute;inset:12px;border-radius:50%;border:2px solid rgba(0,0,0,.10);pointer-events:none}
+    .syahi{position:absolute;width:80px;height:80px;left:50%;top:50%;transform:translate(-50%,-50%);border-radius:50%;
+      background:radial-gradient(circle at 35% 30%, #3b3b3b, #111 60%, #000 100%);pointer-events:none}
+    .zone{position:absolute;border-radius:50%;background:transparent;border:0;cursor:pointer}
+    .zone.rim{inset:14px}
+    .zone.center{width:120px;height:120px;left:50%;top:50%;transform:translate(-50%,-50%)}
+    .label{text-align:center;font-weight:900;color:var(--brand);margin-top:8px}
+    .log{margin-top:12px;border:1px solid var(--border);background:#fffaf1;border-radius:12px;padding:10px;min-height:120px;
+      white-space:pre-wrap;font-family:ui-monospace,Consolas,monospace;font-size:13px;overflow:auto}
+    .pill{display:inline-flex;align-items:center;gap:8px;border:1px dashed rgba(217,119,6,.5);background:#fffaf1;
+      padding:7px 10px;border-radius:999px;font-weight:900;margin-top:10px}
+    .dot{width:10px;height:10px;border-radius:50%;background:var(--danger)}
+    .dot.ok{background:var(--ok)}
+    code{background:#fff;border:1px solid var(--border);padding:1px 6px;border-radius:7px}
+    .help{margin-top:12px;border:1px solid var(--border);border-radius:16px;background:#fffaf1;padding:12px}
+    .help h2{margin:0 0 8px;font-size:16px;color:var(--brand)}
+    .help p{margin:6px 0;color:var(--muted);line-height:1.65;font-size:13px}
+    .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+    .chipBtn{border:1px solid var(--border);background:#fff;border-radius:999px;padding:8px 10px;font-weight:900;cursor:pointer}
+    .chipBtn:hover{border-color:rgba(217,119,6,.45)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Tabla (MP3, NO MIC)</h1>
+      <div class="small">
+        Files in <code>tabla/</code>: <b>dayan_na.mp3</b>, <b>dayan_tin.mp3</b>, <b>bayan_ge.mp3</b>, <b>bayan_ke.mp3</b><br/>
+        Mapping: <b>1=Na</b>, <b>2=Tin</b>, <b>3=Ge</b>, <b>4=Ke</b>
       </div>
+
+      <div class="pill">
+        <span class="dot" id="audioDot"></span>
+        <span id="audioText">Click any drum once to unlock audio</span>
+      </div>
+
+      <label style="width:100%;font-weight:900;margin-top:12px">
+        Tabla commands
+        <input id="tablaInput" type="text" value="1,2 x4  3,4 x2" />
+      </label>
+
+      <div class="row">
+        <button class="btn primary" id="play">Play</button>
+        <button class="btn" id="stop">Stop</button>
+        <button class="btn" id="test">Test (1 2 3 4)</button>
+        <button class="btn ghost" id="toggleHelp">Toggle Help</button>
+      </div>
+
+      <div class="row">
+        <div style="font-weight:900;min-width:120px">Tempo</div>
+        <input id="bpm" type="range" min="40" max="240" value="120" />
+        <span class="chip"><span id="bpmLabel">120</span> BPM</span>
+      </div>
+
+      <div class="row">
+        <div style="font-weight:900;min-width:120px">Volume</div>
+        <input id="vol" type="range" min="5" max="100" value="100" />
+        <span class="chip"><span id="volLabel">100</span>%</span>
+      </div>
+
+      <div class="stage">
+        <div>
+          <div class="drum bayan">
+            <div class="ring"></div><div class="syahi"></div>
+            <button class="zone rim" data-n="4" title="Ke"></button>
+            <button class="zone center" data-n="3" title="Ge"></button>
+          </div>
+          <div class="label">Bayan (3/4)</div>
+        </div>
+        <div>
+          <div class="drum dayan">
+            <div class="ring"></div><div class="syahi"></div>
+            <button class="zone rim" data-n="1" title="Na"></button>
+            <button class="zone center" data-n="2" title="Tin"></button>
+          </div>
+          <div class="label">Dayan (1/2)</div>
+        </div>
+      </div>
+
+      <div class="help" id="helpBox">
+        <h2>Help</h2>
+        <p>
+          <b>Basic:</b> Enter numbers like <code>1 2 1 2</code> and press Play.<br/>
+          <b>Inner loop:</b> <code>1,2 x4</code> repeats the last phrase 4 times.<br/>
+          <b>From Master:</b> This page supports messages like <code>{text:"1,2 x4", repeat:50}</code>.
+        </p>
+        <p><b>Try quick tabla samples:</b></p>
+        <div class="chips" id="tablaSamples"></div>
+      </div>
+
+      <div class="log" id="log">Ready.</div>
     </div>
+  </div>
 
-    <script>
-      // ✅ No getUserMedia, no MediaRecorder, no microphone.
+<script>
+  const sounds = {
+    1: { file: "dayan_na.mp3", name: "Na" },
+    2: { file: "dayan_tin.mp3", name: "Tin" },
+    3: { file: "bayan_ge.mp3", name: "Ge" },
+    4: { file: "bayan_ke.mp3", name: "Ke" }
+  };
 
-      const sounds = {
-        1: { file: "dayan_na.mp3", name: "Na" },
-        2: { file: "dayan_tin.mp3", name: "Tin" },
-        3: { file: "bayan_ge.mp3", name: "Ge" },
-        4: { file: "bayan_ke.mp3", name: "Ke" },
-      };
+  const logEl = document.getElementById("log");
+  const bpm = document.getElementById("bpm");
+  const bpmLabel = document.getElementById("bpmLabel");
+  const vol = document.getElementById("vol");
+  const volLabel = document.getElementById("volLabel");
+  const input = document.getElementById("tablaInput");
 
-      const logEl = document.getElementById("log");
-      const bpm = document.getElementById("bpm");
-      const bpmLabel = document.getElementById("bpmLabel");
-      const input = document.getElementById("tablaInput");
-      bpm.addEventListener("input", () => (bpmLabel.textContent = bpm.value));
+  const audioDot = document.getElementById("audioDot");
+  const audioText = document.getElementById("audioText");
+  const helpBox = document.getElementById("helpBox");
 
-      function log(msg) {
-        logEl.textContent += "\n" + msg;
-        logEl.scrollTop = logEl.scrollHeight;
+  document.getElementById("toggleHelp").addEventListener("click", () => {
+    helpBox.style.display = (helpBox.style.display === "none") ? "block" : "block";
+    // keep visible by default; change to toggle if you want:
+    helpBox.style.display = (helpBox.style.display === "none") ? "block" : "none";
+  });
+
+  bpm.addEventListener("input", () => (bpmLabel.textContent = bpm.value));
+  vol.addEventListener("input", () => (volLabel.textContent = vol.value));
+
+  function log(msg) {
+    logEl.textContent += "\n" + msg;
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  let unlocked = false;
+  async function unlockAudioOnce() {
+    if (unlocked) return;
+    try {
+      const probe = new Audio(sounds[1].file);
+      probe.muted = true;
+      await probe.play();
+      probe.pause();
+      probe.currentTime = 0;
+      probe.muted = false;
+      unlocked = true;
+      audioDot.classList.add("ok");
+      audioText.textContent = "Audio unlocked ✅";
+    } catch (e) {}
+  }
+
+  function applyLoops(tokens) {
+    const out = [];
+    let phraseStart = 0;
+    for (const t of tokens) {
+      if (!t) continue;
+      if (t === "|" || t === "/") { phraseStart = out.length; continue; }
+      const m = /^x(\d+)$/i.exec(t);
+      if (m) {
+        const times = Math.max(0, Number(m[1]) || 0);
+        const phrase = out.slice(phraseStart);
+        if (!phrase.length) continue;
+        for (let r = 1; r < times; r++) out.push(...phrase);
+        phraseStart = out.length;
+        continue;
       }
+      out.push(t);
+    }
+    return out;
+  }
 
-      let timer = null,
-        idx = 0,
-        seq = [];
-
-      function stop() {
-        if (timer) clearInterval(timer);
-        timer = null;
-        idx = 0;
+  function expandSequence(text) {
+    const tokens = (text || "").trim().split(/[\s,]+/).filter(Boolean);
+    const looped = applyLoops(tokens);
+    const out = [];
+    for (const t of looped) {
+      const n = Number(t);
+      if (Number.isFinite(n) && n >= 1 && n <= 4) out.push(n);
+      else {
+        const digs = t.match(/[1-4]/g);
+        if (digs) digs.forEach(d => out.push(Number(d)));
       }
+    }
+    return out;
+  }
 
-      function applyLoops(tokens) {
-        const out = [];
-        let phraseStart = 0;
-        for (const t of tokens) {
-          if (!t) continue;
-          if (t === "|" || t === "/") {
-            phraseStart = out.length;
-            continue;
-          }
-          const m = /^x(\d+)$/i.exec(t);
-          if (m) {
-            const times = Math.max(0, Number(m[1]) || 0);
-            const phrase = out.slice(phraseStart);
-            if (!phrase.length) continue;
-            for (let r = 1; r < times; r++) out.push(...phrase);
-            phraseStart = out.length;
-            continue;
-          }
-          out.push(t);
-        }
-        return out;
-      }
+  function playHit(n) {
+    const s = sounds[n];
+    if (!s) return;
+    const a = new Audio(s.file);
+    a.volume = Math.max(0, Math.min(1, Number(vol.value || 100) / 100));
+    a.play().then(() => log("Tabla: " + s.name))
+      .catch(() => log("Could not play: " + s.file + " (missing file or blocked audio)"));
+  }
 
-      function expand(text) {
-        const tokens = (text || "")
-          .trim()
-          .split(/[\s,]+/)
-          .filter(Boolean);
-        const looped = applyLoops(tokens);
-        const out = [];
-        for (const t of looped) {
-          const n = Number(t);
-          if (Number.isFinite(n) && n >= 1 && n <= 4) out.push(n);
-          else {
-            const digs = t.match(/[1-4]/g);
-            if (digs) digs.forEach((d) => out.push(Number(d)));
-          }
-        }
-        return out;
-      }
+  let timer = null;
+  let stepIndex = 0;
+  let seq = [];
+  let totalSteps = 0;
 
-      function playHit(n) {
-        const s = sounds[n];
-        if (!s) return;
-        const a = new Audio(s.file);
-        a.volume = 1.0; // HTMLAudio max
-        a.play().catch(() => log("Missing file: " + s.file));
-        log("Tabla: " + s.name);
-      }
+  function stop() {
+    if (timer) clearInterval(timer);
+    timer = null;
+    stepIndex = 0;
+    totalSteps = 0;
+  }
 
-      function playSequence(text) {
-        seq = expand(text);
-        if (!seq.length) {
-          log("No tabla steps.");
-          return;
-        }
+  function playSequence(text, repeat = 1) {
+    seq = expandSequence(text);
+    if (!seq.length) { log("No tabla steps."); return; }
+
+    repeat = Math.max(1, Number(repeat) || 1);
+    totalSteps = seq.length * repeat;
+
+    stop();
+    stepIndex = 0;
+
+    const beatMs = Math.max(60, Math.round(60000 / Number(bpm.value || 120)));
+
+    playHit(seq[0]);
+    stepIndex = 1;
+
+    timer = setInterval(() => {
+      if (stepIndex >= totalSteps) {
         stop();
-        idx = 0;
-        const beatMs = Math.max(
-          60,
-          Math.round(60000 / Number(bpm.value || 120))
-        );
-        playHit(seq[0]);
-        idx = 1;
-        timer = setInterval(() => {
-          if (idx >= seq.length) {
-            stop();
-            log("Done.");
-            return;
-          }
-          playHit(seq[idx++]);
-        }, beatMs);
+        log("Done. (repeat=" + repeat + ")");
+        return;
       }
+      playHit(seq[stepIndex % seq.length]);
+      stepIndex++;
+    }, beatMs);
 
-      document
-        .getElementById("play")
-        .addEventListener("click", () => playSequence(input.value));
-      document.getElementById("stop").addEventListener("click", () => {
-        stop();
-        log("Stopped.");
-      });
-      document
-        .getElementById("test")
-        .addEventListener("click", () => playSequence("1 2 3 4"));
-      document
-        .querySelectorAll(".zone")
-        .forEach((z) =>
-          z.addEventListener("click", () => playHit(Number(z.dataset.n)))
-        );
+    log("Started. Steps=" + seq.length + " repeat=" + repeat + " total=" + totalSteps);
+  }
 
-      window.addEventListener("message", (ev) => {
-        const msg = ev.data;
-        if (!msg || typeof msg !== "object") return;
-        if (msg.type === "tabla:play") {
-          input.value = msg.text || input.value;
-          playSequence(input.value);
-        }
-        if (msg.type === "tabla:stop") {
-          stop();
-        }
-      });
-    </script>
-  </body>
+  document.getElementById("play").addEventListener("click", async () => {
+    await unlockAudioOnce();
+    playSequence(input.value, 1);
+  });
+  document.getElementById("stop").addEventListener("click", () => { stop(); log("Stopped."); });
+  document.getElementById("test").addEventListener("click", async () => {
+    await unlockAudioOnce();
+    playSequence("1 2 3 4", 1);
+  });
+
+  document.querySelectorAll(".zone").forEach(z => {
+    z.addEventListener("click", async () => {
+      await unlockAudioOnce();
+      playHit(Number(z.dataset.n));
+    });
+  });
+
+  // Quick tabla samples
+  const tablaSamples = [
+    { name:"🎂 Birthday beat", cmd:"1 2 1 2  1 2 1 2  3 4 3 4  1 2 1 2" },
+    { name:"🎉 Happy fast", cmd:"1,2 x8  3,4 x4  1,2 x8" },
+    { name:"💍 Wedding steady", cmd:"1 2 2 1  3 4 4 3" },
+    { name:"😔 Sad slow", cmd:"1 1 2 1  3 3 4 3" },
+  ];
+  const holder = document.getElementById("tablaSamples");
+  tablaSamples.forEach(s => {
+    const b = document.createElement("button");
+    b.className="chipBtn";
+    b.type="button";
+    b.textContent=s.name;
+    b.addEventListener("click", () => { input.value = s.cmd; input.focus(); });
+    holder.appendChild(b);
+  });
+
+  // postMessage
+  window.addEventListener("message", async (ev) => {
+    const msg = ev.data;
+    if (!msg || typeof msg !== "object") return;
+
+    if (msg.type === "master:ping") {
+      window.parent?.postMessage({ type: "tabla:ready" }, window.location.origin);
+      return;
+    }
+
+    if (msg.type === "tabla:play") {
+      await unlockAudioOnce();
+      input.value = msg.text || input.value;
+      playSequence(input.value, msg.repeat ?? 1);
+      return;
+    }
+
+    if (msg.type === "tabla:stop") {
+      stop();
+      return;
+    }
+  });
+</script>
+</body>
 </html>

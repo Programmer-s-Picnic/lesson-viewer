@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Master — NO MIC</title>
+    <title>Master — Tabla + Sitar (NO MIC)</title>
     <style>
       :root {
         --bg: #fff7e6;
@@ -11,8 +11,11 @@
         --ink: #1f2937;
         --muted: #6b7280;
         --brand: #d97706;
+        --brand2: #f59e0b;
         --border: #eadcc5;
         --shadow: 0 18px 40px rgba(31, 41, 55, 0.14);
+        --ok: #166534;
+        --danger: #b91c1c;
       }
       * {
         box-sizing: border-box;
@@ -84,6 +87,9 @@
         background: #fff1d6;
         border-color: rgba(217, 119, 6, 0.4);
       }
+      .btn.ghost {
+        background: #fffaf1;
+      }
       .grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -129,10 +135,61 @@
         width: 10px;
         height: 10px;
         border-radius: 50%;
-        background: #b91c1c;
+        background: var(--danger);
       }
       .dot.ok {
-        background: #166534;
+        background: var(--ok);
+      }
+
+      .help {
+        margin-top: 12px;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: #fffaf1;
+        padding: 12px;
+      }
+      .help h2 {
+        margin: 0 0 8px;
+        font-size: 16px;
+        color: var(--brand);
+      }
+      .help p {
+        margin: 6px 0;
+        color: var(--muted);
+        line-height: 1.65;
+        font-size: 13px;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .chip {
+        border: 1px solid var(--border);
+        background: #fff;
+        border-radius: 999px;
+        padding: 8px 10px;
+        font-weight: 900;
+        cursor: pointer;
+      }
+      .chip:hover {
+        border-color: rgba(217, 119, 6, 0.45);
+      }
+      .twoCol {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      @media (max-width: 980px) {
+        .twoCol {
+          grid-template-columns: 1fr;
+        }
+      }
+      .sectionTitle {
+        margin: 10px 0 6px;
+        font-weight: 1000;
+        color: #92400e;
       }
     </style>
   </head>
@@ -142,38 +199,76 @@
       <div class="hero">
         <h1>Master (NO MIC)</h1>
         <p class="sub">
-          Controls the two iframes. No recording, no microphone APIs.
+          Controls Tabla + Sitar iframes. No recording, no microphone APIs.
         </p>
         <p class="small">
-          Format: <code>T: ...</code> for tabla and <code>S: ...</code> for
-          sitar. Example: <code>T: 1,2 x4 S: Sa Re x4</code>
+          Format: <code>T: ...</code> and <code>S: ...</code><br />
+          Outer repeat: <code>(T: 1,2 x4 S: Sa Re x4) x50</code> → sends
+          <code>{repeat:50}</code> to both pages.
         </p>
 
         <div class="pill">
           <span class="dot" id="readyDot"></span>
           <span id="readyText">Waiting for tabla & sitar pages…</span>
         </div>
+
+        <div class="help" id="helpBox">
+          <h2>Help</h2>
+          <p>
+            1) Click inside <b>Tabla</b> and <b>Sitar</b> iframe once to unlock
+            audio (browser rule).<br />
+            2) Use Master commands to play both together.
+          </p>
+          <p>
+            <b>Tabla mapping:</b> <code>1=Na</code>, <code>2=Tin</code>,
+            <code>3=Ge</code>, <code>4=Ke</code><br />
+            <b>Sitar notes:</b> <code>Sa Re Ga Ma Pa Dha Ni</code><br />
+            <b>Inner loops:</b> <code>xN</code> inside T or S (e.g.
+            <code>1,2 x4</code> or <code>Sa Re x4</code>)
+          </p>
+          <p>
+            <b>Outer loop:</b> Wrap combined pattern and repeat:
+            <code>(T: 1,2 x4 S: Sa Re x4) x50</code>
+          </p>
+        </div>
       </div>
 
       <div class="card">
         <label>
           Master Command Box
-          <input id="masterCmd" type="text" value="T: 1,2 x4  S: Sa Re x4" />
+          <input
+            id="masterCmd"
+            type="text"
+            value="(T: 1,2 x4  S: Sa Re x4) x10"
+          />
         </label>
 
         <div class="row">
           <button class="btn primary" id="playBoth">Play Both</button>
           <button class="btn" id="stopBoth">Stop Both</button>
+          <button class="btn ghost" id="toggleHelp">Toggle Help</button>
           <button class="btn" id="preset1">Preset 1</button>
           <button class="btn" id="preset2">Preset 2</button>
         </div>
 
-        <div class="small">
-          If audio is blocked, click inside each iframe once (browser autoplay
-          rule). That’s NOT microphone — it’s just audio unlock.
-          <br />
-          ✅ Use a local server (VS Code Live Server / python http.server) —
-          avoid <code>file://</code>.
+        <div class="twoCol">
+          <div>
+            <div class="sectionTitle">
+              Music Samples (Master: Tabla + Sitar)
+            </div>
+            <div class="chips" id="masterSamples"></div>
+          </div>
+          <div>
+            <div class="sectionTitle">Quick Tips</div>
+            <div class="small">
+              • If you hear only one instrument: click once inside the silent
+              iframe.<br />
+              • For long plays use outer repeat: <code>(...) x50</code> (fast +
+              clean).<br />
+              • Use a local server (Live Server /
+              <code>python -m http.server</code>) not <code>file://</code>.
+            </div>
+          </div>
         </div>
       </div>
 
@@ -191,7 +286,12 @@
       const readyDot = document.getElementById("readyDot");
       const readyText = document.getElementById("readyText");
 
-      // ✅ Use same-origin target (more reliable than "*")
+      const helpBox = document.getElementById("helpBox");
+      document.getElementById("toggleHelp").addEventListener("click", () => {
+        helpBox.style.display =
+          helpBox.style.display === "none" ? "block" : "none";
+      });
+
       const TARGET_ORIGIN = window.location.origin;
 
       let tablaReady = false;
@@ -210,26 +310,21 @@
         }
       }
 
-      // Ask iframes to say hello (handshake)
       function pingIframes() {
-        try {
-          tablaFrame.contentWindow?.postMessage(
-            { type: "master:ping" },
-            TARGET_ORIGIN
-          );
-          sitarFrame.contentWindow?.postMessage(
-            { type: "master:ping" },
-            TARGET_ORIGIN
-          );
-        } catch (e) {}
+        tablaFrame.contentWindow?.postMessage(
+          { type: "master:ping" },
+          TARGET_ORIGIN
+        );
+        sitarFrame.contentWindow?.postMessage(
+          { type: "master:ping" },
+          TARGET_ORIGIN
+        );
       }
-
       tablaFrame.addEventListener("load", pingIframes);
       sitarFrame.addEventListener("load", pingIframes);
 
-      // Listen for ready messages
       window.addEventListener("message", (ev) => {
-        if (ev.origin !== TARGET_ORIGIN) return; // ✅ security + correctness
+        if (ev.origin !== TARGET_ORIGIN) return;
         const msg = ev.data;
         if (!msg || typeof msg !== "object") return;
 
@@ -238,39 +333,54 @@
         updateReadyUI();
       });
 
-      function extractParts(text) {
+      // Outer repeat: ( ... ) xN
+      function unwrapOuterRepeat(text) {
         const s = (text || "").trim();
+        if (!s) return { innerText: "", repeat: 1 };
+
+        const m = s.match(/^\(\s*([\s\S]*?)\s*\)\s*x\s*(\d+)\s*$/i);
+        if (m) {
+          const innerText = (m[1] || "").trim();
+          const repeat = Math.max(1, Number(m[2]) || 1);
+          return { innerText, repeat };
+        }
+        return { innerText: s, repeat: 1 };
+      }
+
+      function extractParts(innerText) {
+        const s = (innerText || "").trim();
         let tCmd = "";
         let sCmd = "";
 
-        const mt = s.match(/\bT\s*:\s*([^]*)/i);
+        const mt = s.match(/\bT\s*:\s*([\s\S]*)/i);
         if (mt) {
           tCmd = mt[1] || "";
-          const msInside = tCmd.match(/\bS\s*:\s*([^]*)/i);
+          const msInside = tCmd.match(/\bS\s*:\s*([\s\S]*)/i);
           if (msInside) {
             sCmd = msInside[1] || "";
             tCmd = tCmd.slice(0, msInside.index).trim();
           }
         }
         if (!sCmd) {
-          const ms = s.match(/\bS\s*:\s*([^]*)/i);
+          const ms = s.match(/\bS\s*:\s*([\s\S]*)/i);
           if (ms) sCmd = ms[1] || "";
         }
         return { tCmd: tCmd.trim(), sCmd: sCmd.trim() };
       }
 
       function playBoth() {
-        const { tCmd, sCmd } = extractParts(masterCmd.value);
+        const { innerText, repeat } = unwrapOuterRepeat(masterCmd.value);
+        const { tCmd, sCmd } = extractParts(innerText);
 
         if (tCmd) {
           tablaFrame.contentWindow?.postMessage(
-            { type: "tabla:play", text: tCmd },
+            { type: "tabla:play", text: tCmd, repeat },
             TARGET_ORIGIN
           );
         }
         if (sCmd) {
           sitarFrame.contentWindow?.postMessage(
-            { type: "sitar:play", text: sCmd },
+            { type: "sitar:play", text: sCmd, repeat },
             TARGET_ORIGIN
           );
         }
@@ -291,13 +401,53 @@
       document.getElementById("stopBoth").addEventListener("click", stopBoth);
 
       document.getElementById("preset1").addEventListener("click", () => {
-        masterCmd.value = "T: 1,1,1 2,2,1  S: Sa Re x3";
+        masterCmd.value = "(T: 1,1,1 2,2,1  S: Sa Re x3) x10";
       });
       document.getElementById("preset2").addEventListener("click", () => {
-        masterCmd.value = "T: 1,2 x8  S: Sa Re Ga Ma Pa Dha Ni";
+        masterCmd.value = "(T: 1,2 x8  S: Sa Re Ga Ma Pa Dha Ni) x5";
       });
 
-      // initial
+      // -------- Music Samples (Master combined) --------
+      const samples = [
+        {
+          name: "🎂 Birthday (classic)",
+          cmd: "(T: 1 2 1 2  1 2 1 2  3 4 3 4  1 2 1 2  S: Sa Sa Re Sa  Ma Ga | Sa Sa Re Sa  Pa Ma) x4",
+        },
+        {
+          name: "🎉 Happy (fast)",
+          cmd: "(T: 1,2 x8  3,4 x4  1,2 x8  S: Sa Re Ga Ma Pa Ma Ga Re) x6",
+        },
+        {
+          name: "💍 Wedding (steady)",
+          cmd: "(T: 1 2 2 1  3 4 4 3  S: Sa Re | Ga Ma | Pa Dha | Ni Sa) x8",
+        },
+        {
+          name: "😔 Sad (slow feel)",
+          cmd: "(T: 1 1 2 1  3 3 4 3  S: Sa | Re Sa | Re Ga | Ma Ga Re) x6",
+        },
+        {
+          name: "🙏 Bhajan vibe",
+          cmd: "(T: 1 2 1 2  1 2 1 2  S: Sa Re Sa | Ma Ga Re | Sa Re Ga | Ma Pa) x8",
+        },
+        {
+          name: "🕺 Dance (dholak-ish)",
+          cmd: "(T: 1 2 1 2  3 4 3 4  1 2 1 2  3 4 3 4  S: Sa Re Ga Re  Sa Re Ga Re) x6",
+        },
+      ];
+
+      const holder = document.getElementById("masterSamples");
+      samples.forEach((s) => {
+        const b = document.createElement("button");
+        b.className = "chip";
+        b.type = "button";
+        b.textContent = s.name;
+        b.addEventListener("click", () => {
+          masterCmd.value = s.cmd;
+          masterCmd.focus();
+        });
+        holder.appendChild(b);
+      });
+
       updateReadyUI();
       setTimeout(pingIframes, 300);
       setTimeout(pingIframes, 1200);
