@@ -70,6 +70,7 @@
         gap: 10px;
         flex-wrap: wrap;
         margin-top: 10px;
+        align-items: center;
       }
       .btn {
         border: 1px solid var(--border);
@@ -113,8 +114,29 @@
         line-height: 1.7;
         margin-top: 8px;
       }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px dashed rgba(217, 119, 6, 0.5);
+        background: #fffaf1;
+        padding: 7px 10px;
+        border-radius: 999px;
+        font-weight: 900;
+        margin-top: 10px;
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #b91c1c;
+      }
+      .dot.ok {
+        background: #166534;
+      }
     </style>
   </head>
+
   <body>
     <div class="wrap">
       <div class="hero">
@@ -126,6 +148,11 @@
           Format: <code>T: ...</code> for tabla and <code>S: ...</code> for
           sitar. Example: <code>T: 1,2 x4 S: Sa Re x4</code>
         </p>
+
+        <div class="pill">
+          <span class="dot" id="readyDot"></span>
+          <span id="readyText">Waiting for tabla & sitar pages…</span>
+        </div>
       </div>
 
       <div class="card">
@@ -144,6 +171,9 @@
         <div class="small">
           If audio is blocked, click inside each iframe once (browser autoplay
           rule). That’s NOT microphone — it’s just audio unlock.
+          <br />
+          ✅ Use a local server (VS Code Live Server / python http.server) —
+          avoid <code>file://</code>.
         </div>
       </div>
 
@@ -157,6 +187,56 @@
       const tablaFrame = document.getElementById("tablaFrame");
       const sitarFrame = document.getElementById("sitarFrame");
       const masterCmd = document.getElementById("masterCmd");
+
+      const readyDot = document.getElementById("readyDot");
+      const readyText = document.getElementById("readyText");
+
+      // ✅ Use same-origin target (more reliable than "*")
+      const TARGET_ORIGIN = window.location.origin;
+
+      let tablaReady = false;
+      let sitarReady = false;
+
+      function updateReadyUI() {
+        if (tablaReady && sitarReady) {
+          readyDot.classList.add("ok");
+          readyText.textContent = "Tabla + Sitar ready ✅";
+        } else {
+          readyDot.classList.remove("ok");
+          readyText.textContent =
+            "Waiting: " +
+            (tablaReady ? "" : "Tabla ") +
+            (sitarReady ? "" : "Sitar ");
+        }
+      }
+
+      // Ask iframes to say hello (handshake)
+      function pingIframes() {
+        try {
+          tablaFrame.contentWindow?.postMessage(
+            { type: "master:ping" },
+            TARGET_ORIGIN
+          );
+          sitarFrame.contentWindow?.postMessage(
+            { type: "master:ping" },
+            TARGET_ORIGIN
+          );
+        } catch (e) {}
+      }
+
+      tablaFrame.addEventListener("load", pingIframes);
+      sitarFrame.addEventListener("load", pingIframes);
+
+      // Listen for ready messages
+      window.addEventListener("message", (ev) => {
+        if (ev.origin !== TARGET_ORIGIN) return; // ✅ security + correctness
+        const msg = ev.data;
+        if (!msg || typeof msg !== "object") return;
+
+        if (msg.type === "tabla:ready") tablaReady = true;
+        if (msg.type === "sitar:ready") sitarReady = true;
+        updateReadyUI();
+      });
 
       function extractParts(text) {
         const s = (text || "").trim();
@@ -181,21 +261,30 @@
 
       function playBoth() {
         const { tCmd, sCmd } = extractParts(masterCmd.value);
-        if (tCmd)
+
+        if (tCmd) {
           tablaFrame.contentWindow?.postMessage(
             { type: "tabla:play", text: tCmd },
-            "*"
+            TARGET_ORIGIN
           );
-        if (sCmd)
+        }
+        if (sCmd) {
           sitarFrame.contentWindow?.postMessage(
             { type: "sitar:play", text: sCmd },
-            "*"
+            TARGET_ORIGIN
           );
+        }
       }
 
       function stopBoth() {
-        tablaFrame.contentWindow?.postMessage({ type: "tabla:stop" }, "*");
-        sitarFrame.contentWindow?.postMessage({ type: "sitar:stop" }, "*");
+        tablaFrame.contentWindow?.postMessage(
+          { type: "tabla:stop" },
+          TARGET_ORIGIN
+        );
+        sitarFrame.contentWindow?.postMessage(
+          { type: "sitar:stop" },
+          TARGET_ORIGIN
+        );
       }
 
       document.getElementById("playBoth").addEventListener("click", playBoth);
@@ -207,6 +296,11 @@
       document.getElementById("preset2").addEventListener("click", () => {
         masterCmd.value = "T: 1,2 x8  S: Sa Re Ga Ma Pa Dha Ni";
       });
+
+      // initial
+      updateReadyUI();
+      setTimeout(pingIframes, 300);
+      setTimeout(pingIframes, 1200);
     </script>
   </body>
 </html>
