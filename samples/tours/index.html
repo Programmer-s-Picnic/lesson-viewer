@@ -4,10 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Varanasi Tourism Planner — Build Your Own Tour</title>
-  <meta name="description" content="Varanasi tourism page with destinations and a DIY tour builder. Each destination has a sliding picture carousel, search on the right, save tour in localStorage, share tour on WhatsApp, and view selected destinations on a map."/>
+  <meta name="description" content="Varanasi tourism page with destinations and a DIY tour builder. Each destination has a sliding picture carousel, search on the right, save tour on localStorage, share tour on WhatsApp, and view selected destinations on a map."/>
   <style>
     :root{
-      --bg:#fff7e6;          /* light saffron */
+      --bg:#fff7e6;
       --card:#ffffff;
       --ink:#1f2937;
       --muted:#6b7280;
@@ -288,11 +288,7 @@
     .label{font-size:12px; color:var(--muted); margin:0 0 6px;}
     .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
     .row > *{flex:1}
-    .tourlist{
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-    }
+    .tourlist{display:flex; flex-direction:column; gap:10px;}
     .touritem{
       border:1px solid var(--border);
       border-radius: 16px;
@@ -316,6 +312,7 @@
     .tinybtn:hover{filter:brightness(.98)}
     .tinybtn.remove{color:#991b1b; border-color: rgba(220,38,38,.22); background: rgba(220,38,38,.08)}
     .tinybtn.up,.tinybtn.down{color:#0f766e}
+    .tinybtn:disabled{opacity:.5; cursor:not-allowed}
 
     .note{
       font-size:12px;
@@ -384,7 +381,7 @@
     .t .msg{font-size:13px}
     .t .msg small{display:block; color:var(--muted); margin-top:2px}
 
-    /* --- Map modal --- */
+    /* --- Map modal (Leaflet) --- */
     .modal{
       position:fixed;
       inset:0;
@@ -423,11 +420,11 @@
       background: #fff;
       position:relative;
     }
-    .modal-b iframe{
-      width:100%;
-      height:100%;
-      border:0;
+    #leafletMap{
+      position:absolute;
+      inset:0;
     }
+
     .kbd{
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       font-size: 11px;
@@ -438,6 +435,9 @@
       color: var(--muted);
     }
   </style>
+
+  <!-- Leaflet (no API key) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 </head>
 <body>
   <div class="topbar">
@@ -535,7 +535,7 @@
           <div class="note" id="summaryBox" style="display:none;"></div>
 
           <div class="note">
-            <b>Tip:</b> “View Tour Map” shows your selected destinations as a route in an embedded map.
+            <b>Tip:</b> “View Tour Map” shows your selected destinations as markers + route (order matters).
             Use <span class="kbd">Esc</span> or Close to exit the map.
           </div>
         </div>
@@ -549,7 +549,7 @@
       <div class="modal-h">
         <div>
           <b>Tour Map</b><br/>
-          <small>Route built from your selected destinations (order matters)</small>
+          <small>Markers + route from your selected destinations (order matters)</small>
         </div>
         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
           <a class="btn secondary" id="openMapsLink" href="#" target="_blank" rel="noopener">↗️ Open in Maps</a>
@@ -557,7 +557,7 @@
         </div>
       </div>
       <div class="modal-b">
-        <iframe id="mapFrame" title="Selected destinations map" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        <div id="leafletMap" aria-label="Leaflet map"></div>
       </div>
     </div>
   </div>
@@ -574,9 +574,12 @@
 
   <div class="toast" id="toast" aria-live="polite" aria-atomic="true"></div>
 
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
 <script>
 (() => {
   const LS_TOUR = "varanasi_tour_v1";
+  const LS_COORDS = "varanasi_coords_v1"; // cache geocoded coords per destination id
 
   // --- Simple "photo-like" SVG images (offline, no external links) ---
   function svgDataURI(svg){ return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg); }
@@ -633,10 +636,9 @@
     timeNeeded:"—",
     cost:"—",
     highlights:"Your starting point (25.349304, 83.001256).",
-    // Use coordinates in maps so it’s precise:
     map:"https://www.google.com/maps/search/?api=1&query=25.349304,83.001256",
-    // Keep the provided short link too (optional, used in summary)
     mapShort:"https://maps.app.goo.gl/bknSLrV9C48gY4yK6",
+    coords:[25.349304, 83.001256],
     photos:[
       photoSVG("Champak's Home", "Start here • 25.349304, 83.001256", 35),
       photoSVG("Champak's Home", "Plan your route from here", 22),
@@ -656,6 +658,7 @@
       cost:"Depends (donations / queue services)",
       highlights:"One of the most revered Shiva temples; spiritual heart of Kashi.",
       map:"https://www.google.com/maps/search/?api=1&query=Kashi+Vishwanath+Temple+Varanasi",
+      coords:[25.31085, 83.01068],
       photos:[
         photoSVG("Kashi Vishwanath", "Temple & corridor vibes", 28),
         photoSVG("Kashi Vishwanath", "Morning darshan energy", 36),
@@ -671,6 +674,7 @@
       cost:"Free (Aarti seating may cost)",
       highlights:"Famous for the Ganga Aarti; lively atmosphere by the river.",
       map:"https://www.google.com/maps/search/?api=1&query=Dashashwamedh+Ghat+Varanasi",
+      coords:[25.30716889, 83.01033639],
       photos:[
         photoSVG("Dashashwamedh Ghat", "Ganga Aarti (evening)", 18),
         photoSVG("Dashashwamedh Ghat", "Crowd & lamps glow", 26),
@@ -686,6 +690,7 @@
       cost:"Free",
       highlights:"Calmer vibe; sunrise scenes and morning walks by the ghats.",
       map:"https://www.google.com/maps/search/?api=1&query=Assi+Ghat+Varanasi",
+      coords:[25.289322, 83.006499],
       photos:[
         photoSVG("Assi Ghat", "Sunrise calm", 40),
         photoSVG("Assi Ghat", "Morning walk & chai", 34),
@@ -701,6 +706,7 @@
       cost:"Free",
       highlights:"A major cremation ghat; deeply traditional and powerful to witness (be respectful).",
       map:"https://www.google.com/maps/search/?api=1&query=Manikarnika+Ghat+Varanasi",
+      coords:[25.31087056, 83.01408556],
       photos:[
         photoSVG("Manikarnika Ghat", "Oldest traditions", 10),
         photoSVG("Manikarnika Ghat", "Historic riverfront", 16),
@@ -716,6 +722,7 @@
       cost:"Tickets may apply",
       highlights:"Buddhist pilgrimage site; serene monuments and historical ruins.",
       map:"https://www.google.com/maps/search/?api=1&query=Dhamek+Stupa+Sarnath",
+      coords:[25.3808, 83.0245],
       photos:[
         photoSVG("Sarnath", "Dhamek Stupa", 120),
         photoSVG("Sarnath", "Peaceful lawns", 140),
@@ -731,6 +738,7 @@
       cost:"Tickets apply",
       highlights:"Artifacts from Sarnath; iconic Ashokan lion capital association.",
       map:"https://www.google.com/maps/search/?api=1&query=Sarnath+Museum",
+      coords:[25.376165, 83.022713],
       photos:[
         photoSVG("Sarnath Museum", "Artifacts & sculpture", 200),
         photoSVG("Sarnath Museum", "Heritage exhibits", 190),
@@ -746,6 +754,7 @@
       cost:"Tickets may apply",
       highlights:"Historic fort across the Ganga; museum and royal-era collections.",
       map:"https://www.google.com/maps/search/?api=1&query=Ramnagar+Fort+Varanasi",
+      coords:[25.269262, 83.022144],
       photos:[
         photoSVG("Ramnagar Fort", "Fort & museum", 260),
         photoSVG("Ramnagar Fort", "Royal collections", 240),
@@ -791,6 +800,7 @@
       cost:"Free",
       highlights:"Beloved Hanuman temple; close to BHU area.",
       map:"https://www.google.com/maps/search/?api=1&query=Sankat+Mochan+Temple+Varanasi",
+      coords:[25.281852, 82.998652],
       photos:[
         photoSVG("Sankat Mochan", "Hanuman temple", 30),
         photoSVG("Sankat Mochan", "Prasad & prayers", 22),
@@ -868,15 +878,13 @@
     localStorage.setItem(LS_TOUR, JSON.stringify(ids));
   }
 
-  // Ensure Home is ALWAYS first in the tour (even if older saved tours exist)
+  // Ensure Home is ALWAYS first in the tour
   function normalizeTour(){
     let ids = readTour().filter(Boolean);
     ids = ids.filter(id => id !== HOME.id);
     ids.unshift(HOME.id);
-    // keep only ids that exist
     const exists = new Set(DEST.map(d=>d.id));
     ids = ids.filter(id => exists.has(id));
-    // de-dup
     ids = [...new Set(ids)];
     writeTour(ids);
   }
@@ -895,8 +903,13 @@
 
   // Map modal refs
   const mapModal = document.getElementById("mapModal");
-  const mapFrame = document.getElementById("mapFrame");
   const openMapsLink = document.getElementById("openMapsLink");
+
+  // Leaflet map refs
+  let leafletMap = null;
+  let leafletLayer = null;
+  let leafletMarkers = [];
+  let leafletPolyline = null;
 
   const toastWrap = document.getElementById("toast");
   function toast(title, detail){
@@ -962,7 +975,6 @@
     toast("Added to tour", DEST.find(x=>x.id===id)?.name || id);
   }
   function removeFromTour(id){
-    // don't allow removing home
     if(id === HOME.id){
       toast("Pinned", "Champak's Home is the fixed start point.");
       return;
@@ -972,14 +984,12 @@
     renderTour();
   }
   function moveTour(id, dir){
-    // don't move home
     if(id === HOME.id) return;
 
     const ids = readTour();
     const idx = ids.indexOf(id);
     if(idx === -1) return;
 
-    // prevent moving above home (index 0)
     const newIdx = dir === "up" ? idx-1 : idx+1;
     if(newIdx < 1 || newIdx >= ids.length) return;
 
@@ -989,7 +999,6 @@
     renderTour();
   }
   function clearTour(){
-    // keep only home
     writeTour([HOME.id]);
     normalizeTour();
     renderTour();
@@ -998,20 +1007,14 @@
     toast("Cleared", "Tour cleared (start point kept).");
   }
 
-  // ------- Build a Google Maps route URL from selected destinations -------
+  // ------- Google Maps route URL (new tab / share) -------
   function placeQuery(d){
-    // If we have coordinates, use them directly for accuracy
-    if(d.coords) return d.coords;
+    if(Array.isArray(d.coords)) return `${d.coords[0]},${d.coords[1]}`;
     return `${d.name} Varanasi`;
   }
-
-  // Attach coords to HOME for route building
-  HOME.coords = "25.349304,83.001256";
-
   function buildRouteUrlFromTour(){
     const ids = readTour();
     if(ids.length === 0) return null;
-
     const places = ids.map(id => DEST.find(x=>x.id===id)).filter(Boolean);
     if(places.length === 0) return null;
 
@@ -1029,21 +1032,122 @@
     return waypoints ? `${base}&waypoints=${waypoints}` : base;
   }
 
-  function openMapModal(){
+  // ------- Coords cache + geocode fallback (OpenStreetMap Nominatim) -------
+  function readCoordsCache(){
+    try { return JSON.parse(localStorage.getItem(LS_COORDS) || "{}"); }
+    catch { return {}; }
+  }
+  function writeCoordsCache(cache){
+    localStorage.setItem(LS_COORDS, JSON.stringify(cache));
+  }
+
+  async function geocodeOnce(name){
+    const url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" +
+      encodeURIComponent(name + " Varanasi Uttar Pradesh India");
+    const res = await fetch(url, { headers: { "Accept":"application/json" }});
+    if(!res.ok) return null;
+    const data = await res.json();
+    if(!data || !data[0]) return null;
+    return [Number(data[0].lat), Number(data[0].lon)];
+  }
+
+  async function ensureCoordsForPlace(d){
+    if(Array.isArray(d.coords)) return d.coords;
+
+    const cache = readCoordsCache();
+    if(cache[d.id] && Array.isArray(cache[d.id]) && cache[d.id].length === 2){
+      d.coords = cache[d.id];
+      return d.coords;
+    }
+
+    try{
+      const c = await geocodeOnce(d.name);
+      if(c){
+        d.coords = c;
+        cache[d.id] = c;
+        writeCoordsCache(cache);
+        return c;
+      }
+    }catch(e){
+      // ignore
+    }
+    return null;
+  }
+
+  // ------- Map modal (Leaflet) -------
+  function initLeafletIfNeeded(){
+    if(leafletMap) return;
+
+    leafletMap = L.map("leafletMap", { zoomControl:true });
+    leafletLayer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(leafletMap);
+
+    // initial view near Varanasi
+    leafletMap.setView([25.3176, 82.9739], 12);
+  }
+
+  function clearLeafletOverlays(){
+    if(!leafletMap) return;
+    for(const m of leafletMarkers) m.remove();
+    leafletMarkers = [];
+    if(leafletPolyline){ leafletPolyline.remove(); leafletPolyline = null; }
+  }
+
+  async function openMapModal(){
     const url = buildRouteUrlFromTour();
     if(!url){
       toast("Tour empty", "Add destinations first, then view the map.");
       return;
     }
-    mapFrame.src = url;
     openMapsLink.href = url;
+
     mapModal.classList.add("show");
     mapModal.setAttribute("aria-hidden", "false");
+
+    initLeafletIfNeeded();
+    // Leaflet needs a resize after showing modal
+    setTimeout(()=> leafletMap.invalidateSize(), 80);
+
+    clearLeafletOverlays();
+
+    const ids = readTour();
+    const places = ids.map(id => DEST.find(x=>x.id===id)).filter(Boolean);
+
+    // Resolve coords (cached / known / geocoded)
+    const coordsList = [];
+    for(const p of places){
+      const c = await ensureCoordsForPlace(p);
+      if(c) coordsList.push({ p, c });
+    }
+
+    if(coordsList.length === 0){
+      toast("No coordinates", "Could not locate places on map. Try Open in Maps.");
+      return;
+    }
+
+    // Markers
+    coordsList.forEach((obj, i)=>{
+      const { p, c } = obj;
+      const marker = L.marker(c).addTo(leafletMap);
+      marker.bindPopup(`<b>${i+1}. ${p.name}</b><br><small>${p.type} • ${prettyTime(p.bestTime)} • ${p.timeNeeded}</small>`);
+      leafletMarkers.push(marker);
+    });
+
+    // Route line in chosen order (only among resolved coords)
+    const line = coordsList.map(x => x.c);
+    if(line.length >= 2){
+      leafletPolyline = L.polyline(line, { weight: 5, opacity: 0.9 }).addTo(leafletMap);
+    }
+
+    const bounds = L.latLngBounds(line);
+    leafletMap.fitBounds(bounds.pad(0.18));
   }
+
   function closeMapModal(){
     mapModal.classList.remove("show");
     mapModal.setAttribute("aria-hidden", "true");
-    mapFrame.src = "about:blank";
   }
 
   document.getElementById("viewMapBtn").addEventListener("click", openMapModal);
