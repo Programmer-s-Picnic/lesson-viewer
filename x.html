@@ -4,8 +4,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>
-      Programming Whiteboard PRO — Drag • Resize • Rotate • Draw • Connect •
-      Save/Export
+      Programming Whiteboard PRO — Drag • Resize • Rotate • Draw • Shapes •
+      Arrows • Save/Export
     </title>
     <style>
       :root {
@@ -23,7 +23,6 @@
         --codebg: #0b1220;
         --codeink: #e5e7eb;
         --note: #fff6cc;
-        --shape: #111827;
       }
       * {
         box-sizing: border-box;
@@ -35,7 +34,7 @@
         color: var(--ink);
       }
       .wrap {
-        max-width: 1500px;
+        max-width: 1520px;
         margin: 18px auto;
         padding: 14px;
       }
@@ -46,7 +45,7 @@
       }
       .grid {
         display: grid;
-        grid-template-columns: 400px 1fr;
+        grid-template-columns: 410px 1fr;
         gap: 14px;
         align-items: start;
       }
@@ -128,6 +127,97 @@
         margin: 14px 0;
       }
 
+      /* HELP */
+      .helpToggle {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .helpBox {
+        margin-top: 10px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: #fff;
+        box-shadow: 0 10px 24px rgba(31, 41, 55, 0.08);
+        overflow: hidden;
+      }
+      .helpHdr {
+        padding: 10px 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        background: linear-gradient(
+          135deg,
+          rgba(217, 119, 6, 0.1),
+          rgba(245, 158, 11, 0.12)
+        );
+      }
+      .helpHdr b {
+        color: var(--brand);
+      }
+      .helpBody {
+        padding: 12px;
+      }
+      .helpBody details {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 10px;
+        background: #fff;
+        margin-top: 10px;
+      }
+      .helpBody summary {
+        cursor: pointer;
+        font-weight: 1000;
+        color: var(--ink);
+      }
+      kbd {
+        display: inline-block;
+        padding: 2px 6px;
+        border: 1px solid var(--border);
+        border-bottom-width: 2px;
+        border-radius: 7px;
+        background: #fff;
+        font-weight: 1000;
+        font-size: 12px;
+        color: var(--ink);
+      }
+      .helpChips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 8px;
+      }
+      .chip2 {
+        border: 1px solid var(--border);
+        background: #fff;
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: 12px;
+        font-weight: 1000;
+        color: var(--ink);
+      }
+      .tip {
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px dashed var(--border);
+        background: rgba(245, 158, 11, 0.08);
+        margin-top: 10px;
+      }
+      .tip b {
+        color: var(--brand);
+      }
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 12px;
+        background: rgba(0, 0, 0, 0.04);
+        border: 1px solid var(--border);
+        padding: 8px 10px;
+        border-radius: 12px;
+        overflow: auto;
+      }
+
       /* BOARD */
       .boardWrap {
         position: relative;
@@ -188,7 +278,7 @@
         right: 0;
       }
 
-      /* Connections layer */
+      /* Links (block connectors) */
       #linksSvg {
         position: absolute;
         inset: 0;
@@ -208,14 +298,40 @@
         fill: none;
       }
 
-      /* Drawing layer */
-      #drawCanvas {
+      /* Annotations (drawn shapes/arrows) */
+      #annoSvg {
         position: absolute;
         inset: 0;
         width: 100%;
         height: 100%;
         z-index: 4;
         pointer-events: none; /* enabled only in draw mode */
+      }
+      #annoSvg .aStroke {
+        stroke: rgba(245, 158, 11, 0.95);
+        stroke-width: 4;
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      #annoSvg .aFill {
+        fill: rgba(245, 158, 11, 0.12);
+        stroke: rgba(245, 158, 11, 0.95);
+        stroke-width: 4;
+      }
+      #annoSvg .aHi {
+        stroke-width: 14;
+        opacity: 0.35;
+      }
+
+      /* Pen layer */
+      #drawCanvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 5;
+        pointer-events: none; /* enabled only in draw mode when tool=pen/highlighter */
       }
 
       /* ELEMENT */
@@ -225,7 +341,7 @@
         overflow: visible;
         user-select: none;
         touch-action: none;
-        z-index: 5;
+        z-index: 6;
       }
       .el .box {
         position: absolute;
@@ -382,6 +498,7 @@
         gap: 8px;
         padding: 8px 10px;
         align-items: center;
+        flex-wrap: wrap;
       }
       .codeTop .chip {
         width: auto;
@@ -426,7 +543,7 @@
         resize: none;
       }
 
-      /* Output block */
+      /* Output */
       .outputWrap {
         width: 100%;
         height: 100%;
@@ -447,7 +564,7 @@
         line-height: 1.35;
       }
 
-      /* Shapes */
+      /* Shapes block */
       .shape {
         width: 100%;
         height: 100%;
@@ -458,6 +575,7 @@
         font-weight: 1000;
         padding: 38px 10px 10px;
         text-align: center;
+        background: rgba(17, 24, 39, 0.7);
       }
       .shape .label {
         pointer-events: auto;
@@ -471,21 +589,19 @@
         text-align: center;
       }
       .shape.rect {
-        background: rgba(17, 24, 39, 0.7);
+        border-radius: 14px;
       }
       .shape.round {
-        background: rgba(17, 24, 39, 0.7);
         border-radius: 999px;
       }
       .shape.diamond {
-        background: rgba(17, 24, 39, 0.7);
         transform: rotate(45deg);
       }
       .shape.diamond .label {
         transform: rotate(-45deg);
       }
 
-      @media (max-width: 1050px) {
+      @media (max-width: 1080px) {
         .grid {
           grid-template-columns: 1fr;
         }
@@ -494,7 +610,7 @@
   </head>
   <body>
     <div class="wrap">
-      <h1>🧠 Programming Whiteboard PRO</h1>
+      <h1>🧠 Programming Whiteboard PRO (Arrows + Circles + Help)</h1>
 
       <div class="grid">
         <!-- LEFT -->
@@ -545,7 +661,7 @@
 
           <div class="row">
             <button class="btn" id="addOutBtn">🧾 Output</button>
-            <button class="btn" id="addShapeBtn">⬛ Shape</button>
+            <button class="btn" id="addShapeBtn">⬛ Shape Block</button>
           </div>
 
           <div class="row">
@@ -559,33 +675,168 @@
 
           <hr />
 
-          <div class="pill"><b>Draw Mode</b></div>
+          <div class="pill"><b>Annotations</b></div>
           <div class="row">
             <button class="btn secondary" id="drawToggle">
-              ✏️ Start Drawing
+              ✏️ Start Annotating
             </button>
-            <button class="btn ghost" id="clearInk">🧽 Clear Ink</button>
+            <button class="btn ghost" id="clearAnno">
+              🧽 Clear Annotations
+            </button>
           </div>
 
           <div class="row">
             <div>
-              <label>Pen Size</label>
-              <input type="range" id="penSize" min="2" max="28" value="6" />
+              <label>Tool</label>
+              <select id="drawTool">
+                <option value="pen">Pen (freehand)</option>
+                <option value="highlighter">Highlighter</option>
+                <option value="arrow">Arrow</option>
+                <option value="line">Line</option>
+                <option value="rect">Rectangle</option>
+                <option value="circle">Circle / Ellipse</option>
+              </select>
             </div>
             <div>
-              <label>Pen Color</label>
-              <input type="color" id="penColor" value="#f59e0b" />
+              <label>Stroke (px)</label>
+              <input type="range" id="penSize" min="2" max="28" value="6" />
             </div>
           </div>
+
+          <div class="row">
+            <div>
+              <label>Color</label>
+              <input type="color" id="penColor" value="#f59e0b" />
+            </div>
+            <div>
+              <label>Fill (shapes)</label>
+              <input
+                type="checkbox"
+                id="fillShapes"
+                checked
+                style="width: auto; margin-top: 12px"
+              />
+              <div class="small" style="margin-top: 6px">
+                For Rect/Circle only.
+              </div>
+            </div>
+          </div>
+
           <div class="small">
-            Tip: Turn on Draw Mode to sketch arrows/notes quickly. Turn it off
-            to move blocks again.
+            Recommendation: Use <b>Arrow</b> for flow, <b>Circle</b> to
+            highlight, <b>Highlighter</b> for marking important lines.
           </div>
 
           <hr />
 
+          <!-- HELP SECTION (Added) -->
+          <div class="pill helpToggle">
+            <span
+              ><b>Help</b>
+              <span class="small" style="margin: 0"
+                >Quick guide + shortcuts</span
+              ></span
+            >
+            <button class="btn secondary" id="helpBtn" type="button">
+              Show Help
+            </button>
+          </div>
+
+          <div class="helpBox" id="helpBox" style="display: none">
+            <div class="helpHdr">
+              <b>How to use this Whiteboard</b>
+              <button class="btn ghost" id="helpClose" type="button">
+                Close
+              </button>
+            </div>
+
+            <div class="helpBody">
+              <div class="tip">
+                <b>Fast start:</b> Add a <b>Shape</b> (decision/step), write
+                logic in <b>Code</b>, connect blocks, then annotate
+                arrows/circles on top.
+              </div>
+
+              <div class="helpChips">
+                <span class="chip2">Drag blocks</span>
+                <span class="chip2">Resize corners</span>
+                <span class="chip2">Rotate top dot</span>
+                <span class="chip2">Shift+Click multi-select</span>
+                <span class="chip2">Connect 2 selected</span>
+                <span class="chip2">Export PNG</span>
+              </div>
+
+              <details open>
+                <summary>Keyboard & selection</summary>
+                <div class="small" style="margin-top: 8px">
+                  • Multi-select: <kbd>Shift</kbd> + click blocks<br />
+                  • Delete selected blocks: <kbd>Delete</kbd> /
+                  <kbd>Backspace</kbd><br />
+                  • Tip: Turn off Annotating to drag/select blocks.
+                </div>
+              </details>
+
+              <details>
+                <summary>Connectors (block-to-block arrows)</summary>
+                <div class="small" style="margin-top: 8px">
+                  1) Select exactly two blocks (Shift+Click).<br />
+                  2) Press <b>Connect</b> → an arrow is drawn between them.<br />
+                  3) To remove: select blocks and press <b>Remove Links</b> (or
+                  remove all links with none selected).
+                </div>
+              </details>
+
+              <details>
+                <summary>Annotations (pen, arrows, circles)</summary>
+                <div class="small" style="margin-top: 8px">
+                  • Click <b>Start Annotating</b> to draw on the board
+                  overlay.<br />
+                  • Tools:
+                  <ul style="margin: 8px 0 0 18px">
+                    <li><b>Pen</b> / <b>Highlighter</b>: freehand on canvas</li>
+                    <li>
+                      <b>Arrow</b>, <b>Line</b>, <b>Rectangle</b>,
+                      <b>Circle</b>: vector shapes on SVG (clean edges)
+                    </li>
+                  </ul>
+                  • Choose <b>Color</b> + <b>Stroke</b> width. Use
+                  <b>Fill</b> for Rect/Circle.<br />
+                  • Clear all annotations: <b>Clear Annotations</b>.
+                </div>
+              </details>
+
+              <details>
+                <summary>Code block runner (JS)</summary>
+                <div class="small" style="margin-top: 8px">
+                  • Click <b>Run</b> inside a Code Block.<br />
+                  • Output goes to the nearest Output block (or
+                  auto-created).<br />
+                  • Use <span class="mono">print("hello")</span> to write lines.
+                </div>
+              </details>
+
+              <details>
+                <summary>Save / Load / JSON</summary>
+                <div class="small" style="margin-top: 8px">
+                  • <b>Save (Local)</b> stores board in your browser.<br />
+                  • <b>Load (Local)</b> restores it.<br />
+                  • <b>Layout JSON</b> can be copied/shared and applied later.
+                </div>
+              </details>
+
+              <div class="tip">
+                <b>Recommended flowchart set:</b> Diamond for decision,
+                Rounded/Oval for Start/End, Rectangle for process, then arrows
+                to connect.
+              </div>
+            </div>
+          </div>
+          <!-- /HELP SECTION -->
+
+          <hr />
+
           <div id="propsEmpty" class="small">
-            Click an item to edit. Move: drag • Resize: corners • Rotate: top
+            Click a block to edit. Move: drag • Resize: corners • Rotate: top
             dot • Multi-select: Shift+Click
           </div>
 
@@ -598,7 +849,6 @@
               <button class="iconBtn" id="deleteSel">Delete</button>
             </div>
 
-            <!-- Common -->
             <div class="row">
               <div>
                 <label>Rotation (deg)</label>
@@ -618,7 +868,7 @@
             </div>
 
             <div id="shapeProps" style="display: none">
-              <label>Shape Type</label>
+              <label>Shape Type (Block)</label>
               <select id="pShapeType">
                 <option value="rect">Rectangle</option>
                 <option value="round">Rounded / Oval</option>
@@ -701,9 +951,30 @@
                     fill="rgba(245,158,11,.95)"
                   ></path>
                 </marker>
+
+                <marker
+                  id="annoArrowHead"
+                  markerWidth="10"
+                  markerHeight="10"
+                  refX="9"
+                  refY="5"
+                  orient="auto"
+                  markerUnits="strokeWidth"
+                >
+                  <path
+                    id="annoArrowPath"
+                    d="M 0 0 L 10 5 L 0 10 z"
+                    fill="rgba(245,158,11,.95)"
+                  ></path>
+                </marker>
               </defs>
             </svg>
 
+            <svg
+              id="annoSvg"
+              viewBox="0 0 100 100"
+              preserveAspectRatio="none"
+            ></svg>
             <canvas id="drawCanvas"></canvas>
 
             <div id="vGuide" class="guide"></div>
@@ -715,6 +986,12 @@
 
     <script>
       /* ================== Core ================== */
+      const drawMode = {
+        on: false,
+        drawing: false,
+        start: null,
+        tempNode: null,
+      };
       const $ = (q) => document.querySelector(q);
       const board = $("#board");
       const vGuide = $("#vGuide");
@@ -723,6 +1000,7 @@
       const elementsList = $("#elementsList");
       const jsonBox = $("#jsonBox");
       const linksSvg = $("#linksSvg");
+      const annoSvg = $("#annoSvg");
       const drawCanvas = $("#drawCanvas");
       const dctx = drawCanvas.getContext("2d");
 
@@ -731,11 +1009,12 @@
       let activePrimary = null;
 
       const state = {
-        version: 1,
+        version: 2,
         boardBg: "#0a0a0a",
         els: {},
-        links: [], // {id, from, to}
-        ink: null, // dataURL of drawing canvas
+        links: [],
+        ink: null,
+        annos: [],
       };
 
       function uid() {
@@ -743,6 +1022,9 @@
       }
       function lid() {
         return "ln_" + Math.random().toString(16).slice(2, 10);
+      }
+      function aid() {
+        return "an_" + Math.random().toString(16).slice(2, 10);
       }
       function clamp(v, a, b) {
         return Math.max(a, Math.min(b, v));
@@ -808,16 +1090,38 @@
         return best;
       }
 
-      /* ================== Canvas sizing ================== */
-      function fitDrawCanvas() {
+      /* ================== HELP (Added JS) ================== */
+      function setHelp(open) {
+        const box = $("#helpBox");
+        const btn = $("#helpBtn");
+        if (!box || !btn) return;
+        box.style.display = open ? "block" : "none";
+        btn.textContent = open ? "Hide Help" : "Show Help";
+      }
+      $("#helpBtn").addEventListener("click", () => {
+        const box = $("#helpBox");
+        const open = !(box && box.style.display !== "none");
+        // if display=="" treat as hidden initially
+        const isOpen = box && box.style.display === "block";
+        setHelp(!isOpen);
+      });
+      $("#helpClose").addEventListener("click", () => setHelp(false));
+      /* ================== /HELP ================== */
+
+      /* ================== Board sizing ================== */
+      function fitOverlaySizes() {
         const r = board.getBoundingClientRect();
         const dpr = window.devicePixelRatio || 1;
+
         drawCanvas.width = Math.round(r.width * dpr);
         drawCanvas.height = Math.round(r.height * dpr);
         drawCanvas.style.width = r.width + "px";
         drawCanvas.style.height = r.height + "px";
-        dctx.setTransform(dpr, 0, 0, dpr, 0, 0); // draw in CSS pixels
-        // reload ink if any
+        dctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        linksSvg.setAttribute("viewBox", `0 0 ${r.width} ${r.height}`);
+        annoSvg.setAttribute("viewBox", `0 0 ${r.width} ${r.height}`);
+
         if (state.ink) {
           const img = new Image();
           img.onload = () => {
@@ -828,16 +1132,14 @@
         } else {
           dctx.clearRect(0, 0, r.width, r.height);
         }
-        // links viewBox match board
-        linksSvg.setAttribute("viewBox", `0 0 ${r.width} ${r.height}`);
-      }
-      window.addEventListener("resize", () => {
-        fitDrawCanvas();
-        renderLinks();
-      });
-      fitDrawCanvas();
 
-      /* ================== Element Building ================== */
+        renderLinks();
+        renderAnnos();
+      }
+      window.addEventListener("resize", fitOverlaySizes);
+      fitOverlaySizes();
+
+      /* ================== Elements ================== */
       function createElementNode({ id, title }) {
         const el = document.createElement("div");
         el.className = "el";
@@ -877,7 +1179,7 @@
         el.appendChild(rh);
 
         el.addEventListener("pointerdown", (e) => {
-          if (drawMode.on) return; // don't select when drawing
+          if (drawMode.on) return;
           const actBtn = e.target.closest("button[data-act]");
           if (actBtn) {
             e.stopPropagation();
@@ -905,7 +1207,6 @@
         return { el, content };
       }
 
-      /* ================== Add Blocks ================== */
       function addNote() {
         const id = uid();
         state.els[id] = {
@@ -918,7 +1219,7 @@
           h: 240,
           rot: 0,
           opacity: 1,
-          text: "Idea:\n• Break problem into functions\n• Add test cases\n• Edge cases?",
+          text: "Idea:\n• Steps\n• Edge cases\n• Tests",
           z: ++zTop,
         };
         const { content } = createElementNode({ id, title: "Note" });
@@ -986,18 +1287,16 @@
           rot: 0,
           opacity: 1,
           lang: "js",
-          code: `// Example: sum 1..n
+          code: `// Example: write output using print()
 function sum(n){
   let s = 0;
   for(let i=1;i<=n;i++) s += i;
   return s;
 }
-
 print("sum(10) =", sum(10));`,
           z: ++zTop,
         };
         const { content } = createElementNode({ id, title: "Code (JS)" });
-
         const wrap = document.createElement("div");
         wrap.className = "codeWrap";
 
@@ -1084,7 +1383,7 @@ print("sum(10) =", sum(10));`,
         syncJSONBox();
       }
 
-      /* ================== Run code (JS) ================== */
+      /* ================== Run JS code ================== */
       function getNearestOutputFor(codeId, createIfMissing = false) {
         const code = state.els[codeId];
         const outs = Object.values(state.els).filter(
@@ -1093,11 +1392,10 @@ print("sum(10) =", sum(10));`,
         if (outs.length === 0) {
           if (createIfMissing) {
             addOutput();
-            return state.els[activePrimary] || outs[0];
+            return state.els[activePrimary];
           }
           return null;
         }
-        // nearest by center distance
         const cx = code.x + code.w / 2,
           cy = code.y + code.h / 2;
         let best = outs[0],
@@ -1113,7 +1411,6 @@ print("sum(10) =", sum(10));`,
         }
         return best;
       }
-
       function runCodeBlock(id) {
         const d = state.els[id];
         if (!d || d.type !== "code") return;
@@ -1124,7 +1421,6 @@ print("sum(10) =", sum(10));`,
           lines.push(args.map((x) => String(x)).join(" "));
 
         try {
-          // provide only print + a small safe scope
           const fn = new Function("print", `"use strict";\n${d.code}\n`);
           fn(print);
           out.text = lines.join("\n") || "(no output)";
@@ -1136,37 +1432,26 @@ print("sum(10) =", sum(10));`,
         syncJSONBoxDebounced();
       }
 
-      /* ================== Links (Connectors) ================== */
+      /* ================== Links between blocks ================== */
+      function lid() {
+        return "ln_" + Math.random().toString(16).slice(2, 10);
+      }
       function centerOf(id) {
         const d = state.els[id];
         if (!d) return { x: 0, y: 0 };
         return { x: d.x + d.w / 2, y: d.y + d.h / 2 };
       }
-
       function addLink(from, to) {
         if (!state.els[from] || !state.els[to] || from === to) return;
-        // avoid duplicates
         if (state.links.some((l) => l.from === from && l.to === to)) return;
         state.links.push({ id: lid(), from, to });
         renderLinks();
         syncJSONBoxDebounced();
       }
-
-      function removeLinksOfSelected() {
-        if (selected.size === 0) return;
-        const set = new Set([...selected]);
-        state.links = state.links.filter(
-          (l) => !(set.has(l.from) || set.has(l.to))
-        );
-        renderLinks();
-        syncJSONBoxDebounced();
-      }
-
       function renderLinks() {
         const bw = board.clientWidth,
           bh = board.clientHeight;
         linksSvg.setAttribute("viewBox", `0 0 ${bw} ${bh}`);
-        // wipe old paths
         linksSvg
           .querySelectorAll("path.link,path.linkShadow")
           .forEach((p) => p.remove());
@@ -1176,7 +1461,6 @@ print("sum(10) =", sum(10));`,
           const a = centerOf(l.from);
           const b = centerOf(l.to);
 
-          // simple curved path
           const dx = b.x - a.x;
           const c1x = a.x + dx * 0.35;
           const c2x = a.x + dx * 0.65;
@@ -1203,7 +1487,113 @@ print("sum(10) =", sum(10));`,
         }
       }
 
-      /* ================== Rendering ================== */
+      /* ================== Annotations ================== */
+      function annoSettings() {
+        const tool = $("#drawTool").value;
+        const w = +$("#penSize").value || 6;
+        const color = $("#penColor").value || "#f59e0b";
+        const fill = !!$("#fillShapes").checked;
+        return { tool, w, color, fill };
+      }
+      function boardPointFromEvent(e) {
+        const r = board.getBoundingClientRect();
+        return { x: e.clientX - r.left, y: e.clientY - r.top };
+      }
+      function clearAnnoSvg() {
+        while (annoSvg.firstChild) annoSvg.removeChild(annoSvg.firstChild);
+      }
+      function svgEl(name) {
+        return document.createElementNS("http://www.w3.org/2000/svg", name);
+      }
+      function renderAnnos() {
+        const bw = board.clientWidth,
+          bh = board.clientHeight;
+        annoSvg.setAttribute("viewBox", `0 0 ${bw} ${bh}`);
+        clearAnnoSvg();
+
+        for (const a of state.annos) {
+          const node = buildAnnoNode(a);
+          if (node) annoSvg.appendChild(node);
+        }
+        if (drawMode.tempNode) {
+          annoSvg.appendChild(drawMode.tempNode);
+        }
+      }
+      function buildAnnoNode(a) {
+        const { type, x1, y1, x2, y2, color, w, fill } = a;
+        const stroke = color || "#f59e0b";
+        const sw = Math.max(1, +w || 4);
+
+        if (type === "line" || type === "arrow") {
+          const p = svgEl("path");
+          const d = `M ${x1} ${y1} L ${x2} ${y2}`;
+          p.setAttribute("d", d);
+          p.setAttribute("stroke", stroke);
+          p.setAttribute("stroke-width", sw);
+          p.setAttribute("fill", "none");
+          p.setAttribute("stroke-linecap", "round");
+          p.setAttribute("stroke-linejoin", "round");
+          if (type === "arrow")
+            p.setAttribute("marker-end", "url(#annoArrowHead)");
+          return p;
+        }
+
+        if (type === "rect") {
+          const x = Math.min(x1, x2),
+            y = Math.min(y1, y2);
+          const ww = Math.abs(x2 - x1),
+            hh = Math.abs(y2 - y1);
+          const r = svgEl("rect");
+          r.setAttribute("x", x);
+          r.setAttribute("y", y);
+          r.setAttribute("width", ww);
+          r.setAttribute("height", hh);
+          r.setAttribute("rx", 12);
+          r.setAttribute("ry", 12);
+          r.setAttribute("stroke", stroke);
+          r.setAttribute("stroke-width", sw);
+          r.setAttribute("fill", fill ? hexToRgba(stroke, 0.12) : "none");
+          return r;
+        }
+
+        if (type === "circle") {
+          const cx = (x1 + x2) / 2,
+            cy = (y1 + y2) / 2;
+          const rx = Math.abs(x2 - x1) / 2,
+            ry = Math.abs(y2 - y1) / 2;
+          const e = svgEl("ellipse");
+          e.setAttribute("cx", cx);
+          e.setAttribute("cy", cy);
+          e.setAttribute("rx", rx);
+          e.setAttribute("ry", ry);
+          e.setAttribute("stroke", stroke);
+          e.setAttribute("stroke-width", sw);
+          e.setAttribute("fill", fill ? hexToRgba(stroke, 0.12) : "none");
+          return e;
+        }
+
+        return null;
+      }
+      function hexToRgba(hex, a) {
+        const h = String(hex || "")
+          .replace("#", "")
+          .trim();
+        if (h.length === 3) {
+          const r = parseInt(h[0] + h[0], 16),
+            g = parseInt(h[1] + h[1], 16),
+            b = parseInt(h[2] + h[2], 16);
+          return `rgba(${r},${g},${b},${a})`;
+        }
+        if (h.length === 6) {
+          const r = parseInt(h.slice(0, 2), 16),
+            g = parseInt(h.slice(2, 4), 16),
+            b = parseInt(h.slice(4, 6), 16);
+          return `rgba(${r},${g},${b},${a})`;
+        }
+        return `rgba(245,158,11,${a})`;
+      }
+
+      /* ================== Rendering blocks ================== */
       function renderEl(id) {
         const d = state.els[id];
         const node = board.querySelector(`.el[data-id="${id}"]`);
@@ -1213,7 +1603,7 @@ print("sum(10) =", sum(10));`,
         node.style.top = d.y + "px";
         node.style.width = d.w + "px";
         node.style.height = d.h + "px";
-        node.style.zIndex = String(d.z ?? 5);
+        node.style.zIndex = String(d.z ?? 6);
         node.style.opacity = String(d.opacity ?? 1);
         node.style.transformOrigin = "center center";
         node.style.transform = `rotate(${d.rot || 0}deg)`;
@@ -1223,23 +1613,19 @@ print("sum(10) =", sum(10));`,
           const ta = node.querySelector(".note textarea");
           if (ta && ta.value !== (d.text || "")) ta.value = d.text || "";
         }
-
         if (d.type === "output") {
           const pre = node.querySelector(".outputWrap pre");
           if (pre) pre.textContent = d.text || "";
         }
-
         if (d.type === "code") {
           const ta = node.querySelector(".codeArea textarea");
           if (ta && ta.value !== (d.code || "")) ta.value = d.code || "";
         }
-
         if (d.type === "shape") {
           const s = node.querySelector(".shape");
           if (!s) return;
           s.classList.remove("rect", "round", "diamond");
           s.classList.add(d.shape || "rect");
-          // diamond uses rotate on container; keep internal label counter-rotate
           if ((d.shape || "rect") === "diamond") {
             s.style.transform = "rotate(45deg)";
             const label = s.querySelector(".label");
@@ -1254,14 +1640,14 @@ print("sum(10) =", sum(10));`,
             label.value = d.text || "";
         }
       }
-
       function renderAll() {
         Object.keys(state.els).forEach(renderEl);
         board.style.background = state.boardBg || "#0a0a0a";
         renderLinks();
+        renderAnnos();
       }
 
-      /* ================== Drag/Resize/Rotate (with snapping) ================== */
+      /* ================== Drag/Resize/Rotate ================== */
       function enableDragResizeRotate(node) {
         let mode = null;
         let start = null;
@@ -1281,7 +1667,7 @@ print("sum(10) =", sum(10));`,
             const nr = node.getBoundingClientRect();
             const cx = (nr.left + nr.right) / 2;
             const cy = (nr.top + nr.bottom) / 2;
-            start = { id, cx, cy, startRot: d.rot || 0 };
+            start = { id, cx, cy };
             node.setPointerCapture(e.pointerId);
             e.preventDefault();
             return;
@@ -1392,7 +1778,6 @@ print("sum(10) =", sum(10));`,
             return;
           }
 
-          // resize
           const minW = 140,
             minH = 90;
           let x = d.x,
@@ -1475,7 +1860,6 @@ print("sum(10) =", sum(10));`,
 
         const primaryId = activePrimary || ids[ids.length - 1];
         const d = state.els[primaryId];
-
         const nameMap = {
           code: "Code Block",
           note: "Note",
@@ -1488,17 +1872,16 @@ print("sum(10) =", sum(10));`,
         $("#pRot").value = Math.round(d.rot || 0);
         $("#pOpacity").value = d.opacity ?? 1;
 
-        // Shape props only when single shape selected
         $("#shapeProps").style.display =
           ids.length === 1 && d.type === "shape" ? "block" : "none";
-        if (ids.length === 1 && d.type === "shape") {
+        if (ids.length === 1 && d.type === "shape")
           $("#pShapeType").value = d.shape || "rect";
-        }
 
         $("#boardBg").value = state.boardBg || "#0a0a0a";
       }
 
       board.addEventListener("pointerdown", (e) => {
+        if (drawMode.on) return;
         if (e.target === board) {
           selected.clear();
           activePrimary = null;
@@ -1506,13 +1889,7 @@ print("sum(10) =", sum(10));`,
         }
       });
 
-      function withSingle(fn) {
-        const ids = [...selected];
-        if (ids.length !== 1) return;
-        fn(ids[0], state.els[ids[0]]);
-      }
-
-      /* Common props apply to all selected */
+      /* Props */
       $("#pRot").addEventListener("input", () => {
         const val = Math.max(-180, Math.min(180, +$("#pRot").value || 0));
         for (const id of selected) {
@@ -1530,23 +1907,23 @@ print("sum(10) =", sum(10));`,
         }
         syncJSONBoxDebounced();
       });
-      $("#pShapeType").addEventListener("change", () =>
-        withSingle((id, d) => {
-          if (d.type !== "shape") return;
-          d.shape = $("#pShapeType").value;
-          renderEl(id);
-          syncJSONBoxDebounced();
-        })
-      );
-
-      /* Board bg */
+      $("#pShapeType").addEventListener("change", () => {
+        const ids = [...selected];
+        if (ids.length !== 1) return;
+        const id = ids[0],
+          d = state.els[id];
+        if (d.type !== "shape") return;
+        d.shape = $("#pShapeType").value;
+        renderEl(id);
+        syncJSONBoxDebounced();
+      });
       $("#boardBg").addEventListener("input", () => {
         state.boardBg = $("#boardBg").value;
         board.style.background = state.boardBg;
         syncJSONBoxDebounced();
       });
 
-      /* Delete */
+      /* Delete selected */
       $("#deleteSel").addEventListener("click", () => {
         for (const id of [...selected]) removeEl(id);
         selected.clear();
@@ -1555,6 +1932,18 @@ print("sum(10) =", sum(10));`,
       });
 
       /* Z order */
+      function bringToFront(id) {
+        state.els[id].z = ++zTop;
+        renderEl(id);
+        refreshList(false);
+        syncJSONBoxDebounced();
+      }
+      function sendToBack(id) {
+        state.els[id].z = 1;
+        renderEl(id);
+        refreshList(false);
+        syncJSONBoxDebounced();
+      }
       $("#bringFront").addEventListener("click", () => {
         for (const id of selected) {
           state.els[id].z = ++zTop;
@@ -1573,6 +1962,42 @@ print("sum(10) =", sum(10));`,
         zTop = Math.max(...Object.values(state.els).map((x) => x.z || 2), 10);
         renderAll();
         refreshList();
+        syncJSONBoxDebounced();
+      });
+
+      /* UI toggles & buttons */
+      $("#gridToggle").addEventListener("change", () =>
+        board.classList.toggle("gridOn", $("#gridToggle").checked)
+      );
+      $("#safeToggle").addEventListener(
+        "change",
+        () =>
+          (safeArea.style.display = $("#safeToggle").checked ? "block" : "none")
+      );
+
+      $("#addCodeBtn").addEventListener("click", addCode);
+      $("#addNoteBtn").addEventListener("click", addNote);
+      $("#addOutBtn").addEventListener("click", addOutput);
+      $("#addShapeBtn").addEventListener("click", addShape);
+
+      $("#connectBtn").addEventListener("click", () => {
+        const ids = [...selected];
+        if (ids.length !== 2)
+          return alert("Select exactly 2 blocks (Shift+Click) to connect.");
+        addLink(ids[0], ids[1]);
+      });
+      $("#delLinksBtn").addEventListener("click", () => {
+        if (selected.size === 0) {
+          state.links = [];
+          renderLinks();
+          syncJSONBoxDebounced();
+          return;
+        }
+        const set = new Set([...selected]);
+        state.links = state.links.filter(
+          (l) => !(set.has(l.from) || set.has(l.to))
+        );
+        renderLinks();
         syncJSONBoxDebounced();
       });
 
@@ -1629,7 +2054,6 @@ print("sum(10) =", sum(10));`,
       /* Remove */
       function removeEl(id) {
         if (!state.els[id]) return;
-        // remove links attached
         state.links = state.links.filter(
           (l) => !(l.from === id || l.to === id)
         );
@@ -1640,10 +2064,9 @@ print("sum(10) =", sum(10));`,
         syncJSONBoxDebounced();
       }
 
-      /* ================== JSON Save/Load ================== */
+      /* JSON */
       function runtimeStrippedCopy() {
         const copy = JSON.parse(JSON.stringify(state));
-        // store ink as current canvas snapshot
         copy.ink = drawCanvas.toDataURL("image/png");
         return copy;
       }
@@ -1672,13 +2095,13 @@ print("sum(10) =", sum(10));`,
       });
       $("#saveLocal").addEventListener("click", () => {
         localStorage.setItem(
-          "prog_whiteboard_v1",
+          "prog_whiteboard_v2",
           JSON.stringify(runtimeStrippedCopy())
         );
         alert("Saved to Local Storage.");
       });
       $("#loadLocal").addEventListener("click", () => {
-        const raw = localStorage.getItem("prog_whiteboard_v1");
+        const raw = localStorage.getItem("prog_whiteboard_v2");
         if (!raw) return alert("No saved board found.");
         try {
           loadFromObject(JSON.parse(raw));
@@ -1689,13 +2112,14 @@ print("sum(10) =", sum(10));`,
       $("#clearAll").addEventListener("click", () => {
         state.els = {};
         state.links = [];
+        state.annos = [];
         selected.clear();
         activePrimary = null;
         board.querySelectorAll(".el").forEach((n) => n.remove());
-        // clear ink
         state.ink = null;
         dctx.clearRect(0, 0, board.clientWidth, board.clientHeight);
         renderLinks();
+        renderAnnos();
         updateSelectionUI();
         refreshList();
         syncJSONBox();
@@ -1703,12 +2127,11 @@ print("sum(10) =", sum(10));`,
 
       function loadFromObject(obj) {
         $("#clearAll").click();
-        state.version = obj.version || 1;
+        state.version = obj.version || 2;
         state.boardBg = obj.boardBg || "#0a0a0a";
         board.style.background = state.boardBg;
         $("#boardBg").value = state.boardBg;
 
-        // load elements
         for (const id of Object.keys(obj.els || {})) {
           const d = obj.els[id];
           d.z = d.z || ++zTop;
@@ -1801,15 +2224,17 @@ print("sum(10) =", sum(10));`,
           renderEl(id);
         }
 
-        // links
         state.links = Array.isArray(obj.links)
           ? obj.links.filter((x) => x && x.from && x.to)
           : [];
         renderLinks();
 
-        // ink
         state.ink = obj.ink || null;
-        fitDrawCanvas();
+        state.annos = Array.isArray(obj.annos)
+          ? obj.annos.filter((a) => a && a.type)
+          : [];
+
+        fitOverlaySizes();
 
         zTop = Math.max(10, ...Object.values(state.els).map((x) => x.z || 10));
         selected.clear();
@@ -1819,125 +2244,198 @@ print("sum(10) =", sum(10));`,
         syncJSONBox();
       }
 
-      /* ================== Buttons ================== */
-      $("#gridToggle").addEventListener("change", () =>
-        board.classList.toggle("gridOn", $("#gridToggle").checked)
-      );
-      $("#safeToggle").addEventListener(
-        "change",
-        () =>
-          (safeArea.style.display = $("#safeToggle").checked ? "block" : "none")
-      );
-
-      $("#addCodeBtn").addEventListener("click", addCode);
-      $("#addNoteBtn").addEventListener("click", addNote);
-      $("#addOutBtn").addEventListener("click", addOutput);
-      $("#addShapeBtn").addEventListener("click", addShape);
-
-      $("#connectBtn").addEventListener("click", () => {
-        const ids = [...selected];
-        if (ids.length !== 2)
-          return alert("Select exactly 2 blocks (Shift+Click) to connect.");
-        addLink(ids[0], ids[1]);
-      });
-      $("#delLinksBtn").addEventListener("click", () => {
-        if (selected.size === 0) {
-          state.links = [];
-          renderLinks();
-          syncJSONBoxDebounced();
-          return;
-        }
-        removeLinksOfSelected();
-      });
-
-      /* ================== Draw Mode ================== */
-      const drawMode = { on: false, drawing: false, last: null };
+      /* ================== Draw/Annotate Mode ================== */
+      
 
       function setDrawMode(on) {
         drawMode.on = !!on;
         drawMode.drawing = false;
-        drawMode.last = null;
-        drawCanvas.style.pointerEvents = on ? "auto" : "none";
+        drawMode.start = null;
+        drawMode.tempNode = null;
+
+        const tool = $("#drawTool").value;
+        const penTools = tool === "pen" || tool === "highlighter";
+        drawCanvas.style.pointerEvents = on && penTools ? "auto" : "none";
+        annoSvg.style.pointerEvents = on ? "auto" : "none";
+
         $("#drawToggle").textContent = on
-          ? "🧲 Stop Drawing"
-          : "✏️ Start Drawing";
-        $("#drawToggle").classList.toggle("btn", !on);
-        $("#drawToggle").classList.toggle("btn.secondary", on);
+          ? "🧲 Stop Annotating"
+          : "✏️ Start Annotating";
+        renderAnnos();
       }
+
+      $("#drawTool").addEventListener("change", () => {
+        if (drawMode.on) setDrawMode(true);
+      });
       $("#drawToggle").addEventListener("click", () =>
         setDrawMode(!drawMode.on)
       );
 
       function inkSettings() {
-        return {
-          w: +$("#penSize").value || 6,
-          color: $("#penColor").value || "#f59e0b",
-        };
+        const w = +$("#penSize").value || 6;
+        const color = $("#penColor").value || "#f59e0b";
+        const tool = $("#drawTool").value;
+        return { w, color, tool };
       }
-
-      function boardPointFromEvent(e) {
+      function boardPointFromEvent2(e) {
         const r = board.getBoundingClientRect();
         return { x: e.clientX - r.left, y: e.clientY - r.top };
       }
 
+      /* Pen/highlighter */
       drawCanvas.addEventListener("pointerdown", (e) => {
         if (!drawMode.on) return;
+        const tool = $("#drawTool").value;
+        if (tool !== "pen" && tool !== "highlighter") return;
+
         drawMode.drawing = true;
         drawCanvas.setPointerCapture(e.pointerId);
-        const p = boardPointFromEvent(e);
-        drawMode.last = p;
+        const p = boardPointFromEvent2(e);
+        drawMode.start = p;
         e.preventDefault();
       });
-
       drawCanvas.addEventListener("pointermove", (e) => {
         if (!drawMode.on || !drawMode.drawing) return;
-        const p = boardPointFromEvent(e);
+        const tool = $("#drawTool").value;
+        if (tool !== "pen" && tool !== "highlighter") return;
+
+        const p = boardPointFromEvent2(e);
         const { w, color } = inkSettings();
+
         dctx.lineCap = "round";
         dctx.lineJoin = "round";
         dctx.strokeStyle = color;
-        dctx.lineWidth = w;
+        dctx.lineWidth = tool === "highlighter" ? Math.max(10, w * 2.2) : w;
+        dctx.globalAlpha = tool === "highlighter" ? 0.35 : 1;
 
         dctx.beginPath();
-        dctx.moveTo(drawMode.last.x, drawMode.last.y);
+        dctx.moveTo(drawMode.start.x, drawMode.start.y);
         dctx.lineTo(p.x, p.y);
         dctx.stroke();
 
-        drawMode.last = p;
+        dctx.globalAlpha = 1;
+        drawMode.start = p;
       });
-
       drawCanvas.addEventListener("pointerup", () => {
         if (!drawMode.on) return;
+        const tool = $("#drawTool").value;
+        if (tool !== "pen" && tool !== "highlighter") return;
+
         drawMode.drawing = false;
-        drawMode.last = null;
+        drawMode.start = null;
         state.ink = drawCanvas.toDataURL("image/png");
         syncJSONBoxDebounced();
       });
 
-      $("#clearInk").addEventListener("click", () => {
+      /* Vector tools */
+      annoSvg.addEventListener("pointerdown", (e) => {
+        if (!drawMode.on) return;
+        const tool = $("#drawTool").value;
+        if (tool === "pen" || tool === "highlighter") return;
+
+        drawMode.drawing = true;
+        annoSvg.setPointerCapture(e.pointerId);
+        const p = boardPointFromEvent(e);
+        drawMode.start = p;
+
+        const s = annoSettings();
+        const temp = {
+          id: "temp",
+          type: tool,
+          x1: p.x,
+          y1: p.y,
+          x2: p.x,
+          y2: p.y,
+          color: s.color,
+          w: s.w,
+          fill: s.fill,
+        };
+        drawMode.tempNode = buildAnnoNode(temp);
+        renderAnnos();
+        e.preventDefault();
+      });
+      annoSvg.addEventListener("pointermove", (e) => {
+        if (!drawMode.on || !drawMode.drawing) return;
+        const tool = $("#drawTool").value;
+        if (tool === "pen" || tool === "highlighter") return;
+
+        const p = boardPointFromEvent(e);
+        const s = annoSettings();
+        const st = drawMode.start;
+        if (!st) return;
+
+        const temp = {
+          id: "temp",
+          type: tool,
+          x1: st.x,
+          y1: st.y,
+          x2: p.x,
+          y2: p.y,
+          color: s.color,
+          w: s.w,
+          fill: s.fill,
+        };
+        drawMode.tempNode = buildAnnoNode(temp);
+        renderAnnos();
+      });
+      annoSvg.addEventListener("pointerup", (e) => {
+        if (!drawMode.on) return;
+        const tool = $("#drawTool").value;
+        if (tool === "pen" || tool === "highlighter") return;
+
+        if (!drawMode.drawing) return;
+        drawMode.drawing = false;
+
+        const p = boardPointFromEvent(e);
+        const s = annoSettings();
+        const st = drawMode.start || p;
+
+        if (Math.abs(p.x - st.x) < 3 && Math.abs(p.y - st.y) < 3) {
+          drawMode.start = null;
+          drawMode.tempNode = null;
+          renderAnnos();
+          return;
+        }
+
+        state.annos.push({
+          id: aid(),
+          type: tool,
+          x1: st.x,
+          y1: st.y,
+          x2: p.x,
+          y2: p.y,
+          color: s.color,
+          w: s.w,
+          fill: s.fill,
+        });
+
+        drawMode.start = null;
+        drawMode.tempNode = null;
+        renderAnnos();
+        syncJSONBoxDebounced();
+      });
+
+      $("#clearAnno").addEventListener("click", () => {
+        state.annos = [];
+        renderAnnos();
         dctx.clearRect(0, 0, board.clientWidth, board.clientHeight);
         state.ink = null;
         syncJSONBoxDebounced();
       });
 
-      /* ================== Export PNG ================== */
+      /* Export PNG */
       function exportPNG() {
-        // quick export: compose board screenshot by serializing DOM via SVG foreignObject (simple approach)
-        // Works in most modern browsers. If not, you can still use browser screenshot.
         const bw = board.clientWidth,
           bh = board.clientHeight;
 
-        // clone board
         const clone = board.cloneNode(true);
-        // remove guides, handles visuals? keep them off by removing selected styles
         clone
           .querySelectorAll(".handle,.rhandle,.rstick,.hdr .mini,.guide")
           .forEach((n) => n.remove());
         clone
           .querySelectorAll(".el")
           .forEach((n) => n.classList.remove("selected"));
-        // keep links + ink
-        // ensure canvas -> image
+
         const cnv = clone.querySelector("#drawCanvas");
         if (cnv) {
           const img = document.createElement("img");
@@ -1982,14 +2480,14 @@ print("sum(10) =", sum(10));`,
         img.onerror = () => {
           URL.revokeObjectURL(url);
           alert(
-            "PNG export failed in this browser. Use a screenshot, or try Chrome/Edge."
+            "PNG export failed in this browser. Try Chrome/Edge, or use a screenshot."
           );
         };
         img.src = url;
       }
       $("#exportPNG").addEventListener("click", exportPNG);
 
-      /* ================== Init ================== */
+      /* Init */
       function init() {
         state.boardBg = "#0a0a0a";
         board.style.background = state.boardBg;
@@ -1998,11 +2496,11 @@ print("sum(10) =", sum(10));`,
         $("#safeToggle").checked = false;
         $("#snapToggle").checked = true;
 
-        // starter blocks
         addShape();
         addNote();
         addCode();
         addOutput();
+
         // connect shape -> code -> output
         const ids = Object.keys(state.els);
         const shapeId = ids.find((x) => state.els[x].type === "shape");
@@ -2015,20 +2513,14 @@ print("sum(10) =", sum(10));`,
         updateSelectionUI();
         refreshList();
         renderLinks();
+        renderAnnos();
+
+        // start with help closed
+        setHelp(false);
       }
       init();
 
-      /* board click: deselect */
-      board.addEventListener("pointerdown", (e) => {
-        if (drawMode.on) return;
-        if (e.target === board) {
-          selected.clear();
-          activePrimary = null;
-          updateSelectionUI();
-        }
-      });
-
-      /* keyboard delete */
+      /* keyboard delete for blocks */
       window.addEventListener("keydown", (e) => {
         if (drawMode.on) return;
         if (e.key === "Delete" || e.key === "Backspace") {
