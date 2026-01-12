@@ -1,0 +1,2064 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>
+        PRO — Drag • Resize • Rotate • Align • Save/Export •
+      Slide FX
+    </title>
+    <style>
+      :root {
+        --bg: #fff7e6;
+        --card: #fff;
+        --ink: #1f2937;
+        --muted: #6b7280;
+        --brand: #d97706;
+        --brand2: #f59e0b;
+        --border: #eadcc5;
+        --shadow: 0 18px 40px rgba(31, 41, 55, 0.14);
+        --grid: rgba(255, 255, 255, 0.08);
+        --snap: rgba(245, 158, 11, 0.95);
+        --safe: rgba(255, 255, 255, 0.18);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+        background: var(--bg);
+        color: var(--ink);
+      }
+      .wrap {
+        max-width: 1400px;
+        margin: 18px auto;
+        padding: 14px;
+      }
+      h1 {
+        margin: 6px 0 14px;
+        text-align: center;
+        color: var(--brand);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 380px 1fr;
+        gap: 14px;
+        align-items: start;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        box-shadow: var(--shadow);
+        padding: 14px;
+      }
+      label {
+        display: block;
+        font-size: 13px;
+        font-weight: 900;
+        margin-top: 10px;
+      }
+      input,
+      select,
+      textarea,
+      button {
+        width: 100%;
+        margin-top: 6px;
+        padding: 9px 10px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        font-size: 14px;
+      }
+      textarea {
+        resize: vertical;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .row3 {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 10px;
+      }
+      .btn {
+        background: linear-gradient(135deg, var(--brand), var(--brand2));
+        color: #fff;
+        border: 0;
+        cursor: pointer;
+        font-weight: 900;
+      }
+      .btn.secondary {
+        background: #fff;
+        color: var(--brand);
+        border: 1px solid var(--brand);
+      }
+      .btn.ghost {
+        background: transparent;
+        border: 1px dashed var(--border);
+        color: var(--ink);
+        font-weight: 800;
+      }
+      .pill {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: #fff;
+        box-shadow: 0 8px 20px rgba(31, 41, 55, 0.08);
+      }
+      .small {
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.35;
+        margin-top: 8px;
+      }
+      hr {
+        border: none;
+        border-top: 1px solid var(--border);
+        margin: 14px 0;
+      }
+
+      /* BOARD */
+      .boardWrap {
+        position: relative;
+      }
+      #board {
+        width: 100%;
+        aspect-ratio: 16/9;
+        background: #000;
+        border-radius: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        overflow: hidden;
+        position: relative;
+      }
+      #board.gridOn {
+        background-image: linear-gradient(
+            to right,
+            var(--grid) 1px,
+            transparent 1px
+          ),
+          linear-gradient(to bottom, var(--grid) 1px, transparent 1px);
+        background-size: 30px 30px;
+      }
+      #safeArea {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        display: none;
+      }
+      #safeArea::before {
+        content: "";
+        position: absolute;
+        left: 5%;
+        top: 5%;
+        right: 5%;
+        bottom: 5%;
+        border: 2px dashed var(--safe);
+        border-radius: 14px;
+      }
+
+      /* Snap guide lines */
+      .guide {
+        position: absolute;
+        pointer-events: none;
+        display: none;
+        z-index: 99999;
+        background: var(--snap);
+        opacity: 0.9;
+      }
+      #vGuide {
+        width: 2px;
+        top: 0;
+        bottom: 0;
+      }
+      #hGuide {
+        height: 2px;
+        left: 0;
+        right: 0;
+      }
+
+      /* ELEMENT */
+      .el {
+        position: absolute;
+        border-radius: 14px;
+        overflow: visible;
+        user-select: none;
+        touch-action: none;
+        z-index: 5;
+      }
+      .el .box {
+        position: absolute;
+        inset: 0;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+        background: rgba(0, 0, 0, 0.15);
+      }
+      .el.selected .box {
+        outline: 2px solid rgba(245, 158, 11, 0.95);
+        outline-offset: 2px;
+      }
+      .el .hdr {
+        position: absolute;
+        left: 0;
+        top: 0;
+        right: 0;
+        padding: 7px 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        background: linear-gradient(
+          180deg,
+          rgba(0, 0, 0, 0.55),
+          rgba(0, 0, 0, 0)
+        );
+        color: #fff;
+        font-size: 12px;
+        border-radius: 14px 14px 0 0;
+      }
+      .el .hdr b {
+        font-weight: 900;
+      }
+      .el .hdr .mini {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+      .iconBtn {
+        width: auto;
+        padding: 6px 8px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(0, 0, 0, 0.25);
+        color: #fff;
+        cursor: pointer;
+        font-weight: 900;
+        font-size: 12px;
+      }
+      .iconBtn:hover {
+        background: rgba(0, 0, 0, 0.4);
+      }
+      .content {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* Resize handles */
+      .handle {
+        position: absolute;
+        width: 12px;
+        height: 12px;
+        border-radius: 4px;
+        background: rgba(245, 158, 11, 0.95);
+        border: 1px solid rgba(0, 0, 0, 0.35);
+      }
+      .handle.br {
+        right: -6px;
+        bottom: -6px;
+        cursor: nwse-resize;
+      }
+      .handle.tr {
+        right: -6px;
+        top: 22px;
+        cursor: nesw-resize;
+      }
+      .handle.bl {
+        left: -6px;
+        bottom: -6px;
+        cursor: nesw-resize;
+      }
+      .handle.tl {
+        left: -6px;
+        top: 22px;
+        cursor: nwse-resize;
+      }
+
+      /* Rotate handle */
+      .rhandle {
+        position: absolute;
+        left: 50%;
+        top: -26px;
+        transform: translateX(-50%);
+        width: 16px;
+        height: 16px;
+        border-radius: 999px;
+        background: rgba(245, 158, 11, 0.95);
+        border: 1px solid rgba(0, 0, 0, 0.35);
+        cursor: grab;
+      }
+      .rstick {
+        position: absolute;
+        left: 50%;
+        top: -14px;
+        transform: translateX(-50%);
+        width: 2px;
+        height: 14px;
+        background: rgba(245, 158, 11, 0.85);
+      }
+
+      /* Text */
+      .textBlock {
+        width: 100%;
+        padding: 18px 16px;
+        text-align: center;
+        font-weight: 900;
+        white-space: nowrap;
+        will-change: transform, opacity;
+      }
+      .textBlock.wrapLines {
+        white-space: normal;
+      }
+
+      /* Text FX */
+      @keyframes scrollLeft {
+        from {
+          transform: translateX(110%);
+        }
+        to {
+          transform: translateX(-110%);
+        }
+      }
+      @keyframes scrollRight {
+        from {
+          transform: translateX(-110%);
+        }
+        to {
+          transform: translateX(110%);
+        }
+      }
+      @keyframes fade {
+        0%,
+        100% {
+          opacity: 0;
+        }
+        50% {
+          opacity: 1;
+        }
+      }
+      @keyframes zoom {
+        0% {
+          transform: scale(0.6);
+        }
+        50% {
+          transform: scale(1.18);
+        }
+        100% {
+          transform: scale(0.6);
+        }
+      }
+      @keyframes bounce {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-22px);
+        }
+      }
+      .fx-scroll-left {
+        animation: scrollLeft linear infinite;
+      }
+      .fx-scroll-right {
+        animation: scrollRight linear infinite;
+      }
+      .fx-fade {
+        animation: fade ease-in-out infinite;
+      }
+      .fx-zoom {
+        animation: zoom ease-in-out infinite;
+      }
+      .fx-bounce {
+        animation: bounce ease-in-out infinite;
+      }
+
+      /* Slideshow */
+      .slideBox {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        background: #000;
+      }
+      .slideBox img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        opacity: 0;
+        transform: translate3d(0, 0, 0) scale(1);
+        transition: opacity 700ms ease;
+      }
+      .slideBox img.active {
+        opacity: 1;
+      }
+      .slideBox.fx-fade img {
+        transition: opacity var(--dur) ease;
+      }
+      .slideBox.fx-slide-left img {
+        transition: opacity var(--dur) ease, transform var(--dur) ease;
+      }
+      .slideBox.fx-slide-right img {
+        transition: opacity var(--dur) ease, transform var(--dur) ease;
+      }
+      .slideBox.fx-slide-up img {
+        transition: opacity var(--dur) ease, transform var(--dur) ease;
+      }
+      .slideBox.fx-slide-down img {
+        transition: opacity var(--dur) ease, transform var(--dur) ease;
+      }
+      .slideBox.fx-zoom img {
+        transition: opacity var(--dur) ease, transform var(--dur) ease;
+      }
+      .slideBox.fx-flip img {
+        transition: opacity var(--dur) ease, transform var(--dur) ease;
+      }
+
+      /* entering/leaving states for slide FX */
+      .slideBox img.toLeft {
+        transform: translateX(-12%);
+      }
+      .slideBox img.fromRight {
+        transform: translateX(12%);
+      }
+      .slideBox img.toRight {
+        transform: translateX(12%);
+      }
+      .slideBox img.fromLeft {
+        transform: translateX(-12%);
+      }
+      .slideBox img.toUp {
+        transform: translateY(-12%);
+      }
+      .slideBox img.fromDown {
+        transform: translateY(12%);
+      }
+      .slideBox img.toDown {
+        transform: translateY(12%);
+      }
+      .slideBox img.fromUp {
+        transform: translateY(-12%);
+      }
+      .slideBox img.kenburns {
+        transform: scale(1.12);
+      }
+      .slideBox img.flip {
+        transform: rotateY(12deg) scale(1.02);
+      }
+
+      /* List */
+      .list {
+        margin-top: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .item {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 10px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .item small {
+        color: var(--muted);
+        display: block;
+      }
+      .item .actions {
+        display: flex;
+        gap: 6px;
+      }
+      .item button {
+        width: auto;
+        padding: 7px 9px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: #fff;
+        cursor: pointer;
+      }
+      .item button:hover {
+        border-color: #f59e0b;
+      }
+
+      @media (max-width: 1020px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>🪧 Ad Board Designer PRO (Slideshow FX Added)</h1>
+
+      <div class="grid">
+        <!-- LEFT -->
+        <div class="card">
+          <div class="pill">
+            <span><b>Tools</b></span>
+            <span style="display: flex; gap: 10px; align-items: center">
+              <label style="margin: 0; font-size: 12px; font-weight: 900"
+                >Grid</label
+              >
+              <input
+                id="gridToggle"
+                type="checkbox"
+                style="width: auto; margin: 0"
+              />
+              <label style="margin: 0; font-size: 12px; font-weight: 900"
+                >Safe</label
+              >
+              <input
+                id="safeToggle"
+                type="checkbox"
+                style="width: auto; margin: 0"
+              />
+              <label style="margin: 0; font-size: 12px; font-weight: 900"
+                >Snap</label
+              >
+              <input
+                id="snapToggle"
+                type="checkbox"
+                style="width: auto; margin: 0"
+                checked
+              />
+            </span>
+          </div>
+
+          <div class="row">
+            <button class="btn" id="addTextBtn">➕ Text Block</button>
+            <button class="btn" id="addSlideBtn">🖼️ Slideshow</button>
+          </div>
+
+          <div class="row">
+            <button class="btn secondary" id="fullscreenBtn">
+              ⛶ Fullscreen
+            </button>
+            <button class="btn secondary" id="dupBtn">⎘ Duplicate</button>
+          </div>
+
+          <hr />
+
+          <div id="propsEmpty" class="small">
+            Click an element to edit. Move: drag • Resize: corners • Rotate: top
+            dot.
+          </div>
+
+          <div id="props" style="display: none">
+            <div class="pill" style="justify-content: space-between">
+              <span
+                ><b id="selTitle">Selected</b>
+                <span id="selCount" class="small" style="margin: 0"></span
+              ></span>
+              <button class="iconBtn" id="deleteSel">Delete</button>
+            </div>
+
+            <div id="textProps" style="display: none">
+              <label>Text</label>
+              <textarea id="pText" rows="2">Big Sale Today!</textarea>
+
+              <div class="row">
+                <div>
+                  <label>Text Color</label>
+                  <input type="color" id="pTextColor" value="#ffffff" />
+                </div>
+                <div>
+                  <label>Font Size (px)</label>
+                  <input
+                    type="number"
+                    id="pFontSize"
+                    value="56"
+                    min="10"
+                    max="220"
+                  />
+                </div>
+              </div>
+
+              <div class="row">
+                <div>
+                  <label>Effect</label>
+                  <select id="pEffect">
+                    <option value="none">None</option>
+                    <option value="scroll-left">Scroll Left</option>
+                    <option value="scroll-right">Scroll Right</option>
+                    <option value="fade">Fade</option>
+                    <option value="zoom">Zoom</option>
+                    <option value="bounce">Bounce</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Speed (sec)</label>
+                  <input type="number" id="pSpeed" value="6" min="1" max="60" />
+                </div>
+              </div>
+
+              <label
+                ><input
+                  type="checkbox"
+                  id="pWrap"
+                  style="width: auto; margin-right: 8px"
+                />Allow multi-line wrap</label
+              >
+            </div>
+
+            <!-- Slideshow props with FX -->
+            <div id="slideProps" style="display: none">
+              <label>Upload Images (for this slideshow)</label>
+              <input type="file" id="pSlideFiles" multiple accept="image/*" />
+
+              <div class="row">
+                <div>
+                  <label>Slide Interval (ms)</label>
+                  <input
+                    type="number"
+                    id="pInterval"
+                    value="2500"
+                    min="400"
+                    max="20000"
+                  />
+                </div>
+                <div>
+                  <label>Fit</label>
+                  <select id="pFit">
+                    <option value="cover">Cover</option>
+                    <option value="contain">Contain</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="row">
+                <div>
+                  <label>Slideshow Animation</label>
+                  <select id="pSlideFx">
+                    <option value="fade">Fade</option>
+                    <option value="slide-left">Slide Left</option>
+                    <option value="slide-right">Slide Right</option>
+                    <option value="slide-up">Slide Up</option>
+                    <option value="slide-down">Slide Down</option>
+                    <option value="zoom">Zoom (Ken Burns)</option>
+                    <option value="flip">Flip (Subtle)</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Transition Duration (ms)</label>
+                  <input
+                    type="number"
+                    id="pDur"
+                    value="700"
+                    min="100"
+                    max="5000"
+                  />
+                </div>
+              </div>
+
+              <div class="row">
+                <button class="btn secondary" id="prevSlide" type="button">
+                  ◀ Prev
+                </button>
+                <button class="btn secondary" id="nextSlide" type="button">
+                  Next ▶
+                </button>
+              </div>
+              <div class="small">
+                Tip: Resize the slideshow box + choose FX for classy
+                transitions.
+              </div>
+            </div>
+
+            <hr />
+
+            <div class="row">
+              <button class="btn secondary" id="bringFront" type="button">
+                Bring Front
+              </button>
+              <button class="btn secondary" id="sendBack" type="button">
+                Send Back
+              </button>
+            </div>
+
+            <div class="row">
+              <div>
+                <label>Rotation (deg)</label>
+                <input type="number" id="pRot" value="0" min="-180" max="180" />
+              </div>
+              <div>
+                <label>Opacity</label>
+                <input
+                  type="number"
+                  id="pOpacity"
+                  value="1"
+                  min="0.05"
+                  max="1"
+                  step="0.05"
+                />
+              </div>
+            </div>
+
+            <label>Board Background</label>
+            <input type="color" id="boardBg" value="#000000" />
+          </div>
+
+          <hr />
+
+          <div class="pill"><b>Save / Load / Export</b></div>
+          <div class="row">
+            <button class="btn secondary" id="saveLocal" type="button">
+              Save (Local)
+            </button>
+            <button class="btn secondary" id="loadLocal" type="button">
+              Load (Local)
+            </button>
+          </div>
+
+          <label>Layout JSON</label>
+          <textarea id="jsonBox" rows="6" spellcheck="false"></textarea>
+          <div class="row">
+            <button class="btn secondary" id="copyJSON" type="button">
+              Copy JSON
+            </button>
+            <button class="btn secondary" id="applyJSON" type="button">
+              Apply JSON
+            </button>
+          </div>
+
+          <div class="row">
+            <button class="btn" id="exportPlay" type="button">
+              ⬇ Export Play Mode HTML
+            </button>
+            <button class="btn ghost" id="clearAll" type="button">
+              Clear Board
+            </button>
+          </div>
+
+          <hr />
+          <div class="pill"><b>Elements</b></div>
+          <div class="list" id="elementsList"></div>
+
+          <div class="small">
+            Uploaded images are blob URLs; for portable exported HTML, use
+            hosted image URLs or add Base64 mode later.
+          </div>
+        </div>
+
+        <!-- RIGHT: BOARD -->
+        <div class="card boardWrap">
+          <div id="board">
+            <div id="safeArea"></div>
+            <div id="vGuide" class="guide"></div>
+            <div id="hGuide" class="guide"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      /* ================== Core ================== */
+      const $ = (q) => document.querySelector(q);
+      const board = $("#board");
+      const vGuide = $("#vGuide");
+      const hGuide = $("#hGuide");
+      const safeArea = $("#safeArea");
+      const elementsList = $("#elementsList");
+      const jsonBox = $("#jsonBox");
+
+      let zTop = 10;
+      let selected = new Set();
+      let activePrimary = null;
+      const state = { version: 2, boardBg: "#000000", els: {} };
+
+      function uid() {
+        return "el_" + Math.random().toString(16).slice(2, 10);
+      }
+      function clamp(v, a, b) {
+        return Math.max(a, Math.min(b, v));
+      }
+      function snapOn() {
+        return $("#snapToggle").checked;
+      }
+      function snapGrid(v, size = 10) {
+        return $("#gridToggle").checked ? Math.round(v / size) * size : v;
+      }
+
+      function safeBounds() {
+        const bw = board.clientWidth,
+          bh = board.clientHeight;
+        return {
+          left: bw * 0.05,
+          right: bw * 0.95,
+          top: bh * 0.05,
+          bottom: bh * 0.95,
+        };
+      }
+      function showV(x) {
+        vGuide.style.display = "block";
+        vGuide.style.left = x + "px";
+      }
+      function showH(y) {
+        hGuide.style.display = "block";
+        hGuide.style.top = y + "px";
+      }
+      function hideGuides() {
+        vGuide.style.display = "none";
+        hGuide.style.display = "none";
+      }
+
+      function otherRects(exceptId) {
+        const out = [];
+        for (const id of Object.keys(state.els)) {
+          if (id === exceptId) continue;
+          const d = state.els[id];
+          out.push({
+            id,
+            l: d.x,
+            r: d.x + d.w,
+            t: d.y,
+            b: d.y + d.h,
+            cx: d.x + d.w / 2,
+            cy: d.y + d.h / 2,
+          });
+        }
+        return out;
+      }
+      function snapValue(val, targets, threshold = 8) {
+        let best = { delta: 0, hit: false, guide: null };
+        let min = threshold + 1;
+        for (const t of targets) {
+          const diff = t - val;
+          const ad = Math.abs(diff);
+          if (ad < min) {
+            min = ad;
+            best = { delta: diff, hit: true, guide: t };
+          }
+        }
+        return best;
+      }
+
+      /* ================== Element Building ================== */
+      function createElementNode({ id, title }) {
+        const el = document.createElement("div");
+        el.className = "el";
+        el.dataset.id = id;
+
+        const box = document.createElement("div");
+        box.className = "box";
+        el.appendChild(box);
+
+        const hdr = document.createElement("div");
+        hdr.className = "hdr";
+        hdr.innerHTML = `<b>${title}</b>
+    <span class="mini">
+      <button class="iconBtn" data-act="front">▲</button>
+      <button class="iconBtn" data-act="back">▼</button>
+      <button class="iconBtn" data-act="del">✕</button>
+    </span>`;
+        box.appendChild(hdr);
+
+        const content = document.createElement("div");
+        content.className = "content";
+        box.appendChild(content);
+
+        ["tl", "tr", "bl", "br"].forEach((pos) => {
+          const h = document.createElement("div");
+          h.className = "handle " + pos;
+          h.dataset.handle = pos;
+          el.appendChild(h);
+        });
+
+        const stick = document.createElement("div");
+        stick.className = "rstick";
+        const rh = document.createElement("div");
+        rh.className = "rhandle";
+        rh.dataset.rotate = "1";
+        el.appendChild(stick);
+        el.appendChild(rh);
+
+        el.addEventListener("pointerdown", (e) => {
+          const actBtn = e.target.closest("button[data-act]");
+          if (actBtn) {
+            e.stopPropagation();
+            const act = actBtn.dataset.act;
+            if (act === "del") removeEl(id);
+            if (act === "front") bringToFront(id);
+            if (act === "back") sendToBack(id);
+            return;
+          }
+          if (e.shiftKey) {
+            if (selected.has(id)) selected.delete(id);
+            else selected.add(id);
+            activePrimary = id;
+            updateSelectionUI();
+          } else {
+            selected.clear();
+            selected.add(id);
+            activePrimary = id;
+            updateSelectionUI();
+          }
+        });
+
+        enableDragResizeRotate(el);
+        board.appendChild(el);
+        return { el, content };
+      }
+
+      /* ================== Add Blocks ================== */
+      function addTextBlock() {
+        const id = uid();
+        state.els[id] = {
+          id,
+          type: "text",
+          title: "Text",
+          x: 60,
+          y: 60,
+          w: 520,
+          h: 120,
+          rot: 0,
+          opacity: 1,
+          text: "Big Sale Today!",
+          color: "#ffffff",
+          size: 56,
+          effect: "scroll-left",
+          speed: 6,
+          wrap: false,
+          z: ++zTop,
+        };
+        const { content } = createElementNode({ id, title: "Text" });
+        const t = document.createElement("div");
+        t.className = "textBlock";
+        content.appendChild(t);
+        renderEl(id);
+        selected.clear();
+        selected.add(id);
+        activePrimary = id;
+        updateSelectionUI();
+        refreshList();
+        syncJSONBox();
+      }
+      function addSlideshowBlock() {
+        const id = uid();
+        state.els[id] = {
+          id,
+          type: "slideshow",
+          title: "Slideshow",
+          x: 90,
+          y: 220,
+          w: 560,
+          h: 300,
+          rot: 0,
+          opacity: 1,
+          interval: 2500,
+          fit: "cover",
+          fx: "fade",
+          dur: 700,
+          images: [],
+          index: 0,
+          timer: null,
+          z: ++zTop,
+        };
+        const { content } = createElementNode({ id, title: "Slideshow" });
+        const box = document.createElement("div");
+        box.className = "slideBox";
+        content.appendChild(box);
+        renderEl(id);
+        selected.clear();
+        selected.add(id);
+        activePrimary = id;
+        updateSelectionUI();
+        refreshList();
+        syncJSONBox();
+      }
+
+      /* ================== Rendering ================== */
+      function stopSlide(id) {
+        const d = state.els[id];
+        if (d && d.timer) {
+          clearInterval(d.timer);
+          d.timer = null;
+        }
+      }
+
+      function applySlideFx(box, d) {
+        // set class + css var duration
+        box.classList.remove(
+          "fx-fade",
+          "fx-slide-left",
+          "fx-slide-right",
+          "fx-slide-up",
+          "fx-slide-down",
+          "fx-zoom",
+          "fx-flip"
+        );
+        const map = {
+          fade: "fx-fade",
+          "slide-left": "fx-slide-left",
+          "slide-right": "fx-slide-right",
+          "slide-up": "fx-slide-up",
+          "slide-down": "fx-slide-down",
+          zoom: "fx-zoom",
+          flip: "fx-flip",
+        };
+        box.classList.add(map[d.fx] || "fx-fade");
+        box.style.setProperty("--dur", (d.dur || 700) + "ms");
+      }
+
+      function renderEl(id) {
+        const d = state.els[id];
+        const node = board.querySelector(`.el[data-id="${id}"]`);
+        if (!d || !node) return;
+
+        node.style.left = d.x + "px";
+        node.style.top = d.y + "px";
+        node.style.width = d.w + "px";
+        node.style.height = d.h + "px";
+        node.style.zIndex = String(d.z ?? 5);
+        node.style.opacity = String(d.opacity ?? 1);
+        node.style.transformOrigin = "center center";
+        node.style.transform = `rotate(${d.rot || 0}deg)`;
+        node.classList.toggle("selected", selected.has(id));
+
+        if (d.type === "text") {
+          const t = node.querySelector(".textBlock");
+          t.textContent = d.text || "";
+          t.style.color = d.color || "#fff";
+          t.style.fontSize = (d.size || 56) + "px";
+          t.classList.toggle("wrapLines", !!d.wrap);
+
+          t.classList.remove(
+            "fx-scroll-left",
+            "fx-scroll-right",
+            "fx-fade",
+            "fx-zoom",
+            "fx-bounce"
+          );
+          t.style.animationDuration = "";
+          if (d.effect && d.effect !== "none") {
+            const map = {
+              "scroll-left": "fx-scroll-left",
+              "scroll-right": "fx-scroll-right",
+              fade: "fx-fade",
+              zoom: "fx-zoom",
+              bounce: "fx-bounce",
+            };
+            t.classList.add(map[d.effect] || "");
+            t.style.animationDuration = (d.speed || 6) + "s";
+          }
+        }
+
+        if (d.type === "slideshow") {
+          const box = node.querySelector(".slideBox");
+          applySlideFx(box, d);
+
+          box.innerHTML = "";
+          (d.images || []).forEach((src, i) => {
+            const img = document.createElement("img");
+            img.src = src;
+            img.style.objectFit = d.fit || "cover";
+            if (i === d.index) img.classList.add("active");
+            box.appendChild(img);
+          });
+
+          stopSlide(id);
+          if ((d.images || []).length >= 2) {
+            d.timer = setInterval(() => nextSlideFor(id), d.interval || 2500);
+          }
+        }
+      }
+
+      function renderAll() {
+        Object.keys(state.els).forEach(renderEl);
+        board.style.background = state.boardBg || "#000";
+      }
+
+      /* transition helper */
+      function swapSlide(node, d, nextIndex) {
+        const box = node.querySelector(".slideBox");
+        const imgs = box.querySelectorAll("img");
+        if (!imgs.length) return;
+
+        const cur = imgs[d.index];
+        const next = imgs[nextIndex];
+        if (!cur || !next) return;
+
+        // clear classes
+        imgs.forEach((im) => {
+          im.classList.remove(
+            "toLeft",
+            "toRight",
+            "toUp",
+            "toDown",
+            "fromLeft",
+            "fromRight",
+            "fromUp",
+            "fromDown",
+            "kenburns",
+            "flip"
+          );
+        });
+
+        // prep next position
+        const fx = d.fx || "fade";
+        if (fx === "slide-left") {
+          next.classList.add("fromRight");
+        }
+        if (fx === "slide-right") {
+          next.classList.add("fromLeft");
+        }
+        if (fx === "slide-up") {
+          next.classList.add("fromDown");
+        }
+        if (fx === "slide-down") {
+          next.classList.add("fromUp");
+        }
+        if (fx === "zoom") {
+          next.classList.add("kenburns");
+        }
+        if (fx === "flip") {
+          next.classList.add("flip");
+        }
+
+        // make next visible
+        next.classList.add("active");
+        // force style flush (important for transform start)
+        void next.offsetWidth;
+
+        // animate out current, animate in next (via transitions)
+        if (fx === "slide-left") {
+          cur.classList.add("toLeft");
+          next.classList.remove("fromRight");
+        }
+        if (fx === "slide-right") {
+          cur.classList.add("toRight");
+          next.classList.remove("fromLeft");
+        }
+        if (fx === "slide-up") {
+          cur.classList.add("toUp");
+          next.classList.remove("fromDown");
+        }
+        if (fx === "slide-down") {
+          cur.classList.add("toDown");
+          next.classList.remove("fromUp");
+        }
+        if (fx === "zoom") {
+          /* kenburns already applied */
+        }
+        if (fx === "flip") {
+          /* flip already applied */
+        }
+
+        // fade out current by removing active after a tick
+        const dur = Math.max(100, d.dur || 700);
+        setTimeout(() => {
+          cur.classList.remove("active");
+          // cleanup movement classes
+          cur.classList.remove("toLeft", "toRight", "toUp", "toDown");
+        }, dur);
+      }
+
+      function nextSlideFor(id) {
+        const d = state.els[id];
+        if (!d || d.type !== "slideshow" || (d.images || []).length < 2) return;
+        const nextIndex = (d.index + 1) % d.images.length;
+        const node = board.querySelector(`.el[data-id="${id}"]`);
+        if (!node) return;
+        swapSlide(node, d, nextIndex);
+        d.index = nextIndex;
+      }
+      function prevSlideFor(id) {
+        const d = state.els[id];
+        if (!d || d.type !== "slideshow" || (d.images || []).length < 2) return;
+        const nextIndex = (d.index - 1 + d.images.length) % d.images.length;
+        const node = board.querySelector(`.el[data-id="${id}"]`);
+        if (!node) return;
+        swapSlide(node, d, nextIndex);
+        d.index = nextIndex;
+      }
+
+      /* ================== Drag/Resize/Rotate (with snapping) ================== */
+      function enableDragResizeRotate(node) {
+        let mode = null;
+        let start = null;
+
+        node.addEventListener("pointerdown", (e) => {
+          const id = node.dataset.id;
+          const d = state.els[id];
+          if (!d) return;
+          if (e.target.closest(".hdr button[data-act]")) return;
+
+          const rotHandle = e.target.closest(".rhandle");
+          const handle = e.target.closest(".handle");
+
+          if (rotHandle) {
+            mode = "rot";
+            const nr = node.getBoundingClientRect();
+            const cx = (nr.left + nr.right) / 2;
+            const cy = (nr.top + nr.bottom) / 2;
+            start = { id, cx, cy, startRot: d.rot || 0 };
+            node.setPointerCapture(e.pointerId);
+            e.preventDefault();
+            return;
+          }
+          if (handle) {
+            mode = handle.dataset.handle;
+            start = {
+              id,
+              px: e.clientX,
+              py: e.clientY,
+              ox: d.x,
+              oy: d.y,
+              ow: d.w,
+              oh: d.h,
+            };
+            node.setPointerCapture(e.pointerId);
+            e.preventDefault();
+            return;
+          }
+          mode = "drag";
+          start = { id, px: e.clientX, py: e.clientY, ox: d.x, oy: d.y };
+          node.setPointerCapture(e.pointerId);
+          e.preventDefault();
+        });
+
+        node.addEventListener("pointermove", (e) => {
+          if (!mode || !start) return;
+          const id = start.id;
+          const d = state.els[id];
+          if (!d) return;
+
+          const bw = board.clientWidth,
+            bh = board.clientHeight;
+          const sb = safeBounds();
+          const others = otherRects(id);
+          const threshold = 8;
+
+          if (mode === "rot") {
+            const ang = Math.atan2(e.clientY - start.cy, e.clientX - start.cx);
+            const deg = ang * (180 / Math.PI) + 90;
+            d.rot = Math.round(deg);
+            $("#pRot").value = d.rot;
+            renderEl(id);
+            syncJSONBoxDebounced();
+            return;
+          }
+
+          const dx = e.clientX - start.px;
+          const dy = e.clientY - start.py;
+
+          if (mode === "drag") {
+            let nx = snapGrid(start.ox + dx);
+            let ny = snapGrid(start.oy + dy);
+
+            nx = clamp(nx, 0, bw - d.w);
+            ny = clamp(ny, 0, bh - d.h);
+
+            if (snapOn()) {
+              const l = nx,
+                r = nx + d.w,
+                t = ny,
+                b = ny + d.h,
+                cx = nx + d.w / 2,
+                cy = ny + d.h / 2;
+              const xTargets = [0, bw / 2, bw, sb.left, sb.right];
+              const yTargets = [0, bh / 2, bh, sb.top, sb.bottom];
+              for (const o of others) {
+                xTargets.push(o.l, o.r, o.cx);
+                yTargets.push(o.t, o.b, o.cy);
+              }
+
+              let bestX = { delta: 0, hit: false, guide: null };
+              for (const v of [l, r, cx]) {
+                const s = snapValue(v, xTargets, threshold);
+                if (
+                  s.hit &&
+                  (!bestX.hit || Math.abs(s.delta) < Math.abs(bestX.delta))
+                )
+                  bestX = s;
+              }
+              let bestY = { delta: 0, hit: false, guide: null };
+              for (const v of [t, b, cy]) {
+                const s = snapValue(v, yTargets, threshold);
+                if (
+                  s.hit &&
+                  (!bestY.hit || Math.abs(s.delta) < Math.abs(bestY.delta))
+                )
+                  bestY = s;
+              }
+
+              if (bestX.hit) {
+                nx += bestX.delta;
+                showV(bestX.guide);
+              } else vGuide.style.display = "none";
+              if (bestY.hit) {
+                ny += bestY.delta;
+                showH(bestY.guide);
+              } else hGuide.style.display = "none";
+            } else hideGuides();
+
+            d.x = nx;
+            d.y = ny;
+            renderEl(id);
+            refreshList(false);
+            syncJSONBoxDebounced();
+            return;
+          }
+
+          // resize
+          const minW = 120,
+            minH = 70;
+          let x = d.x,
+            y = d.y,
+            w = d.w,
+            h = d.h;
+
+          if (mode.includes("r")) w = Math.max(minW, snapGrid(start.ow + dx));
+          if (mode.includes("l")) {
+            const nw = Math.max(minW, snapGrid(start.ow - dx));
+            const nx = snapGrid(start.ox + dx);
+            w = nw;
+            x = nx;
+          }
+          if (mode.includes("b")) h = Math.max(minH, snapGrid(start.oh + dy));
+          if (mode.includes("t")) {
+            const nh = Math.max(minH, snapGrid(start.oh - dy));
+            const ny = snapGrid(start.oy + dy);
+            h = nh;
+            y = ny;
+          }
+
+          x = clamp(x, 0, bw - w);
+          y = clamp(y, 0, bh - h);
+
+          if (snapOn()) {
+            const r = x + w,
+              b = y + h;
+            const xTargets = [0, bw / 2, bw, sb.left, sb.right];
+            const yTargets = [0, bh / 2, bh, sb.top, sb.bottom];
+            for (const o of others) {
+              xTargets.push(o.l, o.r, o.cx);
+              yTargets.push(o.t, o.b, o.cy);
+            }
+
+            const sxR = snapValue(r, xTargets, threshold);
+            const syB = snapValue(b, yTargets, threshold);
+
+            if (sxR.hit) {
+              w = clamp(w + sxR.delta, minW, bw - x);
+              showV(sxR.guide);
+            } else vGuide.style.display = "none";
+            if (syB.hit) {
+              h = clamp(h + syB.delta, minH, bh - y);
+              showH(syB.guide);
+            } else hGuide.style.display = "none";
+          } else hideGuides();
+
+          d.x = x;
+          d.y = y;
+          d.w = w;
+          d.h = h;
+          renderEl(id);
+          refreshList(false);
+          syncJSONBoxDebounced();
+        });
+
+        node.addEventListener("pointerup", () => {
+          mode = null;
+          start = null;
+          hideGuides();
+        });
+      }
+
+      /* ================== Selection UI ================== */
+      function updateSelectionUI() {
+        renderAll();
+        refreshList();
+        const ids = [...selected];
+        $("#selCount").textContent = ids.length ? `(${ids.length})` : "";
+
+        if (ids.length === 0) {
+          $("#propsEmpty").style.display = "block";
+          $("#props").style.display = "none";
+          return;
+        }
+        $("#propsEmpty").style.display = "none";
+        $("#props").style.display = "block";
+
+        const primaryId = activePrimary || ids[ids.length - 1];
+        const d = state.els[primaryId];
+
+        $("#selTitle").textContent =
+          ids.length > 1
+            ? "Multiple Selected"
+            : d.type === "text"
+            ? "Text Block"
+            : "Slideshow Block";
+        $("#textProps").style.display =
+          ids.length === 1 && d.type === "text" ? "block" : "none";
+        $("#slideProps").style.display =
+          ids.length === 1 && d.type === "slideshow" ? "block" : "none";
+
+        $("#pRot").value = Math.round(d.rot || 0);
+        $("#pOpacity").value = d.opacity ?? 1;
+
+        if (ids.length === 1 && d.type === "text") {
+          $("#pText").value = d.text || "";
+          $("#pTextColor").value = d.color || "#ffffff";
+          $("#pFontSize").value = d.size || 56;
+          $("#pEffect").value = d.effect || "none";
+          $("#pSpeed").value = d.speed || 6;
+          $("#pWrap").checked = !!d.wrap;
+        }
+        if (ids.length === 1 && d.type === "slideshow") {
+          $("#pInterval").value = d.interval || 2500;
+          $("#pFit").value = d.fit || "cover";
+          $("#pSlideFx").value = d.fx || "fade";
+          $("#pDur").value = d.dur || 700;
+        }
+
+        $("#boardBg").value = state.boardBg || "#000000";
+      }
+
+      board.addEventListener("pointerdown", (e) => {
+        if (e.target === board) {
+          selected.clear();
+          activePrimary = null;
+          updateSelectionUI();
+        }
+      });
+
+      function withSingle(fn) {
+        const ids = [...selected];
+        if (ids.length !== 1) return;
+        fn(ids[0], state.els[ids[0]]);
+      }
+
+      /* Common props apply to all selected */
+      $("#pRot").addEventListener("input", () => {
+        const val = Math.max(-180, Math.min(180, +$("#pRot").value || 0));
+        for (const id of selected) {
+          state.els[id].rot = val;
+          renderEl(id);
+        }
+        syncJSONBoxDebounced();
+      });
+      $("#pOpacity").addEventListener("input", () => {
+        const val = Math.max(0.05, Math.min(1, +$("#pOpacity").value || 1));
+        for (const id of selected) {
+          state.els[id].opacity = val;
+          renderEl(id);
+        }
+        syncJSONBoxDebounced();
+      });
+
+      /* Text props */
+      ["input", "change"].forEach((ev) => {
+        $("#pText").addEventListener(ev, () =>
+          withSingle((id, d) => {
+            if (d.type !== "text") return;
+            d.text = $("#pText").value;
+            renderEl(id);
+            syncJSONBoxDebounced();
+            refreshList(false);
+          })
+        );
+        $("#pTextColor").addEventListener(ev, () =>
+          withSingle((id, d) => {
+            if (d.type !== "text") return;
+            d.color = $("#pTextColor").value;
+            renderEl(id);
+            syncJSONBoxDebounced();
+          })
+        );
+        $("#pFontSize").addEventListener(ev, () =>
+          withSingle((id, d) => {
+            if (d.type !== "text") return;
+            d.size = +$("#pFontSize").value || 56;
+            renderEl(id);
+            syncJSONBoxDebounced();
+          })
+        );
+        $("#pEffect").addEventListener(ev, () =>
+          withSingle((id, d) => {
+            if (d.type !== "text") return;
+            d.effect = $("#pEffect").value;
+            renderEl(id);
+            syncJSONBoxDebounced();
+          })
+        );
+        $("#pSpeed").addEventListener(ev, () =>
+          withSingle((id, d) => {
+            if (d.type !== "text") return;
+            d.speed = Math.max(1, +$("#pSpeed").value || 6);
+            renderEl(id);
+            syncJSONBoxDebounced();
+          })
+        );
+        $("#pWrap").addEventListener(ev, () =>
+          withSingle((id, d) => {
+            if (d.type !== "text") return;
+            d.wrap = $("#pWrap").checked;
+            renderEl(id);
+            syncJSONBoxDebounced();
+          })
+        );
+      });
+
+      /* Slideshow props */
+      $("#pInterval").addEventListener("input", () =>
+        withSingle((id, d) => {
+          if (d.type !== "slideshow") return;
+          d.interval = Math.max(400, +$("#pInterval").value || 2500);
+          renderEl(id);
+          syncJSONBoxDebounced();
+        })
+      );
+      $("#pFit").addEventListener("change", () =>
+        withSingle((id, d) => {
+          if (d.type !== "slideshow") return;
+          d.fit = $("#pFit").value;
+          renderEl(id);
+          syncJSONBoxDebounced();
+        })
+      );
+      $("#pSlideFx").addEventListener("change", () =>
+        withSingle((id, d) => {
+          if (d.type !== "slideshow") return;
+          d.fx = $("#pSlideFx").value;
+          renderEl(id);
+          syncJSONBoxDebounced();
+        })
+      );
+      $("#pDur").addEventListener("input", () =>
+        withSingle((id, d) => {
+          if (d.type !== "slideshow") return;
+          d.dur = Math.max(100, +$("#pDur").value || 700);
+          renderEl(id);
+          syncJSONBoxDebounced();
+        })
+      );
+      $("#pSlideFiles").addEventListener("change", (e) =>
+        withSingle((id, d) => {
+          if (d.type !== "slideshow") return;
+          const files = [...e.target.files];
+          if (!files.length) return;
+          files.forEach((f) => d.images.push(URL.createObjectURL(f)));
+          d.index = 0;
+          renderEl(id);
+          syncJSONBoxDebounced();
+          e.target.value = "";
+        })
+      );
+      $("#prevSlide").addEventListener("click", () =>
+        withSingle((id, d) => {
+          if (d.type === "slideshow") prevSlideFor(id);
+        })
+      );
+      $("#nextSlide").addEventListener("click", () =>
+        withSingle((id, d) => {
+          if (d.type === "slideshow") nextSlideFor(id);
+        })
+      );
+
+      /* Board bg */
+      $("#boardBg").addEventListener("input", () => {
+        state.boardBg = $("#boardBg").value;
+        board.style.background = state.boardBg;
+        syncJSONBoxDebounced();
+      });
+
+      /* Delete */
+      $("#deleteSel").addEventListener("click", () => {
+        for (const id of [...selected]) removeEl(id);
+        selected.clear();
+        activePrimary = null;
+        updateSelectionUI();
+      });
+
+      /* Z order */
+      $("#bringFront").addEventListener("click", () => {
+        for (const id of selected) {
+          state.els[id].z = ++zTop;
+          renderEl(id);
+        }
+        refreshList();
+        syncJSONBoxDebounced();
+      });
+      $("#sendBack").addEventListener("click", () => {
+        for (const id of selected) {
+          state.els[id].z = 1;
+        }
+        Object.values(state.els).forEach((x) => {
+          if (!selected.has(x.id)) x.z = (x.z || 2) + 1;
+        });
+        zTop = Math.max(...Object.values(state.els).map((x) => x.z || 2), 10);
+        renderAll();
+        refreshList();
+        syncJSONBoxDebounced();
+      });
+
+      /* Duplicate */
+      $("#dupBtn").addEventListener("click", () => {
+        if (selected.size === 0) return;
+        const newSel = new Set();
+        for (const id of selected) {
+          const d = state.els[id];
+          const nid = uid();
+          const copy = JSON.parse(JSON.stringify(d));
+          copy.id = nid;
+          copy.x = clamp(copy.x + 20, 0, board.clientWidth - copy.w);
+          copy.y = clamp(copy.y + 20, 0, board.clientHeight - copy.h);
+          copy.z = ++zTop;
+          if (copy.type === "slideshow") {
+            copy.timer = null;
+          }
+          state.els[nid] = copy;
+
+          const { content } = createElementNode({
+            id: nid,
+            title: copy.title || (copy.type === "text" ? "Text" : "Slideshow"),
+          });
+          if (copy.type === "text") {
+            const t = document.createElement("div");
+            t.className = "textBlock";
+            content.appendChild(t);
+          } else {
+            const b = document.createElement("div");
+            b.className = "slideBox";
+            content.appendChild(b);
+          }
+          renderEl(nid);
+          newSel.add(nid);
+        }
+        selected = newSel;
+        activePrimary = [...selected][selected.size - 1];
+        updateSelectionUI();
+        refreshList();
+        syncJSONBox();
+      });
+
+      /* List */
+      function refreshList() {
+        const ids = Object.keys(state.els).sort(
+          (a, b) => (state.els[a].z || 0) - (state.els[b].z || 0)
+        );
+        elementsList.innerHTML = "";
+        for (const id of ids) {
+          const d = state.els[id];
+          const div = document.createElement("div");
+          div.className = "item";
+          div.style.borderColor = selected.has(id) ? "#f59e0b" : "";
+          div.innerHTML = `
+      <div>
+        <b>${d.type === "text" ? "Text" : "Slideshow"}</b>
+        <small>${Math.round(d.x)},${Math.round(d.y)} • ${Math.round(
+            d.w
+          )}×${Math.round(d.h)} • FX: ${
+            d.type === "slideshow" ? d.fx || "fade" : "-"
+          }</small>
+      </div>
+      <div class="actions">
+        <button>Select</button>
+        <button>Del</button>
+      </div>
+    `;
+          const [bSel, bDel] = div.querySelectorAll("button");
+          bSel.addEventListener("click", (e) => {
+            e.stopPropagation();
+            selected.clear();
+            selected.add(id);
+            activePrimary = id;
+            updateSelectionUI();
+          });
+          bDel.addEventListener("click", (e) => {
+            e.stopPropagation();
+            removeEl(id);
+            if (selected.has(id)) selected.delete(id);
+            updateSelectionUI();
+          });
+          elementsList.appendChild(div);
+        }
+      }
+
+      /* Remove */
+      function removeEl(id) {
+        const d = state.els[id];
+        if (!d) return;
+        stopSlide(id);
+        delete state.els[id];
+        const node = board.querySelector(`.el[data-id="${id}"]`);
+        if (node) node.remove();
+        syncJSONBoxDebounced();
+      }
+
+      /* JSON */
+      function runtimeStrippedCopy() {
+        const copy = JSON.parse(JSON.stringify(state));
+        for (const id of Object.keys(copy.els)) {
+          if (copy.els[id].type === "slideshow") copy.els[id].timer = null;
+        }
+        return copy;
+      }
+      function syncJSONBox() {
+        jsonBox.value = JSON.stringify(runtimeStrippedCopy(), null, 2);
+      }
+      let jsonTimer = null;
+      function syncJSONBoxDebounced() {
+        clearTimeout(jsonTimer);
+        jsonTimer = setTimeout(syncJSONBox, 120);
+      }
+
+      $("#copyJSON").addEventListener("click", async () => {
+        syncJSONBox();
+        jsonBox.select();
+        try {
+          await navigator.clipboard.writeText(jsonBox.value);
+        } catch {}
+      });
+      $("#applyJSON").addEventListener("click", () => {
+        try {
+          loadFromObject(JSON.parse(jsonBox.value || "{}"));
+        } catch {
+          alert("Invalid JSON.");
+        }
+      });
+      $("#saveLocal").addEventListener("click", () => {
+        localStorage.setItem(
+          "adboard_layout_v2",
+          JSON.stringify(runtimeStrippedCopy())
+        );
+        alert("Saved to Local Storage.");
+      });
+      $("#loadLocal").addEventListener("click", () => {
+        const raw = localStorage.getItem("adboard_layout_v2");
+        if (!raw) return alert("No saved layout found.");
+        try {
+          loadFromObject(JSON.parse(raw));
+        } catch {
+          alert("Saved layout is corrupted.");
+        }
+      });
+      $("#clearAll").addEventListener("click", () => {
+        Object.keys(state.els).forEach((id) => stopSlide(id));
+        state.els = {};
+        selected.clear();
+        activePrimary = null;
+        board.querySelectorAll(".el").forEach((n) => n.remove());
+        updateSelectionUI();
+        refreshList();
+        syncJSONBox();
+      });
+
+      /* Load from object */
+      function loadFromObject(obj) {
+        $("#clearAll").click();
+        state.version = obj.version || 2;
+        state.boardBg = obj.boardBg || "#000000";
+        board.style.background = state.boardBg;
+        $("#boardBg").value = state.boardBg;
+
+        for (const id of Object.keys(obj.els || {})) {
+          const d = obj.els[id];
+          d.z = d.z || ++zTop;
+          d.rot = d.rot || 0;
+          d.opacity = d.opacity == null ? 1 : d.opacity;
+          if (d.type === "slideshow") {
+            d.timer = null;
+            d.index = d.index || 0;
+            d.images = d.images || [];
+            d.fx = d.fx || "fade";
+            d.dur = d.dur || 700;
+          }
+          state.els[id] = d;
+
+          const { content } = createElementNode({
+            id,
+            title: d.title || (d.type === "text" ? "Text" : "Slideshow"),
+          });
+          if (d.type === "text") {
+            const t = document.createElement("div");
+            t.className = "textBlock";
+            content.appendChild(t);
+          } else {
+            const b = document.createElement("div");
+            b.className = "slideBox";
+            content.appendChild(b);
+          }
+          renderEl(id);
+        }
+        zTop = Math.max(10, ...Object.values(state.els).map((x) => x.z || 10));
+        selected.clear();
+        activePrimary = null;
+        updateSelectionUI();
+        refreshList();
+        syncJSONBox();
+      }
+
+      /* Export Play Mode (supports slideshow FX too) */
+      function escapeHtml(s) {
+        return String(s).replace(
+          /[&<>"']/g,
+          (m) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            }[m])
+        );
+      }
+
+      function exportPlayHTML() {
+        const layout = runtimeStrippedCopy();
+        const els = Object.values(layout.els).sort(
+          (a, b) => (a.z || 0) - (b.z || 0)
+        );
+
+        const genElsHTML = els
+          .map((d) => {
+            const baseStyle = `left:${d.x}px;top:${d.y}px;width:${
+              d.w
+            }px;height:${d.h}px;transform:rotate(${
+              d.rot || 0
+            }deg);transform-origin:center center;opacity:${
+              d.opacity ?? 1
+            };z-index:${d.z || 1};position:absolute;`.trim();
+
+            if (d.type === "text") {
+              const cls =
+                {
+                  "scroll-left": "fx-scroll-left",
+                  "scroll-right": "fx-scroll-right",
+                  fade: "fx-fade",
+                  zoom: "fx-zoom",
+                  bounce: "fx-bounce",
+                }[d.effect] || "";
+              const anim =
+                d.effect && d.effect !== "none"
+                  ? `animation-duration:${d.speed || 6}s;`
+                  : "";
+              const wrap = d.wrap
+                ? "white-space:normal;"
+                : "white-space:nowrap;";
+              return `
+<div class="el" style="${baseStyle}">
+  <div class="box">
+    <div class="content">
+      <div class="textBlock ${cls}" style="color:${
+                d.color || "#fff"
+              };font-size:${d.size || 56}px;${anim}${wrap}">
+        ${escapeHtml(d.text || "")}
+      </div>
+    </div>
+  </div>
+</div>`.trim();
+            }
+
+            const fxClass =
+              {
+                fade: "fx-fade",
+                "slide-left": "fx-slide-left",
+                "slide-right": "fx-slide-right",
+                "slide-up": "fx-slide-up",
+                "slide-down": "fx-slide-down",
+                zoom: "fx-zoom",
+                flip: "fx-flip",
+              }[d.fx || "fade"] || "fx-fade";
+
+            const imgs = (d.images || [])
+              .map((src, i) => {
+                const active = i === (d.index || 0) ? "active" : "";
+                return `<img class="${active}" src="${escapeHtml(
+                  src
+                )}" style="object-fit:${escapeHtml(d.fit || "cover")}">`;
+              })
+              .join("\n        ");
+
+            return `
+<div class="el" data-slide="${escapeHtml(d.id)}" data-fx="${escapeHtml(
+              d.fx || "fade"
+            )}" data-dur="${escapeHtml(
+              String(d.dur || 700)
+            )}" style="${baseStyle}">
+  <div class="box">
+    <div class="content">
+      <div class="slideBox ${fxClass}" style="--dur:${d.dur || 700}ms">
+        ${imgs}
+      </div>
+    </div>
+  </div>
+</div>`.trim();
+          })
+          .join("\n\n");
+
+        const slidesJS = els
+          .filter((d) => d.type === "slideshow" && (d.images || []).length >= 2)
+          .map((d) => {
+            const interval = Math.max(400, d.interval || 2500);
+            const sid = d.id;
+            const dur = Math.max(100, d.dur || 700);
+            return `
+(function(){
+  const root = document.querySelector('[data-slide="${sid}"]');
+  if(!root) return;
+  const fx = root.getAttribute('data-fx') || 'fade';
+  const box = root.querySelector('.slideBox');
+  const imgs = box.querySelectorAll('img');
+  let idx = 0;
+
+  function swap(nextIdx){
+    const cur = imgs[idx], next = imgs[nextIdx];
+    if(!cur || !next) return;
+
+    imgs.forEach(im=>im.classList.remove("toLeft","toRight","toUp","toDown","fromLeft","fromRight","fromUp","fromDown","kenburns","flip"));
+
+    if(fx==="slide-left") next.classList.add("fromRight");
+    if(fx==="slide-right") next.classList.add("fromLeft");
+    if(fx==="slide-up") next.classList.add("fromDown");
+    if(fx==="slide-down") next.classList.add("fromUp");
+    if(fx==="zoom") next.classList.add("kenburns");
+    if(fx==="flip") next.classList.add("flip");
+
+    next.classList.add("active");
+    void next.offsetWidth;
+
+    if(fx==="slide-left"){ cur.classList.add("toLeft"); next.classList.remove("fromRight"); }
+    if(fx==="slide-right"){ cur.classList.add("toRight"); next.classList.remove("fromLeft"); }
+    if(fx==="slide-up"){ cur.classList.add("toUp"); next.classList.remove("fromDown"); }
+    if(fx==="slide-down"){ cur.classList.add("toDown"); next.classList.remove("fromUp"); }
+
+    setTimeout(()=>{ cur.classList.remove("active"); cur.classList.remove("toLeft","toRight","toUp","toDown"); }, ${dur});
+    idx = nextIdx;
+  }
+
+  setInterval(()=>{
+    const nextIdx = (idx + 1) % imgs.length;
+    swap(nextIdx);
+  }, ${interval});
+})();`.trim();
+          })
+          .join("\n");
+
+        const html =
+          `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ad Board — Play Mode</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#000;display:flex;align-items:center;justify-content:center;height:100vh}
+#board{position:relative; width:min(100vw,177.77vh); height:calc(min(100vw,177.77vh) * 0.5625); background:${
+            layout.boardBg || "#000"
+          }; overflow:hidden}
+.el{position:absolute}
+.box{position:absolute;inset:0;border-radius:14px;overflow:hidden}
+.content{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.textBlock{width:100%;padding:18px 16px;text-align:center;font-weight:900;will-change:transform,opacity}
+.slideBox{width:100%;height:100%;position:relative;background:#000}
+.slideBox img{position:absolute;inset:0;width:100%;height:100%;display:block;opacity:0;transform:translate3d(0,0,0) scale(1);transition:opacity var(--dur) ease}
+.slideBox img.active{opacity:1}
+.slideBox.fx-slide-left img,.slideBox.fx-slide-right img,.slideBox.fx-slide-up img,.slideBox.fx-slide-down img,.slideBox.fx-zoom img,.slideBox.fx-flip img{transition:opacity var(--dur) ease, transform var(--dur) ease}
+.slideBox img.toLeft{transform:translateX(-12%)}
+.slideBox img.fromRight{transform:translateX(12%)}
+.slideBox img.toRight{transform:translateX(12%)}
+.slideBox img.fromLeft{transform:translateX(-12%)}
+.slideBox img.toUp{transform:translateY(-12%)}
+.slideBox img.fromDown{transform:translateY(12%)}
+.slideBox img.toDown{transform:translateY(12%)}
+.slideBox img.fromUp{transform:translateY(-12%)}
+.slideBox img.kenburns{transform:scale(1.12)}
+.slideBox img.flip{transform:rotateY(12deg) scale(1.02)}
+@keyframes scrollLeft{from{transform:translateX(110%)}to{transform:translateX(-110%)}}
+@keyframes scrollRight{from{transform:translateX(-110%)}to{transform:translateX(110%)}}
+@keyframes fade{0%,100%{opacity:0}50%{opacity:1}}
+@keyframes zoom{0%{transform:scale(.6)}50%{transform:scale(1.18)}100%{transform:scale(.6)}}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-22px)}}
+.fx-scroll-left{animation:scrollLeft linear infinite}
+.fx-scroll-right{animation:scrollRight linear infinite}
+.fx-fade{animation:fade ease-in-out infinite}
+.fx-zoom{animation:zoom ease-in-out infinite}
+.fx-bounce{animation:bounce ease-in-out infinite}
+</style>
+</head>
+<body>
+<div id="board">
+${genElsHTML}
+</div>
+<script>
+${slidesJS}
+</` +
+          `script>
+</` +
+          `body>
+</html>`;
+
+        const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "adboard-play.html";
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+      }
+
+      $("#exportPlay").addEventListener("click", exportPlayHTML);
+
+      /* ================== UI Toggles & Buttons ================== */
+      $("#gridToggle").addEventListener("change", () =>
+        board.classList.toggle("gridOn", $("#gridToggle").checked)
+      );
+      $("#safeToggle").addEventListener(
+        "change",
+        () =>
+          (safeArea.style.display = $("#safeToggle").checked ? "block" : "none")
+      );
+      $("#fullscreenBtn").addEventListener("click", () => {
+        if (board.requestFullscreen) board.requestFullscreen();
+      });
+      $("#addTextBtn").addEventListener("click", addTextBlock);
+      $("#addSlideBtn").addEventListener("click", addSlideshowBlock);
+
+      /* ================== Init ================== */
+      function init() {
+        state.boardBg = "#000000";
+        board.style.background = state.boardBg;
+        $("#boardBg").value = state.boardBg;
+        $("#gridToggle").checked = false;
+        $("#safeToggle").checked = false;
+        $("#snapToggle").checked = true;
+
+        addTextBlock();
+        addSlideshowBlock();
+        syncJSONBox();
+        updateSelectionUI();
+        refreshList();
+      }
+      init();
+
+      /* keyboard delete */
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "Delete" || e.key === "Backspace") {
+          if (selected.size) {
+            for (const id of [...selected]) removeEl(id);
+            selected.clear();
+            activePrimary = null;
+            updateSelectionUI();
+            refreshList();
+            syncJSONBoxDebounced();
+          }
+        }
+      });
+    </script>
+  </body>
+</html>
