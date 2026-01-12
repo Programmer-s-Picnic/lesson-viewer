@@ -1,0 +1,2081 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>
+      Programmer's Picnic  Pyodide Editor — (Judge + Problems + XP)
+    </title>
+    <meta
+      name="description"
+      content="Collision-proof Pyodide editor with Problem Mode: starter code, sample+hidden tests, scoring, hints, and XP/streak."
+    />
+
+    <style>
+      :root {
+        --pp-bg: #fff7e6;
+        --pp-card: #ffffff;
+        --pp-ink: #1f2937;
+        --pp-muted: #6b7280;
+        --pp-brand: #d97706;
+        --pp-brand2: #f59e0b;
+        --pp-border: #eadcc5;
+        --pp-shadow: 0 18px 40px rgba(31, 41, 55, 0.14);
+        --pp-codebg: #0b1220;
+        --pp-codeink: #e5e7eb;
+        --pp-ok: #166534;
+        --pp-warn: #92400e;
+        --pp-bad: #b91c1c;
+        --pp-ring: 0 0 0 4px rgba(245, 158, 11, 0.22);
+        --pp-radius: 18px;
+        --pp-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        --pp-sans: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      }
+
+      /* HARD RESET INSIDE APP ONLY */
+      .pp-app,
+      .pp-app * {
+        box-sizing: border-box;
+      }
+      .pp-app {
+        font-family: var(--pp-sans);
+        color: var(--pp-ink);
+      }
+      .pp-app button,
+      .pp-app input,
+      .pp-app select,
+      .pp-app textarea {
+        font-family: inherit;
+      }
+
+      body {
+        margin: 0;
+        background: radial-gradient(
+            1000px 600px at 10% -10%,
+            rgba(245, 158, 11, 0.25),
+            transparent 60%
+          ),
+          radial-gradient(
+            900px 540px at 95% 0%,
+            rgba(217, 119, 6, 0.18),
+            transparent 55%
+          ),
+          linear-gradient(180deg, var(--pp-bg), #fff 55%, var(--pp-bg));
+      }
+
+      .pp-wrap {
+        max-width: 1250px;
+        margin: 18px auto;
+        padding: 14px;
+      }
+
+      .pp-topbar {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+      .pp-brand {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .pp-logo {
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        background: conic-gradient(
+          from 220deg,
+          var(--pp-brand2),
+          var(--pp-brand),
+          #ffb020,
+          var(--pp-brand2)
+        );
+        box-shadow: var(--pp-shadow);
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        position: relative;
+        flex: 0 0 auto;
+      }
+      .pp-logo:after {
+        content: "</>";
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+        color: #111827;
+        opacity: 0.9;
+        text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+      }
+      .pp-title {
+        margin: 0;
+        font-size: 18px;
+        line-height: 1.2;
+      }
+      .pp-sub {
+        margin: 2px 0 0;
+        color: var(--pp-muted);
+        font-size: 12px;
+      }
+
+      .pp-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .pp-btn {
+        appearance: none;
+        border: 1px solid var(--pp-border);
+        background: var(--pp-card);
+        color: var(--pp-ink);
+        border-radius: 14px;
+        padding: 10px 12px;
+        box-shadow: 0 10px 24px rgba(31, 41, 55, 0.08);
+        cursor: pointer;
+        font-weight: 800;
+        font-size: 13px;
+        transition: transform 0.06s ease, box-shadow 0.2s ease,
+          border-color 0.2s ease;
+        user-select: none;
+        line-height: 1;
+      }
+      .pp-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 16px 30px rgba(31, 41, 55, 0.12);
+        border-color: #e6cfae;
+      }
+      .pp-btn:active {
+        transform: translateY(0);
+      }
+      .pp-btn:focus-visible {
+        outline: none;
+        box-shadow: var(--pp-shadow), var(--pp-ring);
+      }
+      .pp-btn-primary {
+        background: linear-gradient(180deg, var(--pp-brand2), var(--pp-brand));
+        border-color: transparent;
+        color: #111827;
+      }
+      .pp-btn-danger {
+        background: #fff;
+        border-color: #f3c7c7;
+        color: var(--pp-bad);
+      }
+      .pp-btn-ghost {
+        background: transparent;
+        box-shadow: none;
+      }
+
+      .pp-kbd {
+        font-family: var(--pp-mono);
+        font-size: 11px;
+        padding: 2px 6px;
+        border: 1px solid var(--pp-border);
+        border-bottom-width: 2px;
+        border-radius: 8px;
+        background: #fff;
+        margin-left: 4px;
+      }
+
+      .pp-grid {
+        display: grid;
+        grid-template-columns: 1.25fr 0.75fr;
+        gap: 12px;
+      }
+      @media (max-width: 980px) {
+        .pp-grid {
+          grid-template-columns: 1fr;
+        }
+        .pp-actions {
+          justify-content: flex-start;
+        }
+      }
+
+      .pp-card {
+        background: rgba(255, 255, 255, 0.82);
+        border: 1px solid var(--pp-border);
+        border-radius: var(--pp-radius);
+        box-shadow: var(--pp-shadow);
+        overflow: hidden;
+        backdrop-filter: blur(6px);
+      }
+
+      .pp-cardhead {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 12px;
+        border-bottom: 1px solid var(--pp-border);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 241, 214, 0.88),
+          rgba(255, 255, 255, 0.6)
+        );
+      }
+      .pp-cardhead h2 {
+        margin: 0;
+        font-size: 14px;
+      }
+      .pp-small {
+        font-size: 12px;
+        color: var(--pp-muted);
+      }
+      .pp-mono {
+        font-family: var(--pp-mono);
+      }
+      .pp-toolbar {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+      }
+      .pp-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--pp-border);
+        background: rgba(255, 255, 255, 0.6);
+        padding: 8px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        color: var(--pp-muted);
+        white-space: nowrap;
+      }
+      .pp-select,
+      .pp-input,
+      .pp-textarea {
+        border: 1px solid var(--pp-border);
+        background: #fff;
+        border-radius: 14px;
+        padding: 9px 10px;
+        font-size: 13px;
+        outline: none;
+      }
+      .pp-select:focus,
+      .pp-input:focus,
+      .pp-textarea:focus {
+        box-shadow: var(--pp-ring);
+        border-color: #e6cfae;
+      }
+      .pp-toggle {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border: 1px solid var(--pp-border);
+        border-radius: 999px;
+        background: #fff;
+        font-weight: 800;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      .pp-toggle input {
+        accent-color: var(--pp-brand);
+      }
+
+      /* Editor layout */
+      .pp-editorwrap {
+        display: grid;
+        grid-template-rows: auto auto 1fr auto;
+        min-height: 650px;
+      }
+      .pp-tabs {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        gap: 8px;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--pp-border);
+        background: rgba(255, 255, 255, 0.55);
+        overflow: auto;
+      }
+      .pp-tab {
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        white-space: nowrap;
+        border: 1px solid var(--pp-border);
+        background: #fff;
+        padding: 8px 12px;
+        border-radius: 999px;
+        font-weight: 900;
+        font-size: 12px;
+        cursor: pointer;
+        line-height: 1;
+        flex: 0 0 auto !important;
+        height: auto !important;
+        width: auto !important;
+      }
+      .pp-tab.pp-active {
+        background: linear-gradient(180deg, var(--pp-brand2), var(--pp-brand));
+        border-color: transparent;
+      }
+
+      .pp-editorarea {
+        background: var(--pp-codebg) !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        position: relative;
+        min-height: 460px;
+      }
+      .pp-editor {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        font-family: var(--pp-mono);
+        font-size: 14px;
+        line-height: 1.55;
+      }
+      .pp-gutter {
+        padding: 12px 10px;
+        text-align: right;
+        color: rgba(229, 231, 235, 0.45);
+        background: rgba(255, 255, 255, 0.03);
+        border-right: 1px solid rgba(255, 255, 255, 0.06);
+        user-select: none;
+        min-width: 52px;
+        overflow: hidden;
+        white-space: pre;
+      }
+      .pp-code {
+        width: 100%;
+        height: 100%;
+        padding: 12px 12px;
+        color: var(--pp-codeink) !important;
+        caret-color: #fff !important;
+        background: transparent !important;
+        border: 0 !important;
+        outline: none !important;
+        resize: none;
+        font-family: var(--pp-mono) !important;
+        font-size: 14px;
+        line-height: 1.55;
+        tab-size: 4;
+        white-space: pre;
+        overflow: auto;
+      }
+
+      .pp-footerbar {
+        padding: 10px 12px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.55),
+          rgba(255, 241, 214, 0.58)
+        );
+        border-top: 1px solid var(--pp-border);
+      }
+      .pp-status {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .pp-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: #9ca3af;
+        display: inline-block;
+      }
+      .pp-dot.ok {
+        background: var(--pp-ok);
+      }
+      .pp-dot.warn {
+        background: var(--pp-warn);
+      }
+      .pp-dot.bad {
+        background: var(--pp-bad);
+      }
+      .pp-progress {
+        height: 10px;
+        width: 180px;
+        background: rgba(17, 24, 39, 0.08);
+        border: 1px solid var(--pp-border);
+        border-radius: 999px;
+        overflow: hidden;
+      }
+      .pp-bar {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, var(--pp-brand2), var(--pp-brand));
+        transition: width 0.25s ease;
+      }
+
+      /* Right side */
+      .pp-split {
+        display: grid;
+        gap: 12px;
+        grid-template-rows: auto auto auto 1fr;
+      }
+      .pp-pad {
+        padding: 12px;
+      }
+      .pp-io {
+        width: 100%;
+        min-height: 78px;
+        font-family: var(--pp-mono);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .pp-out {
+        background: #0b1220;
+        color: #e5e7eb;
+        border: 1px solid rgba(255, 255, 255, 0.07);
+        border-radius: 16px;
+        padding: 10px;
+        font-family: var(--pp-mono);
+        font-size: 13px;
+        line-height: 1.55;
+        min-height: 180px;
+        overflow: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .pp-out .err {
+        color: #fecaca;
+      }
+      .pp-out .ok {
+        color: #bbf7d0;
+      }
+      .pp-out .dim {
+        color: #93c5fd;
+        opacity: 0.85;
+      }
+
+      .pp-chip {
+        font-size: 12px;
+        border: 1px solid var(--pp-border);
+        background: rgba(255, 255, 255, 0.75);
+        padding: 6px 10px;
+        border-radius: 999px;
+        cursor: pointer;
+        font-weight: 900;
+      }
+      .pp-chip:hover {
+        box-shadow: var(--pp-ring);
+      }
+
+      .pp-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--pp-border);
+        background: rgba(255, 255, 255, 0.72);
+        padding: 8px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        color: var(--pp-muted);
+        white-space: nowrap;
+      }
+
+      .pp-judge {
+        border: 1px dashed #eadcc5;
+        background: rgba(255, 255, 255, 0.6);
+        border-radius: 16px;
+        padding: 10px;
+      }
+      .pp-judge h3 {
+        margin: 0 0 6px;
+        font-size: 13px;
+      }
+      .pp-judge p {
+        margin: 6px 0;
+        font-size: 12px;
+        color: var(--pp-muted);
+        line-height: 1.45;
+      }
+      .pp-judge pre {
+        margin: 8px 0 0;
+        padding: 10px;
+        background: rgba(11, 18, 32, 0.06);
+        border: 1px solid var(--pp-border);
+        border-radius: 12px;
+        overflow: auto;
+        white-space: pre-wrap;
+        font-family: var(--pp-mono);
+        font-size: 12px;
+        line-height: 1.5;
+        color: #111827;
+      }
+
+      table.pp-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        margin-top: 10px;
+        overflow: hidden;
+        border-radius: 14px;
+      }
+      .pp-table th,
+      .pp-table td {
+        padding: 10px 10px;
+        border-bottom: 1px solid var(--pp-border);
+        font-size: 12px;
+        vertical-align: top;
+      }
+      .pp-table th {
+        background: rgba(255, 241, 214, 0.65);
+        text-align: left;
+      }
+      .pp-table tr:last-child td {
+        border-bottom: none;
+      }
+      .pp-pass {
+        color: var(--pp-ok);
+        font-weight: 900;
+      }
+      .pp-fail {
+        color: var(--pp-bad);
+        font-weight: 900;
+      }
+      .pp-dim {
+        color: var(--pp-muted);
+      }
+
+      .pp-toast {
+        position: fixed;
+        left: 50%;
+        bottom: 18px;
+        transform: translateX(-50%);
+        background: #111827;
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        padding: 10px 12px;
+        border-radius: 999px;
+        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.25);
+        font-size: 13px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease, transform 0.2s ease;
+        max-width: min(92vw, 900px);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .pp-toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(-2px);
+      }
+    </style>
+
+    <!-- Pyodide -->
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js"></script>
+  </head>
+
+  <body>
+    <div class="pp-app">
+      <div class="pp-wrap">
+        <div class="pp-topbar">
+          <div class="pp-brand">
+            <div class="pp-logo" aria-hidden="true"></div>
+            <div>
+              <h1 class="pp-title">Programmer's Picnic Pyodide Editor</h1>
+              <div class="pp-sub" style="visibility: hidden;">
+                Phase 1: Problem Mode ✅ Judge ✅ Score ✅ Hints ✅ XP/Streak
+              </div>
+            </div>
+          </div>
+          <div class="pp-actions">
+            <button class="pp-btn pp-btn-primary" id="ppRun">
+              ▶ Run <span class="pp-kbd">Ctrl</span
+              ><span class="pp-kbd">Enter</span>
+            </button>
+            <button class="pp-btn pp-btn-danger" id="ppStop">⛔ Stop</button>
+            <button class="pp-btn" id="ppFormat">🧼 Format</button>
+            <button class="pp-btn" id="ppSave">💾 Save</button>
+            <button class="pp-btn" id="ppShare">🔗 Share</button>
+          </div>
+        </div>
+
+        <div class="pp-grid">
+          <!-- LEFT: editor -->
+          <section class="pp-card pp-editorwrap">
+            <div class="pp-cardhead">
+              <div>
+                <h2>Editor</h2>
+                <div class="pp-small">
+                  Use Problem Mode (right) to load starter + run tests.
+                </div>
+              </div>
+              <div class="pp-toolbar">
+                <select id="ppExample" class="pp-select" title="Load example">
+                  <option value="">Examples…</option>
+                </select>
+                <span class="pp-pill"
+                  ><b>Pyodide:</b> <span id="ppPyText">not loaded</span></span
+                >
+                <label class="pp-toggle"
+                  ><input type="checkbox" id="ppAutoRun" /> Auto-run</label
+                >
+                <label class="pp-toggle"
+                  ><input type="checkbox" id="ppTimer" checked /> Timer</label
+                >
+              </div>
+            </div>
+
+            <div class="pp-tabs" id="ppTabs"></div>
+
+            <div class="pp-editorarea">
+              <div class="pp-editor">
+                <pre class="pp-gutter" id="ppGutter">1</pre>
+                <textarea
+                  class="pp-code"
+                  id="ppCode"
+                  spellcheck="false"
+                ></textarea>
+              </div>
+            </div>
+
+            <div class="pp-footerbar">
+              <div class="pp-status">
+                <span class="pp-dot" id="ppDot"></span>
+                <span class="pp-small" id="ppStatus">Ready.</span>
+                <div class="pp-progress">
+                  <div class="pp-bar" id="ppBar"></div>
+                </div>
+              </div>
+              <div
+                style="
+                  display: flex;
+                  gap: 8px;
+                  flex-wrap: wrap;
+                  align-items: center;
+                "
+              >
+                <span class="pp-small">Indent:</span>
+                <select
+                  id="ppIndent"
+                  class="pp-select"
+                  style="max-width: 140px"
+                >
+                  <option value="2">2 spaces</option>
+                  <option value="4" selected>4 spaces</option>
+                  <option value="tab">Tab</option>
+                </select>
+                <button class="pp-btn pp-btn-ghost" id="ppNewTab">
+                  ➕ Tab
+                </button>
+                <button class="pp-btn pp-btn-ghost" id="ppDelTab">🗑️</button>
+              </div>
+            </div>
+          </section>
+
+          <!-- RIGHT: Phase 1 Problem Mode -->
+          <aside class="pp-split">
+            <!-- Problem -->
+            <section class="pp-card">
+              <div class="pp-cardhead">
+                <div>
+                  <h2>Problem Mode</h2>
+                  <div class="pp-small">
+                    Load starter • Run samples • Run hidden tests • Score
+                  </div>
+                </div>
+                <div class="pp-toolbar">
+                  <span
+                    class="pp-badge"
+                    title="Your XP + streak (saved in browser)"
+                  >
+                    🪙 XP: <b id="ppXP">0</b> &nbsp; 🔥 Streak:
+                    <b id="ppStreak">0</b>
+                  </span>
+                </div>
+              </div>
+              <div class="pp-pad">
+                <div
+                  style="
+                    display: flex;
+                    gap: 8px;
+                    flex-wrap: wrap;
+                    align-items: center;
+                    justify-content: space-between;
+                  "
+                >
+                  <select
+                    id="ppProblem"
+                    class="pp-select"
+                    style="flex: 1; min-width: 260px"
+                  >
+                    <option value="">Loading problems…</option>
+                  </select>
+                  <button class="pp-btn" id="ppToday">📅 Today</button>
+                </div>
+
+                <div class="pp-judge" style="margin-top: 10px">
+                  <h3 id="ppPTitle">—</h3>
+                  <p id="ppPDesc">Pick a problem.</p>
+                  <pre id="ppPExamples" style="display: none"></pre>
+                  <div
+                    style="
+                      display: flex;
+                      gap: 8px;
+                      flex-wrap: wrap;
+                      margin-top: 10px;
+                    "
+                  >
+                    <button class="pp-btn pp-btn-primary" id="ppLoadStarter">
+                      ⚡ Load Starter
+                    </button>
+                    <button class="pp-btn" id="ppResetStarter">
+                      ↩ Reset to Starter
+                    </button>
+                    <button class="pp-btn" id="ppHint">💡 Hint</button>
+                  </div>
+                </div>
+
+                <div
+                  style="
+                    display: flex;
+                    gap: 8px;
+                    flex-wrap: wrap;
+                    margin-top: 10px;
+                  "
+                >
+                  <button class="pp-btn" id="ppRunSamples">
+                    🧪 Run Samples
+                  </button>
+                  <button class="pp-btn pp-btn-primary" id="ppRunAll">
+                    🏁 Run All Tests
+                  </button>
+                  <span
+                    class="pp-pill"
+                    title="Simple timeout guard (without worker)"
+                  >
+                    ⏱ Timeout: <b><span id="ppTimeout">2.5</span>s</b>
+                  </span>
+                </div>
+
+                <div
+                  id="ppJudgeSummary"
+                  class="pp-small"
+                  style="margin-top: 10px"
+                ></div>
+                <div id="ppJudgeTableWrap"></div>
+              </div>
+            </section>
+
+            <!-- stdin -->
+            <section class="pp-card">
+              <div class="pp-cardhead">
+                <div>
+                  <h2>stdin (input)</h2>
+                  <div class="pp-small">
+                    One value per line. Python <code>input()</code> reads from
+                    here.
+                  </div>
+                </div>
+                <div class="pp-toolbar">
+                  <button class="pp-btn pp-btn-ghost" id="ppStdinSample">
+                    🎯 Sample
+                  </button>
+                  <button class="pp-btn pp-btn-ghost" id="ppStdinClear">
+                    🧽 Clear
+                  </button>
+                </div>
+              </div>
+              <div class="pp-pad">
+                <textarea
+                  class="pp-textarea pp-io"
+                  id="ppStdin"
+                  spellcheck="false"
+                  placeholder="5&#10;10&#10;hello"
+                ></textarea>
+                <div class="pp-small" style="margin-top: 8px">
+                  In Problem Mode, tests feed stdin automatically. Here is for
+                  manual runs.
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    gap: 8px;
+                    flex-wrap: wrap;
+                    margin-top: 10px;
+                  "
+                >
+                  <span class="pp-chip" data-pkg="numpy">+numpy</span>
+                  <span class="pp-chip" data-pkg="pandas">+pandas</span>
+                  <span class="pp-chip" data-pkg="matplotlib">+matplotlib</span>
+                </div>
+              </div>
+            </section>
+
+            <!-- packages -->
+            <section class="pp-card">
+              <div class="pp-cardhead">
+                <div>
+                  <h2>Packages</h2>
+                  <div class="pp-small">
+                    Install pure-python wheels via <code>micropip</code>.
+                  </div>
+                </div>
+                <div class="pp-toolbar">
+                  <button class="pp-btn" id="ppInstall">📦 Install</button>
+                  <button class="pp-btn pp-btn-ghost" id="ppList">
+                    🧾 List
+                  </button>
+                </div>
+              </div>
+              <div class="pp-pad">
+                <label class="pp-small" for="ppPkgs">Packages</label>
+                <input
+                  id="ppPkgs"
+                  class="pp-input"
+                  style="width: 100%; margin-top: 6px"
+                  placeholder="numpy, pandas, matplotlib"
+                />
+                <div class="pp-small" style="margin-top: 8px">
+                  ⚠️ If a package needs native binaries, it may fail in Pyodide.
+                  Pure-python works best.
+                </div>
+              </div>
+            </section>
+
+            <!-- output -->
+            <section class="pp-card">
+              <div class="pp-cardhead">
+                <div>
+                  <h2>Output</h2>
+                  <div class="pp-small">
+                    Newlines preserved + errors highlighted.
+                  </div>
+                </div>
+                <div class="pp-toolbar">
+                  <button class="pp-btn pp-btn-ghost" id="ppCopyOut">
+                    📋 Copy
+                  </button>
+                  <button class="pp-btn pp-btn-ghost" id="ppClearOut">
+                    🧹 Clear
+                  </button>
+                </div>
+              </div>
+              <div class="pp-pad">
+                <div class="pp-out" id="ppOut"></div>
+              </div>
+            </section>
+
+            <!-- HELP SECTION -->
+            <section class="pp-card">
+              <div class="pp-cardhead">
+                <div>
+                  <h2>Help & Tips</h2>
+                  <div class="pp-small">Read once. Code peacefully 🙂</div>
+                </div>
+                <div class="pp-toolbar">
+                  <button class="pp-btn pp-btn-ghost" id="ppHelpToggle">
+                    ❓ Toggle
+                  </button>
+                </div>
+              </div>
+
+              <div class="pp-pad" id="ppHelpBody" style="display: none">
+                <div class="pp-judge">
+                  <h3>▶ How to Run Code</h3>
+                  <p>
+                    • Click <b>Run</b> or press <b>Ctrl + Enter</b><br />
+                    • Output appears in the <b>Output</b> panel
+                  </p>
+
+                  <h3>⌨ How input() Works</h3>
+                  <p>
+                    • Each <code>input()</code> reads one line<br />
+                    • Enter inputs line-by-line in the <b>stdin</b> box
+                  </p>
+
+                  <h3>🧪 Problem Mode</h3>
+                  <p>
+                    • Click <b>Load Starter</b> to get template code<br />
+                    • Write logic only where marked <code># TODO</code>
+                  </p>
+
+                  <h3>🏁 Tests</h3>
+                  <p>
+                    • <b>Run Samples</b> → visible test cases<br />
+                    • <b>Run All Tests</b> → includes hidden edge cases<br />
+                    • Hidden failures mean logic is incomplete
+                  </p>
+
+                  <h3>⚠ Common Mistakes</h3>
+                  <p>
+                    • Forgot <code>print()</code><br />
+                    • Extra text like <code>"sum ="</code><br />
+                    • Infinite loop (timeout)<br />
+                    • Wrong range limits
+                  </p>
+
+                  <h3>🏆 XP & Streak</h3>
+                  <p>
+                    • Full pass = more XP<br />
+                    • Solve daily = streak increases 🔥<br />
+                    • Stored in your browser
+                  </p>
+
+                  <h3>🧠 Tip from Champak Sir</h3>
+                  <p>“Logic sahi rakho. Output bilkul clean rakho.”</p>
+                </div>
+              </div>
+            </section>
+          </aside>
+        </div>
+      </div>
+
+      <div class="pp-toast" id="ppToast"></div>
+    </div>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+
+      const ui = {
+        tabs: $("ppTabs"),
+        code: $("ppCode"),
+        gutter: $("ppGutter"),
+        out: $("ppOut"),
+        stdin: $("ppStdin"),
+        pkgs: $("ppPkgs"),
+        example: $("ppExample"),
+        indent: $("ppIndent"),
+        pyText: $("ppPyText"),
+        dot: $("ppDot"),
+        status: $("ppStatus"),
+        bar: $("ppBar"),
+        autorun: $("ppAutoRun"),
+        timer: $("ppTimer"),
+        toast: $("ppToast"),
+
+        // Phase 1: judge ui
+        problemSel: $("ppProblem"),
+        todayBtn: $("ppToday"),
+        pTitle: $("ppPTitle"),
+        pDesc: $("ppPDesc"),
+        pExamples: $("ppPExamples"),
+        loadStarter: $("ppLoadStarter"),
+        resetStarter: $("ppResetStarter"),
+        hintBtn: $("ppHint"),
+        runSamples: $("ppRunSamples"),
+        runAll: $("ppRunAll"),
+        judgeSummary: $("ppJudgeSummary"),
+        judgeTableWrap: $("ppJudgeTableWrap"),
+        xp: $("ppXP"),
+        streak: $("ppStreak"),
+        timeout: $("ppTimeout"),
+      };
+
+      const btn = {
+        run: $("ppRun"),
+        stop: $("ppStop"),
+        format: $("ppFormat"),
+        save: $("ppSave"),
+        share: $("ppShare"),
+        newTab: $("ppNewTab"),
+        delTab: $("ppDelTab"),
+        install: $("ppInstall"),
+        list: $("ppList"),
+        sample: $("ppStdinSample"),
+        clearStdin: $("ppStdinClear"),
+        copyOut: $("ppCopyOut"),
+        clearOut: $("ppClearOut"),
+      };
+
+      const STORAGE_KEY = "pp_pyodide_editor_phase1_v1";
+      const STORAGE_STDIN = "pp_pyodide_stdin_phase1_v1";
+
+      const STORAGE_XP = "pp_xp_v1";
+      const STORAGE_STREAK = "pp_streak_v1";
+      const STORAGE_LASTDAY = "pp_last_day_v1";
+
+      // ---------- Problems JSON (EDIT THIS!) ----------
+      const PROBLEMS = [
+        {
+          id: "sum_n",
+          title: "Sum of N Numbers",
+          level: "Easy",
+          statement: `Given an integer N, print the sum of the first N natural numbers.
+Natural numbers: 1..N
+
+Input:
+N
+
+Output:
+sum`,
+          starter: `# Read N and print sum of 1..N
+# Example: N=5 => 15
+
+n = int(input())
+
+# TODO: compute sum
+# print(answer)
+`,
+          examples: [
+            { input: "5\n", output: "15\n" },
+            { input: "1\n", output: "1\n" },
+          ],
+          tests: [
+            { input: "10\n", output: "55\n", hidden: false },
+            { input: "100\n", output: "5050\n", hidden: true },
+            { input: "0\n", output: "0\n", hidden: true }, // edge case
+          ],
+          hints: [
+            "Use formula: n*(n+1)//2",
+            "Edge case: if N=0 output should be 0.",
+            "Make sure output is just the number (no extra text).",
+          ],
+          tags: ["math", "if-else", "io"],
+        },
+        {
+          id: "count_even",
+          title: "Count Evens",
+          level: "Easy → Medium",
+          statement: `Given N and then N integers, print how many of them are even.
+
+Input:
+N
+a1 a2 ... aN  (can be on one line or multiple lines)
+
+Output:
+count_even`,
+          starter: `# Count even numbers
+n = int(input())
+
+# TODO: read n integers and count evens
+# print(count)
+`,
+          examples: [
+            { input: "5\n1 2 3 4 5\n", output: "2\n" },
+            { input: "3\n2\n4\n6\n", output: "3\n" },
+          ],
+          tests: [
+            { input: "6\n1 2 3 4 5 6\n", output: "3\n", hidden: false },
+            { input: "1\n7\n", output: "0\n", hidden: true },
+            { input: "8\n0 0 0 1 1 2 2 3\n", output: "5\n", hidden: true },
+          ],
+          hints: [
+            "Read all numbers using: nums = list(map(int, sys.stdin.read().split()))",
+            "Even check: x % 2 == 0",
+            "Be careful: inputs may come in multiple lines.",
+          ],
+          tags: ["loops", "io"],
+        },
+        {
+          id: "reverse_num",
+          title: "Reverse a Number",
+          level: "Selection",
+          statement: `Given an integer N (0 ≤ N ≤ 10^18), print its digits reversed.
+Leading zeros in output should be removed (except N=0 => output 0).
+
+Input:
+N
+
+Output:
+reverse(N)`,
+          starter: `# Reverse digits of a number
+n = int(input())
+
+# TODO: reverse digits
+# print(ans)
+`,
+          examples: [
+            { input: "1200\n", output: "21\n" },
+            { input: "0\n", output: "0\n" },
+          ],
+          tests: [
+            { input: "123456\n", output: "654321\n", hidden: false },
+            { input: "1000000000000000000\n", output: "1\n", hidden: true },
+            { input: "9070\n", output: "709\n", hidden: true },
+          ],
+          hints: [
+            "Either do math loop: while n>0: ans=ans*10+n%10",
+            "Or string method (allowed unless you forbid): s=str(n); s[::-1]; int(...)",
+            "Edge case: N=0.",
+          ],
+          tags: ["loops", "math", "strings"],
+        },
+      ];
+
+      // ---------- Examples dropdown (keep small) ----------
+      const EXAMPLES = [
+        {
+          title: "Hello + loops",
+          code: `print("Hello")\nfor i in range(5):\n    print("i =", i)\n`,
+        },
+        {
+          title: "stdin + input()",
+          code: `n=int(input())\nt=0\nfor _ in range(n):\n    t+=int(input())\nprint("sum =", t)\n`,
+        },
+      ];
+
+      const DEFAULT_TABS = [
+        {
+          name: "main.py",
+          code: `# Use Problem Mode (right) to load a challenge.\nprint("Namaste Champak 👋")\n`,
+        },
+      ];
+
+      let state = loadState();
+      let currentTab = clamp(state.currentTab || 0, 0, state.tabs.length - 1);
+
+      let pyodide = null;
+      let runtimeId = 0;
+
+      // Phase 1 state
+      let currentProblemId = null;
+      let currentStarter = null;
+      const JUDGE_TIMEOUT_MS = 2500; // simple guard (no worker)
+      ui.timeout.textContent = (JUDGE_TIMEOUT_MS / 1000).toFixed(1);
+
+      // ---------- utils ----------
+      function clamp(n, a, b) {
+        return Math.max(a, Math.min(b, n));
+      }
+
+      function toast(msg) {
+        ui.toast.textContent = msg;
+        ui.toast.classList.add("show");
+        clearTimeout(toast._t);
+        toast._t = setTimeout(() => ui.toast.classList.remove("show"), 1600);
+      }
+
+      function setStatus(text, kind) {
+        ui.status.textContent = text;
+        ui.dot.className = "pp-dot" + (kind ? " " + kind : "");
+      }
+
+      function setProgress(p) {
+        ui.bar.style.width = clamp(p, 0, 100) + "%";
+      }
+
+      function escapeHtml(s) {
+        return (s + "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;");
+      }
+
+      function writeOut(html, append = true) {
+        if (!append) ui.out.innerHTML = "";
+        ui.out.innerHTML += html;
+        ui.out.scrollTop = ui.out.scrollHeight;
+      }
+
+      function normalizeOut(s) {
+        // normalize for judge comparison (still strict-ish)
+        s = (s ?? "").toString().replace(/\r\n/g, "\n");
+        // remove trailing spaces per line
+        s = s
+          .split("\n")
+          .map((line) => line.replace(/[ \t]+$/g, ""))
+          .join("\n");
+        // trim only end
+        s = s.replace(/\s+$/g, "");
+        return s + "\n"; // enforce newline at end for compare
+      }
+
+      function loadState() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            const p = JSON.parse(raw);
+            if (p && Array.isArray(p.tabs) && p.tabs.length) return p;
+          }
+        } catch (e) {}
+        return { tabs: structuredClone(DEFAULT_TABS), currentTab: 0 };
+      }
+
+      function saveState() {
+        try {
+          localStorage.setItem(
+            STORAGE_KEY,
+            JSON.stringify({ tabs: state.tabs, currentTab })
+          );
+        } catch (e) {}
+      }
+
+      function loadStdin() {
+        try {
+          ui.stdin.value = localStorage.getItem(STORAGE_STDIN) || "";
+        } catch (e) {}
+      }
+      function saveStdin() {
+        try {
+          localStorage.setItem(STORAGE_STDIN, ui.stdin.value || "");
+        } catch (e) {}
+      }
+
+      // ---------- XP / streak ----------
+      function getLocalDayKey(d = new Date()) {
+        const y = d.getFullYear(),
+          m = String(d.getMonth() + 1).padStart(2, "0"),
+          da = String(d.getDate()).padStart(2, "0");
+        return `${y}-${m}-${da}`;
+      }
+      function getXP() {
+        return parseInt(localStorage.getItem(STORAGE_XP) || "0", 10) || 0;
+      }
+      function setXP(v) {
+        localStorage.setItem(STORAGE_XP, String(v));
+        ui.xp.textContent = String(v);
+      }
+      function getStreak() {
+        return parseInt(localStorage.getItem(STORAGE_STREAK) || "0", 10) || 0;
+      }
+      function setStreak(v) {
+        localStorage.setItem(STORAGE_STREAK, String(v));
+        ui.streak.textContent = String(v);
+      }
+      function updateStreakOnSolve() {
+        const today = getLocalDayKey();
+        const last = localStorage.getItem(STORAGE_LASTDAY) || "";
+        let streak = getStreak();
+
+        if (last === today) {
+          return; // already counted today
+        }
+
+        // check if yesterday
+        const d = new Date();
+        const yesterday = new Date(
+          d.getFullYear(),
+          d.getMonth(),
+          d.getDate() - 1
+        );
+        const ykey = getLocalDayKey(yesterday);
+
+        if (last === ykey) streak += 1;
+        else streak = 1;
+
+        localStorage.setItem(STORAGE_LASTDAY, today);
+        setStreak(streak);
+      }
+
+      // ---------- tabs ----------
+      function renderTabs() {
+        ui.tabs.innerHTML = "";
+        state.tabs.forEach((t, i) => {
+          const b = document.createElement("button");
+          b.type = "button";
+          b.className = "pp-tab" + (i === currentTab ? " pp-active" : "");
+          b.textContent = t.name;
+          b.onclick = () => switchTab(i);
+          ui.tabs.appendChild(b);
+        });
+
+        ui.example.innerHTML =
+          `<option value="">Examples…</option>` +
+          EXAMPLES.map(
+            (e, i) => `<option value="${i}">${e.title}</option>`
+          ).join("");
+      }
+
+      function switchTab(i) {
+        state.tabs[currentTab].code = ui.code.value;
+        currentTab = clamp(i, 0, state.tabs.length - 1);
+        ui.code.value = state.tabs[currentTab].code || "";
+        renderTabs();
+        updateGutter();
+        saveState();
+      }
+
+      function newTab() {
+        state.tabs[currentTab].code = ui.code.value;
+        let n = 1;
+        const names = new Set(state.tabs.map((t) => t.name));
+        let name = `untitled${n}.py`;
+        while (names.has(name)) {
+          n++;
+          name = `untitled${n}.py`;
+        }
+        state.tabs.push({ name, code: "# new file\n" });
+        currentTab = state.tabs.length - 1;
+        ui.code.value = state.tabs[currentTab].code;
+        renderTabs();
+        updateGutter();
+        saveState();
+        toast("New tab created");
+      }
+
+      function delTab() {
+        if (state.tabs.length <= 1) {
+          toast("Can't delete last tab");
+          return;
+        }
+        state.tabs[currentTab].code = ui.code.value;
+        state.tabs.splice(currentTab, 1);
+        currentTab = clamp(currentTab, 0, state.tabs.length - 1);
+        ui.code.value = state.tabs[currentTab].code || "";
+        renderTabs();
+        updateGutter();
+        saveState();
+        toast("Tab deleted");
+      }
+
+      function updateGutter() {
+        const lines = ui.code.value.split("\n").length || 1;
+        let s = "";
+        for (let i = 1; i <= lines; i++) s += i + "\n";
+        ui.gutter.textContent = s.trimEnd();
+        ui.gutter.scrollTop = ui.code.scrollTop;
+      }
+
+      ui.code.addEventListener(
+        "scroll",
+        () => (ui.gutter.scrollTop = ui.code.scrollTop)
+      );
+      ui.code.addEventListener("input", () => {
+        updateGutter();
+        autosave();
+      });
+
+      let autosaveT = null;
+      function autosave() {
+        clearTimeout(autosaveT);
+        autosaveT = setTimeout(() => {
+          state.tabs[currentTab].code = ui.code.value;
+          saveState();
+        }, 250);
+      }
+
+      function basicFormat() {
+        const mode = ui.indent.value;
+        const tabToSpaces = mode !== "tab";
+        const spaceCount = parseInt(mode, 10) || 4;
+        const lines = ui.code.value.split("\n").map((l) => {
+          let x = l.replace(/\s+$/g, "");
+          if (tabToSpaces) x = x.replace(/\t/g, " ".repeat(spaceCount));
+          return x;
+        });
+        let out = lines.join("\n");
+        if (!out.endsWith("\n")) out += "\n";
+        ui.code.value = out;
+        updateGutter();
+        autosave();
+        toast("Formatted");
+      }
+
+      /* JS bridge for Python stdout/stderr (NO double-underscore!) */
+      window.pp_write = (text, isErr) => {
+        const safe = escapeHtml(text);
+        writeOut(isErr ? `<span class="err">${safe}</span>` : safe, true);
+      };
+
+      // manual stdin bridge for "Run"
+      function stdinQueue() {
+        const lines = (ui.stdin.value || "").replace(/\r\n/g, "\n").split("\n");
+        let i = 0;
+        return () => (i < lines.length ? lines[i++] : "");
+      }
+
+      // ---------- pyodide init ----------
+      async function ensurePyodide() {
+        if (pyodide) return pyodide;
+
+        setStatus("Loading Pyodide…", "warn");
+        ui.pyText.textContent = "loading…";
+        setProgress(12);
+
+        pyodide = await loadPyodide({
+          indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.2/full/",
+        });
+        setProgress(55);
+
+        await pyodide.loadPackage("micropip");
+        setProgress(80);
+
+        // Define writers + a capture runner for judge mode
+        await pyodide.runPythonAsync(`
+import sys, builtins, io, traceback
+from js import pp_write
+
+class _PPWriter:
+    def __init__(self, is_err=False):
+        self.is_err = is_err
+    def write(self, s):
+        pp_write(str(s), self.is_err)
+        return len(s)
+    def flush(self):
+        pass
+
+def _pp_run_capture(user_code: str, stdin_text: str):
+    """
+    Runs user code with provided stdin_text.
+    Captures stdout/stderr and returns dict:
+      { ok: bool, stdout: str, stderr: str, error: str }
+    """
+    out = io.StringIO()
+    err = io.StringIO()
+
+    # input() reading
+    data = (stdin_text or "").splitlines()
+    idx = 0
+
+    def _input(prompt=""):
+        nonlocal idx
+        if prompt:
+            out.write(str(prompt))
+        if idx >= len(data):
+            return ""
+        v = data[idx]
+        idx += 1
+        return v
+
+    # isolated globals per run
+    g = {"__name__": "__main__"}
+
+    # redirect streams + input
+    old_stdout, old_stderr = sys.stdout, sys.stderr
+    old_input = builtins.input
+    sys.stdout, sys.stderr = out, err
+    builtins.input = _input
+
+    try:
+        exec(user_code, g, g)
+        return {"ok": True, "stdout": out.getvalue(), "stderr": err.getvalue(), "error": ""}
+    except SystemExit as e:
+        # treat as ok if it exits normally; still capture output
+        return {"ok": True, "stdout": out.getvalue(), "stderr": err.getvalue(), "error": ""}
+    except Exception:
+        tb = traceback.format_exc()
+        return {"ok": False, "stdout": out.getvalue(), "stderr": err.getvalue(), "error": tb}
+    finally:
+        sys.stdout, sys.stderr = old_stdout, old_stderr
+        builtins.input = old_input
+`);
+        setProgress(100);
+        setTimeout(() => setProgress(0), 450);
+
+        ui.pyText.textContent = "ready";
+        setStatus("Pyodide ready.", "ok");
+        return pyodide;
+      }
+
+      async function resetRuntime() {
+        runtimeId++;
+        pyodide = null;
+        ui.pyText.textContent = "not loaded";
+        setStatus("Runtime reset. Run to reload.", "warn");
+        toast("Stopped + runtime reset");
+      }
+
+      // ---------- Run (manual) ----------
+      async function run() {
+        const thisRun = ++runtimeId;
+        btn.run.disabled = true;
+        btn.stop.disabled = false;
+
+        ui.out.innerHTML = `<span class="dim">— Running —</span>\n`;
+
+        state.tabs[currentTab].code = ui.code.value;
+        saveState();
+        saveStdin();
+
+        try {
+          const py = await ensurePyodide();
+          if (thisRun !== runtimeId) return;
+
+          const nextIn = stdinQueue();
+          window.pp_input = () => nextIn();
+
+          await py.runPythonAsync(`
+import sys, builtins
+from js import pp_input
+from __main__ import _PPWriter
+
+sys.stdout = _PPWriter(False)
+sys.stderr = _PPWriter(True)
+
+def _input(prompt=""):
+    if prompt:
+        sys.stdout.write(str(prompt))
+    return str(pp_input())
+
+builtins.input = _input
+`);
+
+          const t0 = performance.now();
+          await py.runPythonAsync(ui.code.value || "");
+          const t1 = performance.now();
+
+          if (ui.timer.checked) {
+            writeOut(
+              `\n<span class="ok">\n✓ Done</span> <span class="dim">(${Math.round(
+                t1 - t0
+              )} ms)</span>\n`,
+              true
+            );
+          } else {
+            writeOut(`\n<span class="ok">\n✓ Done</span>\n`, true);
+          }
+          setStatus("Done.", "ok");
+        } catch (err) {
+          const msg = err?.message ? err.message : String(err);
+          writeOut(
+            `\n<span class="err">\n✗ Error:</span>\n<span class="err">${escapeHtml(
+              msg
+            )}</span>\n`,
+            true
+          );
+          setStatus("Error.", "bad");
+        } finally {
+          if (thisRun === runtimeId) {
+            btn.run.disabled = false;
+            btn.stop.disabled = true;
+          }
+        }
+      }
+
+      // ---------- Judge (Phase 1) ----------
+      function getProblemById(id) {
+        return PROBLEMS.find((p) => p.id === id) || null;
+      }
+
+      function renderProblems() {
+        ui.problemSel.innerHTML = PROBLEMS.map(
+          (p) => `<option value="${p.id}">${p.title} • ${p.level}</option>`
+        ).join("");
+      }
+
+      function pickTodayProblemId() {
+        const d = new Date();
+        const seed =
+          d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+        return PROBLEMS[seed % PROBLEMS.length].id;
+      }
+
+      function showProblem(id) {
+        const p = getProblemById(id);
+        if (!p) return;
+
+        currentProblemId = id;
+        currentStarter = p.starter;
+
+        ui.pTitle.textContent = `${p.title}  •  ${p.level}`;
+        ui.pDesc.textContent = p.statement;
+
+        const ex = [];
+        for (const e of p.examples) {
+          ex.push(`INPUT:\n${e.input}\nOUTPUT:\n${e.output}`);
+        }
+        ui.pExamples.style.display = "block";
+        ui.pExamples.textContent = ex.join("\n\n---\n\n");
+
+        ui.judgeSummary.textContent = "";
+        ui.judgeTableWrap.innerHTML = "";
+      }
+
+      function loadStarterIntoEditor() {
+        const p = getProblemById(currentProblemId);
+        if (!p) {
+          toast("Pick a problem first");
+          return;
+        }
+        ui.code.value = p.starter;
+        updateGutter();
+        autosave();
+        toast("Starter loaded");
+      }
+
+      function resetToStarter() {
+        if (!currentStarter) {
+          toast("No starter saved yet");
+          return;
+        }
+        ui.code.value = currentStarter;
+        updateGutter();
+        autosave();
+        toast("Reset to starter");
+      }
+
+      function showHint() {
+        const p = getProblemById(currentProblemId);
+        if (!p) {
+          toast("Pick a problem first");
+          return;
+        }
+
+        // simple rotating hint
+        showHint._i = (showHint._i ?? -1) + 1;
+        const hint = p.hints[showHint._i % p.hints.length];
+        toast("💡 " + hint);
+      }
+
+      async function runJudge(testList, label) {
+        const p = getProblemById(currentProblemId);
+        if (!p) {
+          toast("Pick a problem first");
+          return;
+        }
+
+        ui.judgeSummary.textContent = "Running tests…";
+        ui.judgeTableWrap.innerHTML = "";
+        ui.runSamples.disabled = true;
+        ui.runAll.disabled = true;
+
+        // Save editor state
+        state.tabs[currentTab].code = ui.code.value;
+        saveState();
+
+        const userCode = ui.code.value || "";
+        const py = await ensurePyodide();
+
+        // helper: run single test with timeout guard
+        async function runOne(input) {
+          const runPromise = (async () => {
+            py.globals.set("PP_USER_CODE", userCode);
+            py.globals.set("PP_STDIN_TEXT", input);
+            await py.runPythonAsync(`
+from __main__ import _pp_run_capture
+PP_RESULT = _pp_run_capture(PP_USER_CODE, PP_STDIN_TEXT)
+`);
+            const res = py.globals.get("PP_RESULT");
+            // convert PyProxy -> plain
+            const obj = res.toJs({ dict_converter: Object.fromEntries });
+            try {
+              res.destroy?.();
+            } catch (e) {}
+            return obj;
+          })();
+
+          const timeoutPromise = new Promise((_, rej) =>
+            setTimeout(() => rej(new Error("TIMEOUT")), JUDGE_TIMEOUT_MS)
+          );
+
+          return Promise.race([runPromise, timeoutPromise]);
+        }
+
+        const rows = [];
+        let pass = 0;
+
+        const t0 = performance.now();
+        for (let i = 0; i < testList.length; i++) {
+          const t = testList[i];
+          const name = t.hidden ? `Hidden #${i + 1}` : `Test #${i + 1}`;
+          try {
+            const r = await runOne(t.input);
+            const got = normalizeOut((r.stdout || "") + (r.stderr || "")); // treat stderr as visible output for judge
+            const exp = normalizeOut(t.output);
+
+            const ok = r.ok === true && got === exp;
+
+            if (ok) pass++;
+
+            rows.push({
+              name,
+              hidden: !!t.hidden,
+              ok,
+              input: t.input,
+              expected: t.hidden ? "(hidden)" : t.output,
+              got: t.hidden ? (ok ? "(hidden)" : got) : got,
+              error: r.ok ? "" : r.error || "Runtime error",
+            });
+          } catch (err) {
+            const isTimeout = err && String(err.message).includes("TIMEOUT");
+            if (isTimeout) {
+              rows.push({
+                name,
+                hidden: !!t.hidden,
+                ok: false,
+                input: t.input,
+                expected: t.hidden ? "(hidden)" : t.output,
+                got: "(stopped)",
+                error: "Timeout. (Tip: your code may be stuck in a loop.)",
+              });
+              // Without a worker, safest is reset runtime:
+              await resetRuntime();
+            } else {
+              rows.push({
+                name,
+                hidden: !!t.hidden,
+                ok: false,
+                input: t.input,
+                expected: t.hidden ? "(hidden)" : t.output,
+                got: "",
+                error: err && err.message ? err.message : String(err),
+              });
+            }
+          }
+        }
+        const t1 = performance.now();
+
+        // Score + XP
+        const total = testList.length;
+        const score = Math.round((pass / total) * 100);
+        ui.judgeSummary.innerHTML = `<b>${label}:</b> <span class="${
+          pass === total ? "pp-pass" : "pp-dim"
+        }">${pass}/${total}</span> • Score: <b>${score}</b> • Time: <span class="pp-dim">${Math.round(
+          t1 - t0
+        )} ms</span>`;
+
+        // Build table
+        const table = document.createElement("table");
+        table.className = "pp-table";
+        table.innerHTML = `
+        <thead>
+          <tr>
+            <th style="width:120px">Result</th>
+            <th>Test</th>
+            <th style="width:120px">Status</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      `;
+        const tbody = table.querySelector("tbody");
+
+        rows.forEach((r, idx) => {
+          const tr = document.createElement("tr");
+          const status = r.ok
+            ? `<span class="pp-pass">PASS</span>`
+            : `<span class="pp-fail">FAIL</span>`;
+          const head = r.ok ? "✅" : "❌";
+          const detail = `
+<div class="pp-dim">${escapeHtml(r.name)} ${r.hidden ? "• hidden" : ""}</div>
+<div style="margin-top:6px"><b>Input</b><pre class="pp-mono" style="margin:6px 0 0;padding:8px;border:1px solid var(--pp-border);border-radius:12px;background:rgba(11,18,32,.04)">${escapeHtml(
+            r.input
+          )}</pre></div>
+<div style="margin-top:8px"><b>Expected</b><pre class="pp-mono" style="margin:6px 0 0;padding:8px;border:1px solid var(--pp-border);border-radius:12px;background:rgba(11,18,32,.04)">${escapeHtml(
+            r.expected
+          )}</pre></div>
+<div style="margin-top:8px"><b>Got</b><pre class="pp-mono" style="margin:6px 0 0;padding:8px;border:1px solid var(--pp-border);border-radius:12px;background:rgba(11,18,32,.04)">${escapeHtml(
+            r.got
+          )}</pre></div>
+${
+  r.error
+    ? `<div style="margin-top:8px"><b class="pp-fail">Error</b><pre class="pp-mono" style="margin:6px 0 0;padding:8px;border:1px solid #f3c7c7;border-radius:12px;background:rgba(185,28,28,.06)">${escapeHtml(
+        r.error
+      )}</pre></div>`
+    : ""
+}
+`;
+          tr.innerHTML = `
+          <td><b>${head}</b></td>
+          <td>${detail}</td>
+          <td>${status}</td>
+        `;
+          tbody.appendChild(tr);
+        });
+
+        ui.judgeTableWrap.innerHTML = "";
+        ui.judgeTableWrap.appendChild(table);
+
+        // Award XP on full pass (all tests)
+        if (pass === total) {
+          const oldXP = getXP();
+          const gained = 25 + total * 5; // simple reward
+          setXP(oldXP + gained);
+          updateStreakOnSolve();
+          toast(`🏆 All tests passed! +${gained} XP`);
+        } else {
+          // small XP for effort
+          const oldXP = getXP();
+          const gained = Math.max(5, pass * 3);
+          setXP(oldXP + gained);
+          toast(`Keep going! +${gained} XP`);
+        }
+
+        ui.runSamples.disabled = false;
+        ui.runAll.disabled = false;
+      }
+
+      // ---------- Packages ----------
+      async function installPkgs() {
+        const raw = (ui.pkgs.value || "").trim();
+        if (!raw) {
+          toast("No packages");
+          return;
+        }
+        const pkgs = raw
+          .split(/[, ]+/)
+          .map((s) => s.trim())
+          .filter(Boolean);
+
+        ui.out.innerHTML = `<span class="dim">— Installing —</span>\n`;
+        setStatus("Installing…", "warn");
+
+        const thisRun = ++runtimeId;
+        try {
+          const py = await ensurePyodide();
+          if (thisRun !== runtimeId) return;
+
+          await py.runPythonAsync(`
+import micropip
+pkgs = ${JSON.stringify(pkgs)}
+await micropip.install(pkgs)
+print("Installed:", ", ".join(pkgs))
+`);
+          setStatus("Packages installed.", "ok");
+        } catch (err) {
+          const msg = err?.message ? err.message : String(err);
+          writeOut(
+            `\n<span class="err">✗ Install error:</span>\n<span class="err">${escapeHtml(
+              msg
+            )}</span>\n`,
+            true
+          );
+          setStatus("Install failed.", "bad");
+        }
+      }
+
+      async function listPkgs() {
+        ui.out.innerHTML = `<span class="dim">— Installed packages —</span>\n`;
+        const thisRun = ++runtimeId;
+        try {
+          const py = await ensurePyodide();
+          if (thisRun !== runtimeId) return;
+
+          await py.runPythonAsync(`
+import pkgutil
+names = sorted({m.name for m in pkgutil.iter_modules()})
+print("\\n".join(names[:4000]))
+`);
+        } catch (err) {
+          const msg = err?.message ? err.message : String(err);
+          writeOut(
+            `\n<span class="err">✗ Error:</span>\n<span class="err">${escapeHtml(
+              msg
+            )}</span>\n`,
+            true
+          );
+        }
+      }
+
+      // ---------- Share ----------
+      function share() {
+        state.tabs[currentTab].code = ui.code.value;
+        const payload = {
+          tabs: state.tabs,
+          currentTab,
+          stdin: ui.stdin.value || "",
+          pkgs: ui.pkgs.value || "",
+          problem: currentProblemId || "",
+        };
+        const json = JSON.stringify(payload);
+        const bytes = new TextEncoder().encode(json);
+        let bin = "";
+        bytes.forEach((b) => (bin += String.fromCharCode(b)));
+        const b64 = btoa(bin)
+          .replaceAll("+", "-")
+          .replaceAll("/", "_")
+          .replaceAll("=", "");
+        const url = location.origin + location.pathname + "#" + b64;
+        navigator.clipboard
+          ?.writeText(url)
+          .then(() => toast("Share link copied"))
+          .catch(() => prompt("Copy link:", url));
+      }
+
+      function loadFromHash() {
+        const h = location.hash.replace("#", "");
+        if (!h) return;
+        try {
+          let b64 = h.replaceAll("-", "+").replaceAll("_", "/");
+          while (b64.length % 4) b64 += "=";
+          const bin = atob(b64);
+          const bytes = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+          const json = new TextDecoder().decode(bytes);
+          const payload = JSON.parse(json);
+
+          if (payload?.tabs?.length) {
+            state.tabs = payload.tabs;
+            currentTab = clamp(
+              payload.currentTab || 0,
+              0,
+              state.tabs.length - 1
+            );
+            ui.stdin.value = payload.stdin || "";
+            ui.pkgs.value = payload.pkgs || "";
+            ui.code.value = state.tabs[currentTab].code || "";
+            saveState();
+            saveStdin();
+          }
+          if (payload?.problem) {
+            currentProblemId = payload.problem;
+          }
+        } catch (e) {}
+      }
+
+      // ---------- bindings ----------
+      btn.run.onclick = run;
+      btn.stop.onclick = resetRuntime;
+      btn.format.onclick = basicFormat;
+      btn.save.onclick = () => {
+        state.tabs[currentTab].code = ui.code.value;
+        saveState();
+        saveStdin();
+        toast("Saved");
+      };
+      btn.share.onclick = share;
+
+      btn.newTab.onclick = newTab;
+      btn.delTab.onclick = delTab;
+
+      btn.install.onclick = installPkgs;
+      btn.list.onclick = listPkgs;
+
+      btn.sample.onclick = () => {
+        ui.stdin.value = "5\n10\n20\n30\n40\n50\n";
+        saveStdin();
+        toast("stdin sample filled");
+      };
+      btn.clearStdin.onclick = () => {
+        ui.stdin.value = "";
+        saveStdin();
+        toast("stdin cleared");
+      };
+
+      btn.copyOut.onclick = () => {
+        const t = ui.out.innerText || "";
+        navigator.clipboard
+          ?.writeText(t)
+          .then(() => toast("Output copied"))
+          .catch(() => prompt("Copy:", t));
+      };
+      btn.clearOut.onclick = () => {
+        ui.out.innerHTML = "";
+        toast("Cleared");
+      };
+
+      ui.example.onchange = () => {
+        const i = parseInt(ui.example.value, 10);
+        if (Number.isFinite(i) && EXAMPLES[i]) {
+          ui.code.value = EXAMPLES[i].code;
+          updateGutter();
+          autosave();
+          toast("Example loaded");
+          if (ui.autorun.checked) run();
+        }
+        ui.example.value = "";
+      };
+
+      // Package chips
+      document.querySelectorAll(".pp-chip[data-pkg]").forEach((ch) => {
+        ch.onclick = () => {
+          const p = ch.getAttribute("data-pkg");
+          const cur = (ui.pkgs.value || "").trim();
+          const parts = cur ? cur.split(/[, ]+/).filter(Boolean) : [];
+          if (!parts.includes(p)) {
+            parts.push(p);
+            ui.pkgs.value = parts.join(", ");
+            toast("Added " + p);
+          } else toast(p + " already listed");
+        };
+      });
+
+      // Keyboard shortcuts
+      ui.code.addEventListener("keydown", (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+          e.preventDefault();
+          run();
+        }
+        if (e.key === "Tab") {
+          e.preventDefault();
+          const mode = ui.indent.value;
+          const ins =
+            mode === "tab" ? "\t" : " ".repeat(parseInt(mode, 10) || 4);
+          const el = ui.code;
+          const s = el.selectionStart,
+            t = el.selectionEnd;
+
+          if (s !== t) {
+            const v = el.value;
+            const ls = v.lastIndexOf("\n", s - 1) + 1;
+            const le = v.indexOf("\n", t);
+            const end = le === -1 ? v.length : le;
+            const block = v
+              .slice(ls, end)
+              .split("\n")
+              .map((line) => ins + line)
+              .join("\n");
+            el.value = v.slice(0, ls) + block + v.slice(end);
+            el.selectionStart = ls;
+            el.selectionEnd = ls + block.length;
+          } else {
+            el.setRangeText(ins, s, s, "end");
+          }
+          updateGutter();
+          autosave();
+        }
+      });
+
+      // ---------- Phase 1: Problem Mode bindings ----------
+      ui.problemSel.onchange = () => {
+        const id = ui.problemSel.value;
+        showProblem(id);
+        toast("Problem loaded");
+      };
+      ui.todayBtn.onclick = () => {
+        const id = pickTodayProblemId();
+        ui.problemSel.value = id;
+        showProblem(id);
+        toast("Today’s problem loaded");
+      };
+
+      ui.loadStarter.onclick = loadStarterIntoEditor;
+      ui.resetStarter.onclick = resetToStarter;
+      ui.hintBtn.onclick = showHint;
+
+      ui.runSamples.onclick = async () => {
+        const p = getProblemById(currentProblemId);
+        if (!p) {
+          toast("Pick a problem");
+          return;
+        }
+        await runJudge(
+          p.examples.map((e) => ({
+            input: e.input,
+            output: e.output,
+            hidden: false,
+          })),
+          "Samples"
+        );
+      };
+
+      ui.runAll.onclick = async () => {
+        const p = getProblemById(currentProblemId);
+        if (!p) {
+          toast("Pick a problem");
+          return;
+        }
+        await runJudge(p.tests, "All tests");
+      };
+
+      // ---------- init ----------
+      function init() {
+        // XP + streak
+        setXP(getXP());
+        setStreak(getStreak());
+
+        loadFromHash();
+
+        renderTabs();
+        renderProblems();
+        loadStdin();
+
+        ui.code.value = state.tabs[currentTab].code || "";
+        updateGutter();
+        btn.stop.disabled = true;
+
+        // select problem (from share, or today)
+        const pid = currentProblemId || pickTodayProblemId();
+        ui.problemSel.value = pid;
+        showProblem(pid);
+
+        // polite preload
+        setTimeout(() => ensurePyodide().catch(() => {}), 900);
+      }
+
+      init();
+    </script>
+  </body>
+</html>
