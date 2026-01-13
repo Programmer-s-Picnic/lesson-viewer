@@ -3,10 +3,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>
-        PRO — Drag • Resize • Rotate • Align • Save/Export •
-      Slide FX
-    </title>
+    <title>PRO — Drag • Resize • Rotate • Align • Save/Export • Slide FX</title>
+
+    <!-- ✅ ZIP export support -->
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+
     <style>
       :root {
         --bg: #fff7e6;
@@ -21,25 +22,15 @@
         --snap: rgba(245, 158, 11, 0.95);
         --safe: rgba(255, 255, 255, 0.18);
       }
-      * {
-        box-sizing: border-box;
-      }
+      * { box-sizing: border-box; }
       body {
         margin: 0;
         font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
         background: var(--bg);
         color: var(--ink);
       }
-      .wrap {
-        max-width: 1400px;
-        margin: 18px auto;
-        padding: 14px;
-      }
-      h1 {
-        margin: 6px 0 14px;
-        text-align: center;
-        color: var(--brand);
-      }
+      .wrap { max-width: 1400px; margin: 18px auto; padding: 14px; }
+      h1 { margin: 6px 0 14px; text-align: center; color: var(--brand); }
       .grid {
         display: grid;
         grid-template-columns: 380px 1fr;
@@ -53,16 +44,8 @@
         box-shadow: var(--shadow);
         padding: 14px;
       }
-      label {
-        display: block;
-        font-size: 13px;
-        font-weight: 900;
-        margin-top: 10px;
-      }
-      input,
-      select,
-      textarea,
-      button {
+      label { display: block; font-size: 13px; font-weight: 900; margin-top: 10px; }
+      input, select, textarea, button {
         width: 100%;
         margin-top: 6px;
         padding: 9px 10px;
@@ -70,64 +53,25 @@
         border: 1px solid var(--border);
         font-size: 14px;
       }
-      textarea {
-        resize: vertical;
-      }
-      .row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
-      }
-      .row3 {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 10px;
-      }
+      textarea { resize: vertical; }
+      .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+      .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
       .btn {
         background: linear-gradient(135deg, var(--brand), var(--brand2));
-        color: #fff;
-        border: 0;
-        cursor: pointer;
-        font-weight: 900;
+        color: #fff; border: 0; cursor: pointer; font-weight: 900;
       }
-      .btn.secondary {
-        background: #fff;
-        color: var(--brand);
-        border: 1px solid var(--brand);
-      }
-      .btn.ghost {
-        background: transparent;
-        border: 1px dashed var(--border);
-        color: var(--ink);
-        font-weight: 800;
-      }
+      .btn.secondary { background: #fff; color: var(--brand); border: 1px solid var(--brand); }
+      .btn.ghost { background: transparent; border: 1px dashed var(--border); color: var(--ink); font-weight: 800; }
       .pill {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-        justify-content: space-between;
-        padding: 8px 10px;
-        border-radius: 999px;
-        border: 1px solid var(--border);
-        background: #fff;
-        box-shadow: 0 8px 20px rgba(31, 41, 55, 0.08);
+        display: flex; gap: 10px; align-items: center; justify-content: space-between;
+        padding: 8px 10px; border-radius: 999px; border: 1px solid var(--border);
+        background: #fff; box-shadow: 0 8px 20px rgba(31, 41, 55, 0.08);
       }
-      .small {
-        font-size: 12px;
-        color: var(--muted);
-        line-height: 1.35;
-        margin-top: 8px;
-      }
-      hr {
-        border: none;
-        border-top: 1px solid var(--border);
-        margin: 14px 0;
-      }
+      .small { font-size: 12px; color: var(--muted); line-height: 1.35; margin-top: 8px; }
+      hr { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 
       /* BOARD */
-      .boardWrap {
-        position: relative;
-      }
+      .boardWrap { position: relative; }
       #board {
         width: 100%;
         aspect-ratio: 16/9;
@@ -138,50 +82,22 @@
         position: relative;
       }
       #board.gridOn {
-        background-image: linear-gradient(
-            to right,
-            var(--grid) 1px,
-            transparent 1px
-          ),
+        background-image:
+          linear-gradient(to right, var(--grid) 1px, transparent 1px),
           linear-gradient(to bottom, var(--grid) 1px, transparent 1px);
         background-size: 30px 30px;
       }
-      #safeArea {
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        display: none;
-      }
+      #safeArea { position: absolute; inset: 0; pointer-events: none; display: none; }
       #safeArea::before {
         content: "";
         position: absolute;
-        left: 5%;
-        top: 5%;
-        right: 5%;
-        bottom: 5%;
+        left: 5%; top: 5%; right: 5%; bottom: 5%;
         border: 2px dashed var(--safe);
         border-radius: 14px;
       }
-
-      /* Snap guide lines */
-      .guide {
-        position: absolute;
-        pointer-events: none;
-        display: none;
-        z-index: 99999;
-        background: var(--snap);
-        opacity: 0.9;
-      }
-      #vGuide {
-        width: 2px;
-        top: 0;
-        bottom: 0;
-      }
-      #hGuide {
-        height: 2px;
-        left: 0;
-        right: 0;
-      }
+      .guide { position: absolute; pointer-events: none; display: none; z-index: 99999; background: var(--snap); opacity: 0.9; }
+      #vGuide { width: 2px; top: 0; bottom: 0; }
+      #hGuide { height: 2px; left: 0; right: 0; }
 
       /* ELEMENT */
       .el {
@@ -201,113 +117,46 @@
         box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
         background: rgba(0, 0, 0, 0.15);
       }
-      .el.selected .box {
-        outline: 2px solid rgba(245, 158, 11, 0.95);
-        outline-offset: 2px;
-      }
+      .el.selected .box { outline: 2px solid rgba(245, 158, 11, 0.95); outline-offset: 2px; }
       .el .hdr {
-        position: absolute;
-        left: 0;
-        top: 0;
-        right: 0;
+        position: absolute; left: 0; top: 0; right: 0;
         padding: 7px 10px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 10px;
-        background: linear-gradient(
-          180deg,
-          rgba(0, 0, 0, 0.55),
-          rgba(0, 0, 0, 0)
-        );
-        color: #fff;
-        font-size: 12px;
+        display: flex; justify-content: space-between; align-items: center; gap: 10px;
+        background: linear-gradient(180deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0));
+        color: #fff; font-size: 12px;
         border-radius: 14px 14px 0 0;
       }
-      .el .hdr b {
-        font-weight: 900;
-      }
-      .el .hdr .mini {
-        display: flex;
-        gap: 6px;
-        align-items: center;
-      }
+      .el .hdr b { font-weight: 900; }
+      .el .hdr .mini { display: flex; gap: 6px; align-items: center; }
       .iconBtn {
-        width: auto;
-        padding: 6px 8px;
-        border-radius: 10px;
+        width: auto; padding: 6px 8px; border-radius: 10px;
         border: 1px solid rgba(255, 255, 255, 0.2);
-        background: rgba(0, 0, 0, 0.25);
-        color: #fff;
-        cursor: pointer;
-        font-weight: 900;
-        font-size: 12px;
+        background: rgba(0, 0, 0, 0.25); color: #fff;
+        cursor: pointer; font-weight: 900; font-size: 12px;
       }
-      .iconBtn:hover {
-        background: rgba(0, 0, 0, 0.4);
-      }
-      .content {
-        position: absolute;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
+      .iconBtn:hover { background: rgba(0, 0, 0, 0.4); }
+      .content { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
 
-      /* Resize handles */
       .handle {
-        position: absolute;
-        width: 12px;
-        height: 12px;
-        border-radius: 4px;
-        background: rgba(245, 158, 11, 0.95);
-        border: 1px solid rgba(0, 0, 0, 0.35);
+        position: absolute; width: 12px; height: 12px; border-radius: 4px;
+        background: rgba(245, 158, 11, 0.95); border: 1px solid rgba(0, 0, 0, 0.35);
       }
-      .handle.br {
-        right: -6px;
-        bottom: -6px;
-        cursor: nwse-resize;
-      }
-      .handle.tr {
-        right: -6px;
-        top: 22px;
-        cursor: nesw-resize;
-      }
-      .handle.bl {
-        left: -6px;
-        bottom: -6px;
-        cursor: nesw-resize;
-      }
-      .handle.tl {
-        left: -6px;
-        top: 22px;
-        cursor: nwse-resize;
-      }
+      .handle.br { right: -6px; bottom: -6px; cursor: nwse-resize; }
+      .handle.tr { right: -6px; top: 22px; cursor: nesw-resize; }
+      .handle.bl { left: -6px; bottom: -6px; cursor: nesw-resize; }
+      .handle.tl { left: -6px; top: 22px; cursor: nwse-resize; }
 
-      /* Rotate handle */
       .rhandle {
-        position: absolute;
-        left: 50%;
-        top: -26px;
-        transform: translateX(-50%);
-        width: 16px;
-        height: 16px;
-        border-radius: 999px;
-        background: rgba(245, 158, 11, 0.95);
-        border: 1px solid rgba(0, 0, 0, 0.35);
+        position: absolute; left: 50%; top: -26px; transform: translateX(-50%);
+        width: 16px; height: 16px; border-radius: 999px;
+        background: rgba(245, 158, 11, 0.95); border: 1px solid rgba(0, 0, 0, 0.35);
         cursor: grab;
       }
       .rstick {
-        position: absolute;
-        left: 50%;
-        top: -14px;
-        transform: translateX(-50%);
-        width: 2px;
-        height: 14px;
-        background: rgba(245, 158, 11, 0.85);
+        position: absolute; left: 50%; top: -14px; transform: translateX(-50%);
+        width: 2px; height: 14px; background: rgba(245, 158, 11, 0.85);
       }
 
-      /* Text */
       .textBlock {
         width: 100%;
         padding: 18px 16px;
@@ -316,154 +165,47 @@
         white-space: nowrap;
         will-change: transform, opacity;
       }
-      .textBlock.wrapLines {
-        white-space: normal;
-      }
+      .textBlock.wrapLines { white-space: normal; }
 
-      /* Text FX */
-      @keyframes scrollLeft {
-        from {
-          transform: translateX(110%);
-        }
-        to {
-          transform: translateX(-110%);
-        }
-      }
-      @keyframes scrollRight {
-        from {
-          transform: translateX(-110%);
-        }
-        to {
-          transform: translateX(110%);
-        }
-      }
-      @keyframes fade {
-        0%,
-        100% {
-          opacity: 0;
-        }
-        50% {
-          opacity: 1;
-        }
-      }
-      @keyframes zoom {
-        0% {
-          transform: scale(0.6);
-        }
-        50% {
-          transform: scale(1.18);
-        }
-        100% {
-          transform: scale(0.6);
-        }
-      }
-      @keyframes bounce {
-        0%,
-        100% {
-          transform: translateY(0);
-        }
-        50% {
-          transform: translateY(-22px);
-        }
-      }
-      .fx-scroll-left {
-        animation: scrollLeft linear infinite;
-      }
-      .fx-scroll-right {
-        animation: scrollRight linear infinite;
-      }
-      .fx-fade {
-        animation: fade ease-in-out infinite;
-      }
-      .fx-zoom {
-        animation: zoom ease-in-out infinite;
-      }
-      .fx-bounce {
-        animation: bounce ease-in-out infinite;
-      }
+      @keyframes scrollLeft { from { transform: translateX(110%); } to { transform: translateX(-110%); } }
+      @keyframes scrollRight { from { transform: translateX(-110%); } to { transform: translateX(110%); } }
+      @keyframes fade { 0%,100% { opacity: 0; } 50% { opacity: 1; } }
+      @keyframes zoom { 0% { transform: scale(0.6); } 50% { transform: scale(1.18); } 100% { transform: scale(0.6); } }
+      @keyframes bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-22px); } }
+      .fx-scroll-left { animation: scrollLeft linear infinite; }
+      .fx-scroll-right { animation: scrollRight linear infinite; }
+      .fx-fade { animation: fade ease-in-out infinite; }
+      .fx-zoom { animation: zoom ease-in-out infinite; }
+      .fx-bounce { animation: bounce ease-in-out infinite; }
 
-      /* Slideshow */
-      .slideBox {
-        width: 100%;
-        height: 100%;
-        position: relative;
-        background: #000;
-      }
+      .slideBox { width: 100%; height: 100%; position: relative; background: #000; }
       .slideBox img {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: block;
-        opacity: 0;
-        transform: translate3d(0, 0, 0) scale(1);
+        position: absolute; inset: 0; width: 100%; height: 100%;
+        object-fit: cover; display: block;
+        opacity: 0; transform: translate3d(0,0,0) scale(1);
         transition: opacity 700ms ease;
       }
-      .slideBox img.active {
-        opacity: 1;
-      }
-      .slideBox.fx-fade img {
-        transition: opacity var(--dur) ease;
-      }
-      .slideBox.fx-slide-left img {
-        transition: opacity var(--dur) ease, transform var(--dur) ease;
-      }
-      .slideBox.fx-slide-right img {
-        transition: opacity var(--dur) ease, transform var(--dur) ease;
-      }
-      .slideBox.fx-slide-up img {
-        transition: opacity var(--dur) ease, transform var(--dur) ease;
-      }
-      .slideBox.fx-slide-down img {
-        transition: opacity var(--dur) ease, transform var(--dur) ease;
-      }
-      .slideBox.fx-zoom img {
-        transition: opacity var(--dur) ease, transform var(--dur) ease;
-      }
-      .slideBox.fx-flip img {
-        transition: opacity var(--dur) ease, transform var(--dur) ease;
-      }
+      .slideBox img.active { opacity: 1; }
+      .slideBox.fx-fade img { transition: opacity var(--dur) ease; }
+      .slideBox.fx-slide-left img,
+      .slideBox.fx-slide-right img,
+      .slideBox.fx-slide-up img,
+      .slideBox.fx-slide-down img,
+      .slideBox.fx-zoom img,
+      .slideBox.fx-flip img { transition: opacity var(--dur) ease, transform var(--dur) ease; }
 
-      /* entering/leaving states for slide FX */
-      .slideBox img.toLeft {
-        transform: translateX(-12%);
-      }
-      .slideBox img.fromRight {
-        transform: translateX(12%);
-      }
-      .slideBox img.toRight {
-        transform: translateX(12%);
-      }
-      .slideBox img.fromLeft {
-        transform: translateX(-12%);
-      }
-      .slideBox img.toUp {
-        transform: translateY(-12%);
-      }
-      .slideBox img.fromDown {
-        transform: translateY(12%);
-      }
-      .slideBox img.toDown {
-        transform: translateY(12%);
-      }
-      .slideBox img.fromUp {
-        transform: translateY(-12%);
-      }
-      .slideBox img.kenburns {
-        transform: scale(1.12);
-      }
-      .slideBox img.flip {
-        transform: rotateY(12deg) scale(1.02);
-      }
+      .slideBox img.toLeft { transform: translateX(-12%); }
+      .slideBox img.fromRight { transform: translateX(12%); }
+      .slideBox img.toRight { transform: translateX(12%); }
+      .slideBox img.fromLeft { transform: translateX(-12%); }
+      .slideBox img.toUp { transform: translateY(-12%); }
+      .slideBox img.fromDown { transform: translateY(12%); }
+      .slideBox img.toDown { transform: translateY(12%); }
+      .slideBox img.fromUp { transform: translateY(-12%); }
+      .slideBox img.kenburns { transform: scale(1.12); }
+      .slideBox img.flip { transform: rotateY(12deg) scale(1.02); }
 
-      /* List */
-      .list {
-        margin-top: 10px;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
+      .list { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
       .item {
         border: 1px solid var(--border);
         border-radius: 12px;
@@ -473,33 +215,55 @@
         align-items: center;
         justify-content: space-between;
       }
-      .item small {
-        color: var(--muted);
-        display: block;
-      }
-      .item .actions {
-        display: flex;
-        gap: 6px;
-      }
+      .item small { color: var(--muted); display: block; }
+      .item .actions { display: flex; gap: 6px; }
       .item button {
-        width: auto;
-        padding: 7px 9px;
-        border-radius: 10px;
+        width: auto; padding: 7px 9px; border-radius: 10px;
         border: 1px solid var(--border);
         background: #fff;
         cursor: pointer;
       }
-      .item button:hover {
-        border-color: #f59e0b;
+      .item button:hover { border-color: #f59e0b; }
+
+      /* ✅ Fullscreen mini-bar (so you can Save/ZIP while fullscreen) */
+      #fsBar {
+        position: absolute;
+        right: 12px;
+        top: 12px;
+        z-index: 100000;
+        display: none;
+        gap: 8px;
+        align-items: center;
+        background: rgba(17, 24, 39, 0.55);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        padding: 10px;
+        border-radius: 14px;
+        backdrop-filter: blur(10px);
+      }
+      #fsBar button {
+        width: auto;
+        margin: 0;
+        padding: 9px 10px;
+        border-radius: 12px;
+        border: 1px solid rgba(255,255,255,0.18);
+        background: rgba(0,0,0,0.25);
+        color: #fff;
+        font-weight: 900;
+        cursor: pointer;
+      }
+      #fsBar button:hover { background: rgba(0,0,0,0.4); }
+      #fsHint {
+        color: rgba(255,255,255,0.8);
+        font-size: 12px;
+        font-weight: 800;
+        padding-left: 6px;
+        user-select: none;
       }
 
-      @media (max-width: 1020px) {
-        .grid {
-          grid-template-columns: 1fr;
-        }
-      }
+      @media (max-width: 1020px) { .grid { grid-template-columns: 1fr; } }
     </style>
   </head>
+
   <body>
     <div class="wrap">
       <h1>Champak's Ad Designer</h1>
@@ -510,31 +274,12 @@
           <div class="pill">
             <span><b>Tools</b></span>
             <span style="display: flex; gap: 10px; align-items: center">
-              <label style="margin: 0; font-size: 12px; font-weight: 900"
-                >Grid</label
-              >
-              <input
-                id="gridToggle"
-                type="checkbox"
-                style="width: auto; margin: 0"
-              />
-              <label style="margin: 0; font-size: 12px; font-weight: 900"
-                >Safe</label
-              >
-              <input
-                id="safeToggle"
-                type="checkbox"
-                style="width: auto; margin: 0"
-              />
-              <label style="margin: 0; font-size: 12px; font-weight: 900"
-                >Snap</label
-              >
-              <input
-                id="snapToggle"
-                type="checkbox"
-                style="width: auto; margin: 0"
-                checked
-              />
+              <label style="margin: 0; font-size: 12px; font-weight: 900">Grid</label>
+              <input id="gridToggle" type="checkbox" style="width: auto; margin: 0" />
+              <label style="margin: 0; font-size: 12px; font-weight: 900">Safe</label>
+              <input id="safeToggle" type="checkbox" style="width: auto; margin: 0" />
+              <label style="margin: 0; font-size: 12px; font-weight: 900">Snap</label>
+              <input id="snapToggle" type="checkbox" style="width: auto; margin: 0" checked />
             </span>
           </div>
 
@@ -544,25 +289,21 @@
           </div>
 
           <div class="row">
-            <button class="btn secondary" id="fullscreenBtn">
-              ⛶ Fullscreen
-            </button>
+            <button class="btn secondary" id="fullscreenBtn">⛶ Fullscreen</button>
             <button class="btn secondary" id="dupBtn">⎘ Duplicate</button>
           </div>
 
           <hr />
 
           <div id="propsEmpty" class="small">
-            Click an element to edit. Move: drag • Resize: corners • Rotate: top
-            dot.
+            Click an element to edit. Move: drag • Resize: corners • Rotate: top dot.
           </div>
 
           <div id="props" style="display: none">
             <div class="pill" style="justify-content: space-between">
-              <span
-                ><b id="selTitle">Selected</b>
-                <span id="selCount" class="small" style="margin: 0"></span
-              ></span>
+              <span><b id="selTitle">Selected</b>
+                <span id="selCount" class="small" style="margin: 0"></span>
+              </span>
               <button class="iconBtn" id="deleteSel">Delete</button>
             </div>
 
@@ -577,13 +318,7 @@
                 </div>
                 <div>
                   <label>Font Size (px)</label>
-                  <input
-                    type="number"
-                    id="pFontSize"
-                    value="56"
-                    min="10"
-                    max="220"
-                  />
+                  <input type="number" id="pFontSize" value="56" min="10" max="220" />
                 </div>
               </div>
 
@@ -605,16 +340,12 @@
                 </div>
               </div>
 
-              <label
-                ><input
-                  type="checkbox"
-                  id="pWrap"
-                  style="width: auto; margin-right: 8px"
-                />Allow multi-line wrap</label
-              >
+              <label>
+                <input type="checkbox" id="pWrap" style="width: auto; margin-right: 8px" />
+                Allow multi-line wrap
+              </label>
             </div>
 
-            <!-- Slideshow props with FX -->
             <div id="slideProps" style="display: none">
               <label>Upload Images (for this slideshow)</label>
               <input type="file" id="pSlideFiles" multiple accept="image/*" />
@@ -622,13 +353,7 @@
               <div class="row">
                 <div>
                   <label>Slide Interval (ms)</label>
-                  <input
-                    type="number"
-                    id="pInterval"
-                    value="2500"
-                    min="400"
-                    max="20000"
-                  />
+                  <input type="number" id="pInterval" value="2500" min="400" max="20000" />
                 </div>
                 <div>
                   <label>Fit</label>
@@ -654,39 +379,22 @@
                 </div>
                 <div>
                   <label>Transition Duration (ms)</label>
-                  <input
-                    type="number"
-                    id="pDur"
-                    value="700"
-                    min="100"
-                    max="5000"
-                  />
+                  <input type="number" id="pDur" value="700" min="100" max="5000" />
                 </div>
               </div>
 
               <div class="row">
-                <button class="btn secondary" id="prevSlide" type="button">
-                  ◀ Prev
-                </button>
-                <button class="btn secondary" id="nextSlide" type="button">
-                  Next ▶
-                </button>
+                <button class="btn secondary" id="prevSlide" type="button">◀ Prev</button>
+                <button class="btn secondary" id="nextSlide" type="button">Next ▶</button>
               </div>
-              <div class="small">
-                Tip: Resize the slideshow box + choose FX for classy
-                transitions.
-              </div>
+              <div class="small">Tip: Resize the slideshow box + choose FX for classy transitions.</div>
             </div>
 
             <hr />
 
             <div class="row">
-              <button class="btn secondary" id="bringFront" type="button">
-                Bring Front
-              </button>
-              <button class="btn secondary" id="sendBack" type="button">
-                Send Back
-              </button>
+              <button class="btn secondary" id="bringFront" type="button">Bring Front</button>
+              <button class="btn secondary" id="sendBack" type="button">Send Back</button>
             </div>
 
             <div class="row">
@@ -696,14 +404,7 @@
               </div>
               <div>
                 <label>Opacity</label>
-                <input
-                  type="number"
-                  id="pOpacity"
-                  value="1"
-                  min="0.05"
-                  max="1"
-                  step="0.05"
-                />
+                <input type="number" id="pOpacity" value="1" min="0.05" max="1" step="0.05" />
               </div>
             </div>
 
@@ -715,32 +416,20 @@
 
           <div class="pill"><b>Save / Load / Export</b></div>
           <div class="row">
-            <button class="btn secondary" id="saveLocal" type="button">
-              Save (Local)
-            </button>
-            <button class="btn secondary" id="loadLocal" type="button">
-              Load (Local)
-            </button>
+            <button class="btn secondary" id="saveLocal" type="button">Save (Local)</button>
+            <button class="btn secondary" id="loadLocal" type="button">Load (Local)</button>
           </div>
 
           <label>Layout JSON</label>
           <textarea id="jsonBox" rows="6" spellcheck="false"></textarea>
           <div class="row">
-            <button class="btn secondary" id="copyJSON" type="button">
-              Copy JSON
-            </button>
-            <button class="btn secondary" id="applyJSON" type="button">
-              Apply JSON
-            </button>
+            <button class="btn secondary" id="copyJSON" type="button">Copy JSON</button>
+            <button class="btn secondary" id="applyJSON" type="button">Apply JSON</button>
           </div>
 
           <div class="row">
-            <button class="btn" id="exportPlay" type="button">
-              ⬇ Export Play Mode HTML
-            </button>
-            <button class="btn ghost" id="clearAll" type="button">
-              Clear Board
-            </button>
+            <button class="btn" id="exportZip" type="button">⬇ Export ZIP (HTML + images)</button>
+            <button class="btn ghost" id="clearAll" type="button">Clear Board</button>
           </div>
 
           <hr />
@@ -748,7 +437,7 @@
           <div class="list" id="elementsList"></div>
 
           <div class="small">
-            
+            ✅ Fullscreen tips: <b>Ctrl+S</b> Save Local • <b>Ctrl+E</b> Export ZIP • <b>Esc</b> Exit
           </div>
         </div>
 
@@ -758,6 +447,14 @@
             <div id="safeArea"></div>
             <div id="vGuide" class="guide"></div>
             <div id="hGuide" class="guide"></div>
+
+            <!-- ✅ Fullscreen toolbar -->
+            <div id="fsBar">
+              <button id="fsSave" type="button">💾 Save</button>
+              <button id="fsZip" type="button">📦 ZIP</button>
+              <button id="fsExit" type="button">⛶ Exit</button>
+              <span id="fsHint">Ctrl+S • Ctrl+E</span>
+            </div>
           </div>
         </div>
       </div>
@@ -772,62 +469,45 @@
       const safeArea = $("#safeArea");
       const elementsList = $("#elementsList");
       const jsonBox = $("#jsonBox");
+      const fsBar = $("#fsBar");
 
       let zTop = 10;
       let selected = new Set();
       let activePrimary = null;
-      const state = { version: 2, boardBg: "#000000", els: {} };
 
-      function uid() {
-        return "el_" + Math.random().toString(16).slice(2, 10);
-      }
-      function clamp(v, a, b) {
-        return Math.max(a, Math.min(b, v));
-      }
-      function snapOn() {
-        return $("#snapToggle").checked;
-      }
-      function snapGrid(v, size = 10) {
-        return $("#gridToggle").checked ? Math.round(v / size) * size : v;
+      // ✅ New: stable layout state, includes image file names on export
+      const state = { version: 3, boardBg: "#000000", els: {} };
+
+      function uid() { return "el_" + Math.random().toString(16).slice(2, 10); }
+      function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+      function snapOn() { return $("#snapToggle").checked; }
+      function snapGrid(v, size = 10) { return $("#gridToggle").checked ? Math.round(v / size) * size : v; }
+
+      // ✅ Save frequently (including when fullscreen is used)
+      let autosaveTimer = null;
+      function autoSaveLocalDebounced() {
+        clearTimeout(autosaveTimer);
+        autosaveTimer = setTimeout(() => {
+          try {
+            localStorage.setItem("adboard_layout_v3_autosave", JSON.stringify(runtimeStrippedCopy()));
+          } catch {}
+        }, 250);
       }
 
       function safeBounds() {
-        const bw = board.clientWidth,
-          bh = board.clientHeight;
-        return {
-          left: bw * 0.05,
-          right: bw * 0.95,
-          top: bh * 0.05,
-          bottom: bh * 0.95,
-        };
+        const bw = board.clientWidth, bh = board.clientHeight;
+        return { left: bw * 0.05, right: bw * 0.95, top: bh * 0.05, bottom: bh * 0.95 };
       }
-      function showV(x) {
-        vGuide.style.display = "block";
-        vGuide.style.left = x + "px";
-      }
-      function showH(y) {
-        hGuide.style.display = "block";
-        hGuide.style.top = y + "px";
-      }
-      function hideGuides() {
-        vGuide.style.display = "none";
-        hGuide.style.display = "none";
-      }
+      function showV(x) { vGuide.style.display = "block"; vGuide.style.left = x + "px"; }
+      function showH(y) { hGuide.style.display = "block"; hGuide.style.top = y + "px"; }
+      function hideGuides() { vGuide.style.display = "none"; hGuide.style.display = "none"; }
 
       function otherRects(exceptId) {
         const out = [];
         for (const id of Object.keys(state.els)) {
           if (id === exceptId) continue;
           const d = state.els[id];
-          out.push({
-            id,
-            l: d.x,
-            r: d.x + d.w,
-            t: d.y,
-            b: d.y + d.h,
-            cx: d.x + d.w / 2,
-            cy: d.y + d.h / 2,
-          });
+          out.push({ id, l: d.x, r: d.x + d.w, t: d.y, b: d.y + d.h, cx: d.x + d.w / 2, cy: d.y + d.h / 2 });
         }
         return out;
       }
@@ -837,12 +517,19 @@
         for (const t of targets) {
           const diff = t - val;
           const ad = Math.abs(diff);
-          if (ad < min) {
-            min = ad;
-            best = { delta: diff, hit: true, guide: t };
-          }
+          if (ad < min) { min = ad; best = { delta: diff, hit: true, guide: t }; }
         }
         return best;
+      }
+
+      /* ✅ Utilities: file -> DataURL (portable) */
+      function fileToDataURL(file) {
+        return new Promise((resolve, reject) => {
+          const r = new FileReader();
+          r.onload = () => resolve(String(r.result || ""));
+          r.onerror = reject;
+          r.readAsDataURL(file);
+        });
       }
 
       /* ================== Element Building ================== */
@@ -857,12 +544,38 @@
 
         const hdr = document.createElement("div");
         hdr.className = "hdr";
-        hdr.innerHTML = `<b>${title}</b>
-    <span class="mini">
-      <button class="iconBtn" data-act="front">▲</button>
-      <button class="iconBtn" data-act="back">▼</button>
-      <button class="iconBtn" data-act="del">✕</button>
-    </span>`;
+
+        // ✅ safer (no user HTML injection)
+        const left = document.createElement("b");
+        left.textContent = title;
+
+        const mini = document.createElement("span");
+        mini.className = "mini";
+
+        const bFront = document.createElement("button");
+        bFront.className = "iconBtn";
+        bFront.dataset.act = "front";
+        bFront.type = "button";
+        bFront.textContent = "▲";
+
+        const bBack = document.createElement("button");
+        bBack.className = "iconBtn";
+        bBack.dataset.act = "back";
+        bBack.type = "button";
+        bBack.textContent = "▼";
+
+        const bDel = document.createElement("button");
+        bDel.className = "iconBtn";
+        bDel.dataset.act = "del";
+        bDel.type = "button";
+        bDel.textContent = "✕";
+
+        mini.appendChild(bFront);
+        mini.appendChild(bBack);
+        mini.appendChild(bDel);
+
+        hdr.appendChild(left);
+        hdr.appendChild(mini);
         box.appendChild(hdr);
 
         const content = document.createElement("div");
@@ -916,98 +629,53 @@
       function addTextBlock() {
         const id = uid();
         state.els[id] = {
-          id,
-          type: "text",
-          title: "Text",
-          x: 60,
-          y: 60,
-          w: 520,
-          h: 120,
-          rot: 0,
-          opacity: 1,
+          id, type: "text", title: "Text",
+          x: 60, y: 60, w: 520, h: 120,
+          rot: 0, opacity: 1,
           text: "Big Sale Today!",
-          color: "#ffffff",
-          size: 56,
-          effect: "scroll-left",
-          speed: 6,
-          wrap: false,
-          z: ++zTop,
+          color: "#ffffff", size: 56,
+          effect: "scroll-left", speed: 6,
+          wrap: false, z: ++zTop
         };
         const { content } = createElementNode({ id, title: "Text" });
         const t = document.createElement("div");
         t.className = "textBlock";
         content.appendChild(t);
         renderEl(id);
-        selected.clear();
-        selected.add(id);
-        activePrimary = id;
-        updateSelectionUI();
-        refreshList();
-        syncJSONBox();
+        selected.clear(); selected.add(id); activePrimary = id;
+        updateSelectionUI(); refreshList(); syncJSONBox();
+        autoSaveLocalDebounced();
       }
+
       function addSlideshowBlock() {
         const id = uid();
         state.els[id] = {
-          id,
-          type: "slideshow",
-          title: "Slideshow",
-          x: 90,
-          y: 220,
-          w: 560,
-          h: 300,
-          rot: 0,
-          opacity: 1,
-          interval: 2500,
-          fit: "cover",
-          fx: "fade",
-          dur: 700,
-          images: [],
-          index: 0,
-          timer: null,
-          z: ++zTop,
+          id, type: "slideshow", title: "Slideshow",
+          x: 90, y: 220, w: 560, h: 300,
+          rot: 0, opacity: 1,
+          interval: 2500, fit: "cover",
+          fx: "fade", dur: 700,
+          images: [], index: 0, timer: null, z: ++zTop
         };
         const { content } = createElementNode({ id, title: "Slideshow" });
         const box = document.createElement("div");
         box.className = "slideBox";
         content.appendChild(box);
         renderEl(id);
-        selected.clear();
-        selected.add(id);
-        activePrimary = id;
-        updateSelectionUI();
-        refreshList();
-        syncJSONBox();
+        selected.clear(); selected.add(id); activePrimary = id;
+        updateSelectionUI(); refreshList(); syncJSONBox();
+        autoSaveLocalDebounced();
       }
 
       /* ================== Rendering ================== */
       function stopSlide(id) {
         const d = state.els[id];
-        if (d && d.timer) {
-          clearInterval(d.timer);
-          d.timer = null;
-        }
+        if (d && d.timer) { clearInterval(d.timer); d.timer = null; }
       }
 
       function applySlideFx(box, d) {
-        // set class + css var duration
-        box.classList.remove(
-          "fx-fade",
-          "fx-slide-left",
-          "fx-slide-right",
-          "fx-slide-up",
-          "fx-slide-down",
-          "fx-zoom",
-          "fx-flip"
-        );
-        const map = {
-          fade: "fx-fade",
-          "slide-left": "fx-slide-left",
-          "slide-right": "fx-slide-right",
-          "slide-up": "fx-slide-up",
-          "slide-down": "fx-slide-down",
-          zoom: "fx-zoom",
-          flip: "fx-flip",
-        };
+        box.classList.remove("fx-fade","fx-slide-left","fx-slide-right","fx-slide-up","fx-slide-down","fx-zoom","fx-flip");
+        const map = { fade:"fx-fade", "slide-left":"fx-slide-left","slide-right":"fx-slide-right","slide-up":"fx-slide-up","slide-down":"fx-slide-down", zoom:"fx-zoom", flip:"fx-flip" };
         box.classList.add(map[d.fx] || "fx-fade");
         box.style.setProperty("--dur", (d.dur || 700) + "ms");
       }
@@ -1034,23 +702,11 @@
           t.style.fontSize = (d.size || 56) + "px";
           t.classList.toggle("wrapLines", !!d.wrap);
 
-          t.classList.remove(
-            "fx-scroll-left",
-            "fx-scroll-right",
-            "fx-fade",
-            "fx-zoom",
-            "fx-bounce"
-          );
+          t.classList.remove("fx-scroll-left","fx-scroll-right","fx-fade","fx-zoom","fx-bounce");
           t.style.animationDuration = "";
           if (d.effect && d.effect !== "none") {
-            const map = {
-              "scroll-left": "fx-scroll-left",
-              "scroll-right": "fx-scroll-right",
-              fade: "fx-fade",
-              zoom: "fx-zoom",
-              bounce: "fx-bounce",
-            };
-            t.classList.add(map[d.effect] || "");
+            const map = { "scroll-left":"fx-scroll-left","scroll-right":"fx-scroll-right", fade:"fx-fade", zoom:"fx-zoom", bounce:"fx-bounce" };
+            if (map[d.effect]) t.classList.add(map[d.effect]);
             t.style.animationDuration = (d.speed || 6) + "s";
           }
         }
@@ -1058,20 +714,17 @@
         if (d.type === "slideshow") {
           const box = node.querySelector(".slideBox");
           applySlideFx(box, d);
-
           box.innerHTML = "";
           (d.images || []).forEach((src, i) => {
             const img = document.createElement("img");
-            img.src = src;
+            img.src = src; // ✅ now portable: data URLs (or existing)
             img.style.objectFit = d.fit || "cover";
             if (i === d.index) img.classList.add("active");
             box.appendChild(img);
           });
 
           stopSlide(id);
-          if ((d.images || []).length >= 2) {
-            d.timer = setInterval(() => nextSlideFor(id), d.interval || 2500);
-          }
+          if ((d.images || []).length >= 2) d.timer = setInterval(() => nextSlideFor(id), d.interval || 2500);
         }
       }
 
@@ -1080,88 +733,38 @@
         board.style.background = state.boardBg || "#000";
       }
 
-      /* transition helper */
       function swapSlide(node, d, nextIndex) {
         const box = node.querySelector(".slideBox");
         const imgs = box.querySelectorAll("img");
         if (!imgs.length) return;
-
         const cur = imgs[d.index];
         const next = imgs[nextIndex];
         if (!cur || !next) return;
 
-        // clear classes
         imgs.forEach((im) => {
-          im.classList.remove(
-            "toLeft",
-            "toRight",
-            "toUp",
-            "toDown",
-            "fromLeft",
-            "fromRight",
-            "fromUp",
-            "fromDown",
-            "kenburns",
-            "flip"
-          );
+          im.classList.remove("toLeft","toRight","toUp","toDown","fromLeft","fromRight","fromUp","fromDown","kenburns","flip");
         });
 
-        // prep next position
         const fx = d.fx || "fade";
-        if (fx === "slide-left") {
-          next.classList.add("fromRight");
-        }
-        if (fx === "slide-right") {
-          next.classList.add("fromLeft");
-        }
-        if (fx === "slide-up") {
-          next.classList.add("fromDown");
-        }
-        if (fx === "slide-down") {
-          next.classList.add("fromUp");
-        }
-        if (fx === "zoom") {
-          next.classList.add("kenburns");
-        }
-        if (fx === "flip") {
-          next.classList.add("flip");
-        }
+        if (fx === "slide-left") next.classList.add("fromRight");
+        if (fx === "slide-right") next.classList.add("fromLeft");
+        if (fx === "slide-up") next.classList.add("fromDown");
+        if (fx === "slide-down") next.classList.add("fromUp");
+        if (fx === "zoom") next.classList.add("kenburns");
+        if (fx === "flip") next.classList.add("flip");
 
-        // make next visible
         next.classList.add("active");
-        // force style flush (important for transform start)
         void next.offsetWidth;
 
-        // animate out current, animate in next (via transitions)
-        if (fx === "slide-left") {
-          cur.classList.add("toLeft");
-          next.classList.remove("fromRight");
-        }
-        if (fx === "slide-right") {
-          cur.classList.add("toRight");
-          next.classList.remove("fromLeft");
-        }
-        if (fx === "slide-up") {
-          cur.classList.add("toUp");
-          next.classList.remove("fromDown");
-        }
-        if (fx === "slide-down") {
-          cur.classList.add("toDown");
-          next.classList.remove("fromUp");
-        }
-        if (fx === "zoom") {
-          /* kenburns already applied */
-        }
-        if (fx === "flip") {
-          /* flip already applied */
-        }
+        if (fx === "slide-left") { cur.classList.add("toLeft"); next.classList.remove("fromRight"); }
+        if (fx === "slide-right") { cur.classList.add("toRight"); next.classList.remove("fromLeft"); }
+        if (fx === "slide-up") { cur.classList.add("toUp"); next.classList.remove("fromDown"); }
+        if (fx === "slide-down") { cur.classList.add("toDown"); next.classList.remove("fromUp"); }
 
-        // fade out current by removing active after a tick
         const dur = Math.max(100, d.dur || 700);
         setTimeout(() => {
           cur.classList.remove("active");
-          // cleanup movement classes
-          cur.classList.remove("toLeft", "toRight", "toUp", "toDown");
+          cur.classList.remove("toLeft","toRight","toUp","toDown");
         }, dur);
       }
 
@@ -1210,15 +813,7 @@
           }
           if (handle) {
             mode = handle.dataset.handle;
-            start = {
-              id,
-              px: e.clientX,
-              py: e.clientY,
-              ox: d.x,
-              oy: d.y,
-              ow: d.w,
-              oh: d.h,
-            };
+            start = { id, px: e.clientX, py: e.clientY, ox: d.x, oy: d.y, ow: d.w, oh: d.h };
             node.setPointerCapture(e.pointerId);
             e.preventDefault();
             return;
@@ -1235,8 +830,7 @@
           const d = state.els[id];
           if (!d) return;
 
-          const bw = board.clientWidth,
-            bh = board.clientHeight;
+          const bw = board.clientWidth, bh = board.clientHeight;
           const sb = safeBounds();
           const others = otherRects(id);
           const threshold = 8;
@@ -1248,6 +842,7 @@
             $("#pRot").value = d.rot;
             renderEl(id);
             syncJSONBoxDebounced();
+            autoSaveLocalDebounced();
             return;
           }
 
@@ -1262,118 +857,76 @@
             ny = clamp(ny, 0, bh - d.h);
 
             if (snapOn()) {
-              const l = nx,
-                r = nx + d.w,
-                t = ny,
-                b = ny + d.h,
-                cx = nx + d.w / 2,
-                cy = ny + d.h / 2;
+              const l = nx, r = nx + d.w, t = ny, b = ny + d.h, cx = nx + d.w / 2, cy = ny + d.h / 2;
               const xTargets = [0, bw / 2, bw, sb.left, sb.right];
               const yTargets = [0, bh / 2, bh, sb.top, sb.bottom];
-              for (const o of others) {
-                xTargets.push(o.l, o.r, o.cx);
-                yTargets.push(o.t, o.b, o.cy);
-              }
+              for (const o of others) { xTargets.push(o.l, o.r, o.cx); yTargets.push(o.t, o.b, o.cy); }
 
               let bestX = { delta: 0, hit: false, guide: null };
               for (const v of [l, r, cx]) {
                 const s = snapValue(v, xTargets, threshold);
-                if (
-                  s.hit &&
-                  (!bestX.hit || Math.abs(s.delta) < Math.abs(bestX.delta))
-                )
-                  bestX = s;
+                if (s.hit && (!bestX.hit || Math.abs(s.delta) < Math.abs(bestX.delta))) bestX = s;
               }
               let bestY = { delta: 0, hit: false, guide: null };
               for (const v of [t, b, cy]) {
                 const s = snapValue(v, yTargets, threshold);
-                if (
-                  s.hit &&
-                  (!bestY.hit || Math.abs(s.delta) < Math.abs(bestY.delta))
-                )
-                  bestY = s;
+                if (s.hit && (!bestY.hit || Math.abs(s.delta) < Math.abs(bestY.delta))) bestY = s;
               }
 
-              if (bestX.hit) {
-                nx += bestX.delta;
-                showV(bestX.guide);
-              } else vGuide.style.display = "none";
-              if (bestY.hit) {
-                ny += bestY.delta;
-                showH(bestY.guide);
-              } else hGuide.style.display = "none";
+              if (bestX.hit) { nx += bestX.delta; showV(bestX.guide); } else vGuide.style.display = "none";
+              if (bestY.hit) { ny += bestY.delta; showH(bestY.guide); } else hGuide.style.display = "none";
             } else hideGuides();
 
-            d.x = nx;
-            d.y = ny;
+            d.x = nx; d.y = ny;
             renderEl(id);
-            refreshList(false);
+            refreshList();
             syncJSONBoxDebounced();
+            autoSaveLocalDebounced();
             return;
           }
 
           // resize
-          const minW = 120,
-            minH = 70;
-          let x = d.x,
-            y = d.y,
-            w = d.w,
-            h = d.h;
+          const minW = 120, minH = 70;
+          let x = d.x, y = d.y, w = d.w, h = d.h;
 
           if (mode.includes("r")) w = Math.max(minW, snapGrid(start.ow + dx));
           if (mode.includes("l")) {
             const nw = Math.max(minW, snapGrid(start.ow - dx));
             const nx = snapGrid(start.ox + dx);
-            w = nw;
-            x = nx;
+            w = nw; x = nx;
           }
           if (mode.includes("b")) h = Math.max(minH, snapGrid(start.oh + dy));
           if (mode.includes("t")) {
             const nh = Math.max(minH, snapGrid(start.oh - dy));
             const ny = snapGrid(start.oy + dy);
-            h = nh;
-            y = ny;
+            h = nh; y = ny;
           }
 
           x = clamp(x, 0, bw - w);
           y = clamp(y, 0, bh - h);
 
           if (snapOn()) {
-            const r = x + w,
-              b = y + h;
+            const r = x + w, b = y + h;
             const xTargets = [0, bw / 2, bw, sb.left, sb.right];
             const yTargets = [0, bh / 2, bh, sb.top, sb.bottom];
-            for (const o of others) {
-              xTargets.push(o.l, o.r, o.cx);
-              yTargets.push(o.t, o.b, o.cy);
-            }
+            for (const o of others) { xTargets.push(o.l, o.r, o.cx); yTargets.push(o.t, o.b, o.cy); }
 
             const sxR = snapValue(r, xTargets, threshold);
             const syB = snapValue(b, yTargets, threshold);
 
-            if (sxR.hit) {
-              w = clamp(w + sxR.delta, minW, bw - x);
-              showV(sxR.guide);
-            } else vGuide.style.display = "none";
-            if (syB.hit) {
-              h = clamp(h + syB.delta, minH, bh - y);
-              showH(syB.guide);
-            } else hGuide.style.display = "none";
+            if (sxR.hit) { w = clamp(w + sxR.delta, minW, bw - x); showV(sxR.guide); } else vGuide.style.display = "none";
+            if (syB.hit) { h = clamp(h + syB.delta, minH, bh - y); showH(syB.guide); } else hGuide.style.display = "none";
           } else hideGuides();
 
-          d.x = x;
-          d.y = y;
-          d.w = w;
-          d.h = h;
+          d.x = x; d.y = y; d.w = w; d.h = h;
           renderEl(id);
-          refreshList(false);
+          refreshList();
           syncJSONBoxDebounced();
+          autoSaveLocalDebounced();
         });
 
         node.addEventListener("pointerup", () => {
-          mode = null;
-          start = null;
-          hideGuides();
+          mode = null; start = null; hideGuides();
         });
       }
 
@@ -1396,15 +949,11 @@
         const d = state.els[primaryId];
 
         $("#selTitle").textContent =
-          ids.length > 1
-            ? "Multiple Selected"
-            : d.type === "text"
-            ? "Text Block"
-            : "Slideshow Block";
-        $("#textProps").style.display =
-          ids.length === 1 && d.type === "text" ? "block" : "none";
-        $("#slideProps").style.display =
-          ids.length === 1 && d.type === "slideshow" ? "block" : "none";
+          ids.length > 1 ? "Multiple Selected" :
+          d.type === "text" ? "Text Block" : "Slideshow Block";
+
+        $("#textProps").style.display = (ids.length === 1 && d.type === "text") ? "block" : "none";
+        $("#slideProps").style.display = (ids.length === 1 && d.type === "slideshow") ? "block" : "none";
 
         $("#pRot").value = Math.round(d.rot || 0);
         $("#pOpacity").value = d.opacity ?? 1;
@@ -1444,135 +993,98 @@
       /* Common props apply to all selected */
       $("#pRot").addEventListener("input", () => {
         const val = Math.max(-180, Math.min(180, +$("#pRot").value || 0));
-        for (const id of selected) {
-          state.els[id].rot = val;
-          renderEl(id);
-        }
+        for (const id of selected) { state.els[id].rot = val; renderEl(id); }
         syncJSONBoxDebounced();
+        autoSaveLocalDebounced();
       });
       $("#pOpacity").addEventListener("input", () => {
         const val = Math.max(0.05, Math.min(1, +$("#pOpacity").value || 1));
-        for (const id of selected) {
-          state.els[id].opacity = val;
-          renderEl(id);
-        }
+        for (const id of selected) { state.els[id].opacity = val; renderEl(id); }
         syncJSONBoxDebounced();
+        autoSaveLocalDebounced();
       });
 
       /* Text props */
       ["input", "change"].forEach((ev) => {
-        $("#pText").addEventListener(ev, () =>
-          withSingle((id, d) => {
-            if (d.type !== "text") return;
-            d.text = $("#pText").value;
-            renderEl(id);
-            syncJSONBoxDebounced();
-            refreshList(false);
-          })
-        );
-        $("#pTextColor").addEventListener(ev, () =>
-          withSingle((id, d) => {
-            if (d.type !== "text") return;
-            d.color = $("#pTextColor").value;
-            renderEl(id);
-            syncJSONBoxDebounced();
-          })
-        );
-        $("#pFontSize").addEventListener(ev, () =>
-          withSingle((id, d) => {
-            if (d.type !== "text") return;
-            d.size = +$("#pFontSize").value || 56;
-            renderEl(id);
-            syncJSONBoxDebounced();
-          })
-        );
-        $("#pEffect").addEventListener(ev, () =>
-          withSingle((id, d) => {
-            if (d.type !== "text") return;
-            d.effect = $("#pEffect").value;
-            renderEl(id);
-            syncJSONBoxDebounced();
-          })
-        );
-        $("#pSpeed").addEventListener(ev, () =>
-          withSingle((id, d) => {
-            if (d.type !== "text") return;
-            d.speed = Math.max(1, +$("#pSpeed").value || 6);
-            renderEl(id);
-            syncJSONBoxDebounced();
-          })
-        );
-        $("#pWrap").addEventListener(ev, () =>
-          withSingle((id, d) => {
-            if (d.type !== "text") return;
-            d.wrap = $("#pWrap").checked;
-            renderEl(id);
-            syncJSONBoxDebounced();
-          })
-        );
+        $("#pText").addEventListener(ev, () => withSingle((id, d) => {
+          if (d.type !== "text") return;
+          d.text = $("#pText").value;
+          renderEl(id); syncJSONBoxDebounced(); refreshList(); autoSaveLocalDebounced();
+        }));
+        $("#pTextColor").addEventListener(ev, () => withSingle((id, d) => {
+          if (d.type !== "text") return;
+          d.color = $("#pTextColor").value;
+          renderEl(id); syncJSONBoxDebounced(); autoSaveLocalDebounced();
+        }));
+        $("#pFontSize").addEventListener(ev, () => withSingle((id, d) => {
+          if (d.type !== "text") return;
+          d.size = +$("#pFontSize").value || 56;
+          renderEl(id); syncJSONBoxDebounced(); autoSaveLocalDebounced();
+        }));
+        $("#pEffect").addEventListener(ev, () => withSingle((id, d) => {
+          if (d.type !== "text") return;
+          d.effect = $("#pEffect").value;
+          renderEl(id); syncJSONBoxDebounced(); autoSaveLocalDebounced();
+        }));
+        $("#pSpeed").addEventListener(ev, () => withSingle((id, d) => {
+          if (d.type !== "text") return;
+          d.speed = Math.max(1, +$("#pSpeed").value || 6);
+          renderEl(id); syncJSONBoxDebounced(); autoSaveLocalDebounced();
+        }));
+        $("#pWrap").addEventListener(ev, () => withSingle((id, d) => {
+          if (d.type !== "text") return;
+          d.wrap = $("#pWrap").checked;
+          renderEl(id); syncJSONBoxDebounced(); autoSaveLocalDebounced();
+        }));
       });
 
       /* Slideshow props */
-      $("#pInterval").addEventListener("input", () =>
-        withSingle((id, d) => {
-          if (d.type !== "slideshow") return;
-          d.interval = Math.max(400, +$("#pInterval").value || 2500);
-          renderEl(id);
-          syncJSONBoxDebounced();
-        })
-      );
-      $("#pFit").addEventListener("change", () =>
-        withSingle((id, d) => {
-          if (d.type !== "slideshow") return;
-          d.fit = $("#pFit").value;
-          renderEl(id);
-          syncJSONBoxDebounced();
-        })
-      );
-      $("#pSlideFx").addEventListener("change", () =>
-        withSingle((id, d) => {
-          if (d.type !== "slideshow") return;
-          d.fx = $("#pSlideFx").value;
-          renderEl(id);
-          syncJSONBoxDebounced();
-        })
-      );
-      $("#pDur").addEventListener("input", () =>
-        withSingle((id, d) => {
-          if (d.type !== "slideshow") return;
-          d.dur = Math.max(100, +$("#pDur").value || 700);
-          renderEl(id);
-          syncJSONBoxDebounced();
-        })
-      );
-      $("#pSlideFiles").addEventListener("change", (e) =>
-        withSingle((id, d) => {
-          if (d.type !== "slideshow") return;
-          const files = [...e.target.files];
-          if (!files.length) return;
-          files.forEach((f) => d.images.push(URL.createObjectURL(f)));
-          d.index = 0;
-          renderEl(id);
-          syncJSONBoxDebounced();
-          e.target.value = "";
-        })
-      );
-      $("#prevSlide").addEventListener("click", () =>
-        withSingle((id, d) => {
-          if (d.type === "slideshow") prevSlideFor(id);
-        })
-      );
-      $("#nextSlide").addEventListener("click", () =>
-        withSingle((id, d) => {
-          if (d.type === "slideshow") nextSlideFor(id);
-        })
-      );
+      $("#pInterval").addEventListener("input", () => withSingle((id, d) => {
+        if (d.type !== "slideshow") return;
+        d.interval = Math.max(400, +$("#pInterval").value || 2500);
+        renderEl(id); syncJSONBoxDebounced(); autoSaveLocalDebounced();
+      }));
+      $("#pFit").addEventListener("change", () => withSingle((id, d) => {
+        if (d.type !== "slideshow") return;
+        d.fit = $("#pFit").value;
+        renderEl(id); syncJSONBoxDebounced(); autoSaveLocalDebounced();
+      }));
+      $("#pSlideFx").addEventListener("change", () => withSingle((id, d) => {
+        if (d.type !== "slideshow") return;
+        d.fx = $("#pSlideFx").value;
+        renderEl(id); syncJSONBoxDebounced(); autoSaveLocalDebounced();
+      }));
+      $("#pDur").addEventListener("input", () => withSingle((id, d) => {
+        if (d.type !== "slideshow") return;
+        d.dur = Math.max(100, +$("#pDur").value || 700);
+        renderEl(id); syncJSONBoxDebounced(); autoSaveLocalDebounced();
+      }));
+
+      // ✅ IMPORTANT CHANGE: store images as Data URLs (portable, zip-friendly)
+      $("#pSlideFiles").addEventListener("change", async (e) => withSingle(async (id, d) => {
+        if (d.type !== "slideshow") return;
+        const files = [...e.target.files];
+        if (!files.length) return;
+        for (const f of files) {
+          const dataUrl = await fileToDataURL(f);
+          d.images.push(dataUrl);
+        }
+        d.index = 0;
+        renderEl(id);
+        syncJSONBoxDebounced();
+        autoSaveLocalDebounced();
+        e.target.value = "";
+      }));
+
+      $("#prevSlide").addEventListener("click", () => withSingle((id, d) => { if (d.type === "slideshow") prevSlideFor(id); }));
+      $("#nextSlide").addEventListener("click", () => withSingle((id, d) => { if (d.type === "slideshow") nextSlideFor(id); }));
 
       /* Board bg */
       $("#boardBg").addEventListener("input", () => {
         state.boardBg = $("#boardBg").value;
         board.style.background = state.boardBg;
         syncJSONBoxDebounced();
+        autoSaveLocalDebounced();
       });
 
       /* Delete */
@@ -1581,28 +1093,41 @@
         selected.clear();
         activePrimary = null;
         updateSelectionUI();
+        autoSaveLocalDebounced();
       });
 
-      /* Z order */
-      $("#bringFront").addEventListener("click", () => {
-        for (const id of selected) {
-          state.els[id].z = ++zTop;
-          renderEl(id);
-        }
+      /* Z order helpers */
+      function bringToFront(id) {
+        state.els[id].z = ++zTop;
+        renderEl(id);
         refreshList();
         syncJSONBoxDebounced();
-      });
-      $("#sendBack").addEventListener("click", () => {
-        for (const id of selected) {
-          state.els[id].z = 1;
-        }
-        Object.values(state.els).forEach((x) => {
-          if (!selected.has(x.id)) x.z = (x.z || 2) + 1;
-        });
+        autoSaveLocalDebounced();
+      }
+      function sendToBack(id) {
+        state.els[id].z = 1;
+        Object.values(state.els).forEach((x) => { if (x.id !== id) x.z = (x.z || 2) + 1; });
         zTop = Math.max(...Object.values(state.els).map((x) => x.z || 2), 10);
         renderAll();
         refreshList();
         syncJSONBoxDebounced();
+        autoSaveLocalDebounced();
+      }
+
+      $("#bringFront").addEventListener("click", () => {
+        for (const id of selected) { state.els[id].z = ++zTop; renderEl(id); }
+        refreshList();
+        syncJSONBoxDebounced();
+        autoSaveLocalDebounced();
+      });
+      $("#sendBack").addEventListener("click", () => {
+        for (const id of selected) { state.els[id].z = 1; }
+        Object.values(state.els).forEach((x) => { if (!selected.has(x.id)) x.z = (x.z || 2) + 1; });
+        zTop = Math.max(...Object.values(state.els).map((x) => x.z || 2), 10);
+        renderAll();
+        refreshList();
+        syncJSONBoxDebounced();
+        autoSaveLocalDebounced();
       });
 
       /* Duplicate */
@@ -1617,15 +1142,10 @@
           copy.x = clamp(copy.x + 20, 0, board.clientWidth - copy.w);
           copy.y = clamp(copy.y + 20, 0, board.clientHeight - copy.h);
           copy.z = ++zTop;
-          if (copy.type === "slideshow") {
-            copy.timer = null;
-          }
+          if (copy.type === "slideshow") copy.timer = null;
           state.els[nid] = copy;
 
-          const { content } = createElementNode({
-            id: nid,
-            title: copy.title || (copy.type === "text" ? "Text" : "Slideshow"),
-          });
+          const { content } = createElementNode({ id: nid, title: copy.title || (copy.type === "text" ? "Text" : "Slideshow") });
           if (copy.type === "text") {
             const t = document.createElement("div");
             t.className = "textBlock";
@@ -1643,34 +1163,38 @@
         updateSelectionUI();
         refreshList();
         syncJSONBox();
+        autoSaveLocalDebounced();
       });
 
       /* List */
       function refreshList() {
-        const ids = Object.keys(state.els).sort(
-          (a, b) => (state.els[a].z || 0) - (state.els[b].z || 0)
-        );
+        const ids = Object.keys(state.els).sort((a, b) => (state.els[a].z || 0) - (state.els[b].z || 0));
         elementsList.innerHTML = "";
         for (const id of ids) {
           const d = state.els[id];
           const div = document.createElement("div");
           div.className = "item";
-          div.style.borderColor = selected.has(id) ? "#f59e0b" : "";
-          div.innerHTML = `
-      <div>
-        <b>${d.type === "text" ? "Text" : "Slideshow"}</b>
-        <small>${Math.round(d.x)},${Math.round(d.y)} • ${Math.round(
-            d.w
-          )}×${Math.round(d.h)} • FX: ${
-            d.type === "slideshow" ? d.fx || "fade" : "-"
-          }</small>
-      </div>
-      <div class="actions">
-        <button>Select</button>
-        <button>Del</button>
-      </div>
-    `;
-          const [bSel, bDel] = div.querySelectorAll("button");
+          if (selected.has(id)) div.style.borderColor = "#f59e0b";
+
+          const left = document.createElement("div");
+          const b = document.createElement("b");
+          b.textContent = d.type === "text" ? "Text" : "Slideshow";
+          const s = document.createElement("small");
+          s.textContent = `${Math.round(d.x)},${Math.round(d.y)} • ${Math.round(d.w)}×${Math.round(d.h)} • FX: ${d.type === "slideshow" ? (d.fx || "fade") : "-"}`;
+          left.appendChild(b);
+          left.appendChild(s);
+
+          const actions = document.createElement("div");
+          actions.className = "actions";
+          const bSel = document.createElement("button");
+          bSel.type = "button";
+          bSel.textContent = "Select";
+          const bDel = document.createElement("button");
+          bDel.type = "button";
+          bDel.textContent = "Del";
+          actions.appendChild(bSel);
+          actions.appendChild(bDel);
+
           bSel.addEventListener("click", (e) => {
             e.stopPropagation();
             selected.clear();
@@ -1683,7 +1207,11 @@
             removeEl(id);
             if (selected.has(id)) selected.delete(id);
             updateSelectionUI();
+            autoSaveLocalDebounced();
           });
+
+          div.appendChild(left);
+          div.appendChild(actions);
           elementsList.appendChild(div);
         }
       }
@@ -1697,6 +1225,7 @@
         const node = board.querySelector(`.el[data-id="${id}"]`);
         if (node) node.remove();
         syncJSONBoxDebounced();
+        autoSaveLocalDebounced();
       }
 
       /* JSON */
@@ -1707,9 +1236,7 @@
         }
         return copy;
       }
-      function syncJSONBox() {
-        jsonBox.value = JSON.stringify(runtimeStrippedCopy(), null, 2);
-      }
+      function syncJSONBox() { jsonBox.value = JSON.stringify(runtimeStrippedCopy(), null, 2); }
       let jsonTimer = null;
       function syncJSONBoxDebounced() {
         clearTimeout(jsonTimer);
@@ -1719,33 +1246,25 @@
       $("#copyJSON").addEventListener("click", async () => {
         syncJSONBox();
         jsonBox.select();
-        try {
-          await navigator.clipboard.writeText(jsonBox.value);
-        } catch {}
+        try { await navigator.clipboard.writeText(jsonBox.value); } catch {}
       });
+
       $("#applyJSON").addEventListener("click", () => {
-        try {
-          loadFromObject(JSON.parse(jsonBox.value || "{}"));
-        } catch {
-          alert("Invalid JSON.");
-        }
+        try { loadFromObject(JSON.parse(jsonBox.value || "{}")); }
+        catch { alert("Invalid JSON."); }
       });
+
       $("#saveLocal").addEventListener("click", () => {
-        localStorage.setItem(
-          "adboard_layout_v2",
-          JSON.stringify(runtimeStrippedCopy())
-        );
+        localStorage.setItem("adboard_layout_v3", JSON.stringify(runtimeStrippedCopy()));
         alert("Saved to Local Storage.");
       });
       $("#loadLocal").addEventListener("click", () => {
-        const raw = localStorage.getItem("adboard_layout_v2");
+        const raw = localStorage.getItem("adboard_layout_v3") || localStorage.getItem("adboard_layout_v3_autosave");
         if (!raw) return alert("No saved layout found.");
-        try {
-          loadFromObject(JSON.parse(raw));
-        } catch {
-          alert("Saved layout is corrupted.");
-        }
+        try { loadFromObject(JSON.parse(raw)); }
+        catch { alert("Saved layout is corrupted."); }
       });
+
       $("#clearAll").addEventListener("click", () => {
         Object.keys(state.els).forEach((id) => stopSlide(id));
         state.els = {};
@@ -1755,34 +1274,54 @@
         updateSelectionUI();
         refreshList();
         syncJSONBox();
+        autoSaveLocalDebounced();
       });
 
-      /* Load from object */
+      /* Load from object (light sanitize) */
       function loadFromObject(obj) {
         $("#clearAll").click();
-        state.version = obj.version || 2;
+        state.version = obj.version || 3;
         state.boardBg = obj.boardBg || "#000000";
         board.style.background = state.boardBg;
         $("#boardBg").value = state.boardBg;
 
-        for (const id of Object.keys(obj.els || {})) {
-          const d = obj.els[id];
+        const incoming = obj.els || {};
+        for (const id of Object.keys(incoming)) {
+          const d = incoming[id] || {};
+          d.id = d.id || id;
+
+          d.type = (d.type === "slideshow" || d.type === "text") ? d.type : "text";
+          d.title = d.title || (d.type === "text" ? "Text" : "Slideshow");
+
+          d.x = clamp(+d.x || 0, 0, Math.max(0, board.clientWidth - 10));
+          d.y = clamp(+d.y || 0, 0, Math.max(0, board.clientHeight - 10));
+          d.w = clamp(+d.w || 520, 120, board.clientWidth || 2000);
+          d.h = clamp(+d.h || 120, 70, board.clientHeight || 2000);
+          d.rot = clamp(+d.rot || 0, -180, 180);
+          d.opacity = clamp(d.opacity == null ? 1 : +d.opacity, 0.05, 1);
+
           d.z = d.z || ++zTop;
-          d.rot = d.rot || 0;
-          d.opacity = d.opacity == null ? 1 : d.opacity;
-          if (d.type === "slideshow") {
-            d.timer = null;
-            d.index = d.index || 0;
-            d.images = d.images || [];
+
+          if (d.type === "text") {
+            d.text = String(d.text || "");
+            d.color = d.color || "#ffffff";
+            d.size = clamp(+d.size || 56, 10, 220);
+            d.effect = d.effect || "none";
+            d.speed = clamp(+d.speed || 6, 1, 60);
+            d.wrap = !!d.wrap;
+          } else {
+            d.interval = clamp(+d.interval || 2500, 400, 20000);
+            d.fit = (d.fit === "contain") ? "contain" : "cover";
             d.fx = d.fx || "fade";
-            d.dur = d.dur || 700;
+            d.dur = clamp(+d.dur || 700, 100, 5000);
+            d.images = Array.isArray(d.images) ? d.images.map(String) : [];
+            d.index = clamp(+d.index || 0, 0, Math.max(0, d.images.length - 1));
+            d.timer = null;
           }
+
           state.els[id] = d;
 
-          const { content } = createElementNode({
-            id,
-            title: d.title || (d.type === "text" ? "Text" : "Slideshow"),
-          });
+          const { content } = createElementNode({ id, title: d.title });
           if (d.type === "text") {
             const t = document.createElement("div");
             t.className = "textBlock";
@@ -1795,100 +1334,50 @@
           renderEl(id);
         }
         zTop = Math.max(10, ...Object.values(state.els).map((x) => x.z || 10));
-        selected.clear();
-        activePrimary = null;
+        selected.clear(); activePrimary = null;
         updateSelectionUI();
         refreshList();
         syncJSONBox();
+        autoSaveLocalDebounced();
       }
 
-      /* Export Play Mode (supports slideshow FX too) */
+      /* ================== ZIP Export (HTML + images) ================== */
       function escapeHtml(s) {
-        return String(s).replace(
-          /[&<>"']/g,
-          (m) =>
-            ({
-              "&": "&amp;",
-              "<": "&lt;",
-              ">": "&gt;",
-              '"': "&quot;",
-              "'": "&#39;",
-            }[m])
-        );
+        return String(s).replace(/[&<>"']/g, (m) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
       }
 
-      function exportPlayHTML() {
-        const layout = runtimeStrippedCopy();
-        const els = Object.values(layout.els).sort(
-          (a, b) => (a.z || 0) - (b.z || 0)
-        );
+      function buildPlayHTMLUsingFiles(layout, fileMap) {
+        const els = Object.values(layout.els).sort((a, b) => (a.z || 0) - (b.z || 0));
 
-        const genElsHTML = els
-          .map((d) => {
-            const baseStyle = `left:${d.x}px;top:${d.y}px;width:${
-              d.w
-            }px;height:${d.h}px;transform:rotate(${
-              d.rot || 0
-            }deg);transform-origin:center center;opacity:${
-              d.opacity ?? 1
-            };z-index:${d.z || 1};position:absolute;`.trim();
+        const genElsHTML = els.map((d) => {
+          const baseStyle = `left:${d.x}px;top:${d.y}px;width:${d.w}px;height:${d.h}px;transform:rotate(${d.rot || 0}deg);transform-origin:center center;opacity:${d.opacity ?? 1};z-index:${d.z || 1};position:absolute;`.trim();
 
-            if (d.type === "text") {
-              const cls =
-                {
-                  "scroll-left": "fx-scroll-left",
-                  "scroll-right": "fx-scroll-right",
-                  fade: "fx-fade",
-                  zoom: "fx-zoom",
-                  bounce: "fx-bounce",
-                }[d.effect] || "";
-              const anim =
-                d.effect && d.effect !== "none"
-                  ? `animation-duration:${d.speed || 6}s;`
-                  : "";
-              const wrap = d.wrap
-                ? "white-space:normal;"
-                : "white-space:nowrap;";
-              return `
+          if (d.type === "text") {
+            const cls = ({ "scroll-left":"fx-scroll-left","scroll-right":"fx-scroll-right", fade:"fx-fade", zoom:"fx-zoom", bounce:"fx-bounce" }[d.effect] || "");
+            const anim = (d.effect && d.effect !== "none") ? `animation-duration:${d.speed || 6}s;` : "";
+            const wrap = d.wrap ? "white-space:normal;" : "white-space:nowrap;";
+            return `
 <div class="el" style="${baseStyle}">
   <div class="box">
     <div class="content">
-      <div class="textBlock ${cls}" style="color:${
-                d.color || "#fff"
-              };font-size:${d.size || 56}px;${anim}${wrap}">
+      <div class="textBlock ${cls}" style="color:${d.color || "#fff"};font-size:${d.size || 56}px;${anim}${wrap}">
         ${escapeHtml(d.text || "")}
       </div>
     </div>
   </div>
 </div>`.trim();
-            }
+          }
 
-            const fxClass =
-              {
-                fade: "fx-fade",
-                "slide-left": "fx-slide-left",
-                "slide-right": "fx-slide-right",
-                "slide-up": "fx-slide-up",
-                "slide-down": "fx-slide-down",
-                zoom: "fx-zoom",
-                flip: "fx-flip",
-              }[d.fx || "fade"] || "fx-fade";
+          const fxClass = ({ fade:"fx-fade","slide-left":"fx-slide-left","slide-right":"fx-slide-right","slide-up":"fx-slide-up","slide-down":"fx-slide-down", zoom:"fx-zoom", flip:"fx-flip" }[d.fx || "fade"] || "fx-fade");
 
-            const imgs = (d.images || [])
-              .map((src, i) => {
-                const active = i === (d.index || 0) ? "active" : "";
-                return `<img class="${active}" src="${escapeHtml(
-                  src
-                )}" style="object-fit:${escapeHtml(d.fit || "cover")}">`;
-              })
-              .join("\n        ");
+          const imgs = (d.images || []).map((src, i) => {
+            const active = i === (d.index || 0) ? "active" : "";
+            const filename = fileMap.get(src) || src; // should be a relative file
+            return `<img class="${active}" src="${escapeHtml(filename)}" style="object-fit:${escapeHtml(d.fit || "cover")}">`;
+          }).join("\n        ");
 
-            return `
-<div class="el" data-slide="${escapeHtml(d.id)}" data-fx="${escapeHtml(
-              d.fx || "fade"
-            )}" data-dur="${escapeHtml(
-              String(d.dur || 700)
-            )}" style="${baseStyle}">
+          return `
+<div class="el" data-slide="${escapeHtml(d.id)}" data-fx="${escapeHtml(d.fx || "fade")}" data-dur="${escapeHtml(String(d.dur || 700))}" style="${baseStyle}">
   <div class="box">
     <div class="content">
       <div class="slideBox ${fxClass}" style="--dur:${d.dur || 700}ms">
@@ -1897,8 +1386,7 @@
     </div>
   </div>
 </div>`.trim();
-          })
-          .join("\n\n");
+        }).join("\n\n");
 
         const slidesJS = els
           .filter((d) => d.type === "slideshow" && (d.images || []).length >= 2)
@@ -1940,16 +1428,11 @@
     idx = nextIdx;
   }
 
-  setInterval(()=>{
-    const nextIdx = (idx + 1) % imgs.length;
-    swap(nextIdx);
-  }, ${interval});
+  setInterval(()=>{ swap((idx + 1) % imgs.length); }, ${interval});
 })();`.trim();
-          })
-          .join("\n");
+          }).join("\n");
 
-        const html =
-          `<!doctype html>
+        return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -1958,9 +1441,7 @@
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#000;display:flex;align-items:center;justify-content:center;height:100vh}
-#board{position:relative; width:min(100vw,177.77vh); height:calc(min(100vw,177.77vh) * 0.5625); background:${
-            layout.boardBg || "#000"
-          }; overflow:hidden}
+#board{position:relative; width:min(100vw,177.77vh); height:calc(min(100vw,177.77vh) * 0.5625); background:${layout.boardBg || "#000"}; overflow:hidden}
 .el{position:absolute}
 .box{position:absolute;inset:0;border-radius:14px;overflow:hidden}
 .content{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
@@ -1997,36 +1478,105 @@ ${genElsHTML}
 </div>
 <script>
 ${slidesJS}
-</` +
-          `script>
-</` +
-          `body>
+</script>
+</body>
 </html>`;
+      }
 
-        const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+      async function dataUrlToBlob(dataUrl) {
+        const res = await fetch(dataUrl);
+        return await res.blob();
+      }
+
+      async function exportZIP() {
+        if (!window.JSZip) return alert("JSZip failed to load. Check internet/cdn.");
+        const zip = new JSZip();
+        const layout = runtimeStrippedCopy();
+
+        // collect unique images
+        const imagesFolder = zip.folder("images");
+        const fileMap = new Map(); // src -> "images/...."
+
+        let imgCounter = 1;
+        for (const el of Object.values(layout.els)) {
+          if (el.type !== "slideshow") continue;
+          const imgs = Array.isArray(el.images) ? el.images : [];
+          for (const src of imgs) {
+            if (fileMap.has(src)) continue;
+
+            // name guess by mime if dataURL, else default png
+            let ext = "png";
+            const m = String(src).match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,/);
+            if (m && m[1]) {
+              const mime = m[1].toLowerCase();
+              if (mime.includes("jpeg")) ext = "jpg";
+              else if (mime.includes("png")) ext = "png";
+              else if (mime.includes("webp")) ext = "webp";
+              else if (mime.includes("gif")) ext = "gif";
+              else ext = "img";
+            }
+
+            const filename = `images/img_${String(imgCounter++).padStart(3,"0")}.${ext}`;
+            fileMap.set(src, filename);
+
+            try {
+              const blob = src.startsWith("data:") ? await dataUrlToBlob(src) : await (await fetch(src)).blob();
+              imagesFolder.file(filename.split("/").pop(), blob);
+            } catch {
+              // if fetch fails, skip (but keep mapping)
+            }
+          }
+        }
+
+        // play.html references extracted images
+        const playHtml = buildPlayHTMLUsingFiles(layout, fileMap);
+        zip.file("play.html", playHtml);
+        zip.file("layout.json", JSON.stringify(layout, null, 2));
+
+        const blob = await zip.generateAsync({ type: "blob" });
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
-        a.download = "adboard-play.html";
+        a.download = "adboard-export.zip";
         a.click();
         setTimeout(() => URL.revokeObjectURL(a.href), 1500);
       }
 
-      $("#exportPlay").addEventListener("click", exportPlayHTML);
+      $("#exportZip").addEventListener("click", exportZIP);
 
       /* ================== UI Toggles & Buttons ================== */
-      $("#gridToggle").addEventListener("change", () =>
-        board.classList.toggle("gridOn", $("#gridToggle").checked)
-      );
-      $("#safeToggle").addEventListener(
-        "change",
-        () =>
-          (safeArea.style.display = $("#safeToggle").checked ? "block" : "none")
-      );
+      $("#gridToggle").addEventListener("change", () => board.classList.toggle("gridOn", $("#gridToggle").checked));
+      $("#safeToggle").addEventListener("change", () => (safeArea.style.display = $("#safeToggle").checked ? "block" : "none"));
+
       $("#fullscreenBtn").addEventListener("click", () => {
         if (board.requestFullscreen) board.requestFullscreen();
       });
+
       $("#addTextBtn").addEventListener("click", addTextBlock);
       $("#addSlideBtn").addEventListener("click", addSlideshowBlock);
+
+      /* ✅ Fullscreen toolbar actions */
+      $("#fsSave").addEventListener("click", () => $("#saveLocal").click());
+      $("#fsZip").addEventListener("click", exportZIP);
+      $("#fsExit").addEventListener("click", async () => { if (document.fullscreenElement) await document.exitFullscreen(); });
+
+      /* ✅ Save changes made during fullscreen:
+            - show toolbar in fullscreen
+            - autosave on any change (already done)
+            - hard-save when leaving fullscreen */
+      document.addEventListener("fullscreenchange", () => {
+        const isFs = !!document.fullscreenElement;
+        fsBar.style.display = isFs ? "flex" : "none";
+
+        // ensure board sizing changes don't lose anything
+        requestAnimationFrame(() => { renderAll(); });
+
+        // ✅ when exiting fullscreen, force-save autosave snapshot
+        if (!isFs) {
+          try {
+            localStorage.setItem("adboard_layout_v3_autosave", JSON.stringify(runtimeStrippedCopy()));
+          } catch {}
+        }
+      });
 
       /* ================== Init ================== */
       function init() {
@@ -2037,6 +1587,12 @@ ${slidesJS}
         $("#safeToggle").checked = false;
         $("#snapToggle").checked = true;
 
+        // Try restore autosave first
+        const auto = localStorage.getItem("adboard_layout_v3_autosave");
+        if (auto) {
+          try { loadFromObject(JSON.parse(auto)); return; } catch {}
+        }
+
         addTextBlock();
         addSlideshowBlock();
         syncJSONBox();
@@ -2045,8 +1601,21 @@ ${slidesJS}
       }
       init();
 
-      /* keyboard delete */
+      /* keyboard delete + fullscreen shortcuts */
       window.addEventListener("keydown", (e) => {
+        // Ctrl+S save
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+          e.preventDefault();
+          $("#saveLocal").click();
+          return;
+        }
+        // Ctrl+E export zip
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "e") {
+          e.preventDefault();
+          exportZIP();
+          return;
+        }
+
         if (e.key === "Delete" || e.key === "Backspace") {
           if (selected.size) {
             for (const id of [...selected]) removeEl(id);
@@ -2055,6 +1624,7 @@ ${slidesJS}
             updateSelectionUI();
             refreshList();
             syncJSONBoxDebounced();
+            autoSaveLocalDebounced();
           }
         }
       });
