@@ -1,11 +1,16 @@
 (() => {
-  const LS_TOUR = "varanasi_tour_v1";
-  const LS_COORDS = "varanasi_coords_v1"; // cache geocoded coords per destination id
+  const LS_TOUR = "varanasi_tour_v2";
+  const LS_COORDS = "varanasi_coords_v2";
 
-  // --- Simple "photo-like" SVG images (offline, no external links) ---
+  // --- SVG "photo-like" images (offline, no external images) ---
   function svgDataURI(svg){ return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg); }
   function escapeXML(s){
-    return String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&apos;");
+    return String(s)
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&apos;");
   }
   function photoSVG(title, subtitle, hue){
     const h = Number(hue)||30;
@@ -32,10 +37,10 @@
               fill="#ffffff" fill-opacity=".18"/>
         <circle cx="960" cy="160" r="90" fill="#fff" fill-opacity=".22"/>
         <g filter="url(#s)">
-          <rect x="60" y="60" width="820" height="210" rx="28" fill="#fff" fill-opacity=".86"/>
-          <rect x="60" y="60" width="820" height="210" rx="28" fill="none" stroke="#eadcc5" stroke-width="6"/>
-          <text x="105" y="150" font-size="56" font-family="Arial, sans-serif" font-weight="800" fill="#1f2937">${escapeXML(title)}</text>
-          <text x="105" y="210" font-size="26" font-family="Arial, sans-serif" font-weight="700" fill="#6b7280">${escapeXML(subtitle)}</text>
+          <rect x="60" y="60" width="860" height="220" rx="28" fill="#fff" fill-opacity=".86"/>
+          <rect x="60" y="60" width="860" height="220" rx="28" fill="none" stroke="#eadcc5" stroke-width="6"/>
+          <text x="105" y="155" font-size="56" font-family="Arial, sans-serif" font-weight="800" fill="#1f2937">${escapeXML(title)}</text>
+          <text x="105" y="220" font-size="26" font-family="Arial, sans-serif" font-weight="700" fill="#6b7280">${escapeXML(subtitle)}</text>
         </g>
         <g fill="#1f2937" fill-opacity=".22">
           <rect x="160" y="440" width="90" height="60" rx="10"/>
@@ -43,12 +48,13 @@
           <rect x="395" y="430" width="110" height="70" rx="12"/>
           <rect x="520" y="400" width="140" height="100" rx="14"/>
           <rect x="670" y="430" width="110" height="70" rx="12"/>
+          <rect x="800" y="410" width="120" height="90" rx="12"/>
         </g>
       </svg>
     `);
   }
 
-  // --- Champak's Home as first destination ---
+  // --- Start Point (Pinned) ---
   const HOME = {
     id:"d0",
     name:"Champak's Home",
@@ -67,9 +73,20 @@
     ]
   };
 
-  // Destinations (HOME first)
+  // Helper to create 3 photos quickly
+  function pics(name, a, b, c, hue){
+    return [
+      photoSVG(name, a, hue),
+      photoSVG(name, b, hue + 10),
+      photoSVG(name, c, hue + 20),
+    ];
+  }
+
+  // --- RESTORED: Big destination set (add / remove freely) ---
   const DEST = [
     HOME,
+
+    // Temples / Spiritual
     {
       id:"d1",
       name:"Shri Kashi Vishwanath Temple",
@@ -77,222 +94,343 @@
       bestTime:"day",
       timeNeeded:"1–2 hrs",
       cost:"Depends (donations / queue services)",
-      highlights:"One of the most revered Shiva temples; spiritual heart of Kashi.",
+      highlights:"Spiritual heart of Kashi; iconic Jyotirlinga temple area.",
       map:"https://www.google.com/maps/search/?api=1&query=Kashi+Vishwanath+Temple+Varanasi",
       coords:[25.31085, 83.01068],
-      photos:[
-        photoSVG("Kashi Vishwanath", "Temple & corridor vibes", 28),
-        photoSVG("Kashi Vishwanath", "Morning darshan energy", 36),
-        photoSVG("Kashi Vishwanath", "Evening lanes nearby", 20),
-      ]
+      photos:pics("Kashi Vishwanath", "Temple & corridor vibes", "Morning darshan energy", "Old lanes nearby", 28)
     },
     {
       id:"d2",
-      name:"Dashashwamedh Ghat",
-      type:"Ghat",
-      bestTime:"evening",
-      timeNeeded:"1–2 hrs",
-      cost:"Free (Aarti seating may cost)",
-      highlights:"Famous for the Ganga Aarti; lively atmosphere by the river.",
-      map:"https://www.google.com/maps/search/?api=1&query=Dashashwamedh+Ghat+Varanasi",
-      coords:[25.30716889, 83.01033639],
-      photos:[
-        photoSVG("Dashashwamedh Ghat", "Ganga Aarti (evening)", 18),
-        photoSVG("Dashashwamedh Ghat", "Crowd & lamps glow", 26),
-        photoSVG("Dashashwamedh Ghat", "Riverfront view", 14),
-      ]
-    },
-    {
-      id:"d3",
-      name:"Assi Ghat",
-      type:"Ghat",
-      bestTime:"sunrise",
-      timeNeeded:"1–2 hrs",
-      cost:"Free",
-      highlights:"Calmer vibe; sunrise scenes and morning walks by the ghats.",
-      map:"https://www.google.com/maps/search/?api=1&query=Assi+Ghat+Varanasi",
-      coords:[25.289322, 83.006499],
-      photos:[
-        photoSVG("Assi Ghat", "Sunrise calm", 40),
-        photoSVG("Assi Ghat", "Morning walk & chai", 34),
-        photoSVG("Assi Ghat", "Boats & soft light", 46),
-      ]
-    },
-    {
-      id:"d4",
-      name:"Manikarnika Ghat",
-      type:"Ghat",
+      name:"Annapurna Temple",
+      type:"Temple",
       bestTime:"day",
       timeNeeded:"30–60 min",
       cost:"Free",
-      highlights:"A major cremation ghat; deeply traditional and powerful to witness (be respectful).",
-      map:"https://www.google.com/maps/search/?api=1&query=Manikarnika+Ghat+Varanasi",
-      coords:[25.31087056, 83.01408556],
-      photos:[
-        photoSVG("Manikarnika Ghat", "Oldest traditions", 10),
-        photoSVG("Manikarnika Ghat", "Historic riverfront", 16),
-        photoSVG("Manikarnika Ghat", "Respectful viewing", 6),
-      ]
+      highlights:"Beloved temple near Vishwanath area; strong local devotion.",
+      map:"https://www.google.com/maps/search/?api=1&query=Annapurna+Temple+Varanasi",
+      photos:pics("Annapurna Temple", "Devotional stop", "Near Vishwanath area", "Quiet darshan moments", 18)
     },
     {
-      id:"d5",
-      name:"Sarnath (Dhamek Stupa & ruins)",
-      type:"Sarnath",
-      bestTime:"day",
-      timeNeeded:"2–4 hrs",
-      cost:"Tickets may apply",
-      highlights:"Buddhist pilgrimage site; serene monuments and historical ruins.",
-      map:"https://www.google.com/maps/search/?api=1&query=Dhamek+Stupa+Sarnath",
-      coords:[25.3808, 83.0245],
-      photos:[
-        photoSVG("Sarnath", "Dhamek Stupa", 120),
-        photoSVG("Sarnath", "Peaceful lawns", 140),
-        photoSVG("Sarnath", "Ruins & history", 110),
-      ]
-    },
-    {
-      id:"d6",
-      name:"Sarnath Museum (Archaeological Museum)",
-      type:"Sarnath",
-      bestTime:"day",
-      timeNeeded:"1–2 hrs",
-      cost:"Tickets apply",
-      highlights:"Artifacts from Sarnath; iconic Ashokan lion capital association.",
-      map:"https://www.google.com/maps/search/?api=1&query=Sarnath+Museum",
-      coords:[25.376165, 83.022713],
-      photos:[
-        photoSVG("Sarnath Museum", "Artifacts & sculpture", 200),
-        photoSVG("Sarnath Museum", "Heritage exhibits", 190),
-        photoSVG("Sarnath Museum", "Learning stop", 210),
-      ]
-    },
-    {
-      id:"d7",
-      name:"Ramnagar Fort",
-      type:"Heritage",
-      bestTime:"day",
-      timeNeeded:"1–2 hrs",
-      cost:"Tickets may apply",
-      highlights:"Historic fort across the Ganga; museum and royal-era collections.",
-      map:"https://www.google.com/maps/search/?api=1&query=Ramnagar+Fort+Varanasi",
-      coords:[25.269262, 83.022144],
-      photos:[
-        photoSVG("Ramnagar Fort", "Fort & museum", 260),
-        photoSVG("Ramnagar Fort", "Royal collections", 240),
-        photoSVG("Ramnagar Fort", "Ganga-side view", 280),
-      ]
-    },
-    {
-      id:"d8",
-      name:"BHU & Bharat Kala Bhavan",
-      type:"Heritage",
-      bestTime:"day",
-      timeNeeded:"2–4 hrs",
-      cost:"Often free/entry rules vary",
-      highlights:"Campus stroll + art museum; peaceful green spaces.",
-      map:"https://www.google.com/maps/search/?api=1&query=BHU+Bharat+Kala+Bhavan+Varanasi",
-      // Added explicit coords to avoid relying on Nominatim
-      coords:[25.27149, 82.995994],
-      photos:[
-        photoSVG("BHU", "Green campus walk", 90),
-        photoSVG("Bharat Kala Bhavan", "Art & culture", 70),
-        photoSVG("BHU", "Quiet evenings", 100),
-      ]
-    },
-    {
-      id:"d9",
+      id:"d3",
       name:"Kaal Bhairav Temple",
       type:"Temple",
       bestTime:"day",
       timeNeeded:"45–90 min",
       cost:"Free",
-      highlights:"Popular local deity temple; often a dedicated queue.",
+      highlights:"Popular local deity temple; queues common on busy days.",
       map:"https://www.google.com/maps/search/?api=1&query=Kaal+Bhairav+Temple+Varanasi",
-      photos:[
-        photoSVG("Kaal Bhairav", "Local devotion", 320),
-        photoSVG("Kaal Bhairav", "Queue & darshan", 300),
-        photoSVG("Kaal Bhairav", "Temple street", 340),
-      ]
+      photos:pics("Kaal Bhairav", "Local devotion", "Queue & darshan", "Temple street", 320)
     },
     {
-      id:"d10",
+      id:"d4",
       name:"Sankat Mochan Hanuman Temple",
       type:"Temple",
       bestTime:"day",
       timeNeeded:"45–90 min",
       cost:"Free",
-      highlights:"Beloved Hanuman temple; close to BHU area.",
+      highlights:"Famous Hanuman temple near BHU; peaceful devotional vibe.",
       map:"https://www.google.com/maps/search/?api=1&query=Sankat+Mochan+Temple+Varanasi",
       coords:[25.281852, 82.998652],
-      photos:[
-        photoSVG("Sankat Mochan", "Hanuman temple", 30),
-        photoSVG("Sankat Mochan", "Prasad & prayers", 22),
-        photoSVG("Sankat Mochan", "Near BHU area", 38),
-      ]
+      photos:pics("Sankat Mochan", "Hanuman temple", "Prasad & prayers", "Near BHU area", 30)
+    },
+    {
+      id:"d5",
+      name:"Durga Kund Temple",
+      type:"Temple",
+      bestTime:"day",
+      timeNeeded:"45–90 min",
+      cost:"Free",
+      highlights:"Major Shakti temple; the kund adds a special charm.",
+      map:"https://www.google.com/maps/search/?api=1&query=Durga+Kund+Temple+Varanasi",
+      photos:pics("Durga Kund", "Shakti temple", "Kund surroundings", "Festival season crowds", 12)
+    },
+    {
+      id:"d6",
+      name:"Tulsi Manas Temple",
+      type:"Temple",
+      bestTime:"day",
+      timeNeeded:"45–90 min",
+      cost:"Free",
+      highlights:"Calm temple complex; associated with Ramcharitmanas legacy.",
+      map:"https://www.google.com/maps/search/?api=1&query=Tulsi+Manas+Temple+Varanasi",
+      photos:pics("Tulsi Manas", "Temple calm", "Wall inscriptions", "Near Durga Kund zone", 22)
+    },
+    {
+      id:"d7",
+      name:"New Vishwanath Temple (BHU Birla Temple)",
+      type:"Temple",
+      bestTime:"evening",
+      timeNeeded:"45–90 min",
+      cost:"Free",
+      highlights:"Beautiful BHU campus temple; serene in evenings.",
+      map:"https://www.google.com/maps/search/?api=1&query=New+Vishwanath+Temple+BHU+Varanasi",
+      coords:[25.2763, 82.9997],
+      photos:pics("New Vishwanath (BHU)", "Campus temple", "Evening lights", "Peaceful walk", 36)
+    },
+
+    // Ghats
+    {
+      id:"d8",
+      name:"Dashashwamedh Ghat",
+      type:"Ghat",
+      bestTime:"evening",
+      timeNeeded:"1–2 hrs",
+      cost:"Free (Aarti seating may cost)",
+      highlights:"Most famous ghat; grand Ganga Aarti atmosphere.",
+      map:"https://www.google.com/maps/search/?api=1&query=Dashashwamedh+Ghat+Varanasi",
+      coords:[25.30716889, 83.01033639],
+      photos:pics("Dashashwamedh Ghat", "Ganga Aarti (evening)", "Crowd & lamps glow", "Riverfront view", 18)
+    },
+    {
+      id:"d9",
+      name:"Assi Ghat",
+      type:"Ghat",
+      bestTime:"sunrise",
+      timeNeeded:"1–2 hrs",
+      cost:"Free",
+      highlights:"Calmer vibe; sunrise scenes, walks, yoga & chai.",
+      map:"https://www.google.com/maps/search/?api=1&query=Assi+Ghat+Varanasi",
+      coords:[25.289322, 83.006499],
+      photos:pics("Assi Ghat", "Sunrise calm", "Morning walk & chai", "Boats & soft light", 40)
+    },
+    {
+      id:"d10",
+      name:"Manikarnika Ghat",
+      type:"Ghat",
+      bestTime:"day",
+      timeNeeded:"30–60 min",
+      cost:"Free",
+      highlights:"Major cremation ghat; witness respectfully and silently.",
+      map:"https://www.google.com/maps/search/?api=1&query=Manikarnika+Ghat+Varanasi",
+      coords:[25.31087056, 83.01408556],
+      photos:pics("Manikarnika Ghat", "Old traditions", "Historic riverfront", "Respectful viewing", 6)
     },
     {
       id:"d11",
+      name:"Harishchandra Ghat",
+      type:"Ghat",
+      bestTime:"day",
+      timeNeeded:"30–60 min",
+      cost:"Free",
+      highlights:"Another important cremation ghat; calm, historic atmosphere.",
+      map:"https://www.google.com/maps/search/?api=1&query=Harishchandra+Ghat+Varanasi",
+      photos:pics("Harishchandra Ghat", "Historic ghat", "Quiet riverfront", "Respect and silence", 10)
+    },
+    {
+      id:"d12",
+      name:"Panchganga Ghat",
+      type:"Ghat",
+      bestTime:"morning",
+      timeNeeded:"30–60 min",
+      cost:"Free",
+      highlights:"Old-world charm; beautiful ghat architecture nearby.",
+      map:"https://www.google.com/maps/search/?api=1&query=Panchganga+Ghat+Varanasi",
+      photos:pics("Panchganga Ghat", "Old Kashi vibe", "Heritage steps", "Boat view", 16)
+    },
+    {
+      id:"d13",
+      name:"Raj Ghat",
+      type:"Ghat",
+      bestTime:"sunrise",
+      timeNeeded:"45–90 min",
+      cost:"Free",
+      highlights:"Less crowded; nice for calm river views.",
+      map:"https://www.google.com/maps/search/?api=1&query=Raj+Ghat+Varanasi",
+      photos:pics("Raj Ghat", "Quiet mornings", "Wide river view", "Less crowded", 24)
+    },
+
+    // Sarnath
+    {
+      id:"d14",
+      name:"Sarnath (Dhamek Stupa & ruins)",
+      type:"Sarnath",
+      bestTime:"day",
+      timeNeeded:"2–4 hrs",
+      cost:"Tickets may apply",
+      highlights:"Buddhist pilgrimage site; serene monuments and historic ruins.",
+      map:"https://www.google.com/maps/search/?api=1&query=Dhamek+Stupa+Sarnath",
+      coords:[25.3808, 83.0245],
+      photos:pics("Sarnath", "Dhamek Stupa", "Peaceful lawns", "Ruins & history", 120)
+    },
+    {
+      id:"d15",
+      name:"Sarnath Museum (Archaeological Museum)",
+      type:"Museum",
+      bestTime:"day",
+      timeNeeded:"1–2 hrs",
+      cost:"Tickets apply",
+      highlights:"Artifacts & sculptures; strong historical learning stop.",
+      map:"https://www.google.com/maps/search/?api=1&query=Sarnath+Museum",
+      coords:[25.376165, 83.022713],
+      photos:pics("Sarnath Museum", "Artifacts & sculpture", "Heritage exhibits", "Learning stop", 200)
+    },
+    {
+      id:"d16",
+      name:"Mulagandha Kuti Vihar (Sarnath)",
+      type:"Sarnath",
+      bestTime:"day",
+      timeNeeded:"30–60 min",
+      cost:"Free",
+      highlights:"Peaceful monastery; great for quiet reflection.",
+      map:"https://www.google.com/maps/search/?api=1&query=Mulagandha+Kuti+Vihar+Sarnath",
+      photos:pics("Mulagandha Kuti Vihar", "Peaceful monastery", "Calm interiors", "Meditative vibe", 145)
+    },
+
+    // Heritage / Museums / Nature
+    {
+      id:"d17",
+      name:"Ramnagar Fort",
+      type:"Heritage",
+      bestTime:"day",
+      timeNeeded:"1–2 hrs",
+      cost:"Tickets may apply",
+      highlights:"Historic fort across the Ganga; museum collections.",
+      map:"https://www.google.com/maps/search/?api=1&query=Ramnagar+Fort+Varanasi",
+      coords:[25.269262, 83.022144],
+      photos:pics("Ramnagar Fort", "Fort & museum", "Royal collections", "Ganga-side view", 260)
+    },
+    {
+      id:"d18",
+      name:"BHU & Bharat Kala Bhavan",
+      type:"Heritage",
+      bestTime:"day",
+      timeNeeded:"2–4 hrs",
+      cost:"Entry rules vary",
+      highlights:"Campus stroll + art museum; calm green spaces.",
+      map:"https://www.google.com/maps/search/?api=1&query=BHU+Bharat+Kala+Bhavan+Varanasi",
+      coords:[25.27149, 82.995994],
+      photos:pics("BHU & Kala Bhavan", "Green campus walk", "Art & culture", "Quiet evenings", 90)
+    },
+    {
+      id:"d19",
+      name:"Rudraksh Convention Centre",
+      type:"Heritage",
+      bestTime:"day",
+      timeNeeded:"30–60 min",
+      cost:"Varies by event",
+      highlights:"Modern landmark; visit if an exhibition/event is on.",
+      map:"https://www.google.com/maps/search/?api=1&query=Rudraksh+Convention+Centre+Varanasi",
+      photos:pics("Rudraksh Centre", "Modern landmark", "Events & exhibitions", "Architecture view", 52)
+    },
+    {
+      id:"d20",
+      name:"Kashi Vishwanath Corridor Viewpoints",
+      type:"Heritage",
+      bestTime:"evening",
+      timeNeeded:"30–60 min",
+      cost:"Free",
+      highlights:"Walk the corridor area; beautiful in evening lights.",
+      map:"https://www.google.com/maps/search/?api=1&query=Kashi+Vishwanath+Corridor+Varanasi",
+      photos:pics("KV Corridor", "Evening lights", "Wide walkways", "Photo-friendly spots", 30)
+    },
+
+    // Experiences
+    {
+      id:"d21",
       name:"Boat Ride on the Ganga (Ghats stretch)",
       type:"Experience",
       bestTime:"sunrise",
       timeNeeded:"1–2 hrs",
       cost:"Paid",
-      highlights:"Classic Varanasi experience—see ghats from the river (sunrise is magical).",
+      highlights:"Classic experience—see ghats from the river (sunrise is magical).",
       map:"https://www.google.com/maps/search/?api=1&query=Boat+ride+Varanasi+ghats",
-      photos:[
-        photoSVG("Boat Ride", "Sunrise on Ganga", 48),
-        photoSVG("Boat Ride", "Ghats panorama", 54),
-        photoSVG("Boat Ride", "Quiet water moments", 42),
-      ]
+      photos:pics("Boat Ride", "Sunrise on Ganga", "Ghats panorama", "Quiet water moments", 48)
     },
     {
-      id:"d12",
-      name:"Vishalakshi Temple / Shakti Peeth area",
-      type:"Temple",
-      bestTime:"day",
-      timeNeeded:"45–90 min",
+      id:"d22",
+      name:"Ganga Aarti Viewing (Main Ghats)",
+      type:"Experience",
+      bestTime:"evening",
+      timeNeeded:"1–2 hrs",
+      cost:"Free (seating may cost)",
+      highlights:"Aarti energy, chants, lamps—don’t miss the evening vibe.",
+      map:"https://www.google.com/maps/search/?api=1&query=Ganga+Aarti+Varanasi",
+      photos:pics("Ganga Aarti", "Chants & lamps", "Crowd energy", "Riverfront glow", 14)
+    },
+    {
+      id:"d23",
+      name:"Subah-e-Banaras (Morning at Assi)",
+      type:"Experience",
+      bestTime:"sunrise",
+      timeNeeded:"1–2 hrs",
       cost:"Free",
-      highlights:"Close to the Vishwanath corridor region; devotional circuit-friendly.",
-      map:"https://www.google.com/maps/search/?api=1&query=Vishalakshi+Temple+Varanasi",
-      photos:[
-        photoSVG("Vishalakshi Temple", "Shakti Peeth area", 15),
-        photoSVG("Vishalakshi Temple", "Temple lane", 24),
-        photoSVG("Vishalakshi Temple", "Devotional circuit", 12),
-      ]
+      highlights:"Morning cultural program feel near Assi area (seasonal).",
+      map:"https://www.google.com/maps/search/?api=1&query=Subah-e-Banaras+Assi+Ghat",
+      photos:pics("Subah-e-Banaras", "Morning vibes", "Music & yoga feel", "Sunrise moments", 42)
     },
+
+    // Markets / Food
     {
-      id:"d13",
+      id:"d24",
       name:"Godowlia Market (Shopping & street life)",
       type:"Market",
       bestTime:"evening",
       timeNeeded:"1–2 hrs",
       cost:"Free",
-      highlights:"Local shopping + lanes; great for Banarasi items and snacks.",
+      highlights:"Local shopping lanes; Banarasi items and snacks nearby.",
       map:"https://www.google.com/maps/search/?api=1&query=Godowlia+Market+Varanasi",
-      photos:[
-        photoSVG("Godowlia Market", "Street life & shops", 5),
-        photoSVG("Godowlia Market", "Snacks & lanes", 18),
-        photoSVG("Godowlia Market", "Evening lights", 10),
-      ]
+      photos:pics("Godowlia Market", "Street life & shops", "Snacks & lanes", "Evening lights", 5)
     },
     {
-      id:"d14",
-      name:"Banaras Silk & Weaving lanes (Saree experience)",
+      id:"d25",
+      name:"Banaras Silk & Weaving Lanes (Saree experience)",
       type:"Market",
       bestTime:"day",
       timeNeeded:"2–3 hrs",
       cost:"Free",
-      highlights:"Explore famous Banarasi silk craft (buy only from trusted sellers).",
+      highlights:"Explore Banarasi silk craft (buy from trusted sellers).",
       map:"https://www.google.com/maps/search/?api=1&query=Banarasi+silk+weaving+Varanasi",
-      photos:[
-        photoSVG("Banarasi Silk", "Weaving craft", 285),
-        photoSVG("Banarasi Silk", "Patterns & zari", 300),
-        photoSVG("Banarasi Silk", "Shopping tip: trusted", 270),
-      ]
+      photos:pics("Banarasi Silk", "Weaving craft", "Patterns & zari", "Trusted seller tip", 285)
+    },
+    {
+      id:"d26",
+      name:"Kachori-Sabzi & Jalebi Breakfast Spots",
+      type:"Food",
+      bestTime:"morning",
+      timeNeeded:"30–60 min",
+      cost:"Low",
+      highlights:"Iconic Banarasi breakfast experience.",
+      map:"https://www.google.com/maps/search/?api=1&query=Kachori+Sabzi+Varanasi",
+      photos:pics("Banarasi Breakfast", "Kachori-sabzi", "Jalebi & chai", "Morning energy", 55)
+    },
+    {
+      id:"d27",
+      name:"Banarasi Paan Experience",
+      type:"Food",
+      bestTime:"evening",
+      timeNeeded:"15–30 min",
+      cost:"Low",
+      highlights:"Taste the famous Banarasi paan (choose hygienic shops).",
+      map:"https://www.google.com/maps/search/?api=1&query=Banarasi+paan+Varanasi",
+      photos:pics("Banarasi Paan", "Iconic taste", "Shop lanes", "After-dinner stop", 95)
+    },
+
+    // Extra popular temples / landmarks
+    {
+      id:"d28",
+      name:"Vishalakshi Temple / Shakti Peeth Area",
+      type:"Temple",
+      bestTime:"day",
+      timeNeeded:"45–90 min",
+      cost:"Free",
+      highlights:"Close to Vishwanath corridor region; circuit-friendly.",
+      map:"https://www.google.com/maps/search/?api=1&query=Vishalakshi+Temple+Varanasi",
+      photos:pics("Vishalakshi", "Shakti Peeth area", "Temple lane", "Devotional circuit", 15)
+    },
+    {
+      id:"d29",
+      name:"Alamgir Mosque (Beni Madhav Ka Darera)",
+      type:"Heritage",
+      bestTime:"day",
+      timeNeeded:"30–60 min",
+      cost:"Free",
+      highlights:"Historic architecture; visit respectfully.",
+      map:"https://www.google.com/maps/search/?api=1&query=Alamgir+Mosque+Varanasi",
+      photos:pics("Alamgir Mosque", "Historic structure", "River-adjacent view", "Respectful visit", 210)
     }
   ];
 
-  // ------- LocalStorage Tour Helpers -------
+  // ---------------- LocalStorage ----------------
   function readTour(){
     try { return JSON.parse(localStorage.getItem(LS_TOUR) || "[]"); }
     catch { return []; }
@@ -301,19 +439,26 @@
     localStorage.setItem(LS_TOUR, JSON.stringify(ids));
   }
 
-  // Ensure Home is ALWAYS first in the tour
   function normalizeTour(){
     let ids = readTour().filter(Boolean);
-    ids = ids.filter(id => id !== HOME.id);
-    ids.unshift(HOME.id);
+
+    // Remove duplicates & unknowns
     const exists = new Set(DEST.map(d=>d.id));
     ids = ids.filter(id => exists.has(id));
     ids = [...new Set(ids)];
+
+    // Pin HOME to front always
+    ids = ids.filter(id => id !== HOME.id);
+    ids.unshift(HOME.id);
+
     writeTour(ids);
   }
+
+  // If no tour at all, start with HOME
+  if(readTour().length === 0) writeTour([HOME.id]);
   normalizeTour();
 
-  // ------- UI refs -------
+  // ---------------- UI refs ----------------
   const destGrid = document.getElementById("destGrid");
   const destCount = document.getElementById("destCount");
   const tourList = document.getElementById("tourList");
@@ -324,13 +469,10 @@
   const filterTime = document.getElementById("filterTime");
   const summaryBox = document.getElementById("summaryBox");
 
-  // Map modal refs
   const mapModal = document.getElementById("mapModal");
   const openMapsLink = document.getElementById("openMapsLink");
 
-  // Leaflet map refs
   let leafletMap = null;
-  let leafletLayer = null;
   let leafletMarkers = [];
   let leafletPolyline = null;
 
@@ -343,7 +485,7 @@
     setTimeout(()=> el.remove(), 2600);
   }
 
-  // ------- Filters -------
+  // ---------------- Filters ----------------
   const TYPES = ["all", ...new Set(DEST.map(d=>d.type))].sort((a,b)=>{
     if(a==="all") return -1; if(b==="all") return 1;
     return a.localeCompare(b);
@@ -371,20 +513,21 @@
 
   function prettyTime(t){
     const m = {sunrise:"Sunrise", day:"Daytime", evening:"Evening", night:"Night"};
-    return m[t] || t;
+    return m[t] || (t ? (t[0].toUpperCase()+t.slice(1)) : "Any");
   }
 
   function filteredDest(){
     const q = state.q.trim().toLowerCase();
     return DEST.filter(d=>{
-      const matchesQ = !q || (d.name + " " + d.type + " " + d.bestTime + " " + d.highlights).toLowerCase().includes(q);
+      const blob = (d.name + " " + d.type + " " + d.bestTime + " " + d.highlights).toLowerCase();
+      const matchesQ = !q || blob.includes(q);
       const matchesType = state.type === "all" || d.type === state.type;
       const matchesTime = state.time === "all" || d.bestTime === state.time;
       return matchesQ && matchesType && matchesTime;
     });
   }
 
-  // ------- Tour ops -------
+  // ---------------- Tour ops ----------------
   function addToTour(id){
     let ids = readTour();
     if(ids.includes(id)){
@@ -397,6 +540,7 @@
     renderTour();
     toast("Added to tour", DEST.find(x=>x.id===id)?.name || id);
   }
+
   function removeFromTour(id){
     if(id === HOME.id){
       toast("Pinned", "Champak's Home is the fixed start point.");
@@ -406,6 +550,7 @@
     normalizeTour();
     renderTour();
   }
+
   function moveTour(id, dir){
     if(id === HOME.id) return;
 
@@ -415,7 +560,7 @@
 
     const newIdx = dir === "up" ? idx-1 : idx+1;
 
-    // Keep index 0 fixed for HOME
+    // Keep HOME pinned at index 0
     if(newIdx < 1 || newIdx >= ids.length) return;
 
     [ids[idx], ids[newIdx]] = [ids[newIdx], ids[idx]];
@@ -423,6 +568,7 @@
     normalizeTour();
     renderTour();
   }
+
   function clearTour(){
     writeTour([HOME.id]);
     normalizeTour();
@@ -432,14 +578,14 @@
     toast("Cleared", "Tour cleared (start point kept).");
   }
 
-  // ------- Google Maps route URL (new tab / share) -------
+  // ---------------- Route URL ----------------
   function placeQuery(d){
     if(Array.isArray(d.coords)) return `${d.coords[0]},${d.coords[1]}`;
     return `${d.name} Varanasi`;
   }
+
   function buildRouteUrlFromTour(){
     const ids = readTour();
-    if(ids.length === 0) return null;
     const places = ids.map(id => DEST.find(x=>x.id===id)).filter(Boolean);
     if(places.length === 0) return null;
 
@@ -457,7 +603,7 @@
     return waypoints ? `${base}&waypoints=${waypoints}` : base;
   }
 
-  // ------- Coords cache + geocode fallback (OpenStreetMap Nominatim) -------
+  // ---------------- Coords cache + geocode fallback ----------------
   function readCoordsCache(){
     try { return JSON.parse(localStorage.getItem(LS_COORDS) || "{}"); }
     catch { return {}; }
@@ -493,29 +639,26 @@
         writeCoordsCache(cache);
         return c;
       }
-    }catch(e){
-      // ignore
-    }
+    }catch(e){ /* ignore */ }
     return null;
   }
 
-  // ------- Map modal (Leaflet) -------
+  // ---------------- Leaflet Map ----------------
   function initLeafletIfNeeded(){
     if(leafletMap) return;
 
     leafletMap = L.map("leafletMap", { zoomControl:true });
-    leafletLayer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(leafletMap);
 
-    // initial view near Varanasi
     leafletMap.setView([25.3176, 82.9739], 12);
   }
 
   function clearLeafletOverlays(){
     if(!leafletMap) return;
-    for(const m of leafletMarkers) m.remove();
+    leafletMarkers.forEach(m => m.remove());
     leafletMarkers = [];
     if(leafletPolyline){ leafletPolyline.remove(); leafletPolyline = null; }
   }
@@ -532,7 +675,6 @@
     mapModal.setAttribute("aria-hidden", "false");
 
     initLeafletIfNeeded();
-    // Leaflet needs a resize after showing modal
     setTimeout(()=> leafletMap.invalidateSize(), 80);
 
     clearLeafletOverlays();
@@ -540,7 +682,6 @@
     const ids = readTour();
     const places = ids.map(id => DEST.find(x=>x.id===id)).filter(Boolean);
 
-    // Resolve coords (cached / known / geocoded)
     const coordsList = [];
     for(const p of places){
       const c = await ensureCoordsForPlace(p);
@@ -552,7 +693,6 @@
       return;
     }
 
-    // Markers
     coordsList.forEach((obj, i)=>{
       const { p, c } = obj;
       const marker = L.marker(c).addTo(leafletMap);
@@ -560,7 +700,6 @@
       leafletMarkers.push(marker);
     });
 
-    // Route line in chosen order (only among resolved coords)
     const line = coordsList.map(x => x.c);
     if(line.length >= 2){
       leafletPolyline = L.polyline(line, { weight: 5, opacity: 0.9 }).addTo(leafletMap);
@@ -589,7 +728,7 @@
     window.open(url, "_blank", "noopener");
   });
 
-  // ------- Carousel state -------
+  // ---------------- Carousel engine ----------------
   const carIdx = new Map();
   const carTimers = new Map();
 
@@ -639,13 +778,12 @@
     start();
   }
 
-  // Pause carousels when tab is hidden (battery friendly)
   document.addEventListener("visibilitychange", ()=>{
     if(document.hidden) stopAllCarousels();
     else renderDestinations();
   });
 
-  // ------- Render destinations -------
+  // ---------------- Rendering ----------------
   function renderDestinations(){
     stopAllCarousels();
 
@@ -673,7 +811,7 @@
           <span class="car-tag">Sliding photos</span>
           <div class="track">${slides}</div>
 
-          <div class="car-nav" aria-hidden="false">
+          <div class="car-nav">
             <button class="car-btn" data-prev="${d.id}" aria-label="Previous photo">‹</button>
             <button class="car-btn" data-next="${d.id}" aria-label="Next photo">›</button>
           </div>
@@ -714,17 +852,14 @@
     });
   }
 
-  // ------- Render tour -------
   function renderTour(){
     const ids = readTour();
 
-    // FIX: show stops count excluding pinned HOME
-    const stops = Math.max(0, ids.length - 1);
-    tourCount.textContent = String(stops);
+    // stops = excluding HOME
+    tourCount.textContent = String(Math.max(0, ids.length - 1));
 
     tourList.innerHTML = "";
 
-    // FIX: "empty" means only start point
     if(ids.length <= 1){
       tourList.innerHTML = `
         <div class="note" style="border-top:none; margin-top:0;">
@@ -760,7 +895,6 @@
     renderDestinations();
   }
 
-  // Tour list events
   tourList.addEventListener("click", (e)=>{
     const rm = e.target?.getAttribute?.("data-rm");
     const up = e.target?.getAttribute?.("data-up");
@@ -770,14 +904,12 @@
     if(down) moveTour(down, "down");
   });
 
-  // Destination grid events
   destGrid.addEventListener("click", (e)=>{
     const id = e.target?.getAttribute?.("data-add");
     if(!id) return;
     addToTour(id);
   });
 
-  // Summary generator
   function makeSummaryText(){
     const ids = readTour();
     const places = ids.map((id, i)=>{
@@ -788,7 +920,7 @@
     }).filter(Boolean);
 
     const header = `Varanasi Tour Plan (DIY)\n-----------------------`;
-    const footer = `\nTips:\n• Start early for ghats/boat ride.\n• Keep buffer time for queues.\n• Be respectful at sensitive places (e.g., Manikarnika Ghat).`;
+    const footer = `\nTips:\n• Start early for ghats/boat ride.\n• Keep buffer time for queues.\n• Be respectful at sensitive places (e.g., cremation ghats).`;
     return `${header}\n${places.join("\n")}${footer}`;
   }
 
@@ -802,4 +934,26 @@
     summaryBox.style.display = "block";
     summaryBox.innerHTML = `<b>Your Tour Summary</b><br/><pre style="white-space:pre-wrap; margin:8px 0 0; font:inherit; font-size:12px; color:var(--ink)"></pre>`;
     summaryBox.querySelector("pre").textContent = text;
-    toast("Summary
+    toast("Summary created", "You can share it on WhatsApp.");
+  });
+
+  document.getElementById("clearTourBtn").addEventListener("click", clearTour);
+
+  document.getElementById("saveTourBtn").addEventListener("click", ()=>{
+    toast("Saved", "Your tour is saved in this browser.");
+  });
+
+  document.getElementById("waShare").addEventListener("click", ()=>{
+    const ids = readTour();
+    if(ids.length <= 1){
+      toast("Tour empty", "Add destinations to share.");
+      return;
+    }
+    const text = makeSummaryText();
+    const url = "https://wa.me/?text=" + encodeURIComponent(text);
+    window.open(url, "_blank", "noopener");
+  });
+
+  // Initial render
+  renderTour();
+})();
