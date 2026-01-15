@@ -1,8 +1,34 @@
 (() => {
-  const LS_TOUR = "varanasi_tour_v2";
-  const LS_COORDS = "varanasi_coords_v2";
+  const LS_TOUR = "varanasi_tour_v3";
+  const LS_COORDS = "varanasi_coords_v3";
+  const LS_USER_LOC = "varanasi_user_location_v1"; // {label, coords:[lat,lng], ts}
+  const LS_LOC_CACHE = "varanasi_loc_geocode_cache_v1"; // { "query": [lat,lng,label] }
 
-  // --- SVG "photo-like" images (offline, no external images) ---
+  // ---------- Utilities ----------
+  function now(){ return Date.now(); }
+  function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+
+  // Haversine distance (km)
+  function distKm(a, b){
+    if(!a || !b) return Infinity;
+    const [lat1, lon1] = a.map(Number);
+    const [lat2, lon2] = b.map(Number);
+    const R = 6371;
+    const toRad = x => x * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const s1 = Math.sin(dLat/2), s2 = Math.sin(dLon/2);
+    const q = s1*s1 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*s2*s2;
+    return 2 * R * Math.asin(Math.sqrt(q));
+  }
+
+  function fmtKm(k){
+    if(!isFinite(k)) return "—";
+    if(k < 1) return `${Math.round(k*1000)} m`;
+    return `${k.toFixed(k < 10 ? 1 : 0)} km`;
+  }
+
+  // ---------- Offline SVG image generator ----------
   function svgDataURI(svg){ return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg); }
   function escapeXML(s){
     return String(s)
@@ -53,8 +79,15 @@
       </svg>
     `);
   }
+  function pics(name, a, b, c, hue){
+    return [
+      photoSVG(name, a, hue),
+      photoSVG(name, b, hue + 10),
+      photoSVG(name, c, hue + 20),
+    ];
+  }
 
-  // --- Start Point (Pinned) ---
+  // ---------- Start Point (Pinned) ----------
   const HOME = {
     id:"d0",
     name:"Champak's Home",
@@ -73,364 +106,98 @@
     ]
   };
 
-  // Helper to create 3 photos quickly
-  function pics(name, a, b, c, hue){
-    return [
-      photoSVG(name, a, hue),
-      photoSVG(name, b, hue + 10),
-      photoSVG(name, c, hue + 20),
-    ];
-  }
-
-  // --- RESTORED: Big destination set (add / remove freely) ---
+  // ---------- Destinations (restored big list) ----------
   const DEST = [
     HOME,
 
-    // Temples / Spiritual
-    {
-      id:"d1",
-      name:"Shri Kashi Vishwanath Temple",
-      type:"Temple",
-      bestTime:"day",
-      timeNeeded:"1–2 hrs",
-      cost:"Depends (donations / queue services)",
-      highlights:"Spiritual heart of Kashi; iconic Jyotirlinga temple area.",
-      map:"https://www.google.com/maps/search/?api=1&query=Kashi+Vishwanath+Temple+Varanasi",
-      coords:[25.31085, 83.01068],
+    { id:"d1", name:"Shri Kashi Vishwanath Temple", type:"Temple", bestTime:"day", timeNeeded:"1–2 hrs", cost:"Depends", highlights:"Spiritual heart of Kashi; iconic temple area.",
+      map:"https://www.google.com/maps/search/?api=1&query=Kashi+Vishwanath+Temple+Varanasi", coords:[25.31085, 83.01068],
       photos:pics("Kashi Vishwanath", "Temple & corridor vibes", "Morning darshan energy", "Old lanes nearby", 28)
     },
-    {
-      id:"d2",
-      name:"Annapurna Temple",
-      type:"Temple",
-      bestTime:"day",
-      timeNeeded:"30–60 min",
-      cost:"Free",
-      highlights:"Beloved temple near Vishwanath area; strong local devotion.",
+    { id:"d2", name:"Annapurna Temple", type:"Temple", bestTime:"day", timeNeeded:"30–60 min", cost:"Free", highlights:"Beloved temple near Vishwanath area.",
       map:"https://www.google.com/maps/search/?api=1&query=Annapurna+Temple+Varanasi",
       photos:pics("Annapurna Temple", "Devotional stop", "Near Vishwanath area", "Quiet darshan moments", 18)
     },
-    {
-      id:"d3",
-      name:"Kaal Bhairav Temple",
-      type:"Temple",
-      bestTime:"day",
-      timeNeeded:"45–90 min",
-      cost:"Free",
-      highlights:"Popular local deity temple; queues common on busy days.",
+    { id:"d3", name:"Kaal Bhairav Temple", type:"Temple", bestTime:"day", timeNeeded:"45–90 min", cost:"Free", highlights:"Popular local deity temple; queues common.",
       map:"https://www.google.com/maps/search/?api=1&query=Kaal+Bhairav+Temple+Varanasi",
       photos:pics("Kaal Bhairav", "Local devotion", "Queue & darshan", "Temple street", 320)
     },
-    {
-      id:"d4",
-      name:"Sankat Mochan Hanuman Temple",
-      type:"Temple",
-      bestTime:"day",
-      timeNeeded:"45–90 min",
-      cost:"Free",
-      highlights:"Famous Hanuman temple near BHU; peaceful devotional vibe.",
-      map:"https://www.google.com/maps/search/?api=1&query=Sankat+Mochan+Temple+Varanasi",
-      coords:[25.281852, 82.998652],
+    { id:"d4", name:"Sankat Mochan Hanuman Temple", type:"Temple", bestTime:"day", timeNeeded:"45–90 min", cost:"Free", highlights:"Famous Hanuman temple near BHU.",
+      map:"https://www.google.com/maps/search/?api=1&query=Sankat+Mochan+Temple+Varanasi", coords:[25.281852, 82.998652],
       photos:pics("Sankat Mochan", "Hanuman temple", "Prasad & prayers", "Near BHU area", 30)
     },
-    {
-      id:"d5",
-      name:"Durga Kund Temple",
-      type:"Temple",
-      bestTime:"day",
-      timeNeeded:"45–90 min",
-      cost:"Free",
-      highlights:"Major Shakti temple; the kund adds a special charm.",
+    { id:"d5", name:"Durga Kund Temple", type:"Temple", bestTime:"day", timeNeeded:"45–90 min", cost:"Free", highlights:"Major Shakti temple; kund adds charm.",
       map:"https://www.google.com/maps/search/?api=1&query=Durga+Kund+Temple+Varanasi",
       photos:pics("Durga Kund", "Shakti temple", "Kund surroundings", "Festival season crowds", 12)
     },
-    {
-      id:"d6",
-      name:"Tulsi Manas Temple",
-      type:"Temple",
-      bestTime:"day",
-      timeNeeded:"45–90 min",
-      cost:"Free",
-      highlights:"Calm temple complex; associated with Ramcharitmanas legacy.",
+    { id:"d6", name:"Tulsi Manas Temple", type:"Temple", bestTime:"day", timeNeeded:"45–90 min", cost:"Free", highlights:"Calm temple complex; Ramcharitmanas legacy.",
       map:"https://www.google.com/maps/search/?api=1&query=Tulsi+Manas+Temple+Varanasi",
       photos:pics("Tulsi Manas", "Temple calm", "Wall inscriptions", "Near Durga Kund zone", 22)
     },
-    {
-      id:"d7",
-      name:"New Vishwanath Temple (BHU Birla Temple)",
-      type:"Temple",
-      bestTime:"evening",
-      timeNeeded:"45–90 min",
-      cost:"Free",
-      highlights:"Beautiful BHU campus temple; serene in evenings.",
-      map:"https://www.google.com/maps/search/?api=1&query=New+Vishwanath+Temple+BHU+Varanasi",
-      coords:[25.2763, 82.9997],
+    { id:"d7", name:"New Vishwanath Temple (BHU Birla Temple)", type:"Temple", bestTime:"evening", timeNeeded:"45–90 min", cost:"Free", highlights:"Beautiful BHU campus temple; serene.",
+      map:"https://www.google.com/maps/search/?api=1&query=New+Vishwanath+Temple+BHU+Varanasi", coords:[25.2763, 82.9997],
       photos:pics("New Vishwanath (BHU)", "Campus temple", "Evening lights", "Peaceful walk", 36)
     },
 
-    // Ghats
-    {
-      id:"d8",
-      name:"Dashashwamedh Ghat",
-      type:"Ghat",
-      bestTime:"evening",
-      timeNeeded:"1–2 hrs",
-      cost:"Free (Aarti seating may cost)",
-      highlights:"Most famous ghat; grand Ganga Aarti atmosphere.",
-      map:"https://www.google.com/maps/search/?api=1&query=Dashashwamedh+Ghat+Varanasi",
-      coords:[25.30716889, 83.01033639],
+    { id:"d8", name:"Dashashwamedh Ghat", type:"Ghat", bestTime:"evening", timeNeeded:"1–2 hrs", cost:"Free", highlights:"Most famous ghat; grand Ganga Aarti.",
+      map:"https://www.google.com/maps/search/?api=1&query=Dashashwamedh+Ghat+Varanasi", coords:[25.30716889, 83.01033639],
       photos:pics("Dashashwamedh Ghat", "Ganga Aarti (evening)", "Crowd & lamps glow", "Riverfront view", 18)
     },
-    {
-      id:"d9",
-      name:"Assi Ghat",
-      type:"Ghat",
-      bestTime:"sunrise",
-      timeNeeded:"1–2 hrs",
-      cost:"Free",
-      highlights:"Calmer vibe; sunrise scenes, walks, yoga & chai.",
-      map:"https://www.google.com/maps/search/?api=1&query=Assi+Ghat+Varanasi",
-      coords:[25.289322, 83.006499],
+    { id:"d9", name:"Assi Ghat", type:"Ghat", bestTime:"sunrise", timeNeeded:"1–2 hrs", cost:"Free", highlights:"Calm sunrise vibe; walks, yoga & chai.",
+      map:"https://www.google.com/maps/search/?api=1&query=Assi+Ghat+Varanasi", coords:[25.289322, 83.006499],
       photos:pics("Assi Ghat", "Sunrise calm", "Morning walk & chai", "Boats & soft light", 40)
     },
-    {
-      id:"d10",
-      name:"Manikarnika Ghat",
-      type:"Ghat",
-      bestTime:"day",
-      timeNeeded:"30–60 min",
-      cost:"Free",
-      highlights:"Major cremation ghat; witness respectfully and silently.",
-      map:"https://www.google.com/maps/search/?api=1&query=Manikarnika+Ghat+Varanasi",
-      coords:[25.31087056, 83.01408556],
+    { id:"d10", name:"Manikarnika Ghat", type:"Ghat", bestTime:"day", timeNeeded:"30–60 min", cost:"Free", highlights:"Major cremation ghat; visit respectfully.",
+      map:"https://www.google.com/maps/search/?api=1&query=Manikarnika+Ghat+Varanasi", coords:[25.31087056, 83.01408556],
       photos:pics("Manikarnika Ghat", "Old traditions", "Historic riverfront", "Respectful viewing", 6)
     },
-    {
-      id:"d11",
-      name:"Harishchandra Ghat",
-      type:"Ghat",
-      bestTime:"day",
-      timeNeeded:"30–60 min",
-      cost:"Free",
-      highlights:"Another important cremation ghat; calm, historic atmosphere.",
+    { id:"d11", name:"Harishchandra Ghat", type:"Ghat", bestTime:"day", timeNeeded:"30–60 min", cost:"Free", highlights:"Important cremation ghat; calm atmosphere.",
       map:"https://www.google.com/maps/search/?api=1&query=Harishchandra+Ghat+Varanasi",
       photos:pics("Harishchandra Ghat", "Historic ghat", "Quiet riverfront", "Respect and silence", 10)
     },
-    {
-      id:"d12",
-      name:"Panchganga Ghat",
-      type:"Ghat",
-      bestTime:"morning",
-      timeNeeded:"30–60 min",
-      cost:"Free",
-      highlights:"Old-world charm; beautiful ghat architecture nearby.",
-      map:"https://www.google.com/maps/search/?api=1&query=Panchganga+Ghat+Varanasi",
-      photos:pics("Panchganga Ghat", "Old Kashi vibe", "Heritage steps", "Boat view", 16)
-    },
-    {
-      id:"d13",
-      name:"Raj Ghat",
-      type:"Ghat",
-      bestTime:"sunrise",
-      timeNeeded:"45–90 min",
-      cost:"Free",
-      highlights:"Less crowded; nice for calm river views.",
-      map:"https://www.google.com/maps/search/?api=1&query=Raj+Ghat+Varanasi",
-      photos:pics("Raj Ghat", "Quiet mornings", "Wide river view", "Less crowded", 24)
-    },
 
-    // Sarnath
-    {
-      id:"d14",
-      name:"Sarnath (Dhamek Stupa & ruins)",
-      type:"Sarnath",
-      bestTime:"day",
-      timeNeeded:"2–4 hrs",
-      cost:"Tickets may apply",
-      highlights:"Buddhist pilgrimage site; serene monuments and historic ruins.",
-      map:"https://www.google.com/maps/search/?api=1&query=Dhamek+Stupa+Sarnath",
-      coords:[25.3808, 83.0245],
+    { id:"d14", name:"Sarnath (Dhamek Stupa & ruins)", type:"Sarnath", bestTime:"day", timeNeeded:"2–4 hrs", cost:"Tickets may apply", highlights:"Buddhist pilgrimage; serene monuments & ruins.",
+      map:"https://www.google.com/maps/search/?api=1&query=Dhamek+Stupa+Sarnath", coords:[25.3808, 83.0245],
       photos:pics("Sarnath", "Dhamek Stupa", "Peaceful lawns", "Ruins & history", 120)
     },
-    {
-      id:"d15",
-      name:"Sarnath Museum (Archaeological Museum)",
-      type:"Museum",
-      bestTime:"day",
-      timeNeeded:"1–2 hrs",
-      cost:"Tickets apply",
-      highlights:"Artifacts & sculptures; strong historical learning stop.",
-      map:"https://www.google.com/maps/search/?api=1&query=Sarnath+Museum",
-      coords:[25.376165, 83.022713],
+    { id:"d15", name:"Sarnath Museum (Archaeological Museum)", type:"Museum", bestTime:"day", timeNeeded:"1–2 hrs", cost:"Tickets apply", highlights:"Artifacts & sculpture; learning stop.",
+      map:"https://www.google.com/maps/search/?api=1&query=Sarnath+Museum", coords:[25.376165, 83.022713],
       photos:pics("Sarnath Museum", "Artifacts & sculpture", "Heritage exhibits", "Learning stop", 200)
     },
-    {
-      id:"d16",
-      name:"Mulagandha Kuti Vihar (Sarnath)",
-      type:"Sarnath",
-      bestTime:"day",
-      timeNeeded:"30–60 min",
-      cost:"Free",
-      highlights:"Peaceful monastery; great for quiet reflection.",
-      map:"https://www.google.com/maps/search/?api=1&query=Mulagandha+Kuti+Vihar+Sarnath",
-      photos:pics("Mulagandha Kuti Vihar", "Peaceful monastery", "Calm interiors", "Meditative vibe", 145)
-    },
 
-    // Heritage / Museums / Nature
-    {
-      id:"d17",
-      name:"Ramnagar Fort",
-      type:"Heritage",
-      bestTime:"day",
-      timeNeeded:"1–2 hrs",
-      cost:"Tickets may apply",
-      highlights:"Historic fort across the Ganga; museum collections.",
-      map:"https://www.google.com/maps/search/?api=1&query=Ramnagar+Fort+Varanasi",
-      coords:[25.269262, 83.022144],
+    { id:"d17", name:"Ramnagar Fort", type:"Heritage", bestTime:"day", timeNeeded:"1–2 hrs", cost:"Tickets may apply", highlights:"Historic fort across the Ganga; museum collections.",
+      map:"https://www.google.com/maps/search/?api=1&query=Ramnagar+Fort+Varanasi", coords:[25.269262, 83.022144],
       photos:pics("Ramnagar Fort", "Fort & museum", "Royal collections", "Ganga-side view", 260)
     },
-    {
-      id:"d18",
-      name:"BHU & Bharat Kala Bhavan",
-      type:"Heritage",
-      bestTime:"day",
-      timeNeeded:"2–4 hrs",
-      cost:"Entry rules vary",
-      highlights:"Campus stroll + art museum; calm green spaces.",
-      map:"https://www.google.com/maps/search/?api=1&query=BHU+Bharat+Kala+Bhavan+Varanasi",
-      coords:[25.27149, 82.995994],
+    { id:"d18", name:"BHU & Bharat Kala Bhavan", type:"Heritage", bestTime:"day", timeNeeded:"2–4 hrs", cost:"Entry rules vary", highlights:"Campus stroll + art museum; calm green spaces.",
+      map:"https://www.google.com/maps/search/?api=1&query=BHU+Bharat+Kala+Bhavan+Varanasi", coords:[25.27149, 82.995994],
       photos:pics("BHU & Kala Bhavan", "Green campus walk", "Art & culture", "Quiet evenings", 90)
     },
-    {
-      id:"d19",
-      name:"Rudraksh Convention Centre",
-      type:"Heritage",
-      bestTime:"day",
-      timeNeeded:"30–60 min",
-      cost:"Varies by event",
-      highlights:"Modern landmark; visit if an exhibition/event is on.",
-      map:"https://www.google.com/maps/search/?api=1&query=Rudraksh+Convention+Centre+Varanasi",
-      photos:pics("Rudraksh Centre", "Modern landmark", "Events & exhibitions", "Architecture view", 52)
-    },
-    {
-      id:"d20",
-      name:"Kashi Vishwanath Corridor Viewpoints",
-      type:"Heritage",
-      bestTime:"evening",
-      timeNeeded:"30–60 min",
-      cost:"Free",
-      highlights:"Walk the corridor area; beautiful in evening lights.",
-      map:"https://www.google.com/maps/search/?api=1&query=Kashi+Vishwanath+Corridor+Varanasi",
-      photos:pics("KV Corridor", "Evening lights", "Wide walkways", "Photo-friendly spots", 30)
-    },
 
-    // Experiences
-    {
-      id:"d21",
-      name:"Boat Ride on the Ganga (Ghats stretch)",
-      type:"Experience",
-      bestTime:"sunrise",
-      timeNeeded:"1–2 hrs",
-      cost:"Paid",
-      highlights:"Classic experience—see ghats from the river (sunrise is magical).",
+    { id:"d21", name:"Boat Ride on the Ganga (Ghats stretch)", type:"Experience", bestTime:"sunrise", timeNeeded:"1–2 hrs", cost:"Paid", highlights:"Classic experience—see ghats from the river.",
       map:"https://www.google.com/maps/search/?api=1&query=Boat+ride+Varanasi+ghats",
       photos:pics("Boat Ride", "Sunrise on Ganga", "Ghats panorama", "Quiet water moments", 48)
     },
-    {
-      id:"d22",
-      name:"Ganga Aarti Viewing (Main Ghats)",
-      type:"Experience",
-      bestTime:"evening",
-      timeNeeded:"1–2 hrs",
-      cost:"Free (seating may cost)",
-      highlights:"Aarti energy, chants, lamps—don’t miss the evening vibe.",
-      map:"https://www.google.com/maps/search/?api=1&query=Ganga+Aarti+Varanasi",
-      photos:pics("Ganga Aarti", "Chants & lamps", "Crowd energy", "Riverfront glow", 14)
-    },
-    {
-      id:"d23",
-      name:"Subah-e-Banaras (Morning at Assi)",
-      type:"Experience",
-      bestTime:"sunrise",
-      timeNeeded:"1–2 hrs",
-      cost:"Free",
-      highlights:"Morning cultural program feel near Assi area (seasonal).",
-      map:"https://www.google.com/maps/search/?api=1&query=Subah-e-Banaras+Assi+Ghat",
-      photos:pics("Subah-e-Banaras", "Morning vibes", "Music & yoga feel", "Sunrise moments", 42)
-    },
 
-    // Markets / Food
-    {
-      id:"d24",
-      name:"Godowlia Market (Shopping & street life)",
-      type:"Market",
-      bestTime:"evening",
-      timeNeeded:"1–2 hrs",
-      cost:"Free",
-      highlights:"Local shopping lanes; Banarasi items and snacks nearby.",
+    { id:"d24", name:"Godowlia Market (Shopping & street life)", type:"Market", bestTime:"evening", timeNeeded:"1–2 hrs", cost:"Free", highlights:"Local shopping lanes; Banarasi items & snacks.",
       map:"https://www.google.com/maps/search/?api=1&query=Godowlia+Market+Varanasi",
       photos:pics("Godowlia Market", "Street life & shops", "Snacks & lanes", "Evening lights", 5)
     },
-    {
-      id:"d25",
-      name:"Banaras Silk & Weaving Lanes (Saree experience)",
-      type:"Market",
-      bestTime:"day",
-      timeNeeded:"2–3 hrs",
-      cost:"Free",
-      highlights:"Explore Banarasi silk craft (buy from trusted sellers).",
+    { id:"d25", name:"Banaras Silk & Weaving Lanes (Saree experience)", type:"Market", bestTime:"day", timeNeeded:"2–3 hrs", cost:"Free", highlights:"Explore Banarasi silk craft (trusted sellers).",
       map:"https://www.google.com/maps/search/?api=1&query=Banarasi+silk+weaving+Varanasi",
       photos:pics("Banarasi Silk", "Weaving craft", "Patterns & zari", "Trusted seller tip", 285)
     },
-    {
-      id:"d26",
-      name:"Kachori-Sabzi & Jalebi Breakfast Spots",
-      type:"Food",
-      bestTime:"morning",
-      timeNeeded:"30–60 min",
-      cost:"Low",
-      highlights:"Iconic Banarasi breakfast experience.",
+    { id:"d26", name:"Kachori-Sabzi & Jalebi Breakfast Spots", type:"Food", bestTime:"day", timeNeeded:"30–60 min", cost:"Low", highlights:"Iconic Banarasi breakfast experience.",
       map:"https://www.google.com/maps/search/?api=1&query=Kachori+Sabzi+Varanasi",
       photos:pics("Banarasi Breakfast", "Kachori-sabzi", "Jalebi & chai", "Morning energy", 55)
     },
-    {
-      id:"d27",
-      name:"Banarasi Paan Experience",
-      type:"Food",
-      bestTime:"evening",
-      timeNeeded:"15–30 min",
-      cost:"Low",
-      highlights:"Taste the famous Banarasi paan (choose hygienic shops).",
+    { id:"d27", name:"Banarasi Paan Experience", type:"Food", bestTime:"evening", timeNeeded:"15–30 min", cost:"Low", highlights:"Famous Banarasi paan (choose hygienic shops).",
       map:"https://www.google.com/maps/search/?api=1&query=Banarasi+paan+Varanasi",
       photos:pics("Banarasi Paan", "Iconic taste", "Shop lanes", "After-dinner stop", 95)
-    },
-
-    // Extra popular temples / landmarks
-    {
-      id:"d28",
-      name:"Vishalakshi Temple / Shakti Peeth Area",
-      type:"Temple",
-      bestTime:"day",
-      timeNeeded:"45–90 min",
-      cost:"Free",
-      highlights:"Close to Vishwanath corridor region; circuit-friendly.",
-      map:"https://www.google.com/maps/search/?api=1&query=Vishalakshi+Temple+Varanasi",
-      photos:pics("Vishalakshi", "Shakti Peeth area", "Temple lane", "Devotional circuit", 15)
-    },
-    {
-      id:"d29",
-      name:"Alamgir Mosque (Beni Madhav Ka Darera)",
-      type:"Heritage",
-      bestTime:"day",
-      timeNeeded:"30–60 min",
-      cost:"Free",
-      highlights:"Historic architecture; visit respectfully.",
-      map:"https://www.google.com/maps/search/?api=1&query=Alamgir+Mosque+Varanasi",
-      photos:pics("Alamgir Mosque", "Historic structure", "River-adjacent view", "Respectful visit", 210)
     }
   ];
 
-  // ---------------- LocalStorage ----------------
+  // ---------- Storage helpers ----------
   function readTour(){
     try { return JSON.parse(localStorage.getItem(LS_TOUR) || "[]"); }
     catch { return []; }
@@ -441,24 +208,18 @@
 
   function normalizeTour(){
     let ids = readTour().filter(Boolean);
-
-    // Remove duplicates & unknowns
     const exists = new Set(DEST.map(d=>d.id));
     ids = ids.filter(id => exists.has(id));
     ids = [...new Set(ids)];
-
-    // Pin HOME to front always
     ids = ids.filter(id => id !== HOME.id);
     ids.unshift(HOME.id);
-
     writeTour(ids);
   }
 
-  // If no tour at all, start with HOME
   if(readTour().length === 0) writeTour([HOME.id]);
   normalizeTour();
 
-  // ---------------- UI refs ----------------
+  // ---------- UI refs ----------
   const destGrid = document.getElementById("destGrid");
   const destCount = document.getElementById("destCount");
   const tourList = document.getElementById("tourList");
@@ -469,13 +230,34 @@
   const filterTime = document.getElementById("filterTime");
   const summaryBox = document.getElementById("summaryBox");
 
+  // Nearby UI
+  const useMyLocBtn = document.getElementById("useMyLocBtn");
+  const pinHomeBtn = document.getElementById("pinHomeBtn");
+  const setLocBtn = document.getElementById("setLocBtn");
+  const locInput = document.getElementById("locInput");
+  const radiusKm = document.getElementById("radiusKm");
+  const radiusLabel = document.getElementById("radiusLabel");
+  const nearbyList = document.getElementById("nearbyList");
+  const addNearbyBtn = document.getElementById("addNearbyBtn");
+  const addTop3Btn = document.getElementById("addTop3Btn");
+  const locStatus = document.getElementById("locStatus");
+  const locNote = document.getElementById("locNote");
+  const showNearbyOnMapBtn = document.getElementById("showNearbyOnMapBtn");
+
+  // Map modal refs
   const mapModal = document.getElementById("mapModal");
   const openMapsLink = document.getElementById("openMapsLink");
+  const mapTitle = document.getElementById("mapTitle");
+  const mapSub = document.getElementById("mapSub");
 
+  // Leaflet state
   let leafletMap = null;
   let leafletMarkers = [];
   let leafletPolyline = null;
+  let leafletUserMarker = null;
+  let leafletCircle = null;
 
+  // toast
   const toastWrap = document.getElementById("toast");
   function toast(title, detail){
     const el = document.createElement("div");
@@ -485,7 +267,7 @@
     setTimeout(()=> el.remove(), 2600);
   }
 
-  // ---------------- Filters ----------------
+  // ---------- Filters ----------
   const TYPES = ["all", ...new Set(DEST.map(d=>d.type))].sort((a,b)=>{
     if(a==="all") return -1; if(b==="all") return 1;
     return a.localeCompare(b);
@@ -498,7 +280,6 @@
   });
 
   const state = { q:"", type:"all", time:"all" };
-
   function setSearch(v){
     state.q = (v || "");
     topSearch.value = state.q;
@@ -527,7 +308,7 @@
     });
   }
 
-  // ---------------- Tour ops ----------------
+  // ---------- Tour ops ----------
   function addToTour(id){
     let ids = readTour();
     if(ids.includes(id)){
@@ -540,7 +321,6 @@
     renderTour();
     toast("Added to tour", DEST.find(x=>x.id===id)?.name || id);
   }
-
   function removeFromTour(id){
     if(id === HOME.id){
       toast("Pinned", "Champak's Home is the fixed start point.");
@@ -550,25 +330,18 @@
     normalizeTour();
     renderTour();
   }
-
   function moveTour(id, dir){
     if(id === HOME.id) return;
-
     const ids = readTour();
     const idx = ids.indexOf(id);
     if(idx === -1) return;
-
     const newIdx = dir === "up" ? idx-1 : idx+1;
-
-    // Keep HOME pinned at index 0
     if(newIdx < 1 || newIdx >= ids.length) return;
-
     [ids[idx], ids[newIdx]] = [ids[newIdx], ids[idx]];
     writeTour(ids);
     normalizeTour();
     renderTour();
   }
-
   function clearTour(){
     writeTour([HOME.id]);
     normalizeTour();
@@ -578,12 +351,11 @@
     toast("Cleared", "Tour cleared (start point kept).");
   }
 
-  // ---------------- Route URL ----------------
+  // ---------- Route URL ----------
   function placeQuery(d){
     if(Array.isArray(d.coords)) return `${d.coords[0]},${d.coords[1]}`;
     return `${d.name} Varanasi`;
   }
-
   function buildRouteUrlFromTour(){
     const ids = readTour();
     const places = ids.map(id => DEST.find(x=>x.id===id)).filter(Boolean);
@@ -593,17 +365,15 @@
       const q = encodeURIComponent(placeQuery(places[0]));
       return `https://www.google.com/maps/search/?api=1&query=${q}`;
     }
-
     const origin = encodeURIComponent(placeQuery(places[0]));
     const destination = encodeURIComponent(placeQuery(places[places.length - 1]));
     const middle = places.slice(1, -1).map(p => encodeURIComponent(placeQuery(p)));
     const waypoints = middle.slice(0, 20).join("%7C");
-
     const base = `https://www.google.com/maps/dir/?api=1&travelmode=walking&origin=${origin}&destination=${destination}`;
     return waypoints ? `${base}&waypoints=${waypoints}` : base;
   }
 
-  // ---------------- Coords cache + geocode fallback ----------------
+  // ---------- Coords cache + geocode for destinations ----------
   function readCoordsCache(){
     try { return JSON.parse(localStorage.getItem(LS_COORDS) || "{}"); }
     catch { return {}; }
@@ -612,14 +382,17 @@
     localStorage.setItem(LS_COORDS, JSON.stringify(cache));
   }
 
-  async function geocodeOnce(name){
+  async function geocodeOnce(query){
     const url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" +
-      encodeURIComponent(name + " Varanasi Uttar Pradesh India");
+      encodeURIComponent(query);
     const res = await fetch(url, { headers: { "Accept":"application/json" }});
     if(!res.ok) return null;
     const data = await res.json();
     if(!data || !data[0]) return null;
-    return [Number(data[0].lat), Number(data[0].lon)];
+    return {
+      coords:[Number(data[0].lat), Number(data[0].lon)],
+      label:data[0].display_name || query
+    };
   }
 
   async function ensureCoordsForPlace(d){
@@ -631,19 +404,268 @@
       return d.coords;
     }
 
+    // Try geocode the destination name
+    const q = `${d.name} Varanasi Uttar Pradesh India`;
     try{
-      const c = await geocodeOnce(d.name);
-      if(c){
-        d.coords = c;
-        cache[d.id] = c;
+      const g = await geocodeOnce(q);
+      if(g?.coords){
+        d.coords = g.coords;
+        cache[d.id] = g.coords;
         writeCoordsCache(cache);
-        return c;
+        return d.coords;
       }
-    }catch(e){ /* ignore */ }
+    }catch(e){}
     return null;
   }
 
-  // ---------------- Leaflet Map ----------------
+  // ---------- User location storage ----------
+  function readUserLoc(){
+    try { return JSON.parse(localStorage.getItem(LS_USER_LOC) || "null"); }
+    catch { return null; }
+  }
+  function writeUserLoc(obj){
+    localStorage.setItem(LS_USER_LOC, JSON.stringify(obj));
+  }
+  function readLocCache(){
+    try { return JSON.parse(localStorage.getItem(LS_LOC_CACHE) || "{}"); }
+    catch { return {}; }
+  }
+  function writeLocCache(obj){
+    localStorage.setItem(LS_LOC_CACHE, JSON.stringify(obj));
+  }
+
+  function setLocStatus(label){
+    locStatus.textContent = label || "Not set";
+  }
+
+  // ---------- Nearby Engine ----------
+  let nearbyState = {
+    center: null, // [lat,lng]
+    label: null,
+    radius: 3
+  };
+
+  function loadNearbyState(){
+    nearbyState.radius = Number(radiusKm.value) || 3;
+    radiusLabel.textContent = String(nearbyState.radius);
+
+    const saved = readUserLoc();
+    if(saved?.coords?.length === 2){
+      nearbyState.center = saved.coords;
+      nearbyState.label = saved.label || "Saved location";
+      setLocStatus("📍 Set");
+      locNote.textContent = `Location: ${nearbyState.label}`;
+    }else{
+      setLocStatus("Not set");
+      locNote.textContent = "Tip: Tap Near Me → choose radius → add the closest places.";
+    }
+  }
+
+  async function setLocationFromCoords(coords, label){
+    nearbyState.center = coords;
+    nearbyState.label = label || "Custom location";
+    writeUserLoc({ coords, label: nearbyState.label, ts: now() });
+    setLocStatus("📍 Set");
+    locNote.textContent = `Location: ${nearbyState.label}`;
+    await refreshNearby();
+    toast("Location set", nearbyState.label);
+  }
+
+  async function setLocationFromInput(text){
+    const q = (text || "").trim();
+    if(!q){
+      toast("Type a location", "Example: Assi Ghat, BHU, Sigra.");
+      return;
+    }
+
+    // Cache lookup
+    const cache = readLocCache();
+    const key = q.toLowerCase();
+    if(cache[key]?.coords?.length === 2){
+      await setLocationFromCoords(cache[key].coords, cache[key].label || q);
+      return;
+    }
+
+    setLocStatus("Searching…");
+    try{
+      // Bias search to Varanasi region by appending
+      const g = await geocodeOnce(q.includes("Varanasi") ? q : `${q} Varanasi Uttar Pradesh India`);
+      if(!g?.coords){
+        setLocStatus("Not set");
+        toast("Not found", "Try a more specific landmark.");
+        return;
+      }
+      cache[key] = { coords:g.coords, label:g.label || q };
+      writeLocCache(cache);
+      await setLocationFromCoords(g.coords, g.label || q);
+    }catch(e){
+      setLocStatus("Not set");
+      toast("Location error", "Network/geocode failed. Try again.");
+    }
+  }
+
+  function setLocationToHome(){
+    setLocationFromCoords(HOME.coords, "Champak's Home");
+  }
+
+  function getCurrentPositionPromise(opts){
+    return new Promise((resolve, reject)=>{
+      if(!navigator.geolocation) return reject(new Error("Geolocation not supported"));
+      navigator.geolocation.getCurrentPosition(resolve, reject, opts);
+    });
+  }
+
+  async function setLocationNearMe(){
+    setLocStatus("Locating…");
+    try{
+      const pos = await getCurrentPositionPromise({
+        enableHighAccuracy:true,
+        timeout: 12000,
+        maximumAge: 60000
+      });
+      const coords = [pos.coords.latitude, pos.coords.longitude];
+      await setLocationFromCoords(coords, "My current location");
+    }catch(err){
+      setLocStatus("Not set");
+      toast("Location blocked", "Allow location permission and try again.");
+    }
+  }
+
+  async function computeNearbyList(){
+    if(!nearbyState.center) return [];
+
+    const radius = nearbyState.radius;
+
+    // Ensure coords for all destinations (lazy)
+    const candidates = DEST.filter(d=>d.id !== HOME.id);
+    const results = [];
+
+    for(const d of candidates){
+      const c = await ensureCoordsForPlace(d);
+      if(!c) continue;
+      const k = distKm(nearbyState.center, c);
+      if(k <= radius){
+        results.push({ d, km:k });
+      }
+    }
+
+    results.sort((a,b)=> a.km - b.km);
+    return results;
+  }
+
+  async function refreshNearby(){
+    radiusLabel.textContent = String(nearbyState.radius);
+    nearbyList.innerHTML = `<div class="note" style="border-top:none; margin-top:0;">Finding nearby places…</div>`;
+
+    if(!nearbyState.center){
+      nearbyList.innerHTML = `<div class="note" style="border-top:none; margin-top:0;">Set a location to see nearby destinations.</div>`;
+      return;
+    }
+
+    const list = await computeNearbyList();
+    if(list.length === 0){
+      nearbyList.innerHTML = `<div class="note" style="border-top:none; margin-top:0;">No destinations found within ${nearbyState.radius} km. Increase radius.</div>`;
+      return;
+    }
+
+    const tourSet = new Set(readTour());
+
+    nearbyList.innerHTML = "";
+    list.slice(0, 12).forEach(({d, km})=>{
+      const inTour = tourSet.has(d.id);
+      const item = document.createElement("div");
+      item.className = "nearby-item";
+      item.innerHTML = `
+        <div>
+          <b>${d.name}</b>
+          <small>${d.type} • Best: ${prettyTime(d.bestTime)} • ${d.timeNeeded}</small>
+        </div>
+        <div class="near-meta">
+          <span class="near-tag km">${fmtKm(km)}</span>
+          <span class="near-tag type">${d.type}</span>
+          <button class="tinybtn" data-near-add="${d.id}">${inTour ? "✓" : "+ Add"}</button>
+        </div>
+      `;
+      nearbyList.appendChild(item);
+    });
+
+    // Save the full computed list in DOM dataset for batch add
+    nearbyList.dataset.full = JSON.stringify(list.map(x => ({ id:x.d.id, km:x.km })));
+  }
+
+  function getNearbyFullIds(){
+    try{
+      const arr = JSON.parse(nearbyList.dataset.full || "[]");
+      return arr.map(x=>x.id);
+    }catch{ return []; }
+  }
+
+  async function addAllNearby(){
+    const ids = getNearbyFullIds();
+    if(ids.length === 0){
+      toast("No nearby list", "Set a location first.");
+      return;
+    }
+    let tour = readTour();
+    let added = 0;
+    for(const id of ids){
+      if(!tour.includes(id)){
+        tour.push(id);
+        added++;
+      }
+    }
+    writeTour(tour);
+    normalizeTour();
+    renderTour();
+    await refreshNearby();
+    toast("Added nearby", `${added} place(s) added to your tour.`);
+  }
+
+  async function addTopN(n){
+    const ids = getNearbyFullIds().slice(0, n);
+    if(ids.length === 0){
+      toast("No nearby list", "Set a location first.");
+      return;
+    }
+    let tour = readTour();
+    let added = 0;
+    for(const id of ids){
+      if(!tour.includes(id)){
+        tour.push(id);
+        added++;
+      }
+    }
+    writeTour(tour);
+    normalizeTour();
+    renderTour();
+    await refreshNearby();
+    toast("Added nearest", `${added} place(s) added.`);
+  }
+
+  // Nearby events
+  radiusKm.addEventListener("input", async ()=>{
+    nearbyState.radius = Number(radiusKm.value) || 3;
+    radiusLabel.textContent = String(nearbyState.radius);
+    if(nearbyState.center) await refreshNearby();
+  });
+
+  setLocBtn.addEventListener("click", ()=> setLocationFromInput(locInput.value));
+  locInput.addEventListener("keydown", (e)=>{ if(e.key === "Enter") setLocationFromInput(locInput.value); });
+
+  useMyLocBtn.addEventListener("click", setLocationNearMe);
+  pinHomeBtn.addEventListener("click", setLocationToHome);
+
+  nearbyList.addEventListener("click", async (e)=>{
+    const id = e.target?.getAttribute?.("data-near-add");
+    if(!id) return;
+    addToTour(id);
+    await refreshNearby();
+  });
+
+  addNearbyBtn.addEventListener("click", addAllNearby);
+  addTop3Btn.addEventListener("click", ()=> addTopN(3));
+
+  // ---------- Leaflet Map ----------
   function initLeafletIfNeeded(){
     if(leafletMap) return;
 
@@ -661,15 +683,13 @@
     leafletMarkers.forEach(m => m.remove());
     leafletMarkers = [];
     if(leafletPolyline){ leafletPolyline.remove(); leafletPolyline = null; }
+    if(leafletUserMarker){ leafletUserMarker.remove(); leafletUserMarker = null; }
+    if(leafletCircle){ leafletCircle.remove(); leafletCircle = null; }
   }
 
-  async function openMapModal(){
+  async function openMapModal(mode = "tour"){
     const url = buildRouteUrlFromTour();
-    if(!url){
-      toast("Tour empty", "Add destinations first, then view the map.");
-      return;
-    }
-    openMapsLink.href = url;
+    openMapsLink.href = url || "#";
 
     mapModal.classList.add("show");
     mapModal.setAttribute("aria-hidden", "false");
@@ -678,6 +698,47 @@
     setTimeout(()=> leafletMap.invalidateSize(), 80);
 
     clearLeafletOverlays();
+
+    if(mode === "nearby"){
+      mapTitle.textContent = "Nearby Map";
+      mapSub.textContent = "Your location + radius circle + nearby destinations";
+
+      if(!nearbyState.center){
+        toast("Set a location", "Use Near Me or type a place first.");
+        leafletMap.setView([25.3176, 82.9739], 12);
+        return;
+      }
+
+      // User marker + radius circle
+      leafletUserMarker = L.marker(nearbyState.center).addTo(leafletMap);
+      leafletUserMarker.bindPopup(`<b>📍 ${nearbyState.label || "Location"}</b>`);
+
+      leafletCircle = L.circle(nearbyState.center, {
+        radius: nearbyState.radius * 1000,
+        weight: 2,
+        opacity: 0.9,
+        fillOpacity: 0.08
+      }).addTo(leafletMap);
+
+      const list = await computeNearbyList();
+      const pts = [nearbyState.center];
+
+      list.slice(0, 25).forEach(({d, km}, i)=>{
+        if(!Array.isArray(d.coords)) return;
+        const m = L.marker(d.coords).addTo(leafletMap);
+        m.bindPopup(`<b>${d.name}</b><br><small>${d.type} • ${fmtKm(km)} away</small>`);
+        leafletMarkers.push(m);
+        pts.push(d.coords);
+      });
+
+      const bounds = L.latLngBounds(pts);
+      leafletMap.fitBounds(bounds.pad(0.2));
+      return;
+    }
+
+    // Default: Tour Map
+    mapTitle.textContent = "Tour Map";
+    mapSub.textContent = "Markers + route from your selected destinations (order matters)";
 
     const ids = readTour();
     const places = ids.map(id => DEST.find(x=>x.id===id)).filter(Boolean);
@@ -690,6 +751,7 @@
 
     if(coordsList.length === 0){
       toast("No coordinates", "Could not locate places on map. Try Open in Maps.");
+      leafletMap.setView([25.3176, 82.9739], 12);
       return;
     }
 
@@ -714,7 +776,7 @@
     mapModal.setAttribute("aria-hidden", "true");
   }
 
-  document.getElementById("viewMapBtn").addEventListener("click", openMapModal);
+  document.getElementById("viewMapBtn").addEventListener("click", ()=> openMapModal("tour"));
   document.getElementById("closeMapBtn").addEventListener("click", closeMapModal);
   mapModal.addEventListener("click", (e)=>{ if(e.target === mapModal) closeMapModal(); });
   window.addEventListener("keydown", (e)=>{ if(e.key === "Escape" && mapModal.classList.contains("show")) closeMapModal(); });
@@ -728,19 +790,18 @@
     window.open(url, "_blank", "noopener");
   });
 
-  // ---------------- Carousel engine ----------------
+  showNearbyOnMapBtn.addEventListener("click", ()=> openMapModal("nearby"));
+
+  // ---------- Carousel engine ----------
   const carIdx = new Map();
   const carTimers = new Map();
-
   function stopAllCarousels(){
     for(const t of carTimers.values()) clearInterval(t);
     carTimers.clear();
   }
-
   function setDotActive(dotsWrap, idx){
     [...dotsWrap.children].forEach((dot,i)=> dot.classList.toggle("active", i===idx));
   }
-
   function mountCarouselHandlers(cardEl, d){
     const track = cardEl.querySelector(".track");
     const dotsWrap = cardEl.querySelector(".dots");
@@ -777,13 +838,12 @@
     go(idx);
     start();
   }
-
   document.addEventListener("visibilitychange", ()=>{
     if(document.hidden) stopAllCarousels();
     else renderDestinations();
   });
 
-  // ---------------- Rendering ----------------
+  // ---------- Rendering ----------
   function renderDestinations(){
     stopAllCarousels();
 
@@ -854,12 +914,9 @@
 
   function renderTour(){
     const ids = readTour();
-
-    // stops = excluding HOME
     tourCount.textContent = String(Math.max(0, ids.length - 1));
 
     tourList.innerHTML = "";
-
     if(ids.length <= 1){
       tourList.innerHTML = `
         <div class="note" style="border-top:none; margin-top:0;">
@@ -920,7 +977,7 @@
     }).filter(Boolean);
 
     const header = `Varanasi Tour Plan (DIY)\n-----------------------`;
-    const footer = `\nTips:\n• Start early for ghats/boat ride.\n• Keep buffer time for queues.\n• Be respectful at sensitive places (e.g., cremation ghats).`;
+    const footer = `\nTips:\n• Start early for ghats/boat ride.\n• Keep buffer time for queues.\n• Be respectful at sensitive places.`;
     return `${header}\n${places.join("\n")}${footer}`;
   }
 
@@ -938,10 +995,7 @@
   });
 
   document.getElementById("clearTourBtn").addEventListener("click", clearTour);
-
-  document.getElementById("saveTourBtn").addEventListener("click", ()=>{
-    toast("Saved", "Your tour is saved in this browser.");
-  });
+  document.getElementById("saveTourBtn").addEventListener("click", ()=> toast("Saved", "Your tour is saved in this browser."));
 
   document.getElementById("waShare").addEventListener("click", ()=>{
     const ids = readTour();
@@ -954,6 +1008,12 @@
     window.open(url, "_blank", "noopener");
   });
 
-  // Initial render
+  // ---------- Boot ----------
+  loadNearbyState();
+  nearbyState.radius = Number(radiusKm.value) || 3;
+
+  // If we have saved location, show nearby immediately
+  refreshNearby().catch(()=>{});
+
   renderTour();
 })();
