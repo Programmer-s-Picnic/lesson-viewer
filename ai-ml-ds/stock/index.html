@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>
+      Live Stock Price Chart in Python — Selenium + Matplotlib + Threaded Fetch
+      (Full Code Walkthrough)
+    </title>
+    <meta
+      name="description"
+      content="A comprehensive blog post explaining a Python live stock price chart system using Selenium for fetching Yahoo Finance prices and Matplotlib FuncAnimation for real-time plotting, with clean architecture and future roadmap."
+    />
+    <style>
+      :root {
+        /* Light saffron theme */
+        --bg: #fff7e6;
+        --card: #ffffff;
+        --ink: #1f2937;
+        --muted: #6b7280;
+        --brand: #d97706;
+        --brand2: #f59e0b;
+        --border: #eadcc5;
+        --shadow: 0 18px 40px rgba(31, 41, 55, 0.14);
+
+        --codebg: #0b1220;
+        --codeink: #e5e7eb;
+        --codeborder: rgba(255, 255, 255, 0.12);
+
+        --ok: #166534;
+        --warn: #92400e;
+        --danger: #b91c1c;
+        --soft: #fff1d6;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial,
+          sans-serif;
+        background: radial-gradient(
+            900px 500px at 10% 0%,
+            rgba(245, 158, 11, 0.18),
+            transparent 55%
+          ),
+          radial-gradient(
+            900px 500px at 90% 10%,
+            rgba(217, 119, 6, 0.16),
+            transparent 55%
+          ),
+          var(--bg);
+        color: var(--ink);
+        line-height: 1.55;
+      }
+      .wrap {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 18px;
+      }
+      .hero {
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.92),
+          rgba(255, 255, 255, 0.72)
+        );
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        box-shadow: var(--shadow);
+        padding: 18px 16px;
+        position: relative;
+        overflow: hidden;
+      }
+      .hero:before {
+        content: "";
+        position: absolute;
+        inset: -60px -80px auto auto;
+        width: 240px;
+        height: 240px;
+        border-radius: 999px;
+        background: radial-gradient(
+          circle at 30% 30%,
+          rgba(245, 158, 11, 0.35),
+          rgba(217, 119, 6, 0.15),
+          transparent 65%
+        );
+        filter: blur(2px);
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 28px;
+        letter-spacing: 0.2px;
+      }
+      .sub {
+        margin: 0;
+        color: var(--muted);
+      }
+      .badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: #fff;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: var(--brand2);
+      }
+      .grid {
+        display: grid;
+        gap: 14px;
+        margin-top: 14px;
+        grid-template-columns: 1.15fr 0.85fr;
+      }
+      @media (max-width: 920px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        box-shadow: var(--shadow);
+        padding: 14px;
+      }
+      h2 {
+        margin: 0 0 10px;
+        font-size: 20px;
+      }
+      h3 {
+        margin: 16px 0 8px;
+        font-size: 16px;
+      }
+      p {
+        margin: 10px 0;
+      }
+      ul {
+        margin: 8px 0 12px;
+        padding-left: 20px;
+      }
+      li {
+        margin: 6px 0;
+      }
+      .callout {
+        border-left: 6px solid var(--brand2);
+        background: linear-gradient(180deg, #fff, var(--soft));
+        padding: 12px 12px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+      }
+      .callout strong {
+        color: #111827;
+      }
+      .note {
+        border-left: 6px solid #60a5fa;
+        background: linear-gradient(180deg, #fff, #eff6ff);
+        padding: 12px 12px;
+        border-radius: 14px;
+        border: 1px solid rgba(96, 165, 250, 0.35);
+      }
+      .warn {
+        border-left: 6px solid #f59e0b;
+        background: linear-gradient(180deg, #fff, #fff7ed);
+        padding: 12px 12px;
+        border-radius: 14px;
+        border: 1px solid rgba(245, 158, 11, 0.35);
+      }
+      .danger {
+        border-left: 6px solid #ef4444;
+        background: linear-gradient(180deg, #fff, #fff1f2);
+        padding: 12px 12px;
+        border-radius: 14px;
+        border: 1px solid rgba(239, 68, 68, 0.35);
+      }
+      pre {
+        margin: 10px 0 14px;
+        background: var(--codebg);
+        color: var(--codeink);
+        border: 1px solid var(--codeborder);
+        border-radius: 16px;
+        padding: 12px;
+        overflow: auto;
+        box-shadow: 0 16px 34px rgba(0, 0, 0, 0.12);
+      }
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", monospace;
+        font-size: 13px;
+      }
+      .kpi {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .k {
+        background: linear-gradient(180deg, #fff, #fffaf0);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 12px;
+      }
+      .k .t {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .k .v {
+        font-size: 14px;
+        margin-top: 4px;
+        font-weight: 700;
+      }
+      .btnrow {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 10px;
+      }
+      a.btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none;
+        padding: 10px 12px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: #fff;
+        color: var(--ink);
+        box-shadow: 0 10px 20px rgba(31, 41, 55, 0.1);
+        font-weight: 650;
+      }
+      a.btn:hover {
+        transform: translateY(-1px);
+      }
+      .small {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .toc a {
+        color: var(--brand);
+        text-decoration: none;
+      }
+      .toc a:hover {
+        text-decoration: underline;
+      }
+      .footer {
+        margin: 16px 0 6px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .hr {
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          var(--border),
+          transparent
+        );
+        margin: 14px 0;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="wrap">
+      <div class="hero">
+        <h1>
+          Live Stock Price Chart in Python (Threaded Fetch + Matplotlib
+          Animation)
+        </h1>
+        <p class="sub">
+          We built a clean mini-system that fetches a stock price (via Selenium
+          from Yahoo Finance), streams it into a thread-safe queue, and plots it
+          live using Matplotlib’s <code>FuncAnimation</code>. This post explains
+          the architecture, each file, and the next steps to convert it into a
+          dummy practice app.
+        </p>
+
+        <div class="badges">
+          <span class="badge"><span class="dot"></span> Python</span>
+          <span class="badge"><span class="dot"></span> Selenium</span>
+          <span class="badge"><span class="dot"></span> Matplotlib</span>
+          <span class="badge"><span class="dot"></span> Threading + Queue</span>
+          <span class="badge"
+            ><span class="dot"></span> Clean architecture</span
+          >
+        </div>
+
+        <div class="btnrow">
+          <a
+            class="btn"
+            href="https://github.com/your-username/live-stock-chart"
+            target="_blank"
+            rel="noopener"
+          >
+            🔗 GitHub Repo (dummy link)
+          </a>
+          <a class="btn" href="#future">
+            🧩 Future Tasks (Dummy Practice App)
+          </a>
+        </div>
+
+        <p class="small">
+          *Tip:* If you’re pasting into Blogger, you can paste this whole HTML
+          inside a post using “HTML view”.
+        </p>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <h2 id="overview">1) What we’re building</h2>
+
+          <div class="callout">
+            <strong>Goal:</strong> show a continuously updating chart of a stock
+            price.
+            <br />
+            <strong>Key idea:</strong> never let fetching block the UI. Fetch in
+            a background thread, send results via a queue, animate in the main
+            thread.
+          </div>
+
+          <h3>System overview (mental model)</h3>
+          <ul>
+            <li>
+              <strong>Fetcher</strong> (Selenium) reads latest price from Yahoo
+              Finance.
+            </li>
+            <li>
+              <strong>Worker thread</strong> runs every N seconds, fetches
+              price, pushes it into a <code>Queue</code>.
+            </li>
+            <li>
+              <strong>UI animation</strong> pulls latest values from the queue
+              and updates the plot.
+            </li>
+            <li>
+              <strong>Windowed chart</strong> shows only last
+              <code>window_points</code> samples using a
+              <code>deque(maxlen=...)</code>.
+            </li>
+          </ul>
+
+          <div class="note">
+            <strong>Why the Queue matters:</strong> Matplotlib UI runs on the
+            main thread. Selenium is slow. The Queue is the safe “bridge”
+            between them.
+          </div>
+
+          <div class="hr"></div>
+
+          <h2 id="files">2) Project files</h2>
+
+          <div class="kpi">
+            <div class="k">
+              <div class="t">chart engine</div>
+              <div class="v"><code>graphutilities.py</code></div>
+            </div>
+            <div class="k">
+              <div class="t">price fetcher</div>
+              <div class="v"><code>utilities.py</code></div>
+            </div>
+            <div class="k">
+              <div class="t">symbol registry</div>
+              <div class="v"><code>stockslist.py</code></div>
+            </div>
+            <div class="k">
+              <div class="t">runner / adapter</div>
+              <div class="v"><code>test.py</code></div>
+            </div>
+          </div>
+
+          <h3 id="graphutilities">
+            A) <code>graphutilities.py</code> — the live chart engine
+          </h3>
+          <p>
+            This file is responsible for plotting and updating the chart. It
+            accepts any <code>fetch_price()</code> function that returns a
+            <code>float</code>. That’s what makes it reusable.
+          </p>
+
+          <pre><code>def run_live_price_chart(
+    fetch_price,
+    *,
+    symbol="DEMO",
+    fetch_interval=1.0,
+    ui_interval_ms=200,
+    window_points=200,
+    start_immediately=True,
+    show_markers=True,
+):
+    # 1) worker thread periodically calls fetch_price()
+    # 2) puts values into a Queue
+    # 3) animate() reads from Queue and updates plot</code></pre>
+
+          <p><strong>What it does well:</strong></p>
+          <ul>
+            <li>Uses a background thread so the graph stays responsive.</li>
+            <li>
+              Uses <code>Queue</code> to safely send new prices to the UI.
+            </li>
+            <li>
+              Uses <code>deque(maxlen=...)</code> to keep only recent data
+              points.
+            </li>
+            <li>
+              Keeps a reference to <code>FuncAnimation</code> to avoid garbage
+              collection issues.
+            </li>
+          </ul>
+
+          <div class="note">
+            <strong>Small UI detail:</strong> The status text “Last: 123.45” is
+            super useful during debugging.
+          </div>
+
+          <h3 id="stockslist">
+            B) <code>stockslist.py</code> — mapping short names to URLs
+          </h3>
+          <p>
+            This file is a tiny lookup table: enter <code>ril</code> and we map
+            it to the Yahoo Finance quote URL.
+          </p>
+          <pre><code>stocks = {"ril": "https://finance.yahoo.com/quote/RELIANCE.NS"}
+stocks["th"] = "https://finance.yahoo.com/quote/INDHOTEL.BO"</code></pre>
+
+          <p><strong>Why this helps:</strong></p>
+          <ul>
+            <li>You can type short codes instead of full URLs.</li>
+            <li>Central place to add more stocks later.</li>
+          </ul>
+
+          <h3 id="utilities">
+            C) <code>utilities.py</code> — Selenium fetcher (Yahoo Finance)
+          </h3>
+          <p>
+            This file uses Selenium to open the Yahoo Finance page and read the
+            price element. It also saves the full HTML snapshot into a file for
+            debugging.
+          </p>
+
+          <pre><code>price_el = WebDriverWait(driver, 20).until(
+    EC.visibility_of_element_located((By.CSS_SELECTOR, '[data-testid="qsp-price"]'))
+)
+return float(price_el.text.replace(",","")), filename</code></pre>
+
+          <div class="warn">
+            <strong>Important reality check:</strong> launching a fresh Chrome
+            instance for every fetch is heavy. It works for learning, but for a
+            “real” live tracker, you’ll want either:
+            <ul>
+              <li>a lightweight HTTP-based fetch (no browser), or</li>
+              <li>a single persistent driver reused across updates.</li>
+            </ul>
+          </div>
+
+          <h3 id="testpy">D) <code>test.py</code> — adapter + runner</h3>
+          <p>
+            This file is the glue that connects “user input stock code” → “price
+            fetcher function” → “live chart engine”. The best part is the
+            closure-based adapter:
+          </p>
+
+          <pre><code>def make_fetchStockPrice(stockname: str):
+    stockname = stockname.lower().strip()
+
+    def fetchStockPrice() -&gt; float:
+        res = ut.getStockPrice(stockname)
+        if isinstance(res, tuple) and len(res) &gt;= 1:
+            return float(res[0])
+        if isinstance(res, Exception):
+            raise res
+        raise RuntimeError(f"Unexpected getStockPrice return: {res!r}")
+
+    return fetchStockPrice</code></pre>
+
+          <p><strong>Why this pattern is excellent:</strong></p>
+          <ul>
+            <li>
+              <code>graphutilities</code> expects a no-argument
+              <code>fetch_price()</code> function.
+            </li>
+            <li>But we want to pass a <code>stockname</code> too.</li>
+            <li>
+              The closure “captures” the stockname once, and exposes a clean
+              no-argument function.
+            </li>
+          </ul>
+
+          <div class="note">
+            <strong>This is the key design win:</strong> your chart code stays
+            generic, while your fetching code stays customizable.
+          </div>
+
+          <div class="hr"></div>
+
+          <h2 id="howtorun">3) How to run this locally</h2>
+          <ul>
+            <li>
+              Install dependencies: <code>pip install selenium matplotlib</code>
+            </li>
+            <li>Make sure Chrome is installed.</li>
+            <li>
+              Make sure ChromeDriver is compatible with your Chrome version (or
+              Selenium Manager handles it).
+            </li>
+            <li>Run: <code>python test.py</code></li>
+            <li>Enter a stock key: <code>ril</code> or <code>th</code></li>
+          </ul>
+
+          <div class="danger">
+            <strong>Note:</strong> Yahoo Finance can change CSS selectors or
+            block automation. If price stops fetching, check the saved HTML file
+            (<code>stockname_date.html</code>) and update the selector.
+          </div>
+
+          <div class="hr"></div>
+
+          <h2 id="design">
+            4) Design decisions explained (why we did it this way)
+          </h2>
+
+          <h3>✅ Separation of concerns</h3>
+          <ul>
+            <li>
+              <strong>Fetch logic</strong> lives in <code>utilities.py</code>
+            </li>
+            <li>
+              <strong>Chart logic</strong> lives in
+              <code>graphutilities.py</code>
+            </li>
+            <li>
+              <strong>Mapping</strong> lives in <code>stockslist.py</code>
+            </li>
+            <li><strong>Wiring</strong> lives in <code>test.py</code></li>
+          </ul>
+
+          <h3>✅ Threading for responsiveness</h3>
+          <p>
+            Selenium page loads are slow. If you fetch on the UI thread, the
+            graph freezes. So we fetch in a daemon worker thread.
+          </p>
+
+          <h3>✅ Queue for thread safety</h3>
+          <p>
+            Never update Matplotlib objects from a background thread. The
+            background thread should only push data into a queue. The main
+            thread reads from the queue and updates the plot.
+          </p>
+
+          <div class="hr"></div>
+
+          <h2 id="improvements">
+            5) Immediate improvements (next logical upgrades)
+          </h2>
+          <ul>
+            <li>
+              <strong>Persistent driver:</strong> reuse one Selenium session
+              rather than starting Chrome each time.
+            </li>
+            <li>
+              <strong>Better error reporting:</strong> show fetch errors inside
+              the chart status text.
+            </li>
+            <li>
+              <strong>Timestamps on X-axis:</strong> plot real time instead of
+              “Tick”. (You already store timestamps.)
+            </li>
+            <li>
+              <strong>Multi-stock mode:</strong> plot 2–5 lines together (RIL vs
+              TH etc.).
+            </li>
+            <li>
+              <strong>Alerting:</strong> beep/notify when price crosses a
+              threshold.
+            </li>
+          </ul>
+        </div>
+
+        <div class="card toc">
+          <h2>On this page</h2>
+          <ul>
+            <li><a href="#overview">What we’re building</a></li>
+            <li><a href="#files">Project files</a></li>
+            <li><a href="#graphutilities">graphutilities.py</a></li>
+            <li><a href="#stockslist">stockslist.py</a></li>
+            <li><a href="#utilities">utilities.py</a></li>
+            <li><a href="#testpy">test.py</a></li>
+            <li><a href="#howtorun">How to run</a></li>
+            <li><a href="#design">Design decisions</a></li>
+            <li><a href="#improvements">Immediate improvements</a></li>
+            <li><a href="#future">Future tasks: dummy practice app</a></li>
+          </ul>
+
+          <div class="hr"></div>
+
+          <h3>Quick links</h3>
+          <ul>
+            <li>
+              <a
+                href="https://github.com/your-username/live-stock-chart"
+                target="_blank"
+                rel="noopener"
+                >GitHub repo (dummy)</a
+              >
+            </li>
+            <li><a href="#future">Future tasks checklist</a></li>
+          </ul>
+
+          <div class="hr"></div>
+
+          <div class="note">
+            <strong>Teacher tip:</strong><br />
+            Turn this into a class demo: “Why UI freezes happen”, “Why queues
+            matter”, “How to structure projects”.
+          </div>
+        </div>
+      </div>
+
+      <div class="card" id="future">
+        <h2>6) Future Tasks — Build a Dummy “Practice App” (Roadmap)</h2>
+
+        <div class="callout">
+          <strong>Goal:</strong> Convert this into a beginner-friendly practice
+          application (dummy trading / stock tracker), where students can learn
+          Python, automation, plotting, data structures, and clean architecture.
+        </div>
+
+        <h3>Phase 1 — Make it stable (foundation)</h3>
+        <ul>
+          <li>
+            <strong>Refactor fetcher:</strong> either reuse Selenium driver or
+            replace Selenium with a lightweight request-based fetch.
+          </li>
+          <li>
+            <strong>Retries + backoff:</strong> if fetch fails, wait longer and
+            try again instead of spamming.
+          </li>
+          <li>
+            <strong>Stop button / clean exit:</strong> allow stopping the worker
+            thread gracefully (stop event).
+          </li>
+          <li>
+            <strong>Config file:</strong> store <code>fetch_interval</code>,
+            <code>window_points</code>, and watchlist in JSON.
+          </li>
+        </ul>
+
+        <h3>Phase 2 — “Dummy practice app” features</h3>
+        <ul>
+          <li>
+            <strong>Watchlist:</strong> add/remove stocks interactively (menu
+            driven).
+          </li>
+          <li>
+            <strong>Multi-stock chart:</strong> plot multiple lines (RIL, TH,
+            etc.) on the same chart.
+          </li>
+          <li>
+            <strong>Paper trading:</strong> simulate buy/sell with quantity;
+            maintain portfolio P&amp;L (no real money).
+          </li>
+          <li>
+            <strong>Trade log:</strong> save simulated trades to CSV/JSON and
+            reload later.
+          </li>
+          <li>
+            <strong>Alerts:</strong> notify when price goes above/below a
+            threshold.
+          </li>
+        </ul>
+
+        <h3>Phase 3 — Practice mode for students</h3>
+        <ul>
+          <li>
+            <strong>Assignments panel:</strong> “Implement moving average”, “Add
+            RSI”, “Add stop-loss simulation”.
+          </li>
+          <li>
+            <strong>Checkpoints:</strong> provide expected outputs for given
+            dummy price streams.
+          </li>
+          <li>
+            <strong>Mock data generator:</strong> generate fake price ticks for
+            offline practice.
+          </li>
+          <li>
+            <strong>Unit tests:</strong> teach testing by writing tests for
+            portfolio calculations.
+          </li>
+        </ul>
+
+        <h3>Phase 4 — UI upgrades (optional)</h3>
+        <ul>
+          <li>
+            <strong>CLI dashboard:</strong> show latest price, % change, and
+            status (rich text UI).
+          </li>
+          <li>
+            <strong>Web version:</strong> Flask/FastAPI API + frontend chart (or
+            PyScript/Pyodide demo).
+          </li>
+          <li>
+            <strong>Export reports:</strong> generate PDF summary of dummy
+            trades and results.
+          </li>
+        </ul>
+
+        <div class="warn">
+          <strong>Real-world caution:</strong> scraping finance sites can break
+          anytime (selectors change, bot checks, blocks). For teaching, it’s
+          great. For production, prefer official APIs or data providers.
+        </div>
+      </div>
+
+      <div class="footer">
+        © 2026 • Programmer’s Picnic • Live Chart Learning Series • Draft GitHub
+        link included for now
+      </div>
+    </div>
+  </body>
+</html>

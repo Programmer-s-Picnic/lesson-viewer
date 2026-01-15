@@ -3,9 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>
-      Programmer's Picnic  Pyodide Editor — (Judge + Problems + XP)
-    </title>
+    <title>Programmer's Picnic Pyodide Editor — (Judge + Problems + XP)</title>
     <meta
       name="description"
       content="Collision-proof Pyodide editor with Problem Mode: starter code, sample+hidden tests, scoring, hints, and XP/streak."
@@ -184,7 +182,7 @@
 
       .pp-grid {
         display: grid;
-        grid-template-columns: 1.25fr 0.75fr;
+        grid-template-columns: 1.35fr 0.85fr;
         gap: 12px;
       }
       @media (max-width: 980px) {
@@ -571,6 +569,31 @@
         opacity: 1;
         transform: translateX(-50%) translateY(-2px);
       }
+
+      /* Layout tune: keep Output tall & easy to read */
+      .pp-editorwrap .pp-editorarea {
+        min-height: 560px;
+      }
+      #ppOut {
+        min-height: 360px;
+        max-height: 560px;
+      }
+      @media (max-width: 980px) {
+        .pp-editorwrap .pp-editorarea {
+          min-height: 420px;
+        }
+        #ppOut {
+          max-height: none;
+        }
+      }
+      /* Make editor toolbar feel like a command bar */
+      .pp-editorwrap .pp-cardhead .pp-toolbar {
+        gap: 10px;
+      }
+      .pp-editorwrap .pp-cardhead .pp-btn {
+        padding: 10px 12px;
+        border-radius: 14px;
+      }
     </style>
 
     <!-- Pyodide -->
@@ -585,18 +608,13 @@
             <div class="pp-logo" aria-hidden="true"></div>
             <div>
               <h1 class="pp-title">Programmer's Picnic Pyodide Editor</h1>
-              <div class="pp-sub" style="visibility: hidden;">
+              <div class="pp-sub" style="visibility: hidden">
                 Phase 1: Problem Mode ✅ Judge ✅ Score ✅ Hints ✅ XP/Streak
               </div>
             </div>
           </div>
           <div class="pp-actions">
-            <button class="pp-btn pp-btn-primary" id="ppRun">
-              ▶ Run <span class="pp-kbd">Ctrl</span
-              ><span class="pp-kbd">Enter</span>
-            </button>
-            <button class="pp-btn pp-btn-danger" id="ppStop">⛔ Stop</button>
-            <button class="pp-btn" id="ppFormat">🧼 Format</button>
+            <button class="pp-btn" id="ppFormat">⎘ Format</button>
             <button class="pp-btn" id="ppSave">💾 Save</button>
             <button class="pp-btn" id="ppShare">🔗 Share</button>
           </div>
@@ -613,6 +631,14 @@
                 </div>
               </div>
               <div class="pp-toolbar">
+                <button class="pp-btn pp-btn-primary" id="ppRun">
+                  ▶ Run <span class="pp-kbd">Ctrl</span
+                  ><span class="pp-kbd">Enter</span>
+                </button>
+                <button class="pp-btn pp-btn-danger" id="ppStop">
+                  ⛔ Stop
+                </button>
+
                 <select id="ppExample" class="pp-select" title="Load example">
                   <option value="">Examples…</option>
                 </select>
@@ -678,6 +704,105 @@
           <!-- RIGHT: Phase 1 Problem Mode -->
           <aside class="pp-split">
             <!-- Problem -->
+            <section class="pp-card">
+              <div class="pp-cardhead">
+                <div>
+                  <h2>Output</h2>
+                  <div class="pp-small">
+                    Newlines preserved + errors highlighted.
+                  </div>
+                </div>
+                <div class="pp-toolbar">
+                  <button class="pp-btn pp-btn-ghost" id="ppCopyOut">
+                    📋 Copy
+                  </button>
+                  <button class="pp-btn pp-btn-ghost" id="ppClearOut">
+                    🧹 Clear
+                  </button>
+                </div>
+              </div>
+              <div class="pp-pad">
+                <div class="pp-out" id="ppOut"></div>
+              </div>
+            </section>
+
+            <!-- stdin -->
+            <section class="pp-card">
+              <div class="pp-cardhead">
+                <div>
+                  <h2>stdin (input)</h2>
+                  <div class="pp-small">
+                    One value per line. Python <code>input()</code> reads from
+                    here.
+                  </div>
+                </div>
+                <div class="pp-toolbar">
+                  <button class="pp-btn pp-btn-ghost" id="ppStdinSample">
+                    🎯 Sample
+                  </button>
+                  <button class="pp-btn pp-btn-ghost" id="ppStdinClear">
+                    🧽 Clear
+                  </button>
+                </div>
+              </div>
+              <div class="pp-pad">
+                <textarea
+                  class="pp-textarea pp-io"
+                  id="ppStdin"
+                  spellcheck="false"
+                  placeholder="5&#10;10&#10;hello"
+                ></textarea>
+                <div class="pp-small" style="margin-top: 8px">
+                  In Problem Mode, tests feed stdin automatically. Here is for
+                  manual runs.
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    gap: 8px;
+                    flex-wrap: wrap;
+                    margin-top: 10px;
+                  "
+                >
+                  <span class="pp-chip" data-pkg="numpy">+numpy</span>
+                  <span class="pp-chip" data-pkg="pandas">+pandas</span>
+                  <span class="pp-chip" data-pkg="matplotlib">+matplotlib</span>
+                </div>
+              </div>
+            </section>
+
+            <!-- packages -->
+            <section class="pp-card">
+              <div class="pp-cardhead">
+                <div>
+                  <h2>Packages</h2>
+                  <div class="pp-small">
+                    Install pure-python wheels via <code>micropip</code>.
+                  </div>
+                </div>
+                <div class="pp-toolbar">
+                  <button class="pp-btn" id="ppInstall">📦 Install</button>
+                  <button class="pp-btn pp-btn-ghost" id="ppList">
+                    🧾 List
+                  </button>
+                </div>
+              </div>
+              <div class="pp-pad">
+                <label class="pp-small" for="ppPkgs">Packages</label>
+                <input
+                  id="ppPkgs"
+                  class="pp-input"
+                  style="width: 100%; margin-top: 6px"
+                  placeholder="numpy, pandas, matplotlib"
+                />
+                <div class="pp-small" style="margin-top: 8px">
+                  ⚠️ If a package needs native binaries, it may fail in Pyodide.
+                  Pure-python works best.
+                </div>
+              </div>
+            </section>
+
+            <!-- output -->
             <section class="pp-card">
               <div class="pp-cardhead">
                 <div>
@@ -766,105 +891,6 @@
                   style="margin-top: 10px"
                 ></div>
                 <div id="ppJudgeTableWrap"></div>
-              </div>
-            </section>
-
-            <!-- stdin -->
-            <section class="pp-card">
-              <div class="pp-cardhead">
-                <div>
-                  <h2>stdin (input)</h2>
-                  <div class="pp-small">
-                    One value per line. Python <code>input()</code> reads from
-                    here.
-                  </div>
-                </div>
-                <div class="pp-toolbar">
-                  <button class="pp-btn pp-btn-ghost" id="ppStdinSample">
-                    🎯 Sample
-                  </button>
-                  <button class="pp-btn pp-btn-ghost" id="ppStdinClear">
-                    🧽 Clear
-                  </button>
-                </div>
-              </div>
-              <div class="pp-pad">
-                <textarea
-                  class="pp-textarea pp-io"
-                  id="ppStdin"
-                  spellcheck="false"
-                  placeholder="5&#10;10&#10;hello"
-                ></textarea>
-                <div class="pp-small" style="margin-top: 8px">
-                  In Problem Mode, tests feed stdin automatically. Here is for
-                  manual runs.
-                </div>
-                <div
-                  style="
-                    display: flex;
-                    gap: 8px;
-                    flex-wrap: wrap;
-                    margin-top: 10px;
-                  "
-                >
-                  <span class="pp-chip" data-pkg="numpy">+numpy</span>
-                  <span class="pp-chip" data-pkg="pandas">+pandas</span>
-                  <span class="pp-chip" data-pkg="matplotlib">+matplotlib</span>
-                </div>
-              </div>
-            </section>
-
-            <!-- packages -->
-            <section class="pp-card">
-              <div class="pp-cardhead">
-                <div>
-                  <h2>Packages</h2>
-                  <div class="pp-small">
-                    Install pure-python wheels via <code>micropip</code>.
-                  </div>
-                </div>
-                <div class="pp-toolbar">
-                  <button class="pp-btn" id="ppInstall">📦 Install</button>
-                  <button class="pp-btn pp-btn-ghost" id="ppList">
-                    🧾 List
-                  </button>
-                </div>
-              </div>
-              <div class="pp-pad">
-                <label class="pp-small" for="ppPkgs">Packages</label>
-                <input
-                  id="ppPkgs"
-                  class="pp-input"
-                  style="width: 100%; margin-top: 6px"
-                  placeholder="numpy, pandas, matplotlib"
-                />
-                <div class="pp-small" style="margin-top: 8px">
-                  ⚠️ If a package needs native binaries, it may fail in Pyodide.
-                  Pure-python works best.
-                </div>
-              </div>
-            </section>
-
-            <!-- output -->
-            <section class="pp-card">
-              <div class="pp-cardhead">
-                <div>
-                  <h2>Output</h2>
-                  <div class="pp-small">
-                    Newlines preserved + errors highlighted.
-                  </div>
-                </div>
-                <div class="pp-toolbar">
-                  <button class="pp-btn pp-btn-ghost" id="ppCopyOut">
-                    📋 Copy
-                  </button>
-                  <button class="pp-btn pp-btn-ghost" id="ppClearOut">
-                    🧹 Clear
-                  </button>
-                </div>
-              </div>
-              <div class="pp-pad">
-                <div class="pp-out" id="ppOut"></div>
               </div>
             </section>
 
@@ -965,6 +991,8 @@
         loadStarter: $("ppLoadStarter"),
         resetStarter: $("ppResetStarter"),
         hintBtn: $("ppHint"),
+        helpToggle: $("ppHelpToggle"),
+        helpBody: $("ppHelpBody"),
         runSamples: $("ppRunSamples"),
         runAll: $("ppRunAll"),
         judgeSummary: $("ppJudgeSummary"),
@@ -1378,23 +1406,52 @@ n = int(input())
       }
 
       // ---------- pyodide init ----------
+      async function waitForLoadPyodide(maxMs = 12000) {
+        if (typeof window.loadPyodide === "function") return;
+
+        const t0 = performance.now();
+        while (performance.now() - t0 < maxMs) {
+          await new Promise((r) => setTimeout(r, 60));
+          if (typeof window.loadPyodide === "function") return;
+        }
+
+        throw new Error(
+          "Pyodide loader (loadPyodide) not found. pyodide.js may be blocked or not loaded."
+        );
+      }
       async function ensurePyodide() {
         if (pyodide) return pyodide;
 
-        setStatus("Loading Pyodide…", "warn");
-        ui.pyText.textContent = "loading…";
-        setProgress(12);
+        try {
+          setStatus("Loading Pyodide…", "warn");
+          ui.pyText.textContent = "loading…";
+          setProgress(12);
 
-        pyodide = await loadPyodide({
-          indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.2/full/",
-        });
-        setProgress(55);
+          // Wait until pyodide.js provides loadPyodide()
+          await waitForLoadPyodide(12000);
 
-        await pyodide.loadPackage("micropip");
-        setProgress(80);
+          const pyPromise = window.loadPyodide({
+            indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.2/full/",
+          });
 
-        // Define writers + a capture runner for judge mode
-        await pyodide.runPythonAsync(`
+          // Hard timeout so the UI doesn't hang forever
+          pyodide = await Promise.race([
+            pyPromise,
+            new Promise((_, rej) =>
+              setTimeout(
+                () => rej(new Error("Pyodide load timed out (45s).")),
+                45000
+              )
+            ),
+          ]);
+
+          setProgress(55);
+
+          await pyodide.loadPackage("micropip");
+          setProgress(80);
+
+          // Define writers + a capture runner for judge mode
+          await pyodide.runPythonAsync(`
 import sys, builtins, io, traceback
 from js import pp_write
 
@@ -1442,8 +1499,7 @@ def _pp_run_capture(user_code: str, stdin_text: str):
     try:
         exec(user_code, g, g)
         return {"ok": True, "stdout": out.getvalue(), "stderr": err.getvalue(), "error": ""}
-    except SystemExit as e:
-        # treat as ok if it exits normally; still capture output
+    except SystemExit:
         return {"ok": True, "stdout": out.getvalue(), "stderr": err.getvalue(), "error": ""}
     except Exception:
         tb = traceback.format_exc()
@@ -1452,12 +1508,31 @@ def _pp_run_capture(user_code: str, stdin_text: str):
         sys.stdout, sys.stderr = old_stdout, old_stderr
         builtins.input = old_input
 `);
-        setProgress(100);
-        setTimeout(() => setProgress(0), 450);
+          setProgress(100);
+          setTimeout(() => setProgress(0), 450);
 
-        ui.pyText.textContent = "ready";
-        setStatus("Pyodide ready.", "ok");
-        return pyodide;
+          ui.pyText.textContent = "ready";
+          setStatus("Pyodide ready.", "ok");
+          return pyodide;
+        } catch (err) {
+          console.error(err);
+          ui.pyText.textContent = "failed";
+          setStatus("Pyodide failed to load.", "bad");
+          setProgress(0);
+
+          // show readable message in output
+          try {
+            writeOut(
+              `\n<span class="err"><b>Pyodide error:</b> ${escapeHtml(
+                String(err && err.message ? err.message : err)
+              )}</span>\n`,
+              true
+            );
+          } catch {}
+
+          pyodide = null;
+          throw err;
+        }
       }
 
       async function resetRuntime() {
@@ -2025,6 +2100,21 @@ print("\\n".join(names[:4000]))
       ui.resetStarter.onclick = resetToStarter;
       ui.hintBtn.onclick = showHint;
 
+      // Help toggle
+      if (ui.helpToggle && ui.helpBody) {
+        ui.helpToggle.onclick = () => {
+          const show = getComputedStyle(ui.helpBody).display === "none";
+          ui.helpBody.style.display = show ? "block" : "none";
+          ui.helpToggle.setAttribute("aria-expanded", String(show));
+          toast(show ? "Help opened" : "Help closed");
+        };
+        // initial state
+        ui.helpToggle.setAttribute(
+          "aria-expanded",
+          String(getComputedStyle(ui.helpBody).display !== "none")
+        );
+      }
+
       ui.runSamples.onclick = async () => {
         const p = getProblemById(currentProblemId);
         if (!p) {
@@ -2072,7 +2162,11 @@ print("\\n".join(names[:4000]))
         showProblem(pid);
 
         // polite preload
-        setTimeout(() => ensurePyodide().catch(() => {}), 900);
+        setTimeout(() => {
+          ensurePyodide().catch((e) => {
+            console.warn("Pyodide preload failed:", e);
+          });
+        }, 900);
       }
 
       init();
