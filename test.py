@@ -1,14 +1,13 @@
+a = [
+    [1, 2, 23],
+    [4, 5, 6],
+    [7, 8, 9]
+]
+leftdiagonalsum = 0
+rightdiagonalsum = 0
+n = len(a)
+for i in range(n):
+    leftdiagonalsum += a[i][i]
+    rightdiagonalsum += a[n-1-i][i]
 
-a=int(input("Enter A\n"))
-b=int(input("Enter B\n"))
-operator=input("+, -, *, /")
-if operator=="a":
-    print(a+b)
-elif operator=="-":
-    print(a-b)
-elif operator=="*":
-    print(a*b)
-elif operator=="/":
-    print(a/b)
-else:
-    print("Invalid")
+print(leftdiagonalsum, rightdiagonalsum)
