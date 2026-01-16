@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Champak Brain — JavaScript Editor</title>
+
+    <style>
+      :root {
+        --bg: #fff7e6;
+        --card: #fff;
+        --ink: #1f2937;
+        --muted: #6b7280;
+        --brand: #d97706;
+        --brand2: #f59e0b;
+        --border: #eadcc5;
+        --shadow: 0 18px 40px rgba(31, 41, 55, 0.14);
+        --codebg: #0b1220;
+        --codeink: #e5e7eb;
+        --ok: #166534;
+        --bad: #b91c1c;
+        --r: 18px;
+        --mono: ui-monospace, Menlo, Consolas, monospace;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: system-ui;
+        background: linear-gradient(180deg, var(--bg), #fff);
+      }
+      .wrap {
+        max-width: 1200px;
+        margin: 18px auto;
+        padding: 14px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--r);
+        box-shadow: var(--shadow);
+      }
+      .top {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      h1 {
+        margin: 0;
+        font-size: 18px;
+      }
+      .btn {
+        border: 1px solid var(--border);
+        background: #fff;
+        border-radius: 14px;
+        padding: 8px 12px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .btn.primary {
+        background: linear-gradient(180deg, var(--brand2), var(--brand));
+        border: 0;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      @media (max-width: 900px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .editor {
+        background: var(--codebg);
+        color: var(--codeink);
+        border-radius: 14px;
+        padding: 12px;
+        font-family: var(--mono);
+        min-height: 420px;
+        white-space: pre;
+        outline: none;
+      }
+      .out {
+        background: #020617;
+        color: #e5e7eb;
+        border-radius: 14px;
+        padding: 12px;
+        font-family: var(--mono);
+        min-height: 200px;
+        white-space: pre-wrap;
+      }
+      .err {
+        color: #fecaca;
+      }
+      .ok {
+        color: #bbf7d0;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="wrap">
+      <div class="top">
+        <h1>🧠 Champak Brain — JavaScript Editor</h1>
+        <div>
+          <button class="btn primary" id="run">▶ Run</button>
+          <button class="btn" id="clear">🧹 Clear</button>
+          <button class="btn" id="download">⬇ Download</button>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <div contenteditable="true" id="code" class="editor">
+            // JavaScript Playground // console.log, alert, DOM allowed function
+            square(n){ return n*n; } for(let i=1;i<=5;i++){ console.log(i,
+            square(i)); }
+          </div>
+        </div>
+
+        <div class="card">
+          <div id="out" class="out"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const code = document.getElementById("code");
+      const out = document.getElementById("out");
+
+      function write(msg, cls = "") {
+        const d = document.createElement("div");
+        if (cls) d.className = cls;
+        d.textContent = msg;
+        out.appendChild(d);
+        out.scrollTop = out.scrollHeight;
+      }
+
+      document.getElementById("run").onclick = () => {
+        out.innerHTML = "";
+        try {
+          const originalLog = console.log;
+          console.log = (...args) => write(args.join(" "));
+          new Function(code.innerText)();
+          console.log = originalLog;
+          write("✓ Done", "ok");
+        } catch (e) {
+          write(e.message, "err");
+        }
+      };
+
+      document.getElementById("clear").onclick = () => (out.innerHTML = "");
+
+      document.getElementById("download").onclick = () => {
+        const blob = new Blob([code.innerText], { type: "text/javascript" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "script.js";
+        a.click();
+      };
+    </script>
+  </body>
+</html>

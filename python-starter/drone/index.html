@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Drone Programming 101 — Online Drone Simulator</title>
+    <meta
+      name="description"
+      content="Run a 2D drone simulator directly inside the browser. Script missions with TAKEOFF, MOVE, TURN, GOTO, WAIT, HOME, SETSPEED."
+    />
+
+    <style>
+      :root {
+        --bg: #fff7e6;
+        --card: #ffffff;
+        --ink: #1f2937;
+        --muted: #6b7280;
+        --brand: #d97706;
+        --brand2: #f59e0b;
+        --border: #eadcc5;
+        --shadow: 0 18px 40px rgba(31, 41, 55, 0.14);
+        --codebg: #0b1220;
+        --codeink: #e5e7eb;
+        --ok: #166534;
+        --warn: #92400e;
+        --danger: #b91c1c;
+        --focus: rgba(245, 158, 11, 0.28);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial,
+          sans-serif;
+        background: radial-gradient(
+            1200px 700px at 10% -10%,
+            rgba(245, 158, 11, 0.22),
+            transparent 60%
+          ),
+          radial-gradient(
+            900px 600px at 90% 0%,
+            rgba(217, 119, 6, 0.18),
+            transparent 55%
+          ),
+          var(--bg);
+        color: var(--ink);
+      }
+      .wrap {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 14px;
+      }
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: rgba(255, 247, 230, 0.86);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--border);
+      }
+      .topbar .wrap {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 900;
+      }
+      .logo {
+        width: 40px;
+        height: 40px;
+        border-radius: 14px;
+        background: radial-gradient(
+          circle at 30% 30%,
+          #fff,
+          #ffe7bf 45%,
+          #ffd59a 100%
+        );
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+        display: grid;
+        place-items: center;
+        color: var(--brand);
+        font-weight: 1000;
+      }
+      .nav {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .chip {
+        padding: 8px 12px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.78);
+        box-shadow: 0 10px 22px rgba(31, 41, 55, 0.08);
+        font-weight: 750;
+        cursor: pointer;
+        user-select: none;
+      }
+      .chip:active {
+        transform: translateY(1px);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1.35fr 0.65fr;
+        gap: 14px;
+        align-items: start;
+        margin-top: 14px;
+      }
+      @media (max-width: 980px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        box-shadow: var(--shadow);
+        padding: 14px;
+      }
+      .h2 {
+        margin: 0 0 8px;
+        font-size: 18px;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .btn {
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        background: linear-gradient(180deg, var(--brand2), var(--brand));
+        color: white;
+        padding: 10px 12px;
+        border-radius: 14px;
+        font-weight: 900;
+        box-shadow: 0 14px 28px rgba(217, 119, 6, 0.24);
+      }
+      .btn.secondary {
+        background: rgba(255, 255, 255, 0.92);
+        color: var(--brand);
+        border: 1px solid var(--border);
+        box-shadow: 0 10px 22px rgba(31, 41, 55, 0.1);
+      }
+      .btn:focus,
+      .chip:focus,
+      textarea:focus {
+        outline: none;
+        box-shadow: 0 0 0 4px var(--focus);
+      }
+      canvas {
+        width: 100%;
+        height: auto;
+        border-radius: 18px;
+        border: 1px solid var(--border);
+        background: #fff;
+        display: block;
+      }
+      textarea {
+        width: 100%;
+        min-height: 240px;
+        resize: vertical;
+        padding: 10px 12px;
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        box-shadow: 0 10px 22px rgba(31, 41, 55, 0.08);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      .hud {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin-top: 10px;
+      }
+      .hud .box {
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 10px;
+        background: rgba(255, 255, 255, 0.86);
+        box-shadow: 0 10px 22px rgba(31, 41, 55, 0.08);
+        font-weight: 750;
+        color: var(--ink);
+      }
+      .kbd {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        font-size: 12px;
+        padding: 3px 7px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: rgba(11, 18, 32, 0.96);
+        color: #e5e7eb;
+      }
+      .callout {
+        border-left: 6px solid var(--brand2);
+        background: rgba(245, 158, 11, 0.1);
+        padding: 10px 12px;
+        border-radius: 14px;
+        margin-top: 10px;
+      }
+
+      /* modal */
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 999;
+        background: rgba(2, 6, 23, 0.52);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 18px;
+      }
+      .modal {
+        width: min(980px, 100%);
+        max-height: 90vh;
+        overflow: auto;
+        background: rgba(255, 255, 255, 0.97);
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        box-shadow: 0 24px 80px rgba(2, 6, 23, 0.35);
+        padding: 14px;
+      }
+      .modal-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        position: sticky;
+        top: 0;
+        background: rgba(255, 255, 255, 0.97);
+        padding: 10px 10px;
+        border-bottom: 1px solid var(--border);
+        border-radius: 18px;
+      }
+      .xbtn {
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.9);
+        color: var(--ink);
+        padding: 8px 10px;
+        border-radius: 14px;
+        cursor: pointer;
+        font-weight: 900;
+      }
+      table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        margin-top: 10px;
+        overflow: hidden;
+        border-radius: 16px;
+        border: 1px solid var(--border);
+      }
+      th,
+      td {
+        padding: 10px 10px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+      }
+      th {
+        background: rgba(255, 247, 230, 0.8);
+        text-align: left;
+      }
+      tr:last-child td {
+        border-bottom: 0;
+      }
+      .status {
+        margin-top: 10px;
+        padding: 10px 12px;
+        border-radius: 14px;
+        border: 1px dashed rgba(217, 119, 6, 0.35);
+        background: rgba(245, 158, 11, 0.1);
+        color: #7c2d12;
+        font-weight: 800;
+        line-height: 1.6;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="topbar">
+      <div class="wrap">
+        <div class="brand">
+          <div class="logo">PP</div>
+          <div>
+            <div style="font-size: 14px; color: var(--muted); font-weight: 800">
+              Programmer’s Picnic
+            </div>
+            <div style="font-size: 16px">Online Drone Simulator</div>
+          </div>
+        </div>
+
+        <div class="nav">
+          <div style="display: none" class="chip" id="btnRun" tabindex="0">
+            Run
+          </div>
+          <div style="display: none" class="chip" id="btnPause" tabindex="0">
+            Pause
+          </div>
+          <div class="chip" id="btnReset" tabindex="0">Reset</div>
+          <div style="display: none" class="chip" id="btnHelp" tabindex="0">
+            Help (H)
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="wrap">
+      <div class="grid">
+        <div class="card">
+          <div class="row" style="justify-content: space-between">
+            <div>
+              <div class="h2">Arena</div>
+              <div class="muted">
+                Shift+Click to add a <span class="kbd">GOTO x y</span> line in
+                the script.
+              </div>
+            </div>
+            <div class="row">
+              <button class="btn secondary" id="btnCopyExample" type="button">
+                Copy Example Mission
+              </button>
+            </div>
+          </div>
+
+          <canvas id="c" width="980" height="640"></canvas>
+
+          <div style="display: none;" class="hud">
+            <div class="box" id="hudState">State: —</div>
+            <div class="box" id="hudQueue">Queue: —</div>
+            <div class="box" id="hudPos">Pos: —</div>
+            <div class="box" id="hudHead">Heading: —</div>
+            <div class="box" id="hudSpeed">Speed: —</div>
+            <div class="box" id="hudBat">Battery: —</div>
+          </div>
+
+          <div class="status" id="status">
+            Ready. Write a mission → Run. Press H for help.
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="h2">Mission Script</div>
+          <div class="muted">
+            Commands: TAKEOFF, LAND, MOVE, TURN, GOTO, WAIT, HOME, SETSPEED
+          </div>
+
+          <textarea id="script"></textarea>
+
+          <div class="row" style="margin-top: 10px">
+            <button class="btn" id="runScript" type="button">Run Script</button>
+            <button class="btn secondary" id="stopNow" type="button">
+              Stop
+            </button>
+            <button class="btn secondary" id="clearPath" type="button">
+              Clear Path
+            </button>
+          </div>
+
+          <div class="callout">
+            <div style="font-weight: 950">Keyboard (Page)</div>
+            <div class="muted" style="margin-top: 6px">
+              <span class="kbd">H</span> Help •
+              <span class="kbd">Space</span> Run/Pause •
+              <span class="kbd">Esc</span> Stop
+            </div>
+          </div>
+
+          <div class="callout">
+            <div style="font-weight: 950">Pro tip</div>
+            <div class="muted" style="margin-top: 6px">
+              Start with <span class="kbd">TAKEOFF</span>, end with
+              <span class="kbd">LAND</span>. Add
+              <span class="kbd">HOME</span> for safety.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HELP MODAL -->
+    <div class="modal-backdrop" id="helpModal" role="dialog" aria-modal="true">
+      <div class="modal">
+        <div class="modal-top">
+          <div>
+            <div style="font-weight: 1000; font-size: 18px">
+              Help Center — Online Drone Simulator
+            </div>
+            <div class="muted">Commands, examples, and common mistakes.</div>
+          </div>
+          <button class="xbtn" id="closeHelp" type="button">Close ✕</button>
+        </div>
+
+        <div class="callout">
+          <b>How it works:</b> Each line is executed top-to-bottom. Movement
+          works only after <b>TAKEOFF</b>. Use <b>TURN</b> then <b>MOVE</b> to
+          draw shapes. Use <b>GOTO x y</b> for waypoints.
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 24%">Command</th>
+              <th style="width: 36%">Meaning</th>
+              <th>Example</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="kbd">TAKEOFF</span></td>
+              <td>Start flying. Enables movement commands.</td>
+              <td><span class="kbd">TAKEOFF</span></td>
+            </tr>
+            <tr>
+              <td><span class="kbd">LAND</span></td>
+              <td>Land the drone. End mission safely.</td>
+              <td><span class="kbd">LAND</span></td>
+            </tr>
+            <tr>
+              <td><span class="kbd">MOVE &lt;d&gt;</span></td>
+              <td>Move along current heading. + forward, - backward.</td>
+              <td>
+                <span class="kbd">MOVE 160</span><br /><span class="kbd"
+                  >MOVE -40</span
+                >
+              </td>
+            </tr>
+            <tr>
+              <td><span class="kbd">TURN &lt;deg&gt;</span></td>
+              <td>Rotate (yaw). Positive left, negative right.</td>
+              <td>
+                <span class="kbd">TURN 90</span><br /><span class="kbd"
+                  >TURN -45</span
+                >
+              </td>
+            </tr>
+            <tr>
+              <td><span class="kbd">GOTO x y</span></td>
+              <td>Go to a coordinate waypoint.</td>
+              <td><span class="kbd">GOTO 800 120</span></td>
+            </tr>
+            <tr>
+              <td><span class="kbd">WAIT s</span></td>
+              <td>Pause mission (hover effect).</td>
+              <td><span class="kbd">WAIT 0.5</span></td>
+            </tr>
+            <tr>
+              <td><span class="kbd">HOME</span></td>
+              <td>Return to home (failsafe style).</td>
+              <td><span class="kbd">HOME</span></td>
+            </tr>
+            <tr>
+              <td><span class="kbd">SETSPEED v</span></td>
+              <td>Set movement speed for MOVE/GOTO.</td>
+              <td><span class="kbd">SETSPEED 140</span></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="callout" style="border-left-color: var(--warn)">
+          <b>Common mistakes:</b>
+          <ul style="margin: 8px 0 0; padding-left: 18px; line-height: 1.7">
+            <li><b>MOVE before TAKEOFF</b> → ignored.</li>
+            <li>
+              <b>Obstacle collision</b> → movement stops. Use GOTO around it.
+            </li>
+            <li>
+              <b>Boundary reached</b> → mission stops. Stay inside the arena.
+            </li>
+          </ul>
+        </div>
+
+        <div class="callout">
+          <b>Example mission:</b>
+          <pre
+            style="
+              margin: 10px 0 0;
+              padding: 12px;
+              background: var(--codebg);
+              color: var(--codeink);
+              border-radius: 16px;
+              overflow: auto;
+              border: 1px solid rgba(255, 255, 255, 0.08);
+            "
+          ><code>TAKEOFF
+SETSPEED 140
+MOVE 160
+TURN 90
+MOVE 90
+TURN -45
+MOVE 140
+WAIT 0.4
+HOME
+LAND</code></pre>
+        </div>
+      </div>
+    </div>
+    <script>
+      (() => {
+        // ================= Canvas & World =================
+        const canvas = document.getElementById("c");
+        const ctx = canvas.getContext("2d");
+
+        const W = canvas.width,
+          H = canvas.height;
+        const PAD = 20;
+
+        const obstacles = [
+          { x1: 420, y1: 140, x2: 580, y2: 240 },
+          { x1: 700, y1: 360, x2: 880, y2: 500 },
+          { x1: 330, y1: 420, x2: 520, y2: 560 },
+        ];
+
+        const home = { x: 180, y: 300 };
+
+        const drone = {
+          x: home.x,
+          y: home.y,
+          heading: 0,
+          speed: 140,
+          turnSpeed: 140,
+          flying: false,
+          battery: 100,
+          path: [{ x: home.x, y: home.y }],
+        };
+
+        let running = false;
+        let queue = [];
+        let lastT = performance.now();
+        const statusEl = document.getElementById("status");
+
+        // ================= HUD =================
+        const hud = {
+          state: document.getElementById("hudState"),
+          queue: document.getElementById("hudQueue"),
+          pos: document.getElementById("hudPos"),
+          head: document.getElementById("hudHead"),
+          speed: document.getElementById("hudSpeed"),
+          bat: document.getElementById("hudBat"),
+        };
+
+        function setStatus(msg) {
+          statusEl.textContent = msg;
+        }
+
+        const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+        const deg2rad = (d) => (d * Math.PI) / 180;
+
+        function inBounds(x, y) {
+          return (
+            PAD + 10 <= x &&
+            x <= W - PAD - 10 &&
+            PAD + 10 <= y &&
+            y <= H - PAD - 10
+          );
+        }
+
+        function hitsObstacle(x, y) {
+          const rr = drone.flying ? 14 : 12;
+          for (const r of obstacles) {
+            const cx = clamp(x, r.x1, r.x2);
+            const cy = clamp(y, r.y1, r.y2);
+            const dx = x - cx,
+              dy = y - cy;
+            if (dx * dx + dy * dy <= rr * rr) return true;
+          }
+          return false;
+        }
+
+        function reset() {
+          running = false;
+          queue = [];
+          drone.x = home.x;
+          drone.y = home.y;
+          drone.heading = 0;
+          drone.speed = 140;
+          drone.flying = false;
+          drone.battery = 100;
+          drone.path = [{ x: drone.x, y: drone.y }];
+          lastT = performance.now();
+          setStatus("Reset ✅");
+        }
+
+        function clearPath() {
+          drone.path = [{ x: drone.x, y: drone.y }];
+          setStatus("Path cleared ✅");
+        }
+
+        // ================= Drawing =================
+        function getCss(name) {
+          return getComputedStyle(document.documentElement)
+            .getPropertyValue(name)
+            .trim();
+        }
+
+        function draw() {
+          ctx.clearRect(0, 0, W, H);
+
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = getCss("--border");
+          ctx.strokeRect(PAD, PAD, W - 2 * PAD, H - 2 * PAD);
+
+          for (const r of obstacles) {
+            ctx.fillStyle = "#fff2d6";
+            ctx.strokeStyle = getCss("--border");
+            ctx.fillRect(r.x1, r.y1, r.x2 - r.x1, r.y2 - r.y1);
+            ctx.strokeRect(r.x1, r.y1, r.x2 - r.x1, r.y2 - r.y1);
+            ctx.fillStyle = getCss("--muted");
+            ctx.font = "bold 11px system-ui";
+            ctx.textAlign = "center";
+            ctx.fillText("OBSTACLE", (r.x1 + r.x2) / 2, (r.y1 + r.y2) / 2 + 4);
+          }
+
+          ctx.beginPath();
+          ctx.fillStyle = getCss("--ok");
+          ctx.arc(home.x, home.y, 7, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.font = "bold 12px system-ui";
+          ctx.fillText("HOME", home.x + 38, home.y + 4);
+
+          if (drone.path.length > 1) {
+            ctx.strokeStyle = getCss("--brand2");
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(drone.path[0].x, drone.path[0].y);
+            for (const p of drone.path) ctx.lineTo(p.x, p.y);
+            ctx.stroke();
+          }
+
+          const r = drone.flying ? 14 : 12;
+          ctx.beginPath();
+          ctx.fillStyle = getCss("--brand");
+          ctx.arc(drone.x, drone.y, r, 0, Math.PI * 2);
+          ctx.fill();
+
+          const a = deg2rad(drone.heading);
+          const ax = drone.x + Math.cos(a) * 24;
+          const ay = drone.y - Math.sin(a) * 24;
+          ctx.strokeStyle = "#fff";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(drone.x, drone.y);
+          ctx.lineTo(ax, ay);
+          ctx.stroke();
+
+          ctx.fillStyle = "#fff";
+          const hl = 8;
+          const ang = Math.atan2(ay - drone.y, ax - drone.x);
+          ctx.beginPath();
+          ctx.moveTo(ax, ay);
+          ctx.lineTo(
+            ax - hl * Math.cos(ang - Math.PI / 6),
+            ay - hl * Math.sin(ang - Math.PI / 6)
+          );
+          ctx.lineTo(
+            ax - hl * Math.cos(ang + Math.PI / 6),
+            ay - hl * Math.sin(ang + Math.PI / 6)
+          );
+          ctx.closePath();
+          ctx.fill();
+
+          ctx.fillStyle = drone.flying ? getCss("--ink") : getCss("--muted");
+          ctx.font = "bold 12px system-ui";
+          ctx.textAlign = "center";
+          ctx.fillText(
+            drone.flying ? "DRONE" : "DRONE (GROUND)",
+            drone.x,
+            drone.y - 26
+          );
+        }
+
+        function updateHud() {
+          hud.state.textContent = `State: ${
+            drone.flying ? "FLYING" : "GROUND"
+          }`;
+          hud.queue.textContent = `Queue: ${queue.length} cmd`;
+          hud.pos.textContent = `Pos: (${drone.x.toFixed(1)}, ${drone.y.toFixed(
+            1
+          )})`;
+          hud.head.textContent = `Heading: ${drone.heading.toFixed(1)}°`;
+          hud.speed.textContent = `Speed: ${drone.speed.toFixed(0)} px/s`;
+          hud.bat.textContent = `Battery: ${drone.battery.toFixed(1)}%`;
+        }
+
+        // ================= Script Parsing =================
+        const scriptEl = document.getElementById("script");
+        scriptEl.value = `TAKEOFF
+SETSPEED 140
+MOVE 160
+TURN 90
+MOVE 90
+TURN -45
+MOVE 140
+WAIT 0.4
+HOME
+LAND`;
+
+        function parseScript(text) {
+          const lines = text
+            .split(/\r?\n/)
+            .map((s) => s.trim())
+            .filter((s) => s && !s.startsWith("#"));
+          const cmds = [];
+
+          for (let i = 0; i < lines.length; i++) {
+            const ln = lines[i];
+            const p = ln.split(/\s+/);
+            const c = p[0].toUpperCase();
+            const err = (m) => {
+              throw new Error(`Line ${i + 1}: ${ln}\n${m}`);
+            };
+
+            if (c === "TAKEOFF") cmds.push({ type: "TAKEOFF" });
+            else if (c === "LAND") cmds.push({ type: "LAND" });
+            else if (c === "HOME") cmds.push({ type: "HOME" });
+            else if (c === "WAIT")
+              cmds.push({ type: "WAIT", t: parseFloat(p[1]), elapsed: 0 });
+            else if (c === "SETSPEED")
+              cmds.push({ type: "SETSPEED", v: parseFloat(p[1]) });
+            else if (c === "TURN")
+              cmds.push({
+                type: "TURN",
+                deg: parseFloat(p[1]),
+                remaining: null,
+              });
+            else if (c === "MOVE")
+              cmds.push({
+                type: "MOVE",
+                dist: parseFloat(p[1]),
+                remaining: null,
+              });
+            else if (c === "GOTO")
+              cmds.push({
+                type: "GOTO",
+                x: parseFloat(p[1]),
+                y: parseFloat(p[2]),
+              });
+            else err("Unknown command");
+          }
+          return cmds;
+        }
+
+        // ================= Command Execution =================
+        function doTakeoff() {
+          if (!drone.flying) {
+            drone.flying = true;
+            drone.path.push({ x: drone.x, y: drone.y });
+            setStatus("Takeoff ✅");
+          }
+        }
+
+        function doLand() {
+          if (drone.flying) {
+            drone.flying = false;
+            setStatus("Landing ✅");
+          }
+        }
+
+        function stepCommand(cmd, dt) {
+          if (drone.flying) {
+            drone.battery = Math.max(0, drone.battery - 0.35 * dt);
+            if (drone.battery <= 5) {
+              doLand();
+              queue = [];
+              return true;
+            }
+          }
+
+          if (cmd.type === "TAKEOFF") return doTakeoff(), true;
+          if (cmd.type === "LAND") return doLand(), true;
+          if (cmd.type === "SETSPEED")
+            return (drone.speed = clamp(cmd.v, 40, 300)), true;
+
+          if (cmd.type === "WAIT") {
+            cmd.elapsed += dt;
+            return cmd.elapsed >= cmd.t;
+          }
+
+          if (!drone.flying) return true;
+
+          if (cmd.type === "TURN") {
+            if (cmd.remaining === null) cmd.remaining = cmd.deg;
+            const s =
+              Math.sign(cmd.remaining) *
+              Math.min(Math.abs(cmd.remaining), drone.turnSpeed * dt);
+            drone.heading = (drone.heading + s + 360) % 360;
+            cmd.remaining -= s;
+            return Math.abs(cmd.remaining) < 0.5;
+          }
+
+          if (cmd.type === "MOVE") {
+            if (cmd.remaining === null) cmd.remaining = cmd.dist;
+            const s =
+              Math.sign(cmd.remaining) *
+              Math.min(Math.abs(cmd.remaining), drone.speed * dt);
+            const a = deg2rad(drone.heading);
+            const nx = drone.x + Math.cos(a) * s;
+            const ny = drone.y - Math.sin(a) * s;
+            if (!inBounds(nx, ny) || hitsObstacle(nx, ny))
+              return (queue = []), (running = false), true;
+            drone.x = nx;
+            drone.y = ny;
+            drone.path.push({ x: drone.x, y: drone.y });
+            cmd.remaining -= s;
+            return Math.abs(cmd.remaining) < 0.8;
+          }
+
+          if (cmd.type === "GOTO") {
+            const dx = cmd.x - drone.x;
+            const dy = drone.y - cmd.y;
+            const dist = Math.hypot(dx, dy);
+            if (dist < 10) return true;
+            const target = ((Math.atan2(dy, dx) * 180) / Math.PI + 360) % 360;
+            const diff = ((target - drone.heading + 540) % 360) - 180;
+            if (Math.abs(diff) > 3) {
+              const s =
+                Math.sign(diff) *
+                Math.min(Math.abs(diff), drone.turnSpeed * dt);
+              drone.heading = (drone.heading + s + 360) % 360;
+              return false;
+            }
+            const step = Math.min(dist, drone.speed * dt);
+            const a = deg2rad(drone.heading);
+            const nx = drone.x + Math.cos(a) * step;
+            const ny = drone.y - Math.sin(a) * step;
+            if (!inBounds(nx, ny) || hitsObstacle(nx, ny))
+              return (queue = []), (running = false), true;
+            drone.x = nx;
+            drone.y = ny;
+            drone.path.push({ x: drone.x, y: drone.y });
+            return false;
+          }
+
+          return true;
+        }
+
+        // ================= Main Loop =================
+        function loop(t) {
+          const dt = Math.min(0.05, (t - lastT) / 1000);
+          lastT = t;
+
+          if (running && queue.length) {
+            if (stepCommand(queue[0], dt)) queue.shift();
+            if (!queue.length) running = false;
+          }
+
+          draw();
+          updateHud();
+          requestAnimationFrame(loop);
+        }
+        requestAnimationFrame(loop);
+
+        // ================= Buttons =================
+        document.getElementById("btnRun").onclick = () => {
+          try {
+            queue = parseScript(scriptEl.value);
+            running = true;
+            lastT = performance.now();
+            setStatus("Running…");
+          } catch (e) {
+            alert(e.message);
+          }
+        };
+
+        document.getElementById("btnPause").onclick = () => (running = false);
+        document.getElementById("btnReset").onclick = reset;
+        document.getElementById("runScript").onclick =
+          document.getElementById("btnRun").onclick;
+        document.getElementById("stopNow").onclick = () => (
+          (running = false), (queue = []), setStatus("Stopped.")
+        );
+        document.getElementById("clearPath").onclick = clearPath;
+
+        // ================= Shift+Click =================
+        canvas.addEventListener("click", (e) => {
+          if (!e.shiftKey) return;
+          const r = canvas.getBoundingClientRect();
+          const x = (((e.clientX - r.left) * canvas.width) / r.width) | 0;
+          const y = (((e.clientY - r.top) * canvas.height) / r.height) | 0;
+          scriptEl.value += `\nGOTO ${x} ${y}\n`;
+        });
+
+        // ================= Help Modal =================
+        const helpModal = document.getElementById("helpModal");
+        const closeHelp = document.getElementById("closeHelp");
+
+        function openHelp() {
+          helpModal.style.display = "flex";
+          document.body.style.overflow = "hidden";
+        }
+        function closeHelpModal() {
+          helpModal.style.display = "none";
+          document.body.style.overflow = "";
+        }
+
+        document.getElementById("btnHelp").onclick = openHelp;
+        closeHelp.onclick = closeHelpModal;
+
+        // ================= Keyboard (FIXED SPACE BUG) =================
+        window.addEventListener("keydown", (e) => {
+          const a = document.activeElement;
+          const typing =
+            a &&
+            (a.tagName === "TEXTAREA" ||
+              a.tagName === "INPUT" ||
+              a.isContentEditable);
+          const helpOpen = helpModal.style.display === "flex";
+
+          if (e.key === "Escape") {
+            if (helpOpen) return closeHelpModal();
+            running = false;
+            queue = [];
+            return;
+          }
+
+          if (e.code === "Space" && !typing && !helpOpen) {
+            e.preventDefault();
+            running = !running;
+            setStatus(running ? "Running…" : "Paused.");
+          }
+
+          if (e.key.toLowerCase() === "h" && !typing) {
+            e.preventDefault();
+            openHelp();
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>
