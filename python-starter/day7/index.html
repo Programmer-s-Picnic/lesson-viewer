@@ -1,0 +1,1177 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>
+      Python Memory & Performance Lesson — id(), del, gc, size, and timing
+    </title>
+    <style>
+      :root {
+        --bg: #fff7e6; /* light saffron */
+        --card: #ffffff;
+        --ink: #1f2937;
+        --muted: #6b7280;
+        --brand: #d97706; /* saffron */
+        --brand2: #f59e0b; /* amber */
+        --border: #eadcc5;
+        --shadow: 0 18px 40px rgba(31, 41, 55, 0.14);
+        --codebg: #0b1220;
+        --codeink: #e5e7eb;
+        --note: #fff6cc;
+        --ok: #166534;
+        --warn: #92400e;
+        --danger: #b91c1c;
+        --r: 18px;
+        --focus: rgba(245, 158, 11, 0.28);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        font-family:
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial,
+          sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(
+            1200px 600px at 15% -10%,
+            rgba(245, 158, 11, 0.35),
+            transparent 55%
+          ),
+          radial-gradient(
+            900px 500px at 95% 0%,
+            rgba(217, 119, 6, 0.22),
+            transparent 60%
+          ),
+          var(--bg);
+        line-height: 1.7;
+      }
+      .wrap {
+        max-width: 1140px;
+        margin: 26px auto;
+        padding: 16px;
+      }
+      .hero {
+        background: linear-gradient(
+          135deg,
+          rgba(217, 119, 6, 0.12),
+          rgba(245, 158, 11, 0.1)
+        );
+        border: 1px solid var(--border);
+        border-radius: calc(var(--r) + 6px);
+        box-shadow: var(--shadow);
+        padding: 18px 18px 14px;
+        overflow: hidden;
+        position: relative;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(217, 119, 6, 0.12);
+        border: 1px solid rgba(217, 119, 6, 0.25);
+        color: var(--brand);
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-weight: 900;
+        font-size: 13px;
+        letter-spacing: 0.2px;
+      }
+      .badge .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: var(--brand2);
+      }
+      h1 {
+        margin: 10px 0 6px;
+        font-size: 30px;
+        line-height: 1.2;
+      }
+      .sub {
+        margin: 0;
+        color: var(--muted);
+        font-size: 15px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: 14px;
+        margin-top: 14px;
+      }
+      @media (max-width: 1020px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--r);
+        box-shadow: var(--shadow);
+        padding: 16px;
+      }
+      h2 {
+        margin: 0 0 8px;
+        font-size: 21px;
+      }
+      h3 {
+        margin: 18px 0 8px;
+        font-size: 16px;
+      }
+      p {
+        margin: 10px 0;
+      }
+      .callout {
+        background: linear-gradient(
+          180deg,
+          rgba(255, 246, 204, 0.72),
+          rgba(255, 246, 204, 0.35)
+        );
+        border: 1px solid rgba(146, 64, 14, 0.25);
+        border-radius: 14px;
+        padding: 12px 12px 10px;
+        margin: 12px 0;
+      }
+      .callout strong {
+        color: var(--warn);
+      }
+      .quote {
+        border-left: 4px solid var(--brand2);
+        padding: 10px 12px;
+        margin: 12px 0;
+        background: rgba(255, 255, 255, 0.75);
+        border-radius: 12px;
+      }
+      .quote b {
+        color: var(--brand);
+      }
+      ul {
+        margin: 8px 0 10px 18px;
+      }
+      li {
+        margin: 6px 0;
+      }
+
+      .table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        overflow: hidden;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        margin: 10px 0 12px;
+        background: #fff;
+      }
+      .table th,
+      .table td {
+        padding: 10px 10px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+      }
+      .table th {
+        background: rgba(217, 119, 6, 0.09);
+        text-align: left;
+      }
+      .table tr:last-child td {
+        border-bottom: none;
+      }
+
+      .kpi {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin: 12px 0 2px;
+      }
+      @media (max-width: 700px) {
+        .kpi {
+          grid-template-columns: 1fr;
+        }
+      }
+      .pill {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 10px 10px 9px;
+        background: rgba(255, 255, 255, 0.88);
+      }
+      .pill b {
+        display: block;
+        color: var(--brand);
+        margin-bottom: 4px;
+      }
+
+      .qa {
+        margin: 12px 0;
+        border: 1px dashed rgba(217, 119, 6, 0.45);
+        background: rgba(217, 119, 6, 0.06);
+        border-radius: 14px;
+        padding: 12px;
+      }
+      .qa .q {
+        font-weight: 900;
+        color: var(--brand);
+        margin-bottom: 6px;
+      }
+
+      .footer {
+        text-align: center;
+        color: var(--muted);
+        font-size: 13px;
+        margin: 14px 0 0;
+      }
+
+      .toc {
+        margin: 10px 0 0;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.8);
+      }
+      .toc a {
+        color: var(--brand);
+        text-decoration: none;
+        font-weight: 900;
+      }
+      .toc a:hover {
+        text-decoration: underline;
+      }
+      .toc ul {
+        margin: 8px 0 0 18px;
+      }
+      .small {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      a {
+        color: var(--brand);
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+
+      /* Embedded editor */
+      .editorWrap {
+        margin-top: 14px;
+        border: 1px solid var(--border);
+        border-radius: calc(var(--r) + 6px);
+        overflow: hidden;
+        box-shadow: var(--shadow);
+        background: #fff;
+      }
+      .editorTop {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 12px;
+        background: linear-gradient(
+          135deg,
+          rgba(217, 119, 6, 0.1),
+          rgba(245, 158, 11, 0.08)
+        );
+        border-bottom: 1px solid var(--border);
+      }
+      .editorTop .title {
+        font-weight: 950;
+        color: var(--ink);
+      }
+      .editorTop .hint {
+        color: var(--muted);
+        font-size: 13px;
+        margin-top: 3px;
+      }
+      iframe.editor {
+        width: 100%;
+        height: 560px;
+        border: 0;
+        display: block;
+        background: #fff;
+      }
+      @media (max-width: 700px) {
+        iframe.editor {
+          height: 640px;
+        }
+        .editorTop {
+          flex-direction: column;
+        }
+      }
+      .btnrow {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border-radius: 12px;
+        border: 1px solid rgba(217, 119, 6, 0.25);
+        background: #fff;
+        color: var(--brand);
+        font-weight: 900;
+        cursor: pointer;
+        text-decoration: none;
+        user-select: none;
+      }
+      .btn:hover {
+        background: rgba(217, 119, 6, 0.06);
+      }
+      .btn:active {
+        transform: translateY(1px);
+      }
+      .btn:focus {
+        outline: 3px solid var(--focus);
+        outline-offset: 2px;
+      }
+
+      /* Code blocks with copy button */
+      .codebox {
+        margin: 12px 0;
+        border-radius: 14px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 14px 28px rgba(11, 18, 32, 0.22);
+        background: var(--codebg);
+      }
+      .codebar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 8px 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.06),
+          rgba(255, 255, 255, 0.02)
+        );
+      }
+      .codebar .label {
+        font-size: 12px;
+        color: rgba(229, 231, 235, 0.85);
+        font-weight: 900;
+        letter-spacing: 0.2px;
+      }
+      .copybtn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        background: rgba(255, 255, 255, 0.06);
+        color: rgba(229, 231, 235, 0.92);
+        font-weight: 900;
+        cursor: pointer;
+        user-select: none;
+        white-space: nowrap;
+      }
+      .copybtn:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+      .copybtn:active {
+        transform: translateY(1px);
+      }
+      .copybtn:focus {
+        outline: 3px solid rgba(245, 158, 11, 0.35);
+        outline-offset: 2px;
+      }
+      .copybtn .tick {
+        display: none;
+      }
+      .copybtn.copied .tick {
+        display: inline;
+      }
+      .copybtn.copied .clip {
+        display: none;
+      }
+
+      pre {
+        margin: 0;
+        background: transparent;
+        color: var(--codeink);
+        padding: 12px;
+        overflow: auto;
+      }
+      code {
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+      }
+      .inlinecode {
+        background: rgba(11, 18, 32, 0.08);
+        border: 1px solid rgba(11, 18, 32, 0.08);
+        padding: 2px 6px;
+        border-radius: 8px;
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        font-size: 0.95em;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="hero">
+        <span class="badge"
+          ><span class="dot"></span> Python Memory + Performance (Beginner →
+          Interview)</span
+        >
+        <h1>
+          Python: <span class="inlinecode">id()</span>,
+          <span class="inlinecode">del</span>,
+          <span class="inlinecode">gc</span>, object size, and execution time
+        </h1>
+        <p class="sub">
+          This lesson connects four confusing topics into one clear mental
+          model: <b>objects</b>, <b>references</b>, <b>memory</b>, and
+          <b>timing</b>.
+        </p>
+
+        <div class="kpi">
+          <div class="pill">
+            <b>Identity</b><span class="inlinecode">id()</span> → identifies
+            objects
+          </div>
+          <div class="pill"><b>Memory</b>Freed when references drop to 0</div>
+          <div class="pill">
+            <b>Timing</b>Measure with
+            <span class="inlinecode">perf_counter</span>/<span
+              class="inlinecode"
+              >timeit</span
+            >
+          </div>
+        </div>
+
+        <div class="toc">
+          <b>Contents</b>
+          <ul>
+            <li>
+              <a href="#id"
+                >1) <span class="inlinecode">id()</span> — what it is and what
+                it isn’t</a
+              >
+            </li>
+            <li>
+              <a href="#id-to-value"
+                >2) Why you cannot get “value from id” reliably</a
+              >
+            </li>
+            <li>
+              <a href="#del"
+                >3) Freeing memory: <span class="inlinecode">del</span>,
+                reassigning, and reference counts</a
+              >
+            </li>
+            <li>
+              <a href="#gc"
+                >4) Garbage collection: when
+                <span class="inlinecode">gc</span> matters (cycles)</a
+              >
+            </li>
+            <li>
+              <a href="#sizeof"
+                >5) Measuring memory:
+                <span class="inlinecode">getsizeof</span> (shallow) vs deep
+                size</a
+              >
+            </li>
+            <li>
+              <a href="#time"
+                >6) Measuring time: per-statement timing, benchmarking,
+                profiling</a
+              >
+            </li>
+            <li><a href="#try">7) Try it live: embedded Python editor</a></li>
+          </ul>
+          <div class="small">
+            Pro tip: Ask students to <b>predict output first</b>, then run it.
+            Curiosity rises → attendance rises 😄
+          </div>
+        </div>
+
+        <!-- Embedded Python Editor -->
+        <div class="editorWrap" id="try">
+          <div class="editorTop">
+            <div>
+              <div class="title">
+                🧪 Try the code here (Programmer’s Picnic Python Editor)
+              </div>
+              <div class="hint">
+                Paste any snippet from this post into the editor and run. If
+                Blogger blocks the iframe, open in a new tab.
+              </div>
+            </div>
+            <div class="btnrow">
+              <a
+                class="btn"
+                href="https://www.learnwithchampak.live/2026/01/programmers-picnic-python-editor.html"
+                target="_blank"
+                rel="noopener"
+                >Open editor in new tab ↗</a
+              >
+            </div>
+          </div>
+          <iframe
+            class="editor"
+            title="Programmer’s Picnic Python Editor"
+            src="https://www.learnwithchampak.live/2026/01/programmers-picnic-python-editor.html"
+            loading="lazy"
+            referrerpolicy="no-referrer"
+            allow="clipboard-read; clipboard-write"
+          ></iframe>
+        </div>
+        <p class="small" style="margin-top: 10px">
+          If the editor doesn’t load on Blogger: open it in a new tab (button
+          above). Some sites send headers that block embedding.
+        </p>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <h2 id="id">
+            1) <span class="inlinecode">id()</span> — what it is and what it
+            isn’t
+          </h2>
+          <p>
+            In Python, a variable is not a “box holding a value”. It is a
+            <b>name</b> (label) pointing to an <b>object</b>. The function
+            <span class="inlinecode">id(obj)</span> returns a unique identity
+            number for that object <b>during its lifetime</b>.
+          </p>
+
+          <div class="quote">
+            <b>Think of it like this:</b> object = house,
+            <span class="inlinecode">id()</span> = house address, variable =
+            nameplate on the gate. You can change the nameplate without changing
+            the house.
+          </div>
+
+          <div class="codebox">
+            <div class="codebar">
+              <span class="label">Demo: object identity</span>
+              <button class="copybtn" type="button" data-copy>
+                <span class="clip">📋 Copy</span
+                ><span class="tick">✅ Copied</span>
+              </button>
+            </div>
+            <pre><code>x = 10
+print("x =", x)
+print("id(x) =", id(x))</code></pre>
+          </div>
+
+          <p>
+            If two names point to the same object, they will share the same
+            <span class="inlinecode">id</span>. This is why
+            <span class="inlinecode">is</span> checks identity:
+          </p>
+
+          <div class="codebox">
+            <div class="codebar">
+              <span class="label">Demo: same object vs same value</span>
+              <button class="copybtn" type="button" data-copy>
+                <span class="clip">📋 Copy</span
+                ><span class="tick">✅ Copied</span>
+              </button>
+            </div>
+            <pre><code>a = [1, 2, 3]
+b = a
+c = [1, 2, 3]
+
+print(a is b)  # True  (same object)
+print(a == c)  # True  (same value)
+print(a is c)  # False (different objects)</code></pre>
+          </div>
+
+          <div class="qa">
+            <div class="q">Quick question 💬</div>
+            <div class="a">
+              Why does <span class="inlinecode">a == c</span> return True but
+              <span class="inlinecode">a is c</span> return False?
+            </div>
+          </div>
+
+          <h2 id="id-to-value">
+            2) Why you cannot get “value from id” reliably
+          </h2>
+          <p>
+            Many learners ask: “If I know an object’s
+            <span class="inlinecode">id</span>, can I get the variable value?”
+            In normal Python, the answer is <b>no</b>, because Python does not
+            keep a built-in reverse map like:
+          </p>
+          <div class="quote"><b>id → variable name → value</b></div>
+
+          <p>
+            Also, the question becomes ambiguous because one object can have
+            many names:
+          </p>
+
+          <div class="codebox">
+            <div class="codebar">
+              <span class="label">Ambiguity: one object, many names</span>
+              <button class="copybtn" type="button" data-copy>
+                <span class="clip">📋 Copy</span
+                ><span class="tick">✅ Copied</span>
+              </button>
+            </div>
+            <pre><code>a = 100
+b = 100
+
+print("id(a) =", id(a))
+print("id(b) =", id(b))
+print("a is b:", a is b)</code></pre>
+          </div>
+
+          <p>
+            If <span class="inlinecode">a</span> and
+            <span class="inlinecode">b</span> point to the same object, then
+            “return the value of the variable” is not meaningful. Which variable
+            name should Python return? There may be multiple.
+          </p>
+
+          <p>
+            <b>Correct approach (if you truly need lookup):</b> create a
+            registry yourself.
+          </p>
+
+          <div class="codebox">
+            <div class="codebar">
+              <span class="label">Safe method: your own registry</span>
+              <button class="copybtn" type="button" data-copy>
+                <span class="clip">📋 Copy</span
+                ><span class="tick">✅ Copied</span>
+              </button>
+            </div>
+            <pre><code>registry = {}
+
+obj = {"topic": "Python", "time": "7 PM"}
+registry[id(obj)] = obj
+
+print(registry[id(obj)])</code></pre>
+          </div>
+
+          <h2 id="del">
+            3) Freeing memory: <span class="inlinecode">del</span>, reassigning,
+            and reference counts
+          </h2>
+          <p>
+            Python mainly frees memory by <b>reference counting</b>. When an
+            object has <b>zero references</b> left, it becomes eligible for
+            cleanup. The keyword <span class="inlinecode">del</span> removes a
+            <b>name</b> (reference), not “the object in memory”.
+          </p>
+
+          <div class="quote">
+            <b>Rule:</b> Memory is freed when <b>no references</b> point to the
+            object.
+          </div>
+
+          <div class="codebox">
+            <div class="codebar">
+              <span class="label">del removes the name</span>
+              <button class="copybtn" type="button" data-copy>
+                <span class="clip">📋 Copy</span
+                ><span class="tick">✅ Copied</span>
+              </button>
+            </div>
+            <pre><code>x = [1, 2, 3]
+print("id(x) =", id(x))
+del x
+# x is gone now (NameError if you print x)</code></pre>
+          </div>
+
+          <p>
+            But if another name points to the same object, it will remain alive:
+          </p>
+
+          <div class="codebox">
+            <div class="codebar">
+              <span class="label">Not freed if another reference exists</span>
+              <button class="copybtn" type="button" data-copy>
+                <span class="clip">📋 Copy</span
+                ><span class="tick">✅ Copied</span>
+              </button>
+            </div>
+            <pre><code>a = [1, 2, 3]
+b = a
+del a
+print(b)  # still works, object still alive via b</code></pre>
+          </div>
+
+          <p>Reassigning also drops a reference:</p>
+
+          <div class="codebox">
+            <div class="codebar">
+              <span class="label">Reassigning drops the old object</span>
+              <button class="copybtn" type="button" data-copy>
+                <span class="clip">📋 Copy</span
+                ><span class="tick">✅ Copied</span>
+              </button>
+            </div>
+            <pre><code>big = [i for i in range(1_000_00)]
+big = None  # old list may be freed if no other refs exist</code></pre>
+          </div>
+
+          <div class="callout">
+            <strong>Reality check:</strong> Even if Python frees objects
+            internally, the process memory shown by Task Manager may not drop
+            immediately. That’s normal due to Python’s allocator and OS
+            behavior.
+          </div>
+
+          <h2 id="gc">
+            4) Garbage collection: when
+            <span class="inlinecode">gc</span> matters (cycles)
+          </h2>
+          <p>
+            Reference counting cannot free <b>cyclic references</b> (objects
+            referring to each other). That’s why Python also has a
+            <b>garbage collector</b> (GC) to detect cycles.
+          </p>
+
+          <div class="codebox">
+            <div class="codebar">
+              <span class="label">Cycle example</span>
+              <button class="copybtn" type="button" data-copy>
+                <span class="clip">📋 Copy</span
+                ><span class="tick">✅ Copied</span>
+              </button>
+            </div>
+            <pre><code>a = []
+a.append(a)   # a refers to itself (cycle)
+print("cycle created")</code></pre>
+          </div>
+
+          <p>You can request GC to run (rarely needed):</p>
+
+          <div class="codebox">
+            <div class="codebar">
+              <span class="label">gc.collect()</span>
+              <button class="copybtn" type="button" data-copy>
+                <span class="clip">📋 Copy</span
+                ><span class="tick">✅ Copied</span>
+              </button>
+            </div>
+            <pre><code>import gc
+collected = gc.collect()
+print("Collected objects:", collected)</code></pre>
+          </div>
+
+          <div class="callout">
+            <strong>When to use gc.collect()?</strong> Mostly for debugging or
+            memory-critical batch jobs. For typical programs, let Python manage
+            it.
+          </div>
+
+          <h2 id="sizeof">
+            5) Measuring memory:
+            <span class="inlinecode">getsizeof</span> (shallow) vs deep size
+          </h2>
+          <p>
+            Python objects have overhead. A list is a container that holds
+            references to items. So
+            <span class="inlinecode">sys.getsizeof()</span> gives the size of
+            the <b>container object</b> (shallow size), not the full memory of
+            everything inside.
+          </p>
+
+          <div class="codebox">
+            <div class="codebar">
+              <span class="label">Shallow size</span>
+              <button class="copybtn" type="button" data-copy>
+                <span class="clip">📋 Copy</span
+                ><span class="tick">✅ Copied</span>
+              </button>
+            </div>
+            <pre><code>import sys
+
+lst = [1, 2, 3]
+print(sys.getsizeof(lst), "bytes")</code></pre>
+          </div>
+
+          <p>
+            To estimate total memory (deep size), you can recursively add sizes:
+          </p>
+
+          <div class="codebox">
+            <div class="codebar">
+              <span class="label">Deep size (recursive)</span>
+              <button class="copybtn" type="button" data-copy>
+                <span class="clip">📋 Copy</span
+                ><span class="tick">✅ Copied</span>
+              </button>
+            </div>
+            <pre><code>import sys
+
+def deep_getsizeof(obj, seen=None):
+    if seen is None:
+        seen = set()
+    obj_id = id(obj)
+    if obj_id in seen:
+        return 0
+    seen.add(obj_id)
+
+    size = sys.getsizeof(obj)
+
+    if isinstance(obj, dict):
+        size += sum(deep_getsizeof(k, seen) + deep_getsizeof(v, seen)
+                    for k, v in obj.items())
+    elif isinstance(obj, (list, tuple, set)):
+        size += sum(deep_getsizeof(i, seen) for i in obj)
+
+    return size
+
+data = [1, 2, [3, 4], {"a": 10, "b": [11, 12]}]
+print("Deep size:", deep_getsizeof(data), "bytes")</code></pre>
+          </div>
+
+          <div class="qa">
+            <div class="q">Quick question 💬</div>
+            <div class="a">
+              Why can two lists with different numbers have similar
+              <span class="inlinecode">getsizeof</span> values?
+            </div>
+          </div>
+
+          <h2 id="time">
+            6) Measuring time: per-statement timing, benchmarking, profiling
+          </h2>
+          <p>
+            Timing is tricky because computers do background work and short
+            statements run extremely fast. That’s why we prefer
+            <span class="inlinecode">time.perf_counter()</span> (high precision)
+            and <span class="inlinecode">timeit</span> (repeat + average).
+          </p>
+
+          <h3>
+            6.1 High-precision timing with
+            <span class="inlinecode">perf_counter</span>
+          </h3>
+          <div class="codebox">
+            <div class="codebar">
+              <span class="label">Block timing with perf_counter</span>
+              <button class="copybtn" type="button" data-copy>
+                <span class="clip">📋 Copy</span
+                ><span class="tick">✅ Copied</span>
+              </button>
+            </div>
+            <pre><code>import time
+
+start = time.perf_counter()
+x = sum(range(1_000_000))
+end = time.perf_counter()
+
+print("Time:", end - start, "seconds")</code></pre>
+          </div>
+
+          <h3>6.2 Line-by-line timing (great for teaching)</h3>
+          <div class="codebox">
+            <div class="codebar">
+              <span class="label">Per-step timings</span>
+              <button class="copybtn" type="button" data-copy>
+                <span class="clip">📋 Copy</span
+                ><span class="tick">✅ Copied</span>
+              </button>
+            </div>
+            <pre><code>import time
+
+t0 = time.perf_counter()
+a = [i*i for i in range(200_000)]
+t1 = time.perf_counter()
+
+b = sum(a)
+t2 = time.perf_counter()
+
+c = max(a)
+t3 = time.perf_counter()
+
+print("build list:", t1 - t0)
+print("sum:", t2 - t1)
+print("max:", t3 - t2)</code></pre>
+          </div>
+
+          <h3>
+            6.3 Benchmarking with <span class="inlinecode">timeit</span> (most
+            reliable)
+          </h3>
+          <div class="codebox">
+            <div class="codebar">
+              <span class="label">timeit benchmark</span>
+              <button class="copybtn" type="button" data-copy>
+                <span class="clip">📋 Copy</span
+                ><span class="tick">✅ Copied</span>
+              </button>
+            </div>
+            <pre><code>import timeit
+
+t = timeit.timeit("sum(range(1000))", number=10000)
+print("Total time:", t)</code></pre>
+          </div>
+
+          <h3>
+            6.4 Profiling with <span class="inlinecode">cProfile</span> (for
+            bigger programs)
+          </h3>
+          <div class="codebox">
+            <div class="codebar">
+              <span class="label">cProfile</span>
+              <button class="copybtn" type="button" data-copy>
+                <span class="clip">📋 Copy</span
+                ><span class="tick">✅ Copied</span>
+              </button>
+            </div>
+            <pre><code>import cProfile
+cProfile.run("sum(range(1_000_000))")</code></pre>
+          </div>
+
+          <h2>🎯 Interview-Ready Summary</h2>
+          <table class="table">
+            <tr>
+              <th>Topic</th>
+              <th>Best one-liner</th>
+            </tr>
+            <tr>
+              <td><span class="inlinecode">id()</span></td>
+              <td>
+                Identity of an object during its lifetime; not a variable
+                address you can reverse-map.
+              </td>
+            </tr>
+            <tr>
+              <td><span class="inlinecode">del</span></td>
+              <td>
+                Removes a name/reference; object is freed only when no
+                references remain.
+              </td>
+            </tr>
+            <tr>
+              <td><span class="inlinecode">gc</span></td>
+              <td>
+                Collects cyclic garbage; manual
+                <span class="inlinecode">gc.collect()</span> is rarely needed.
+              </td>
+            </tr>
+            <tr>
+              <td>Size</td>
+              <td>
+                <span class="inlinecode">sys.getsizeof()</span> is shallow; deep
+                size requires traversal.
+              </td>
+            </tr>
+            <tr>
+              <td>Timing</td>
+              <td>
+                Use <span class="inlinecode">perf_counter</span> for timing and
+                <span class="inlinecode">timeit</span> for benchmarks.
+              </td>
+            </tr>
+          </table>
+
+          <div class="qa">
+            <div class="q">Final check 💬</div>
+            <div class="a">
+              If you do <span class="inlinecode">del x</span>, is memory
+              guaranteed to drop immediately in Task Manager? Why/why not?
+            </div>
+          </div>
+
+          <div class="footer">
+            Blogger-ready HTML • Light Saffron Theme • Copy buttons included for
+            every code block
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>✅ Quick Cheatsheet</h2>
+
+          <h3>Identity / Equality</h3>
+          <div class="codebox">
+            <div class="codebar">
+              <span class="label">is vs == vs id()</span>
+              <button class="copybtn" type="button" data-copy>
+                <span class="clip">📋 Copy</span
+                ><span class="tick">✅ Copied</span>
+              </button>
+            </div>
+            <pre><code>a is b   # same object?
+a == b   # same value?
+id(a)    # object identity</code></pre>
+          </div>
+
+          <h3>Freeing references</h3>
+          <div class="codebox">
+            <div class="codebar">
+              <span class="label">Drop references</span>
+              <button class="copybtn" type="button" data-copy>
+                <span class="clip">📋 Copy</span
+                ><span class="tick">✅ Copied</span>
+              </button>
+            </div>
+            <pre><code>del x
+x = None</code></pre>
+          </div>
+
+          <h3>Garbage collection</h3>
+          <div class="codebox">
+            <div class="codebar">
+              <span class="label">gc.collect()</span>
+              <button class="copybtn" type="button" data-copy>
+                <span class="clip">📋 Copy</span
+                ><span class="tick">✅ Copied</span>
+              </button>
+            </div>
+            <pre><code>import gc
+gc.collect()</code></pre>
+          </div>
+
+          <h3>Object size</h3>
+          <div class="codebox">
+            <div class="codebar">
+              <span class="label">Shallow size</span>
+              <button class="copybtn" type="button" data-copy>
+                <span class="clip">📋 Copy</span
+                ><span class="tick">✅ Copied</span>
+              </button>
+            </div>
+            <pre><code>import sys
+sys.getsizeof(obj)</code></pre>
+          </div>
+
+          <h3>Timing</h3>
+          <div class="codebox">
+            <div class="codebar">
+              <span class="label">perf_counter</span>
+              <button class="copybtn" type="button" data-copy>
+                <span class="clip">📋 Copy</span
+                ><span class="tick">✅ Copied</span>
+              </button>
+            </div>
+            <pre><code>import time
+t0 = time.perf_counter()
+# code...
+t1 = time.perf_counter()
+print(t1 - t0)</code></pre>
+          </div>
+
+          <h3>Benchmarking</h3>
+          <div class="codebox">
+            <div class="codebar">
+              <span class="label">timeit</span>
+              <button class="copybtn" type="button" data-copy>
+                <span class="clip">📋 Copy</span
+                ><span class="tick">✅ Copied</span>
+              </button>
+            </div>
+            <pre><code>import timeit
+timeit.timeit("sum(range(1000))", number=10000)</code></pre>
+          </div>
+
+          <h2>🧠 Mini-Assignments</h2>
+          <ul>
+            <li>
+              Write a function that prints <b>shallow size</b> and
+              <b>deep size</b> of any object.
+            </li>
+            <li>
+              Create a cyclic list and observe behavior with and without
+              <span class="inlinecode">gc.collect()</span>.
+            </li>
+            <li>
+              Compare timing of <span class="inlinecode">for</span> loop vs
+              list-comprehension for the same task.
+            </li>
+            <li>
+              Explain why <span class="inlinecode">del x</span> does not always
+              reduce OS memory immediately.
+            </li>
+          </ul>
+
+          <div class="callout">
+            <strong>Blogger note:</strong> Some Blogger themes block third-party
+            iframes. If the editor doesn’t show, open in a new tab.
+          </div>
+
+          <div class="footer">
+            Use this sidebar as your “revision box” in class.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Copy button for every code block (works on most modern browsers)
+      // Falls back to a selection-based copy if navigator.clipboard is blocked.
+      function copyText(text) {
+        if (navigator.clipboard && window.isSecureContext) {
+          return navigator.clipboard.writeText(text);
+        }
+        return new Promise(function (resolve, reject) {
+          try {
+            var ta = document.createElement("textarea");
+            ta.value = text;
+            ta.setAttribute("readonly", "");
+            ta.style.position = "fixed";
+            ta.style.left = "-9999px";
+            ta.style.top = "0";
+            document.body.appendChild(ta);
+            ta.select();
+            var ok = document.execCommand("copy");
+            document.body.removeChild(ta);
+            ok ? resolve() : reject(new Error("Copy command failed"));
+          } catch (e) {
+            reject(e);
+          }
+        });
+      }
+
+      function setBtnState(btn, copied) {
+        if (copied) {
+          btn.classList.add("copied");
+          btn.setAttribute("aria-label", "Copied");
+          setTimeout(function () {
+            btn.classList.remove("copied");
+            btn.setAttribute("aria-label", "Copy");
+          }, 1200);
+        }
+      }
+
+      document.addEventListener("click", function (e) {
+        var btn = e.target.closest("[data-copy]");
+        if (!btn) return;
+
+        var code = btn.closest(".codebox")?.querySelector("pre code");
+        if (!code) return;
+
+        var text = code.innerText.replace(/\n$/, "");
+        copyText(text)
+          .then(function () {
+            setBtnState(btn, true);
+          })
+          .catch(function () {
+            // last-resort: manual selection
+            try {
+              var range = document.createRange();
+              range.selectNodeContents(code);
+              var sel = window.getSelection();
+              sel.removeAllRanges();
+              sel.addRange(range);
+              setBtnState(btn, true);
+            } catch (err) {}
+          });
+      });
+    </script>
+  </body>
+</html>

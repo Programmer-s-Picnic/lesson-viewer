@@ -332,7 +332,8 @@ function applyModeUI() {
   ui.studentCard.style.display = STUDENT_LOCKED ? "block" : "none";
 
   // share hidden for students
-  btn.share.style.display = STUDENT_LOCKED ? "none" : "inline-flex";
+  btn.share.style.display = true ? "none" : "inline-flex";
+  // btn.share.style.display = STUDENT_LOCKED ? "none" : "inline-flex";
 
   // exam mode effects
   const exam = teacherCfg.examMode && (TEACHER_UI || STUDENT_LOCKED);
