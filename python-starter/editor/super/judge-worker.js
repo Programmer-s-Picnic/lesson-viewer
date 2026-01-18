@@ -1,12 +1,11 @@
 /* Judge Worker: runs Pyodide + tests off the UI thread.
    - Supports hard timeouts via terminate() from main thread.
-   - Best-effort policy restrictions (Classroom Mode).
+   - Policy is passed as JSON string to avoid JsProxy .get issues.
 */
 importScripts("https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js");
 
 let py = null;
 let ready = false;
-
 const MAX_OUT_CHARS = 50000;
 
 function clampOut(s) {
@@ -23,12 +22,15 @@ async function ensurePyodide() {
 import sys, builtins, io, traceback, json
 
 def _pp_run_capture(user_code: str, stdin_text: str, policy_json: str):
-    try:
-        policy = json.loads(policy_json) if policy_json else {}
-    except Exception:
-        policy = {}
     out = io.StringIO()
     err = io.StringIO()
+
+    try:
+        policy = json.loads(policy_json or "{}")
+        if not isinstance(policy, dict):
+            policy = {}
+    except Exception:
+        policy = {}
 
     data = (stdin_text or "").splitlines()
     idx = 0
@@ -51,14 +53,14 @@ def _pp_run_capture(user_code: str, stdin_text: str, policy_json: str):
 
     if policy.get("disable_eval_exec", False):
         def _no_eval(*a, **k):
-            raise PermissionError("eval() disabled in Classroom Mode")
+            raise PermissionError("eval() disabled")
         def _no_exec(*a, **k):
-            raise PermissionError("exec() disabled in Classroom Mode")
+            raise PermissionError("exec() disabled")
         builtins.eval = _no_eval
         builtins.exec = _no_exec
 
-    allow = set(policy.get("allow_imports", []))
-    block_all = policy.get("block_imports", False)
+    allow = set(policy.get("allow_imports", []) or [])
+    block_all = bool(policy.get("block_imports", False))
 
     old_import = builtins.__import__
     def _guarded_import(name, globals=None, locals=None, fromlist=(), level=0):
@@ -96,11 +98,6 @@ def _pp_run_capture(user_code: str, stdin_text: str, policy_json: str):
 self.onmessage = async (ev) => {
   const msg = ev.data || {};
   try {
-    if (msg.type === "PING") {
-      postMessage({ type: "PONG" });
-      return;
-    }
-
     if (msg.type === "INIT") {
       await ensurePyodide();
       if (msg.policy?.allow_micropip) {
@@ -111,20 +108,21 @@ self.onmessage = async (ev) => {
     }
 
     if (msg.type === "RUN_ONE") {
-      const { code, stdin, policy } = msg;
+      const { code, stdin, policyJson } = msg;
       await ensurePyodide();
 
       py.globals.set("U_CODE", code || "");
       py.globals.set("U_STDIN", stdin || "");
-      py.globals.set("U_POLICY_JSON", JSON.stringify(policy || {}));
+      py.globals.set("U_POLICY_JSON", policyJson || "{}" );
 
       await py.runPythonAsync(`
 from __main__ import _pp_run_capture
 RES = _pp_run_capture(U_CODE, U_STDIN, U_POLICY_JSON)
 `);
+
       const res = py.globals.get("RES");
       const obj = res.toJs({ dict_converter: Object.fromEntries });
-      try { res.destroy?.(); } catch (e) {}
+      try { res.destroy?.(); } catch {}
 
       obj.stdout = clampOut(obj.stdout);
       obj.stderr = clampOut(obj.stderr);
@@ -153,7 +151,7 @@ await micropip.install(pkgs)
       await py.runPythonAsync(`
 import pkgutil
 names = sorted({m.name for m in pkgutil.iter_modules()})
-OUT = "\\n".join(names[:4000])
+OUT = "\n".join(names[:4000])
 `);
       const out = py.globals.get("OUT");
       postMessage({ type: "PKG_LIST", text: String(out || "") });
