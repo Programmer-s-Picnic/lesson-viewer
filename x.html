@@ -1,326 +1,423 @@
-<!DOCTYPE html>
+<!-- project-3-resume-analyzer-mini.html -->
+<!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8" />
+    <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Ad Board — Play Mode</title>
+    <title>Project 3 — Resume Analyzer (Mini) (4 Steps)</title>
     <style>
+      :root {
+        --bg: #fff7e6;
+        --card: #ffffff;
+        --ink: #1f2937;
+        --muted: #6b7280;
+        --brand: #d97706;
+        --brand2: #f59e0b;
+        --border: #eadcc5;
+        --shadow: 0 18px 40px rgba(31, 41, 55, 0.14);
+        --ok: #166534;
+        --warn: #b45309;
+        --bad: #b91c1c;
+        --codebg: #0b1220;
+        --codeink: #e5e7eb;
+      }
       * {
         box-sizing: border-box;
       }
       body {
         margin: 0;
-        background: #000;
+        font-family:
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial,
+          sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+      }
+      .wrap {
+        max-width: 980px;
+        margin: 18px auto;
+        padding: 14px;
+      }
+      .top {
         display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 100vh;
+        gap: 12px;
+        align-items: flex-start;
+        flex-wrap: wrap;
       }
-      #board {
-        position: relative;
-        width: min(100vw, 177.77vh);
-        height: calc(min(100vw, 177.77vh) * 0.5625);
-        background: #000000;
-        overflow: hidden;
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        box-shadow: var(--shadow);
+        padding: 14px;
       }
-      .el {
-        position: absolute;
+      .hero {
+        flex: 1 1 560px;
       }
-      .box {
-        position: absolute;
-        inset: 0;
+      .meta {
+        flex: 1 1 320px;
+      }
+      h1 {
+        margin: 0 0 6px;
+        font-size: 22px;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .pill {
+        display: inline-block;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: #fff;
+        margin: 6px 8px 0 0;
+        font-size: 12px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 12px;
+        margin-top: 12px;
+      }
+      .step {
+        grid-column: span 12;
+      }
+      @media (min-width: 900px) {
+        .step {
+          grid-column: span 6;
+        }
+      }
+      .step h2 {
+        margin: 0 0 8px;
+        font-size: 18px;
+      }
+      .k {
+        border-left: 4px solid var(--brand);
+        padding-left: 10px;
+      }
+      ul {
+        margin: 8px 0 0 18px;
+      }
+      li {
+        margin: 6px 0;
+      }
+      .mini {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+      }
+      .mini > div {
+        flex: 1 1 260px;
+        border: 1px dashed var(--border);
         border-radius: 14px;
-        overflow: hidden;
+        padding: 10px;
+        background: #fffdf6;
       }
-      .content {
-        position: absolute;
-        inset: 0;
+      code,
+      pre {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+      pre {
+        background: var(--codebg);
+        color: var(--codeink);
+        padding: 12px;
+        border-radius: 14px;
+        overflow: auto;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .btns {
         display: flex;
-        align-items: center;
-        justify-content: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 10px;
       }
-      .textBlock {
-        width: 100%;
-        padding: 18px 16px;
+      button {
+        border: 1px solid var(--border);
+        background: #fff;
+        border-radius: 12px;
+        padding: 10px 12px;
+        cursor: pointer;
+      }
+      button:hover {
+        border-color: var(--brand2);
+      }
+      .line {
+        height: 1px;
+        background: var(--border);
+        margin: 10px 0;
+      }
+      .footer {
+        margin-top: 12px;
         text-align: center;
-        font-weight: 900;
-        will-change: transform, opacity;
+        color: var(--muted);
+        font-size: 12px;
       }
-      .slideBox {
-        width: 100%;
-        height: 100%;
-        position: relative;
-        background: #000;
+      .check {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        margin: 8px 0;
       }
-      .slideBox img {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        display: block;
-        opacity: 0;
-        transform: translate3d(0, 0, 0) scale(1);
-        transition: opacity var(--dur) ease;
-      }
-      .slideBox img.active {
-        opacity: 1;
-      }
-      .slideBox.fx-slide-left img,
-      .slideBox.fx-slide-right img,
-      .slideBox.fx-slide-up img,
-      .slideBox.fx-slide-down img,
-      .slideBox.fx-zoom img,
-      .slideBox.fx-flip img {
-        transition: opacity var(--dur) ease, transform var(--dur) ease;
-      }
-      .slideBox img.toLeft {
-        transform: translateX(-12%);
-      }
-      .slideBox img.fromRight {
-        transform: translateX(12%);
-      }
-      .slideBox img.toRight {
-        transform: translateX(12%);
-      }
-      .slideBox img.fromLeft {
-        transform: translateX(-12%);
-      }
-      .slideBox img.toUp {
-        transform: translateY(-12%);
-      }
-      .slideBox img.fromDown {
-        transform: translateY(12%);
-      }
-      .slideBox img.toDown {
-        transform: translateY(12%);
-      }
-      .slideBox img.fromUp {
-        transform: translateY(-12%);
-      }
-      .slideBox img.kenburns {
-        transform: scale(1.12);
-      }
-      .slideBox img.flip {
-        transform: rotateY(12deg) scale(1.02);
-      }
-      @keyframes scrollLeft {
-        from {
-          transform: translateX(110%);
-        }
-        to {
-          transform: translateX(-110%);
-        }
-      }
-      @keyframes scrollRight {
-        from {
-          transform: translateX(-110%);
-        }
-        to {
-          transform: translateX(110%);
-        }
-      }
-      @keyframes fade {
-        0%,
-        100% {
-          opacity: 0;
-        }
-        50% {
-          opacity: 1;
-        }
-      }
-      @keyframes zoom {
-        0% {
-          transform: scale(0.6);
-        }
-        50% {
-          transform: scale(1.18);
-        }
-        100% {
-          transform: scale(0.6);
-        }
-      }
-      @keyframes bounce {
-        0%,
-        100% {
-          transform: translateY(0);
-        }
-        50% {
-          transform: translateY(-22px);
-        }
-      }
-      .fx-scroll-left {
-        animation: scrollLeft linear infinite;
-      }
-      .fx-scroll-right {
-        animation: scrollRight linear infinite;
-      }
-      .fx-fade {
-        animation: fade ease-in-out infinite;
-      }
-      .fx-zoom {
-        animation: zoom ease-in-out infinite;
-      }
-      .fx-bounce {
-        animation: bounce ease-in-out infinite;
+      .check input {
+        margin-top: 3px;
       }
     </style>
   </head>
   <body>
-    <div id="board">
-      <div
-        class="el"
-        style="
-          left: 60px;
-          top: 60px;
-          width: 520px;
-          height: 120px;
-          transform: rotate(0deg);
-          transform-origin: center center;
-          opacity: 1;
-          z-index: 11;
-          position: absolute;
-        "
-      >
-        <div class="box">
-          <div class="content">
-            <div
-              class="textBlock fx-scroll-left"
-              style="
-                color: #ffffff;
-                font-size: 56px;
-                animation-duration: 6s;
-                white-space: nowrap;
-              "
-            >
-              Big Sale Today!
+    <div class="wrap">
+      <div class="top">
+        <div class="card hero">
+          <h1>Project 3: Resume Analyzer (Mini)</h1>
+          <div class="muted">
+            Goal: Take resume text and generate a <b>skill match score</b>,
+            <b>keyword counts</b>, and <b>simple suggestions</b>.
+          </div>
+          <div>
+            <span class="pill">Difficulty: Intermediate (Strings)</span>
+            <span class="pill">Time: 4–5 days</span>
+            <span class="pill">Deliverable: 1 working .py file</span>
+            <span class="pill">Focus: Strings + Lists + Logic</span>
+          </div>
+          <div class="line"></div>
+          <div class="k">
+            <b>Core idea:</b> Compare resume text vs a target skills list →
+            compute score + missing skills.
+          </div>
+        </div>
+
+        <div class="card meta">
+          <b>Submission Format</b>
+          <ul>
+            <li>
+              File name:
+              <code>project3_<span class="muted">yourname</span>.py</code>
+            </li>
+            <li>
+              Input method: paste resume text OR load from file (optional)
+            </li>
+            <li>Output: score + matched + missing + suggestions</li>
+          </ul>
+          <div class="line"></div>
+          <div class="muted">
+            <b>Evaluation (10 points):</b><br />
+            Matching logic(4) + Clean output(2) + Suggestions(2) + Edge cases(1)
+            + Testing(1)
+          </div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <!-- STEP 1 -->
+        <div class="card step">
+          <h2>Step 1 — PLAN (Skills + Scoring)</h2>
+          <div class="muted">Decide your target role and the keywords.</div>
+
+          <div class="mini">
+            <div>
+              <b>1A. Pick a role</b>
+              <ul>
+                <li>Python Intern</li>
+                <li>Web Developer</li>
+                <li>Data Analyst</li>
+              </ul>
+            </div>
+            <div>
+              <b>1B. Choose skill keywords</b>
+              <pre>
+skills = [
+  "python","loops","functions",
+  "lists","dictionaries",
+  "oops","sql","pandas",
+  "html","css","javascript"
+]</pre
+              >
+            </div>
+            <div>
+              <b>1C. Scoring rule</b>
+              <ul>
+                <li>Each matched skill = 1 point</li>
+                <li>Score % = matched / total</li>
+                <li>Suggestions = top missing skills</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="btns">
+            <button onclick="copyText('p3-plan')">
+              Copy Planning Template
+            </button>
+          </div>
+          <pre id="p3-plan">
+# Project 3 Plan (fill this)
+# Target Role:
+# Skills list (10-15 words):
+# Scoring method:
+# Output format: score + matched + missing + suggestions
+# Test resumes you will try (2+)</pre
+          >
+        </div>
+
+        <!-- STEP 2 -->
+        <div class="card step">
+          <h2>Step 2 — BUILD (Analyzer logic)</h2>
+          <div class="muted">
+            Normalize text, match keywords, compute results.
+          </div>
+
+          <div class="btns">
+            <button onclick="copyText('p3-skeleton')">
+              Copy Code Skeleton
+            </button>
+          </div>
+          <pre id="p3-skeleton">
+def normalize(text: str) -> str:
+    return " ".join(text.lower().split())
+
+def analyze(resume_text: str, skills: list[str]):
+    t = normalize(resume_text)
+    matched = []
+    missing = []
+    counts = {}
+
+    for sk in skills:
+        c = t.count(sk.lower())
+        counts[sk] = c
+        if c > 0:
+            matched.append(sk)
+        else:
+            missing.append(sk)
+
+    total = len(skills)
+    score = (len(matched) / total) * 100 if total else 0
+
+    suggestions = missing[:5]  # top 5 missing
+    return score, matched, missing, counts, suggestions
+
+def pretty_print(score, matched, missing, counts, suggestions):
+    print("\n=== Resume Analyzer (Mini) ===")
+    print(f"Score: {score:.1f}%")
+    print("\nMatched skills:", ", ".join(matched) if matched else "None")
+    print("Missing skills:", ", ".join(missing) if missing else "None")
+
+    print("\nKeyword counts:")
+    for k, v in counts.items():
+        print(f"- {k}: {v}")
+
+    print("\nSuggestions to improve:")
+    for s in suggestions:
+        print(f"* Add projects / lines showing: {s}")
+
+def main():
+    skills = ["python","loops","functions","lists","dictionaries","oops","sql","pandas","html","css","javascript"]
+
+    print("Paste resume text (end with a blank line):")
+    lines = []
+    while True:
+        line = input()
+        if line.strip() == "":
+            break
+        lines.append(line)
+
+    resume_text = "\n".join(lines).strip()
+    if not resume_text:
+        print("No text provided.")
+        return
+
+    score, matched, missing, counts, suggestions = analyze(resume_text, skills)
+    pretty_print(score, matched, missing, counts, suggestions)
+
+if __name__ == "__main__":
+    main()</pre
+          >
+        </div>
+
+        <!-- STEP 3 -->
+        <div class="card step">
+          <h2>Step 3 — TEST (Realistic resumes)</h2>
+          <div class="mini">
+            <div>
+              <b>Must test</b>
+              <ul>
+                <li>Resume with many skills</li>
+                <li>Resume with very few skills</li>
+                <li>Upper/lowercase differences</li>
+                <li>Empty input (should handle)</li>
+              </ul>
+            </div>
+            <div>
+              <b>Testing checklist</b>
+              <div class="check">
+                <input type="checkbox" />
+                <div>Score correct</div>
+              </div>
+              <div class="check">
+                <input type="checkbox" />
+                <div>Matched & missing correct</div>
+              </div>
+              <div class="check">
+                <input type="checkbox" />
+                <div>Counts make sense</div>
+              </div>
+              <div class="check">
+                <input type="checkbox" />
+                <div>Handles empty input safely</div>
+              </div>
+            </div>
+          </div>
+          <div class="line"></div>
+          <div class="muted">
+            <b>Tip:</b> Add synonyms later (e.g., "oop" vs "oops") as a bonus.
+          </div>
+        </div>
+
+        <!-- STEP 4 -->
+        <div class="card step">
+          <h2>Step 4 — SUBMIT (Make it presentable)</h2>
+          <ul>
+            <li>Add a short intro message + role name</li>
+            <li>Show score + top 5 missing skills clearly</li>
+            <li>Attach 2 sample resumes tested (text files or copy-paste)</li>
+          </ul>
+
+          <div class="mini">
+            <div>
+              <b>WhatsApp submission text</b>
+              <pre>
+Project 3 submitted ✅
+Name:
+Role selected:
+Score for sample resume:
+Top missing skills:
+One improvement I will add next:</pre
+              >
+            </div>
+            <div>
+              <b>Bonus (optional)</b>
+              <ul>
+                <li>Take job description text and compare</li>
+                <li>Give section-wise suggestions (Projects/Skills)</li>
+                <li>Export report to a .txt file</li>
+              </ul>
             </div>
           </div>
         </div>
       </div>
 
-      <div
-        class="el"
-        data-slide="el_4a336b80"
-        data-fx="fade"
-        data-dur="700"
-        style="
-          left: 90px;
-          top: 220px;
-          width: 560px;
-          height: 300px;
-          transform: rotate(0deg);
-          transform-origin: center center;
-          opacity: 1;
-          z-index: 12;
-          position: absolute;
-        "
-      >
-        <div class="box">
-          <div class="content">
-            <div class="slideBox fx-fade" style="--dur: 700ms">
-              <img
-                class="active"
-                src="blob:http://127.0.0.1:5502/c75632a4-5a74-4577-a363-06270b0fc997"
-                style="object-fit: cover"
-              />
-              <img
-                class=""
-                src="blob:http://127.0.0.1:5502/55b5e5e6-c300-4c8e-857f-c38636e73ff9"
-                style="object-fit: cover"
-              />
-              <img
-                class=""
-                src="blob:http://127.0.0.1:5502/c3fd53e1-3291-44dd-883f-9c498d946059"
-                style="object-fit: cover"
-              />
-              <img
-                class=""
-                src="blob:http://127.0.0.1:5502/94ecc0ef-5735-4271-8692-afc2b79c7fa2"
-                style="object-fit: cover"
-              />
-              <img
-                class=""
-                src="blob:http://127.0.0.1:5502/6a708288-8c20-4eff-945b-cb4ab29a6bc9"
-                style="object-fit: cover"
-              />
-              <img
-                class=""
-                src="blob:http://127.0.0.1:5502/15f8a149-8455-4bfc-8172-67cd4dd127b8"
-                style="object-fit: cover"
-              />
-            </div>
-          </div>
-        </div>
+      <div class="footer">
+        Programmer’s Picnic • Champ Schedule • Project 3 (4-Step Guide)
       </div>
     </div>
+
     <script>
-      (function () {
-        const root = document.querySelector('[data-slide="el_4a336b80"]');
-        if (!root) return;
-        const fx = root.getAttribute("data-fx") || "fade";
-        const box = root.querySelector(".slideBox");
-        const imgs = box.querySelectorAll("img");
-        let idx = 0;
-
-        function swap(nextIdx) {
-          const cur = imgs[idx],
-            next = imgs[nextIdx];
-          if (!cur || !next) return;
-
-          imgs.forEach((im) =>
-            im.classList.remove(
-              "toLeft",
-              "toRight",
-              "toUp",
-              "toDown",
-              "fromLeft",
-              "fromRight",
-              "fromUp",
-              "fromDown",
-              "kenburns",
-              "flip"
-            )
-          );
-
-          if (fx === "slide-left") next.classList.add("fromRight");
-          if (fx === "slide-right") next.classList.add("fromLeft");
-          if (fx === "slide-up") next.classList.add("fromDown");
-          if (fx === "slide-down") next.classList.add("fromUp");
-          if (fx === "zoom") next.classList.add("kenburns");
-          if (fx === "flip") next.classList.add("flip");
-
-          next.classList.add("active");
-          void next.offsetWidth;
-
-          if (fx === "slide-left") {
-            cur.classList.add("toLeft");
-            next.classList.remove("fromRight");
-          }
-          if (fx === "slide-right") {
-            cur.classList.add("toRight");
-            next.classList.remove("fromLeft");
-          }
-          if (fx === "slide-up") {
-            cur.classList.add("toUp");
-            next.classList.remove("fromDown");
-          }
-          if (fx === "slide-down") {
-            cur.classList.add("toDown");
-            next.classList.remove("fromUp");
-          }
-
-          setTimeout(() => {
-            cur.classList.remove("active");
-            cur.classList.remove("toLeft", "toRight", "toUp", "toDown");
-          }, 700);
-          idx = nextIdx;
-        }
-
-        setInterval(() => {
-          const nextIdx = (idx + 1) % imgs.length;
-          swap(nextIdx);
-        }, 2500);
-      })();
+      function copyText(id) {
+        const el = document.getElementById(id);
+        const txt = el ? el.innerText : "";
+        navigator.clipboard.writeText(txt).then(() => alert("Copied!"));
+      }
     </script>
   </body>
 </html>
