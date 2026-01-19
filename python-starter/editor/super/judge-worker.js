@@ -1,11 +1,12 @@
-/* Judge Worker: runs Pyodide + tests off the UI thread.
-   - Supports hard timeouts via terminate() from main thread.
-   - Policy is passed as JSON string to avoid JsProxy .get issues.
+/* Judge Worker (Pyodide in Web Worker)
+   - Hard timeout handled by main thread using worker.terminate()
+   - Policy passed as JSON string -> parsed to Python dict (fixes AttributeError: get)
 */
 importScripts("https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js");
 
 let py = null;
 let ready = false;
+
 const MAX_OUT_CHARS = 50000;
 
 function clampOut(s) {
@@ -22,15 +23,13 @@ async function ensurePyodide() {
 import sys, builtins, io, traceback, json
 
 def _pp_run_capture(user_code: str, stdin_text: str, policy_json: str):
-    out = io.StringIO()
-    err = io.StringIO()
-
     try:
         policy = json.loads(policy_json or "{}")
-        if not isinstance(policy, dict):
-            policy = {}
     except Exception:
         policy = {}
+
+    out = io.StringIO()
+    err = io.StringIO()
 
     data = (stdin_text or "").splitlines()
     idx = 0
@@ -53,13 +52,13 @@ def _pp_run_capture(user_code: str, stdin_text: str, policy_json: str):
 
     if policy.get("disable_eval_exec", False):
         def _no_eval(*a, **k):
-            raise PermissionError("eval() disabled")
+            raise PermissionError("eval() disabled in Classroom Mode")
         def _no_exec(*a, **k):
-            raise PermissionError("exec() disabled")
+            raise PermissionError("exec() disabled in Classroom Mode")
         builtins.eval = _no_eval
         builtins.exec = _no_exec
 
-    allow = set(policy.get("allow_imports", []) or [])
+    allow = set(policy.get("allow_imports", []))
     block_all = bool(policy.get("block_imports", False))
 
     old_import = builtins.__import__
@@ -90,7 +89,6 @@ def _pp_run_capture(user_code: str, stdin_text: str, policy_json: str):
         builtins.input = old_input
         builtins.__import__ = old_import
 `);
-
   ready = true;
   return py;
 }
@@ -108,18 +106,20 @@ self.onmessage = async (ev) => {
     }
 
     if (msg.type === "RUN_ONE") {
-      const { code, stdin, policyJson } = msg;
-      await ensurePyodide();
+      const code = msg.code || "";
+      const stdin = msg.stdin || "";
+      const policy = msg.policy || {};
+      const policy_json = JSON.stringify(policy);
 
-      py.globals.set("U_CODE", code || "");
-      py.globals.set("U_STDIN", stdin || "");
-      py.globals.set("U_POLICY_JSON", policyJson || "{}" );
+      await ensurePyodide();
+      py.globals.set("U_CODE", code);
+      py.globals.set("U_STDIN", stdin);
+      py.globals.set("U_POLICY_JSON", policy_json);
 
       await py.runPythonAsync(`
 from __main__ import _pp_run_capture
 RES = _pp_run_capture(U_CODE, U_STDIN, U_POLICY_JSON)
 `);
-
       const res = py.globals.get("RES");
       const obj = res.toJs({ dict_converter: Object.fromEntries });
       try { res.destroy?.(); } catch {}
@@ -139,8 +139,7 @@ RES = _pp_run_capture(U_CODE, U_STDIN, U_POLICY_JSON)
       py.globals.set("PKGS", msg.pkgs || []);
       await py.runPythonAsync(`
 import micropip
-pkgs = PKGS
-await micropip.install(pkgs)
+await micropip.install(PKGS)
 `);
       postMessage({ type: "INSTALLED", pkgs: msg.pkgs || [] });
       return;
@@ -151,13 +150,12 @@ await micropip.install(pkgs)
       await py.runPythonAsync(`
 import pkgutil
 names = sorted({m.name for m in pkgutil.iter_modules()})
-OUT = "\n".join(names[:4000])
+OUT = "\\n".join(names[:4000])
 `);
       const out = py.globals.get("OUT");
       postMessage({ type: "PKG_LIST", text: String(out || "") });
       return;
     }
-
   } catch (err) {
     postMessage({ type: "ERR", message: err?.message ? err.message : String(err) });
   }

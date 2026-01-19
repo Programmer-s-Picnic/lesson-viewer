@@ -6,15 +6,14 @@
     <title>Programmer's Picnic — Pyodide Editor (Judge v2)</title>
     <meta
       name="description"
-      content="Pyodide editor with Worker-based judge, problems, XP, classroom + teacher mode."
+      content="Pyodide editor with Worker-based judge, problems, XP, Classroom & Teacher Mode (tmode)."
     />
     <link rel="stylesheet" href="./style.css" />
   </head>
-
   <body>
     <div class="pp-app">
       <div class="pp-wrap">
-        <div class="pp-topbar">
+        <header class="pp-topbar">
           <div class="pp-brand">
             <div class="pp-logo" aria-hidden="true"></div>
             <div>
@@ -24,17 +23,21 @@
               </div>
             </div>
           </div>
-
           <div class="pp-actions">
-            <button class="pp-btn" id="ppClassroom">🎓 Classroom</button>
+            <button
+              class="pp-btn"
+              id="ppTeacherBtn"
+              title="Teacher Panel (tmode=1)"
+            >
+              🎓 Teacher
+            </button>
             <button class="pp-btn" id="ppFormat">⎘ Format</button>
             <button class="pp-btn" id="ppSave">💾 Save</button>
             <button class="pp-btn" id="ppShare">🔗 Share</button>
           </div>
-        </div>
+        </header>
 
-        <div class="pp-grid">
-          <!-- LEFT -->
+        <main class="pp-grid">
           <section class="pp-card pp-editorwrap">
             <div class="pp-cardhead">
               <div>
@@ -51,11 +54,9 @@
                 <button class="pp-btn pp-btn-danger" id="ppStop">
                   ⛔ Stop
                 </button>
-
                 <select id="ppExample" class="pp-select" title="Load example">
                   <option value="">Examples…</option>
                 </select>
-
                 <span class="pp-pill"
                   ><b>Pyodide:</b> <span id="ppPyText">worker</span></span
                 >
@@ -106,98 +107,34 @@
             </div>
           </section>
 
-          <!-- RIGHT -->
           <aside class="pp-split">
-            <!-- Teacher panel (tmode=1) -->
-            <section class="pp-card" id="ppTeacherPanel" style="display: none">
-              <div class="pp-cardhead">
-                <div>
-                  <h2>Teacher Panel</h2>
-                  <div class="pp-small">
-                    Visible only with <code>?tmode=1</code>.
-                  </div>
-                </div>
-              </div>
-              <div class="pp-pad">
-                <div class="pp-row" style="justify-content: flex-start">
-                  <label class="pp-toggle"
-                    ><input type="checkbox" id="ppTPForceClass" /> Force
-                    Classroom</label
-                  >
-                  <label class="pp-toggle"
-                    ><input type="checkbox" id="ppTPExam" /> Exam Mode</label
-                  >
-                  <label class="pp-toggle"
-                    ><input type="checkbox" id="ppTPLockProblem" /> Lock
-                    Problem</label
-                  >
-                </div>
-
-                <div
-                  class="pp-row"
-                  style="margin-top: 10px; justify-content: flex-start"
-                >
-                  <span class="pp-small">Attempt limit:</span>
-                  <input
-                    class="pp-input"
-                    id="ppTPAttempts"
-                    type="number"
-                    min="0"
-                    step="1"
-                    value="0"
-                    style="max-width: 120px"
-                  />
-                  <span class="pp-small">(0 = unlimited)</span>
-                </div>
-
-                <div
-                  class="pp-row"
-                  style="margin-top: 10px; justify-content: flex-start"
-                >
-                  <button class="pp-btn" id="ppTPExport">
-                    ⬇ Export submissions
-                  </button>
-                  <button class="pp-btn pp-btn-danger" id="ppTPClear">
-                    🗑 Clear
-                  </button>
-                  <span class="pp-pill"
-                    >Submissions: <b id="ppTPCount">0</b></span
-                  >
-                </div>
-
-                <div class="pp-small" style="margin-top: 10px">
-                  Tip: share <code>?tmode=0</code> link with students. It locks
-                  classroom mode ON.
-                </div>
-              </div>
-            </section>
-
-            <!-- Student details (tmode=0) -->
-            <section class="pp-card" id="ppStudentCard" style="display: none">
+            <section class="pp-card" id="ppStudentCard">
               <div class="pp-cardhead">
                 <div>
                   <h2>Your Details</h2>
-                  <div class="pp-small">Saved on this device.</div>
+                  <div class="pp-small">Used in submissions export.</div>
+                </div>
+                <div class="pp-toolbar">
+                  <span class="pp-pill">Mode: <b id="ppModeText">—</b></span>
                 </div>
               </div>
               <div class="pp-pad">
-                <div class="pp-row" style="justify-content: flex-start">
+                <div class="pp-row">
                   <input
+                    id="ppStuName"
                     class="pp-input"
-                    id="ppStudentName"
-                    placeholder="Name"
-                    style="flex: 1; min-width: 180px"
+                    placeholder="Name (e.g., Ravi Kumar)"
+                    style="flex: 1; min-width: 200px"
                   />
                   <input
+                    id="ppStuRoll"
                     class="pp-input"
-                    id="ppStudentRoll"
-                    placeholder="Roll / ID"
-                    style="flex: 1; min-width: 140px"
+                    placeholder="Roll / ID (e.g., CS21)"
+                    style="flex: 1; min-width: 160px"
                   />
                 </div>
                 <div class="pp-small" style="margin-top: 8px">
-                  Your code + score will be saved when you click
-                  <b>Run All Tests</b>.
+                  Tip: fill once; saved in this browser.
                 </div>
               </div>
             </section>
@@ -336,8 +273,72 @@
                 <div id="ppJudgeTableWrap"></div>
               </div>
             </section>
+
+            <section class="pp-card" id="ppTeacherPanel" style="display: none">
+              <div class="pp-cardhead">
+                <div>
+                  <h2>Teacher Panel</h2>
+                  <div class="pp-small">Visible only when <b>?tmode=1</b></div>
+                </div>
+                <div class="pp-toolbar">
+                  <span class="pp-pill"
+                    >Submissions: <b id="ppSubCount">0</b></span
+                  >
+                </div>
+              </div>
+              <div class="pp-pad">
+                <div class="pp-grid2">
+                  <label class="pp-toggle pp-toggle-wide"
+                    ><input type="checkbox" id="ppForceClass" /> Force
+                    Classroom</label
+                  >
+                  <label class="pp-toggle pp-toggle-wide"
+                    ><input type="checkbox" id="ppExamMode" /> Exam Mode</label
+                  >
+                  <label class="pp-toggle pp-toggle-wide"
+                    ><input type="checkbox" id="ppLockProblem" /> Lock
+                    Problem</label
+                  >
+                  <label class="pp-toggle pp-toggle-wide"
+                    ><input type="checkbox" id="ppLimitAttemptsOn" /> Attempt
+                    Limit</label
+                  >
+                  <label class="pp-toggle pp-toggle-wide"
+                    ><input type="checkbox" id="ppAllowPkgs" /> Allow
+                    Packages</label
+                  >
+                </div>
+
+                <div class="pp-row" style="margin-top: 10px">
+                  <input
+                    class="pp-input"
+                    id="ppAttemptLimit"
+                    type="number"
+                    min="1"
+                    max="50"
+                    value="5"
+                    style="width: 140px"
+                  />
+                  <span class="pp-small">Attempts allowed</span>
+                </div>
+
+                <div class="pp-row" style="margin-top: 12px">
+                  <button class="pp-btn" id="ppExportSubs">
+                    📤 Export Submissions
+                  </button>
+                  <button class="pp-btn pp-btn-danger" id="ppClearSubs">
+                    🧹 Clear
+                  </button>
+                </div>
+
+                <div class="pp-small" style="margin-top: 10px">
+                  Share student link:
+                  <span class="pp-mono" id="ppStudentLink"></span>
+                </div>
+              </div>
+            </section>
           </aside>
-        </div>
+        </main>
       </div>
 
       <div class="pp-toast" id="ppToast"></div>
