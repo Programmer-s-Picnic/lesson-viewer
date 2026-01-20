@@ -81,6 +81,77 @@
         photoSVG("Kashi Vishwanath", "Evening lanes nearby", 20),
       ],
     },
+
+    // --- Panchkroshi Parikrama (Established Stops) ---
+
+    {
+      id: "d_pk_dhundhi",
+      name: "Dhundhi Vinayak (Dhundhiraja)",
+      type: "Parikrama Stop",
+      bestTime: "sunrise",
+      timeNeeded: "15–30 min",
+      cost: "Free",
+      highlights:
+        "Traditional sankalpa (vow) point before starting Panchkroshi Parikrama.",
+      map: "https://www.google.com/maps/search/?api=1&query=Dhundhi+Vinayak+Varanasi",
+      photos: [photoSVG("Dhundhi Vinayak", "Sankalpa before Panchkroshi", 28)],
+    },
+    {
+      id: "d_pk_kardameshwar",
+      name: "Kardameshwar Mahadev (Kandwa)",
+      type: "Parikrama Stop",
+      bestTime: "day",
+      timeNeeded: "30–60 min",
+      cost: "Free",
+      highlights: "First major halt of Panchkroshi Parikrama.",
+      map: "https://www.google.com/maps/search/?api=1&query=Kardameshwar+Mahadev+Kandwa+Varanasi",
+      photos: [photoSVG("Kardameshwar", "Panchkroshi halt — Kandwa", 22)],
+    },
+    {
+      id: "d_pk_bhimchandi",
+      name: "Bhimchandi Devi Temple",
+      type: "Parikrama Stop",
+      bestTime: "day",
+      timeNeeded: "30–60 min",
+      cost: "Free",
+      highlights: "One of the five traditional halts of Panchkroshi Parikrama.",
+      map: "https://www.google.com/maps/search/?api=1&query=Bhimchandi+Devi+Temple+Varanasi",
+      photos: [photoSVG("Bhimchandi", "Panchkroshi halt", 16)],
+    },
+    {
+      id: "d_pk_rameshwar",
+      name: "Rameshwar Temple (Kashi)",
+      type: "Parikrama Stop",
+      bestTime: "day",
+      timeNeeded: "30–60 min",
+      cost: "Free",
+      highlights: "Traditional Panchkroshi halt at Rameshwar.",
+      map: "https://www.google.com/maps/search/?api=1&query=Rameshwar+Temple+Varanasi",
+      photos: [photoSVG("Rameshwar", "Panchkroshi halt", 34)],
+    },
+    {
+      id: "d_pk_shivpur",
+      name: "Shivpur Panchkroshi Halt",
+      type: "Parikrama Stop",
+      bestTime: "day",
+      timeNeeded: "20–40 min",
+      cost: "Free",
+      highlights: "One of the five traditional Panchkroshi night halts.",
+      map: "https://www.google.com/maps/search/?api=1&query=Shivpur+Panchkroshi+Varanasi",
+      photos: [photoSVG("Shivpur", "Panchkroshi halt", 10)],
+    },
+    {
+      id: "d_pk_kapildhara",
+      name: "Kapildhara (Kapiladhara)",
+      type: "Parikrama Stop",
+      bestTime: "day",
+      timeNeeded: "30–60 min",
+      cost: "Free",
+      highlights: "Final Panchkroshi halt before return to Manikarnika Ghat.",
+      map: "https://www.google.com/maps/search/?api=1&query=Kapildhara+Varanasi",
+      photos: [photoSVG("Kapildhara", "Final Panchkroshi halt", 42)],
+    },
+
     {
       id: "d2",
       name: "Dashashwamedh Ghat",
@@ -443,6 +514,39 @@
         "d12", // Godowlia
       ],
     },
+
+
+
+
+
+
+
+{
+  id: "r_kashi_panchkroshi_established",
+  name: "Kashi Panchkroshi Parikrama (Established)",
+  category: "parikrama",
+  featured: true,
+  bestTime: "sunrise",
+  duration: "5 days • ~88.5 km",
+  highlights:
+    "Traditional Panchkroshi Parikrama with five halts. Start and end at Manikarnika Ghat.",
+  steps: [
+    "d0",                // Home (pinned start)
+    "d4",                // Manikarnika Ghat
+    "d_pk_dhundhi",      // Sankalpa
+    "d_pk_kardameshwar", // Day 1 halt
+    "d_pk_bhimchandi",   // Day 2 halt
+    "d_pk_rameshwar",    // Day 3 halt
+    "d_pk_shivpur",      // Day 4 halt
+    "d_pk_kapildhara",   // Day 5 halt
+    "d4"                 // Return Manikarnika
+  ]
+},
+
+
+
+
+
     {
       id: "r_sarnath_halfday",
       name: "Sarnath Half-Day (Stupa + Museum)",
