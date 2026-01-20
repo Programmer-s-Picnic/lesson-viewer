@@ -1,44 +1,19 @@
 (() => {
-  const LS_TOUR = "varanasi_tour_v4";
-  const LS_COORDS = "varanasi_coords_v4";
-  const LS_USER_LOC = "varanasi_user_location_v1"; // {label, coords:[lat,lng], ts}
-  const LS_LOC_CACHE = "varanasi_loc_geocode_cache_v1"; // { "query": {coords:[lat,lng],label} }
+  const LS_TOUR = "varanasi_tour_v1";
+  const LS_COORDS = "varanasi_coords_v1";
+  const LS_GHAT_SEL = "varanasi_ghat_sel_v1";
 
-  // ---------- Utilities ----------
-  const now = () => Date.now();
-
-  // Haversine distance (km)
-  function distKm(a, b) {
-    if (!a || !b) return Infinity;
-    const [lat1, lon1] = a.map(Number);
-    const [lat2, lon2] = b.map(Number);
-    const R = 6371;
-    const toRad = (x) => (x * Math.PI) / 180;
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-    const s1 = Math.sin(dLat / 2),
-      s2 = Math.sin(dLon / 2);
-    const q = s1 * s1 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * s2 * s2;
-    return 2 * R * Math.asin(Math.sqrt(q));
-  }
-  function fmtKm(k) {
-    if (!isFinite(k)) return "—";
-    if (k < 1) return `${Math.round(k * 1000)} m`;
-    return `${k.toFixed(k < 10 ? 1 : 0)} km`;
-  }
-
-  // ---------- Offline SVG image generator ----------
-  function svgDataURI(svg) {
-    return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
-  }
-  function escapeXML(s) {
-    return String(s)
+  // ---------- Offline SVG "photo" ----------
+  const svgDataURI = (svg) =>
+    "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  const esc = (s) =>
+    String(s)
       .replaceAll("&", "&amp;")
       .replaceAll("<", "&lt;")
       .replaceAll(">", "&gt;")
       .replaceAll('"', "&quot;")
       .replaceAll("'", "&apos;");
-  }
+
   function photoSVG(title, subtitle, hue) {
     const h = Number(hue) || 30;
     return svgDataURI(`
@@ -46,9 +21,7 @@
         <defs>
           <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0" stop-color="hsl(${h}, 90%, 60%)" stop-opacity=".95"/>
-            <stop offset="1" stop-color="hsl(${
-              h + 40
-            }, 85%, 55%)" stop-opacity=".92"/>
+            <stop offset="1" stop-color="hsl(${h + 40}, 85%, 55%)" stop-opacity=".92"/>
           </linearGradient>
           <radialGradient id="r" cx="30%" cy="20%" r="80%">
             <stop offset="0" stop-color="#fff" stop-opacity=".55"/>
@@ -60,41 +33,19 @@
         </defs>
         <rect width="1200" height="700" fill="url(#g)"/>
         <rect width="1200" height="700" fill="url(#r)"/>
-        <path d="M0 520 C 200 490, 320 560, 520 530 C 720 500, 900 580, 1200 520 L1200 700 L0 700 Z"
-              fill="#ffffff" fill-opacity=".20"/>
-        <path d="M0 560 C 240 540, 360 610, 600 580 C 840 550, 980 640, 1200 580 L1200 700 L0 700 Z"
-              fill="#ffffff" fill-opacity=".18"/>
+        <path d="M0 520 C 200 490, 320 560, 520 530 C 720 500, 900 580, 1200 520 L1200 700 L0 700 Z" fill="#ffffff" fill-opacity=".20"/>
         <circle cx="960" cy="160" r="90" fill="#fff" fill-opacity=".22"/>
         <g filter="url(#s)">
-          <rect x="60" y="60" width="880" height="220" rx="28" fill="#fff" fill-opacity=".86"/>
-          <rect x="60" y="60" width="880" height="220" rx="28" fill="none" stroke="#eadcc5" stroke-width="6"/>
-          <text x="105" y="155" font-size="56" font-family="Arial, sans-serif" font-weight="800" fill="#1f2937">${escapeXML(
-            title,
-          )}</text>
-          <text x="105" y="220" font-size="26" font-family="Arial, sans-serif" font-weight="700" fill="#6b7280">${escapeXML(
-            subtitle,
-          )}</text>
-        </g>
-        <g fill="#1f2937" fill-opacity=".22">
-          <rect x="160" y="440" width="90" height="60" rx="10"/>
-          <rect x="265" y="410" width="120" height="90" rx="12"/>
-          <rect x="395" y="430" width="110" height="70" rx="12"/>
-          <rect x="520" y="400" width="140" height="100" rx="14"/>
-          <rect x="670" y="430" width="110" height="70" rx="12"/>
-          <rect x="800" y="410" width="120" height="90" rx="12"/>
+          <rect x="60" y="60" width="820" height="210" rx="28" fill="#fff" fill-opacity=".86"/>
+          <rect x="60" y="60" width="820" height="210" rx="28" fill="none" stroke="#eadcc5" stroke-width="6"/>
+          <text x="105" y="150" font-size="56" font-family="Arial, sans-serif" font-weight="800" fill="#1f2937">${esc(title)}</text>
+          <text x="105" y="210" font-size="26" font-family="Arial, sans-serif" font-weight="700" fill="#6b7280">${esc(subtitle)}</text>
         </g>
       </svg>
     `);
   }
-  function pics(name, a, b, c, hue) {
-    return [
-      photoSVG(name, a, hue),
-      photoSVG(name, b, hue + 10),
-      photoSVG(name, c, hue + 20),
-    ];
-  }
 
-  // ---------- Start Point (Pinned) ----------
+  // ---------- Data ----------
   const HOME = {
     id: "d0",
     name: "Champak's Home",
@@ -104,7 +55,6 @@
     cost: "—",
     highlights: "Your starting point (25.349304, 83.001256).",
     map: "https://www.google.com/maps/search/?api=1&query=25.349304,83.001256",
-    mapShort: "https://maps.app.goo.gl/bknSLrV9C48gY4yK6",
     coords: [25.349304, 83.001256],
     photos: [
       photoSVG("Champak's Home", "Start here • 25.349304, 83.001256", 35),
@@ -113,535 +63,320 @@
     ],
   };
 
-  // ---------- Destinations (expanded + Parikrama stops included) ----------
   const DEST = [
     HOME,
-
-    // Panchkosi / Parikrama anchors
-    {
-      id: "pk0",
-      name: "Manikarnika (Kund/Ghat area)",
-      type: "Parikrama",
-      bestTime: "day",
-      timeNeeded: "30–60 min",
-      cost: "Free",
-      highlights:
-        "Traditional start/end reference for Panchkosi circuit (visit respectfully).",
-      map: "https://www.google.com/maps/search/?api=1&query=Manikarnika+Ghat+Varanasi",
-      photos: pics(
-        "Manikarnika",
-        "Sacred start/end",
-        "Ancient traditions",
-        "Respectful visit",
-        8,
-      ),
-    },
-    {
-      id: "pk1",
-      name: "Kardameshwar (Kandwa) — 1st Padav",
-      type: "Parikrama",
-      bestTime: "day",
-      timeNeeded: "45–90 min",
-      cost: "Free",
-      highlights: "1st padav/stop of Panchkosi (Kardameshwar / Kandwa).",
-      map: "https://www.google.com/maps/search/?api=1&query=Kardameshwar+Temple+Kandwa+Varanasi",
-      photos: pics(
-        "Kardameshwar",
-        "1st Padav",
-        "Pilgrimage halt",
-        "Temple stop",
-        22,
-      ),
-    },
-    {
-      id: "pk2",
-      name: "Bhimchandi — 2nd Padav",
-      type: "Parikrama",
-      bestTime: "day",
-      timeNeeded: "45–90 min",
-      cost: "Free",
-      highlights: "2nd padav/stop of Panchkosi (Bhimchandi).",
-      map: "https://www.google.com/maps/search/?api=1&query=Bhimchandi+Temple+Varanasi",
-      photos: pics(
-        "Bhimchandi",
-        "2nd Padav",
-        "Pilgrimage halt",
-        "Temple stop",
-        28,
-      ),
-    },
-    {
-      id: "pk3",
-      name: "Rameshwar — 3rd Padav",
-      type: "Parikrama",
-      bestTime: "day",
-      timeNeeded: "45–120 min",
-      cost: "Free",
-      highlights: "3rd padav/stop of Panchkosi (Rameshwar).",
-      map: "https://www.google.com/maps/search/?api=1&query=Rameshwar+Temple+Varanasi",
-      photos: pics(
-        "Rameshwar",
-        "3rd Padav",
-        "Pilgrimage halt",
-        "Temple stop",
-        35,
-      ),
-    },
-    {
-      id: "pk4",
-      name: "Shivpur — 4th Padav",
-      type: "Parikrama",
-      bestTime: "day",
-      timeNeeded: "45–90 min",
-      cost: "Free",
-      highlights: "4th padav/stop of Panchkosi (Shivpur).",
-      map: "https://www.google.com/maps/search/?api=1&query=Shivpur+Varanasi+Panchkosi",
-      photos: pics(
-        "Shivpur",
-        "4th Padav",
-        "Pilgrimage halt",
-        "Temple stop",
-        16,
-      ),
-    },
-    {
-      id: "pk5",
-      name: "Kapildhara — 5th Padav",
-      type: "Parikrama",
-      bestTime: "day",
-      timeNeeded: "45–90 min",
-      cost: "Free",
-      highlights: "5th padav/stop of Panchkosi (Kapildhara).",
-      map: "https://www.google.com/maps/search/?api=1&query=Kapildhara+Temple+Varanasi",
-      photos: pics(
-        "Kapildhara",
-        "5th Padav",
-        "Pilgrimage halt",
-        "Temple stop",
-        44,
-      ),
-    },
-
-    // Core city
     {
       id: "d1",
       name: "Shri Kashi Vishwanath Temple",
       type: "Temple",
       bestTime: "day",
       timeNeeded: "1–2 hrs",
-      cost: "Depends",
-      highlights: "Spiritual heart of Kashi; iconic temple area.",
+      cost: "Depends (donations / queue services)",
+      highlights: "Spiritual heart of Kashi; iconic temple & corridor.",
       map: "https://www.google.com/maps/search/?api=1&query=Kashi+Vishwanath+Temple+Varanasi",
       coords: [25.31085, 83.01068],
-      photos: pics(
-        "Kashi Vishwanath",
-        "Temple & corridor vibes",
-        "Morning darshan energy",
-        "Old lanes nearby",
-        28,
-      ),
+      photos: [
+        photoSVG("Kashi Vishwanath", "Temple & corridor vibes", 28),
+        photoSVG("Kashi Vishwanath", "Morning darshan energy", 36),
+        photoSVG("Kashi Vishwanath", "Evening lanes nearby", 20),
+      ],
     },
     {
       id: "d2",
-      name: "Annapurna Temple",
-      type: "Temple",
-      bestTime: "day",
-      timeNeeded: "30–60 min",
-      cost: "Free",
-      highlights: "Beloved temple near Vishwanath area.",
-      map: "https://www.google.com/maps/search/?api=1&query=Annapurna+Temple+Varanasi",
-      photos: pics(
-        "Annapurna Temple",
-        "Devotional stop",
-        "Near Vishwanath area",
-        "Quiet darshan moments",
-        18,
-      ),
-    },
-    {
-      id: "d3",
-      name: "Kaal Bhairav Temple",
-      type: "Temple",
-      bestTime: "day",
-      timeNeeded: "45–90 min",
-      cost: "Free",
-      highlights: "Popular local deity temple; queues common.",
-      map: "https://www.google.com/maps/search/?api=1&query=Kaal+Bhairav+Temple+Varanasi",
-      photos: pics(
-        "Kaal Bhairav",
-        "Local devotion",
-        "Queue & darshan",
-        "Temple street",
-        320,
-      ),
-    },
-    {
-      id: "d4",
-      name: "Sankat Mochan Hanuman Temple",
-      type: "Temple",
-      bestTime: "day",
-      timeNeeded: "45–90 min",
-      cost: "Free",
-      highlights: "Famous Hanuman temple near BHU.",
-      map: "https://www.google.com/maps/search/?api=1&query=Sankat+Mochan+Temple+Varanasi",
-      coords: [25.281852, 82.998652],
-      photos: pics(
-        "Sankat Mochan",
-        "Hanuman temple",
-        "Prasad & prayers",
-        "Near BHU area",
-        30,
-      ),
-    },
-    {
-      id: "d5",
-      name: "Durga Kund Temple",
-      type: "Temple",
-      bestTime: "day",
-      timeNeeded: "45–90 min",
-      cost: "Free",
-      highlights: "Major Shakti temple; kund adds charm.",
-      map: "https://www.google.com/maps/search/?api=1&query=Durga+Kund+Temple+Varanasi",
-      photos: pics(
-        "Durga Kund",
-        "Shakti temple",
-        "Kund surroundings",
-        "Festival season crowds",
-        12,
-      ),
-    },
-    {
-      id: "d6",
-      name: "Tulsi Manas Temple",
-      type: "Temple",
-      bestTime: "day",
-      timeNeeded: "45–90 min",
-      cost: "Free",
-      highlights: "Calm temple complex; Ramcharitmanas legacy.",
-      map: "https://www.google.com/maps/search/?api=1&query=Tulsi+Manas+Temple+Varanasi",
-      photos: pics(
-        "Tulsi Manas",
-        "Temple calm",
-        "Wall inscriptions",
-        "Near Durga Kund zone",
-        22,
-      ),
-    },
-    {
-      id: "d7",
-      name: "New Vishwanath Temple (BHU Birla Temple)",
-      type: "Temple",
-      bestTime: "evening",
-      timeNeeded: "45–90 min",
-      cost: "Free",
-      highlights: "Beautiful BHU campus temple; serene.",
-      map: "https://www.google.com/maps/search/?api=1&query=New+Vishwanath+Temple+BHU+Varanasi",
-      coords: [25.2763, 82.9997],
-      photos: pics(
-        "New Vishwanath (BHU)",
-        "Campus temple",
-        "Evening lights",
-        "Peaceful walk",
-        36,
-      ),
-    },
-
-    {
-      id: "d8",
       name: "Dashashwamedh Ghat",
       type: "Ghat",
       bestTime: "evening",
       timeNeeded: "1–2 hrs",
-      cost: "Free",
-      highlights: "Most famous ghat; grand Ganga Aarti.",
+      cost: "Free (Aarti seating may cost)",
+      highlights: "Famous for the Ganga Aarti; lively riverfront.",
       map: "https://www.google.com/maps/search/?api=1&query=Dashashwamedh+Ghat+Varanasi",
       coords: [25.30716889, 83.01033639],
-      photos: pics(
-        "Dashashwamedh Ghat",
-        "Ganga Aarti (evening)",
-        "Crowd & lamps glow",
-        "Riverfront view",
-        18,
-      ),
+      photos: [
+        photoSVG("Dashashwamedh Ghat", "Ganga Aarti (evening)", 18),
+        photoSVG("Dashashwamedh Ghat", "Crowd & lamps glow", 26),
+        photoSVG("Dashashwamedh Ghat", "Riverfront view", 14),
+      ],
     },
     {
-      id: "d9",
+      id: "d3",
       name: "Assi Ghat",
       type: "Ghat",
       bestTime: "sunrise",
       timeNeeded: "1–2 hrs",
       cost: "Free",
-      highlights: "Calm sunrise vibe; walks, yoga & chai.",
+      highlights: "Sunrise calm, morning walks, chai & boats.",
       map: "https://www.google.com/maps/search/?api=1&query=Assi+Ghat+Varanasi",
       coords: [25.289322, 83.006499],
-      photos: pics(
-        "Assi Ghat",
-        "Sunrise calm",
-        "Morning walk & chai",
-        "Boats & soft light",
-        40,
-      ),
+      photos: [
+        photoSVG("Assi Ghat", "Sunrise calm", 40),
+        photoSVG("Assi Ghat", "Morning walk & chai", 34),
+        photoSVG("Assi Ghat", "Boats & soft light", 46),
+      ],
     },
     {
-      id: "d10",
+      id: "d4",
       name: "Manikarnika Ghat",
       type: "Ghat",
       bestTime: "day",
       timeNeeded: "30–60 min",
       cost: "Free",
-      highlights: "Major cremation ghat; visit respectfully.",
+      highlights: "Major cremation ghat; be respectful.",
       map: "https://www.google.com/maps/search/?api=1&query=Manikarnika+Ghat+Varanasi",
       coords: [25.31087056, 83.01408556],
-      photos: pics(
-        "Manikarnika Ghat",
-        "Old traditions",
-        "Historic riverfront",
-        "Respectful viewing",
-        6,
-      ),
+      photos: [
+        photoSVG("Manikarnika Ghat", "Oldest traditions", 10),
+        photoSVG("Manikarnika Ghat", "Historic riverfront", 16),
+        photoSVG("Manikarnika Ghat", "Respectful viewing", 6),
+      ],
     },
     {
-      id: "d11",
-      name: "Harishchandra Ghat",
-      type: "Ghat",
-      bestTime: "day",
-      timeNeeded: "30–60 min",
-      cost: "Free",
-      highlights: "Important cremation ghat; calm atmosphere.",
-      map: "https://www.google.com/maps/search/?api=1&query=Harishchandra+Ghat+Varanasi",
-      photos: pics(
-        "Harishchandra Ghat",
-        "Historic ghat",
-        "Quiet riverfront",
-        "Respect and silence",
-        10,
-      ),
-    },
-
-    {
-      id: "d14",
+      id: "d5",
       name: "Sarnath (Dhamek Stupa & ruins)",
       type: "Sarnath",
       bestTime: "day",
       timeNeeded: "2–4 hrs",
       cost: "Tickets may apply",
-      highlights: "Buddhist pilgrimage; serene monuments & ruins.",
+      highlights: "Buddhist pilgrimage site; serene monuments & ruins.",
       map: "https://www.google.com/maps/search/?api=1&query=Dhamek+Stupa+Sarnath",
       coords: [25.3808, 83.0245],
-      photos: pics(
-        "Sarnath",
-        "Dhamek Stupa",
-        "Peaceful lawns",
-        "Ruins & history",
-        120,
-      ),
+      photos: [
+        photoSVG("Sarnath", "Dhamek Stupa", 120),
+        photoSVG("Sarnath", "Peaceful lawns", 140),
+        photoSVG("Sarnath", "Ruins & history", 110),
+      ],
     },
     {
-      id: "d15",
+      id: "d6",
       name: "Sarnath Museum (Archaeological Museum)",
-      type: "Museum",
+      type: "Sarnath",
       bestTime: "day",
       timeNeeded: "1–2 hrs",
       cost: "Tickets apply",
-      highlights: "Artifacts & sculpture; learning stop.",
+      highlights:
+        "Artifacts & heritage exhibits; iconic Ashokan lion capital association.",
       map: "https://www.google.com/maps/search/?api=1&query=Sarnath+Museum",
       coords: [25.376165, 83.022713],
-      photos: pics(
-        "Sarnath Museum",
-        "Artifacts & sculpture",
-        "Heritage exhibits",
-        "Learning stop",
-        200,
-      ),
+      photos: [
+        photoSVG("Sarnath Museum", "Artifacts & sculpture", 200),
+        photoSVG("Sarnath Museum", "Heritage exhibits", 190),
+        photoSVG("Sarnath Museum", "Learning stop", 210),
+      ],
     },
-
     {
-      id: "d17",
+      id: "d7",
       name: "Ramnagar Fort",
       type: "Heritage",
       bestTime: "day",
       timeNeeded: "1–2 hrs",
       cost: "Tickets may apply",
-      highlights: "Historic fort across the Ganga; museum collections.",
+      highlights: "Historic fort across the Ganga; museum & collections.",
       map: "https://www.google.com/maps/search/?api=1&query=Ramnagar+Fort+Varanasi",
       coords: [25.269262, 83.022144],
-      photos: pics(
-        "Ramnagar Fort",
-        "Fort & museum",
-        "Royal collections",
-        "Ganga-side view",
-        260,
-      ),
+      photos: [
+        photoSVG("Ramnagar Fort", "Fort & museum", 260),
+        photoSVG("Ramnagar Fort", "Royal collections", 240),
+        photoSVG("Ramnagar Fort", "Ganga-side view", 280),
+      ],
     },
     {
-      id: "d18",
+      id: "d8",
       name: "BHU & Bharat Kala Bhavan",
       type: "Heritage",
       bestTime: "day",
       timeNeeded: "2–4 hrs",
-      cost: "Entry rules vary",
-      highlights: "Campus stroll + art museum; calm green spaces.",
+      cost: "Often free/entry rules vary",
+      highlights: "Campus stroll + art museum; peaceful green spaces.",
       map: "https://www.google.com/maps/search/?api=1&query=BHU+Bharat+Kala+Bhavan+Varanasi",
-      coords: [25.27149, 82.995994],
-      photos: pics(
-        "BHU & Kala Bhavan",
-        "Green campus walk",
-        "Art & culture",
-        "Quiet evenings",
-        90,
-      ),
+      coords: [25.2677, 82.9913],
+      photos: [
+        photoSVG("BHU", "Green campus walk", 90),
+        photoSVG("Bharat Kala Bhavan", "Art & culture", 70),
+        photoSVG("BHU", "Quiet evenings", 100),
+      ],
     },
-
     {
-      id: "d21",
+      id: "d9",
+      name: "Kaal Bhairav Temple",
+      type: "Temple",
+      bestTime: "day",
+      timeNeeded: "45–90 min",
+      cost: "Free",
+      highlights: "Popular local deity temple; often a dedicated queue.",
+      map: "https://www.google.com/maps/search/?api=1&query=Kaal+Bhairav+Temple+Varanasi",
+      coords: [25.3248, 83.0114],
+      photos: [
+        photoSVG("Kaal Bhairav", "Local devotion", 320),
+        photoSVG("Kaal Bhairav", "Queue & darshan", 300),
+        photoSVG("Kaal Bhairav", "Temple street", 340),
+      ],
+    },
+    {
+      id: "d10",
+      name: "Sankat Mochan Hanuman Temple",
+      type: "Temple",
+      bestTime: "day",
+      timeNeeded: "45–90 min",
+      cost: "Free",
+      highlights: "Beloved Hanuman temple; close to BHU area.",
+      map: "https://www.google.com/maps/search/?api=1&query=Sankat+Mochan+Temple+Varanasi",
+      coords: [25.281852, 82.998652],
+      photos: [
+        photoSVG("Sankat Mochan", "Hanuman temple", 30),
+        photoSVG("Sankat Mochan", "Prasad & prayers", 22),
+        photoSVG("Sankat Mochan", "Near BHU area", 38),
+      ],
+    },
+    {
+      id: "d11",
       name: "Boat Ride on the Ganga (Ghats stretch)",
       type: "Experience",
       bestTime: "sunrise",
       timeNeeded: "1–2 hrs",
       cost: "Paid",
-      highlights: "Classic experience—see ghats from the river.",
+      highlights: "See ghats from the river (sunrise is magical).",
       map: "https://www.google.com/maps/search/?api=1&query=Boat+ride+Varanasi+ghats",
-      photos: pics(
-        "Boat Ride",
-        "Sunrise on Ganga",
-        "Ghats panorama",
-        "Quiet water moments",
-        48,
-      ),
+      coords: [25.3075, 83.0109],
+      photos: [
+        photoSVG("Boat Ride", "Sunrise on Ganga", 48),
+        photoSVG("Boat Ride", "Ghats panorama", 54),
+        photoSVG("Boat Ride", "Quiet water moments", 42),
+      ],
     },
-
     {
-      id: "d24",
+      id: "d12",
       name: "Godowlia Market (Shopping & street life)",
       type: "Market",
       bestTime: "evening",
       timeNeeded: "1–2 hrs",
       cost: "Free",
-      highlights: "Local shopping lanes; Banarasi items & snacks.",
+      highlights: "Shopping + lanes; Banarasi items and snacks.",
       map: "https://www.google.com/maps/search/?api=1&query=Godowlia+Market+Varanasi",
-      photos: pics(
-        "Godowlia Market",
-        "Street life & shops",
-        "Snacks & lanes",
-        "Evening lights",
-        5,
-      ),
+      coords: [25.3094, 83.0089],
+      photos: [
+        photoSVG("Godowlia Market", "Street life & shops", 5),
+        photoSVG("Godowlia Market", "Snacks & lanes", 18),
+        photoSVG("Godowlia Market", "Evening lights", 10),
+      ],
     },
-    {
-      id: "d25",
-      name: "Banaras Silk & Weaving Lanes (Saree experience)",
-      type: "Market",
-      bestTime: "day",
-      timeNeeded: "2–3 hrs",
+  ];
+
+  // Ghats (bulk directory)
+  const GHATS = (() => {
+    const south = [
+      "Assi Ghat",
+      "Ganga Mahal Ghat",
+      "Tulsi Ghat",
+      "Kedar Ghat",
+      "Harishchandra Ghat",
+      "Shivala Ghat",
+      "Jain Ghat",
+      "Bhadaini Ghat",
+      "Hanuman Ghat",
+      "Lalita Ghat",
+    ];
+    const central = [
+      "Dashashwamedh Ghat",
+      "Man Mandir Ghat",
+      "Ahilyabai Ghat (Keval Ghat)",
+      "Meer Ghat",
+      "Munshi Ghat",
+      "Scindia Ghat",
+      "Darbhanga Ghat",
+      "Rana Mahal Ghat",
+      "Panchganga Ghat",
+    ];
+    const north = [
+      "Manikarnika Ghat",
+      "Lal Ghat",
+      "Naya Ghat",
+      "Rajendra Prasad Ghat",
+      "Adi Keshav Ghat",
+      "Trilochan Ghat",
+      "Prajapati Ghat",
+      "Chausatti Ghat",
+      "Ram Ghat",
+      "Raj Ghat",
+    ];
+    const famous = new Set([
+      "Assi Ghat",
+      "Dashashwamedh Ghat",
+      "Manikarnika Ghat",
+      "Panchganga Ghat",
+      "Harishchandra Ghat",
+      "Kedar Ghat",
+      "Scindia Ghat",
+      "Man Mandir Ghat",
+      "Raj Ghat",
+      "Tulsi Ghat",
+    ]);
+    const mk = (name, group, i) => ({
+      id: `g${group[0]}${String(i).padStart(2, "0")}`,
+      name,
+      group,
+      type: "Ghat",
+      bestTime:
+        group === "south"
+          ? "sunrise"
+          : name === "Dashashwamedh Ghat"
+            ? "evening"
+            : "day",
+      timeNeeded: "20–60 min",
       cost: "Free",
-      highlights: "Explore Banarasi silk craft (trusted sellers).",
-      map: "https://www.google.com/maps/search/?api=1&query=Banarasi+silk+weaving+Varanasi",
-      photos: pics(
-        "Banarasi Silk",
-        "Weaving craft",
-        "Patterns & zari",
-        "Trusted seller tip",
-        285,
-      ),
-    },
-    {
-      id: "d26",
-      name: "Kachori-Sabzi & Jalebi Breakfast Spots",
-      type: "Food",
-      bestTime: "day",
-      timeNeeded: "30–60 min",
-      cost: "Low",
-      highlights: "Iconic Banarasi breakfast experience.",
-      map: "https://www.google.com/maps/search/?api=1&query=Kachori+Sabzi+Varanasi",
-      photos: pics(
-        "Banarasi Breakfast",
-        "Kachori-sabzi",
-        "Jalebi & chai",
-        "Morning energy",
-        55,
-      ),
-    },
-    {
-      id: "d27",
-      name: "Banarasi Paan Experience",
-      type: "Food",
-      bestTime: "evening",
-      timeNeeded: "15–30 min",
-      cost: "Low",
-      highlights: "Famous Banarasi paan (choose hygienic shops).",
-      map: "https://www.google.com/maps/search/?api=1&query=Banarasi+paan+Varanasi",
-      photos: pics(
-        "Banarasi Paan",
-        "Iconic taste",
-        "Shop lanes",
-        "After-dinner stop",
-        95,
-      ),
-    },
-  ];
+      highlights:
+        "Ghat along the Ganga. Great for walks, boats, and riverfront life.",
+      map:
+        "https://www.google.com/maps/search/?api=1&query=" +
+        encodeURIComponent(name + " Varanasi"),
+      famous: famous.has(name),
+    });
 
-  // ---------- Ready Routes (curated presets) ----------
-  // NOTE: Home (d0) is always pinned first automatically.
-  const ROUTES = [
-    {
-      id: "panchkosi",
-      name: "Panchkosi Parikrama (5 Padav route)",
-      tagline:
-        "Traditional 25 kos circuit (~88.5 km), commonly done in 5 days.",
-      stops: ["pk0", "pk1", "pk2", "pk3", "pk4", "pk5", "pk0"],
-    },
-    {
-      id: "classic-1day",
-      name: "Classic Varanasi (1 day spiritual + ghats)",
-      tagline: "Temple + Aarti + ghats: compact and crowd-friendly.",
-      stops: ["d1", "d2", "d8", "d10", "d24"],
-    },
-    {
-      id: "sunrise-ghats",
-      name: "Sunrise Ghats + Boat + Breakfast",
-      tagline: "Best for photos and calm vibes.",
-      stops: ["d9", "d21", "d26", "d24"],
-    },
-    {
-      id: "sarnath-halfday",
-      name: "Sarnath Half-Day",
-      tagline: "Stupa + museum + peaceful lawns.",
-      stops: ["d14", "d15"],
-    },
-    {
-      id: "bhu-temples",
-      name: "BHU + Nearby Temples",
-      tagline: "Campus calm + temple circuit near BHU.",
-      stops: ["d18", "d7", "d4", "d5", "d6"],
-    },
-  ];
+    const out = [];
+    south.forEach((n, i) => out.push(mk(n, "south", i + 1)));
+    central.forEach((n, i) => out.push(mk(n, "central", i + 1)));
+    north.forEach((n, i) => out.push(mk(n, "north", i + 1)));
+    return out;
+  })();
 
-  // ---------- Storage helpers ----------
-  function readTour() {
+  // ---------- LocalStorage helpers ----------
+  const readJSON = (k, fb) => {
     try {
-      return JSON.parse(localStorage.getItem(LS_TOUR) || "[]");
+      return JSON.parse(localStorage.getItem(k) || JSON.stringify(fb));
     } catch {
-      return [];
+      return fb;
     }
-  }
-  function writeTour(ids) {
-    localStorage.setItem(LS_TOUR, JSON.stringify(ids));
-  }
+  };
+  const writeJSON = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+
+  const readTour = () => readJSON(LS_TOUR, []);
+  const writeTour = (ids) => writeJSON(LS_TOUR, ids);
+
   function normalizeTour() {
     let ids = readTour().filter(Boolean);
-    const exists = new Set(DEST.map((d) => d.id));
-    ids = ids.filter((id) => exists.has(id));
-    ids = [...new Set(ids)];
     ids = ids.filter((id) => id !== HOME.id);
     ids.unshift(HOME.id);
+    const exists = new Set([
+      ...DEST.map((d) => d.id),
+      ...GHATS.map((g) => g.id),
+    ]);
+    ids = ids.filter((id) => exists.has(id));
+    ids = [...new Set(ids)];
     writeTour(ids);
   }
-  if (readTour().length === 0) writeTour([HOME.id]);
   normalizeTour();
 
+  const getItemById = (id) =>
+    DEST.find((x) => x.id === id) || GHATS.find((x) => x.id === id) || null;
+
   // ---------- UI refs ----------
+  const leftCount = document.getElementById("leftCount");
+  const leftCountLabel = document.getElementById("leftCountLabel");
+
+  const tabPlaces = document.getElementById("tabPlaces");
+  const tabGhats = document.getElementById("tabGhats");
+  const panelPlaces = document.getElementById("panelPlaces");
+  const panelGhats = document.getElementById("panelGhats");
+
   const destGrid = document.getElementById("destGrid");
-  const destCount = document.getElementById("destCount");
   const tourList = document.getElementById("tourList");
   const tourCount = document.getElementById("tourCount");
   const topSearch = document.getElementById("topSearch");
@@ -650,51 +385,53 @@
   const filterTime = document.getElementById("filterTime");
   const summaryBox = document.getElementById("summaryBox");
 
-  // Nearby UI
-  const useMyLocBtn = document.getElementById("useMyLocBtn");
-  const pinHomeBtn = document.getElementById("pinHomeBtn");
-  const setLocBtn = document.getElementById("setLocBtn");
-  const locInput = document.getElementById("locInput");
-  const radiusKm = document.getElementById("radiusKm");
-  const radiusLabel = document.getElementById("radiusLabel");
-  const nearbyList = document.getElementById("nearbyList");
-  const addNearbyBtn = document.getElementById("addNearbyBtn");
-  const addTop3Btn = document.getElementById("addTop3Btn");
-  const locStatus = document.getElementById("locStatus");
-  const locNote = document.getElementById("locNote");
-  const showNearbyOnMapBtn = document.getElementById("showNearbyOnMapBtn");
+  const ghatSearch = document.getElementById("ghatSearch");
+  const ghatGroup = document.getElementById("ghatGroup");
+  const ghatList = document.getElementById("ghatList");
+  const ghatSelectFamous = document.getElementById("ghatSelectFamous");
+  const ghatAddSelected = document.getElementById("ghatAddSelected");
+  const ghatClearSelected = document.getElementById("ghatClearSelected");
 
-  // Ready routes UI
-  const routeSelect = document.getElementById("routeSelect");
-  const loadRouteBtn = document.getElementById("loadRouteBtn");
-  const addRouteBtn = document.getElementById("addRouteBtn");
-  const routeStatus = document.getElementById("routeStatus");
-  const routePreview = document.getElementById("routePreview");
-
-  // Map modal refs
   const mapModal = document.getElementById("mapModal");
   const openMapsLink = document.getElementById("openMapsLink");
-  const mapTitle = document.getElementById("mapTitle");
-  const mapSub = document.getElementById("mapSub");
 
-  // Leaflet state
   let leafletMap = null;
   let leafletMarkers = [];
   let leafletPolyline = null;
-  let leafletUserMarker = null;
-  let leafletCircle = null;
 
-  // toast
+  // ---------- Toast ----------
   const toastWrap = document.getElementById("toast");
   function toast(title, detail) {
     const el = document.createElement("div");
     el.className = "t";
-    el.innerHTML = `<div class="okdot"></div><div class="msg"><b>${title}</b><small>${detail}</small></div>`;
+    el.innerHTML = `<div class="okdot"></div><div class="msg"><b>${esc(title)}</b><small>${esc(detail)}</small></div>`;
     toastWrap.appendChild(el);
     setTimeout(() => el.remove(), 2600);
   }
 
-  // ---------- Filters ----------
+  // ---------- Tabs ----------
+  function setTab(which) {
+    const isPlaces = which === "places";
+    tabPlaces.classList.toggle("active", isPlaces);
+    tabGhats.classList.toggle("active", !isPlaces);
+    tabPlaces.setAttribute("aria-selected", isPlaces ? "true" : "false");
+    tabGhats.setAttribute("aria-selected", !isPlaces ? "true" : "false");
+    panelPlaces.classList.toggle("show", isPlaces);
+    panelGhats.classList.toggle("show", !isPlaces);
+
+    if (isPlaces) {
+      leftCount.textContent = String(filteredDest().length);
+      leftCountLabel.textContent = "places";
+    } else {
+      leftCount.textContent = String(filteredGhats().length);
+      leftCountLabel.textContent = "ghats";
+      renderGhats();
+    }
+  }
+  tabPlaces.addEventListener("click", () => setTab("places"));
+  tabGhats.addEventListener("click", () => setTab("ghats"));
+
+  // ---------- Places Filters ----------
   const TYPES = ["all", ...new Set(DEST.map((d) => d.type))].sort((a, b) => {
     if (a === "all") return -1;
     if (b === "all") return 1;
@@ -708,11 +445,20 @@
   });
 
   const state = { q: "", type: "all", time: "all" };
+  const prettyTime = (t) =>
+    ({
+      sunrise: "Sunrise",
+      day: "Daytime",
+      evening: "Evening",
+      night: "Night",
+    })[t] || t;
+
   function setSearch(v) {
     state.q = v || "";
     topSearch.value = state.q;
     rightSearch.value = state.q;
     renderDestinations();
+    if (panelGhats.classList.contains("show")) renderGhats();
   }
   topSearch.addEventListener("input", (e) => setSearch(e.target.value));
   rightSearch.addEventListener("input", (e) => setSearch(e.target.value));
@@ -725,53 +471,60 @@
     renderDestinations();
   });
 
-  function prettyTime(t) {
-    const m = {
-      sunrise: "Sunrise",
-      day: "Daytime",
-      evening: "Evening",
-      night: "Night",
-    };
-    return m[t] || (t ? t[0].toUpperCase() + t.slice(1) : "Any");
-  }
-
   function filteredDest() {
     const q = state.q.trim().toLowerCase();
     return DEST.filter((d) => {
-      const blob = (
-        d.name +
-        " " +
-        d.type +
-        " " +
-        d.bestTime +
-        " " +
-        d.highlights
-      ).toLowerCase();
-      const matchesQ = !q || blob.includes(q);
+      const matchesQ =
+        !q ||
+        (d.name + " " + d.type + " " + d.highlights).toLowerCase().includes(q);
       const matchesType = state.type === "all" || d.type === state.type;
       const matchesTime = state.time === "all" || d.bestTime === state.time;
       return matchesQ && matchesType && matchesTime;
     });
   }
 
+  // ---------- Ghats Filter + Selection ----------
+  const ghatState = { q: "", group: "all" };
+  ghatSearch.addEventListener("input", (e) => {
+    ghatState.q = e.target.value || "";
+    renderGhats();
+  });
+  ghatGroup.addEventListener("change", (e) => {
+    ghatState.group = e.target.value;
+    renderGhats();
+  });
+
+  const readGhatSelection = () => readJSON(LS_GHAT_SEL, {});
+  const writeGhatSelection = (sel) => writeJSON(LS_GHAT_SEL, sel);
+
+  function filteredGhats() {
+    const q = (ghatState.q || state.q || "").trim().toLowerCase();
+    return GHATS.filter((g) => {
+      const matchesQ = !q || g.name.toLowerCase().includes(q);
+      const groupOk =
+        ghatState.group === "all"
+          ? true
+          : ghatState.group === "famous"
+            ? g.famous
+            : g.group === ghatState.group;
+      return matchesQ && groupOk;
+    });
+  }
+
   // ---------- Tour ops ----------
   function addToTour(id) {
     let ids = readTour();
-    if (ids.includes(id)) {
-      toast("Already added", "This destination is already in your tour.");
-      return;
-    }
+    if (ids.includes(id))
+      return toast("Already added", "This item is already in your tour.");
     ids.push(id);
     writeTour(ids);
     normalizeTour();
     renderTour();
-    toast("Added to tour", DEST.find((x) => x.id === id)?.name || id);
+    toast("Added", getItemById(id)?.name || id);
   }
   function removeFromTour(id) {
-    if (id === HOME.id) {
-      toast("Pinned", "Champak's Home is the fixed start point.");
-      return;
-    }
+    if (id === HOME.id)
+      return toast("Pinned", "Champak's Home is the fixed start point.");
     writeTour(readTour().filter((x) => x !== id));
     normalizeTour();
     renderTour();
@@ -797,22 +550,21 @@
     toast("Cleared", "Tour cleared (start point kept).");
   }
 
-  // ---------- Route URL ----------
+  // ---------- Maps route URL ----------
   function placeQuery(d) {
     if (Array.isArray(d.coords)) return `${d.coords[0]},${d.coords[1]}`;
     return `${d.name} Varanasi`;
   }
   function buildRouteUrlFromTour() {
     const ids = readTour();
-    const places = ids
-      .map((id) => DEST.find((x) => x.id === id))
-      .filter(Boolean);
-    if (places.length === 0) return null;
+    const places = ids.map(getItemById).filter(Boolean);
+    if (!places.length) return null;
 
     if (places.length === 1) {
       const q = encodeURIComponent(placeQuery(places[0]));
       return `https://www.google.com/maps/search/?api=1&query=${q}`;
     }
+
     const origin = encodeURIComponent(placeQuery(places[0]));
     const destination = encodeURIComponent(
       placeQuery(places[places.length - 1]),
@@ -821,306 +573,44 @@
       .slice(1, -1)
       .map((p) => encodeURIComponent(placeQuery(p)));
     const waypoints = middle.slice(0, 20).join("%7C");
+
     const base = `https://www.google.com/maps/dir/?api=1&travelmode=walking&origin=${origin}&destination=${destination}`;
     return waypoints ? `${base}&waypoints=${waypoints}` : base;
   }
 
-  // ---------- Coords cache + geocode ----------
-  function readCoordsCache() {
-    try {
-      return JSON.parse(localStorage.getItem(LS_COORDS) || "{}");
-    } catch {
-      return {};
-    }
-  }
-  function writeCoordsCache(cache) {
-    localStorage.setItem(LS_COORDS, JSON.stringify(cache));
-  }
+  // ---------- Coords cache + Nominatim fallback ----------
+  const readCoordsCache = () => readJSON(LS_COORDS, {});
+  const writeCoordsCache = (c) => writeJSON(LS_COORDS, c);
 
-  async function geocodeOnce(query) {
+  async function geocodeOnce(name) {
     const url =
       "https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" +
-      encodeURIComponent(query);
+      encodeURIComponent(name + " Varanasi Uttar Pradesh India");
     const res = await fetch(url, { headers: { Accept: "application/json" } });
     if (!res.ok) return null;
     const data = await res.json();
-    if (!data || !data[0]) return null;
-    return {
-      coords: [Number(data[0].lat), Number(data[0].lon)],
-      label: data[0].display_name || query,
-    };
+    if (!data?.[0]) return null;
+    return [Number(data[0].lat), Number(data[0].lon)];
   }
 
   async function ensureCoordsForPlace(d) {
     if (Array.isArray(d.coords)) return d.coords;
-
     const cache = readCoordsCache();
-    if (cache[d.id] && Array.isArray(cache[d.id]) && cache[d.id].length === 2) {
+    if (Array.isArray(cache[d.id]) && cache[d.id].length === 2) {
       d.coords = cache[d.id];
       return d.coords;
     }
-
-    const q = `${d.name} Varanasi Uttar Pradesh India`;
-    try {
-      const g = await geocodeOnce(q);
-      if (g?.coords) {
-        d.coords = g.coords;
-        cache[d.id] = g.coords;
-        writeCoordsCache(cache);
-        return d.coords;
-      }
-    } catch (e) {}
+    const c = await geocodeOnce(d.name);
+    if (c) {
+      d.coords = c;
+      cache[d.id] = c;
+      writeCoordsCache(cache);
+      return c;
+    }
     return null;
   }
 
-  // ---------- User location storage ----------
-  function readUserLoc() {
-    try {
-      return JSON.parse(localStorage.getItem(LS_USER_LOC) || "null");
-    } catch {
-      return null;
-    }
-  }
-  function writeUserLoc(obj) {
-    localStorage.setItem(LS_USER_LOC, JSON.stringify(obj));
-  }
-  function readLocCache() {
-    try {
-      return JSON.parse(localStorage.getItem(LS_LOC_CACHE) || "{}");
-    } catch {
-      return {};
-    }
-  }
-  function writeLocCache(obj) {
-    localStorage.setItem(LS_LOC_CACHE, JSON.stringify(obj));
-  }
-  function setLocStatus(label) {
-    locStatus.textContent = label || "Not set";
-  }
-
-  // ---------- Nearby Engine ----------
-  let nearbyState = { center: null, label: null, radius: 3 };
-
-  function loadNearbyState() {
-    nearbyState.radius = Number(radiusKm.value) || 3;
-    radiusLabel.textContent = String(nearbyState.radius);
-
-    const saved = readUserLoc();
-    if (saved?.coords?.length === 2) {
-      nearbyState.center = saved.coords;
-      nearbyState.label = saved.label || "Saved location";
-      setLocStatus("📍 Set");
-      locNote.textContent = `Location: ${nearbyState.label}`;
-    } else {
-      setLocStatus("Not set");
-      locNote.textContent =
-        "Tip: Tap Near Me → choose radius → add the closest places.";
-    }
-  }
-
-  async function setLocationFromCoords(coords, label) {
-    nearbyState.center = coords;
-    nearbyState.label = label || "Custom location";
-    writeUserLoc({ coords, label: nearbyState.label, ts: now() });
-    setLocStatus("📍 Set");
-    locNote.textContent = `Location: ${nearbyState.label}`;
-    await refreshNearby();
-    toast("Location set", nearbyState.label);
-  }
-
-  async function setLocationFromInput(text) {
-    const q = (text || "").trim();
-    if (!q) {
-      toast("Type a location", "Example: Assi Ghat, BHU, Sigra.");
-      return;
-    }
-
-    const cache = readLocCache();
-    const key = q.toLowerCase();
-    if (cache[key]?.coords?.length === 2) {
-      await setLocationFromCoords(cache[key].coords, cache[key].label || q);
-      return;
-    }
-
-    setLocStatus("Searching…");
-    try {
-      const g = await geocodeOnce(
-        q.includes("Varanasi") ? q : `${q} Varanasi Uttar Pradesh India`,
-      );
-      if (!g?.coords) {
-        setLocStatus("Not set");
-        toast("Not found", "Try a more specific landmark.");
-        return;
-      }
-      cache[key] = { coords: g.coords, label: g.label || q };
-      writeLocCache(cache);
-      await setLocationFromCoords(g.coords, g.label || q);
-    } catch (e) {
-      setLocStatus("Not set");
-      toast("Location error", "Network/geocode failed. Try again.");
-    }
-  }
-
-  function setLocationToHome() {
-    setLocationFromCoords(HOME.coords, "Champak's Home");
-  }
-
-  function getCurrentPositionPromise(opts) {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation)
-        return reject(new Error("Geolocation not supported"));
-      navigator.geolocation.getCurrentPosition(resolve, reject, opts);
-    });
-  }
-  async function setLocationNearMe() {
-    setLocStatus("Locating…");
-    try {
-      const pos = await getCurrentPositionPromise({
-        enableHighAccuracy: true,
-        timeout: 12000,
-        maximumAge: 60000,
-      });
-      const coords = [pos.coords.latitude, pos.coords.longitude];
-      await setLocationFromCoords(coords, "My current location");
-    } catch (err) {
-      setLocStatus("Not set");
-      toast("Location blocked", "Allow location permission and try again.");
-    }
-  }
-
-  async function computeNearbyList() {
-    if (!nearbyState.center) return [];
-    const radius = nearbyState.radius;
-
-    const candidates = DEST.filter((d) => d.id !== HOME.id);
-    const results = [];
-
-    for (const d of candidates) {
-      const c = await ensureCoordsForPlace(d);
-      if (!c) continue;
-      const k = distKm(nearbyState.center, c);
-      if (k <= radius) results.push({ d, km: k });
-    }
-
-    results.sort((a, b) => a.km - b.km);
-    return results;
-  }
-
-  async function refreshNearby() {
-    radiusLabel.textContent = String(nearbyState.radius);
-    nearbyList.innerHTML = `<div class="note" style="border-top:none; margin-top:0;">Finding nearby places…</div>`;
-
-    if (!nearbyState.center) {
-      nearbyList.innerHTML = `<div class="note" style="border-top:none; margin-top:0;">Set a location to see nearby destinations.</div>`;
-      return;
-    }
-
-    const list = await computeNearbyList();
-    if (list.length === 0) {
-      nearbyList.innerHTML = `<div class="note" style="border-top:none; margin-top:0;">No destinations found within ${nearbyState.radius} km. Increase radius.</div>`;
-      return;
-    }
-
-    const tourSet = new Set(readTour());
-    nearbyList.innerHTML = "";
-    list.slice(0, 12).forEach(({ d, km }) => {
-      const inTour = tourSet.has(d.id);
-      const item = document.createElement("div");
-      item.className = "nearby-item";
-      item.innerHTML = `
-        <div>
-          <b>${d.name}</b>
-          <small>${d.type} • Best: ${prettyTime(d.bestTime)} • ${
-            d.timeNeeded
-          }</small>
-        </div>
-        <div class="near-meta">
-          <span class="near-tag km">${fmtKm(km)}</span>
-          <span class="near-tag type">${d.type}</span>
-          <button class="tinybtn" data-near-add="${d.id}">${
-            inTour ? "✓" : "+ Add"
-          }</button>
-        </div>
-      `;
-      nearbyList.appendChild(item);
-    });
-
-    nearbyList.dataset.full = JSON.stringify(
-      list.map((x) => ({ id: x.d.id, km: x.km })),
-    );
-  }
-
-  function getNearbyFullIds() {
-    try {
-      const arr = JSON.parse(nearbyList.dataset.full || "[]");
-      return arr.map((x) => x.id);
-    } catch {
-      return [];
-    }
-  }
-  async function addAllNearby() {
-    const ids = getNearbyFullIds();
-    if (ids.length === 0) {
-      toast("No nearby list", "Set a location first.");
-      return;
-    }
-    let tour = readTour();
-    let added = 0;
-    for (const id of ids) {
-      if (!tour.includes(id)) {
-        tour.push(id);
-        added++;
-      }
-    }
-    writeTour(tour);
-    normalizeTour();
-    renderTour();
-    await refreshNearby();
-    toast("Added nearby", `${added} place(s) added to your tour.`);
-  }
-  async function addTopN(n) {
-    const ids = getNearbyFullIds().slice(0, n);
-    if (ids.length === 0) {
-      toast("No nearby list", "Set a location first.");
-      return;
-    }
-    let tour = readTour();
-    let added = 0;
-    for (const id of ids) {
-      if (!tour.includes(id)) {
-        tour.push(id);
-        added++;
-      }
-    }
-    writeTour(tour);
-    normalizeTour();
-    renderTour();
-    await refreshNearby();
-    toast("Added nearest", `${added} place(s) added.`);
-  }
-
-  radiusKm.addEventListener("input", async () => {
-    nearbyState.radius = Number(radiusKm.value) || 3;
-    if (nearbyState.center) await refreshNearby();
-  });
-  setLocBtn.addEventListener("click", () =>
-    setLocationFromInput(locInput.value),
-  );
-  locInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") setLocationFromInput(locInput.value);
-  });
-  useMyLocBtn.addEventListener("click", setLocationNearMe);
-  pinHomeBtn.addEventListener("click", setLocationToHome);
-  nearbyList.addEventListener("click", async (e) => {
-    const id = e.target?.getAttribute?.("data-near-add");
-    if (!id) return;
-    addToTour(id);
-    await refreshNearby();
-  });
-  addNearbyBtn.addEventListener("click", addAllNearby);
-  addTop3Btn.addEventListener("click", () => addTopN(3));
-
-  // ---------- Leaflet map ----------
+  // ---------- Leaflet map modal ----------
   function initLeafletIfNeeded() {
     if (leafletMap) return;
     leafletMap = L.map("leafletMap", { zoomControl: true });
@@ -1130,7 +620,7 @@
     }).addTo(leafletMap);
     leafletMap.setView([25.3176, 82.9739], 12);
   }
-  function clearLeafletOverlays() {
+  function clearOverlays() {
     if (!leafletMap) return;
     leafletMarkers.forEach((m) => m.remove());
     leafletMarkers = [];
@@ -1138,119 +628,50 @@
       leafletPolyline.remove();
       leafletPolyline = null;
     }
-    if (leafletUserMarker) {
-      leafletUserMarker.remove();
-      leafletUserMarker = null;
-    }
-    if (leafletCircle) {
-      leafletCircle.remove();
-      leafletCircle = null;
-    }
   }
 
-  async function openMapModal(mode = "tour") {
+  async function openMapModal() {
     const url = buildRouteUrlFromTour();
-    openMapsLink.href = url || "#";
+    if (!url)
+      return toast("Tour empty", "Add destinations first, then view the map.");
+    openMapsLink.href = url;
 
     mapModal.classList.add("show");
     mapModal.setAttribute("aria-hidden", "false");
 
     initLeafletIfNeeded();
     setTimeout(() => leafletMap.invalidateSize(), 80);
-    clearLeafletOverlays();
+    clearOverlays();
 
-    if (mode === "nearby") {
-      mapTitle.textContent = "Nearby Map";
-      mapSub.textContent =
-        "Your location + radius circle + nearby destinations";
-      if (!nearbyState.center) {
-        toast("Set a location", "Use Near Me or type a place first.");
-        leafletMap.setView([25.3176, 82.9739], 12);
-        return;
-      }
-
-      leafletUserMarker = L.marker(nearbyState.center).addTo(leafletMap);
-      leafletUserMarker.bindPopup(
-        `<b>📍 ${nearbyState.label || "Location"}</b>`,
-      );
-
-      leafletCircle = L.circle(nearbyState.center, {
-        radius: nearbyState.radius * 1000,
-        weight: 2,
-        opacity: 0.9,
-        fillOpacity: 0.08,
-      }).addTo(leafletMap);
-
-      const list = await computeNearbyList();
-      const pts = [nearbyState.center];
-
-      list.slice(0, 25).forEach(({ d, km }) => {
-        if (!Array.isArray(d.coords)) return;
-        const m = L.marker(d.coords).addTo(leafletMap);
-        m.bindPopup(
-          `<b>${d.name}</b><br><small>${d.type} • ${fmtKm(km)} away</small>`,
-        );
-        leafletMarkers.push(m);
-        pts.push(d.coords);
-      });
-
-      leafletMap.fitBounds(L.latLngBounds(pts).pad(0.2));
-      return;
-    }
-
-    mapTitle.textContent = "Tour Map";
-    mapSub.textContent =
-      "Markers + route from your selected destinations (order matters)";
-
-    const ids = readTour();
-    const places = ids
-      .map((id) => DEST.find((x) => x.id === id))
-      .filter(Boolean);
-
+    const places = readTour().map(getItemById).filter(Boolean);
     const coordsList = [];
     for (const p of places) {
       const c = await ensureCoordsForPlace(p);
       if (c) coordsList.push({ p, c });
     }
+    if (!coordsList.length) return toast("No coordinates", "Try Open in Maps.");
 
-    if (coordsList.length === 0) {
-      toast(
-        "No coordinates",
-        "Could not locate places on map. Try Open in Maps.",
+    coordsList.forEach((o, i) => {
+      const m = L.marker(o.c).addTo(leafletMap);
+      m.bindPopup(
+        `<b>${i + 1}. ${esc(o.p.name)}</b><br><small>${esc(o.p.type || "Place")} • ${esc(prettyTime(o.p.bestTime || "day"))}</small>`,
       );
-      leafletMap.setView([25.3176, 82.9739], 12);
-      return;
-    }
-
-    coordsList.forEach((obj, i) => {
-      const { p, c } = obj;
-      const marker = L.marker(c).addTo(leafletMap);
-      marker.bindPopup(
-        `<b>${i + 1}. ${p.name}</b><br><small>${p.type} • ${prettyTime(
-          p.bestTime,
-        )} • ${p.timeNeeded}</small>`,
-      );
-      leafletMarkers.push(marker);
+      leafletMarkers.push(m);
     });
 
     const line = coordsList.map((x) => x.c);
-    if (line.length >= 2) {
+    if (line.length >= 2)
       leafletPolyline = L.polyline(line, { weight: 5, opacity: 0.9 }).addTo(
         leafletMap,
       );
-    }
-
     leafletMap.fitBounds(L.latLngBounds(line).pad(0.18));
   }
-
   function closeMapModal() {
     mapModal.classList.remove("show");
     mapModal.setAttribute("aria-hidden", "true");
   }
 
-  document
-    .getElementById("viewMapBtn")
-    .addEventListener("click", () => openMapModal("tour"));
+  document.getElementById("viewMapBtn").addEventListener("click", openMapModal);
   document
     .getElementById("closeMapBtn")
     .addEventListener("click", closeMapModal);
@@ -1264,42 +685,34 @@
 
   document.getElementById("openMapsBtn").addEventListener("click", () => {
     const url = buildRouteUrlFromTour();
-    if (!url) {
-      toast("Tour empty", "Add destinations first, then open maps.");
-      return;
-    }
+    if (!url) return toast("Tour empty", "Add destinations first.");
     window.open(url, "_blank", "noopener");
   });
 
-  showNearbyOnMapBtn.addEventListener("click", () => openMapModal("nearby"));
-
-  // ---------- Carousel engine ----------
+  // ---------- Carousel (Places) ----------
   const carIdx = new Map();
   const carTimers = new Map();
-  function stopAllCarousels() {
-    for (const t of carTimers.values()) clearInterval(t);
-    carTimers.clear();
-  }
-  function setDotActive(dotsWrap, idx) {
-    [...dotsWrap.children].forEach((dot, i) =>
-      dot.classList.toggle("active", i === idx),
+  const setDotActive = (wrap, idx) =>
+    [...wrap.children].forEach((d, i) =>
+      d.classList.toggle("active", i === idx),
     );
-  }
-  function mountCarouselHandlers(cardEl, d) {
+
+  function mountCarousel(cardEl, d) {
     const track = cardEl.querySelector(".track");
     const dotsWrap = cardEl.querySelector(".dots");
     const prevBtn = cardEl.querySelector("[data-prev]");
     const nextBtn = cardEl.querySelector("[data-next]");
+    const total = (d.photos || []).length;
+    if (total <= 1) return;
 
-    const total = d.photos.length;
     let idx = carIdx.get(d.id) ?? 0;
-
-    function go(newIdx) {
+    const go = (newIdx) => {
       idx = (newIdx + total) % total;
       carIdx.set(d.id, idx);
       track.style.transform = `translateX(-${idx * 100}%)`;
       setDotActive(dotsWrap, idx);
-    }
+    };
+
     prevBtn.addEventListener("click", (e) => {
       e.preventDefault();
       go(idx - 1);
@@ -1311,8 +724,10 @@
 
     const start = () => {
       stop();
-      const t = setInterval(() => go(idx + 1), 4500);
-      carTimers.set(d.id, t);
+      carTimers.set(
+        d.id,
+        setInterval(() => go(idx + 1), 4500),
+      );
     };
     const stop = () => {
       const t = carTimers.get(d.id);
@@ -1327,66 +742,65 @@
     start();
   }
 
-  // ---------- Render destinations ----------
+  // ---------- Render Places ----------
   function renderDestinations() {
-    stopAllCarousels();
+    for (const t of carTimers.values()) clearInterval(t);
+    carTimers.clear();
 
     const list = filteredDest();
-    destCount.textContent = String(list.length);
-    destGrid.innerHTML = "";
+    if (panelPlaces.classList.contains("show")) {
+      leftCount.textContent = String(list.length);
+      leftCountLabel.textContent = "places";
+    }
 
     const tourIds = new Set(readTour());
+    destGrid.innerHTML = "";
 
     list.forEach((d) => {
       const inTour = tourIds.has(d.id);
-      const el = document.createElement("article");
-      el.className = "card";
-
-      const dots = d.photos
+      const photos = d.photos?.length
+        ? d.photos
+        : [photoSVG(d.name, d.type, 32)];
+      const dots = photos
         .map((_, i) => `<span class="dot ${i === 0 ? "active" : ""}"></span>`)
         .join("");
-      const slides = d.photos
+      const slides = photos
         .map(
-          (src) => `
-        <div class="slide"><img src="${src}" alt="${d.name} photo"></div>
-      `,
+          (src) =>
+            `<div class="slide"><img src="${src}" alt="${esc(d.name)} photo"></div>`,
         )
         .join("");
 
-      const openMapHref = d.mapShort ? d.mapShort : d.map;
-
+      const el = document.createElement("article");
+      el.className = "card";
       el.innerHTML = `
-        <div class="carousel" aria-label="Sliding pictures">
+        <div class="carousel">
           <span class="car-tag">Sliding photos</span>
           <div class="track">${slides}</div>
           <div class="car-nav">
-            <button class="car-btn" data-prev="${
-              d.id
-            }" aria-label="Previous photo">‹</button>
-            <button class="car-btn" data-next="${
-              d.id
-            }" aria-label="Next photo">›</button>
+            <button class="car-btn" data-prev="${d.id}" aria-label="Previous">‹</button>
+            <button class="car-btn" data-next="${d.id}" aria-label="Next">›</button>
           </div>
-          <div class="dots" aria-label="Slide indicators">${dots}</div>
+          <div class="dots">${dots}</div>
         </div>
 
         <div class="card-top">
           <div>
-            <p class="title">${d.name}</p>
-            <p class="meta">${d.highlights}</p>
+            <p class="title">${esc(d.name)}</p>
+            <p class="meta">${esc(d.highlights || "")}</p>
           </div>
           <div class="badges">
-            <span class="badge cat">${d.type}</span>
-            <span class="badge time">${prettyTime(d.bestTime)}</span>
-            <span class="badge cost">${d.timeNeeded}</span>
+            <span class="badge cat">${esc(d.type)}</span>
+            <span class="badge time">${esc(prettyTime(d.bestTime || "day"))}</span>
+            <span class="badge cost">${esc(d.timeNeeded || "—")}</span>
           </div>
         </div>
 
         <div class="card-mid">
           <p class="desc">
-            <b>Time needed:</b> ${d.timeNeeded}<br/>
-            <b>Best time:</b> ${prettyTime(d.bestTime)}<br/>
-            <b>Cost:</b> ${d.cost}
+            <b>Time needed:</b> ${esc(d.timeNeeded || "—")}<br/>
+            <b>Best time:</b> ${esc(prettyTime(d.bestTime || "day"))}<br/>
+            <b>Cost:</b> ${esc(d.cost || "—")}
           </p>
         </div>
 
@@ -1394,54 +808,115 @@
           <button class="btn ${inTour ? "secondary" : ""}" data-add="${d.id}">
             ${inTour ? "✓ Added" : "➕ Add to Tour"}
           </button>
-          <a class="btn secondary" href="${openMapHref}" target="_blank" rel="noopener">📍 Open Map</a>
+          <a class="btn secondary" href="${d.map}" target="_blank" rel="noopener">📍 Open Map</a>
         </div>
       `;
-
       destGrid.appendChild(el);
-      mountCarouselHandlers(el, d);
+      mountCarousel(el, d);
     });
   }
 
-  // ---------- Render tour ----------
-  function renderTour() {
-    const ids = readTour();
-    tourCount.textContent = String(Math.max(0, ids.length - 1));
+  destGrid.addEventListener("click", (e) => {
+    const id = e.target?.getAttribute?.("data-add");
+    if (id) addToTour(id);
+  });
 
-    tourList.innerHTML = "";
-    if (ids.length <= 1) {
-      tourList.innerHTML = `
-        <div class="note" style="border-top:none; margin-top:0;">
-          Only the <b>Start Point</b> is selected. Add destinations from the left list.
-        </div>
-      `;
-      renderDestinations();
+  // ---------- Render Ghats Tab ----------
+  function renderGhats() {
+    const list = filteredGhats();
+    if (panelGhats.classList.contains("show")) {
+      leftCount.textContent = String(list.length);
+      leftCountLabel.textContent = "ghats";
+    }
+
+    const sel = readGhatSelection();
+    ghatList.innerHTML = "";
+
+    if (!list.length) {
+      ghatList.innerHTML = `<div class="note" style="border-top:none; margin-top:0;">No ghats match your search.</div>`;
       return;
     }
 
-    ids.forEach((id, idx) => {
-      const d = DEST.find((x) => x.id === id);
-      if (!d) return;
+    list.forEach((g) => {
+      const row = document.createElement("div");
+      row.className = "ghatRow";
+      row.innerHTML = `
+        <input type="checkbox" data-gchk="${g.id}" ${sel[g.id] ? "checked" : ""}>
+        <div>
+          <b>${esc(g.name)}</b>
+          <small>${esc(g.group.toUpperCase())} • Best: ${esc(prettyTime(g.bestTime))} • Time: ${esc(g.timeNeeded)}</small>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center; justify-content:flex-end; flex-wrap:wrap;">
+          ${g.famous ? `<span class="tag famous">Famous</span>` : `<span class="tag">Ghat</span>`}
+          <button class="tinybtn" data-gadd="${g.id}">➕ Add</button>
+        </div>
+      `;
+      ghatList.appendChild(row);
+    });
+  }
 
+  ghatList.addEventListener("click", (e) => {
+    const id = e.target?.getAttribute?.("data-gadd");
+    if (id) addToTour(id);
+  });
+
+  ghatList.addEventListener("change", (e) => {
+    const id = e.target?.getAttribute?.("data-gchk");
+    if (!id) return;
+    const sel = readGhatSelection();
+    sel[id] = e.target.checked;
+    writeGhatSelection(sel);
+  });
+
+  ghatSelectFamous.addEventListener("click", () => {
+    const sel = readGhatSelection();
+    filteredGhats().forEach((g) => {
+      if (g.famous) sel[g.id] = true;
+    });
+    writeGhatSelection(sel);
+    renderGhats();
+    toast("Selected", "Famous ghats ticked.");
+  });
+
+  ghatAddSelected.addEventListener("click", () => {
+    const sel = readGhatSelection();
+    const ids = Object.keys(sel).filter((k) => sel[k]);
+    if (!ids.length) return toast("Nothing selected", "Tick some ghats first.");
+    const ordered = filteredGhats()
+      .map((g) => g.id)
+      .filter((id) => ids.includes(id));
+    ordered.forEach(addToTour);
+    toast("Added", `${ordered.length} ghat(s) added to your tour.`);
+  });
+
+  ghatClearSelected.addEventListener("click", () => {
+    writeGhatSelection({});
+    renderGhats();
+    toast("Cleared", "Ghat selection cleared.");
+  });
+
+  // ---------- Render Tour ----------
+  function renderTour() {
+    const ids = readTour();
+    tourCount.textContent = String(ids.length);
+    tourList.innerHTML = "";
+
+    ids.forEach((id, idx) => {
+      const d = getItemById(id);
+      if (!d) return;
       const isHome = id === HOME.id;
 
       const item = document.createElement("div");
       item.className = "touritem";
       item.innerHTML = `
         <div>
-          <b>${idx + 1}. ${d.name}${isHome ? " (Start)" : ""}</b>
-          <small>${d.type} • ${prettyTime(d.bestTime)} • ${d.timeNeeded}</small>
+          <b>${idx + 1}. ${esc(d.name)}${isHome ? " (Start)" : ""}</b>
+          <small>${esc(d.type || "Place")} • ${esc(prettyTime(d.bestTime || "day"))} • ${esc(d.timeNeeded || "—")}</small>
         </div>
         <div style="display:flex; gap:8px; align-items:center;">
-          <button class="tinybtn up" title="Move up" data-up="${id}" ${
-            isHome ? "disabled" : ""
-          }>▲</button>
-          <button class="tinybtn down" title="Move down" data-down="${id}" ${
-            isHome ? "disabled" : ""
-          }>▼</button>
-          <button class="tinybtn remove" title="Remove" data-rm="${id}" ${
-            isHome ? "disabled" : ""
-          }>Remove</button>
+          <button class="tinybtn up" data-up="${id}" ${isHome ? "disabled" : ""}>▲</button>
+          <button class="tinybtn down" data-down="${id}" ${isHome ? "disabled" : ""}>▼</button>
+          <button class="tinybtn remove" data-rm="${id}" ${isHome ? "disabled" : ""}>Remove</button>
         </div>
       `;
       tourList.appendChild(item);
@@ -1450,7 +925,6 @@
     renderDestinations();
   }
 
-  // Tour list events
   tourList.addEventListener("click", (e) => {
     const rm = e.target?.getAttribute?.("data-rm");
     const up = e.target?.getAttribute?.("data-up");
@@ -1460,38 +934,23 @@
     if (down) moveTour(down, "down");
   });
 
-  // Destination grid events
-  destGrid.addEventListener("click", (e) => {
-    const id = e.target?.getAttribute?.("data-add");
-    if (!id) return;
-    addToTour(id);
-  });
-
-  // ---------- Summary generator ----------
+  // ---------- Summary + Actions ----------
   function makeSummaryText() {
     const ids = readTour();
-    const places = ids
+    const lines = ids
       .map((id, i) => {
-        const d = DEST.find((x) => x.id === id);
+        const d = getItemById(id);
         if (!d) return null;
-        const mapLink = d.mapShort ? d.mapShort : d.map;
-        return `${i + 1}) ${d.name} — ${d.type} — Best: ${prettyTime(
-          d.bestTime,
-        )} — Time: ${d.timeNeeded}\n   Map: ${mapLink}`;
+        return `${i + 1}) ${d.name} — ${d.type || "Place"} — Best: ${prettyTime(d.bestTime || "day")} — Time: ${d.timeNeeded || "—"}\n   Map: ${d.map || ""}`;
       })
       .filter(Boolean);
 
-    const header = `Varanasi Tour Plan (DIY)\n-----------------------`;
-    const footer = `\nTips:\n• Start early for ghats/boat ride.\n• Keep buffer time for queues.\n• Be respectful at sensitive places.`;
-    return `${header}\n${places.join("\n")}${footer}`;
+    return `Varanasi Tour Plan (DIY)\n-----------------------\n${lines.join("\n")}\n\nTips:\n• Start early for ghats/boat ride.\n• Keep buffer time for queues.\n• Be respectful at sensitive places.`;
   }
 
   document.getElementById("makePlanBtn").addEventListener("click", () => {
-    const ids = readTour();
-    if (ids.length <= 1) {
-      toast("Tour empty", "Add destinations first.");
-      return;
-    }
+    if (!readTour().length)
+      return toast("Tour empty", "Add destinations first.");
     const text = makeSummaryText();
     summaryBox.style.display = "block";
     summaryBox.innerHTML = `<b>Your Tour Summary</b><br/><pre style="white-space:pre-wrap; margin:8px 0 0; font:inherit; font-size:12px; color:var(--ink)"></pre>`;
@@ -1507,101 +966,19 @@
     );
 
   document.getElementById("waShare").addEventListener("click", () => {
-    const ids = readTour();
-    if (ids.length <= 1) {
-      toast("Tour empty", "Add destinations to share.");
-      return;
-    }
+    if (!readTour().length)
+      return toast("Tour empty", "Add destinations to share.");
     const text = makeSummaryText();
-    const url = "https://wa.me/?text=" + encodeURIComponent(text);
-    window.open(url, "_blank", "noopener");
+    window.open(
+      "https://wa.me/?text=" + encodeURIComponent(text),
+      "_blank",
+      "noopener",
+    );
   });
 
-  // ---------- Ready Routes: UI + logic ----------
-  function getDestName(id) {
-    return DEST.find((d) => d.id === id)?.name || id;
-  }
-
-  function renderRouteOptions() {
-    ROUTES.forEach((r) => {
-      const opt = document.createElement("option");
-      opt.value = r.id;
-      opt.textContent = r.name;
-      routeSelect.appendChild(opt);
-    });
-  }
-
-  function selectedRoute() {
-    const id = routeSelect.value;
-    return ROUTES.find((r) => r.id === id) || null;
-  }
-
-  function showRoutePreview(r) {
-    if (!r) {
-      routeStatus.textContent = "Pick one";
-      routePreview.style.display = "none";
-      routePreview.innerHTML = "";
-      return;
-    }
-    routeStatus.textContent = "Ready";
-    const names = r.stops.map(getDestName);
-    routePreview.style.display = "block";
-    routePreview.innerHTML =
-      `<b>${r.name}</b><br/>${r.tagline}<br/><br/>` +
-      `<b>Stops:</b><br/>` +
-      names.map((n, i) => `${i + 1}. ${n}`).join("<br/>");
-  }
-
-  function applyRoute(r, mode) {
-    // mode: "load" replaces; "add" appends
-    if (!r) {
-      toast("Pick a route", "Choose a ready route first.");
-      return;
-    }
-
-    const routeIds = r.stops.filter(Boolean);
-
-    if (mode === "load") {
-      // Replace tour with HOME + routeIds (dedup), HOME stays pinned by normalizeTour()
-      writeTour([HOME.id, ...routeIds]);
-      normalizeTour();
-      renderTour();
-      toast("Route loaded", r.name);
-      return;
-    }
-
-    // Add mode
-    let ids = readTour();
-    let added = 0;
-    for (const id of routeIds) {
-      if (!ids.includes(id)) {
-        ids.push(id);
-        added++;
-      }
-    }
-    writeTour(ids);
-    normalizeTour();
-    renderTour();
-    toast("Route added", `${added} stop(s) added from ${r.name}`);
-  }
-
-  routeSelect.addEventListener("change", () =>
-    showRoutePreview(selectedRoute()),
-  );
-  loadRouteBtn.addEventListener("click", () =>
-    applyRoute(selectedRoute(), "load"),
-  );
-  addRouteBtn.addEventListener("click", () =>
-    applyRoute(selectedRoute(), "add"),
-  );
-
-  // ---------- Boot ----------
-  renderRouteOptions();
-  showRoutePreview(null);
-
-  loadNearbyState();
-  nearbyState.radius = Number(radiusKm.value) || 3;
-  refreshNearby().catch(() => {});
-
+  // ---------- Init ----------
   renderTour();
+  renderDestinations();
+  renderGhats();
+  setTab("places");
 })();
