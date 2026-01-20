@@ -337,6 +337,95 @@
     return out;
   })();
 
+  // ---------- ROUTES (NEW) ----------
+  // Note: "Featured" can be changed anytime. We keep it accurate by using known places/ghats in this app.
+  // Panchkosi is culturally specific and route definitions vary—so we provide a safe "template" label.
+  const ROUTES = [
+    {
+      id: "r_day_classic",
+      name: "Classic 1-Day Varanasi (Ghats + Temple + Market)",
+      category: "daytrip",
+      featured: true,
+      bestTime: "day",
+      duration: "8–10 hrs",
+      highlights:
+        "A balanced day plan: sunrise ghat, temple, aarti ghat, and evening market.",
+      steps: [
+        HOME.id,
+        "d3", // Assi
+        "d11", // Boat ride
+        "d1", // Kashi Vishwanath
+        "d2", // Dashashwamedh
+        "d12", // Godowlia
+      ],
+    },
+    {
+      id: "r_sarnath_halfday",
+      name: "Sarnath Half-Day (Stupa + Museum)",
+      category: "daytrip",
+      featured: false,
+      bestTime: "day",
+      duration: "4–6 hrs",
+      highlights: "Peaceful heritage trip; perfect for families and students.",
+      steps: [HOME.id, "d5", "d6"],
+    },
+    {
+      id: "r_famous_ghats_walk",
+      name: "Famous Ghats Walk (Short + Iconic)",
+      category: "ghats",
+      featured: true,
+      bestTime: "day",
+      duration: "2–4 hrs",
+      highlights:
+        "Iconic ghats in one sequence. Great for first-timers. Order matters.",
+      steps: [
+        HOME.id,
+        "g s01".replace(" ", ""), // Assi ghat (generated id = gs01)
+        "g c01".replace(" ", ""), // Dashashwamedh (gc01)
+        "g n01".replace(" ", ""), // Manikarnika (gn01)
+        "g c09".replace(" ", ""), // Panchganga (gc09)
+        "g n10".replace(" ", ""), // Raj Ghat (gn10)
+      ],
+    },
+    {
+      id: "r_temples_spiritual",
+      name: "Spiritual Temples Circuit",
+      category: "temples",
+      featured: false,
+      bestTime: "day",
+      duration: "5–8 hrs",
+      highlights: "Core spiritual stops within the city (verify timings/queues).",
+      steps: [HOME.id, "d1", "d9", "d10", "d2"],
+    },
+    {
+      id: "r_parikrama_template",
+      name: "Panchkosi Parikrama (Template)",
+      category: "parikrama",
+      featured: true,
+      bestTime: "day",
+      duration: "Multi-day",
+      highlights:
+        "Template route: replace/adjust steps as per your preferred Panchkosi sequence and local guidance.",
+      // We use known items from this app so it always works out-of-the-box.
+      steps: [
+        HOME.id,
+        "d1",
+        "d9",
+        "d10",
+        "d7",
+        "d5",
+        "d2",
+        "d4",
+      ],
+    },
+  ];
+
+  // Fix route ids above that were built from strings
+  // (We already replaced spaces, but this makes it future-proof)
+  ROUTES.forEach((r) => {
+    r.steps = (r.steps || []).map((x) => String(x).trim());
+  });
+
   // ---------- LocalStorage helpers ----------
   const readJSON = (k, fb) => {
     try {
@@ -373,8 +462,11 @@
 
   const tabPlaces = document.getElementById("tabPlaces");
   const tabGhats = document.getElementById("tabGhats");
+  const tabRoutes = document.getElementById("tabRoutes");
+
   const panelPlaces = document.getElementById("panelPlaces");
   const panelGhats = document.getElementById("panelGhats");
+  const panelRoutes = document.getElementById("panelRoutes");
 
   const destGrid = document.getElementById("destGrid");
   const tourList = document.getElementById("tourList");
@@ -392,6 +484,12 @@
   const ghatAddSelected = document.getElementById("ghatAddSelected");
   const ghatClearSelected = document.getElementById("ghatClearSelected");
 
+  // ROUTES refs (NEW)
+  const routeSearch = document.getElementById("routeSearch");
+  const routeCategory = document.getElementById("routeCategory");
+  const routeAddFeatured = document.getElementById("routeAddFeatured");
+  const routeGrid = document.getElementById("routeGrid");
+
   const mapModal = document.getElementById("mapModal");
   const openMapsLink = document.getElementById("openMapsLink");
 
@@ -404,32 +502,47 @@
   function toast(title, detail) {
     const el = document.createElement("div");
     el.className = "t";
-    el.innerHTML = `<div class="okdot"></div><div class="msg"><b>${esc(title)}</b><small>${esc(detail)}</small></div>`;
+    el.innerHTML = `<div class="okdot"></div><div class="msg"><b>${esc(
+      title,
+    )}</b><small>${esc(detail)}</small></div>`;
     toastWrap.appendChild(el);
     setTimeout(() => el.remove(), 2600);
   }
 
-  // ---------- Tabs ----------
+  // ---------- Tabs (UPDATED: Places / Ghats / Routes) ----------
   function setTab(which) {
     const isPlaces = which === "places";
+    const isGhats = which === "ghats";
+    const isRoutes = which === "routes";
+
     tabPlaces.classList.toggle("active", isPlaces);
-    tabGhats.classList.toggle("active", !isPlaces);
+    tabGhats.classList.toggle("active", isGhats);
+    tabRoutes.classList.toggle("active", isRoutes);
+
     tabPlaces.setAttribute("aria-selected", isPlaces ? "true" : "false");
-    tabGhats.setAttribute("aria-selected", !isPlaces ? "true" : "false");
+    tabGhats.setAttribute("aria-selected", isGhats ? "true" : "false");
+    tabRoutes.setAttribute("aria-selected", isRoutes ? "true" : "false");
+
     panelPlaces.classList.toggle("show", isPlaces);
-    panelGhats.classList.toggle("show", !isPlaces);
+    panelGhats.classList.toggle("show", isGhats);
+    panelRoutes.classList.toggle("show", isRoutes);
 
     if (isPlaces) {
       leftCount.textContent = String(filteredDest().length);
       leftCountLabel.textContent = "places";
-    } else {
+    } else if (isGhats) {
       leftCount.textContent = String(filteredGhats().length);
       leftCountLabel.textContent = "ghats";
       renderGhats();
+    } else {
+      leftCount.textContent = String(filteredRoutes().length);
+      leftCountLabel.textContent = "routes";
+      renderRoutes();
     }
   }
   tabPlaces.addEventListener("click", () => setTab("places"));
   tabGhats.addEventListener("click", () => setTab("ghats"));
+  tabRoutes.addEventListener("click", () => setTab("routes"));
 
   // ---------- Places Filters ----------
   const TYPES = ["all", ...new Set(DEST.map((d) => d.type))].sort((a, b) => {
@@ -459,6 +572,7 @@
     rightSearch.value = state.q;
     renderDestinations();
     if (panelGhats.classList.contains("show")) renderGhats();
+    if (panelRoutes.classList.contains("show")) renderRoutes();
   }
   topSearch.addEventListener("input", (e) => setSearch(e.target.value));
   rightSearch.addEventListener("input", (e) => setSearch(e.target.value));
@@ -512,16 +626,20 @@
   }
 
   // ---------- Tour ops ----------
-  function addToTour(id) {
+  function addToTour(id, silent = false) {
     let ids = readTour();
-    if (ids.includes(id))
-      return toast("Already added", "This item is already in your tour.");
+    if (ids.includes(id)) {
+      if (!silent) toast("Already added", "This item is already in your tour.");
+      return false;
+    }
     ids.push(id);
     writeTour(ids);
     normalizeTour();
     renderTour();
-    toast("Added", getItemById(id)?.name || id);
+    if (!silent) toast("Added", getItemById(id)?.name || id);
+    return true;
   }
+
   function removeFromTour(id) {
     if (id === HOME.id)
       return toast("Pinned", "Champak's Home is the fixed start point.");
@@ -529,6 +647,7 @@
     normalizeTour();
     renderTour();
   }
+
   function moveTour(id, dir) {
     if (id === HOME.id) return;
     const ids = readTour();
@@ -541,6 +660,7 @@
     normalizeTour();
     renderTour();
   }
+
   function clearTour() {
     writeTour([HOME.id]);
     normalizeTour();
@@ -566,12 +686,8 @@
     }
 
     const origin = encodeURIComponent(placeQuery(places[0]));
-    const destination = encodeURIComponent(
-      placeQuery(places[places.length - 1]),
-    );
-    const middle = places
-      .slice(1, -1)
-      .map((p) => encodeURIComponent(placeQuery(p)));
+    const destination = encodeURIComponent(placeQuery(places[places.length - 1]));
+    const middle = places.slice(1, -1).map((p) => encodeURIComponent(placeQuery(p)));
     const waypoints = middle.slice(0, 20).join("%7C");
 
     const base = `https://www.google.com/maps/dir/?api=1&travelmode=walking&origin=${origin}&destination=${destination}`;
@@ -654,7 +770,9 @@
     coordsList.forEach((o, i) => {
       const m = L.marker(o.c).addTo(leafletMap);
       m.bindPopup(
-        `<b>${i + 1}. ${esc(o.p.name)}</b><br><small>${esc(o.p.type || "Place")} • ${esc(prettyTime(o.p.bestTime || "day"))}</small>`,
+        `<b>${i + 1}. ${esc(o.p.name)}</b><br><small>${esc(
+          o.p.type || "Place",
+        )} • ${esc(prettyTime(o.p.bestTime || "day"))}</small>`,
       );
       leafletMarkers.push(m);
     });
@@ -672,15 +790,12 @@
   }
 
   document.getElementById("viewMapBtn").addEventListener("click", openMapModal);
-  document
-    .getElementById("closeMapBtn")
-    .addEventListener("click", closeMapModal);
+  document.getElementById("closeMapBtn").addEventListener("click", closeMapModal);
   mapModal.addEventListener("click", (e) => {
     if (e.target === mapModal) closeMapModal();
   });
   window.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && mapModal.classList.contains("show"))
-      closeMapModal();
+    if (e.key === "Escape" && mapModal.classList.contains("show")) closeMapModal();
   });
 
   document.getElementById("openMapsBtn").addEventListener("click", () => {
@@ -693,9 +808,7 @@
   const carIdx = new Map();
   const carTimers = new Map();
   const setDotActive = (wrap, idx) =>
-    [...wrap.children].forEach((d, i) =>
-      d.classList.toggle("active", i === idx),
-    );
+    [...wrap.children].forEach((d, i) => d.classList.toggle("active", i === idx));
 
   function mountCarousel(cardEl, d) {
     const track = cardEl.querySelector(".track");
@@ -724,10 +837,7 @@
 
     const start = () => {
       stop();
-      carTimers.set(
-        d.id,
-        setInterval(() => go(idx + 1), 4500),
-      );
+      carTimers.set(d.id, setInterval(() => go(idx + 1), 4500));
     };
     const stop = () => {
       const t = carTimers.get(d.id);
@@ -758,17 +868,12 @@
 
     list.forEach((d) => {
       const inTour = tourIds.has(d.id);
-      const photos = d.photos?.length
-        ? d.photos
-        : [photoSVG(d.name, d.type, 32)];
+      const photos = d.photos?.length ? d.photos : [photoSVG(d.name, d.type, 32)];
       const dots = photos
         .map((_, i) => `<span class="dot ${i === 0 ? "active" : ""}"></span>`)
         .join("");
       const slides = photos
-        .map(
-          (src) =>
-            `<div class="slide"><img src="${src}" alt="${esc(d.name)} photo"></div>`,
-        )
+        .map((src) => `<div class="slide"><img src="${src}" alt="${esc(d.name)} photo"></div>`)
         .join("");
 
       const el = document.createElement("article");
@@ -885,14 +990,150 @@
     const ordered = filteredGhats()
       .map((g) => g.id)
       .filter((id) => ids.includes(id));
-    ordered.forEach(addToTour);
-    toast("Added", `${ordered.length} ghat(s) added to your tour.`);
+    let added = 0;
+    ordered.forEach((id) => {
+      if (addToTour(id, true)) added++;
+    });
+    renderTour();
+    toast("Added", `${added} ghat(s) added to your tour.`);
   });
 
   ghatClearSelected.addEventListener("click", () => {
     writeGhatSelection({});
     renderGhats();
     toast("Cleared", "Ghat selection cleared.");
+  });
+
+  // ---------- ROUTES TAB (NEW) ----------
+  const routeState = { q: "", cat: "all" };
+
+  routeSearch.addEventListener("input", (e) => {
+    routeState.q = e.target.value || "";
+    renderRoutes();
+  });
+  routeCategory.addEventListener("change", (e) => {
+    routeState.cat = e.target.value || "all";
+    renderRoutes();
+  });
+
+  function routeStepsPreview(route) {
+    const ids = (route.steps || []).slice(0, 8);
+    const names = ids
+      .map((id) => getItemById(id)?.name)
+      .filter(Boolean)
+      .map((n) => n.replace(" (Start)", ""));
+    const more = (route.steps || []).length - names.length;
+    return more > 0 ? `${names.join(" → ")} → +${more} more` : names.join(" → ");
+  }
+
+  function filteredRoutes() {
+    const q = routeState.q.trim().toLowerCase();
+    return ROUTES.filter((r) => {
+      const catOk = routeState.cat === "all" || r.category === routeState.cat;
+      const text = `${r.name} ${r.category} ${r.highlights || ""}`.toLowerCase();
+      const qOk = !q || text.includes(q);
+      return catOk && qOk;
+    });
+  }
+
+  function addRouteToTour(route) {
+    const steps = (route.steps || []).filter(Boolean);
+
+    // Ensure HOME pinned; normalizeTour does it too, but we keep UX clean.
+    let added = 0;
+    steps.forEach((id) => {
+      if (id === HOME.id) return; // pinned anyway
+      if (!getItemById(id)) return; // safety
+      if (addToTour(id, true)) added++;
+    });
+
+    normalizeTour();
+    renderTour();
+
+    toast("Route added", `${added} new stop(s) added from “${route.name}”.`);
+  }
+
+  function renderRoutes() {
+    const list = filteredRoutes();
+    if (panelRoutes.classList.contains("show")) {
+      leftCount.textContent = String(list.length);
+      leftCountLabel.textContent = "routes";
+    }
+
+    routeGrid.innerHTML = "";
+    if (!list.length) {
+      routeGrid.innerHTML = `<div class="note" style="border-top:none; margin-top:0;">No routes match your search.</div>`;
+      return;
+    }
+
+    list.forEach((r) => {
+      const el = document.createElement("div");
+      el.className = "routeCard";
+      const tags = [
+        r.category ? `<span class="rtag primary">${esc(r.category)}</span>` : "",
+        r.duration ? `<span class="rtag">${esc(r.duration)}</span>` : "",
+        r.bestTime ? `<span class="rtag">${esc(prettyTime(r.bestTime))}</span>` : "",
+        r.featured ? `<span class="rtag">★ Featured</span>` : "",
+      ].filter(Boolean).join("");
+
+      el.innerHTML = `
+        <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start;">
+          <div>
+            <h3>${esc(r.name)}</h3>
+            <div class="sub">${esc(r.highlights || "")}</div>
+          </div>
+          <div class="routeMeta">${tags}</div>
+        </div>
+
+        <div class="rsteps">
+          <b>Stops preview:</b><br/>
+          ${esc(routeStepsPreview(r) || "—")}
+        </div>
+
+        <div class="routeActions">
+          <button class="btn" data-radd="${esc(r.id)}">➕ Add Route to Tour</button>
+          <button class="btn secondary" data-rview="${esc(r.id)}">👀 View Stops</button>
+        </div>
+      `;
+      routeGrid.appendChild(el);
+    });
+  }
+
+  routeGrid.addEventListener("click", (e) => {
+    const ridAdd = e.target?.getAttribute?.("data-radd");
+    const ridView = e.target?.getAttribute?.("data-rview");
+
+    if (ridAdd) {
+      const r = ROUTES.find((x) => x.id === ridAdd);
+      if (!r) return;
+      addRouteToTour(r);
+      return;
+    }
+
+    if (ridView) {
+      const r = ROUTES.find((x) => x.id === ridView);
+      if (!r) return;
+      const lines = (r.steps || [])
+        .map((id, i) => {
+          const item = getItemById(id);
+          const name = item?.name || id;
+          const type = item?.type || "Stop";
+          const bt = item?.bestTime ? prettyTime(item.bestTime) : "—";
+          return `${i + 1}) ${name} — ${type} — Best: ${bt}`;
+        })
+        .join("\n");
+      toast("Stops list", `Opened summary below (scroll).`);
+      summaryBox.style.display = "block";
+      summaryBox.innerHTML = `<b>${esc(r.name)}</b><br/><pre style="white-space:pre-wrap; margin:8px 0 0; font:inherit; font-size:12px; color:var(--ink)"></pre>`;
+      summaryBox.querySelector("pre").textContent = lines || "No stops.";
+      return;
+    }
+  });
+
+  routeAddFeatured.addEventListener("click", () => {
+    const featured = ROUTES.find((r) => r.featured);
+    if (!featured) return toast("No featured route", "Mark any route as featured.");
+    addRouteToTour(featured);
   });
 
   // ---------- Render Tour ----------
@@ -941,16 +1182,19 @@
       .map((id, i) => {
         const d = getItemById(id);
         if (!d) return null;
-        return `${i + 1}) ${d.name} — ${d.type || "Place"} — Best: ${prettyTime(d.bestTime || "day")} — Time: ${d.timeNeeded || "—"}\n   Map: ${d.map || ""}`;
+        return `${i + 1}) ${d.name} — ${d.type || "Place"} — Best: ${prettyTime(
+          d.bestTime || "day",
+        )} — Time: ${d.timeNeeded || "—"}\n   Map: ${d.map || ""}`;
       })
       .filter(Boolean);
 
-    return `Varanasi Tour Plan (DIY)\n-----------------------\n${lines.join("\n")}\n\nTips:\n• Start early for ghats/boat ride.\n• Keep buffer time for queues.\n• Be respectful at sensitive places.`;
+    return `Varanasi Tour Plan (DIY)\n-----------------------\n${lines.join(
+      "\n",
+    )}\n\nTips:\n• Start early for ghats/boat ride.\n• Keep buffer time for queues.\n• Be respectful at sensitive places.`;
   }
 
   document.getElementById("makePlanBtn").addEventListener("click", () => {
-    if (!readTour().length)
-      return toast("Tour empty", "Add destinations first.");
+    if (!readTour().length) return toast("Tour empty", "Add destinations first.");
     const text = makeSummaryText();
     summaryBox.style.display = "block";
     summaryBox.innerHTML = `<b>Your Tour Summary</b><br/><pre style="white-space:pre-wrap; margin:8px 0 0; font:inherit; font-size:12px; color:var(--ink)"></pre>`;
@@ -959,26 +1203,20 @@
   });
 
   document.getElementById("clearTourBtn").addEventListener("click", clearTour);
-  document
-    .getElementById("saveTourBtn")
-    .addEventListener("click", () =>
-      toast("Saved", "Your tour is saved in this browser."),
-    );
+  document.getElementById("saveTourBtn").addEventListener("click", () =>
+    toast("Saved", "Your tour is saved in this browser."),
+  );
 
   document.getElementById("waShare").addEventListener("click", () => {
-    if (!readTour().length)
-      return toast("Tour empty", "Add destinations to share.");
+    if (!readTour().length) return toast("Tour empty", "Add destinations to share.");
     const text = makeSummaryText();
-    window.open(
-      "https://wa.me/?text=" + encodeURIComponent(text),
-      "_blank",
-      "noopener",
-    );
+    window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank", "noopener");
   });
 
   // ---------- Init ----------
   renderTour();
   renderDestinations();
   renderGhats();
+  renderRoutes();
   setTab("places");
 })();
