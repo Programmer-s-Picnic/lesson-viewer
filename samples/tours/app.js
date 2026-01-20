@@ -1,7 +1,7 @@
 (() => {
-  const LS_TOUR = "varanasi_tour_v1";
-  const LS_COORDS = "varanasi_coords_v1";
-  const LS_GHAT_SEL = "varanasi_ghat_sel_v1";
+  const LS_TOUR = "varanasi_tour_v2";
+  const LS_COORDS = "varanasi_coords_v2";
+  const LS_GHAT_SEL = "varanasi_ghat_sel_v2";
 
   // ---------- Offline SVG "photo" ----------
   const svgDataURI = (svg) =>
@@ -63,95 +63,11 @@
     ],
   };
 
+  // Core destinations + Parikrama stops (coords for key places; others can be geocoded and cached)
   const DEST = [
     HOME,
-    {
-      id: "d1",
-      name: "Shri Kashi Vishwanath Temple",
-      type: "Temple",
-      bestTime: "day",
-      timeNeeded: "1–2 hrs",
-      cost: "Depends (donations / queue services)",
-      highlights: "Spiritual heart of Kashi; iconic temple & corridor.",
-      map: "https://www.google.com/maps/search/?api=1&query=Kashi+Vishwanath+Temple+Varanasi",
-      coords: [25.31085, 83.01068],
-      photos: [
-        photoSVG("Kashi Vishwanath", "Temple & corridor vibes", 28),
-        photoSVG("Kashi Vishwanath", "Morning darshan energy", 36),
-        photoSVG("Kashi Vishwanath", "Evening lanes nearby", 20),
-      ],
-    },
 
-    // --- Panchkroshi Parikrama (Established Stops) ---
-
-    {
-      id: "d_pk_dhundhi",
-      name: "Dhundhi Vinayak (Dhundhiraja)",
-      type: "Parikrama Stop",
-      bestTime: "sunrise",
-      timeNeeded: "15–30 min",
-      cost: "Free",
-      highlights:
-        "Traditional sankalpa (vow) point before starting Panchkroshi Parikrama.",
-      map: "https://www.google.com/maps/search/?api=1&query=Dhundhi+Vinayak+Varanasi",
-      photos: [photoSVG("Dhundhi Vinayak", "Sankalpa before Panchkroshi", 28)],
-    },
-    {
-      id: "d_pk_kardameshwar",
-      name: "Kardameshwar Mahadev (Kandwa)",
-      type: "Parikrama Stop",
-      bestTime: "day",
-      timeNeeded: "30–60 min",
-      cost: "Free",
-      highlights: "First major halt of Panchkroshi Parikrama.",
-      map: "https://www.google.com/maps/search/?api=1&query=Kardameshwar+Mahadev+Kandwa+Varanasi",
-      photos: [photoSVG("Kardameshwar", "Panchkroshi halt — Kandwa", 22)],
-    },
-    {
-      id: "d_pk_bhimchandi",
-      name: "Bhimchandi Devi Temple",
-      type: "Parikrama Stop",
-      bestTime: "day",
-      timeNeeded: "30–60 min",
-      cost: "Free",
-      highlights: "One of the five traditional halts of Panchkroshi Parikrama.",
-      map: "https://www.google.com/maps/search/?api=1&query=Bhimchandi+Devi+Temple+Varanasi",
-      photos: [photoSVG("Bhimchandi", "Panchkroshi halt", 16)],
-    },
-    {
-      id: "d_pk_rameshwar",
-      name: "Rameshwar Temple (Kashi)",
-      type: "Parikrama Stop",
-      bestTime: "day",
-      timeNeeded: "30–60 min",
-      cost: "Free",
-      highlights: "Traditional Panchkroshi halt at Rameshwar.",
-      map: "https://www.google.com/maps/search/?api=1&query=Rameshwar+Temple+Varanasi",
-      photos: [photoSVG("Rameshwar", "Panchkroshi halt", 34)],
-    },
-    {
-      id: "d_pk_shivpur",
-      name: "Shivpur Panchkroshi Halt",
-      type: "Parikrama Stop",
-      bestTime: "day",
-      timeNeeded: "20–40 min",
-      cost: "Free",
-      highlights: "One of the five traditional Panchkroshi night halts.",
-      map: "https://www.google.com/maps/search/?api=1&query=Shivpur+Panchkroshi+Varanasi",
-      photos: [photoSVG("Shivpur", "Panchkroshi halt", 10)],
-    },
-    {
-      id: "d_pk_kapildhara",
-      name: "Kapildhara (Kapiladhara)",
-      type: "Parikrama Stop",
-      bestTime: "day",
-      timeNeeded: "30–60 min",
-      cost: "Free",
-      highlights: "Final Panchkroshi halt before return to Manikarnika Ghat.",
-      map: "https://www.google.com/maps/search/?api=1&query=Kapildhara+Varanasi",
-      photos: [photoSVG("Kapildhara", "Final Panchkroshi halt", 42)],
-    },
-
+    // --- Ghats (core) ---
     {
       id: "d2",
       name: "Dashashwamedh Ghat",
@@ -200,69 +116,22 @@
         photoSVG("Manikarnika Ghat", "Respectful viewing", 6),
       ],
     },
+
+    // --- Temples ---
     {
-      id: "d5",
-      name: "Sarnath (Dhamek Stupa & ruins)",
-      type: "Sarnath",
-      bestTime: "day",
-      timeNeeded: "2–4 hrs",
-      cost: "Tickets may apply",
-      highlights: "Buddhist pilgrimage site; serene monuments & ruins.",
-      map: "https://www.google.com/maps/search/?api=1&query=Dhamek+Stupa+Sarnath",
-      coords: [25.3808, 83.0245],
-      photos: [
-        photoSVG("Sarnath", "Dhamek Stupa", 120),
-        photoSVG("Sarnath", "Peaceful lawns", 140),
-        photoSVG("Sarnath", "Ruins & history", 110),
-      ],
-    },
-    {
-      id: "d6",
-      name: "Sarnath Museum (Archaeological Museum)",
-      type: "Sarnath",
+      id: "d1",
+      name: "Shri Kashi Vishwanath Temple",
+      type: "Temple",
       bestTime: "day",
       timeNeeded: "1–2 hrs",
-      cost: "Tickets apply",
-      highlights:
-        "Artifacts & heritage exhibits; iconic Ashokan lion capital association.",
-      map: "https://www.google.com/maps/search/?api=1&query=Sarnath+Museum",
-      coords: [25.376165, 83.022713],
+      cost: "Depends (donations / queue services)",
+      highlights: "Spiritual heart of Kashi; iconic temple & corridor.",
+      map: "https://www.google.com/maps/search/?api=1&query=Kashi+Vishwanath+Temple+Varanasi",
+      coords: [25.31085, 83.01068],
       photos: [
-        photoSVG("Sarnath Museum", "Artifacts & sculpture", 200),
-        photoSVG("Sarnath Museum", "Heritage exhibits", 190),
-        photoSVG("Sarnath Museum", "Learning stop", 210),
-      ],
-    },
-    {
-      id: "d7",
-      name: "Ramnagar Fort",
-      type: "Heritage",
-      bestTime: "day",
-      timeNeeded: "1–2 hrs",
-      cost: "Tickets may apply",
-      highlights: "Historic fort across the Ganga; museum & collections.",
-      map: "https://www.google.com/maps/search/?api=1&query=Ramnagar+Fort+Varanasi",
-      coords: [25.269262, 83.022144],
-      photos: [
-        photoSVG("Ramnagar Fort", "Fort & museum", 260),
-        photoSVG("Ramnagar Fort", "Royal collections", 240),
-        photoSVG("Ramnagar Fort", "Ganga-side view", 280),
-      ],
-    },
-    {
-      id: "d8",
-      name: "BHU & Bharat Kala Bhavan",
-      type: "Heritage",
-      bestTime: "day",
-      timeNeeded: "2–4 hrs",
-      cost: "Often free/entry rules vary",
-      highlights: "Campus stroll + art museum; peaceful green spaces.",
-      map: "https://www.google.com/maps/search/?api=1&query=BHU+Bharat+Kala+Bhavan+Varanasi",
-      coords: [25.2677, 82.9913],
-      photos: [
-        photoSVG("BHU", "Green campus walk", 90),
-        photoSVG("Bharat Kala Bhavan", "Art & culture", 70),
-        photoSVG("BHU", "Quiet evenings", 100),
+        photoSVG("Kashi Vishwanath", "Temple & corridor vibes", 28),
+        photoSVG("Kashi Vishwanath", "Morning darshan energy", 36),
+        photoSVG("Kashi Vishwanath", "Evening lanes nearby", 20),
       ],
     },
     {
@@ -295,6 +164,40 @@
         photoSVG("Sankat Mochan", "Hanuman temple", 30),
         photoSVG("Sankat Mochan", "Prasad & prayers", 22),
         photoSVG("Sankat Mochan", "Near BHU area", 38),
+      ],
+    },
+
+    // --- Heritage / experiences / markets ---
+    {
+      id: "d7",
+      name: "Ramnagar Fort",
+      type: "Heritage",
+      bestTime: "day",
+      timeNeeded: "1–2 hrs",
+      cost: "Tickets may apply",
+      highlights: "Historic fort across the Ganga; museum & collections.",
+      map: "https://www.google.com/maps/search/?api=1&query=Ramnagar+Fort+Varanasi",
+      coords: [25.269262, 83.022144],
+      photos: [
+        photoSVG("Ramnagar Fort", "Fort & museum", 260),
+        photoSVG("Ramnagar Fort", "Royal collections", 240),
+        photoSVG("Ramnagar Fort", "Ganga-side view", 280),
+      ],
+    },
+    {
+      id: "d8",
+      name: "BHU & Bharat Kala Bhavan",
+      type: "Heritage",
+      bestTime: "day",
+      timeNeeded: "2–4 hrs",
+      cost: "Often free/entry rules vary",
+      highlights: "Campus stroll + art museum; peaceful green spaces.",
+      map: "https://www.google.com/maps/search/?api=1&query=BHU+Bharat+Kala+Bhavan+Varanasi",
+      coords: [25.2677, 82.9913],
+      photos: [
+        photoSVG("BHU", "Green campus walk", 90),
+        photoSVG("Bharat Kala Bhavan", "Art & culture", 70),
+        photoSVG("BHU", "Quiet evenings", 100),
       ],
     },
     {
@@ -330,19 +233,51 @@
       ],
     },
 
+    // --- Sarnath ---
+    {
+      id: "d5",
+      name: "Sarnath (Dhamek Stupa & ruins)",
+      type: "Sarnath",
+      bestTime: "day",
+      timeNeeded: "2–4 hrs",
+      cost: "Tickets may apply",
+      highlights: "Buddhist pilgrimage site; serene monuments & ruins.",
+      map: "https://www.google.com/maps/search/?api=1&query=Dhamek+Stupa+Sarnath",
+      coords: [25.3808, 83.0245],
+      photos: [
+        photoSVG("Sarnath", "Dhamek Stupa", 120),
+        photoSVG("Sarnath", "Peaceful lawns", 140),
+        photoSVG("Sarnath", "Ruins & history", 110),
+      ],
+    },
+    {
+      id: "d6",
+      name: "Sarnath Museum (Archaeological Museum)",
+      type: "Sarnath",
+      bestTime: "day",
+      timeNeeded: "1–2 hrs",
+      cost: "Tickets apply",
+      highlights: "Artifacts & heritage exhibits.",
+      map: "https://www.google.com/maps/search/?api=1&query=Sarnath+Museum",
+      coords: [25.376165, 83.022713],
+      photos: [
+        photoSVG("Sarnath Museum", "Artifacts & sculpture", 200),
+        photoSVG("Sarnath Museum", "Heritage exhibits", 190),
+        photoSVG("Sarnath Museum", "Learning stop", 210),
+      ],
+    },
+
+    // --- Parikrama stops (Panchkroshi established) ---
     {
       id: "d_pk_dhundhi",
       name: "Dhundhi Vinayak (Dhundhiraja)",
-      type: "Temple",
+      type: "Parikrama Stop",
       bestTime: "sunrise",
       timeNeeded: "15–30 min",
       cost: "Free",
       highlights:
-        "Traditional sankalpa (vow) point before Panchkroshi Parikrama.",
-      map:
-        "https://www.google.com/maps/search/?api=1&query=" +
-        encodeURIComponent("Dhundhi Vinayak Dhundiraja Varanasi"),
-      // coords omitted on purpose; your geocoder will fetch+cache on first map view
+        "Traditional sankalpa (vow) point before starting Panchkroshi Parikrama.",
+      map: "https://www.google.com/maps/search/?api=1&query=Dhundhi+Vinayak+Dhundhiraja+Varanasi",
       photos: [photoSVG("Dhundhi Vinayak", "Sankalpa before yatra", 32)],
     },
     {
@@ -352,12 +287,9 @@
       bestTime: "day",
       timeNeeded: "30–60 min",
       cost: "Free",
-      highlights:
-        "First major halt in the Panchkroshi circuit (Kandwa/Kandawa area).",
-      map:
-        "https://www.google.com/maps/search/?api=1&query=" +
-        encodeURIComponent("Kardameshwar Mahadev Kandwa Varanasi"),
-      photos: [photoSVG("Kardameshwar", "Panchkroshi halt (Kandwa)", 26)],
+      highlights: "Traditional Panchkroshi halt (Kandwa/Kandawa area).",
+      map: "https://www.google.com/maps/search/?api=1&query=Kardameshwar+Mahadev+Kandwa+Varanasi",
+      photos: [photoSVG("Kardameshwar", "Panchkroshi halt", 26)],
     },
     {
       id: "d_pk_bhimchandi",
@@ -367,9 +299,7 @@
       timeNeeded: "30–60 min",
       cost: "Free",
       highlights: "One of the five key Panchkroshi halts.",
-      map:
-        "https://www.google.com/maps/search/?api=1&query=" +
-        encodeURIComponent("Bhimchandi Devi Temple Varanasi"),
+      map: "https://www.google.com/maps/search/?api=1&query=Bhimchandi+Devi+Temple+Varanasi",
       photos: [photoSVG("Bhimchandi", "Panchkroshi halt", 18)],
     },
     {
@@ -379,43 +309,35 @@
       bestTime: "day",
       timeNeeded: "30–60 min",
       cost: "Free",
-      highlights: "One of the five key Panchkroshi halts (Rameshwar).",
-      map:
-        "https://www.google.com/maps/search/?api=1&query=" +
-        encodeURIComponent("Rameshwar Temple Varanasi"),
+      highlights: "Traditional Panchkroshi halt at Rameshwar.",
+      map: "https://www.google.com/maps/search/?api=1&query=Rameshwar+Temple+Varanasi",
       photos: [photoSVG("Rameshwar", "Panchkroshi halt", 22)],
     },
     {
       id: "d_pk_shivpur",
-      name: "Shivpur (Panchkroshi Halt)",
+      name: "Shivpur Panchkroshi Halt",
       type: "Parikrama Stop",
       bestTime: "day",
       timeNeeded: "20–40 min",
       cost: "Free",
-      highlights:
-        "One of the five key Panchkroshi halts (some guides also reference nearby Pancho Pandav shrine).",
-      map:
-        "https://www.google.com/maps/search/?api=1&query=" +
-        encodeURIComponent("Shivpur Panchkroshi Varanasi"),
+      highlights: "One of the five traditional Panchkroshi night halts.",
+      map: "https://www.google.com/maps/search/?api=1&query=Shivpur+Panchkroshi+Varanasi",
       photos: [photoSVG("Shivpur", "Panchkroshi halt", 14)],
     },
     {
       id: "d_pk_kapildhara",
-      name: "Kapildhara (Kapiladhara) Tirth / Temple Area",
+      name: "Kapildhara (Kapiladhara)",
       type: "Parikrama Stop",
       bestTime: "day",
       timeNeeded: "30–60 min",
       cost: "Free",
-      highlights:
-        "Final key halt before returning to Manikarnika; associated with ancestral rituals in some traditions.",
-      map:
-        "https://www.google.com/maps/search/?api=1&query=" +
-        encodeURIComponent("Kapildhara Kapiladhara Varanasi"),
-      photos: [photoSVG("Kapildhara", "Panchkroshi halt", 40)],
+      highlights: "Final Panchkroshi halt before return to Manikarnika.",
+      map: "https://www.google.com/maps/search/?api=1&query=Kapildhara+Kapiladhara+Varanasi",
+      photos: [photoSVG("Kapildhara", "Final halt", 40)],
     },
   ];
 
-  // Ghats (bulk directory)
+  // Ghats directory (fast select)
   const GHATS = (() => {
     const south = [
       "Assi Ghat",
@@ -492,61 +414,40 @@
     return out;
   })();
 
-  // ---------- ROUTES (NEW) ----------
-  // Note: "Featured" can be changed anytime. We keep it accurate by using known places/ghats in this app.
-  // Panchkosi is culturally specific and route definitions vary—so we provide a safe "template" label.
+  // Routes (includes established Panchkroshi and city-friendly circuits)
   const ROUTES = [
     {
-      id: "r_day_classic",
+      id: "r_kashi_panchkroshi",
+      name: "Kashi Panchkroshi Parikrama (Established)",
+      category: "parikrama",
+      featured: true,
+      bestTime: "sunrise",
+      duration: "5 days • ~88.5 km",
+      highlights:
+        "Traditional circuit: start/end Manikarnika, with five key halts. Includes Dhundhi Vinayak sankalpa.",
+      steps: [
+        HOME.id,
+        "d4",
+        "d_pk_dhundhi",
+        "d_pk_kardameshwar",
+        "d_pk_bhimchandi",
+        "d_pk_rameshwar",
+        "d_pk_shivpur",
+        "d_pk_kapildhara",
+        "d4",
+      ],
+    },
+    {
+      id: "r_classic_day",
       name: "Classic 1-Day Varanasi (Ghats + Temple + Market)",
       category: "daytrip",
-      featured: true,
+      featured: false,
       bestTime: "day",
       duration: "8–10 hrs",
       highlights:
-        "A balanced day plan: sunrise ghat, temple, aarti ghat, and evening market.",
-      steps: [
-        HOME.id,
-        "d3", // Assi
-        "d11", // Boat ride
-        "d1", // Kashi Vishwanath
-        "d2", // Dashashwamedh
-        "d12", // Godowlia
-      ],
+        "Balanced day plan: sunrise ghat, boat ride, Vishwanath, Aarti ghat, evening market.",
+      steps: [HOME.id, "d3", "d11", "d1", "d2", "d12"],
     },
-
-
-
-
-
-
-
-{
-  id: "r_kashi_panchkroshi_established",
-  name: "Kashi Panchkroshi Parikrama (Established)",
-  category: "parikrama",
-  featured: true,
-  bestTime: "sunrise",
-  duration: "5 days • ~88.5 km",
-  highlights:
-    "Traditional Panchkroshi Parikrama with five halts. Start and end at Manikarnika Ghat.",
-  steps: [
-    "d0",                // Home (pinned start)
-    "d4",                // Manikarnika Ghat
-    "d_pk_dhundhi",      // Sankalpa
-    "d_pk_kardameshwar", // Day 1 halt
-    "d_pk_bhimchandi",   // Day 2 halt
-    "d_pk_rameshwar",    // Day 3 halt
-    "d_pk_shivpur",      // Day 4 halt
-    "d_pk_kapildhara",   // Day 5 halt
-    "d4"                 // Return Manikarnika
-  ]
-},
-
-
-
-
-
     {
       id: "r_sarnath_halfday",
       name: "Sarnath Half-Day (Stupa + Museum)",
@@ -554,25 +455,24 @@
       featured: false,
       bestTime: "day",
       duration: "4–6 hrs",
-      highlights: "Peaceful heritage trip; perfect for families and students.",
+      highlights: "Peaceful heritage trip; ideal for families and students.",
       steps: [HOME.id, "d5", "d6"],
     },
     {
-      id: "r_famous_ghats_walk",
+      id: "r_famous_ghats",
       name: "Famous Ghats Walk (Short + Iconic)",
       category: "ghats",
-      featured: true,
+      featured: false,
       bestTime: "day",
       duration: "2–4 hrs",
-      highlights:
-        "Iconic ghats in one sequence. Great for first-timers. Order matters.",
+      highlights: "Iconic ghats in one sequence. Order matters.",
       steps: [
         HOME.id,
-        "g s01".replace(" ", ""), // Assi ghat (generated id = gs01)
-        "g c01".replace(" ", ""), // Dashashwamedh (gc01)
-        "g n01".replace(" ", ""), // Manikarnika (gn01)
-        "g c09".replace(" ", ""), // Panchganga (gc09)
-        "g n10".replace(" ", ""), // Raj Ghat (gn10)
+        "gs01", // Assi
+        "gc01", // Dashashwamedh
+        "gn01", // Manikarnika
+        "gc09", // Panchganga
+        "gn10", // Raj Ghat
       ],
     },
     {
@@ -582,51 +482,94 @@
       featured: false,
       bestTime: "day",
       duration: "5–8 hrs",
-      highlights:
-        "Core spiritual stops within the city (verify timings/queues).",
+      highlights: "Core spiritual stops within the city (timings/queues vary).",
       steps: [HOME.id, "d1", "d9", "d10", "d2"],
     },
     {
-      id: "r_parikrama_template",
-      name: "Panchkosi Parikrama (Template)",
-      category: "parikrama",
-      featured: true,
+      id: "r_heritage",
+      name: "Heritage Day (BHU + Fort)",
+      category: "heritage",
+      featured: false,
       bestTime: "day",
-      duration: "Multi-day",
-      highlights:
-        "Template route: replace/adjust steps as per your preferred Panchkosi sequence and local guidance.",
-      // We use known items from this app so it always works out-of-the-box.
-      steps: [HOME.id, "d1", "d9", "d10", "d7", "d5", "d2", "d4"],
+      duration: "5–8 hrs",
+      highlights: "Campus culture + art museum + Ganga-side fort visit.",
+      steps: [HOME.id, "d8", "d7", "d12"],
     },
-
     {
-      id: "r_kashi_panchkroshi_established",
-      name: "Kashi Panchkroshi (Panchkosi) Parikrama — Established Circuit",
-      category: "parikrama",
-      featured: true,
-      bestTime: "sunrise",
-      duration: "5 days (traditionally) • ~88.5 km",
-      highlights:
-        "Start/End at Manikarnika Ghat, visiting the five key halts: Kardameshwar (Kandwa), Bhimchandi, Rameshwar, Shivpur, Kapildhara. Includes optional Dhundhi Vinayak sankalpa stop.",
-      steps: [
-        "d0", // Champak's Home (pinned start in your app)
-        "d4", // Manikarnika Ghat (your existing destination)
-        "d_pk_dhundhi",
-        "d_pk_kardameshwar",
-        "d_pk_bhimchandi",
-        "d_pk_rameshwar",
-        "d_pk_shivpur",
-        "d_pk_kapildhara",
-        "d4", // return to Manikarnika Ghat
-      ],
+      id: "r_food_market",
+      name: "Food + Shopping Evening",
+      category: "food",
+      featured: false,
+      bestTime: "evening",
+      duration: "2–4 hrs",
+      highlights: "Stroll, snacks, shopping and street-life in the lanes.",
+      steps: [HOME.id, "d12", "d2"],
     },
   ];
 
-  // Fix route ids above that were built from strings
-  // (We already replaced spaces, but this makes it future-proof)
-  ROUTES.forEach((r) => {
-    r.steps = (r.steps || []).map((x) => String(x).trim());
-  });
+  // Festivals Calendar (editable list). Dates are illustrative; you can adjust annually.
+  const FESTIVALS = [
+     {
+      date: "2026-01-14",
+      name: "Makar Sankranti / Pongal",
+      tags: ["festival", "sankranti"],
+      note: "Til, khichdi, kite vibes.",
+    },
+    {
+      date: "2026-01-16",
+      name: "Champak's Birthday",
+      tags: ["Champak", "Birthday"],
+      note: "Gazar ka Halwa, Underhand Cricket, Party.",
+    },
+    {
+      date: "2026-02-15",
+      name: "Maha Shivratri",
+      tags: ["shiva", "temple"],
+      note: "Night of Shiva; expect queues.",
+    },
+    {
+      date: "2026-03-04",
+      name: "Holi",
+      tags: ["colors"],
+      note: "Travel tip: plan crowd buffers.",
+    },
+    {
+      date: "2026-03-26",
+      name: "Ram Navami",
+      tags: ["rama"],
+      note: "Temple celebrations.",
+    },
+    {
+      date: "2026-05-01",
+      name: "Buddha Purnima (Vesak)",
+      tags: ["buddha", "sarnath"],
+      note: "Sarnath is special today.",
+    },
+    {
+      date: "2026-05-25",
+      name: "Ganga Dussehra",
+      tags: ["ganga", "ghats"],
+      note: "Heavy ghat crowds.",
+    },
+    {
+      date: "2026-10-20",
+      name: "Dussehra (Vijayadashami)",
+      tags: ["dussehra"],
+      note: "Festive processions.",
+    },
+    {
+      date: "2026-11-08",
+      name: "Diwali",
+      tags: ["deepavali"],
+      note: "High travel demand.",
+    },
+    {
+      date: "2026-11-24",
+      name: "Dev Deepawali (Varanasi)",
+      tags: ["varanasi", "ghats"],
+      note: "Ghats lit with diyas (big event).",
+    },
+  ];
 
   // ---------- LocalStorage helpers ----------
   const readJSON = (k, fb) => {
@@ -665,10 +608,12 @@
   const tabPlaces = document.getElementById("tabPlaces");
   const tabGhats = document.getElementById("tabGhats");
   const tabRoutes = document.getElementById("tabRoutes");
+  const tabFest = document.getElementById("tabFest");
 
   const panelPlaces = document.getElementById("panelPlaces");
   const panelGhats = document.getElementById("panelGhats");
   const panelRoutes = document.getElementById("panelRoutes");
+  const panelFest = document.getElementById("panelFest");
 
   const destGrid = document.getElementById("destGrid");
   const tourList = document.getElementById("tourList");
@@ -686,11 +631,20 @@
   const ghatAddSelected = document.getElementById("ghatAddSelected");
   const ghatClearSelected = document.getElementById("ghatClearSelected");
 
-  // ROUTES refs (NEW)
   const routeSearch = document.getElementById("routeSearch");
   const routeCategory = document.getElementById("routeCategory");
   const routeAddFeatured = document.getElementById("routeAddFeatured");
   const routeGrid = document.getElementById("routeGrid");
+
+  // Festivals
+  const festMonth = document.getElementById("festMonth");
+  const festSearch = document.getElementById("festSearch");
+  const festToday = document.getElementById("festToday");
+  const calHead = document.getElementById("calHead");
+  const calGrid = document.getElementById("calGrid");
+  const festList = document.getElementById("festList");
+  const festSelectedTitle = document.getElementById("festSelectedTitle");
+  const festAddToSummary = document.getElementById("festAddToSummary");
 
   const mapModal = document.getElementById("mapModal");
   const openMapsLink = document.getElementById("openMapsLink");
@@ -711,23 +665,27 @@
     setTimeout(() => el.remove(), 2600);
   }
 
-  // ---------- Tabs (UPDATED: Places / Ghats / Routes) ----------
+  // ---------- Tabs ----------
   function setTab(which) {
     const isPlaces = which === "places";
     const isGhats = which === "ghats";
     const isRoutes = which === "routes";
+    const isFest = which === "fest";
 
     tabPlaces.classList.toggle("active", isPlaces);
     tabGhats.classList.toggle("active", isGhats);
     tabRoutes.classList.toggle("active", isRoutes);
+    tabFest.classList.toggle("active", isFest);
 
     tabPlaces.setAttribute("aria-selected", isPlaces ? "true" : "false");
     tabGhats.setAttribute("aria-selected", isGhats ? "true" : "false");
     tabRoutes.setAttribute("aria-selected", isRoutes ? "true" : "false");
+    tabFest.setAttribute("aria-selected", isFest ? "true" : "false");
 
     panelPlaces.classList.toggle("show", isPlaces);
     panelGhats.classList.toggle("show", isGhats);
     panelRoutes.classList.toggle("show", isRoutes);
+    panelFest.classList.toggle("show", isFest);
 
     if (isPlaces) {
       leftCount.textContent = String(filteredDest().length);
@@ -736,17 +694,23 @@
       leftCount.textContent = String(filteredGhats().length);
       leftCountLabel.textContent = "ghats";
       renderGhats();
-    } else {
+    } else if (isRoutes) {
       leftCount.textContent = String(filteredRoutes().length);
       leftCountLabel.textContent = "routes";
       renderRoutes();
+    } else {
+      leftCount.textContent = String(filteredFestivalsForMonth().length);
+      leftCountLabel.textContent = "festivals";
+      renderFestivals();
     }
   }
+
   tabPlaces.addEventListener("click", () => setTab("places"));
   tabGhats.addEventListener("click", () => setTab("ghats"));
   tabRoutes.addEventListener("click", () => setTab("routes"));
+  tabFest.addEventListener("click", () => setTab("fest"));
 
-  // ---------- Places Filters ----------
+  // ---------- Places filters ----------
   const TYPES = ["all", ...new Set(DEST.map((d) => d.type))].sort((a, b) => {
     if (a === "all") return -1;
     if (b === "all") return 1;
@@ -775,6 +739,7 @@
     renderDestinations();
     if (panelGhats.classList.contains("show")) renderGhats();
     if (panelRoutes.classList.contains("show")) renderRoutes();
+    if (panelFest.classList.contains("show")) renderFestivals();
   }
   topSearch.addEventListener("input", (e) => setSearch(e.target.value));
   rightSearch.addEventListener("input", (e) => setSearch(e.target.value));
@@ -792,14 +757,16 @@
     return DEST.filter((d) => {
       const matchesQ =
         !q ||
-        (d.name + " " + d.type + " " + d.highlights).toLowerCase().includes(q);
+        (d.name + " " + d.type + " " + (d.highlights || ""))
+          .toLowerCase()
+          .includes(q);
       const matchesType = state.type === "all" || d.type === state.type;
       const matchesTime = state.time === "all" || d.bestTime === state.time;
       return matchesQ && matchesType && matchesTime;
     });
   }
 
-  // ---------- Ghats Filter + Selection ----------
+  // ---------- Ghats filter + selection ----------
   const ghatState = { q: "", group: "all" };
   ghatSearch.addEventListener("input", (e) => {
     ghatState.q = e.target.value || "";
@@ -824,6 +791,28 @@
             ? g.famous
             : g.group === ghatState.group;
       return matchesQ && groupOk;
+    });
+  }
+
+  // ---------- Routes filter ----------
+  const routeState = { q: "", cat: "all" };
+  routeSearch.addEventListener("input", (e) => {
+    routeState.q = e.target.value || "";
+    renderRoutes();
+  });
+  routeCategory.addEventListener("change", (e) => {
+    routeState.cat = e.target.value || "all";
+    renderRoutes();
+  });
+
+  function filteredRoutes() {
+    const q = routeState.q.trim().toLowerCase();
+    return ROUTES.filter((r) => {
+      const catOk = routeState.cat === "all" || r.category === routeState.cat;
+      const text =
+        `${r.name} ${r.category} ${r.highlights || ""}`.toLowerCase();
+      const qOk = !q || text.includes(q);
+      return catOk && qOk;
     });
   }
 
@@ -1091,7 +1080,9 @@
       const slides = photos
         .map(
           (src) =>
-            `<div class="slide"><img src="${src}" alt="${esc(d.name)} photo"></div>`,
+            `<div class="slide"><img src="${src}" alt="${esc(
+              d.name,
+            )} photo"></div>`,
         )
         .join("");
 
@@ -1145,7 +1136,7 @@
     if (id) addToTour(id);
   });
 
-  // ---------- Render Ghats Tab ----------
+  // ---------- Render Ghats ----------
   function renderGhats() {
     const list = filteredGhats();
     if (panelGhats.classList.contains("show")) {
@@ -1168,7 +1159,9 @@
         <input type="checkbox" data-gchk="${g.id}" ${sel[g.id] ? "checked" : ""}>
         <div>
           <b>${esc(g.name)}</b>
-          <small>${esc(g.group.toUpperCase())} • Best: ${esc(prettyTime(g.bestTime))} • Time: ${esc(g.timeNeeded)}</small>
+          <small>${esc(g.group.toUpperCase())} • Best: ${esc(
+            prettyTime(g.bestTime),
+          )} • Time: ${esc(g.timeNeeded)}</small>
         </div>
         <div style="display:flex; gap:8px; align-items:center; justify-content:flex-end; flex-wrap:wrap;">
           ${g.famous ? `<span class="tag famous">Famous</span>` : `<span class="tag">Ghat</span>`}
@@ -1223,55 +1216,26 @@
     toast("Cleared", "Ghat selection cleared.");
   });
 
-  // ---------- ROUTES TAB (NEW) ----------
-  const routeState = { q: "", cat: "all" };
-
-  routeSearch.addEventListener("input", (e) => {
-    routeState.q = e.target.value || "";
-    renderRoutes();
-  });
-  routeCategory.addEventListener("change", (e) => {
-    routeState.cat = e.target.value || "all";
-    renderRoutes();
-  });
-
+  // ---------- Routes tab ----------
   function routeStepsPreview(route) {
     const ids = (route.steps || []).slice(0, 8);
-    const names = ids
-      .map((id) => getItemById(id)?.name)
-      .filter(Boolean)
-      .map((n) => n.replace(" (Start)", ""));
+    const names = ids.map((id) => getItemById(id)?.name).filter(Boolean);
     const more = (route.steps || []).length - names.length;
     return more > 0
       ? `${names.join(" → ")} → +${more} more`
       : names.join(" → ");
   }
 
-  function filteredRoutes() {
-    const q = routeState.q.trim().toLowerCase();
-    return ROUTES.filter((r) => {
-      const catOk = routeState.cat === "all" || r.category === routeState.cat;
-      const text =
-        `${r.name} ${r.category} ${r.highlights || ""}`.toLowerCase();
-      const qOk = !q || text.includes(q);
-      return catOk && qOk;
-    });
-  }
-
   function addRouteToTour(route) {
     const steps = (route.steps || []).filter(Boolean);
-
-    // Ensure HOME pinned; normalizeTour does it too, but we keep UX clean.
     let added = 0;
     steps.forEach((id) => {
-      if (id === HOME.id) return; // pinned anyway
-      if (!getItemById(id)) return; // safety
+      if (id === HOME.id) return;
+      if (!getItemById(id)) return;
       if (addToTour(id, true)) added++;
     });
-
     normalizeTour();
     renderTour();
-
     toast("Route added", `${added} new stop(s) added from “${route.name}”.`);
   }
 
@@ -1350,7 +1314,7 @@
           return `${i + 1}) ${name} — ${type} — Best: ${bt}`;
         })
         .join("\n");
-      toast("Stops list", `Opened summary below (scroll).`);
+      toast("Stops list", "Opened summary below (scroll).");
       summaryBox.style.display = "block";
       summaryBox.innerHTML = `<b>${esc(r.name)}</b><br/><pre style="white-space:pre-wrap; margin:8px 0 0; font:inherit; font-size:12px; color:var(--ink)"></pre>`;
       summaryBox.querySelector("pre").textContent = lines || "No stops.";
@@ -1365,43 +1329,172 @@
     addRouteToTour(featured);
   });
 
-  // ---------- Render Tour ----------
-  function renderTour() {
-    const ids = readTour();
-    tourCount.textContent = String(ids.length);
-    tourList.innerHTML = "";
+  // ---------- Festivals calendar ----------
+  const pad2 = (n) => String(n).padStart(2, "0");
+  const iso = (y, m, d) => `${y}-${pad2(m)}-${pad2(d)}`;
+  let festSelected = null;
 
-    ids.forEach((id, idx) => {
-      const d = getItemById(id);
-      if (!d) return;
-      const isHome = id === HOME.id;
-
-      const item = document.createElement("div");
-      item.className = "touritem";
-      item.innerHTML = `
-        <div>
-          <b>${idx + 1}. ${esc(d.name)}${isHome ? " (Start)" : ""}</b>
-          <small>${esc(d.type || "Place")} • ${esc(prettyTime(d.bestTime || "day"))} • ${esc(d.timeNeeded || "—")}</small>
-        </div>
-        <div style="display:flex; gap:8px; align-items:center;">
-          <button class="tinybtn up" data-up="${id}" ${isHome ? "disabled" : ""}>▲</button>
-          <button class="tinybtn down" data-down="${id}" ${isHome ? "disabled" : ""}>▼</button>
-          <button class="tinybtn remove" data-rm="${id}" ${isHome ? "disabled" : ""}>Remove</button>
-        </div>
-      `;
-      tourList.appendChild(item);
-    });
-
-    renderDestinations();
+  function getLocalTodayISO() {
+    const now = new Date();
+    return iso(now.getFullYear(), now.getMonth() + 1, now.getDate());
+  }
+  function monthKeyFromISO(d) {
+    return d.slice(0, 7);
   }
 
-  tourList.addEventListener("click", (e) => {
-    const rm = e.target?.getAttribute?.("data-rm");
-    const up = e.target?.getAttribute?.("data-up");
-    const down = e.target?.getAttribute?.("data-down");
-    if (rm) removeFromTour(rm);
-    if (up) moveTour(up, "up");
-    if (down) moveTour(down, "down");
+  function festivalsOnDate(dateISO) {
+    const q = (festSearch.value || "").trim().toLowerCase();
+    return FESTIVALS.filter((f) => {
+      if (f.date !== dateISO) return false;
+      if (!q) return true;
+      const hay = (
+        f.name +
+        " " +
+        (f.tags || []).join(" ") +
+        " " +
+        (f.note || "")
+      ).toLowerCase();
+      return hay.includes(q);
+    });
+  }
+
+  function filteredFestivalsForMonth() {
+    const mk = festMonth.value || getLocalTodayISO().slice(0, 7);
+    const q = (festSearch.value || "").trim().toLowerCase();
+    return FESTIVALS.filter((f) => {
+      const okMonth = monthKeyFromISO(f.date) === mk;
+      const hay = (
+        f.name +
+        " " +
+        (f.tags || []).join(" ") +
+        " " +
+        (f.note || "")
+      ).toLowerCase();
+      const okQ = !q || hay.includes(q);
+      return okMonth && okQ;
+    });
+  }
+
+  function renderFestList(dateISO) {
+    festSelected = dateISO;
+    festSelectedTitle.textContent = `Festivals on ${dateISO}`;
+
+    const items = festivalsOnDate(dateISO);
+    if (!items.length) {
+      festList.innerHTML = `<div class="festItem"><b>No festival entries</b><small>Add more festivals in FESTIVALS[] if needed.</small></div>`;
+      return;
+    }
+    festList.innerHTML = items
+      .map(
+        (f) => `
+      <div class="festItem">
+        <b>${esc(f.name)}</b>
+        <small>${esc((f.note || "").trim())}</small>
+      </div>`,
+      )
+      .join("");
+  }
+
+  function renderFestivals() {
+    const mk = festMonth.value || getLocalTodayISO().slice(0, 7);
+    const [Y, M] = mk.split("-").map(Number);
+    const first = new Date(Y, M - 1, 1);
+    const last = new Date(Y, M, 0);
+
+    const dowNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    calHead.textContent = first.toLocaleString(undefined, {
+      month: "long",
+      year: "numeric",
+    });
+
+    calGrid.innerHTML = "";
+    dowNames.forEach((n) => {
+      const el = document.createElement("div");
+      el.className = "calDow";
+      el.textContent = n;
+      calGrid.appendChild(el);
+    });
+
+    const offset = first.getDay();
+    const totalCells = 42;
+    const startDay = 1 - offset;
+
+    const todayISO = getLocalTodayISO();
+    const selectedISO = festSelected || todayISO;
+
+    for (let i = 0; i < totalCells; i++) {
+      const dayNum = startDay + i;
+      const date = new Date(Y, M - 1, dayNum);
+      const inMonth = date.getMonth() === M - 1;
+      const dISO = iso(date.getFullYear(), date.getMonth() + 1, date.getDate());
+      const items = festivalsOnDate(dISO);
+
+      const cell = document.createElement("div");
+      cell.className =
+        "calCell" +
+        (inMonth ? "" : " muted") +
+        (dISO === todayISO ? " today" : "") +
+        (dISO === selectedISO ? " selected" : "");
+      cell.setAttribute("data-date", dISO);
+
+      cell.innerHTML = `
+        <div class="calNum">${date.getDate()}</div>
+        <div class="calBadges">
+          ${items
+            .slice(0, 2)
+            .map((x) => `<span class="calBadge">${esc(x.name)}</span>`)
+            .join("")}
+          ${items.length > 2 ? `<span class="calBadge">+${items.length - 2}</span>` : ""}
+        </div>
+      `;
+      calGrid.appendChild(cell);
+    }
+
+    if (!festSelected || monthKeyFromISO(festSelected) !== mk) {
+      festSelected = mk + "-01";
+    }
+    renderFestList(festSelected);
+
+    if (panelFest.classList.contains("show")) {
+      leftCount.textContent = String(filteredFestivalsForMonth().length);
+      leftCountLabel.textContent = "festivals";
+    }
+  }
+
+  calGrid.addEventListener("click", (e) => {
+    const cell = e.target.closest(".calCell");
+    if (!cell) return;
+    const d = cell.getAttribute("data-date");
+    if (!d) return;
+    festSelected = d;
+    renderFestivals();
+    renderFestList(d);
+  });
+
+  festMonth.addEventListener("change", () => renderFestivals());
+  festSearch.addEventListener("input", () => renderFestivals());
+
+  festToday.addEventListener("click", () => {
+    const t = getLocalTodayISO();
+    festMonth.value = t.slice(0, 7);
+    renderFestivals();
+    renderFestList(t);
+  });
+
+  festAddToSummary.addEventListener("click", () => {
+    const d = festSelected || getLocalTodayISO();
+    const items = festivalsOnDate(d);
+    if (!items.length)
+      return toast("No festivals", "Nothing to add for this date.");
+
+    const lines = items
+      .map((x) => `• ${x.name}${x.note ? " — " + x.note : ""}`)
+      .join("\n");
+    summaryBox.style.display = "block";
+    summaryBox.innerHTML = `<b>Festivals note added</b><br/><pre style="white-space:pre-wrap; margin:8px 0 0; font:inherit; font-size:12px; color:var(--ink)"></pre>`;
+    summaryBox.querySelector("pre").textContent =
+      `Festival Calendar — ${d}\n----------------------\n${lines}\n\nTip: Expect crowds near ghats/temples during major festivals.`;
+    toast("Added to summary", `Festivals for ${d} added.`);
   });
 
   // ---------- Summary + Actions ----------
@@ -1450,10 +1543,56 @@
     );
   });
 
+  // ---------- Render Tour ----------
+  function renderTour() {
+    const ids = readTour();
+    tourCount.textContent = String(ids.length);
+    tourList.innerHTML = "";
+
+    ids.forEach((id, idx) => {
+      const d = getItemById(id);
+      if (!d) return;
+      const isHome = id === HOME.id;
+
+      const item = document.createElement("div");
+      item.className = "touritem";
+      item.innerHTML = `
+        <div>
+          <b>${idx + 1}. ${esc(d.name)}${isHome ? " (Start)" : ""}</b>
+          <small>${esc(d.type || "Place")} • ${esc(
+            prettyTime(d.bestTime || "day"),
+          )} • ${esc(d.timeNeeded || "—")}</small>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button class="tinybtn up" data-up="${id}" ${isHome ? "disabled" : ""}>▲</button>
+          <button class="tinybtn down" data-down="${id}" ${isHome ? "disabled" : ""}>▼</button>
+          <button class="tinybtn remove" data-rm="${id}" ${isHome ? "disabled" : ""}>Remove</button>
+        </div>
+      `;
+      tourList.appendChild(item);
+    });
+
+    renderDestinations();
+  }
+
+  tourList.addEventListener("click", (e) => {
+    const rm = e.target?.getAttribute?.("data-rm");
+    const up = e.target?.getAttribute?.("data-up");
+    const down = e.target?.getAttribute?.("data-down");
+    if (rm) removeFromTour(rm);
+    if (up) moveTour(up, "up");
+    if (down) moveTour(down, "down");
+  });
+
   // ---------- Init ----------
+  // default festival month = current month
+  const today = new Date();
+  festMonth.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+
   renderTour();
   renderDestinations();
   renderGhats();
   renderRoutes();
+  renderFestivals();
   setTab("places");
 })();
