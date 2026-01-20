@@ -509,7 +509,7 @@
 
   // Festivals Calendar (editable list). Dates are illustrative; you can adjust annually.
   const FESTIVALS = [
-     {
+    {
       date: "2026-01-14",
       name: "Makar Sankranti / Pongal",
       tags: ["festival", "sankranti"],
@@ -518,9 +518,10 @@
     {
       date: "2026-01-16",
       name: "Champak's Birthday",
-      tags: ["Champak", "Birthday"],
-      note: "Gazar ka Halwa, Underhand Cricket, Party.",
+      tags: ["champak", "birthday", "underhand cricket", "party"],
+      note: "Til, khichdi, kite vibes.",
     },
+
     {
       date: "2026-02-15",
       name: "Maha Shivratri",
@@ -623,6 +624,13 @@
   const filterType = document.getElementById("filterType");
   const filterTime = document.getElementById("filterTime");
   const summaryBox = document.getElementById("summaryBox");
+  // Near Me Finder (uses browser geolocation)
+  const nearMeBtn = document.getElementById("nearMeBtn");
+  const nearRadius = document.getElementById("nearRadius");
+  const nearRefresh = document.getElementById("nearRefresh");
+  const nearEnhance = document.getElementById("nearEnhance");
+  const nearList = document.getElementById("nearList");
+  const nearStatus = document.getElementById("nearStatus");
 
   const ghatSearch = document.getElementById("ghatSearch");
   const ghatGroup = document.getElementById("ghatGroup");
@@ -731,6 +739,197 @@
       evening: "Evening",
       night: "Night",
     })[t] || t;
+
+  // =========================
+  // NEAR ME FINDER
+  // =========================
+  const nearState = {
+    pos: null, // [lat, lng]
+    accuracy: null, // meters
+    lastUpdated: null, // Date
+    enhanced: false,
+  };
+
+  function haversineKm(a, b) {
+    const toRad = (x) => (x * Math.PI) / 180;
+    const R = 6371; // km
+    const dLat = toRad(b[0] - a[0]);
+    const dLon = toRad(b[1] - a[1]);
+    const lat1 = toRad(a[0]);
+    const lat2 = toRad(b[0]);
+    const s =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+    return 2 * R * Math.asin(Math.min(1, Math.sqrt(s)));
+  }
+
+  function setNearStatus(msg) {
+    if (!nearStatus) return;
+    nearStatus.textContent = msg;
+  }
+
+  function fmtKm(km) {
+    if (!Number.isFinite(km)) return "—";
+    if (km < 1) return `${Math.round(km * 1000)} m`;
+    return `${km.toFixed(km < 10 ? 2 : 1)} km`;
+  }
+
+  function canGeo() {
+    return typeof navigator !== "undefined" && !!navigator.geolocation;
+  }
+
+  function requestUserLocation() {
+    return new Promise((resolve, reject) => {
+      if (!canGeo()) return reject(new Error("Geolocation not supported."));
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          nearState.pos = [lat, lng];
+          nearState.accuracy = pos.coords.accuracy || null;
+          nearState.lastUpdated = new Date();
+          resolve(nearState.pos);
+        },
+        (err) => reject(err),
+        {
+          enableHighAccuracy: true,
+          timeout: 12000,
+          maximumAge: 60000,
+        },
+      );
+    });
+  }
+
+  function openMapsToHere(lat, lng, label) {
+    const q = encodeURIComponent(label ? `${label}` : `${lat},${lng}`);
+    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lat + "," + lng)}&query_place_id=`;
+    // Simple open: search at coordinates
+    window.open(url, "_blank", "noopener");
+  }
+
+  async function getCoordsFast(item) {
+    // We try, in order:
+    // 1) item.coords (already known)
+    // 2) cached coords in localStorage
+    // 3) (optional enhance step) call ensureCoordsForPlace (may use Nominatim)
+    if (Array.isArray(item.coords)) return item.coords;
+
+    const cache = readCoordsCache();
+    if (Array.isArray(cache[item.id]) && cache[item.id].length === 2) {
+      item.coords = cache[item.id];
+      return item.coords;
+    }
+    return null;
+  }
+
+  async function getCoordsEnhanced(item) {
+    const c = await getCoordsFast(item);
+    if (c) return c;
+
+    // Enhance = allow fetching missing coords (may be rate-limited)
+    // Throttle gently in caller.
+    const got = await ensureCoordsForPlace(item);
+    return got || null;
+  }
+
+  function renderNearList(results, radiusKm) {
+    if (!nearList) return;
+
+    if (!nearState.pos) {
+      nearList.innerHTML = "";
+      return;
+    }
+
+    if (!results.length) {
+      nearList.innerHTML = `<div class="note" style="border-top:none; margin-top:0;">No known places within ${radiusKm} km (or missing coordinates). Try “✨ Improve results”.</div>`;
+      return;
+    }
+
+    const tourIds = new Set(readTour());
+
+    nearList.innerHTML = results
+      .slice(0, 25)
+      .map((r) => {
+        const inTour = tourIds.has(r.item.id);
+        const bt = r.item.bestTime ? prettyTime(r.item.bestTime) : "—";
+        const tn = r.item.timeNeeded || "—";
+        const type = r.item.type || "Place";
+        return `
+          <div class="nearitem">
+            <div>
+              <b>${esc(r.item.name)}</b>
+              <small>${esc(type)} • Best: ${esc(bt)} • Time: ${esc(tn)}</small>
+              <div style="margin-top:6px; display:flex; gap:8px; flex-wrap:wrap;">
+                <span class="nearpill">📏 ${esc(fmtKm(r.km))}</span>
+                ${nearState.accuracy ? `<span class="nearpill">🎯 ±${Math.round(nearState.accuracy)} m</span>` : ""}
+              </div>
+            </div>
+            <div class="nearactions">
+              <button class="btn ${inTour ? "secondary" : ""}" data-nearadd="${esc(r.item.id)}">${inTour ? "✓ Added" : "➕ Add"}</button>
+              <a class="btn secondary" href="${r.item.map || "#"}" target="_blank" rel="noopener">📍 Map</a>
+            </div>
+          </div>
+        `;
+      })
+      .join("");
+  }
+
+  async function findNearby({ enhance = false } = {}) {
+    if (!nearList || !nearRadius) return;
+
+    const radiusKm = Number(nearRadius.value || 5);
+
+    if (!nearState.pos) {
+      setNearStatus("📍 Click “Use my location” to enable nearby finder.");
+      renderNearList([], radiusKm);
+      return;
+    }
+
+    setNearStatus(
+      `Searching within ${radiusKm} km…` +
+        (enhance ? " (enhanced mode)" : " (fast mode)"),
+    );
+
+    const all = [
+      ...DEST.filter((d) => d.id !== HOME.id), // keep start separate
+      ...GHATS,
+    ];
+
+    const results = [];
+    let missing = 0;
+
+    for (const item of all) {
+      let c = enhance
+        ? await getCoordsEnhanced(item)
+        : await getCoordsFast(item);
+      if (!c) {
+        missing++;
+        continue;
+      }
+      const km = haversineKm(nearState.pos, c);
+      if (km <= radiusKm) results.push({ item, km });
+      if (enhance) {
+        // gentle throttle to reduce geocoder risk
+        await new Promise((r) => setTimeout(r, 250));
+      }
+    }
+
+    results.sort((a, b) => a.km - b.km);
+    renderNearList(results, radiusKm);
+
+    const age = nearState.lastUpdated
+      ? Math.round((Date.now() - nearState.lastUpdated.getTime()) / 1000)
+      : null;
+
+    setNearStatus(
+      `Found ${results.length} nearby. ` +
+        (missing ? `${missing} missing coords. ` : "") +
+        (age !== null ? `Location age: ${age}s.` : "") +
+        (enhance
+          ? " Enhanced mode used."
+          : " Use “✨ Improve results” if needed."),
+    );
+  }
 
   function setSearch(v) {
     state.q = v || "";
@@ -1583,6 +1782,62 @@
     if (up) moveTour(up, "up");
     if (down) moveTour(down, "down");
   });
+
+  // Near Me Finder events
+  if (nearMeBtn) {
+    nearMeBtn.addEventListener("click", async () => {
+      try {
+        setNearStatus("Requesting location permission…");
+        const p = await requestUserLocation();
+        toast(
+          "Location enabled",
+          `Using your location: ${p[0].toFixed(5)}, ${p[1].toFixed(5)}`,
+        );
+        await findNearby({ enhance: false });
+      } catch (e) {
+        const msg =
+          e && e.message
+            ? e.message
+            : "Location not available. Check browser permission.";
+        toast("Location failed", msg);
+        setNearStatus(
+          "Location not available. Please allow location permission in your browser.",
+        );
+      }
+    });
+  }
+
+  if (nearRefresh) {
+    nearRefresh.addEventListener("click", async () => {
+      await findNearby({ enhance: false });
+    });
+  }
+
+  if (nearEnhance) {
+    nearEnhance.addEventListener("click", async () => {
+      toast(
+        "Improving results",
+        "Trying to fetch missing coordinates (may be slow).",
+      );
+      await findNearby({ enhance: true });
+    });
+  }
+
+  if (nearRadius) {
+    nearRadius.addEventListener("change", async () => {
+      await findNearby({ enhance: false });
+    });
+  }
+
+  if (nearList) {
+    nearList.addEventListener("click", (e) => {
+      const id = e.target?.getAttribute?.("data-nearadd");
+      if (!id) return;
+      addToTour(id);
+      // refresh list button state
+      findNearby({ enhance: false });
+    });
+  }
 
   // ---------- Init ----------
   // default festival month = current month
