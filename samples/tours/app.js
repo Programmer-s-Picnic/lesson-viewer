@@ -258,6 +258,90 @@
         photoSVG("Godowlia Market", "Evening lights", 10),
       ],
     },
+
+    {
+      id: "d_pk_dhundhi",
+      name: "Dhundhi Vinayak (Dhundhiraja)",
+      type: "Temple",
+      bestTime: "sunrise",
+      timeNeeded: "15–30 min",
+      cost: "Free",
+      highlights:
+        "Traditional sankalpa (vow) point before Panchkroshi Parikrama.",
+      map:
+        "https://www.google.com/maps/search/?api=1&query=" +
+        encodeURIComponent("Dhundhi Vinayak Dhundiraja Varanasi"),
+      // coords omitted on purpose; your geocoder will fetch+cache on first map view
+      photos: [photoSVG("Dhundhi Vinayak", "Sankalpa before yatra", 32)],
+    },
+    {
+      id: "d_pk_kardameshwar",
+      name: "Kardameshwar Mahadev (Kandwa)",
+      type: "Parikrama Stop",
+      bestTime: "day",
+      timeNeeded: "30–60 min",
+      cost: "Free",
+      highlights:
+        "First major halt in the Panchkroshi circuit (Kandwa/Kandawa area).",
+      map:
+        "https://www.google.com/maps/search/?api=1&query=" +
+        encodeURIComponent("Kardameshwar Mahadev Kandwa Varanasi"),
+      photos: [photoSVG("Kardameshwar", "Panchkroshi halt (Kandwa)", 26)],
+    },
+    {
+      id: "d_pk_bhimchandi",
+      name: "Bhimchandi Devi Temple",
+      type: "Parikrama Stop",
+      bestTime: "day",
+      timeNeeded: "30–60 min",
+      cost: "Free",
+      highlights: "One of the five key Panchkroshi halts.",
+      map:
+        "https://www.google.com/maps/search/?api=1&query=" +
+        encodeURIComponent("Bhimchandi Devi Temple Varanasi"),
+      photos: [photoSVG("Bhimchandi", "Panchkroshi halt", 18)],
+    },
+    {
+      id: "d_pk_rameshwar",
+      name: "Rameshwar Temple (Kashi)",
+      type: "Parikrama Stop",
+      bestTime: "day",
+      timeNeeded: "30–60 min",
+      cost: "Free",
+      highlights: "One of the five key Panchkroshi halts (Rameshwar).",
+      map:
+        "https://www.google.com/maps/search/?api=1&query=" +
+        encodeURIComponent("Rameshwar Temple Varanasi"),
+      photos: [photoSVG("Rameshwar", "Panchkroshi halt", 22)],
+    },
+    {
+      id: "d_pk_shivpur",
+      name: "Shivpur (Panchkroshi Halt)",
+      type: "Parikrama Stop",
+      bestTime: "day",
+      timeNeeded: "20–40 min",
+      cost: "Free",
+      highlights:
+        "One of the five key Panchkroshi halts (some guides also reference nearby Pancho Pandav shrine).",
+      map:
+        "https://www.google.com/maps/search/?api=1&query=" +
+        encodeURIComponent("Shivpur Panchkroshi Varanasi"),
+      photos: [photoSVG("Shivpur", "Panchkroshi halt", 14)],
+    },
+    {
+      id: "d_pk_kapildhara",
+      name: "Kapildhara (Kapiladhara) Tirth / Temple Area",
+      type: "Parikrama Stop",
+      bestTime: "day",
+      timeNeeded: "30–60 min",
+      cost: "Free",
+      highlights:
+        "Final key halt before returning to Manikarnika; associated with ancestral rituals in some traditions.",
+      map:
+        "https://www.google.com/maps/search/?api=1&query=" +
+        encodeURIComponent("Kapildhara Kapiladhara Varanasi"),
+      photos: [photoSVG("Kapildhara", "Panchkroshi halt", 40)],
+    },
   ];
 
   // Ghats (bulk directory)
@@ -394,7 +478,8 @@
       featured: false,
       bestTime: "day",
       duration: "5–8 hrs",
-      highlights: "Core spiritual stops within the city (verify timings/queues).",
+      highlights:
+        "Core spiritual stops within the city (verify timings/queues).",
       steps: [HOME.id, "d1", "d9", "d10", "d2"],
     },
     {
@@ -407,15 +492,28 @@
       highlights:
         "Template route: replace/adjust steps as per your preferred Panchkosi sequence and local guidance.",
       // We use known items from this app so it always works out-of-the-box.
+      steps: [HOME.id, "d1", "d9", "d10", "d7", "d5", "d2", "d4"],
+    },
+
+    {
+      id: "r_kashi_panchkroshi_established",
+      name: "Kashi Panchkroshi (Panchkosi) Parikrama — Established Circuit",
+      category: "parikrama",
+      featured: true,
+      bestTime: "sunrise",
+      duration: "5 days (traditionally) • ~88.5 km",
+      highlights:
+        "Start/End at Manikarnika Ghat, visiting the five key halts: Kardameshwar (Kandwa), Bhimchandi, Rameshwar, Shivpur, Kapildhara. Includes optional Dhundhi Vinayak sankalpa stop.",
       steps: [
-        HOME.id,
-        "d1",
-        "d9",
-        "d10",
-        "d7",
-        "d5",
-        "d2",
-        "d4",
+        "d0", // Champak's Home (pinned start in your app)
+        "d4", // Manikarnika Ghat (your existing destination)
+        "d_pk_dhundhi",
+        "d_pk_kardameshwar",
+        "d_pk_bhimchandi",
+        "d_pk_rameshwar",
+        "d_pk_shivpur",
+        "d_pk_kapildhara",
+        "d4", // return to Manikarnika Ghat
       ],
     },
   ];
@@ -686,8 +784,12 @@
     }
 
     const origin = encodeURIComponent(placeQuery(places[0]));
-    const destination = encodeURIComponent(placeQuery(places[places.length - 1]));
-    const middle = places.slice(1, -1).map((p) => encodeURIComponent(placeQuery(p)));
+    const destination = encodeURIComponent(
+      placeQuery(places[places.length - 1]),
+    );
+    const middle = places
+      .slice(1, -1)
+      .map((p) => encodeURIComponent(placeQuery(p)));
     const waypoints = middle.slice(0, 20).join("%7C");
 
     const base = `https://www.google.com/maps/dir/?api=1&travelmode=walking&origin=${origin}&destination=${destination}`;
@@ -790,12 +892,15 @@
   }
 
   document.getElementById("viewMapBtn").addEventListener("click", openMapModal);
-  document.getElementById("closeMapBtn").addEventListener("click", closeMapModal);
+  document
+    .getElementById("closeMapBtn")
+    .addEventListener("click", closeMapModal);
   mapModal.addEventListener("click", (e) => {
     if (e.target === mapModal) closeMapModal();
   });
   window.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && mapModal.classList.contains("show")) closeMapModal();
+    if (e.key === "Escape" && mapModal.classList.contains("show"))
+      closeMapModal();
   });
 
   document.getElementById("openMapsBtn").addEventListener("click", () => {
@@ -808,7 +913,9 @@
   const carIdx = new Map();
   const carTimers = new Map();
   const setDotActive = (wrap, idx) =>
-    [...wrap.children].forEach((d, i) => d.classList.toggle("active", i === idx));
+    [...wrap.children].forEach((d, i) =>
+      d.classList.toggle("active", i === idx),
+    );
 
   function mountCarousel(cardEl, d) {
     const track = cardEl.querySelector(".track");
@@ -837,7 +944,10 @@
 
     const start = () => {
       stop();
-      carTimers.set(d.id, setInterval(() => go(idx + 1), 4500));
+      carTimers.set(
+        d.id,
+        setInterval(() => go(idx + 1), 4500),
+      );
     };
     const stop = () => {
       const t = carTimers.get(d.id);
@@ -868,12 +978,17 @@
 
     list.forEach((d) => {
       const inTour = tourIds.has(d.id);
-      const photos = d.photos?.length ? d.photos : [photoSVG(d.name, d.type, 32)];
+      const photos = d.photos?.length
+        ? d.photos
+        : [photoSVG(d.name, d.type, 32)];
       const dots = photos
         .map((_, i) => `<span class="dot ${i === 0 ? "active" : ""}"></span>`)
         .join("");
       const slides = photos
-        .map((src) => `<div class="slide"><img src="${src}" alt="${esc(d.name)} photo"></div>`)
+        .map(
+          (src) =>
+            `<div class="slide"><img src="${src}" alt="${esc(d.name)} photo"></div>`,
+        )
         .join("");
 
       const el = document.createElement("article");
@@ -1023,14 +1138,17 @@
       .filter(Boolean)
       .map((n) => n.replace(" (Start)", ""));
     const more = (route.steps || []).length - names.length;
-    return more > 0 ? `${names.join(" → ")} → +${more} more` : names.join(" → ");
+    return more > 0
+      ? `${names.join(" → ")} → +${more} more`
+      : names.join(" → ");
   }
 
   function filteredRoutes() {
     const q = routeState.q.trim().toLowerCase();
     return ROUTES.filter((r) => {
       const catOk = routeState.cat === "all" || r.category === routeState.cat;
-      const text = `${r.name} ${r.category} ${r.highlights || ""}`.toLowerCase();
+      const text =
+        `${r.name} ${r.category} ${r.highlights || ""}`.toLowerCase();
       const qOk = !q || text.includes(q);
       return catOk && qOk;
     });
@@ -1070,11 +1188,17 @@
       const el = document.createElement("div");
       el.className = "routeCard";
       const tags = [
-        r.category ? `<span class="rtag primary">${esc(r.category)}</span>` : "",
+        r.category
+          ? `<span class="rtag primary">${esc(r.category)}</span>`
+          : "",
         r.duration ? `<span class="rtag">${esc(r.duration)}</span>` : "",
-        r.bestTime ? `<span class="rtag">${esc(prettyTime(r.bestTime))}</span>` : "",
+        r.bestTime
+          ? `<span class="rtag">${esc(prettyTime(r.bestTime))}</span>`
+          : "",
         r.featured ? `<span class="rtag">★ Featured</span>` : "",
-      ].filter(Boolean).join("");
+      ]
+        .filter(Boolean)
+        .join("");
 
       el.innerHTML = `
         <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start;">
@@ -1132,7 +1256,8 @@
 
   routeAddFeatured.addEventListener("click", () => {
     const featured = ROUTES.find((r) => r.featured);
-    if (!featured) return toast("No featured route", "Mark any route as featured.");
+    if (!featured)
+      return toast("No featured route", "Mark any route as featured.");
     addRouteToTour(featured);
   });
 
@@ -1194,7 +1319,8 @@
   }
 
   document.getElementById("makePlanBtn").addEventListener("click", () => {
-    if (!readTour().length) return toast("Tour empty", "Add destinations first.");
+    if (!readTour().length)
+      return toast("Tour empty", "Add destinations first.");
     const text = makeSummaryText();
     summaryBox.style.display = "block";
     summaryBox.innerHTML = `<b>Your Tour Summary</b><br/><pre style="white-space:pre-wrap; margin:8px 0 0; font:inherit; font-size:12px; color:var(--ink)"></pre>`;
@@ -1203,14 +1329,21 @@
   });
 
   document.getElementById("clearTourBtn").addEventListener("click", clearTour);
-  document.getElementById("saveTourBtn").addEventListener("click", () =>
-    toast("Saved", "Your tour is saved in this browser."),
-  );
+  document
+    .getElementById("saveTourBtn")
+    .addEventListener("click", () =>
+      toast("Saved", "Your tour is saved in this browser."),
+    );
 
   document.getElementById("waShare").addEventListener("click", () => {
-    if (!readTour().length) return toast("Tour empty", "Add destinations to share.");
+    if (!readTour().length)
+      return toast("Tour empty", "Add destinations to share.");
     const text = makeSummaryText();
-    window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank", "noopener");
+    window.open(
+      "https://wa.me/?text=" + encodeURIComponent(text),
+      "_blank",
+      "noopener",
+    );
   });
 
   // ---------- Init ----------
