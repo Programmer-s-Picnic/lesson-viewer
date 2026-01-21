@@ -3,8 +3,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Champak Brain — JavaScript Editor (Phase 2)</title>
-
+    <title>Champak Brain — JavaScript Editor (Phase 2 Proper)</title>
+    <meta
+      name="description"
+      content="Classroom-ready JS editor with worker execution, autosave, shareable links, problem statements, and a judge harness."
+    />
     <style>
       :root {
         --bg: #fff7e6;
@@ -19,88 +22,118 @@
         --codeink: #e5e7eb;
         --ok: #166534;
         --bad: #b91c1c;
+        --warn: #b45309;
         --r: 18px;
-        --mono: ui-monospace, Menlo, Consolas, monospace;
+        --mono: ui-monospace, Menlo, Consolas, "SF Mono", monospace;
       }
+
+      * { box-sizing: border-box; }
+
       body {
         margin: 0;
-        font-family: system-ui;
-        background: linear-gradient(180deg, var(--bg), #fff);
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        color: var(--ink);
+        background: radial-gradient(1200px 600px at 15% -10%, rgba(245, 158, 11, 0.18), transparent 55%),
+          radial-gradient(900px 500px at 85% 0%, rgba(217, 119, 6, 0.16), transparent 60%),
+          linear-gradient(180deg, var(--bg), #ffffff);
       }
-      * {
-        box-sizing: border-box;
+
+      .wrap { max-width: 1320px; margin: 16px auto; padding: 14px; }
+
+      .top {
+        display: flex; justify-content: space-between; align-items: center;
+        gap: 10px; margin-bottom: 12px; flex-wrap: wrap;
       }
-      .wrap {
-        max-width: 1300px;
-        margin: 16px auto;
-        padding: 14px;
+
+      .title { display: flex; align-items: center; gap: 10px; min-width: 240px; }
+      h1 { margin: 0; font-size: 18px; letter-spacing: 0.2px; }
+
+      .badge {
+        font-size: 12px; font-weight: 900; padding: 4px 10px; border-radius: 999px;
+        background: linear-gradient(180deg, var(--brand2), var(--brand));
+        color: #1b1206; border: 1px solid rgba(0, 0, 0, 0.08);
       }
+
       .card {
         background: var(--card);
         border: 1px solid var(--border);
         border-radius: var(--r);
         box-shadow: var(--shadow);
       }
-      .top {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 12px;
-      }
-      h1 {
-        margin: 0;
-        font-size: 18px;
-      }
+
+      .btnbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+
       .btn {
         border: 1px solid var(--border);
         background: #fff;
         border-radius: 14px;
         padding: 8px 12px;
-        font-weight: 800;
+        font-weight: 900;
         cursor: pointer;
+        user-select: none;
       }
-      .btn.primary {
-        background: linear-gradient(180deg, var(--brand2), var(--brand));
-        border: 0;
+      .btn:active { transform: translateY(1px); }
+      .btn.primary { background: linear-gradient(180deg, var(--brand2), var(--brand)); border: 0; }
+      .btn.danger { border-color: rgba(185, 28, 28, 0.25); background: rgba(185, 28, 28, 0.08); }
+
+      .grid { display: grid; grid-template-columns: 1.35fr 0.65fr; gap: 12px; }
+      @media (max-width: 980px) { .grid { grid-template-columns: 1fr; } }
+
+      .paneHead {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 10px 12px; border-bottom: 1px solid var(--border);
+        gap: 10px; flex-wrap: wrap;
       }
-      .grid {
-        display: grid;
-        grid-template-columns: 1.3fr 0.7fr;
-        gap: 12px;
-      }
-      @media (max-width: 900px) {
-        .grid {
-          grid-template-columns: 1fr;
-        }
-      }
-      .tabs {
-        display: flex;
-        gap: 8px;
-        padding: 8px;
-        border-bottom: 1px solid var(--border);
-      }
-      .tab {
-        padding: 6px 12px;
-        border-radius: 999px;
+      .paneHead b { font-size: 14px; }
+
+      .meta { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+      select, input[type="number"] {
         border: 1px solid var(--border);
-        cursor: pointer;
+        border-radius: 12px;
+        padding: 8px 10px;
         font-weight: 800;
+        background: #fff;
       }
-      .tab.active {
-        background: linear-gradient(180deg, var(--brand2), var(--brand));
+
+      .hint { font-size: 12px; color: var(--muted); line-height: 1.35; }
+
+      textarea.editor {
+        width: 100%;
+        min-height: 520px;
+        resize: vertical;
         border: 0;
-      }
-      .editor {
-        background: var(--codebg);
-        color: var(--codeink);
-        font-family: var(--mono);
-        min-height: 420px;
-        white-space: pre;
         outline: none;
         padding: 12px;
         border-radius: 14px;
+        background: var(--codebg);
+        color: var(--codeink);
+        font-family: var(--mono);
+        font-size: 13.5px;
+        line-height: 1.55;
+        tab-size: 2;
+        white-space: pre;
       }
+
+      .side { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+
+      .block {
+        padding: 12px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: #fff;
+      }
+      .block h3 { margin: 0 0 6px 0; font-size: 13px; }
+      .block p { margin: 6px 0; color: #374151; font-size: 13px; line-height: 1.5; }
+      .block code {
+        font-family: var(--mono);
+        font-size: 12px;
+        background: rgba(245, 158, 11, 0.12);
+        padding: 2px 6px;
+        border-radius: 8px;
+        border: 1px solid rgba(217, 119, 6, 0.18);
+      }
+
       .out {
         background: #020617;
         color: #e5e7eb;
@@ -109,167 +142,1008 @@
         padding: 12px;
         border-radius: 14px;
         white-space: pre-wrap;
+        border: 1px solid rgba(255, 255, 255, 0.08);
       }
-      .err {
-        color: #fecaca;
+
+      .statusRow { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+      .statusPill {
+        display: inline-flex; align-items: center; gap: 8px;
+        padding: 6px 10px; border-radius: 999px;
+        font-weight: 900; font-size: 12px;
+        border: 1px solid var(--border);
+        background: #fff;
       }
-      .ok {
-        color: #bbf7d0;
+      .dot { width: 10px; height: 10px; border-radius: 999px; background: #94a3b8; }
+      .dot.ok { background: #22c55e; }
+      .dot.bad { background: #ef4444; }
+      .dot.warn { background: #f59e0b; }
+
+      .judgeList { display: grid; gap: 8px; }
+      .test {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 10px;
+        background: #fff;
       }
-      .small {
+      .testTop { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+      .tag {
+        font-weight: 900;
         font-size: 12px;
-        color: var(--muted);
+        padding: 4px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: rgba(245, 158, 11, 0.12);
       }
+      .tag.pass { background: rgba(34, 197, 94, 0.12); border-color: rgba(34, 197, 94, 0.25); }
+      .tag.fail { background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.25); }
+      .tag.hidden { background: rgba(148, 163, 184, 0.12); border-color: rgba(148, 163, 184, 0.25); }
+
+      .small { font-size: 12px; color: var(--muted); }
+
+      .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+      @media (max-width: 520px) { .row2 { grid-template-columns: 1fr; } }
+
+      .kbd {
+        font-family: var(--mono);
+        font-size: 12px;
+        border: 1px solid var(--border);
+        border-bottom-width: 2px;
+        background: #fff;
+        padding: 2px 6px;
+        border-radius: 8px;
+        font-weight: 900;
+      }
+
+      .footerHint { margin-top: 2px; font-size: 12px; color: var(--muted); }
     </style>
   </head>
 
   <body>
     <div class="wrap">
       <div class="top">
-        <h1>🧠 Champak Brain — JavaScript Editor (Phase 2)</h1>
-        <div>
-          <button class="btn primary" id="run">▶ Run</button>
-          <button class="btn" id="stop">⛔ Stop</button>
-          <button class="btn" id="share">🔗 Share</button>
-          <button class="btn" id="download">⬇ App</button>
+        <div class="title">
+          <h1>🧠 Champak Brain — JavaScript Editor</h1>
+          <span class="badge">Phase 2 Proper</span>
+        </div>
+
+        <div class="btnbar">
+          <button class="btn primary" id="run" title="Run current code (Ctrl/⌘ + Enter)">▶ Run</button>
+          <button class="btn danger" id="stop" title="Stop (terminate current worker)">⛔ Stop</button>
+          <button class="btn" id="runTests" title="Run tests for selected problem">🏁 Run Tests</button>
+          <button class="btn" id="reset" title="Reset editor to starter for this problem">♻ Reset</button>
+          <button class="btn" id="share" title="Copy a shareable link (includes code)">🔗 Share</button>
+          <button class="btn" id="download" title="Download this as a standalone HTML file">⬇ App</button>
         </div>
       </div>
 
       <div class="grid">
+        <!-- LEFT: Editor -->
         <div class="card">
-          <div id="editor" class="editor" contenteditable="true">
-            function sum(n){ let s=0; for(let i=1;i<=n;i++) s+=i; return s; }
-            console.log(sum(5));
+          <div class="paneHead">
+            <div class="meta">
+              <b>Editor</b>
+              <span class="small" id="saveState">Saved</span>
+              <span class="small">•</span>
+              <span class="small">Shortcuts:</span>
+              <span class="kbd">Ctrl</span><span class="kbd">Enter</span>
+              <span class="small">Run</span>
+            </div>
+
+            <div class="meta">
+              <label class="small" for="timeoutMs"><b>Timeout</b></label>
+              <input
+                id="timeoutMs"
+                type="number"
+                min="200"
+                step="100"
+                value="2000"
+                style="width: 110px"
+                title="Execution timeout in milliseconds"
+              />
+            </div>
+          </div>
+          <div style="padding: 12px">
+            <textarea id="editor" class="editor" spellcheck="false"></textarea>
+            <div class="footerHint">
+              Tip: In problems, define <code>function solve(input){...}</code> and return the final value.
+              You can still use <code>console.log</code> for debugging.
+            </div>
           </div>
         </div>
 
-        <div class="card" style="padding: 12px">
-          <b>Problem Mode</b><br />
-          <select id="problem"></select>
-          <button class="btn" id="loadStarter">⚡ Starter</button>
-          <button class="btn" id="runTests">🏁 Run Tests</button>
-          <div class="out" id="out"></div>
-          <div id="judge"></div>
+        <!-- RIGHT: Problem + Output + Judge -->
+        <div class="card">
+          <div class="paneHead">
+            <div class="meta">
+              <b>Problem Mode</b>
+              <select id="problem"></select>
+            </div>
+            <div class="meta">
+              <button class="btn" id="starterBtn" title="Load starter template">⚡ Starter</button>
+            </div>
+          </div>
+
+          <div class="side">
+            <div class="block" id="problemBox">
+              <h3 id="pTitle">—</h3>
+              <p id="pStatement" class="hint">—</p>
+              <div class="row2">
+                <div class="hint"><b>Input:</b> <span id="pInput">—</span></div>
+                <div class="hint"><b>Output:</b> <span id="pOutput">—</span></div>
+              </div>
+              <p class="hint" id="pNotes"></p>
+            </div>
+
+            <div class="block">
+              <div class="statusRow">
+                <span class="statusPill" id="execPill">
+                  <span class="dot" id="execDot"></span>
+                  <span id="execText">Idle</span>
+                </span>
+                <span class="small" id="lastRun">—</span>
+              </div>
+              <div class="out" id="out" aria-live="polite"></div>
+            </div>
+
+            <div class="block">
+              <h3>Judge</h3>
+              <div class="hint" style="margin-bottom: 8px">
+                We call your <code>solve(input)</code> directly in a worker.
+                Hidden tests are included in the score.
+              </div>
+              <div id="judgeSummary" class="small" style="margin-bottom: 8px">—</div>
+              <div class="judgeList" id="judge"></div>
+            </div>
+
+            <div class="hint">
+              Classroom-safe note: This uses a Web Worker and timeouts, but it is not a “secure sandbox”
+              for hostile code. Use on trusted devices.
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
     <script>
+      /**********************
+       * Phase-2 Proper:
+       * - textarea editor (stable)
+       * - real judge harness (no regex stripping)
+       * - strict output comparison
+       * - autosave per-problem
+       * - share link embeds code (URL hash)
+       * - problem statement panel
+       * - FULL console methods (best-effort)
+       **********************/
+
+      // ----- Problems (extend freely) -----
       const PROBLEMS = [
         {
-          id: "sum",
+          id: "sumN",
           title: "Sum N",
-          starter: "function solve(n){\n}\nconsole.log(solve(5));",
+          statement:
+            "Given a non-negative integer N, return the sum of all integers from 1 to N (inclusive).",
+          inputDesc: "A single non-negative integer N.",
+          outputDesc: "Sum from 1..N (0 if N is 0).",
+          notes:
+            "Implement solve(n) and return a number. Example: solve(5) → 15.",
+          starter: `// Sum N
+// Define solve(n) and RETURN the answer.
+// You may use console.log for debugging.
+
+function solve(n){
+  // TODO
+  return 0;
+}
+
+// Quick manual run:
+console.log(solve(5));`,
           tests: [
-            { input: 5, output: 15 },
-            { input: 10, output: 55 },
-            { input: 0, output: 0, hidden: true },
+            { name: "Sample 1", input: 5, expected: 15 },
+            { name: "Sample 2", input: 10, expected: 55 },
+            { name: "Edge 0", input: 0, expected: 0, hidden: true },
+            { name: "Edge 1", input: 1, expected: 1, hidden: true },
+          ],
+        },
+        {
+          id: "isPrime",
+          title: "Prime Check",
+          statement:
+            "Given an integer N, return true if it is a prime number, else return false.",
+          inputDesc: "A single integer N.",
+          outputDesc: "Boolean true/false.",
+          notes:
+            "Treat N ≤ 1 as not prime. Return a boolean (true/false).",
+          starter: `// Prime Check
+// Return true/false
+
+function solve(n){
+  // TODO
+  return false;
+}
+
+console.log(solve(7));`,
+          tests: [
+            { name: "Prime", input: 7, expected: true },
+            { name: "Composite", input: 12, expected: false },
+            { name: "Edge 1", input: 1, expected: false, hidden: true },
+            { name: "Edge 2", input: 2, expected: true, hidden: true },
           ],
         },
       ];
 
+      // ----- DOM -----
       const editor = document.getElementById("editor");
       const out = document.getElementById("out");
       const judge = document.getElementById("judge");
       const probSel = document.getElementById("problem");
-      PROBLEMS.forEach((p) => {
-        const o = document.createElement("option");
-        o.value = p.id;
-        o.textContent = p.title;
-        probSel.appendChild(o);
-      });
+      const timeoutMsEl = document.getElementById("timeoutMs");
 
+      const saveState = document.getElementById("saveState");
+      const execDot = document.getElementById("execDot");
+      const execText = document.getElementById("execText");
+      const lastRun = document.getElementById("lastRun");
+
+      const pTitle = document.getElementById("pTitle");
+      const pStatement = document.getElementById("pStatement");
+      const pInput = document.getElementById("pInput");
+      const pOutput = document.getElementById("pOutput");
+      const pNotes = document.getElementById("pNotes");
+      const judgeSummary = document.getElementById("judgeSummary");
+
+      // ----- Utilities -----
+      const nowStamp = () => new Date().toLocaleString();
+
+      function safeJsonClone(x) {
+        return JSON.parse(JSON.stringify(x));
+      }
+
+      function setExecState(kind, text) {
+        execDot.className = "dot" + (kind ? " " + kind : "");
+        execText.textContent = text;
+      }
+
+      function setOut(text) {
+        out.textContent = text || "";
+      }
+
+      function appendOut(line) {
+        out.textContent += (out.textContent ? "\n" : "") + line;
+      }
+
+      function normalizeForCompare(v) {
+        if (typeof v === "number") return { t: "number", v: v };
+        if (typeof v === "boolean") return { t: "boolean", v: v };
+        if (typeof v === "string") return { t: "string", v: v.trim() };
+        if (v && typeof v === "object") return { t: "json", v: JSON.stringify(v) };
+        if (typeof v === "undefined") return { t: "undefined", v: undefined };
+        return { t: typeof v, v: v };
+      }
+
+      function equalsExpected(actual, expected) {
+        const A = normalizeForCompare(actual);
+        const E = normalizeForCompare(expected);
+        if (A.t !== E.t) return false;
+        return A.v === E.v;
+      }
+
+      // ----- Problem selection UI -----
+      function populateProblems() {
+        probSel.innerHTML = "";
+        for (const p of PROBLEMS) {
+          const o = document.createElement("option");
+          o.value = p.id;
+          o.textContent = p.title;
+          probSel.appendChild(o);
+        }
+      }
+
+      function getProblem() {
+        const id = probSel.value;
+        return PROBLEMS.find((p) => p.id === id) || PROBLEMS[0];
+      }
+
+      function renderProblem(p) {
+        pTitle.textContent = p.title;
+        pStatement.textContent = p.statement;
+        pInput.textContent = p.inputDesc;
+        pOutput.textContent = p.outputDesc;
+        pNotes.textContent = p.notes || "";
+      }
+
+      // ----- Autosave (per problem) -----
+      const LS_KEY = "champak_brain_phase2_proper";
+      function loadStore() {
+        try {
+          return JSON.parse(localStorage.getItem(LS_KEY) || "{}");
+        } catch {
+          return {};
+        }
+      }
+      function saveStore(obj) {
+        localStorage.setItem(LS_KEY, JSON.stringify(obj));
+      }
+
+      function codeKey(problemId) {
+        return "code__" + problemId;
+      }
+
+      let saveTimer = null;
+      function markDirty() {
+        saveState.textContent = "Unsaved…";
+        saveState.style.color = "var(--warn)";
+        if (saveTimer) clearTimeout(saveTimer);
+        saveTimer = setTimeout(() => {
+          const p = getProblem();
+          const store = loadStore();
+          store[codeKey(p.id)] = editor.value;
+          store["lastProblem"] = p.id;
+          saveStore(store);
+          saveState.textContent = "Saved";
+          saveState.style.color = "var(--muted)";
+        }, 250);
+      }
+
+      function loadEditorForProblem(p, forceStarter = false) {
+        const store = loadStore();
+        const saved = store[codeKey(p.id)];
+        if (!forceStarter && typeof saved === "string" && saved.trim().length) {
+          editor.value = saved;
+        } else {
+          editor.value = p.starter;
+        }
+        saveState.textContent = "Saved";
+        saveState.style.color = "var(--muted)";
+      }
+
+      // ----- Share link (hash contains base64 JSON) -----
+      function b64EncodeUnicode(str) {
+        return btoa(
+          encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function (_, p1) {
+            return String.fromCharCode(parseInt(p1, 16));
+          })
+        );
+      }
+      function b64DecodeUnicode(str) {
+        return decodeURIComponent(
+          Array.prototype.map
+            .call(atob(str), (c) => "%" + c.charCodeAt(0).toString(16).padStart(2, "0"))
+            .join("")
+        );
+      }
+
+      function buildShareHash() {
+        const p = getProblem();
+        const payload = {
+          v: 2,
+          p: p.id,
+          t: Number(timeoutMsEl.value) || 2000,
+          c: editor.value,
+        };
+        return "#cb=" + b64EncodeUnicode(JSON.stringify(payload));
+      }
+
+      function tryLoadFromHash() {
+        const h = location.hash || "";
+        const m = h.match(/#cb=([^&]+)/);
+        if (!m) return false;
+        try {
+          const payload = JSON.parse(b64DecodeUnicode(m[1]));
+          if (!payload || payload.v !== 2) return false;
+          const problemId = payload.p || PROBLEMS[0].id;
+          probSel.value = problemId;
+          const p = getProblem();
+          renderProblem(p);
+          editor.value = String(payload.c || p.starter);
+          timeoutMsEl.value = String(payload.t || 2000);
+
+          // Save immediately
+          const store = loadStore();
+          store[codeKey(p.id)] = editor.value;
+          store["lastProblem"] = p.id;
+          saveStore(store);
+
+          return true;
+        } catch {
+          return false;
+        }
+      }
+
+      // ----- Worker runner -----
       let worker = null;
+      let workerURL = null;
 
-      function runJS(code, timeout = 2000) {
-        return new Promise((res, rej) => {
-          const blob = new Blob(
-            [
-              `
-      let log=[];
-      console.log=(...a)=>log.push(a.join(" "));
-      onmessage=e=>{
-        try{eval(e.data);postMessage({ok:true,log});}
-        catch(err){postMessage({ok:false,error:err.message,log});}
-      };
-    `,
-            ],
-            { type: "application/javascript" }
-          );
-          const url = URL.createObjectURL(blob);
-          worker = new Worker(url);
-          const t = setTimeout(() => {
-            worker.terminate();
-            rej("Timeout");
-          }, timeout);
-          worker.onmessage = (e) => {
-            clearTimeout(t);
-            res(e.data);
-            worker.terminate();
+      function killWorker() {
+        if (worker) {
+          worker.terminate();
+          worker = null;
+        }
+        if (workerURL) {
+          URL.revokeObjectURL(workerURL);
+          workerURL = null;
+        }
+      }
+
+      function runInWorker(payload, timeoutMs) {
+        return new Promise((resolve) => {
+          killWorker();
+
+          const workerSource = `
+"use strict";
+
+/* ===== Console streams (FULL best-effort console methods) ===== */
+const __log = [];
+const __err = [];
+const __info = [];
+const __debug = [];
+const __warn = [];
+const __trace = [];
+const __groupEvents = []; // markers for group/groupEnd
+const __counts = new Map();
+const __timers = new Map();
+
+function __stringifyOne(x) {
+  try {
+    if (typeof x === "string") return x;
+    if (typeof x === "number" || typeof x === "boolean" || x === null) return String(x);
+    if (typeof x === "undefined") return "undefined";
+    if (x instanceof Error) return x.stack || (x.name + ": " + x.message);
+    const s = JSON.stringify(x);
+    return s === undefined ? String(x) : s;
+  } catch {
+    try { return String(x); } catch { return "[Unprintable]"; }
+  }
+}
+
+function __formatArgs(args) {
+  return args.map(__stringifyOne).join(" ");
+}
+
+function __push(arr, args) {
+  arr.push(__formatArgs(args));
+}
+
+function __timeNow() {
+  try { return performance.now(); } catch { return Date.now(); }
+}
+
+function __stackTrace(skip = 0) {
+  try {
+    const e = new Error();
+    if (!e.stack) return "(no stack)";
+    const lines = String(e.stack).split("\\n");
+    const sliced = lines.slice(1 + skip, 1 + skip + 20);
+    return sliced.join("\\n").trim() || "(empty stack)";
+  } catch {
+    return "(stack unavailable)";
+  }
+}
+
+function __countLabelFor(args) {
+  if (!args || args.length === 0) return "default";
+  return String(args[0]);
+}
+
+const safeConsole = {
+  log: (...a) => __push(__log, a),
+  info: (...a) => __push(__info, a),
+  debug: (...a) => __push(__debug, a),
+  warn: (...a) => __push(__warn, a),
+  error: (...a) => __push(__err, a),
+
+  assert: (condition, ...a) => {
+    if (condition) return;
+    const msg = a.length ? __formatArgs(a) : "Assertion failed";
+    __err.push("Assertion failed: " + msg);
+  },
+
+  count: (...a) => {
+    const label = __countLabelFor(a);
+    const v = (__counts.get(label) || 0) + 1;
+    __counts.set(label, v);
+    __log.push(label + ": " + v);
+  },
+
+  countReset: (...a) => {
+    const label = __countLabelFor(a);
+    if (__counts.has(label)) __counts.set(label, 0);
+    else __warn.push("Count for '" + label + "' does not exist");
+  },
+
+  time: (label = "default") => {
+    const k = String(label);
+    if (__timers.has(k)) {
+      __warn.push("Timer '" + k + "' already exists");
+      return;
+    }
+    __timers.set(k, __timeNow());
+  },
+
+  timeLog: (label = "default", ...a) => {
+    const k = String(label);
+    if (!__timers.has(k)) {
+      __warn.push("Timer '" + k + "' does not exist");
+      return;
+    }
+    const ms = __timeNow() - __timers.get(k);
+    const extra = a.length ? " " + __formatArgs(a) : "";
+    __log.push(k + ": " + ms.toFixed(3) + "ms" + extra);
+  },
+
+  timeEnd: (label = "default") => {
+    const k = String(label);
+    if (!__timers.has(k)) {
+      __warn.push("Timer '" + k + "' does not exist");
+      return;
+    }
+    const ms = __timeNow() - __timers.get(k);
+    __timers.delete(k);
+    __log.push(k + ": " + ms.toFixed(3) + "ms");
+  },
+
+  trace: (...a) => {
+    const prefix = a.length ? __formatArgs(a) : "Trace";
+    __trace.push(prefix + "\\n" + __stackTrace(1));
+  },
+
+  group: (...a) => {
+    const title = a.length ? __formatArgs(a) : "";
+    __groupEvents.push({ type: "group", title });
+  },
+
+  groupCollapsed: (...a) => {
+    const title = a.length ? __formatArgs(a) : "";
+    __groupEvents.push({ type: "groupCollapsed", title });
+  },
+
+  groupEnd: () => {
+    __groupEvents.push({ type: "groupEnd" });
+  },
+
+  dir: (...a) => __push(__log, a),
+  dirxml: (...a) => __push(__log, a),
+
+  table: (data, columns) => {
+    try {
+      __log.push("[table] " + JSON.stringify({ data, columns }));
+    } catch {
+      __log.push("[table] (unserializable)");
+    }
+  },
+
+  clear: () => {
+    __log.length = 0;
+    __err.length = 0;
+    __info.length = 0;
+    __debug.length = 0;
+    __warn.length = 0;
+    __trace.length = 0;
+    __groupEvents.length = 0;
+    __counts.clear();
+    __timers.clear();
+  },
+
+  profile: (label = "default") => {
+    __warn.push("console.profile('" + label + "') not supported in this sandbox");
+  },
+
+  profileEnd: (label = "default") => {
+    __warn.push("console.profileEnd('" + label + "') not supported in this sandbox");
+  },
+};
+
+Object.freeze(safeConsole);
+
+/* ===== Runner ===== */
+function reply(obj){
+  try { postMessage(obj); } catch(e) {}
+}
+
+let __timer = null;
+
+onmessage = (e) => {
+  const msg = e.data || {};
+  const code = String(msg.code || "");
+  const input = msg.input;
+
+  // reset streams (keep counts/timers across run inside same worker instance, but we recreate worker per run anyway)
+  __log.length = 0; __err.length = 0; __info.length = 0; __debug.length = 0; __warn.length = 0; __trace.length = 0; __groupEvents.length = 0;
+
+  if (__timer) clearTimeout(__timer);
+
+  try {
+    __timer = setTimeout(() => {
+      reply({
+        ok:false,
+        kind:"timeout-soft",
+        log: __log.slice(),
+        err: __err.slice(),
+        info: __info.slice(),
+        debug: __debug.slice(),
+        warn: __warn.slice(),
+        trace: __trace.slice(),
+        groups: __groupEvents.slice()
+      });
+    }, Math.max(50, Number(msg.timeoutMs) || 2000));
+
+    // isolate user code in a function scope
+    const runner = new Function("console", "input", \`
+      "use strict";
+      \${code}
+
+      if (typeof solve !== "function") {
+        throw new Error("Missing required function: solve(input)");
+      }
+
+      const __result = solve(input);
+      return __result;
+    \`);
+
+    const result = runner(safeConsole, input);
+
+    clearTimeout(__timer);
+    reply({
+      ok:true,
+      result,
+      log: __log.slice(),
+      err: __err.slice(),
+      info: __info.slice(),
+      debug: __debug.slice(),
+      warn: __warn.slice(),
+      trace: __trace.slice(),
+      groups: __groupEvents.slice()
+    });
+  } catch (ex) {
+    clearTimeout(__timer);
+    reply({
+      ok:false,
+      kind:"runtime",
+      error: (ex && ex.message) ? ex.message : String(ex),
+      log: __log.slice(),
+      err: __err.slice(),
+      info: __info.slice(),
+      debug: __debug.slice(),
+      warn: __warn.slice(),
+      trace: __trace.slice(),
+      groups: __groupEvents.slice()
+    });
+  }
+};
+          `;
+
+          const blob = new Blob([workerSource], { type: "application/javascript" });
+          workerURL = URL.createObjectURL(blob);
+          worker = new Worker(workerURL);
+
+          const hardTimeout = setTimeout(() => {
+            killWorker();
+            resolve({
+              ok: false,
+              kind: "timeout",
+              error: "Timeout",
+              log: [],
+              err: [],
+              info: [],
+              debug: [],
+              warn: [],
+              trace: [],
+              groups: [],
+            });
+          }, Math.max(100, timeoutMs));
+
+          worker.onmessage = (ev) => {
+            clearTimeout(hardTimeout);
+            const data = ev.data || {};
+            if (data && data.kind === "timeout-soft") {
+              killWorker();
+              resolve({
+                ok: false,
+                kind: "timeout",
+                error: "Timeout",
+                log: data.log || [],
+                err: data.err || [],
+                info: data.info || [],
+                debug: data.debug || [],
+                warn: data.warn || [],
+                trace: data.trace || [],
+                groups: data.groups || [],
+              });
+              return;
+            }
+            killWorker();
+            resolve(data);
           };
-          worker.postMessage(code);
+
+          worker.postMessage({
+            mode: payload.mode || "run",
+            code: payload.code,
+            input: payload.input,
+            timeoutMs: timeoutMs,
+          });
         });
       }
 
-      document.getElementById("run").onclick = async () => {
-        out.textContent = "";
-        try {
-          const r = await runJS(editor.innerText);
-          r.log.forEach((l) => (out.textContent += l + "\n"));
-          out.textContent += "✓ Done";
-        } catch (e) {
-          out.textContent = e;
+      function renderStreams(r) {
+        // Show in a readable order
+        const blocks = [];
+        const pushBlock = (label, arr) => {
+          if (arr && arr.length) blocks.push(`— ${label} —\n` + arr.join("\n"));
+        };
+        pushBlock("log", r.log);
+        pushBlock("info", r.info);
+        pushBlock("debug", r.debug);
+        pushBlock("warn", r.warn);
+        pushBlock("stderr", r.err);
+        pushBlock("trace", r.trace);
+
+        // groups are markers; we show them as-is for now (Phase-2)
+        if (r.groups && r.groups.length) {
+          blocks.push("— groups —\n" + r.groups.map(g => JSON.stringify(g)).join("\n"));
         }
-      };
 
-      document.getElementById("stop").onclick = () => {
-        if (worker) worker.terminate();
-      };
+        if (blocks.length) setOut(blocks.join("\n\n"));
+        else setOut("");
+      }
 
-      document.getElementById("loadStarter").onclick = () => {
-        const p = PROBLEMS[0];
-        editor.innerText = p.starter;
-      };
-
-      document.getElementById("runTests").onclick = async () => {
+      async function runCodeOnly() {
+        const timeoutMs = Number(timeoutMsEl.value) || 2000;
+        setExecState("warn", "Running…");
         judge.innerHTML = "";
+        judgeSummary.textContent = "—";
+        setOut("");
+
+        const code = editor.value;
+        const payload = { mode: "run", code, input: undefined };
+
+        const started = Date.now();
+        const r = await runInWorker(payload, timeoutMs);
+        const ms = Date.now() - started;
+
+        lastRun.textContent = `Last run: ${nowStamp()} • ${ms} ms`;
+
+        renderStreams(r);
+
+        if (r.ok) {
+          appendOut(out.textContent ? "\n✓ Done" : "✓ Done");
+          setExecState("ok", "Done");
+        } else {
+          appendOut(out.textContent ? "\n✗ " + (r.error || "Error") : "✗ " + (r.error || "Error"));
+          setExecState("bad", r.kind === "timeout" ? "Timeout" : "Error");
+        }
+      }
+
+      function renderTestCard({ name, hidden, status, info }) {
+        const div = document.createElement("div");
+        div.className = "test";
+
+        const top = document.createElement("div");
+        top.className = "testTop";
+
+        const left = document.createElement("div");
+        left.innerHTML = `<b>${name}</b> <span class="small">${hidden ? "• hidden" : ""}</span>`;
+
+        const tag = document.createElement("span");
+        tag.className =
+          "tag " +
+          (hidden ? "hidden " : "") +
+          (status === "PASS" ? "pass" : status === "FAIL" ? "fail" : "");
+        tag.textContent = status;
+
+        top.appendChild(left);
+        top.appendChild(tag);
+
+        const pre = document.createElement("div");
+        pre.className = "small";
+        pre.style.marginTop = "6px";
+        pre.textContent = info || "";
+
+        div.appendChild(top);
+        div.appendChild(pre);
+        return div;
+      }
+
+      async function runProblemTests() {
+        const p = getProblem();
+        const timeoutMs = Number(timeoutMsEl.value) || 2000;
+
+        setExecState("warn", "Testing…");
+        setOut("");
+        judge.innerHTML = "";
+        judgeSummary.textContent = "Running…";
+
+        const code = editor.value;
         let pass = 0;
-        for (const t of PROBLEMS[0].tests) {
-          try {
-            const r = await runJS(
-              editor.innerText.replace(/console.log\(.*\)/, "") +
-                "\nconsole.log(solve(" +
-                t.input +
-                "))"
-            );
-            const ok = Number(r.log.join("")) === t.output;
+        const total = p.tests.length;
+        let visibleFailCount = 0;
+
+        const startedAll = Date.now();
+
+        for (let i = 0; i < p.tests.length; i++) {
+          const t = p.tests[i];
+          const started = Date.now();
+
+          const r = await runInWorker({ mode: "test", code, input: safeJsonClone(t.input) }, timeoutMs);
+          const ms = Date.now() - started;
+
+          if (r.ok) {
+            const ok = equalsExpected(r.result, t.expected);
             if (ok) pass++;
-            judge.innerHTML += ok
-              ? "<div class=pass>PASS</div>"
-              : "<div class=fail>FAIL</div>";
-          } catch (e) {
-            judge.innerHTML += "<div class=fail>ERROR</div>";
+            else if (!t.hidden) visibleFailCount++;
+
+            const infoLines = [];
+            infoLines.push(`input: ${JSON.stringify(t.input)}`);
+            if (!t.hidden) {
+              infoLines.push(`expected: ${JSON.stringify(t.expected)}`);
+              infoLines.push(`got: ${JSON.stringify(r.result)}`);
+            } else {
+              infoLines.push(`expected: (hidden)`);
+              infoLines.push(`got: ${JSON.stringify(r.result)}`);
+            }
+
+            // show only log/warn/error quickly for tests
+            if (r.log && r.log.length) infoLines.push(`log: ${r.log.join(" | ")}`);
+            if (r.warn && r.warn.length) infoLines.push(`warn: ${r.warn.join(" | ")}`);
+            if (r.err && r.err.length) infoLines.push(`stderr: ${r.err.join(" | ")}`);
+            if (r.trace && r.trace.length) infoLines.push(`trace: ${r.trace[0].split("\n")[0]}...`);
+            infoLines.push(`time: ${ms} ms`);
+
+            judge.appendChild(
+              renderTestCard({
+                name: t.name || `Test ${i + 1}`,
+                hidden: !!t.hidden,
+                status: ok ? "PASS" : "FAIL",
+                info: infoLines.join(" • "),
+              })
+            );
+          } else {
+            if (!t.hidden) visibleFailCount++;
+
+            const infoLines = [];
+            infoLines.push(`input: ${JSON.stringify(t.input)}`);
+            infoLines.push(`error: ${r.kind === "timeout" ? "Timeout" : (r.error || "Error")}`);
+            if (r.log && r.log.length) infoLines.push(`log: ${r.log.join(" | ")}`);
+            if (r.warn && r.warn.length) infoLines.push(`warn: ${r.warn.join(" | ")}`);
+            if (r.err && r.err.length) infoLines.push(`stderr: ${r.err.join(" | ")}`);
+            infoLines.push(`time: ${ms} ms`);
+
+            judge.appendChild(
+              renderTestCard({
+                name: t.name || `Test ${i + 1}`,
+                hidden: !!t.hidden,
+                status: "ERROR",
+                info: infoLines.join(" • "),
+              })
+            );
           }
         }
-        judge.innerHTML += `<b>Score ${pass}/${PROBLEMS[0].tests.length}</b>`;
+
+        const msAll = Date.now() - startedAll;
+        lastRun.textContent = `Last test run: ${nowStamp()} • ${msAll} ms`;
+
+        judgeSummary.innerHTML = `<b>Score:</b> ${pass}/${total} ${
+          visibleFailCount
+            ? `• <span style="color:var(--bad);font-weight:900">Visible fails: ${visibleFailCount}</span>`
+            : ""
+        }`;
+
+        if (pass === total) {
+          setExecState("ok", "All Pass");
+          setOut("✓ All tests passed.\nReady to submit / move to next problem.");
+        } else {
+          setExecState("bad", "Some Fail");
+          setOut(
+            `✗ Not all tests passed.\nScore: ${pass}/${total}\n\nTip: Read the FAIL cards. For hidden fails, try more edge cases yourself.`
+          );
+        }
+      }
+
+      // ----- Buttons -----
+      document.getElementById("run").onclick = runCodeOnly;
+
+      document.getElementById("stop").onclick = () => {
+        killWorker();
+        setExecState("warn", "Stopped");
+        appendOut(out.textContent ? "\n⛔ Stopped" : "⛔ Stopped");
       };
 
-      document.getElementById("share").onclick = () => {
-        window.open(
-          "https://wa.me/?text=" +
-            encodeURIComponent("Champak Brain JS Editor " + location.href)
-        );
+      document.getElementById("runTests").onclick = runProblemTests;
+
+      document.getElementById("starterBtn").onclick = () => {
+        const p = getProblem();
+        editor.value = p.starter;
+        markDirty();
+      };
+
+      document.getElementById("reset").onclick = () => {
+        const p = getProblem();
+        loadEditorForProblem(p, true);
+        const store = loadStore();
+        store[codeKey(p.id)] = editor.value;
+        store["lastProblem"] = p.id;
+        saveStore(store);
+        setOut("♻ Reset to starter.");
+        judge.innerHTML = "";
+        judgeSummary.textContent = "—";
+      };
+
+      document.getElementById("share").onclick = async () => {
+        const hash = buildShareHash();
+        const url = location.origin + location.pathname + hash;
+
+        try {
+          await navigator.clipboard.writeText(url);
+          setOut("🔗 Share link copied to clipboard:\n" + url);
+        } catch {
+          window.open("https://wa.me/?text=" + encodeURIComponent("Champak Brain JS Editor:\n" + url), "_blank");
+          setOut("Opened WhatsApp share (clipboard not available).");
+        }
       };
 
       document.getElementById("download").onclick = () => {
-        const blob = new Blob([document.documentElement.outerHTML], {
-          type: "text/html",
-        });
+        const blob = new Blob([document.documentElement.outerHTML], { type: "text/html" });
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
-        a.download = "champak-brain-js-editor-phase2.html";
+        a.download = "champak-brain-js-editor-phase2-proper.html";
         a.click();
+        URL.revokeObjectURL(a.href);
       };
+
+      // ----- Problem change handling -----
+      probSel.onchange = () => {
+        const p = getProblem();
+        renderProblem(p);
+        loadEditorForProblem(p, false);
+        setOut("");
+        judge.innerHTML = "";
+        judgeSummary.textContent = "—";
+        setExecState("", "Idle");
+      };
+
+      // ----- Editor events -----
+      editor.addEventListener("input", markDirty);
+
+      editor.addEventListener("keydown", (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+          e.preventDefault();
+          runCodeOnly();
+        }
+        if (e.key === "Tab") {
+          e.preventDefault();
+          const start = editor.selectionStart;
+          const end = editor.selectionEnd;
+          const val = editor.value;
+          editor.value = val.substring(0, start) + "  " + val.substring(end);
+          editor.selectionStart = editor.selectionEnd = start + 2;
+          markDirty();
+        }
+      });
+
+      // ----- Init -----
+      function init() {
+        populateProblems();
+
+        const loadedFromHash = tryLoadFromHash();
+
+        const store = loadStore();
+        if (!loadedFromHash) {
+          const last = store.lastProblem;
+          if (last && PROBLEMS.some((p) => p.id === last)) probSel.value = last;
+          else probSel.value = PROBLEMS[0].id;
+
+          const p = getProblem();
+          renderProblem(p);
+          loadEditorForProblem(p, false);
+        } else {
+          renderProblem(getProblem());
+        }
+
+        setOut("Ready.\n▶ Run for manual output.\n🏁 Run Tests for the selected problem.");
+        setExecState("", "Idle");
+        lastRun.textContent = "—";
+      }
+
+      init();
+      window.addEventListener("beforeunload", () => killWorker());
     </script>
   </body>
 </html>
