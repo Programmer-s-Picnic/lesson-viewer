@@ -1,917 +1,262 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Python Lesson: Using pickle (Serialization & Persistence)</title>
-  <meta name="description" content="A comprehensive, beginner-to-intermediate lesson on Python pickle: dumps/loads, dump/load, protocols, files, common patterns, pitfalls, security, debugging, and mini assignments." />
-  <style>
-    :root{
-      --bg:#fff7e6;          /* light saffron */
-      --card:#ffffff;
-      --ink:#1f2937;
-      --muted:#6b7280;
-      --brand:#d97706;
-      --brand2:#f59e0b;
-      --border:#eadcc5;
-      --shadow:0 18px 40px rgba(31,41,55,.10);
-      --codebg:#0b1020;
-      --codeink:#e5e7eb;
-      --good:#0f766e;
-      --warn:#b45309;
-      --bad:#b91c1c;
-      --radius:18px;
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,"Noto Sans","Apple Color Emoji","Segoe UI Emoji";
-      background: radial-gradient(1200px 600px at 20% 0%, rgba(245,158,11,.22), transparent 60%),
-                  radial-gradient(900px 500px at 90% 10%, rgba(217,119,6,.20), transparent 55%),
-                  var(--bg);
-      color:var(--ink);
-      line-height:1.6;
-    }
-    header{
-      padding:28px 16px 8px;
-      max-width:1100px;
-      margin:0 auto;
-    }
-    .hero{
-      display:flex;
-      gap:18px;
-      align-items:flex-start;
-      justify-content:space-between;
-      flex-wrap:wrap;
-      background: linear-gradient(135deg, rgba(217,119,6,.16), rgba(245,158,11,.10));
-      border:1px solid var(--border);
-      border-radius:var(--radius);
-      padding:18px 18px;
-      box-shadow:var(--shadow);
-    }
-    .hero h1{
-      margin:0 0 8px;
-      font-size: clamp(1.35rem, 2.6vw, 2.1rem);
-      letter-spacing:.2px;
-    }
-    .hero p{margin:0;color:var(--muted);max-width:70ch}
-    .pillbar{
-      display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;
-    }
-    .pill{
-      display:inline-flex; align-items:center; gap:8px;
-      padding:8px 12px;
-      border-radius:999px;
-      background:#fff;
-      border:1px solid var(--border);
-      color:#334155;
-      font-size:.92rem;
-      box-shadow: 0 10px 20px rgba(31,41,55,.06);
-      user-select:none;
-    }
-    .pill b{color:var(--brand)}
-    main{
-      max-width:1100px;
-      margin:12px auto 56px;
-      padding:0 16px;
-      display:grid;
-      grid-template-columns: 320px 1fr;
-      gap:16px;
-    }
-    @media (max-width: 980px){
-      main{grid-template-columns:1fr}
-    }
-    nav{
-      position: sticky;
-      top: 12px;
-      align-self:start;
-      background: rgba(255,255,255,.86);
-      border:1px solid var(--border);
-      border-radius:var(--radius);
-      box-shadow:var(--shadow);
-      padding:14px;
-      backdrop-filter: blur(6px);
-    }
-    nav h2{
-      margin:0 0 10px;
-      font-size:1.05rem;
-      letter-spacing:.2px;
-    }
-    .toc a{
-      display:block;
-      padding:8px 10px;
-      border-radius:12px;
-      text-decoration:none;
-      color:#334155;
-      border:1px solid transparent;
-      font-size:.96rem;
-    }
-    .toc a:hover{
-      background: rgba(245,158,11,.12);
-      border-color: rgba(245,158,11,.20);
-    }
-    .content{
-      display:flex;
-      flex-direction:column;
-      gap:16px;
-    }
-    section{
-      background: rgba(255,255,255,.90);
-      border:1px solid var(--border);
-      border-radius:var(--radius);
-      box-shadow:var(--shadow);
-      padding:18px;
-      backdrop-filter: blur(6px);
-    }
-    section h2{
-      margin:0 0 10px;
-      font-size:1.25rem;
-    }
-    section h3{
-      margin:18px 0 8px;
-      font-size:1.05rem;
-    }
-    .grid2{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:12px;
-    }
-    @media (max-width: 780px){
-      .grid2{grid-template-columns:1fr}
-    }
-    .callout{
-      border-left:6px solid var(--brand);
-      background: rgba(245,158,11,.10);
-      padding:12px 12px;
-      border-radius:14px;
-      margin:12px 0;
-    }
-    .callout strong{color:var(--brand)}
-    .callout.good{border-left-color: var(--good); background: rgba(15,118,110,.10)}
-    .callout.warn{border-left-color: var(--warn); background: rgba(180,83,9,.10)}
-    .callout.bad{border-left-color: var(--bad); background: rgba(185,28,28,.10)}
-    pre{
-      margin:10px 0;
-      padding:14px 14px;
-      background:var(--codebg);
-      color:var(--codeink);
-      border-radius:16px;
-      overflow:auto;
-      border:1px solid rgba(255,255,255,.10);
-      box-shadow: 0 12px 28px rgba(0,0,0,.18);
-    }
-    code{font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;}
-    .kbd{
-      font-family: ui-monospace, Menlo, Consolas, monospace;
-      background:#fff;
-      border:1px solid var(--border);
-      padding:2px 8px;
-      border-radius:10px;
-      font-size:.92rem;
-      color:#334155;
-    }
-    table{
-      width:100%;
-      border-collapse:separate;
-      border-spacing:0;
-      overflow:hidden;
-      border:1px solid var(--border);
-      border-radius:16px;
-      background:#fff;
-    }
-    th, td{
-      text-align:left;
-      padding:10px 12px;
-      border-bottom:1px solid var(--border);
-      vertical-align:top;
-    }
-    th{
-      background: rgba(245,158,11,.14);
-      color:#3b2a12;
-      font-weight:700;
-    }
-    tr:last-child td{border-bottom:none}
-    .tag{
-      display:inline-block;
-      padding:3px 10px;
-      border-radius:999px;
-      border:1px solid var(--border);
-      background: rgba(255,247,230,.9);
-      color:#6b4f1d;
-      font-size:.85rem;
-      margin-right:8px;
-      margin-top:6px;
-      white-space:nowrap;
-    }
-    .mini{
-      color:var(--muted);
-      font-size:.95rem;
-    }
-    .btnrow{
-      display:flex; gap:10px; flex-wrap:wrap;
-      margin-top:12px;
-    }
-    button{
-      border:none;
-      background: linear-gradient(135deg, var(--brand), var(--brand2));
-      color:white;
-      padding:10px 14px;
-      border-radius:14px;
-      cursor:pointer;
-      font-weight:700;
-      box-shadow: 0 14px 28px rgba(217,119,6,.18);
-    }
-    button.secondary{
-      background:#fff;
-      color:#7c4a10;
-      border:1px solid var(--border);
-      box-shadow: 0 12px 24px rgba(31,41,55,.08);
-    }
-    footer{
-      max-width:1100px;
-      margin:0 auto 28px;
-      padding:0 16px;
-      color:var(--muted);
-      font-size:.95rem;
-    }
-    .hr{
-      height:1px;
-      background: var(--border);
-      margin:12px 0;
-    }
-    .note{
-      display:flex; gap:10px; flex-wrap:wrap; align-items:center;
-      padding:10px 12px;
-      border-radius:14px;
-      background: rgba(255,255,255,.92);
-      border: 1px dashed rgba(217,119,6,.35);
-    }
-    .note b{color:var(--brand)}
-  </style>
+<meta charset="utf-8">
+<title>7 PM Python Class — Pickle: Save Data Permanently</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+:root{
+  --bg:#fff7e6;
+  --card:#ffffff;
+  --ink:#1f2937;
+  --muted:#6b7280;
+  --brand:#d97706;
+  --border:#eadcc5;
+  --codebg:#0b1220;
+  --codeink:#e5e7eb;
+  --radius:18px;
+  --max:900px;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  background:var(--bg);
+  color:var(--ink);
+  line-height:1.65;
+}
+.container{
+  max-width:var(--max);
+  margin:auto;
+  padding:18px;
+}
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:18px;
+  margin-bottom:18px;
+}
+h1,h2,h3{color:var(--brand)}
+pre{
+  background:var(--codebg);
+  color:var(--codeink);
+  padding:14px;
+  border-radius:14px;
+  overflow:auto;
+}
+code{font-family: Consolas, monospace}
+iframe{
+  width:100%;
+  min-height:420px;
+  border:1px solid var(--border);
+  border-radius:14px;
+}
+hr{
+  border:none;
+  border-top:1px solid var(--border);
+  margin:20px 0;
+}
+.checklist li{margin:6px 0}
+.footer{
+  text-align:center;
+  color:var(--muted);
+  font-size:13px;
+  margin:24px 0 6px;
+}
+.badge{
+  display:inline-block;
+  background:#fde7c7;
+  border:1px solid var(--border);
+  padding:6px 12px;
+  border-radius:999px;
+  font-weight:700;
+  margin-bottom:10px;
+}
+</style>
 </head>
+
 <body>
-  <header>
-    <div class="hero">
-      <div>
-        <h1>Using <code>pickle</code> in Python: Serialize &amp; Save Objects</h1>
-        <p>
-          This lesson teaches you how to store Python objects (lists, dicts, custom classes, etc.) into bytes/files
-          and restore them later using <code>pickle</code>. Includes best practices, common mistakes, and mini assignments.
-        </p>
-        <div class="pillbar">
-          <div class="pill">Topic: <b>Serialization</b></div>
-          <div class="pill">Module: <b>pickle</b></div>
-          <div class="pill">Level: <b>Beginner → Intermediate</b></div>
-          <div class="pill">Focus: <b>Safety + Patterns</b></div>
-        </div>
-      </div>
-      <div class="note">
-        <span class="tag">✅ Works offline</span>
-        <span class="tag">📦 dump/load</span>
-        <span class="tag">🧠 custom classes</span>
-        <span class="tag">⚠️ security</span>
-      </div>
-    </div>
-  </header>
-
-  <main>
-    <nav>
-      <h2>Table of Contents</h2>
-      <div class="toc">
-        <a href="#intro">1) What is Pickle?</a>
-        <a href="#mental">2) Mental Model (Bytes vs File)</a>
-        <a href="#quickstart">3) Quick Start Examples</a>
-        <a href="#dumpsloads">4) dumps/loads (In-memory)</a>
-        <a href="#dumpload">5) dump/load (Files)</a>
-        <a href="#modes">6) File Modes (Binary!)</a>
-        <a href="#protocols">7) Protocols & Compatibility</a>
-        <a href="#types">8) What Can Be Pickled?</a>
-        <a href="#custom">9) Pickling Custom Classes</a>
-        <a href="#advanced">10) Advanced: __getstate__ & __setstate__</a>
-        <a href="#errors">11) Common Errors & Fixes</a>
-        <a href="#security">12) Security (Very Important)</a>
-        <a href="#when">13) When to Use Pickle (and When Not)</a>
-        <a href="#patterns">14) Useful Patterns</a>
-        <a href="#mini">15) Mini Assignments</a>
-        <a href="#quiz">16) Quick Self-Check</a>
-        <a href="#summary">17) Summary Cheat Sheet</a>
-      </div>
-      <div class="hr"></div>
-      <div class="mini">
-        Tip: Use <span class="kbd">Ctrl</span> + <span class="kbd">F</span> to search within this page.
-      </div>
-      <div class="btnrow">
-        <button class="secondary" onclick="window.print()">Print</button>
-        <button onclick="scrollToTop()">Top</button>
-      </div>
-    </nav>
-
-    <div class="content">
-      <section id="intro">
-        <h2>1) What is <code>pickle</code>?</h2>
-        <p>
-          <code>pickle</code> is a Python module that converts a Python object into a stream of bytes (called
-          <b>pickling</b> or <b>serialization</b>) and converts those bytes back into the original object
-          (called <b>unpickling</b> or <b>deserialization</b>).
-        </p>
-
-        <div class="grid2">
-          <div class="callout good">
-            <strong>Use case:</strong> Save your program’s data/state to disk and load it later, quickly, in Python.
-            Example: caching a trained ML model object, saving a configuration dict, or storing a computed result.
-          </div>
-          <div class="callout warn">
-            <strong>Important:</strong> Pickle is Python-specific (not a universal format like JSON).
-            If you need cross-language compatibility, prefer JSON / CSV / SQLite / Parquet (depending on data).
-          </div>
-        </div>
-
-        <h3>Key terms</h3>
-        <table>
-          <tr><th>Term</th><th>Meaning</th></tr>
-          <tr><td><b>Serialize / Pickle</b></td><td>Convert an object → bytes.</td></tr>
-          <tr><td><b>Deserialize / Unpickle</b></td><td>Convert bytes → object.</td></tr>
-          <tr><td><b>Protocol</b></td><td>Pickle format version (affects size/speed/compatibility).</td></tr>
-          <tr><td><b>Binary file</b></td><td>Pickle data is bytes, so files must be opened in binary mode (<code>rb</code>, <code>wb</code>).</td></tr>
-        </table>
-      </section>
-
-      <section id="mental">
-        <h2>2) Mental Model: Bytes vs File</h2>
-        <p>
-          Think of pickle in two layers:
-        </p>
-        <ul>
-          <li><b>In memory</b>: object ⇄ bytes (use <code>dumps</code> / <code>loads</code>)</li>
-          <li><b>On disk</b>: object ⇄ file (use <code>dump</code> / <code>load</code>)</li>
-        </ul>
-
-        <pre><code># In memory:
-obj --pickle.dumps--> bytes --pickle.loads--> obj
-
-# On disk:
-obj --pickle.dump(file)--> .pkl file --pickle.load(file)--> obj</code></pre>
-
-        <div class="callout">
-          <strong>Rule of thumb:</strong> If you already have a file handle, use <code>dump/load</code>.
-          If you want the raw bytes (for DB, cache, network), use <code>dumps/loads</code>.
-        </div>
-      </section>
-
-      <section id="quickstart">
-        <h2>3) Quick Start (Two Simple Examples)</h2>
-
-        <h3>Example A: Save and load a dictionary to a file</h3>
-        <pre><code>import pickle
-
-data = {
-    "name": "Champak",
-    "city": "Varanasi",
-    "scores": [95, 88, 91],
-}
-
-# Save (write binary)
-with open("data.pkl", "wb") as f:
-    pickle.dump(data, f)
-
-# Load (read binary)
-with open("data.pkl", "rb") as f:
-    loaded = pickle.load(f)
-
-print(loaded)
-print(type(loaded))</code></pre>
-
-        <h3>Example B: Convert object to bytes and back</h3>
-        <pre><code>import pickle
-
-numbers = [1, 2, 3, 4]
-
-b = pickle.dumps(numbers)     # object -&gt; bytes
-again = pickle.loads(b)       # bytes -&gt; object
-
-print(b[:20], "...")          # just show a small slice
-print(again)</code></pre>
-
-        <div class="callout good">
-          <strong>What you learned:</strong> <code>dump/load</code> = file-based, <code>dumps/loads</code> = in-memory bytes.
-        </div>
-      </section>
-
-      <section id="dumpsloads">
-        <h2>4) <code>dumps()</code> and <code>loads()</code> (In-memory)</h2>
-        <p>
-          Use these when you want bytes directly—for example storing in a database, sending over a socket,
-          or putting into a cache.
-        </p>
-
-        <h3>Basic usage</h3>
-        <pre><code>import pickle
-
-obj = {"a": 1, "b": [2, 3]}
-blob = pickle.dumps(obj)
-restored = pickle.loads(blob)
-
-print(type(blob))      # bytes
-print(restored)</code></pre>
-
-        <h3>Using protocols with <code>dumps</code></h3>
-        <pre><code>import pickle
-
-obj = {"x": list(range(1000))}
-
-b_default = pickle.dumps(obj)                 # default protocol
-b_v4 = pickle.dumps(obj, protocol=4)          # explicit protocol
-b_highest = pickle.dumps(obj, protocol=pickle.HIGHEST_PROTOCOL)
-
-print(len(b_default), len(b_v4), len(b_highest))</code></pre>
-
-        <div class="callout warn">
-          <strong>Note:</strong> Different protocols may produce different sizes and performance.
-          Using <code>pickle.HIGHEST_PROTOCOL</code> usually gives better efficiency for modern Python,
-          but you may need an older protocol for compatibility with older Python versions.
-        </div>
-      </section>
-
-      <section id="dumpload">
-        <h2>5) <code>dump()</code> and <code>load()</code> (Files)</h2>
-        <p>
-          Use these to write and read pickled objects from files. The biggest gotcha: open files in <b>binary mode</b>.
-        </p>
-
-        <h3>Saving one object</h3>
-        <pre><code>import pickle
-
-settings = {"theme": "light saffron", "font_size": 16}
-
-with open("settings.pkl", "wb") as f:
-    pickle.dump(settings, f, protocol=pickle.HIGHEST_PROTOCOL)</code></pre>
-
-        <h3>Loading one object</h3>
-        <pre><code>import pickle
-
-with open("settings.pkl", "rb") as f:
-    settings = pickle.load(f)
-
-print(settings)</code></pre>
-
-        <h3>Saving multiple objects to the same file (one after another)</h3>
-        <pre><code>import pickle
-
-with open("many.pkl", "wb") as f:
-    pickle.dump("first", f)
-    pickle.dump([1, 2, 3], f)
-    pickle.dump({"k": "v"}, f)
-
-with open("many.pkl", "rb") as f:
-    a = pickle.load(f)
-    b = pickle.load(f)
-    c = pickle.load(f)
-
-print(a, b, c)</code></pre>
-
-        <div class="callout">
-          <strong>Tip:</strong> If you store multiple objects in one file, you must read them back in the same order.
-        </div>
-      </section>
-
-      <section id="modes">
-        <h2>6) File Modes (Binary is Mandatory)</h2>
-        <p>Pickle outputs bytes, so use these modes:</p>
-        <table>
-          <tr><th>Task</th><th>Mode</th><th>Example</th></tr>
-          <tr><td>Write new pickle file</td><td><code>wb</code></td><td><code>open("x.pkl","wb")</code></td></tr>
-          <tr><td>Read pickle file</td><td><code>rb</code></td><td><code>open("x.pkl","rb")</code></td></tr>
-          <tr><td>Append more objects</td><td><code>ab</code></td><td><code>open("x.pkl","ab")</code></td></tr>
-        </table>
-
-        <div class="callout bad">
-          <strong>Common mistake:</strong> Using <code>"w"</code> or <code>"r"</code> (text mode) can break pickles or corrupt data.
-          Always use <code>wb</code>/<code>rb</code>.
-        </div>
-      </section>
-
-      <section id="protocols">
-        <h2>7) Protocols &amp; Compatibility</h2>
-        <p>
-          Pickle protocols are versions of the pickle format. Newer protocols are usually faster and smaller,
-          but older Python versions may not be able to read them.
-        </p>
-
-        <h3>Choosing a protocol</h3>
-        <ul>
-          <li><b>For modern projects</b>: use <code>pickle.HIGHEST_PROTOCOL</code></li>
-          <li><b>If you must support older Python</b>: specify a lower protocol (commonly 4 or 3)</li>
-        </ul>
-
-        <pre><code>import pickle
-
-obj = {"numbers": list(range(10))}
-
-with open("p4.pkl", "wb") as f:
-    pickle.dump(obj, f, protocol=4)</code></pre>
-
-        <div class="callout warn">
-          <strong>Note:</strong> A pickle created in Python is not guaranteed to be readable forever if your code changes
-          (e.g., you rename a class or move a module). See the section on custom classes.
-        </div>
-      </section>
-
-      <section id="types">
-        <h2>8) What Can Be Pickled (and What Usually Cannot)</h2>
-
-        <h3>Commonly picklable</h3>
-        <ul>
-          <li>Basic types: <code>int</code>, <code>float</code>, <code>str</code>, <code>bool</code></li>
-          <li>Containers: <code>list</code>, <code>tuple</code>, <code>dict</code>, <code>set</code></li>
-          <li>Nested combinations of the above</li>
-          <li>Many user-defined classes (if defined at module top-level)</li>
-        </ul>
-
-        <h3>Often not picklable (or risky)</h3>
-        <ul>
-          <li>Open file handles</li>
-          <li>Database connections</li>
-          <li>Threads, locks</li>
-          <li>Lambdas and locally defined functions (common issue)</li>
-          <li>Objects tied to external resources (sockets, GUI handles)</li>
-        </ul>
-
-        <div class="callout">
-          <strong>Practical idea:</strong> Instead of pickling a DB connection, pickle the connection settings (host/user/db)
-          and recreate the connection when you load the file.
-        </div>
-      </section>
-
-      <section id="custom">
-        <h2>9) Pickling Custom Classes (Most Useful Real-World Skill)</h2>
-        <p>
-          You can pickle instances of classes, but there are rules. The class should usually be defined at the top level of a module.
-          That means: not inside another function.
-        </p>
-
-        <h3>Example: Pickle a custom object</h3>
-        <pre><code>import pickle
-
-class Student:
-    def __init__(self, name, marks):
-        self.name = name
-        self.marks = marks
-
-    def average(self):
-        return sum(self.marks) / len(self.marks)
-
-s1 = Student("Asha", [95, 88, 91])
-
-with open("student.pkl", "wb") as f:
-    pickle.dump(s1, f)
-
-with open("student.pkl", "rb") as f:
-    s2 = pickle.load(f)
-
-print(s2.name, s2.marks, s2.average())</code></pre>
-
-        <h3>Common pitfall: defining the class inside a function</h3>
-        <pre><code>import pickle
-
-def make_student():
-    class Student:          # ❌ local class (often causes pickling problems)
-        def __init__(self, name):
-            self.name = name
-    return Student("Ravi")
-
-s = make_student()
-
-# This may fail with: "Can't pickle local object ..."
-with open("bad.pkl", "wb") as f:
-    pickle.dump(s, f)</code></pre>
-
-        <div class="callout warn">
-          <strong>Fix:</strong> Move the class definition to the top level of the module (outside the function).
-        </div>
-      </section>
-
-      <section id="advanced">
-        <h2>10) Advanced Control: <code>__getstate__</code> &amp; <code>__setstate__</code></h2>
-        <p>
-          Sometimes your object contains something you don’t want to pickle (like a cache, a file handle, or a connection).
-          You can control what gets pickled using <code>__getstate__</code> and rebuild the missing parts in <code>__setstate__</code>.
-        </p>
-
-        <h3>Example: Ignore a “non-picklable” attribute (and rebuild it)</h3>
-        <pre><code>import pickle
-import time
-
-class Timer:
-    def __init__(self, label):
-        self.label = label
-        self.started_at = time.time()
-        self._last_report = None   # pretend this is a cache
-
-    def __getstate__(self):
-        state = self.__dict__.copy()
-        # do not pickle runtime-only cache
-        state["_last_report"] = None
-        return state
-
-    def __setstate__(self, state):
-        self.__dict__.update(state)
-        # rebuild runtime-only fields if needed
-        self._last_report = None
-
-t = Timer("study-session")
-
-with open("timer.pkl", "wb") as f:
-    pickle.dump(t, f)
-
-with open("timer.pkl", "rb") as f:
-    t2 = pickle.load(f)
-
-print(t2.label, t2.started_at, t2._last_report)</code></pre>
-
-        <div class="callout">
-          <strong>Use this when:</strong> Your object has some parts that should not be persisted, or cannot be serialized.
-        </div>
-      </section>
-
-      <section id="errors">
-        <h2>11) Common Errors &amp; How to Fix Them</h2>
-
-        <table>
-          <tr>
-            <th>Error / Symptom</th>
-            <th>Likely Cause</th>
-            <th>Fix</th>
-          </tr>
-          <tr>
-            <td><code>TypeError: can't pickle ...</code></td>
-            <td>Object contains a non-picklable thing (file handle, lock, lambda)</td>
-            <td>Remove it, store only settings, or use <code>__getstate__</code>/<code>__setstate__</code></td>
-          </tr>
-          <tr>
-            <td><code>AttributeError: Can't pickle local object ...</code></td>
-            <td>Class or function is defined inside another function</td>
-            <td>Move definitions to top-level (module scope)</td>
-          </tr>
-          <tr>
-            <td><code>EOFError: Ran out of input</code></td>
-            <td>File is empty or you read past the last object</td>
-            <td>Check file path, ensure it was written, read correct number of objects</td>
-          </tr>
-          <tr>
-            <td><code>UnpicklingError</code></td>
-            <td>File is not a pickle, is corrupted, or incompatible</td>
-            <td>Verify source, re-create file, ensure correct protocol & python version</td>
-          </tr>
-          <tr>
-            <td>Loaded object behaves weirdly after code changes</td>
-            <td>Class moved/renamed; old pickle refers to old module path</td>
-            <td>Keep stable module paths, use migrations, or avoid pickling long-term</td>
-          </tr>
-        </table>
-
-        <div class="callout warn">
-          <strong>Debug tip:</strong> Check the file size. If it’s <code>0 bytes</code>, it likely never wrote successfully.
-          Also ensure you used <code>"wb"</code> not <code>"w"</code>.
-        </div>
-      </section>
-
-      <section id="security">
-        <h2>12) Security (Very Important)</h2>
-        <div class="callout bad">
-          <strong>Never unpickle data from an untrusted source.</strong>
-          Unpickling can execute arbitrary code during loading. If the pickle file can be modified by others (or downloaded),
-          it can be dangerous.
-        </div>
-
-        <h3>Safe alternatives (depending on data)</h3>
-        <ul>
-          <li><b>JSON</b>: for plain data (dict/list/strings/numbers)</li>
-          <li><b>CSV</b>: for tabular data</li>
-          <li><b>SQLite</b>: for structured data and queries</li>
-          <li><b>MessagePack</b>: compact data exchange (still not as universal as JSON, but common)</li>
-        </ul>
-
-        <h3>When is pickle acceptable?</h3>
-        <ul>
-          <li>Local-only files you create yourself</li>
-          <li>Data stored in a controlled environment (your machine, your server) with proper permissions</li>
-          <li>Quick caching where security boundaries are clear</li>
-        </ul>
-      </section>
-
-      <section id="when">
-        <h2>13) When to Use Pickle (and When Not)</h2>
-
-        <div class="grid2">
-          <div>
-            <h3>Use pickle when</h3>
-            <ul>
-              <li>You need to store Python objects quickly</li>
-              <li>You control the data source</li>
-              <li>You want speed and convenience over portability</li>
-              <li>It’s okay if the file is Python-only</li>
-            </ul>
-          </div>
-          <div>
-            <h3>Avoid pickle when</h3>
-            <ul>
-              <li>You need human-readable files</li>
-              <li>Other languages/tools must read the data</li>
-              <li>You need a stable long-term format across code refactors</li>
-              <li>The data may come from untrusted sources</li>
-            </ul>
-          </div>
-        </div>
-
-        <div class="callout">
-          <strong>Good practical guideline:</strong> Pickle is excellent for <b>short-term persistence</b> and <b>internal caches</b>.
-          For long-term storage and sharing, prefer more stable formats.
-        </div>
-      </section>
-
-      <section id="patterns">
-        <h2>14) Useful Patterns</h2>
-
-        <h3>Pattern A: Save “state” with a version number</h3>
-        <p class="mini">
-          Adding a version helps you upgrade later if your data structure changes.
-        </p>
-        <pre><code>import pickle
-
-STATE_VERSION = 1
-
-state = {
-    "version": STATE_VERSION,
-    "user": "Champak",
-    "progress": {"lesson": "pickle", "done": True},
-}
-
-with open("state.pkl", "wb") as f:
-    pickle.dump(state, f, protocol=pickle.HIGHEST_PROTOCOL)
-
-with open("state.pkl", "rb") as f:
-    loaded = pickle.load(f)
-
-if loaded.get("version") != STATE_VERSION:
-    print("State version mismatch. Consider migrating data!")
-else:
-    print("OK:", loaded)</code></pre>
-
-        <h3>Pattern B: Atomic write (reduce corruption risk)</h3>
-        <p class="mini">
-          Write to a temporary file first, then replace the original.
-        </p>
-        <pre><code>import os
+<div class="container">
+
+<!-- HEADER -->
+<div class="card">
+  <span class="badge">🏫 7 PM Class Notes</span>
+  <h1>Python Pickle — Save Data Permanently</h1>
+  <p><b>Teacher:</b> Champak Roy</p>
+  <p>
+    In this lesson, students learned how to make Python
+    <b>remember data even after the program closes</b>
+    using the <b>pickle</b> module.
+  </p>
+</div>
+
+<!-- WHY -->
+<div class="card">
+<h2>1️⃣ Why This Lesson Is Important</h2>
+<ul>
+  <li>Python variables live in <b>RAM</b></li>
+  <li>RAM data is erased when the program stops</li>
+  <li>Real applications need <b>permanent storage</b></li>
+</ul>
+
+<p>
+<b>Conclusion:</b><br>
+Variables = temporary ❌<br>
+Files = permanent ✅
+</p>
+</div>
+
+<!-- PICKLE -->
+<div class="card">
+<h2>2️⃣ What is Pickle?</h2>
+<ul>
+  <li>Pickle is a built-in Python module</li>
+  <li>It converts Python objects into binary data</li>
+  <li>Binary data is stored in files</li>
+  <li>The same object can be restored later</li>
+</ul>
+
+<p><b>One-line formula:</b></p>
+<pre><code>Python Object → Bytes → File</code></pre>
+</div>
+
+<!-- FLOW -->
+<div class="card">
+<h2>3️⃣ Program Flow (Understand This Clearly)</h2>
+<ol>
+  <li>Try loading old data from file</li>
+  <li>If file not found → start fresh</li>
+  <li>User inserts or views students</li>
+  <li>At exit → data is saved</li>
+  <li>Next run → data is restored</li>
+</ol>
+</div>
+
+<!-- FILE 1 -->
+<div class="card">
+<h2>4️⃣ Code File: <code>pickleutilities.py</code></h2>
+<p>This file handles saving and reading data.</p>
+
+<pre><code>
 import pickle
-import tempfile
 
-data = {"a": 1, "b": 2}
-target = "safe.pkl"
+def saveFile(filename, data):
+    with open(filename, 'wb') as file:
+        pickle.dump(data, file)
 
-dir_name = os.path.dirname(target) or "."
-fd, tmp_path = tempfile.mkstemp(prefix="tmp_", suffix=".pkl", dir=dir_name)
+def readFile(filename):
+    with open(filename, "rb") as f:
+        return pickle.load(f)
+</code></pre>
+
+<p><b>Important:</b>  
+<code>dump()</code> saves data,  
+<code>load()</code> restores data.</p>
+</div>
+
+<!-- FILE 2 -->
+<div class="card">
+<h2>5️⃣ Code File: <code>test.py</code></h2>
+<p>Menu-driven student database program.</p>
+
+<pre><code>
+import pickleutilities as pt
+
+data = {}
+filename = "students.db"
 
 try:
-    with os.fdopen(fd, "wb") as f:
-        pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
+    data = pt.readFile(filename)
+except:
+    print("No file found. Will create now")
 
-    # replace is atomic on many systems
-    os.replace(tmp_path, target)
-finally:
-    # if something went wrong before replace, clean up temp
-    if os.path.exists(tmp_path):
-        try:
-            os.remove(tmp_path)
-        except OSError:
-            pass</code></pre>
+while True:
+    option = int(input("0-Exit, 1-Insert, 2-Show\n"))
 
-        <h3>Pattern C: Compress pickles for large data</h3>
-        <pre><code>import pickle
-import gzip
+    if option == 0:
+        break
 
-big = {"nums": list(range(200000))}
+    if option == 1:
+        rollno = int(input("Enter Roll No\n"))
+        name = input("Enter Name\n")
+        data[rollno] = name
 
-with gzip.open("big.pkl.gz", "wb") as f:
-    pickle.dump(big, f, protocol=pickle.HIGHEST_PROTOCOL)
+    if option == 2:
+        for k, v in data.items():
+            print(k, v, sep=", ")
 
-with gzip.open("big.pkl.gz", "rb") as f:
-    loaded = pickle.load(f)
+pt.saveFile(filename, data)
+</code></pre>
 
-print(len(loaded["nums"]))</code></pre>
+<p>
+<b>Most important line:</b><br>
+<code>pt.saveFile(filename, data)</code><br>
+This makes the data permanent.
+</p>
+</div>
 
-        <div class="callout warn">
-          <strong>Reminder:</strong> Compression helps size, but adds CPU cost. Use it when files are large.
-        </div>
-      </section>
+<!-- EMBED -->
+<div class="card">
+<h2>6️⃣ Run the Code Online (Practice Here)</h2>
+<p>
+You can run and test this program directly using the embedded Python editor below.
+</p>
 
-      <section id="mini">
-        <h2>15) Mini Assignments (Practice)</h2>
+<iframe 
+  src="https://www.learnwithchampak.live/2026/01/programmers-picnic-python-editor_18.html"
+  loading="lazy">
+</iframe>
 
-        <h3>Assignment 1: Save &amp; load a student report</h3>
-        <ul>
-          <li>Create a dict: name, class, marks list, total, average</li>
-          <li>Pickle it to <code>report.pkl</code>, then load and print neatly</li>
-        </ul>
+<p>
+👉 Create two files inside the editor:<br>
+<code>pickleutilities.py</code> and <code>test.py</code>
+</p>
+</div>
 
-        <h3>Assignment 2: Store multiple objects in one file</h3>
-        <ul>
-          <li>Pickle 3 objects (string, list, dict) into <code>multi.pkl</code></li>
-          <li>Load them back in correct order and verify types</li>
-        </ul>
+<!-- HOMEWORK -->
+<div class="card">
+<h2>7️⃣ Homework</h2>
+<ol>
+  <li>Add a <b>Delete Student</b> option</li>
+  <li>Store <b>name + marks</b> together</li>
+  <li>Think: Why should we NOT store passwords using pickle?</li>
+</ol>
+</div>
 
-        <h3>Assignment 3: Make a custom class picklable</h3>
-        <ul>
-          <li>Create class <code>Notebook</code> with title + pages(list)</li>
-          <li>Pickle an instance and restore it</li>
-          <li>Verify the restored object methods still work</li>
-        </ul>
+<!-- CHECKLIST -->
+<div class="card">
+<h2>8️⃣ Student Self-Checklist</h2>
+<ul class="checklist">
+  <li>✅ I understand RAM vs file storage</li>
+  <li>✅ I know what pickle does</li>
+  <li>✅ I can explain dump vs load</li>
+  <li>✅ I ran the program twice</li>
+  <li>✅ My data did not disappear</li>
+</ul>
+</div>
 
-        <h3>Assignment 4: Exclude a non-picklable attribute</h3>
-        <ul>
-          <li>Create a class that holds a “cache” attribute</li>
-          <li>Use <code>__getstate__</code> to remove/reset it before pickling</li>
-          <li>Load and confirm cache is rebuilt/empty</li>
-        </ul>
+<!-- NEXT -->
+<div class="card">
+<h2>9️⃣ What’s Next?</h2>
+<ul>
+  <li>Pickle vs JSON</li>
+  <li>Mini file-based projects</li>
+  <li>Introduction to databases (SQLite)</li>
+</ul>
 
-        <h3>Assignment 5: Create a small “settings manager”</h3>
-        <ul>
-          <li>Functions: <code>save_settings(dict, path)</code> and <code>load_settings(path)</code></li>
-          <li>Store a version number in the dict</li>
-          <li>On load: if version mismatches, print a warning</li>
-        </ul>
+<p>
+<b>Teacher’s Line:</b><br>
+<i>“Aaj tumne Python ko yaad rakhna sikha diya.”</i>
+</p>
+</div>
 
-        <div class="callout good">
-          <strong>Goal:</strong> By completing these, you’ll know 95% of real-world pickle usage.
-        </div>
-      </section>
+<div class="footer">
+Prepared for 7 PM Batch • Champak Roy<br>
+Learn step-by-step • Build real programs
+</div>
 
-      <section id="quiz">
-        <h2>16) Quick Self-Check (Mini Quiz)</h2>
-        <ol>
-          <li>What is the difference between <code>pickle.dump</code> and <code>pickle.dumps</code>?</li>
-          <li>Why must you open files in <code>rb</code> / <code>wb</code> mode?</li>
-          <li>What does “protocol” mean in pickle?</li>
-          <li>Why is unpickling untrusted data dangerous?</li>
-          <li>If you get <code>Can't pickle local object</code>, what should you change?</li>
-        </ol>
-
-        <details>
-          <summary><b>Show suggested answers</b></summary>
-          <div class="callout">
-            <ol>
-              <li><code>dump</code> writes to a file; <code>dumps</code> returns bytes in memory.</li>
-              <li>Pickle is bytes, and binary mode avoids text encoding/decoding issues.</li>
-              <li>Protocol is the pickle format version controlling size/speed/compatibility.</li>
-              <li>Pickle can execute code during loading; malicious pickles can run harmful actions.</li>
-              <li>Move the class/function to module top-level (not inside another function).</li>
-            </ol>
-          </div>
-        </details>
-      </section>
-
-      <section id="summary">
-        <h2>17) Summary Cheat Sheet</h2>
-
-        <pre><code># 1) Save object to file
-import pickle
-with open("file.pkl", "wb") as f:
-    pickle.dump(obj, f, protocol=pickle.HIGHEST_PROTOCOL)
-
-# 2) Load object from file
-with open("file.pkl", "rb") as f:
-    obj = pickle.load(f)
-
-# 3) In-memory bytes
-b = pickle.dumps(obj)
-obj = pickle.loads(b)
-
-# 4) Always use binary modes: rb / wb / ab
-
-# 5) SECURITY RULE:
-# Never unpickle data from untrusted sources.</code></pre>
-
-        <div class="callout good">
-          
-        </div>
-      </section>
-    </div>
-  </main>
-
-  <footer>
-    <div class="hr"></div>
-    <p>
-      <b>Note:</b> Pickle is powerful, but it’s not a universal safe format. Use it for trusted, internal Python data.
-      For sharing data, prefer JSON/CSV/SQLite depending on needs.
-    </p>
-  </footer>
-
-  <script>
-    function scrollToTop(){
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  </script>
-    <script src="https://programmer-s-picnic.github.io/json-images/find-on-page.js"></script>
-    <script src="https://programmer-s-picnic.github.io/json-images/imgshow.js"></script>
-    <script src="https://programmer-s-picnic.github.io/json-images/hometag.js"></script>
+</div>
 </body>
 </html>
