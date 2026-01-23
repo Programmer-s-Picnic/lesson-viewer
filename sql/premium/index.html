@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>SQL in Browser — SQLite Demo</title>
+    <title>SQL in Browser — SQLite Demo (Improved)</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style>
       :root {
@@ -10,11 +10,13 @@
         --card: #ffffff;
         --ink: #1f2937;
         --brand: #d97706;
+        --brand2: #b45309;
         --border: #f3d7a6;
         --muted: #6b7280;
         --danger: #b91c1c;
         --ok: #166534;
       }
+      * { box-sizing: border-box; }
       body {
         margin: 0;
         font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
@@ -38,9 +40,7 @@
         align-items: start;
       }
       @media (max-width: 980px) {
-        .grid {
-          grid-template-columns: 1fr;
-        }
+        .grid { grid-template-columns: 1fr; }
       }
       .card {
         background: var(--card);
@@ -49,32 +49,23 @@
         border: 1px solid var(--border);
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
       }
-      .row {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        align-items: center;
-      }
-      .row.space {
-        justify-content: space-between;
-      }
-      textarea {
+      .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+      .row.space { justify-content: space-between; }
+      .muted { color: var(--muted); }
+      textarea, input[type="text"] {
         width: 100%;
-        height: 170px;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-          "Liberation Mono", "Courier New", monospace;
-        font-size: 15px;
-        padding: 10px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
         border-radius: 8px;
         border: 1px solid var(--border);
         outline: none;
         background: #fff;
-        box-sizing: border-box;
       }
-      textarea:focus,
-      input[type="text"]:focus {
-        box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.18);
+      textarea {
+        height: 170px;
+        font-size: 15px;
+        padding: 10px;
       }
+      textarea:focus, input[type="text"]:focus { box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.18); }
       button {
         background: var(--brand);
         color: #fff;
@@ -85,257 +76,80 @@
         cursor: pointer;
         white-space: nowrap;
       }
-      button:hover {
-        opacity: 0.92;
-      }
-      button:disabled {
-        opacity: 0.55;
-        cursor: not-allowed;
-      }
-      .btn-secondary {
-        background: #9a3412;
-      }
+      button:hover { opacity: 0.92; }
+      button:disabled { opacity: 0.55; cursor: not-allowed; }
+      .btn-secondary { background: #9a3412; }
       .btn-ghost {
-        background: #fffaf2;
-        color: #92400e;
-        border: 1px solid var(--border);
+        background: #fffaf2; color: #92400e; border: 1px solid var(--border);
       }
-      .btn-ghost:hover {
-        background: #fff3db;
-        opacity: 1;
+      .btn-ghost:hover { background: #fff3db; opacity: 1; }
+      .btn-outline {
+        background: #fff; color: var(--brand2); border: 1px solid var(--border);
       }
 
       .badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 6px 10px;
-        border-radius: 999px;
-        border: 1px solid var(--border);
-        background: #fffaf2;
-        color: var(--muted);
-        font-size: 13px;
-        user-select: none;
+        display: inline-flex; align-items: center; gap: 8px;
+        padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border);
+        background: #fffaf2; color: var(--muted); font-size: 13px; user-select: none;
       }
-      .dot {
-        width: 10px;
-        height: 10px;
-        border-radius: 999px;
-        background: #f59e0b;
-        box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18);
-      }
-      .dot.ok {
-        background: #22c55e;
-        box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18);
-      }
-      .helptext {
-        margin: 8px 0 0;
-        color: var(--muted);
-        font-size: 13px;
-        line-height: 1.45;
-      }
+      .dot { width: 10px; height: 10px; border-radius: 999px; background: #f59e0b; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18); }
+      .dot.ok { background: #22c55e; box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18); }
 
-      .samples {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-        margin-top: 8px;
-      }
+      .samples { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
       .chip {
-        border: 1px solid var(--border);
-        background: #fffaf2;
-        color: #92400e;
-        padding: 7px 10px;
-        border-radius: 999px;
-        cursor: pointer;
-        font-size: 13px;
-        user-select: none;
+        border: 1px solid var(--border); background: #fffaf2; color: #92400e;
+        padding: 7px 10px; border-radius: 999px; cursor: pointer; font-size: 13px;
       }
-      .chip:hover {
-        background: #fff3db;
-      }
+      .chip:hover { background: #fff3db; }
 
-      #error {
-        color: var(--danger);
-        margin-top: 10px;
-        white-space: pre-wrap;
-      }
-      #result {
-        margin-top: 10px;
-      }
-      .okmsg {
-        color: var(--ok);
-        margin-top: 10px;
-      }
+      #error { color: var(--danger); margin-top: 10px; white-space: pre-wrap; }
+      #result { margin-top: 10px; }
+      .okmsg { color: var(--ok); margin-top: 10px; }
 
-      table {
-        border-collapse: collapse;
-        width: 100%;
-        margin-top: 12px;
-        background: #fff;
-        overflow: hidden;
-        border-radius: 10px;
+      .tableWrap {
+        margin-top: 12px; background: #fff; border: 1px solid var(--border);
+        border-radius: 10px; overflow: auto; max-height: 55vh;
       }
-      th,
-      td {
-        border: 1px solid var(--border);
-        padding: 8px;
-        text-align: left;
-        vertical-align: top;
-        font-size: 13px;
-      }
-      th {
-        background: #fdecc8;
-        position: sticky;
-        top: 0;
-        z-index: 1;
-      }
-      .table-title {
-        margin-top: 14px;
-        font-weight: 800;
-        color: #92400e;
-      }
-
-      .panel-title {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        margin: 0 0 10px;
-      }
-      .panel-title h2 {
-        margin: 0;
-        font-size: 16px;
-        color: #92400e;
-      }
-      .seg {
-        display: inline-flex;
-        border: 1px solid var(--border);
-        border-radius: 999px;
-        overflow: hidden;
-        background: #fffaf2;
-      }
-      .seg button {
-        border-radius: 0;
-        border: none;
-        background: transparent;
-        color: #92400e;
-        padding: 8px 10px;
-        font-size: 13px;
-      }
-      .seg button.active {
-        background: #fdecc8;
-        font-weight: 700;
-      }
-
-      .list {
-        margin: 0;
-        padding: 0;
-        list-style: none;
-        max-height: 320px;
-        overflow: auto;
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        background: #fff;
-      }
-      .item {
-        padding: 10px 10px;
+      table { border-collapse: collapse; width: 100%; }
+      th, td {
         border-bottom: 1px solid var(--border);
-        cursor: pointer;
+        padding: 8px; text-align: left; vertical-align: top; font-size: 13px;
       }
-      .item:last-child {
-        border-bottom: none;
-      }
-      .item:hover {
-        background: #fffaf2;
-      }
-      .meta {
-        display: flex;
-        justify-content: space-between;
-        gap: 10px;
-        color: var(--muted);
-        font-size: 12px;
-        margin-top: 6px;
-      }
-      code.inline {
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-          "Liberation Mono", "Courier New", monospace;
-        font-size: 12px;
-        background: #fff7e6;
-        border: 1px solid var(--border);
-        padding: 1px 6px;
-        border-radius: 6px;
-      }
-      .small {
-        font-size: 12px;
-        color: var(--muted);
-      }
+      th { background: #fdecc8; position: sticky; top: 0; z-index: 1; }
+      .table-title { margin-top: 14px; font-weight: 800; color: #92400e; }
 
-      /* Help section */
-      .helpbox {
-        margin-top: 14px;
-        padding: 12px;
-        border: 1px dashed var(--border);
-        background: #fffaf2;
-        border-radius: 12px;
+      .panel-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 10px; }
+      .panel-title h2 { margin: 0; font-size: 16px; color: #92400e; }
+      .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 999px; overflow: hidden; background: #fffaf2; }
+      .seg button { border-radius: 0; border: none; background: transparent; color: #92400e; padding: 8px 10px; font-size: 13px; }
+      .seg button.active { background: #fdecc8; font-weight: 700; }
+
+      .list { margin: 0; padding: 0; list-style: none; max-height: 320px; overflow: auto; border: 1px solid var(--border); border-radius: 10px; background: #fff; }
+      .item { padding: 10px 10px; border-bottom: 1px solid var(--border); cursor: pointer; }
+      .item:last-child { border-bottom: none; }
+      .item:hover { background: #fffaf2; }
+      .meta { display: flex; justify-content: space-between; gap: 10px; color: var(--muted); font-size: 12px; margin-top: 6px; }
+      code.inline { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 12px; background: #fff7e6; border: 1px solid var(--border); padding: 1px 6px; border-radius: 6px; }
+      .small { font-size: 12px; color: var(--muted); }
+
+      .helpbox { margin-top: 14px; padding: 12px; border: 1px dashed var(--border); background: #fffaf2; border-radius: 12px; }
+      .helpbox h3 { margin: 0 0 10px; color: #92400e; font-size: 15px; }
+      .helpresults { margin-top: 10px; border: 1px solid var(--border); border-radius: 10px; background: #fff; max-height: 280px; overflow: auto; }
+      .helpitem { padding: 10px; border-bottom: 1px solid var(--border); }
+      .helpitem:last-child { border-bottom: none; }
+      .helpitem .title { font-weight: 800; color: #92400e; margin-bottom: 6px; }
+      .helpitem .desc { color: var(--muted); font-size: 13px; line-height: 1.4; margin-bottom: 8px; }
+      pre.snip { margin: 0; padding: 10px; border-radius: 10px; background: #fff7e6; border: 1px solid var(--border); overflow: auto; font-size: 12.5px; white-space: pre-wrap; }
+
+      .guide {
+        margin: 12px 0 16px; padding: 12px; border: 1px solid var(--border);
+        background: #fffaf2; border-radius: 12px;
       }
-      .helpbox h3 {
-        margin: 0 0 10px;
-        color: #92400e;
-        font-size: 15px;
-      }
-      .helpbox input[type="text"] {
-        width: 100%;
-        padding: 10px 10px;
-        border-radius: 10px;
-        border: 1px solid var(--border);
-        outline: none;
-        box-sizing: border-box;
-        font-size: 14px;
-        background: #fff;
-      }
-      .helpresults {
-        margin-top: 10px;
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        background: #fff;
-        max-height: 280px;
-        overflow: auto;
-      }
-      .helpitem {
-        padding: 10px;
-        border-bottom: 1px solid var(--border);
-      }
-      .helpitem:last-child {
-        border-bottom: none;
-      }
-      .helpitem .title {
-        font-weight: 800;
-        color: #92400e;
-        margin-bottom: 6px;
-      }
-      .helpitem .desc {
-        color: var(--muted);
-        font-size: 13px;
-        line-height: 1.4;
-        margin-bottom: 8px;
-      }
-      pre.snip {
-        margin: 0;
-        padding: 10px;
-        border-radius: 10px;
-        background: #fff7e6;
-        border: 1px solid var(--border);
-        overflow: auto;
-        font-size: 12.5px;
-        white-space: pre-wrap;
-      }
-      .footer {
-        text-align: center;
-        margin-top: 12px;
-        font-size: 13px;
-        color: var(--muted);
-      }
+      .guide h3 { margin: 0 0 8px; color: #92400e; font-size: 15px; }
+
+      .footer { text-align: center; margin-top: 12px; font-size: 13px; color: var(--muted); }
+      .switch { display: inline-flex; align-items: center; gap: 8px; }
+      .switch input { transform: scale(1.2); }
     </style>
   </head>
 
@@ -343,14 +157,33 @@
     <div class="container">
       <h1>Run SQL in Your Browser 🧠</h1>
 
+      <!-- Start Here (Beginner Roadmap) -->
+      <div class="guide card" role="note" aria-label="Getting started">
+        <h3>Start here (3 minutes)</h3>
+        <ol class="small" style="margin: 4px 0 0 16px;">
+          <li>Click <b>Show tables</b> then <b>Describe birthdays</b>.</li>
+          <li>Run <code class="inline">SELECT * FROM birthdays;</code></li>
+          <li>Try <b>JOIN demo</b>, then <b>GROUP BY demo</b>.</li>
+          <li>Use <b>Intentional error</b> to see a real error message.</li>
+          <li>Use <b>Reset DB</b> anytime to restore the sample data.</li>
+        </ol>
+        <div class="row" style="margin-top:10px">
+          <label class="switch small" title="Blocks destructive queries like DROP/DELETE without WHERE">
+            <input id="safeMode" type="checkbox" checked />
+            <span><b>Safe Mode</b> (recommended for students)</span>
+          </label>
+          <span class="small muted">Tip: add <code class="inline">?tmode=1</code> to URL to start with Safe Mode OFF.</span>
+        </div>
+      </div>
+
       <div class="grid">
         <!-- LEFT -->
         <div class="card">
           <div class="row space">
             <div>
               <p style="margin: 0 0 6px"><b>Try editing and running SQL:</b></p>
-              <div class="helptext">
-                Tip: Press <b>Ctrl + Enter</b> to run. Multiple statements are
+              <div class="muted small">
+                Tip: Press <b>Ctrl + Enter</b> (Cmd ⌘ + Enter on Mac). Multiple statements are
                 allowed (separated by <code class="inline">;</code>).
               </div>
             </div>
@@ -362,84 +195,51 @@
           </div>
 
           <div class="samples" aria-label="Sample queries">
-            <span
-              class="chip"
-              data-sql="SELECT name, type FROM sqlite_master WHERE type IN ('table','view') ORDER BY type, name;"
-              >Show tables</span
-            >
-            <span class="chip" data-sql="PRAGMA foreign_keys;">FK status</span>
-            <span class="chip" data-sql="SELECT * FROM employees;"
-              >Employees (FK)</span
-            >
-            <span class="chip" data-sql="SELECT * FROM birthdays;"
-              >Birthdays</span
-            >
-            <span class="chip" data-sql="SELECT * FROM customers;"
-              >Customers</span
-            >
-            <span class="chip" data-sql="SELECT * FROM orders;">Orders</span>
-            <span
-              class="chip"
-              data-sql="SELECT c.name, c.city, o.total, o.order_date FROM customers c JOIN orders o ON o.customer_id = c.id ORDER BY o.order_date DESC;"
-              >JOIN demo</span
-            >
-            <span
-              class="chip"
-              data-sql="SELECT category, COUNT(*) AS items, ROUND(AVG(price),2) AS avg_price FROM products GROUP BY category ORDER BY items DESC;"
-              >GROUP BY demo</span
-            >
-            <span class="chip" data-sql="SELECT * FROM not_a_table;"
-              >Intentional error</span
-            >
+            <button class="chip" data-sql="SELECT name, type FROM sqlite_master WHERE type IN ('table','view') ORDER BY type, name;">Show tables</button>
+            <button class="chip" data-sql="PRAGMA table_info(birthdays);">Describe birthdays</button>
+            <button class="chip" data-sql="PRAGMA foreign_keys;">FK status</button>
+            <button class="chip" data-sql="SELECT * FROM employees;">Employees (FK)</button>
+            <button class="chip" data-sql="SELECT * FROM birthdays;">Birthdays</button>
+            <button class="chip" data-sql="SELECT * FROM customers;">Customers</button>
+            <button class="chip" data-sql="SELECT * FROM orders;">Orders</button>
+            <button class="chip" data-sql="SELECT c.name, c.city, o.total, o.order_date FROM customers c JOIN orders o ON o.customer_id = c.id ORDER BY o.order_date DESC;">JOIN demo</button>
+            <button class="chip" data-sql="SELECT category, COUNT(*) AS items, ROUND(AVG(price),2) AS avg_price FROM products GROUP BY category ORDER BY items DESC;">GROUP BY demo</button>
+            <button class="chip" data-sql="SELECT * FROM not_a_table;">Intentional error</button>
           </div>
 
-          <textarea id="sqlInput">SELECT * FROM birthdays;</textarea>
+          <textarea id="sqlInput" aria-label="SQL editor">SELECT * FROM birthdays;</textarea>
 
           <div class="row" style="margin-top: 10px">
             <button id="runBtn" disabled>Run SQL</button>
-            <button id="resetBtn" class="btn-secondary" disabled>
-              Reset DB
-            </button>
-            <button id="downloadCsvBtn" class="btn-ghost" disabled>
-              Download last result CSV
-            </button>
+            <button id="resetBtn" class="btn-secondary" disabled>Reset DB</button>
+            <button id="copySqlBtn" class="btn-outline" disabled>Copy SQL</button>
+            <button id="downloadCsvBtn" class="btn-ghost" disabled>Download last result CSV</button>
+            <button id="copyCsvBtn" class="btn-ghost" disabled>Copy last result CSV</button>
           </div>
 
           <div id="error" role="alert"></div>
           <div id="result" aria-live="polite"></div>
 
-          <div class="helptext">
-            CSV downloads the <b>last displayed SELECT result</b> (if your query
-            has multiple SELECTs, it uses the last one).
+          <div class="muted small" style="margin-top:8px">
+            CSV actions use the <b>last table result</b> (i.e., the last statement that returned rows).
           </div>
 
           <!-- HELP -->
           <div class="helpbox" id="helpBox">
             <div class="row space">
               <h3 style="margin: 0">SQL Help (Search & Insert)</h3>
-              <button id="toggleHelpBtn" class="btn-ghost" type="button">
-                Hide
-              </button>
+              <button id="toggleHelpBtn" class="btn-ghost" type="button">Hide</button>
             </div>
 
-            <div class="helptext" style="margin-top: 6px">
-              Search: <code class="inline">create</code>,
-              <code class="inline">alter</code>,
-              <code class="inline">drop</code>,
-              <code class="inline">references</code>,
-              <code class="inline">check</code>,
-              <code class="inline">commit</code>,
-              <code class="inline">rollback</code>. Click “Insert” to paste into
-              the editor.
+            <div class="muted small" style="margin-top: 6px">
+              Search: <code class="inline">create</code>, <code class="inline">alter</code>,
+              <code class="inline">drop</code>, <code class="inline">references</code>,
+              <code class="inline">check</code>, <code class="inline">commit</code>,
+              <code class="inline">rollback</code>. Click “Insert” to paste into the editor.
             </div>
 
             <div style="margin-top: 10px">
-              <input
-                id="helpSearch"
-                type="text"
-                placeholder="Search SQL help… (e.g., references, check, commit)"
-                autocomplete="off"
-              />
+              <input id="helpSearch" type="text" placeholder="Search SQL help… (e.g., references, check, commit)" autocomplete="off" />
             </div>
 
             <div class="helpresults" id="helpResults"></div>
@@ -450,35 +250,22 @@
         <div class="card">
           <div class="panel-title">
             <h2>Query History</h2>
-            <div class="seg">
-              <button id="tabSuccess" class="active" type="button">
-                Success
-              </button>
-              <button id="tabFail" type="button">Failure</button>
+            <div class="seg" role="tablist" aria-label="History tabs">
+              <button id="tabSuccess" class="active" type="button" role="tab" aria-selected="true">Success</button>
+              <button id="tabFail" type="button" role="tab" aria-selected="false">Failure</button>
             </div>
           </div>
 
           <div class="row" style="margin-bottom: 10px">
-            <button id="exportHistoryBtn" class="btn-ghost" disabled>
-              Export history (JSON)
-            </button>
-            <button id="importHistoryBtn" class="btn-ghost" disabled>
-              Import history (JSON)
-            </button>
-            <button id="clearHistoryBtn" class="btn-ghost" disabled>
-              Clear tab
-            </button>
-            <input
-              id="importFile"
-              type="file"
-              accept="application/json"
-              style="display: none"
-            />
+            <button id="exportHistoryBtn" class="btn-ghost" disabled>Export history (JSON)</button>
+            <button id="importHistoryBtn" class="btn-ghost" disabled>Import history (JSON)</button>
+            <button id="clearHistoryBtn" class="btn-ghost" disabled>Clear tab</button>
+            <input id="importFile" type="file" accept="application/json" style="display: none" />
           </div>
 
           <ul id="historyList" class="list"></ul>
 
-          <div class="helptext">
+          <div class="muted small" style="margin-top:8px">
             - Click an item to load it into the editor.<br />
             - Duplicates are ignored (same SQL text, trimmed).<br />
             - History is <b>Remembered</b>.
@@ -502,13 +289,17 @@
         var db = null;
         var SQLlib = null;
         var activeTab = "success";
-        var lastResultForCSV = null; // {columns, values, filenameHint}
+        var lastSelectResult = null; // {columns, values, filenameHint}
+        var safeMode = true;
 
         // ===== DOM
         var sqlInput = document.getElementById("sqlInput");
         var runBtn = document.getElementById("runBtn");
         var resetBtn = document.getElementById("resetBtn");
+        var copySqlBtn = document.getElementById("copySqlBtn");
         var downloadCsvBtn = document.getElementById("downloadCsvBtn");
+        var copyCsvBtn = document.getElementById("copyCsvBtn");
+        var safeModeCb = document.getElementById("safeMode");
 
         var resultDiv = document.getElementById("result");
         var errorDiv = document.getElementById("error");
@@ -530,26 +321,17 @@
         var helpResults = document.getElementById("helpResults");
 
         // ===== Helpers
-        function nowISO() {
-          return new Date().toISOString();
-        }
-        function normalizeSQL(sql) {
-          return (sql || "").replace(/^\s+|\s+$/g, "");
-        }
-        function safeParseJSON(str, fallback) {
-          try {
-            return JSON.parse(str);
-          } catch (e) {
-            return fallback;
-          }
-        }
+        function nowISO() { return new Date().toISOString(); }
+        function normalizeSQL(sql) { return (sql || "").replace(/^\s+|\s+$/g, ""); }
+        function safeParseJSON(str, fallback) { try { return JSON.parse(str); } catch (e) { return fallback; } }
         function escapeHTML(str) {
           return String(str)
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
+            .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+        function getParam(name) {
+          var m = new RegExp("[?&]" + name + "=([^&]+)").exec(location.search);
+          return m ? decodeURIComponent(m[1]) : null;
         }
 
         // ===== History storage
@@ -557,31 +339,33 @@
           var key = kind === "success" ? LS_SUCCESS : LS_FAIL;
           var raw = localStorage.getItem(key);
           var arr = safeParseJSON(raw, []);
-          return Object.prototype.toString.call(arr) === "[object Array]"
-            ? arr
-            : [];
+          return Object.prototype.toString.call(arr) === "[object Array]" ? arr : [];
         }
         function setHistory(kind, arr) {
           var key = kind === "success" ? LS_SUCCESS : LS_FAIL;
-          localStorage.setItem(key, JSON.stringify(arr));
+          try {
+            localStorage.setItem(key, JSON.stringify(arr));
+          } catch (e) {
+            // Graceful: trim and retry once
+            if (arr.length > 50) {
+              arr.length = 50;
+              try { localStorage.setItem(key, JSON.stringify(arr)); } catch (e2) {}
+            }
+          }
         }
         function hasSQL(kind, sqlNorm) {
           var arr = getHistory(kind);
-          for (var i = 0; i < arr.length; i++) {
-            if (arr[i] && arr[i].sqlNorm === sqlNorm) return true;
-          }
+          for (var i = 0; i < arr.length; i++) if (arr[i] && arr[i].sqlNorm === sqlNorm) return true;
           return false;
         }
         function addToHistory(kind, payload) {
           if (!payload || !payload.sqlNorm) return;
+          if (payload.sql && payload.sql.length > 5000) payload.sql = payload.sql.slice(0, 5000);
           if (hasSQL(kind, payload.sqlNorm)) return;
 
           var arr = getHistory(kind);
           arr.unshift(payload);
-
-          var CAP = 300;
-          if (arr.length > CAP) arr.length = CAP;
-
+          var CAP = 300; if (arr.length > CAP) arr.length = CAP;
           setHistory(kind, arr);
         }
 
@@ -590,31 +374,22 @@
           if (ready) {
             statusDot.className = "dot ok";
             statusText.textContent = "DB Ready ✅";
-            runBtn.disabled = false;
-            resetBtn.disabled = false;
-            exportHistoryBtn.disabled = false;
-            importHistoryBtn.disabled = false;
-            clearHistoryBtn.disabled = false;
-            downloadCsvBtn.disabled = !lastResultForCSV;
+            runBtn.disabled = false; resetBtn.disabled = false;
+            exportHistoryBtn.disabled = false; importHistoryBtn.disabled = false; clearHistoryBtn.disabled = false;
+            downloadCsvBtn.disabled = !lastSelectResult; copyCsvBtn.disabled = !lastSelectResult;
+            copySqlBtn.disabled = false;
           } else {
             statusDot.className = "dot";
             statusText.textContent = "Loading SQLite…";
-            runBtn.disabled = true;
-            resetBtn.disabled = true;
-            exportHistoryBtn.disabled = true;
-            importHistoryBtn.disabled = true;
-            clearHistoryBtn.disabled = true;
-            downloadCsvBtn.disabled = true;
+            runBtn.disabled = true; resetBtn.disabled = true;
+            exportHistoryBtn.disabled = true; importHistoryBtn.disabled = true; clearHistoryBtn.disabled = true;
+            downloadCsvBtn.disabled = true; copyCsvBtn.disabled = true;
+            copySqlBtn.disabled = true;
           }
         }
-        function clearOutput() {
-          resultDiv.innerHTML = "";
-          errorDiv.textContent = "";
-        }
+        function clearOutput() { resultDiv.innerHTML = ""; errorDiv.textContent = ""; }
         function showOk(msg) {
-          var div = document.createElement("div");
-          div.className = "okmsg";
-          div.textContent = msg;
+          var div = document.createElement("div"); div.className = "okmsg"; div.textContent = msg;
           resultDiv.appendChild(div);
         }
 
@@ -622,11 +397,8 @@
         function createFreshDB() {
           if (!SQLlib) return;
           db = new SQLlib.Database();
-
-          // IMPORTANT: enable FK enforcement in SQLite
           var seedSQL =
             "PRAGMA foreign_keys = ON;" +
-            // birthdays
             "DROP TABLE IF EXISTS birthdays;" +
             "CREATE TABLE birthdays (id INTEGER PRIMARY KEY, name TEXT, birthday TEXT);" +
             "INSERT INTO birthdays (name, birthday) VALUES " +
@@ -634,79 +406,34 @@
             "('Amitabh Pandey','2001-07-11')," +
             "('Anita Sharma','1996-03-22')," +
             "('Ravi Kumar','1992-12-05');" +
-            // students
             "DROP TABLE IF EXISTS students;" +
             "CREATE TABLE students (id INTEGER PRIMARY KEY, name TEXT, marks INTEGER);" +
             "INSERT INTO students (name, marks) VALUES " +
-            "('Aarav',88)," +
-            "('Diya',95)," +
-            "('Kabir',76)," +
-            "('Meera',84);" +
-            // customers + orders
+            "('Aarav',88),('Diya',95),('Kabir',76),('Meera',84);" +
             "DROP TABLE IF EXISTS customers;" +
             "CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT, city TEXT);" +
             "INSERT INTO customers (name, city) VALUES " +
-            "('Champak Roy','Varanasi')," +
-            "('Neha Singh','Lucknow')," +
-            "('Rahul Verma','Delhi')," +
-            "('Priya Gupta','Kolkata');" +
+            "('Champak Roy','Varanasi'),('Neha Singh','Lucknow'),('Rahul Verma','Delhi'),('Priya Gupta','Kolkata');" +
             "DROP TABLE IF EXISTS orders;" +
             "CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, total REAL, order_date TEXT);" +
             "INSERT INTO orders (customer_id, total, order_date) VALUES " +
-            "(1, 499.50, '2025-12-28')," +
-            "(2, 1299.00, '2025-12-30')," +
-            "(1, 250.00, '2026-01-02')," +
-            "(3, 899.99, '2026-01-04')," +
-            "(4, 159.00, '2026-01-05');" +
-            // products
+            "(1, 499.50, '2025-12-28'),(2, 1299.00, '2025-12-30'),(1, 250.00, '2026-01-02'),(3, 899.99, '2026-01-04'),(4, 159.00, '2026-01-05');" +
             "DROP TABLE IF EXISTS products;" +
             "CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT, category TEXT, price REAL);" +
             "INSERT INTO products (name, category, price) VALUES " +
-            "('Notebook','Stationery',45.00)," +
-            "('Pen','Stationery',10.00)," +
-            "('Eraser','Stationery',5.00)," +
-            "('Headphones','Electronics',799.00)," +
-            "('Mouse','Electronics',399.00)," +
-            "('Keyboard','Electronics',999.00)," +
-            "('Mug','Kitchen',149.00)," +
-            "('Bottle','Kitchen',299.00);" +
-            // FK demo: departments + employees (REFERENCES)
-            "DROP TABLE IF EXISTS employees;" +
-            "DROP TABLE IF EXISTS departments;" +
-            "CREATE TABLE departments (" +
-            "  id INTEGER PRIMARY KEY," +
-            "  name TEXT NOT NULL UNIQUE" +
-            ");" +
-            "CREATE TABLE employees (" +
-            "  id INTEGER PRIMARY KEY," +
-            "  name TEXT NOT NULL," +
-            "  dept_id INTEGER NOT NULL REFERENCES departments(id)" +
-            "    ON UPDATE CASCADE ON DELETE RESTRICT" +
-            ");" +
+            "('Notebook','Stationery',45.00),('Pen','Stationery',10.00),('Eraser','Stationery',5.00)," +
+            "('Headphones','Electronics',799.00),('Mouse','Electronics',399.00),('Keyboard','Electronics',999.00)," +
+            "('Mug','Kitchen',149.00),('Bottle','Kitchen',299.00);" +
+            "DROP TABLE IF EXISTS employees; DROP TABLE IF EXISTS departments;" +
+            "CREATE TABLE departments (id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE);" +
+            "CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT NOT NULL, dept_id INTEGER NOT NULL REFERENCES departments(id) ON UPDATE CASCADE ON DELETE RESTRICT);" +
             "INSERT INTO departments (name) VALUES ('IT'),('HR'),('Sales');" +
-            "INSERT INTO employees (name, dept_id) VALUES " +
-            "('Sonal', 1)," +
-            "('Imran', 1)," +
-            "('Kavya', 2)," +
-            "('Rohit', 3);" +
-            // CHECK demo table
+            "INSERT INTO employees (name, dept_id) VALUES ('Sonal',1),('Imran',1),('Kavya',2),('Rohit',3);" +
             "DROP TABLE IF EXISTS payments;" +
-            "CREATE TABLE payments (" +
-            "  id INTEGER PRIMARY KEY," +
-            "  payer TEXT NOT NULL," +
-            "  amount REAL NOT NULL CHECK (amount > 0)," +
-            "  status TEXT NOT NULL CHECK (status IN ('PENDING','PAID','FAILED'))" +
-            ");" +
-            "INSERT INTO payments (payer, amount, status) VALUES " +
-            "('Champak Roy', 499.00, 'PAID')," +
-            "('Neha Singh', 250.00, 'PENDING')," +
-            "('Rahul Verma', 100.00, 'FAILED');" +
-            // view (optional)
+            "CREATE TABLE payments (id INTEGER PRIMARY KEY, payer TEXT NOT NULL, amount REAL NOT NULL CHECK (amount > 0), status TEXT NOT NULL CHECK (status IN ('PENDING','PAID','FAILED')));" +
+            "INSERT INTO payments (payer, amount, status) VALUES ('Champak Roy',499.00,'PAID'),('Neha Singh',250.00,'PENDING'),('Rahul Verma',100.00,'FAILED');" +
             "DROP VIEW IF EXISTS v_customer_orders;" +
-            "CREATE VIEW v_customer_orders AS " +
-            "SELECT o.id AS order_id, c.name AS customer_name, c.city, o.total, o.order_date " +
-            "FROM orders o JOIN customers c ON c.id = o.customer_id;";
-
+            "CREATE VIEW v_customer_orders AS SELECT o.id AS order_id, c.name AS customer_name, c.city, o.total, o.order_date FROM orders o JOIN customers c ON c.id = o.customer_id;";
           db.run(seedSQL);
         }
 
@@ -716,6 +443,9 @@
           title.className = "table-title";
           title.textContent = "Result " + (index + 1);
           resultDiv.appendChild(title);
+
+          var wrap = document.createElement("div");
+          wrap.className = "tableWrap";
 
           var table = document.createElement("table");
           var thead = table.createTHead();
@@ -737,7 +467,8 @@
             }
           }
 
-          resultDiv.appendChild(table);
+          wrap.appendChild(table);
+          resultDiv.appendChild(wrap);
         }
 
         // ===== CSV
@@ -748,532 +479,322 @@
         }
         function toCSV(columns, values) {
           var lines = [];
-          var i, j;
-
           var header = [];
-          for (i = 0; i < columns.length; i++)
-            header.push(csvEscape(columns[i]));
+          for (var i = 0; i < columns.length; i++) header.push(csvEscape(columns[i]));
           lines.push(header.join(","));
-
-          for (i = 0; i < values.length; i++) {
+          for (var r = 0; r < values.length; r++) {
             var row = [];
-            for (j = 0; j < values[i].length; j++)
-              row.push(csvEscape(values[i][j]));
+            for (var c = 0; c < values[r].length; c++) row.push(csvEscape(values[r][c]));
             lines.push(row.join(","));
           }
           return lines.join("\n");
         }
         function downloadText(filename, text, mime) {
-          mime = mime || "text/plain";
-          var blob = new Blob([text], { type: mime });
+          var blob = new Blob([text], { type: mime || "text/plain" });
           var url = URL.createObjectURL(blob);
           var a = document.createElement("a");
-          a.href = url;
-          a.download = filename;
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
+          a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
           URL.revokeObjectURL(url);
         }
         function suggestCSVFilename(sqlNorm) {
           var name = "result";
           var m = /from\s+([a-zA-Z_][\w]*)/i.exec(sqlNorm);
           if (m && m[1]) name = m[1];
-
           var dt = new Date();
-          function pad(n) {
-            return (n < 10 ? "0" : "") + n;
-          }
-          var stamp =
-            dt.getFullYear() +
-            pad(dt.getMonth() + 1) +
-            pad(dt.getDate()) +
-            "_" +
-            pad(dt.getHours()) +
-            pad(dt.getMinutes()) +
-            pad(dt.getSeconds());
+          function pad(n){return (n<10?"0":"")+n;}
+          var stamp = dt.getFullYear()+""+pad(dt.getMonth()+1)+pad(dt.getDate())+"_"+pad(dt.getHours())+pad(dt.getMinutes())+pad(dt.getSeconds());
           return name + "_" + stamp + ".csv";
         }
 
         // ===== History UI
         function setActiveTab(tab) {
           activeTab = tab;
-          if (tab === "success") {
-            tabSuccess.className = "active";
-            tabFail.className = "";
-          } else {
-            tabSuccess.className = "";
-            tabFail.className = "active";
-          }
+          if (tab === "success") { tabSuccess.className = "active"; tabFail.className = ""; }
+          else { tabSuccess.className = ""; tabFail.className = "active"; }
           renderHistory();
         }
-
         function renderHistory() {
           var arr = getHistory(activeTab);
           historyList.innerHTML = "";
-
           if (!arr.length) {
             var li0 = document.createElement("li");
-            li0.className = "item";
-            li0.style.cursor = "default";
-            li0.innerHTML =
-              '<div class="small">No ' + activeTab + " queries yet.</div>";
-            historyList.appendChild(li0);
-            return;
+            li0.className = "item"; li0.style.cursor = "default";
+            li0.innerHTML = '<div class="small">No ' + activeTab + ' queries yet.</div>';
+            historyList.appendChild(li0); return;
           }
-
-          for (var i = 0; i < arr.length; i++) {
-            (function (entry) {
-              var li = document.createElement("li");
-              li.className = "item";
-
-              var sqlShort =
-                entry.sql.length > 180
-                  ? entry.sql.slice(0, 180) + "…"
-                  : entry.sql;
-
-              li.innerHTML =
-                "<div style=\"white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono','Courier New', monospace; font-size: 12.5px;\">" +
-                escapeHTML(sqlShort) +
-                "</div>" +
-                '<div class="meta"><span>' +
-                new Date(entry.ts).toLocaleString() +
-                "</span><span>" +
-                (activeTab === "success" ? "✅ Success" : "❌ Failure") +
-                "</span></div>";
-
-              li.onclick = function () {
-                sqlInput.value = entry.sql;
-                sqlInput.focus();
-              };
-
-              historyList.appendChild(li);
-            })(arr[i]);
-          }
+          for (var i = 0; i < arr.length; i++) (function (entry) {
+            var li = document.createElement("li"); li.className = "item";
+            var sqlShort = entry.sql.length > 180 ? entry.sql.slice(0, 180) + "…" : entry.sql;
+            li.innerHTML =
+              "<div style=\"white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono','Courier New', monospace; font-size: 12.5px;\">" +
+              escapeHTML(sqlShort) + "</div>" +
+              '<div class="meta"><span>' + new Date(entry.ts).toLocaleString() + "</span><span>" +
+              (activeTab === "success" ? "✅ Success" : "❌ Failure") + "</span></div>";
+            li.onclick = function () { sqlInput.value = entry.sql; sqlInput.focus(); };
+            historyList.appendChild(li);
+          })(arr[i]);
         }
 
         // ===== Export/Import
         function exportHistoryJSON() {
-          var payload = {
-            version: 1,
-            exportedAt: nowISO(),
-            success: getHistory("success"),
-            fail: getHistory("fail"),
-          };
+          var payload = { version: 1, exportedAt: nowISO(), success: getHistory("success"), fail: getHistory("fail") };
           var filename = "sql_history_" + nowISO().replace(/:/g, "-") + ".json";
-          downloadText(
-            filename,
-            JSON.stringify(payload, null, 2),
-            "application/json"
-          );
+          downloadText(filename, JSON.stringify(payload, null, 2), "application/json");
         }
-
         function importHistoryJSON(file) {
           var reader = new FileReader();
           reader.onload = function () {
             try {
               var obj = JSON.parse(String(reader.result || "{}"));
-              var incomingSuccess =
-                Object.prototype.toString.call(obj.success) === "[object Array]"
-                  ? obj.success
-                  : [];
-              var incomingFail =
-                Object.prototype.toString.call(obj.fail) === "[object Array]"
-                  ? obj.fail
-                  : [];
-
+              var incomingSuccess = Object.prototype.toString.call(obj.success) === "[object Array]" ? obj.success : [];
+              var incomingFail = Object.prototype.toString.call(obj.fail) === "[object Array]" ? obj.fail : [];
               function merge(kind, incoming) {
-                var existing = getHistory(kind);
-                var seen = {};
-                for (var i = 0; i < existing.length; i++) {
-                  if (existing[i] && existing[i].sqlNorm)
-                    seen[existing[i].sqlNorm] = true;
-                }
+                var existing = getHistory(kind), seen = {};
+                for (var i = 0; i < existing.length; i++) if (existing[i] && existing[i].sqlNorm) seen[existing[i].sqlNorm] = true;
                 for (var j = 0; j < incoming.length; j++) {
-                  var x = incoming[j];
-                  if (!x || !x.sqlNorm || !x.sql) continue;
-                  if (seen[x.sqlNorm]) continue;
-                  seen[x.sqlNorm] = true;
-                  existing.push(x);
+                  var x = incoming[j]; if (!x || !x.sqlNorm || !x.sql) continue;
+                  if (seen[x.sqlNorm]) continue; seen[x.sqlNorm] = true; existing.push(x);
                 }
-                existing.sort(function (a, b) {
-                  return new Date(b.ts) - new Date(a.ts);
-                });
-                var CAP = 300;
-                if (existing.length > CAP) existing.length = CAP;
+                existing.sort(function (a,b){ return new Date(b.ts) - new Date(a.ts); });
+                var CAP = 300; if (existing.length > CAP) existing.length = CAP;
                 setHistory(kind, existing);
               }
-
-              merge("success", incomingSuccess);
-              merge("fail", incomingFail);
-
-              renderHistory();
-              showOk("History imported successfully.");
-            } catch (e) {
-              errorDiv.textContent =
-                "Import failed. Invalid JSON.\n\n" +
-                (e && e.message ? e.message : String(e));
-            }
+              merge("success", incomingSuccess); merge("fail", incomingFail);
+              renderHistory(); showOk("History imported successfully.");
+            } catch (e) { errorDiv.textContent = "Import failed. Invalid JSON.\n\n" + (e && e.message ? e.message : String(e)); }
           };
           reader.readAsText(file);
         }
+        function clearActiveHistory() { setHistory(activeTab, []); renderHistory(); showOk("Cleared " + activeTab + " history."); }
 
-        function clearActiveHistory() {
-          setHistory(activeTab, []);
-          renderHistory();
-          showOk("Cleared " + activeTab + " history.");
+        // ===== Safe Mode gate
+        var DANGEROUS = [
+          /\bdrop\s+table\b/i,
+          /\bdrop\s+view\b/i,
+          /\bdrop\s+database\b/i,
+          /\btruncate\s+table\b/i,
+          /\balter\s+table\b/i,
+          /\bdelete\s+from\s+([^\s;]+)\s*(;|$)/i, // We'll post-check WHERE
+          /\bupdate\s+([^\s;]+)\s+set\b/i       // We'll post-check WHERE
+        ];
+        function blocksInSafeMode(sql) {
+          // allow PRAGMA, SELECT, INSERT by default
+          for (var i = 0; i < DANGEROUS.length; i++) {
+            var m = DANGEROUS[i].exec(sql);
+            if (!m) continue;
+            // If DELETE without WHERE: block
+            if (/^\bdelete\s+/i.test(m[0])) {
+              if (!/\bwhere\b/i.test(sql)) return "DELETE without WHERE is blocked in Safe Mode.";
+              return null; // allowed with WHERE
+            }
+            // If UPDATE without WHERE: block
+            if (/^\bupdate\s+/i.test(m[0])) {
+              if (!/\bwhere\b/i.test(sql)) return "UPDATE without WHERE is blocked in Safe Mode.";
+              return null;
+            }
+            return "Dangerous statement blocked in Safe Mode.";
+          }
+          return null;
         }
 
         // ===== Run SQL
         function runSQL() {
           clearOutput();
-
-          if (!db) {
-            errorDiv.textContent = "SQLite is still loading… please wait.";
-            return;
-          }
+          if (!db) { errorDiv.textContent = "SQLite is still loading… please wait."; return; }
 
           var sql = sqlInput.value;
           var sqlNorm = normalizeSQL(sql);
+          if (!sqlNorm) { errorDiv.textContent = "Please type a SQL query first."; return; }
 
-          if (!sqlNorm) {
-            errorDiv.textContent = "Please type a SQL query first.";
-            return;
+          if (safeMode) {
+            var guard = blocksInSafeMode(sqlNorm);
+            if (guard) { errorDiv.textContent = guard + " (Toggle Safe Mode off to proceed.)"; return; }
           }
 
           try {
             var results = db.exec(sql);
 
-            addToHistory("success", {
-              sql: sql,
-              sqlNorm: sqlNorm,
-              ts: nowISO(),
-            });
+            addToHistory("success", { sql: sql, sqlNorm: sqlNorm, ts: nowISO() });
 
-            if (!results || !results.length) {
+            var anySelect = false;
+            if (results && results.length) {
+              for (var i = 0; i < results.length; i++) {
+                var r = results[i];
+                if (r && r.columns && r.columns.length) {
+                  renderResultSet(r, i);
+                  lastSelectResult = { columns: r.columns || [], values: r.values || [], filenameHint: suggestCSVFilename(sqlNorm) };
+                  anySelect = true;
+                }
+              }
+            }
+            if (!anySelect) {
               showOk("Query executed successfully (no rows returned).");
-              lastResultForCSV = null;
-              downloadCsvBtn.disabled = true;
-              renderHistory();
-              return;
+              lastSelectResult = null;
             }
 
-            for (var i = 0; i < results.length; i++)
-              renderResultSet(results[i], i);
-
-            var last = results[results.length - 1];
-            lastResultForCSV = {
-              columns: last.columns || [],
-              values: last.values || [],
-              filenameHint: suggestCSVFilename(sqlNorm),
-            };
-            downloadCsvBtn.disabled = false;
-
+            downloadCsvBtn.disabled = !lastSelectResult;
+            copyCsvBtn.disabled = !lastSelectResult;
             renderHistory();
           } catch (err) {
             var msg = err && err.message ? err.message : String(err);
             errorDiv.textContent = msg;
-
-            addToHistory("fail", {
-              sql: sql,
-              sqlNorm: sqlNorm,
-              ts: nowISO(),
-              error: msg,
-            });
-
-            lastResultForCSV = null;
-            downloadCsvBtn.disabled = true;
-
+            addToHistory("fail", { sql: sql, sqlNorm: sqlNorm, ts: nowISO(), error: msg });
+            lastSelectResult = null;
+            downloadCsvBtn.disabled = true; copyCsvBtn.disabled = true;
             renderHistory();
           }
         }
 
-        // ===== Help data (added REFERENCES/CHECK/COMMIT/ROLLBACK)
+        // ===== Help data
         var HELP_DATA = [
-          {
-            title: "Show tables + views",
-            keywords: ["tables", "views", "sqlite_master", "schema"],
-            desc: "List tables and views in the database.",
-            sql: "SELECT name, type FROM sqlite_master WHERE type IN ('table','view') ORDER BY type, name;",
-          },
-          {
-            title: "Describe a table (columns)",
-            keywords: ["describe", "pragma", "table_info"],
-            desc: "See columns of a table using PRAGMA.",
-            sql: "PRAGMA table_info(birthdays);",
-          },
+          { title: "Show tables + views", keywords: ["tables", "views", "sqlite_master", "schema"], desc: "List tables and views in the database.", sql: "SELECT name, type FROM sqlite_master WHERE type IN ('table','view') ORDER BY type, name;" },
+          { title: "Describe a table (columns)", keywords: ["describe", "pragma", "table_info"], desc: "See columns of a table using PRAGMA.", sql: "PRAGMA table_info(birthdays);" },
 
-          // REFERENCES / FOREIGN KEYS
-          {
-            title: "REFERENCES / Foreign Key basics",
-            keywords: ["references", "foreign key", "fk"],
-            desc: "employees.dept_id REFERENCES departments(id). FK enforcement is ON in this demo.",
-            sql: "PRAGMA foreign_keys;\nSELECT e.name AS employee, d.name AS department\nFROM employees e\nJOIN departments d ON d.id = e.dept_id\nORDER BY d.name, e.name;",
-          },
-          {
-            title: "Try a FK violation (should fail)",
-            keywords: ["references", "foreign key", "violation"],
-            desc: "This tries to insert an employee pointing to a non-existing department id 999.",
-            sql: "INSERT INTO employees (name, dept_id) VALUES ('Bad FK Row', 999);\nSELECT * FROM employees;",
-          },
+          { title: "REFERENCES / Foreign Key basics", keywords: ["references", "foreign key", "fk"], desc: "employees.dept_id REFERENCES departments(id). FK enforcement is ON in this demo.", sql: "PRAGMA foreign_keys;\nSELECT e.name AS employee, d.name AS department\nFROM employees e\nJOIN departments d ON d.id = e.dept_id\nORDER BY d.name, e.name;" },
+          { title: "Try a FK violation (should fail)", keywords: ["references", "foreign key", "violation"], desc: "This tries to insert an employee pointing to a non-existing department id 999.", sql: "INSERT INTO employees (name, dept_id) VALUES ('Bad FK Row', 999);\nSELECT * FROM employees;" },
 
-          // CHECK
-          {
-            title: "CHECK constraint (payments demo)",
-            keywords: ["check", "constraint", "validate"],
-            desc: "payments table has CHECK(amount > 0) and CHECK(status IN ...).",
-            sql: "SELECT * FROM payments;\n-- This should FAIL (amount must be > 0)\nINSERT INTO payments (payer, amount, status) VALUES ('Test', -10, 'PAID');",
-          },
-          {
-            title: "CHECK constraint success example",
-            keywords: ["check", "payments"],
-            desc: "A valid insert into payments.",
-            sql: "INSERT INTO payments (payer, amount, status) VALUES ('New Payer', 99.50, 'PAID');\nSELECT * FROM payments ORDER BY id DESC LIMIT 5;",
-          },
+          { title: "CHECK constraint (payments demo)", keywords: ["check", "constraint", "validate"], desc: "payments table has CHECK(amount > 0) and CHECK(status IN ...).", sql: "SELECT * FROM payments;\n-- This should FAIL (amount must be > 0)\nINSERT INTO payments (payer, amount, status) VALUES ('Test', -10, 'PAID');" },
+          { title: "CHECK constraint success example", keywords: ["check", "payments"], desc: "A valid insert into payments.", sql: "INSERT INTO payments (payer, amount, status) VALUES ('New Payer', 99.50, 'PAID');\nSELECT * FROM payments ORDER BY id DESC LIMIT 5;" },
 
-          // TRANSACTIONS: COMMIT / ROLLBACK
-          {
-            title: "COMMIT (transaction example)",
-            keywords: ["commit", "transaction", "begin"],
-            desc: "Begins a transaction, updates rows, then COMMIT makes it permanent.",
-            sql: "BEGIN;\nUPDATE products SET price = price + 10 WHERE category = 'Kitchen';\nCOMMIT;\nSELECT * FROM products WHERE category='Kitchen' ORDER BY id;",
-          },
-          {
-            title: "ROLLBACK (undo changes)",
-            keywords: ["rollback", "transaction", "begin"],
-            desc: "Begins a transaction, makes changes, then ROLLBACK cancels them.",
-            sql: "BEGIN;\nUPDATE products SET price = price + 1000 WHERE category = 'Electronics';\nROLLBACK;\nSELECT * FROM products WHERE category='Electronics' ORDER BY id;",
-          },
+          { title: "COMMIT (transaction example)", keywords: ["commit", "transaction", "begin"], desc: "Begins a transaction, updates rows, then COMMIT makes it permanent.", sql: "BEGIN;\nUPDATE products SET price = price + 10 WHERE category = 'Kitchen';\nCOMMIT;\nSELECT * FROM products WHERE category='Kitchen' ORDER BY id;" },
+          { title: "ROLLBACK (undo changes)", keywords: ["rollback", "transaction", "begin"], desc: "Begins a transaction, makes changes, then ROLLBACK cancels them.", sql: "BEGIN;\nUPDATE products SET price = price + 1000 WHERE category = 'Electronics';\nROLLBACK;\nSELECT * FROM products WHERE category='Electronics' ORDER BY id;" },
 
-          // DDL: CREATE / ALTER / DROP
-          {
-            title: "CREATE TABLE (example)",
-            keywords: ["create", "create table", "ddl"],
-            desc: "Create a new table and insert rows.",
-            sql: "CREATE TABLE departments2 (\n  id INTEGER PRIMARY KEY,\n  name TEXT NOT NULL\n);\nINSERT INTO departments2 (name) VALUES ('A'),('B');\nSELECT * FROM departments2;",
-          },
-          {
-            title: "ALTER TABLE: ADD COLUMN (SQLite)",
-            keywords: ["alter", "alter table", "add column"],
-            desc: "SQLite commonly supports ADD COLUMN.",
-            sql: "ALTER TABLE students ADD COLUMN grade TEXT;\nUPDATE students SET grade='A' WHERE marks >= 90;\nUPDATE students SET grade='B' WHERE marks BETWEEN 80 AND 89;\nUPDATE students SET grade='C' WHERE marks < 80;\nSELECT * FROM students ORDER BY marks DESC;",
-          },
-          {
-            title: "DROP TABLE",
-            keywords: ["drop", "drop table"],
-            desc: "Drop a table (permanent). Use IF EXISTS to avoid errors.",
-            sql: "DROP TABLE IF EXISTS temp_to_delete;\nCREATE TABLE temp_to_delete(id INTEGER);\nDROP TABLE IF EXISTS temp_to_delete;\nSELECT name FROM sqlite_master WHERE type='table' AND name='temp_to_delete';",
-          },
+          { title: "CREATE TABLE (example)", keywords: ["create", "create table", "ddl"], desc: "Create a new table and insert rows.", sql: "CREATE TABLE departments2 (\n  id INTEGER PRIMARY KEY,\n  name TEXT NOT NULL\n);\nINSERT INTO departments2 (name) VALUES ('A'),('B');\nSELECT * FROM departments2;" },
+          { title: "ALTER TABLE: ADD COLUMN (SQLite)", keywords: ["alter", "alter table", "add column"], desc: "SQLite commonly supports ADD COLUMN.", sql: "ALTER TABLE students ADD COLUMN grade TEXT;\nUPDATE students SET grade='A' WHERE marks >= 90;\nUPDATE students SET grade='B' WHERE marks BETWEEN 80 AND 89;\nUPDATE students SET grade='C' WHERE marks < 80;\nSELECT * FROM students ORDER BY marks DESC;" },
+          { title: "DROP TABLE", keywords: ["drop", "drop table"], desc: "Drop a table (permanent). Use IF EXISTS to avoid errors.", sql: "DROP TABLE IF EXISTS temp_to_delete;\nCREATE TABLE temp_to_delete(id INTEGER);\nDROP TABLE IF EXISTS temp_to_delete;\nSELECT name FROM sqlite_master WHERE type='table' AND name='temp_to_delete';" },
 
-          // DML / Querying
-          {
-            title: "SELECT basics",
-            keywords: ["select", "from"],
-            desc: "Select columns from a table.",
-            sql: "SELECT id, name FROM birthdays;",
-          },
-          {
-            title: "WHERE filtering",
-            keywords: ["where", "like"],
-            desc: "Filter rows using conditions.",
-            sql: "SELECT * FROM birthdays\nWHERE name LIKE '%Roy%';",
-          },
-          {
-            title: "JOIN (customers + orders)",
-            keywords: ["join", "customers", "orders"],
-            desc: "Join customers with orders (tables included).",
-            sql: "SELECT c.name, c.city, o.total, o.order_date\nFROM customers c\nJOIN orders o ON o.customer_id = c.id\nORDER BY o.order_date DESC;",
-          },
-          {
-            title: "GROUP BY (products)",
-            keywords: ["group by", "count", "avg", "products"],
-            desc: "Aggregate products by category (table included).",
-            sql: "SELECT category, COUNT(*) AS items, ROUND(AVG(price),2) AS avg_price\nFROM products\nGROUP BY category\nORDER BY items DESC;",
-          },
+          { title: "SELECT basics", keywords: ["select", "from"], desc: "Select columns from a table.", sql: "SELECT id, name FROM birthdays;" },
+          { title: "WHERE filtering", keywords: ["where", "like"], desc: "Filter rows using conditions.", sql: "SELECT * FROM birthdays\nWHERE name LIKE '%Roy%';" },
+          { title: "JOIN (customers + orders)", keywords: ["join", "customers", "orders"], desc: "Join customers with orders (tables included).", sql: "SELECT c.name, c.city, o.total, o.order_date\nFROM customers c\nJOIN orders o ON o.customer_id = c.id\nORDER BY o.order_date DESC;" },
+          { title: "GROUP BY (products)", keywords: ["group by", "count", "avg", "products"], desc: "Aggregate products by category (table included).", sql: "SELECT category, COUNT(*) AS items, ROUND(AVG(price),2) AS avg_price\nFROM products\nGROUP BY category\nORDER BY items DESC;" }
         ];
-
         function helpMatches(item, q) {
-          var hay = (
-            item.title +
-            " " +
-            item.desc +
-            " " +
-            item.sql +
-            " " +
-            (item.keywords || []).join(" ")
-          ).toLowerCase();
+          var hay = (item.title + " " + item.desc + " " + item.sql + " " + (item.keywords || []).join(" ")).toLowerCase();
           return hay.indexOf(q) !== -1;
         }
-
         function renderHelpResults(query) {
           var q = (query || "").replace(/^\s+|\s+$/g, "").toLowerCase();
           helpResults.innerHTML = "";
-
           var matches = [];
-          for (var i = 0; i < HELP_DATA.length; i++) {
-            if (!q || helpMatches(HELP_DATA[i], q)) matches.push(HELP_DATA[i]);
-          }
-
+          for (var i = 0; i < HELP_DATA.length; i++) if (!q || helpMatches(HELP_DATA[i], q)) matches.push(HELP_DATA[i]);
           if (!matches.length) {
-            helpResults.innerHTML =
-              '<div class="helpitem"><div class="desc">No matches. Try: <b>references</b>, <b>check</b>, <b>commit</b>, <b>rollback</b>.</div></div>';
+            helpResults.innerHTML = '<div class="helpitem"><div class="desc">No matches. Try: <b>references</b>, <b>check</b>, <b>commit</b>, <b>rollback</b>.</div></div>';
             return;
           }
-
-          for (var j = 0; j < matches.length; j++) {
-            (function (item) {
-              var wrap = document.createElement("div");
-              wrap.className = "helpitem";
-              wrap.innerHTML =
-                '<div class="title">' +
-                escapeHTML(item.title) +
-                '</div><div class="desc">' +
-                escapeHTML(item.desc) +
-                '</div><pre class="snip">' +
-                escapeHTML(item.sql) +
-                '</pre><div class="row" style="margin-top:10px"><button class="btn-ghost" type="button">Insert into editor</button></div>';
-
-              var btn = wrap.getElementsByTagName("button")[0];
-              btn.onclick = function () {
-                var toInsert = item.sql + "\n";
-                var before = sqlInput.value;
-                if (before && before.charAt(before.length - 1) !== "\n")
-                  before += "\n";
-                sqlInput.value = before + toInsert;
-                sqlInput.focus();
-              };
-
-              helpResults.appendChild(wrap);
-            })(matches[j]);
-          }
+          for (var j = 0; j < matches.length; j++) (function (item) {
+            var wrap = document.createElement("div"); wrap.className = "helpitem";
+            wrap.innerHTML =
+              '<div class="title">' + escapeHTML(item.title) + '</div>' +
+              '<div class="desc">' + escapeHTML(item.desc) + '</div>' +
+              '<pre class="snip">' + escapeHTML(item.sql) + '</pre>' +
+              '<div class="row" style="margin-top:10px"><button class="btn-ghost" type="button">Insert into editor</button></div>';
+            var btn = wrap.getElementsByTagName("button")[0];
+            btn.onclick = function () {
+              var toInsert = item.sql + "\n";
+              var before = sqlInput.value;
+              if (before && before.charAt(before.length - 1) !== "\n") before += "\n";
+              sqlInput.value = before + toInsert; sqlInput.focus();
+            };
+            helpResults.appendChild(wrap);
+          })(matches[j]);
         }
 
         // ===== Events
         runBtn.onclick = runSQL;
-
         resetBtn.onclick = function () {
-          clearOutput();
-          if (!db) return;
-          try {
-            db.close();
-          } catch (e) {}
-          createFreshDB();
-          lastResultForCSV = null;
-          downloadCsvBtn.disabled = true;
+          clearOutput(); if (!db) return;
+          try { db.close(); } catch (e) {}
+          createFreshDB(); lastSelectResult = null;
+          downloadCsvBtn.disabled = true; copyCsvBtn.disabled = true;
           showOk("Database reset (tables + sample rows recreated).");
         };
-
+        copySqlBtn.onclick = function () {
+          navigator.clipboard && navigator.clipboard.writeText(sqlInput.value).then(
+            function(){ showOk("SQL copied to clipboard."); },
+            function(){ showOk("Copy failed. Select and copy manually."); }
+          );
+        };
         downloadCsvBtn.onclick = function () {
-          clearOutput();
-          if (!lastResultForCSV) {
-            errorDiv.textContent = "No result available to export as CSV.";
-            return;
-          }
-          var csv = toCSV(lastResultForCSV.columns, lastResultForCSV.values);
-          downloadText(lastResultForCSV.filenameHint, csv, "text/csv");
-          showOk("Downloaded CSV: " + lastResultForCSV.filenameHint);
+          if (!lastSelectResult) { errorDiv.textContent = "No result available to export as CSV."; return; }
+          var csv = toCSV(lastSelectResult.columns, lastSelectResult.values);
+          downloadText(lastSelectResult.filenameHint, csv, "text/csv");
+          showOk("Downloaded CSV: " + lastSelectResult.filenameHint);
+        };
+        copyCsvBtn.onclick = function () {
+          if (!lastSelectResult) { errorDiv.textContent = "No table result to copy."; return; }
+          var csv = toCSV(lastSelectResult.columns, lastSelectResult.values);
+          navigator.clipboard && navigator.clipboard.writeText(csv).then(
+            function(){ showOk("CSV copied to clipboard."); },
+            function(){ showOk("Copy failed. Use Download CSV instead."); }
+          );
         };
 
         sqlInput.addEventListener("keydown", function (e) {
-          e = e || window.event;
-          var key = e.key || e.keyCode;
+          e = e || window.event; var key = e.key || e.keyCode;
           var isEnter = key === "Enter" || key === 13;
-          if (isEnter && (e.ctrlKey || e.metaKey)) {
-            e.preventDefault();
-            runSQL();
-          }
+          if (isEnter && (e.ctrlKey || e.metaKey)) { e.preventDefault(); runSQL(); }
         });
 
         // Chips
         var chips = document.querySelectorAll(".chip");
-        for (var i = 0; i < chips.length; i++) {
-          (function (chip) {
-            chip.addEventListener("click", function () {
-              var sql = chip.getAttribute("data-sql") || "";
-              sql = sql.replace(/&#10;/g, "\n");
-              sqlInput.value = sql;
-              sqlInput.focus();
-            });
-          })(chips[i]);
-        }
+        for (var i = 0; i < chips.length; i++) (function (chip) {
+          chip.addEventListener("click", function () {
+            var sql = chip.getAttribute("data-sql") || "";
+            sql = sql.replace(/&#10;/g, "\n");
+            sqlInput.value = sql; sqlInput.focus();
+          });
+        })(chips[i]);
 
         // Tabs
-        tabSuccess.onclick = function () {
-          setActiveTab("success");
-        };
-        tabFail.onclick = function () {
-          setActiveTab("fail");
-        };
+        tabSuccess.onclick = function () { setActiveTab("success"); };
+        tabFail.onclick = function () { setActiveTab("fail"); };
 
         // Export/Import/Clear
         exportHistoryBtn.onclick = exportHistoryJSON;
-        importHistoryBtn.onclick = function () {
-          importFile.click();
-        };
+        importHistoryBtn.onclick = function () { importFile.click(); };
         importFile.addEventListener("change", function () {
-          var file = importFile.files && importFile.files[0];
-          if (!file) return;
-          importHistoryJSON(file);
-          importFile.value = "";
+          var file = importFile.files && importFile.files[0]; if (!file) return;
+          importHistoryJSON(file); importFile.value = "";
         });
         clearHistoryBtn.onclick = clearActiveHistory;
 
         // Help
-        helpSearch.addEventListener("input", function () {
-          renderHelpResults(helpSearch.value);
-        });
+        helpSearch.addEventListener("input", function () { renderHelpResults(helpSearch.value); });
         toggleHelpBtn.onclick = function () {
           var hidden = helpSearch.style.display === "none";
-          if (hidden) {
-            helpSearch.style.display = "";
-            helpResults.style.display = "";
-            toggleHelpBtn.textContent = "Hide";
-          } else {
-            helpSearch.style.display = "none";
-            helpResults.style.display = "none";
-            toggleHelpBtn.textContent = "Show";
-          }
+          if (hidden) { helpSearch.style.display = ""; helpResults.style.display = ""; toggleHelpBtn.textContent = "Hide"; }
+          else { helpSearch.style.display = "none"; helpResults.style.display = "none"; toggleHelpBtn.textContent = "Show"; }
         };
 
-        // ===== Init SQL.js (ES5)
-        setStatus(false);
+        // Safe Mode toggle + tmode param
+        function initSafeMode() {
+          var tmode = getParam("tmode");
+          if (tmode === "1") { safeMode = false; }
+          safeModeCb.checked = safeMode;
+          safeModeCb.addEventListener("change", function () { safeMode = !!safeModeCb.checked; });
+        }
 
+        // ===== Init SQL.js
+        setStatus(false); initSafeMode();
         initSqlJs({
           locateFile: function (file) {
-            return (
-              "https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/" + file
-            );
+            return "https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/" + file;
           },
         })
           .then(function (SQL) {
-            SQLlib = SQL;
-            createFreshDB();
-            setStatus(true);
-            renderHistory();
-            renderHelpResults("");
-            runSQL();
+            SQLlib = SQL; createFreshDB(); setStatus(true);
+            renderHistory(); renderHelpResults(""); runSQL();
           })
           .catch(function (e) {
             setStatus(false);
-            errorDiv.textContent =
-              "Failed to load SQL.js. Check internet/CDN access.\n\n" +
-              (e && e.message ? e.message : String(e));
+            errorDiv.textContent = "Failed to load SQL.js. Check internet/CDN access.\n\n" + (e && e.message ? e.message : String(e));
           });
       })();
     </script>
 
     <!-- Optional project scripts (non-blocking) -->
-    <script
-      src="https://programmer-s-picnic.github.io/json-images/find-on-page.js"
-      defer
-    ></script>
-    <script
-      src="https://programmer-s-picnic.github.io/json-images/imgshow.js"
-      defer
-    ></script>
-    <script
-      src="https://programmer-s-picnic.github.io/json-images/hometag.js"
-      defer
-    ></script>
+    <script src="https://programmer-s-picnic.github.io/json-images/find-on-page.js" defer></script>
+    <script src="https://programmer-s-picnic.github.io/json-images/imgshow.js" defer></script>
+    <script src="https://programmer-s-picnic.github.io/json-images/hometag.js" defer></script>
   </body>
 </html>
