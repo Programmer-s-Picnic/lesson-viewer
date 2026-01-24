@@ -1,0 +1,1060 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>OCR — Image to Text (Client-side) • Programmer’s Picnic</title>
+    <meta
+      name="description"
+      content="Offline-friendly OCR page using Tesseract.js. Upload/capture an image, preprocess, extract text, copy/download."
+    />
+    <style>
+      :root {
+        --bg: #fff7e6;
+        --card: #ffffff;
+        --ink: #1f2937;
+        --muted: #6b7280;
+        --brand: #d97706;
+        --brand2: #f59e0b;
+        --border: #eadcc5;
+        --shadow: 0 18px 40px rgba(31, 41, 55, 0.14);
+        --codebg: #0b1220;
+        --codeink: #e5e7eb;
+        --r: 16px;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial,
+          "Noto Sans",
+          "Apple Color Emoji",
+          "Segoe UI Emoji";
+        color: var(--ink);
+        background:
+          radial-gradient(
+            1200px 600px at 10% 0%,
+            rgba(245, 158, 11, 0.25),
+            transparent 55%
+          ),
+          radial-gradient(
+            900px 500px at 90% 10%,
+            rgba(217, 119, 6, 0.18),
+            transparent 60%
+          ),
+          var(--bg);
+        min-height: 100vh;
+      }
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        backdrop-filter: blur(10px);
+        background: rgba(255, 247, 230, 0.7);
+        border-bottom: 1px solid var(--border);
+      }
+      .wrap {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 14px 16px;
+      }
+      .topbar {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+      }
+      .brand {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        font-weight: 800;
+        letter-spacing: 0.2px;
+      }
+      .logo {
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--brand), var(--brand2));
+        box-shadow: var(--shadow);
+        display: grid;
+        place-items: center;
+        color: white;
+        font-weight: 900;
+      }
+      .chip {
+        padding: 6px 10px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: #fff;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 14px;
+        padding: 16px;
+      }
+      @media (max-width: 980px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--r);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+      .card h2 {
+        margin: 0;
+        padding: 14px 14px 10px 14px;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .card .sub {
+        padding: 0 14px 14px 14px;
+        margin-top: -6px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .card .body {
+        padding: 14px;
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .btn {
+        border: 1px solid var(--border);
+        background: linear-gradient(180deg, #fff, #fff7e6);
+        color: var(--ink);
+        border-radius: 12px;
+        padding: 10px 12px;
+        cursor: pointer;
+        font-weight: 700;
+        box-shadow: 0 8px 18px rgba(31, 41, 55, 0.08);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        user-select: none;
+      }
+      .btn.primary {
+        border-color: rgba(217, 119, 6, 0.35);
+        background: linear-gradient(
+          180deg,
+          rgba(245, 158, 11, 0.2),
+          rgba(217, 119, 6, 0.1)
+        );
+      }
+      .btn:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+      .btn.small {
+        padding: 8px 10px;
+        border-radius: 10px;
+        font-size: 13px;
+      }
+      .btn.ghost {
+        background: #fff;
+      }
+      .hint {
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 8px;
+      }
+      .drop {
+        border: 2px dashed rgba(217, 119, 6, 0.35);
+        border-radius: 14px;
+        padding: 14px;
+        background: rgba(255, 247, 230, 0.6);
+        display: grid;
+        gap: 10px;
+      }
+      .drop.dragover {
+        background: rgba(245, 158, 11, 0.18);
+        border-color: rgba(217, 119, 6, 0.6);
+      }
+      .two {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: 1fr 1fr;
+      }
+      @media (max-width: 640px) {
+        .two {
+          grid-template-columns: 1fr;
+        }
+      }
+      .label {
+        font-size: 12px;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+      select,
+      input[type="range"],
+      input[type="text"] {
+        width: 100%;
+        padding: 10px 10px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: #fff;
+        outline: none;
+      }
+      .canvasWrap {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: 1fr;
+      }
+      canvas,
+      video,
+      img.preview {
+        width: 100%;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: #fff;
+      }
+      .progress {
+        height: 10px;
+        border-radius: 999px;
+        background: #f3f4f6;
+        overflow: hidden;
+        border: 1px solid var(--border);
+      }
+      .progress > div {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, var(--brand), var(--brand2));
+        transition: width 0.2s ease;
+      }
+      textarea {
+        width: 100%;
+        min-height: 260px;
+        resize: vertical;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        padding: 12px;
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        background: #fff;
+        color: var(--ink);
+        line-height: 1.35;
+      }
+      details {
+        border-top: 1px solid var(--border);
+        padding: 12px 14px;
+        background: rgba(255, 247, 230, 0.55);
+      }
+      details summary {
+        cursor: pointer;
+        font-weight: 800;
+      }
+      .k {
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 2px 7px;
+      }
+      .toast {
+        position: fixed;
+        bottom: 18px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #111827;
+        color: #fff;
+        padding: 10px 12px;
+        border-radius: 12px;
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+        opacity: 0;
+        pointer-events: none;
+        transition:
+          opacity 0.18s ease,
+          transform 0.18s ease;
+        font-size: 13px;
+        max-width: min(92vw, 700px);
+      }
+      .toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(-4px);
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .pill {
+        display: inline-flex;
+        gap: 6px;
+        align-items: center;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: #fff;
+        border: 1px solid var(--border);
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .warn {
+        border-left: 4px solid var(--brand2);
+        background: rgba(245, 158, 11, 0.12);
+        padding: 10px 12px;
+        border-radius: 12px;
+        color: var(--ink);
+        font-size: 13px;
+      }
+      footer {
+        padding: 16px;
+        color: var(--muted);
+        text-align: center;
+        font-size: 12px;
+      }
+      a {
+        color: var(--brand);
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="wrap topbar">
+        <div class="brand">
+          <div class="logo">OCR</div>
+          <div>
+            <div style="font-size: 15px; line-height: 1.1">
+              Image → Text OCR
+            </div>
+            <div class="muted" style="font-size: 12px">
+              Client-side • No server • Light Saffron Theme
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <span class="chip">Tip: clearer image = better OCR</span>
+          <button class="btn small ghost" id="btnHelp">Help</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <div class="grid">
+        <!-- LEFT: INPUT + PREVIEW -->
+        <section class="card">
+          <h2>
+            <span>1) Add Image</span>
+            <span class="pill" id="statusPill">Idle</span>
+          </h2>
+          <div class="sub">
+            Upload an image or use your camera. Then optionally preprocess and
+            run OCR.
+          </div>
+          <div class="body">
+            <div class="drop" id="dropZone">
+              <div class="row">
+                <input id="fileInput" type="file" accept="image/*" hidden />
+                <button class="btn primary" id="btnPick">📁 Pick Image</button>
+
+                <!-- capture works on many mobiles; on desktop it just opens file chooser -->
+                <input
+                  id="camInput"
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  hidden
+                />
+                <button class="btn" id="btnCamera">📷 Camera Capture</button>
+
+                <button class="btn" id="btnPaste">
+                  📋 Paste from Clipboard
+                </button>
+
+                <button class="btn" id="btnClear">🧹 Clear</button>
+              </div>
+
+              <div class="hint">
+                Drag & drop an image here, or use the buttons. Recommended:
+                well-lit, straight, sharp text.
+              </div>
+
+              <div class="two">
+                <div>
+                  <div class="label">Preview (Original)</div>
+                  <img
+                    class="preview"
+                    id="imgPreview"
+                    alt="Preview will appear here"
+                  />
+                </div>
+                <div class="canvasWrap">
+                  <div class="label">Processed (Used for OCR)</div>
+                  <canvas id="cnv"></canvas>
+
+                  <div class="warn">
+                    If OCR is messy: try <b>Grayscale</b> + adjust
+                    <b>Threshold</b>, or increase <b>Scale</b>.
+                  </div>
+                </div>
+              </div>
+
+              <div class="two" style="margin-top: 12px">
+                <div>
+                  <div class="label">Language</div>
+                  <select id="lang">
+                    <option value="eng" selected>English (eng)</option>
+                    <option value="hin">Hindi (hin)</option>
+                    <option value="eng+hin">English + Hindi (eng+hin)</option>
+                  </select>
+                  <div class="hint">
+                    Hindi OCR needs extra data download (first time). Keep
+                    internet on once.
+                  </div>
+                </div>
+
+                <div>
+                  <div class="label">Page Segmentation Mode (PSM)</div>
+                  <select id="psm">
+                    <option value="3" selected>Auto (PSM 3)</option>
+                    <option value="6">Uniform block of text (PSM 6)</option>
+                    <option value="7">Single text line (PSM 7)</option>
+                    <option value="11">Sparse text (PSM 11)</option>
+                    <option value="13">Raw line (PSM 13)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="two" style="margin-top: 12px">
+                <div>
+                  <div class="label">Preprocess Mode</div>
+                  <select id="mode">
+                    <option value="none" selected>None</option>
+                    <option value="grayscale">Grayscale</option>
+                    <option value="threshold">B/W Threshold</option>
+                  </select>
+                </div>
+                <div>
+                  <div class="label">Threshold (only for B/W)</div>
+                  <input id="thr" type="range" min="0" max="255" value="160" />
+                  <div class="hint">Current: <span id="thrVal">160</span></div>
+                </div>
+              </div>
+
+              <div class="two" style="margin-top: 12px">
+                <div>
+                  <div class="label">Scale (upscale before OCR)</div>
+                  <select id="scale">
+                    <option value="1">1× (original)</option>
+                    <option value="1.5" selected>1.5× (recommended)</option>
+                    <option value="2">2×</option>
+                    <option value="3">3× (slow)</option>
+                  </select>
+                </div>
+                <div>
+                  <div class="label">Sharpen</div>
+                  <select id="sharpen">
+                    <option value="0" selected>Off</option>
+                    <option value="1">On (simple)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="row" style="margin-top: 12px">
+                <button class="btn primary" id="btnOCR" disabled>
+                  ✨ Run OCR
+                </button>
+                <button class="btn" id="btnRotate" disabled>
+                  🔄 Rotate 90°
+                </button>
+                <button class="btn" id="btnFit" disabled>
+                  🧩 Fit to Canvas
+                </button>
+                <span class="muted" id="imgMeta"></span>
+              </div>
+
+              <div style="margin-top: 12px">
+                <div class="label">OCR Progress</div>
+                <div class="progress"><div id="bar"></div></div>
+                <div class="hint" id="logLine">Waiting…</div>
+              </div>
+            </div>
+
+            <details id="helpPanel" style="margin-top: 12px">
+              <summary>Help & Tips</summary>
+              <div class="hint" style="margin-top: 10px; font-size: 13px">
+                <b>How to use:</b>
+                <ol style="margin: 8px 0 0 18px">
+                  <li>
+                    Click <b>Pick Image</b> or <b>Camera Capture</b> (or
+                    drag-drop).
+                  </li>
+                  <li>
+                    Choose <b>Language</b> and optional <b>Preprocess</b>.
+                  </li>
+                  <li>Click <b>Run OCR</b> → text appears on the right.</li>
+                  <li>
+                    Use <b>Copy</b> / <b>Download</b> for the extracted text.
+                  </li>
+                </ol>
+                <b>Best results:</b>
+                <ul style="margin: 8px 0 0 18px">
+                  <li>Bright, sharp image; avoid shadows and glare.</li>
+                  <li>Keep text straight (use Rotate).</li>
+                  <li>
+                    Try <b>B/W Threshold</b> for printed text; try
+                    <b>Grayscale</b> for mixed backgrounds.
+                  </li>
+                  <li>
+                    Increase <b>Scale</b> to 2× if text is small (slower).
+                  </li>
+                  <li>
+                    For Hindi: choose <b>hin</b> or <b>eng+hin</b>. First run
+                    may download language data.
+                  </li>
+                </ul>
+                <b>Privacy:</b> Everything runs in your browser (no server
+                upload). Language data loads from CDN.
+              </div>
+            </details>
+          </div>
+        </section>
+
+        <!-- RIGHT: OUTPUT -->
+        <section class="card">
+          <h2>
+            <span>2) Result</span>
+            <span class="pill" id="timePill">—</span>
+          </h2>
+          <div class="sub">
+            Extracted text appears below. You can edit it before
+            copying/downloading.
+          </div>
+          <div class="body">
+            <div class="row" style="margin-bottom: 10px">
+              <button class="btn primary" id="btnCopy" disabled>
+                📄 Copy Text
+              </button>
+              <button class="btn" id="btnDownload" disabled>
+                ⬇️ Download .txt
+              </button>
+              <button class="btn" id="btnClearText" disabled>
+                🧽 Clear Text
+              </button>
+            </div>
+            <textarea
+              id="out"
+              placeholder="OCR output will appear here…"
+            ></textarea>
+            <div class="hint">
+              Pro tip: If you want just numbers, or just one line, change PSM
+              (e.g., single line = PSM 7).
+            </div>
+
+            <details style="margin-top: 12px">
+              <summary>Advanced</summary>
+              <div style="margin-top: 10px; display: grid; gap: 10px">
+                <div class="label">Optional: Replace common OCR mistakes</div>
+                <div class="row">
+                  <button class="btn small" id="btnFixCommon" disabled>
+                    🛠 Fix Common Mistakes
+                  </button>
+                  <span class="muted" style="font-size: 12px"
+                    >Example: O↔0, I↔1, extra spaces, weird quotes</span
+                  >
+                </div>
+                <div class="label">Find & Replace (quick)</div>
+                <div class="two">
+                  <input id="findTxt" type="text" placeholder="Find…" />
+                  <input id="repTxt" type="text" placeholder="Replace with…" />
+                </div>
+                <div class="row">
+                  <button class="btn small" id="btnReplace" disabled>
+                    🔁 Replace All
+                  </button>
+                  <span class="muted" style="font-size: 12px"
+                    >Works on the output box only</span
+                  >
+                </div>
+              </div>
+            </details>
+          </div>
+        </section>
+      </div>
+
+      <footer>
+        Made for <b>Programmer’s Picnic</b> • Works best in Chrome/Edge •
+        Shortcut: focus output then <span class="k">Ctrl</span> +
+        <span class="k">A</span> + <span class="k">Ctrl</span> +
+        <span class="k">C</span>
+      </footer>
+    </main>
+
+    <div class="toast" id="toast"></div>
+
+    <!-- Tesseract.js (OCR) -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+    <script>
+      (() => {
+        const $ = (id) => document.getElementById(id);
+
+        const fileInput = $("fileInput");
+        const camInput = $("camInput");
+        const imgPreview = $("imgPreview");
+        const cnv = $("cnv");
+        const ctx = cnv.getContext("2d", { willReadFrequently: true });
+
+        const dropZone = $("dropZone");
+        const btnPick = $("btnPick");
+        const btnCamera = $("btnCamera");
+        const btnPaste = $("btnPaste");
+        const btnClear = $("btnClear");
+
+        const lang = $("lang");
+        const psm = $("psm");
+        const mode = $("mode");
+        const thr = $("thr");
+        const thrVal = $("thrVal");
+        const scaleSel = $("scale");
+        const sharpenSel = $("sharpen");
+
+        const btnOCR = $("btnOCR");
+        const btnRotate = $("btnRotate");
+        const btnFit = $("btnFit");
+
+        const out = $("out");
+        const btnCopy = $("btnCopy");
+        const btnDownload = $("btnDownload");
+        const btnClearText = $("btnClearText");
+        const btnFixCommon = $("btnFixCommon");
+        const btnReplace = $("btnReplace");
+        const findTxt = $("findTxt");
+        const repTxt = $("repTxt");
+
+        const bar = $("bar");
+        const logLine = $("logLine");
+        const statusPill = $("statusPill");
+        const timePill = $("timePill");
+        const imgMeta = $("imgMeta");
+        const toast = $("toast");
+        const helpPanel = $("helpPanel");
+        const btnHelp = $("btnHelp");
+
+        let img = new Image();
+        let imgLoaded = false;
+        let rotation = 0; // 0,90,180,270
+
+        function showToast(msg) {
+          toast.textContent = msg;
+          toast.classList.add("show");
+          clearTimeout(showToast._t);
+          showToast._t = setTimeout(() => toast.classList.remove("show"), 1600);
+        }
+
+        function setStatus(text) {
+          statusPill.textContent = text;
+        }
+
+        function setProgress(p, msg) {
+          const pct = Math.max(0, Math.min(100, Math.round(p * 100)));
+          bar.style.width = pct + "%";
+          if (msg) logLine.textContent = msg;
+        }
+
+        function enableWhenReady() {
+          btnOCR.disabled = !imgLoaded;
+          btnRotate.disabled = !imgLoaded;
+          btnFit.disabled = !imgLoaded;
+        }
+
+        function updateOutputButtons() {
+          const has = out.value.trim().length > 0;
+          btnCopy.disabled = !has;
+          btnDownload.disabled = !has;
+          btnClearText.disabled = !has;
+          btnFixCommon.disabled = !has;
+          btnReplace.disabled = !has;
+        }
+
+        function resetUI() {
+          imgPreview.removeAttribute("src");
+          ctx.clearRect(0, 0, cnv.width, cnv.height);
+          imgLoaded = false;
+          rotation = 0;
+          imgMeta.textContent = "";
+          setStatus("Idle");
+          setProgress(0, "Waiting…");
+          timePill.textContent = "—";
+          enableWhenReady();
+        }
+
+        function fitCanvasToImage(w, h) {
+          cnv.width = w;
+          cnv.height = h;
+        }
+
+        function drawProcessed() {
+          if (!imgLoaded) return;
+
+          const scale = parseFloat(scaleSel.value || "1");
+          const iw = img.naturalWidth,
+            ih = img.naturalHeight;
+
+          // Compute rotated dimensions
+          const rot = rotation % 360;
+          const rw = rot === 90 || rot === 270 ? ih : iw;
+          const rh = rot === 90 || rot === 270 ? iw : ih;
+
+          const tw = Math.max(1, Math.round(rw * scale));
+          const th = Math.max(1, Math.round(rh * scale));
+          fitCanvasToImage(tw, th);
+
+          // Draw with rotation
+          ctx.save();
+          ctx.clearRect(0, 0, tw, th);
+          ctx.translate(tw / 2, th / 2);
+          ctx.rotate((rot * Math.PI) / 180);
+
+          // After rotate, draw original centered with scale
+          const dw = iw * scale;
+          const dh = ih * scale;
+          ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh);
+          ctx.restore();
+
+          // Preprocess
+          const m = mode.value;
+          if (
+            m === "grayscale" ||
+            m === "threshold" ||
+            sharpenSel.value === "1"
+          ) {
+            let imageData = ctx.getImageData(0, 0, tw, th);
+            let d = imageData.data;
+
+            // grayscale if needed
+            if (m === "grayscale" || m === "threshold") {
+              for (let i = 0; i < d.length; i += 4) {
+                const r = d[i],
+                  g = d[i + 1],
+                  b = d[i + 2];
+                const y = (0.2126 * r + 0.7152 * g + 0.0722 * b) | 0;
+                d[i] = d[i + 1] = d[i + 2] = y;
+              }
+            }
+
+            // threshold if needed
+            if (m === "threshold") {
+              const t = parseInt(thr.value, 10);
+              for (let i = 0; i < d.length; i += 4) {
+                const v = d[i]; // already grayscale
+                const bw = v >= t ? 255 : 0;
+                d[i] = d[i + 1] = d[i + 2] = bw;
+              }
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+
+            // simple sharpen (convolution)
+            if (sharpenSel.value === "1") {
+              // kernel: [0,-1,0,-1,5,-1,0,-1,0]
+              const src = ctx.getImageData(0, 0, tw, th);
+              const outD = ctx.createImageData(tw, th);
+              const s = src.data,
+                o = outD.data;
+
+              const idx = (x, y) => (y * tw + x) * 4;
+              for (let y = 1; y < th - 1; y++) {
+                for (let x = 1; x < tw - 1; x++) {
+                  for (let c = 0; c < 3; c++) {
+                    const v =
+                      5 * s[idx(x, y) + c] -
+                      s[idx(x - 1, y) + c] -
+                      s[idx(x + 1, y) + c] -
+                      s[idx(x, y - 1) + c] -
+                      s[idx(x, y + 1) + c];
+                    o[idx(x, y) + c] = Math.max(0, Math.min(255, v));
+                  }
+                  o[idx(x, y) + 3] = 255;
+                }
+              }
+              // copy borders
+              for (let x = 0; x < tw; x++) {
+                for (let c = 0; c < 4; c++) {
+                  o[idx(x, 0) + c] = s[idx(x, 0) + c];
+                  o[idx(x, th - 1) + c] = s[idx(x, th - 1) + c];
+                }
+              }
+              for (let y = 0; y < th; y++) {
+                for (let c = 0; c < 4; c++) {
+                  o[idx(0, y) + c] = s[idx(0, y) + c];
+                  o[idx(tw - 1, y) + c] = s[idx(tw - 1, y) + c];
+                }
+              }
+              ctx.putImageData(outD, 0, 0);
+            }
+          }
+
+          imgMeta.textContent = `Image: ${iw}×${ih}  →  OCR canvas: ${cnv.width}×${cnv.height}  • Rotate: ${rotation}° • Scale: ${scale}×`;
+        }
+
+        function loadFromFile(file) {
+          if (!file) return;
+          if (!file.type || !file.type.startsWith("image/")) {
+            showToast("Please select an image file.");
+            return;
+          }
+          const url = URL.createObjectURL(file);
+          img = new Image();
+          img.onload = () => {
+            imgLoaded = true;
+            imgPreview.src = url;
+            rotation = 0;
+            setStatus("Image loaded");
+            enableWhenReady();
+            drawProcessed();
+            showToast("Image loaded.");
+          };
+          img.onerror = () => {
+            imgLoaded = false;
+            showToast("Could not load image.");
+          };
+          img.src = url;
+        }
+
+        // UI events
+        btnPick.addEventListener("click", () => fileInput.click());
+        fileInput.addEventListener("change", (e) =>
+          loadFromFile(e.target.files?.[0]),
+        );
+
+        btnCamera.addEventListener("click", () => camInput.click());
+        camInput.addEventListener("change", (e) =>
+          loadFromFile(e.target.files?.[0]),
+        );
+
+        btnClear.addEventListener("click", () => {
+          resetUI();
+          out.value = "";
+          updateOutputButtons();
+          showToast("Cleared.");
+        });
+
+        btnHelp.addEventListener("click", () => {
+          helpPanel.open = !helpPanel.open;
+          helpPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+
+        // Drag & drop
+        ["dragenter", "dragover"].forEach((ev) =>
+          dropZone.addEventListener(ev, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.add("dragover");
+          }),
+        );
+        ["dragleave", "drop"].forEach((ev) =>
+          dropZone.addEventListener(ev, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove("dragover");
+          }),
+        );
+        dropZone.addEventListener("drop", (e) => {
+          const f = e.dataTransfer?.files?.[0];
+          loadFromFile(f);
+        });
+
+        // Paste from clipboard (best effort)
+        btnPaste.addEventListener("click", async () => {
+          try {
+            if (!navigator.clipboard || !navigator.clipboard.read) {
+              showToast("Clipboard image paste not supported here.");
+              return;
+            }
+            const items = await navigator.clipboard.read();
+            for (const item of items) {
+              for (const type of item.types) {
+                if (type.startsWith("image/")) {
+                  const blob = await item.getType(type);
+                  loadFromFile(new File([blob], "clipboard.png", { type }));
+                  return;
+                }
+              }
+            }
+            showToast("No image found in clipboard.");
+          } catch (err) {
+            console.warn(err);
+            showToast(
+              "Clipboard blocked. Try Ctrl+V into an editor and save image.",
+            );
+          }
+        });
+
+        thr.addEventListener("input", () => {
+          thrVal.textContent = thr.value;
+          drawProcessed();
+        });
+        mode.addEventListener("change", drawProcessed);
+        scaleSel.addEventListener("change", drawProcessed);
+        sharpenSel.addEventListener("change", drawProcessed);
+
+        btnRotate.addEventListener("click", () => {
+          if (!imgLoaded) return;
+          rotation = (rotation + 90) % 360;
+          drawProcessed();
+        });
+
+        btnFit.addEventListener("click", () => {
+          // Fit is already “fit to image”; we’ll just redraw to apply current settings.
+          drawProcessed();
+          showToast("Re-rendered.");
+        });
+
+        // Output tools
+        btnCopy.addEventListener("click", async () => {
+          try {
+            await navigator.clipboard.writeText(out.value);
+            showToast("Copied to clipboard.");
+          } catch (e) {
+            out.focus();
+            out.select();
+            showToast("Copy failed. Use Ctrl+C.");
+          }
+        });
+
+        btnDownload.addEventListener("click", () => {
+          const blob = new Blob([out.value], {
+            type: "text/plain;charset=utf-8",
+          });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "ocr-output.txt";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+          showToast("Downloaded.");
+        });
+
+        btnClearText.addEventListener("click", () => {
+          out.value = "";
+          updateOutputButtons();
+          showToast("Text cleared.");
+        });
+
+        btnFixCommon.addEventListener("click", () => {
+          let t = out.value;
+
+          // Gentle cleanup (keeps content, just improves readability)
+          t = t.replace(/\r\n/g, "\n");
+          t = t.replace(/[“”]/g, '"').replace(/[‘’]/g, "'");
+          t = t.replace(/\u00A0/g, " "); // non-breaking space
+          t = t.replace(/[ \t]+\n/g, "\n"); // trailing spaces
+          t = t.replace(/\n{3,}/g, "\n\n"); // too many blank lines
+          t = t.replace(/[ \t]{2,}/g, " "); // repeated spaces
+
+          out.value = t;
+          updateOutputButtons();
+          showToast("Common fixes applied.");
+        });
+
+        btnReplace.addEventListener("click", () => {
+          const f = findTxt.value;
+          const r = repTxt.value;
+          if (!f) {
+            showToast("Enter Find text.");
+            return;
+          }
+          out.value = out.value.split(f).join(r);
+          updateOutputButtons();
+          showToast("Replaced.");
+        });
+
+        out.addEventListener("input", updateOutputButtons);
+        findTxt.addEventListener("input", updateOutputButtons);
+        repTxt.addEventListener("input", updateOutputButtons);
+
+        // OCR
+        async function runOCR() {
+          if (!imgLoaded) {
+            showToast("Load an image first.");
+            return;
+          }
+
+          setStatus("OCR running…");
+          setProgress(0.01, "Starting OCR…");
+          btnOCR.disabled = true;
+
+          const t0 = performance.now();
+
+          try {
+            // Use canvas as the OCR source
+            const dataURL = cnv.toDataURL("image/png");
+
+            // Create a worker per run (simple, reliable)
+            const worker = await Tesseract.createWorker(lang.value, 1, {
+              logger: (m) => {
+                // m.progress is 0..1 for certain steps
+                if (typeof m.progress === "number")
+                  setProgress(
+                    m.progress,
+                    `${m.status} (${Math.round(m.progress * 100)}%)`,
+                  );
+                else logLine.textContent = m.status || "Working…";
+              },
+            });
+
+            await worker.setParameters({
+              tessedit_pageseg_mode: parseInt(psm.value, 10),
+            });
+
+            const { data } = await worker.recognize(dataURL);
+            await worker.terminate();
+
+            const text = data && data.text ? data.text.trim() : "";
+            out.value = text;
+            updateOutputButtons();
+
+            const t1 = performance.now();
+            const ms = Math.round(t1 - t0);
+            timePill.textContent = text ? `${ms} ms` : `${ms} ms (no text)`;
+
+            setStatus(text ? "Done" : "Done (no text)");
+            setProgress(1, text ? "Finished." : "Finished (no text detected).");
+            showToast(text ? "OCR complete." : "OCR complete (no text).");
+          } catch (err) {
+            console.error(err);
+            setStatus("Error");
+            setProgress(0, "Error. Check console.");
+            showToast("OCR failed. Try a clearer image or different settings.");
+          } finally {
+            btnOCR.disabled = !imgLoaded;
+          }
+        }
+
+        btnOCR.addEventListener("click", runOCR);
+
+        // Initialize
+        resetUI();
+        updateOutputButtons();
+      })();
+    </script>
+  </body>
+</html>
