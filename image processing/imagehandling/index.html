@@ -1,0 +1,1603 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Champ Image Lab — Complete Offline Image Tool (Repair + Help)</title>
+    <meta
+      name="description"
+      content="Offline image lab: grayscale, colorize, background/foreground remove, magic remove, outline, detect box, blur/sharpen/pixelate, crop/resize, undo/redo, export PNG, repair deleted areas, detailed help."
+    />
+    <style>
+      :root {
+        --bg: #fff7e6;
+        --card: #ffffff;
+        --ink: #1f2937;
+        --muted: #6b7280;
+        --brand: #d97706;
+        --brand2: #f59e0b;
+        --border: #eadcc5;
+        --shadow: 0 18px 40px rgba(31, 41, 55, 0.14);
+        --ok: #059669;
+        --bad: #dc2626;
+        --r: 18px;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Helvetica,
+          Arial;
+        background:
+          radial-gradient(
+            1200px 800px at 10% 0%,
+            rgba(245, 158, 11, 0.22),
+            transparent 55%
+          ),
+          radial-gradient(
+            1000px 700px at 100% 10%,
+            rgba(217, 119, 6, 0.14),
+            transparent 55%
+          ),
+          var(--bg);
+        color: var(--ink);
+      }
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        backdrop-filter: blur(10px);
+        background: linear-gradient(
+          to bottom,
+          rgba(255, 247, 230, 0.92),
+          rgba(255, 247, 230, 0.68)
+        );
+        border-bottom: 1px solid var(--border);
+      }
+      .wrap {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 14px;
+      }
+      .top {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+      }
+      .brand {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .logo {
+        width: 40px;
+        height: 40px;
+        border-radius: 14px;
+        background: radial-gradient(
+          circle at 30% 30%,
+          var(--brand2),
+          var(--brand)
+        );
+        display: grid;
+        place-items: center;
+        color: #fff;
+        font-weight: 900;
+        box-shadow: var(--shadow);
+      }
+      h1 {
+        font-size: 16px;
+        margin: 0;
+      }
+      .sub {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+
+      .row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      button,
+      .btn,
+      input[type="color"] {
+        border: 1px solid var(--border);
+        background: #fff;
+        border-radius: 14px;
+        padding: 10px 12px;
+        cursor: pointer;
+        font-weight: 800;
+        box-shadow: 0 10px 20px rgba(31, 41, 55, 0.08);
+        transition:
+          transform 0.05s ease,
+          box-shadow 0.2s ease,
+          border-color 0.2s ease;
+      }
+      button:hover,
+      .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 16px 26px rgba(31, 41, 55, 0.12);
+        border-color: #e9cfa8;
+      }
+      button:active,
+      .btn:active {
+        transform: translateY(0px);
+        box-shadow: 0 10px 18px rgba(31, 41, 55, 0.1);
+      }
+      .primary {
+        background: linear-gradient(
+          180deg,
+          rgba(245, 158, 11, 0.26),
+          rgba(217, 119, 6, 0.14)
+        );
+        border-color: #edc790;
+      }
+      .danger {
+        background: linear-gradient(
+          180deg,
+          rgba(220, 38, 38, 0.12),
+          rgba(220, 38, 38, 0.06)
+        );
+        border-color: rgba(220, 38, 38, 0.25);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 430px 1fr;
+        gap: 14px;
+        padding: 14px;
+      }
+      @media (max-width: 980px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .card {
+        background: rgba(255, 255, 255, 0.92);
+        border: 1px solid var(--border);
+        border-radius: var(--r);
+        box-shadow: var(--shadow);
+      }
+      .card .hd {
+        padding: 12px 12px 0 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .card .bd {
+        padding: 12px;
+      }
+
+      .tools {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      @media (max-width: 520px) {
+        .tools {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .field {
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 10px;
+        background: rgba(255, 255, 255, 0.72);
+      }
+      .field label {
+        display: block;
+        font-size: 12px;
+        color: var(--muted);
+        font-weight: 900;
+        margin-bottom: 8px;
+      }
+      .field .inline {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      input[type="range"] {
+        width: 170px;
+      }
+
+      .pill {
+        font-size: 12px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: #fff;
+        color: var(--muted);
+        font-weight: 900;
+      }
+      .pill.ok {
+        color: var(--ok);
+      }
+      .pill.bad {
+        color: var(--bad);
+      }
+
+      canvas {
+        width: 100%;
+        height: auto;
+        background:
+          linear-gradient(45deg, rgba(31, 41, 55, 0.06) 25%, transparent 25%),
+          linear-gradient(-45deg, rgba(31, 41, 55, 0.06) 25%, transparent 25%),
+          linear-gradient(45deg, transparent 75%, rgba(31, 41, 55, 0.06) 75%),
+          linear-gradient(-45deg, transparent 75%, rgba(31, 41, 55, 0.06) 75%);
+        background-size: 20px 20px;
+        background-position:
+          0 0,
+          0 10px,
+          10px -10px,
+          -10px 0;
+        border-radius: 16px;
+        border: 1px solid var(--border);
+      }
+      .two {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      @media (max-width: 720px) {
+        .two {
+          grid-template-columns: 1fr;
+        }
+      }
+      .small {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .note {
+        margin-top: 10px;
+        background: linear-gradient(
+          180deg,
+          rgba(245, 158, 11, 0.14),
+          rgba(245, 158, 11, 0.06)
+        );
+        border: 1px dashed rgba(217, 119, 6, 0.35);
+        border-radius: 14px;
+        padding: 10px 12px;
+        font-size: 12px;
+        color: #7a4a00;
+        line-height: 1.45;
+      }
+      .hidden {
+        display: none !important;
+      }
+      .footer {
+        padding: 14px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      /* Help modal */
+      dialog {
+        border: none;
+        border-radius: 18px;
+        max-width: 980px;
+        width: calc(100% - 28px);
+        box-shadow: 0 30px 80px rgba(31, 41, 55, 0.25);
+        padding: 0;
+        overflow: hidden;
+      }
+      dialog::backdrop {
+        background: rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(4px);
+      }
+      .modal-hd {
+        padding: 14px 14px;
+        background: linear-gradient(
+          180deg,
+          rgba(245, 158, 11, 0.18),
+          rgba(255, 255, 255, 0.9)
+        );
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+      }
+      .modal-bd {
+        padding: 14px;
+      }
+      .modal-bd h3 {
+        margin: 12px 0 6px 0;
+        font-size: 14px;
+      }
+      .modal-bd ul {
+        margin: 6px 0 12px 18px;
+        color: var(--ink);
+      }
+      .modal-bd li {
+        margin: 6px 0;
+      }
+      .kbd {
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        font-size: 11px;
+        padding: 2px 6px;
+        border-radius: 8px;
+        background: rgba(11, 18, 32, 0.08);
+        border: 1px solid rgba(11, 18, 32, 0.14);
+        color: rgba(11, 18, 32, 0.85);
+        font-weight: 900;
+      }
+      .grid2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      @media (max-width: 900px) {
+        .grid2 {
+          grid-template-columns: 1fr;
+        }
+      }
+      .callout {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 10px 12px;
+        background: #fff;
+      }
+      .muted {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="wrap top">
+        <div class="brand">
+          <div class="logo">C</div>
+          <div>
+            <h1>Champ Image Lab</h1>
+            <div class="sub">
+              Offline image editor • Remove BG/FG • Magic remove • Repair
+              deleted areas • Outline • Detect box
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <label class="btn primary" for="file">📷 Open Image</label>
+          <input id="file" class="hidden" type="file" accept="image/*" />
+          <button id="pasteBtn" class="btn">📋 Paste</button>
+          <button id="helpBtn" class="btn">❓ Help</button>
+          <button id="resetBtn" class="btn">↩ Reset</button>
+          <button id="undoBtn" class="btn">⟲ Undo</button>
+          <button id="redoBtn" class="btn">⟳ Redo</button>
+          <button id="downloadPngBtn" class="btn primary">
+            ⬇ Download PNG
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <div class="grid">
+        <section class="card">
+          <div class="hd">
+            <div class="row">
+              <strong>Preview</strong>
+              <span id="status" class="pill bad">No image</span>
+            </div>
+            <span class="pill">Click edited image = Magic / Detect</span>
+          </div>
+          <div class="bd">
+            <div class="two">
+              <div>
+                <div class="small"><b>Original</b></div>
+                <canvas id="c0"></canvas>
+              </div>
+              <div>
+                <div class="small">
+                  <b>Edited</b> (PNG transparency supported)
+                </div>
+                <canvas
+                  id="c1"
+                  title="Click to Magic Remove or Detect Box."
+                ></canvas>
+              </div>
+            </div>
+            <div class="note">
+              <b>New:</b> Use <b>Repair</b> tools to replace deleted transparent
+              areas: <b>Restore from Original</b>, <b>Heal Smart Fill</b>, or
+              <b>Fill Transparent</b>.
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="hd"><strong>Tools</strong></div>
+          <div class="bd">
+            <div class="tools">
+              <div class="field">
+                <label>Quick Effects</label>
+                <div class="inline">
+                  <button data-act="grayscale">B/W</button>
+                  <button data-act="invert">Invert</button>
+                  <button data-act="sepia">Sepia</button>
+                  <button data-act="autocontrast">Auto-Contrast</button>
+                  <button data-act="sharpen">Sharpen</button>
+                  <button data-act="blur">Blur</button>
+                  <button data-act="pixelate">Pixelate</button>
+                  <button data-act="outline">Outline</button>
+                  <button data-act="outline_bw">Outline B/W</button>
+                </div>
+              </div>
+
+              <div class="field">
+                <label>B/W → “Colorize” (offline)</label>
+                <div class="inline">
+                  <input id="tint" type="color" value="#f59e0b" />
+                  <button data-act="colorize">Colorize</button>
+                  <button data-act="cool">Cool</button>
+                  <button data-act="warm">Warm</button>
+                </div>
+                <div class="small">Tip: Colorize → Auto-Contrast</div>
+              </div>
+
+              <div class="field">
+                <label>Background Remove</label>
+                <div class="inline">
+                  <input
+                    id="keyColor"
+                    type="color"
+                    value="#ffffff"
+                    title="Color to remove"
+                  />
+                  <input id="tol" type="range" min="0" max="160" value="40" />
+                  <span id="tolVal" class="pill">tol 40</span>
+                  <button data-act="bgremove">Remove BG</button>
+                  <button data-act="bgremove_white">White BG</button>
+                  <button data-act="bgremove_black">Black BG</button>
+                </div>
+              </div>
+
+              <div class="field">
+                <label>Foreground Remove</label>
+                <div class="inline">
+                  <input
+                    id="fgColor"
+                    type="color"
+                    value="#000000"
+                    title="Color to remove"
+                  />
+                  <input id="ftol" type="range" min="0" max="160" value="30" />
+                  <span id="ftolVal" class="pill">tol 30</span>
+                  <button data-act="fgremove">Remove FG</button>
+                  <button data-act="swapmask">Swap (BG↔FG)</button>
+                </div>
+              </div>
+
+              <div class="field">
+                <label>Crop / Resize</label>
+                <div class="inline">
+                  <button data-act="crop_center">Crop 1:1</button>
+                  <button data-act="crop_16_9">Crop 16:9</button>
+                  <button data-act="resize_1080">Resize 1080</button>
+                  <button data-act="resize_720">Resize 720</button>
+                </div>
+              </div>
+
+              <div class="field">
+                <label>Magic Remove / Detect Box (click edited image)</label>
+                <div class="inline">
+                  <input
+                    id="magicTol"
+                    type="range"
+                    min="0"
+                    max="80"
+                    value="22"
+                  />
+                  <span id="magicTolVal" class="pill">tol 22</span>
+                  <button data-act="mode_magic">Magic Mode</button>
+                  <button data-act="detect_object" class="primary">
+                    Detect Box Mode
+                  </button>
+                  <button data-act="magic_hint">Help</button>
+                  <button data-act="clear_alpha" class="danger">
+                    Clear transparency
+                  </button>
+                </div>
+                <div class="small">
+                  Detect Box draws a rectangle; Magic removes pixels (alpha=0).
+                </div>
+              </div>
+
+              <!-- ✅ NEW REPAIR SECTION -->
+              <div class="field">
+                <label>Repair Deleted Areas (replace transparent pixels)</label>
+                <div class="inline">
+                  <button data-act="repair_restore" class="primary">
+                    Restore from Original
+                  </button>
+                  <button data-act="repair_heal">Heal (Smart Fill)</button>
+                  <input
+                    id="fillColor"
+                    type="color"
+                    value="#ffffff"
+                    title="Fill color for transparent pixels"
+                  />
+                  <button data-act="repair_fill">Fill Transparent</button>
+                </div>
+                <div class="small">
+                  • <b>Restore</b> copies pixels from Original only where
+                  alpha=0<br />
+                  • <b>Heal</b> fills holes using nearby pixels (multi-pass)<br />
+                  • <b>Fill</b> paints remaining transparent pixels with a color
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="footer">
+        Made for <b>Programmer’s Picnic</b> • Runs offline • Files never leave
+        your device.
+      </div>
+    </main>
+
+    <!-- ✅ Help Modal -->
+    <dialog id="helpDialog">
+      <div class="modal-hd">
+        <div>
+          <strong>Champ Image Lab — Detailed Help</strong>
+          <div class="muted">
+            Offline editing, background removal, magic remove, repair, outline,
+            and export.
+          </div>
+        </div>
+        <div class="row">
+          <button id="closeHelp" class="btn">Close</button>
+        </div>
+      </div>
+      <div class="modal-bd">
+        <div class="grid2">
+          <div class="callout">
+            <h3>1) Start</h3>
+            <ul>
+              <li><b>Open Image</b> → choose a file from device.</li>
+              <li>
+                Or click <b>Paste</b> and use
+                <span class="kbd">Ctrl</span>+<span class="kbd">V</span> to
+                paste an image from clipboard.
+              </li>
+              <li>
+                You’ll see <b>Original</b> (left) and <b>Edited</b> (right).
+              </li>
+            </ul>
+            <div class="muted">
+              Tip: Work on the Edited image. Original is kept as a reference +
+              for repairs.
+            </div>
+          </div>
+
+          <div class="callout">
+            <h3>2) Undo / Redo</h3>
+            <ul>
+              <li><b>Undo</b> reverses your last step.</li>
+              <li><b>Redo</b> re-applies an undone step.</li>
+              <li>
+                Keyboard: <span class="kbd">Ctrl</span>+<span class="kbd"
+                  >Z</span
+                >
+                undo • <span class="kbd">Ctrl</span>+<span class="kbd">Y</span>
+                redo
+              </li>
+            </ul>
+          </div>
+
+          <div class="callout">
+            <h3>3) Background / Foreground Removal</h3>
+            <ul>
+              <li>
+                <b>Remove BG</b>: pick a color and set tolerance. Best for
+                flat/studio backgrounds.
+              </li>
+              <li>
+                <b>Remove FG</b>: remove a solid-colored object/ink from the
+                image.
+              </li>
+              <li>
+                <b>Swap (BG↔FG)</b>: flips what is transparent vs visible (quick
+                mask trick).
+              </li>
+            </ul>
+            <div class="muted">
+              If too much is removed: lower tolerance. If too little: increase
+              tolerance.
+            </div>
+          </div>
+
+          <div class="callout">
+            <h3>4) Magic Remove vs Detect Box</h3>
+            <ul>
+              <li>
+                <b>Magic Mode</b>: click on the Edited image to remove a
+                connected region of similar pixels (alpha becomes 0).
+              </li>
+              <li>
+                <b>Detect Box Mode</b>: click on the subject → draws a bounding
+                box (offline region detection).
+              </li>
+              <li>Use the <b>tol</b> slider to control sensitivity.</li>
+            </ul>
+          </div>
+
+          <div class="callout">
+            <h3>5) Repair Deleted Areas (NEW)</h3>
+            <ul>
+              <li>
+                <b>Restore from Original</b>: brings back pixels only where
+                alpha=0 (deleted parts).
+              </li>
+              <li>
+                <b>Heal (Smart Fill)</b>: fills transparent holes using nearby
+                pixels (good for small holes / dust).
+              </li>
+              <li>
+                <b>Fill Transparent</b>: fills remaining transparent pixels with
+                chosen color.
+              </li>
+            </ul>
+            <div class="muted">
+              Best workflow: Magic Remove → Repair (Restore/Heal) → Fine tune
+              (Fill if needed) → Download PNG.
+            </div>
+          </div>
+
+          <div class="callout">
+            <h3>6) Outline / Poster Effects</h3>
+            <ul>
+              <li>
+                <b>Outline</b>: edges on transparent background (good overlay).
+              </li>
+              <li>
+                <b>Outline B/W</b>: black lines on white background (sketch
+                look).
+              </li>
+              <li>
+                <b>Colorize</b>: smart tint (not true AI color restoration).
+              </li>
+            </ul>
+          </div>
+
+          <div class="callout">
+            <h3>7) Export</h3>
+            <ul>
+              <li>
+                <b>Download PNG</b> exports the Edited image with transparency
+                preserved.
+              </li>
+              <li>
+                If you want a solid background, use
+                <b>Fill Transparent</b> before download.
+              </li>
+            </ul>
+          </div>
+
+          <div class="callout">
+            <h3>Troubleshooting</h3>
+            <ul>
+              <li><b>Canvas looks blank?</b> Open an image first.</li>
+              <li>
+                <b>Magic remove removes too much:</b> lower tol, click closer to
+                the target region.
+              </li>
+              <li>
+                <b>Heal is slow on big images:</b> resize to 1080/720 first,
+                then heal.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </dialog>
+
+    <script>
+      (() => {
+        const $ = (s) => document.querySelector(s);
+
+        const c0 = $("#c0");
+        const c1 = $("#c1");
+        const g0 = c0.getContext("2d", { willReadFrequently: true });
+        const g1 = c1.getContext("2d", { willReadFrequently: true });
+
+        const status = $("#status");
+        const tol = $("#tol"),
+          tolVal = $("#tolVal");
+        const ftol = $("#ftol"),
+          ftolVal = $("#ftolVal");
+        const magicTol = $("#magicTol"),
+          magicTolVal = $("#magicTolVal");
+
+        const file = $("#file");
+        const resetBtn = $("#resetBtn");
+        const pasteBtn = $("#pasteBtn");
+        const downloadPngBtn = $("#downloadPngBtn");
+        const undoBtn = $("#undoBtn"),
+          redoBtn = $("#redoBtn");
+
+        const helpBtn = $("#helpBtn");
+        const helpDialog = $("#helpDialog");
+        const closeHelp = $("#closeHelp");
+
+        let W = 0,
+          H = 0;
+        let hasImage = false;
+        let history = [];
+        let future = [];
+        let clickMode = "magic"; // "magic" or "detect"
+
+        function setStatus(ok, text) {
+          status.classList.toggle("ok", !!ok);
+          status.classList.toggle("bad", !ok);
+          status.textContent = text;
+        }
+        function fitCanvas(canvas, w, h) {
+          canvas.width = w;
+          canvas.height = h;
+        }
+        function clamp255(x) {
+          return x < 0 ? 0 : x > 255 ? 255 : x;
+        }
+
+        function drawToBoth(img) {
+          W = img.naturalWidth || img.width;
+          H = img.naturalHeight || img.height;
+
+          fitCanvas(c0, W, H);
+          fitCanvas(c1, W, H);
+
+          g0.clearRect(0, 0, W, H);
+          g0.drawImage(img, 0, 0);
+
+          g1.clearRect(0, 0, W, H);
+          g1.drawImage(img, 0, 0);
+
+          hasImage = true;
+          history = [];
+          future = [];
+          pushHistory();
+          setStatus(true, `${W}×${H}`);
+        }
+
+        function pushHistory() {
+          if (!hasImage) return;
+          const img = g1.getImageData(0, 0, W, H);
+          history.push(img);
+          if (history.length > 25) history.shift();
+          future = [];
+          updateUndoRedo();
+        }
+        function applyImageData(imgData) {
+          g1.putImageData(imgData, 0, 0);
+        }
+        function undo() {
+          if (history.length <= 1) return;
+          const cur = history.pop();
+          future.push(cur);
+          applyImageData(history[history.length - 1]);
+          updateUndoRedo();
+        }
+        function redo() {
+          if (future.length === 0) return;
+          const next = future.pop();
+          history.push(next);
+          applyImageData(next);
+          updateUndoRedo();
+        }
+        function updateUndoRedo() {
+          undoBtn.disabled = history.length <= 1;
+          redoBtn.disabled = future.length === 0;
+        }
+
+        function eachPixel(fn) {
+          const img = g1.getImageData(0, 0, W, H);
+          const d = img.data;
+          for (let i = 0; i < d.length; i += 4) fn(d, i);
+          g1.putImageData(img, 0, 0);
+        }
+
+        function grayscale() {
+          eachPixel((d, i) => {
+            const y =
+              (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]) | 0;
+            d[i] = d[i + 1] = d[i + 2] = y;
+          });
+        }
+        function invert() {
+          eachPixel((d, i) => {
+            d[i] = 255 - d[i];
+            d[i + 1] = 255 - d[i + 1];
+            d[i + 2] = 255 - d[i + 2];
+          });
+        }
+        function sepia() {
+          eachPixel((d, i) => {
+            const r = d[i],
+              g = d[i + 1],
+              b = d[i + 2];
+            d[i] = clamp255(0.393 * r + 0.769 * g + 0.189 * b);
+            d[i + 1] = clamp255(0.349 * r + 0.686 * g + 0.168 * b);
+            d[i + 2] = clamp255(0.272 * r + 0.534 * g + 0.131 * b);
+          });
+        }
+
+        function autocontrast() {
+          const img = g1.getImageData(0, 0, W, H);
+          const d = img.data;
+          let minR = 255,
+            minG = 255,
+            minB = 255,
+            maxR = 0,
+            maxG = 0,
+            maxB = 0;
+          for (let i = 0; i < d.length; i += 4) {
+            if (d[i + 3] === 0) continue;
+            const r = d[i],
+              g = d[i + 1],
+              b = d[i + 2];
+            if (r < minR) minR = r;
+            if (g < minG) minG = g;
+            if (b < minB) minB = b;
+            if (r > maxR) maxR = r;
+            if (g > maxG) maxG = g;
+            if (b > maxB) maxB = b;
+          }
+          const sR = maxR === minR ? 1 : 255 / (maxR - minR);
+          const sG = maxG === minG ? 1 : 255 / (maxG - minG);
+          const sB = maxB === minB ? 1 : 255 / (maxB - minB);
+          for (let i = 0; i < d.length; i += 4) {
+            d[i] = clamp255((d[i] - minR) * sR);
+            d[i + 1] = clamp255((d[i + 1] - minG) * sG);
+            d[i + 2] = clamp255((d[i + 2] - minB) * sB);
+          }
+          g1.putImageData(img, 0, 0);
+        }
+
+        function convolve(kernel, kSize, divisor = 1, bias = 0) {
+          const src = g1.getImageData(0, 0, W, H);
+          const dst = g1.createImageData(W, H);
+          const s = src.data,
+            d = dst.data;
+          const half = (kSize / 2) | 0;
+          for (let y = 0; y < H; y++) {
+            for (let x = 0; x < W; x++) {
+              let r = 0,
+                g = 0,
+                b = 0,
+                a = 0;
+              for (let ky = 0; ky < kSize; ky++) {
+                for (let kx = 0; kx < kSize; kx++) {
+                  const px = x + (kx - half);
+                  const py = y + (ky - half);
+                  if (px < 0 || py < 0 || px >= W || py >= H) continue;
+                  const idx = (py * W + px) * 4;
+                  const w = kernel[ky * kSize + kx];
+                  r += s[idx] * w;
+                  g += s[idx + 1] * w;
+                  b += s[idx + 2] * w;
+                  a += s[idx + 3] * w;
+                }
+              }
+              const o = (y * W + x) * 4;
+              d[o] = clamp255(r / divisor + bias);
+              d[o + 1] = clamp255(g / divisor + bias);
+              d[o + 2] = clamp255(b / divisor + bias);
+              d[o + 3] = clamp255(a / divisor);
+            }
+          }
+          g1.putImageData(dst, 0, 0);
+        }
+        function blur() {
+          convolve([1, 2, 1, 2, 4, 2, 1, 2, 1], 3, 16, 0);
+        }
+        function sharpen() {
+          convolve([0, -1, 0, -1, 5, -1, 0, -1, 0], 3, 1, 0);
+        }
+
+        function pixelate(block = 12) {
+          const img = g1.getImageData(0, 0, W, H);
+          const d = img.data;
+          for (let y = 0; y < H; y += block) {
+            for (let x = 0; x < W; x += block) {
+              let r = 0,
+                g = 0,
+                b = 0,
+                a = 0,
+                c = 0;
+              for (let yy = 0; yy < block; yy++) {
+                for (let xx = 0; xx < block; xx++) {
+                  const px = x + xx,
+                    py = y + yy;
+                  if (px >= W || py >= H) continue;
+                  const i = (py * W + px) * 4;
+                  r += d[i];
+                  g += d[i + 1];
+                  b += d[i + 2];
+                  a += d[i + 3];
+                  c++;
+                }
+              }
+              if (!c) continue;
+              r = (r / c) | 0;
+              g = (g / c) | 0;
+              b = (b / c) | 0;
+              a = (a / c) | 0;
+              for (let yy = 0; yy < block; yy++) {
+                for (let xx = 0; xx < block; xx++) {
+                  const px = x + xx,
+                    py = y + yy;
+                  if (px >= W || py >= H) continue;
+                  const i = (py * W + px) * 4;
+                  d[i] = r;
+                  d[i + 1] = g;
+                  d[i + 2] = b;
+                  d[i + 3] = a;
+                }
+              }
+            }
+          }
+          g1.putImageData(img, 0, 0);
+        }
+
+        function hexToRgb(hex) {
+          const h = hex.replace("#", "");
+          const n = parseInt(h, 16);
+          return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+        }
+
+        function colorize(hex, mode = "tint") {
+          const t = hexToRgb(hex);
+          eachPixel((d, i) => {
+            if (d[i + 3] === 0) return;
+            const r = d[i],
+              g = d[i + 1],
+              b = d[i + 2];
+            const y = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+            const strength = (1 - Math.pow(y, 0.8)) * 0.75;
+            if (mode === "cool") {
+              d[i] = clamp255(r * (1 - strength) + t.r * 0.5 * strength);
+              d[i + 1] = clamp255(g * (1 - strength) + t.g * 0.7 * strength);
+              d[i + 2] = clamp255(b * (1 - strength) + 255 * strength);
+            } else if (mode === "warm") {
+              d[i] = clamp255(r * (1 - strength) + 255 * strength);
+              d[i + 1] = clamp255(g * (1 - strength) + t.g * 0.9 * strength);
+              d[i + 2] = clamp255(b * (1 - strength) + t.b * 0.4 * strength);
+            } else {
+              d[i] = clamp255(r * (1 - strength) + t.r * strength);
+              d[i + 1] = clamp255(g * (1 - strength) + t.g * strength);
+              d[i + 2] = clamp255(b * (1 - strength) + t.b * strength);
+            }
+          });
+        }
+
+        function dist3(r, g, b, rr, gg, bb) {
+          const dr = r - rr,
+            dg = g - gg,
+            db = b - bb;
+          return Math.sqrt(dr * dr + dg * dg + db * db);
+        }
+
+        function removeByColor(hex, tolerance) {
+          const k = hexToRgb(hex);
+          const img = g1.getImageData(0, 0, W, H);
+          const d = img.data;
+          for (let i = 0; i < d.length; i += 4) {
+            if (d[i + 3] === 0) continue;
+            const dd = dist3(d[i], d[i + 1], d[i + 2], k.r, k.g, k.b);
+            if (dd <= tolerance) d[i + 3] = 0;
+          }
+          g1.putImageData(img, 0, 0);
+        }
+
+        function swapMask() {
+          const img = g1.getImageData(0, 0, W, H);
+          const d = img.data;
+          for (let i = 0; i < d.length; i += 4) {
+            if (d[i + 3] === 0) {
+              d[i] = 255;
+              d[i + 1] = 255;
+              d[i + 2] = 255;
+              d[i + 3] = 255;
+            } else {
+              d[i + 3] = 0;
+            }
+          }
+          g1.putImageData(img, 0, 0);
+        }
+
+        function clearAlpha() {
+          const img = g1.getImageData(0, 0, W, H);
+          const d = img.data;
+          for (let i = 0; i < d.length; i += 4) d[i + 3] = 255;
+          g1.putImageData(img, 0, 0);
+        }
+
+        function magicRemove(x, y, tolerance) {
+          const img = g1.getImageData(0, 0, W, H);
+          const d = img.data;
+
+          const start = (y * W + x) * 4;
+          const sr = d[start],
+            sg = d[start + 1],
+            sb = d[start + 2],
+            sa = d[start + 3];
+          if (sa === 0) return;
+
+          const stack = [[x, y]];
+          const visited = new Uint8Array(W * H);
+          const tol2 = tolerance * tolerance;
+
+          function ok(px, py) {
+            const idx = (py * W + px) * 4;
+            if (d[idx + 3] === 0) return false;
+            const dr = d[idx] - sr,
+              dg = d[idx + 1] - sg,
+              db = d[idx + 2] - sb;
+            return dr * dr + dg * dg + db * db <= tol2;
+          }
+
+          while (stack.length) {
+            const [px, py] = stack.pop();
+            if (px < 0 || py < 0 || px >= W || py >= H) continue;
+            const p = py * W + px;
+            if (visited[p]) continue;
+            visited[p] = 1;
+            if (!ok(px, py)) continue;
+
+            d[p * 4 + 3] = 0;
+            stack.push([px + 1, py]);
+            stack.push([px - 1, py]);
+            stack.push([px, py + 1]);
+            stack.push([px, py - 1]);
+          }
+          g1.putImageData(img, 0, 0);
+        }
+
+        function outline(threshold = 80, makeBW = false) {
+          const src = g1.getImageData(0, 0, W, H);
+          const s = src.data;
+          const gray = new Float32Array(W * H);
+          for (let p = 0, i = 0; p < gray.length; p++, i += 4) {
+            gray[p] = 0.2126 * s[i] + 0.7152 * s[i + 1] + 0.0722 * s[i + 2];
+          }
+          const out = g1.createImageData(W, H);
+          const d = out.data;
+
+          const gxk = [-1, 0, 1, -2, 0, 2, -1, 0, 1];
+          const gyk = [-1, -2, -1, 0, 0, 0, 1, 2, 1];
+
+          for (let y = 1; y < H - 1; y++) {
+            for (let x = 1; x < W - 1; x++) {
+              let gx = 0,
+                gy = 0,
+                k = 0;
+              for (let ky = -1; ky <= 1; ky++) {
+                for (let kx = -1; kx <= 1; kx++) {
+                  const v = gray[(y + ky) * W + (x + kx)];
+                  gx += v * gxk[k];
+                  gy += v * gyk[k];
+                  k++;
+                }
+              }
+              const mag = Math.sqrt(gx * gx + gy * gy);
+              const edge = mag > threshold ? 255 : 0;
+              const idx = (y * W + x) * 4;
+              if (makeBW) {
+                d[idx] = d[idx + 1] = d[idx + 2] = 255 - edge;
+                d[idx + 3] = 255;
+              } else {
+                d[idx] = d[idx + 1] = d[idx + 2] = 255;
+                d[idx + 3] = edge;
+              }
+            }
+          }
+          g1.putImageData(out, 0, 0);
+        }
+
+        function detectObjectBoxFromClick(x, y, tolerance = 22) {
+          const img = g1.getImageData(0, 0, W, H);
+          const d = img.data;
+
+          const start = (y * W + x) * 4;
+          const sr = d[start],
+            sg = d[start + 1],
+            sb = d[start + 2],
+            sa = d[start + 3];
+          if (sa === 0) return null;
+
+          const stack = [[x, y]];
+          const visited = new Uint8Array(W * H);
+          const tol2 = tolerance * tolerance;
+
+          let minX = x,
+            maxX = x,
+            minY = y,
+            maxY = y,
+            count = 0;
+
+          function ok(px, py) {
+            const idx = (py * W + px) * 4;
+            if (d[idx + 3] === 0) return false;
+            const dr = d[idx] - sr,
+              dg = d[idx + 1] - sg,
+              db = d[idx + 2] - sb;
+            return dr * dr + dg * dg + db * db <= tol2;
+          }
+
+          while (stack.length) {
+            const [px, py] = stack.pop();
+            if (px < 0 || py < 0 || px >= W || py >= H) continue;
+            const p = py * W + px;
+            if (visited[p]) continue;
+            visited[p] = 1;
+
+            if (!ok(px, py)) continue;
+
+            count++;
+            if (px < minX) minX = px;
+            if (px > maxX) maxX = px;
+            if (py < minY) minY = py;
+            if (py > maxY) maxY = py;
+
+            stack.push([px + 1, py]);
+            stack.push([px - 1, py]);
+            stack.push([px, py + 1]);
+            stack.push([px, py - 1]);
+          }
+
+          if (count < 250) return null;
+          return { minX, minY, maxX, maxY, count };
+        }
+
+        function drawBox(box) {
+          if (!box) return;
+          g1.save();
+          g1.lineWidth = Math.max(2, Math.round(Math.min(W, H) * 0.005));
+          g1.strokeStyle = "rgba(245,158,11,0.95)";
+          g1.setLineDash([10, 6]);
+          g1.strokeRect(
+            box.minX,
+            box.minY,
+            box.maxX - box.minX,
+            box.maxY - box.minY,
+          );
+          g1.restore();
+        }
+
+        function cropTo(aspectW, aspectH) {
+          const target = aspectW / aspectH;
+          const cur = W / H;
+          let cw = W,
+            ch = H;
+          if (cur > target) {
+            cw = Math.round(H * target);
+            ch = H;
+          } else {
+            cw = W;
+            ch = Math.round(W / target);
+          }
+          const sx = ((W - cw) / 2) | 0;
+          const sy = ((H - ch) / 2) | 0;
+
+          const tmp = document.createElement("canvas");
+          tmp.width = cw;
+          tmp.height = ch;
+          tmp
+            .getContext("2d", { willReadFrequently: true })
+            .drawImage(c1, sx, sy, cw, ch, 0, 0, cw, ch);
+
+          W = cw;
+          H = ch;
+          fitCanvas(c0, W, H);
+          fitCanvas(c1, W, H);
+
+          g0.clearRect(0, 0, W, H);
+          g0.drawImage(tmp, 0, 0);
+
+          g1.clearRect(0, 0, W, H);
+          g1.drawImage(tmp, 0, 0);
+
+          setStatus(true, `${W}×${H}`);
+        }
+
+        function resizeLongSide(maxSide) {
+          const long = Math.max(W, H);
+          if (long <= maxSide) return;
+          const scale = maxSide / long;
+          const nw = Math.round(W * scale);
+          const nh = Math.round(H * scale);
+
+          const tmp = document.createElement("canvas");
+          tmp.width = nw;
+          tmp.height = nh;
+          const tg = tmp.getContext("2d", { willReadFrequently: true });
+          tg.imageSmoothingEnabled = true;
+          tg.imageSmoothingQuality = "high";
+          tg.drawImage(c1, 0, 0, W, H, 0, 0, nw, nh);
+
+          W = nw;
+          H = nh;
+          fitCanvas(c0, W, H);
+          fitCanvas(c1, W, H);
+
+          g0.clearRect(0, 0, W, H);
+          g0.drawImage(tmp, 0, 0);
+
+          g1.clearRect(0, 0, W, H);
+          g1.drawImage(tmp, 0, 0);
+
+          setStatus(true, `${W}×${H}`);
+        }
+
+        /* ===========================
+     ✅ NEW: REPAIR FUNCTIONS
+     =========================== */
+
+        // Restore pixels from ORIGINAL only where edited alpha == 0
+        function repairRestoreFromOriginal() {
+          const orig = g0.getImageData(0, 0, W, H);
+          const edit = g1.getImageData(0, 0, W, H);
+          const o = orig.data,
+            d = edit.data;
+
+          for (let i = 0; i < d.length; i += 4) {
+            if (d[i + 3] === 0) {
+              d[i] = o[i];
+              d[i + 1] = o[i + 1];
+              d[i + 2] = o[i + 2];
+              d[i + 3] = o[i + 3]; // usually 255
+            }
+          }
+          g1.putImageData(edit, 0, 0);
+        }
+
+        // Fill remaining transparent pixels with a solid color
+        function repairFillTransparent(hex) {
+          const c = hexToRgb(hex);
+          const edit = g1.getImageData(0, 0, W, H);
+          const d = edit.data;
+          for (let i = 0; i < d.length; i += 4) {
+            if (d[i + 3] === 0) {
+              d[i] = c.r;
+              d[i + 1] = c.g;
+              d[i + 2] = c.b;
+              d[i + 3] = 255;
+            }
+          }
+          g1.putImageData(edit, 0, 0);
+        }
+
+        // Heal: multi-pass neighbor fill for alpha==0 pixels
+        // Works best for small holes / dust / small removed parts.
+        function repairHeal(iterations = 10) {
+          const img = g1.getImageData(0, 0, W, H);
+          const d = img.data;
+
+          const idx = (x, y) => (y * W + x) * 4;
+
+          for (let pass = 0; pass < iterations; pass++) {
+            let changed = 0;
+            // copy for stable neighbor sampling in this pass
+            const prev = new Uint8ClampedArray(d);
+
+            for (let y = 1; y < H - 1; y++) {
+              for (let x = 1; x < W - 1; x++) {
+                const i = idx(x, y);
+                if (prev[i + 3] !== 0) continue; // only fill transparent
+
+                let r = 0,
+                  g = 0,
+                  b = 0,
+                  a = 0,
+                  cnt = 0;
+
+                // 8-neighborhood
+                for (let yy = -1; yy <= 1; yy++) {
+                  for (let xx = -1; xx <= 1; xx++) {
+                    if (xx === 0 && yy === 0) continue;
+                    const j = idx(x + xx, y + yy);
+                    const ja = prev[j + 3];
+                    if (ja === 0) continue;
+                    r += prev[j];
+                    g += prev[j + 1];
+                    b += prev[j + 2];
+                    a += ja;
+                    cnt++;
+                  }
+                }
+
+                if (cnt > 0) {
+                  d[i] = (r / cnt) | 0;
+                  d[i + 1] = (g / cnt) | 0;
+                  d[i + 2] = (b / cnt) | 0;
+                  d[i + 3] = (a / cnt) | 0;
+                  changed++;
+                }
+              }
+            }
+            if (changed === 0) break; // nothing left to heal
+          }
+
+          g1.putImageData(img, 0, 0);
+        }
+
+        /* ===========================
+     File + clipboard + export
+     =========================== */
+        async function loadFromFile(f) {
+          const url = URL.createObjectURL(f);
+          const img = new Image();
+          img.onload = () => {
+            drawToBoth(img);
+            URL.revokeObjectURL(url);
+          };
+          img.onerror = () => {
+            setStatus(false, "Could not load");
+            URL.revokeObjectURL(url);
+          };
+          img.src = url;
+        }
+
+        file.addEventListener("change", (e) => {
+          const f = e.target.files && e.target.files[0];
+          if (f) loadFromFile(f);
+          file.value = "";
+        });
+
+        resetBtn.addEventListener("click", () => {
+          if (!hasImage) return;
+          const img = new Image();
+          img.onload = () => drawToBoth(img);
+          img.src = c0.toDataURL("image/png");
+        });
+
+        pasteBtn.addEventListener("click", async () => {
+          try {
+            await navigator.clipboard.read();
+            alert("Now press Ctrl+V anywhere on this page to paste an image.");
+          } catch {
+            alert(
+              "Paste may need permission. Try Ctrl+V directly or use Open Image.",
+            );
+          }
+        });
+
+        window.addEventListener("paste", (e) => {
+          const items = e.clipboardData?.items;
+          if (!items) return;
+          for (const it of items) {
+            if (it.type.startsWith("image/")) {
+              const blob = it.getAsFile();
+              if (blob) return loadFromFile(blob);
+            }
+          }
+        });
+
+        downloadPngBtn.addEventListener("click", () => {
+          if (!hasImage) return;
+          const a = document.createElement("a");
+          a.download = "edited.png";
+          a.href = c1.toDataURL("image/png");
+          a.click();
+        });
+
+        undoBtn.addEventListener("click", undo);
+        redoBtn.addEventListener("click", redo);
+
+        window.addEventListener("keydown", (e) => {
+          const k = e.key.toLowerCase();
+          if ((e.ctrlKey || e.metaKey) && k === "z") {
+            e.preventDefault();
+            undo();
+          }
+          if ((e.ctrlKey || e.metaKey) && k === "y") {
+            e.preventDefault();
+            redo();
+          }
+        });
+
+        function requireImage() {
+          if (!hasImage) {
+            alert("Open an image first.");
+            return false;
+          }
+          return true;
+        }
+
+        // Help modal
+        helpBtn.addEventListener("click", () => {
+          if (typeof helpDialog.showModal === "function")
+            helpDialog.showModal();
+          else
+            alert(
+              "Help: Your browser does not support dialog. Use Chrome/Edge.",
+            );
+        });
+        closeHelp.addEventListener("click", () => helpDialog.close());
+        helpDialog.addEventListener("click", (e) => {
+          const r = helpDialog.getBoundingClientRect();
+          const inside =
+            e.clientX >= r.left &&
+            e.clientX <= r.right &&
+            e.clientY >= r.top &&
+            e.clientY <= r.bottom;
+          // clicking backdrop closes
+          if (!inside) helpDialog.close();
+        });
+
+        // Buttons
+        document.addEventListener("click", (e) => {
+          const btn = e.target.closest("button[data-act]");
+          if (!btn) return;
+          const act = btn.dataset.act;
+
+          if (act === "mode_magic") {
+            clickMode = "magic";
+            alert("Magic Mode enabled: click Edited image to remove region.");
+            return;
+          }
+          if (act === "detect_object") {
+            clickMode = "detect";
+            alert("Detect Box Mode enabled: click subject to draw box.");
+            return;
+          }
+
+          if (!requireImage() && act !== "magic_hint") return;
+
+          if (act === "grayscale") {
+            grayscale();
+            pushHistory();
+          } else if (act === "invert") {
+            invert();
+            pushHistory();
+          } else if (act === "sepia") {
+            sepia();
+            pushHistory();
+          } else if (act === "autocontrast") {
+            autocontrast();
+            pushHistory();
+          } else if (act === "blur") {
+            blur();
+            pushHistory();
+          } else if (act === "sharpen") {
+            sharpen();
+            pushHistory();
+          } else if (act === "pixelate") {
+            pixelate(12);
+            pushHistory();
+          } else if (act === "outline") {
+            outline(80, false);
+            pushHistory();
+          } else if (act === "outline_bw") {
+            outline(70, true);
+            pushHistory();
+          } else if (act === "colorize") {
+            colorize($("#tint").value, "tint");
+            pushHistory();
+          } else if (act === "cool") {
+            colorize("#7dd3fc", "cool");
+            pushHistory();
+          } else if (act === "warm") {
+            colorize("#f59e0b", "warm");
+            pushHistory();
+          } else if (act === "bgremove") {
+            removeByColor($("#keyColor").value, +tol.value);
+            pushHistory();
+          } else if (act === "bgremove_white") {
+            removeByColor("#ffffff", +tol.value);
+            pushHistory();
+          } else if (act === "bgremove_black") {
+            removeByColor("#000000", +tol.value);
+            pushHistory();
+          } else if (act === "fgremove") {
+            removeByColor($("#fgColor").value, +ftol.value);
+            pushHistory();
+          } else if (act === "swapmask") {
+            swapMask();
+            pushHistory();
+          } else if (act === "crop_center") {
+            cropTo(1, 1);
+            pushHistory();
+          } else if (act === "crop_16_9") {
+            cropTo(16, 9);
+            pushHistory();
+          } else if (act === "resize_1080") {
+            resizeLongSide(1080);
+            pushHistory();
+          } else if (act === "resize_720") {
+            resizeLongSide(720);
+            pushHistory();
+          } else if (act === "magic_hint") {
+            alert(
+              "Magic vs Detect:\n\n• Magic Mode: click Edited image to remove connected similar pixels.\n• Detect Box Mode: click subject to draw bounding box.\n\nTip: increase tol if it selects too little; decrease if it selects too much.",
+            );
+          } else if (act === "clear_alpha") {
+            clearAlpha();
+            pushHistory();
+          }
+
+          // ✅ NEW: Repair actions
+          else if (act === "repair_restore") {
+            repairRestoreFromOriginal();
+            pushHistory();
+          } else if (act === "repair_heal") {
+            repairHeal(12);
+            pushHistory();
+          } else if (act === "repair_fill") {
+            repairFillTransparent($("#fillColor").value);
+            pushHistory();
+          }
+        });
+
+        // Sliders
+        tol.addEventListener(
+          "input",
+          () => (tolVal.textContent = "tol " + tol.value),
+        );
+        ftol.addEventListener(
+          "input",
+          () => (ftolVal.textContent = "tol " + ftol.value),
+        );
+        magicTol.addEventListener(
+          "input",
+          () => (magicTolVal.textContent = "tol " + magicTol.value),
+        );
+
+        // Canvas click: magic OR detect
+        c1.addEventListener("click", (e) => {
+          if (!requireImage()) return;
+          const rect = c1.getBoundingClientRect();
+          const x = Math.round(
+            (e.clientX - rect.left) * (c1.width / rect.width),
+          );
+          const y = Math.round(
+            (e.clientY - rect.top) * (c1.height / rect.height),
+          );
+
+          if (clickMode === "detect") {
+            const box = detectObjectBoxFromClick(x, y, +magicTol.value);
+            if (!box) {
+              alert(
+                "Could not detect a solid region.\nTry clicking a more solid part, or increase tol.",
+              );
+              return;
+            }
+            drawBox(box);
+            pushHistory();
+            clickMode = "magic";
+            return;
+          }
+          magicRemove(x, y, +magicTol.value);
+          pushHistory();
+        });
+
+        // init
+        setStatus(false, "No image");
+        updateUndoRedo();
+      })();
+    </script>
+  </body>
+</html>
