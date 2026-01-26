@@ -1,0 +1,537 @@
+/**
+ * =========================================================
+ * THEME VARIABLES (Light Saffron)
+ * =========================================================
+ * CHANGE THIS -> DO THIS:
+ * - Want deeper saffron: change --accent
+ * - Want softer background: change --bg
+ * - Want taller toolbar: change --toolbar-h
+ */
+:root {
+  --bg: #fff7eb;          /* page background */
+  --panel: #ffffff;       /* card/panel background */
+
+  --accent: #f4a300;      /* main saffron */
+  --accent-soft: #fde9c8; /* soft saffron */
+  --accent-muted: #f9d18a;
+
+  --ink: #2b2b2b;
+  --ink-soft: #5b5b5b;
+
+  --toolbar-h: 66px;
+}
+
+/* Branding block in toolbar */
+.brand {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+  margin-right: 8px;
+}
+
+.brand .title {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--accent);
+}
+
+.brand .author {
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: #0b2545;
+}
+
+/**
+ * App shell: toolbar + main content
+ */
+.app {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/**
+ * Toolbar styling
+ * CHANGE THIS -> DO THIS:
+ * - Want sticky toolbar? add position: sticky; top:0;
+ * - Want darker border? increase border alpha
+ */
+.toolbar {
+  height: var(--toolbar-h);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px;
+  background: linear-gradient(180deg, #ffffff, #f5f9ff);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  flex-shrink: 0;
+  position: relative;
+}
+
+.toolbar .group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.toolbar button,
+.toolbar input[type="color"],
+.toolbar input[type="range"],
+.toolbar input[type="number"],
+.toolbar select {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.toolbar button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toolbar .spacer {
+  flex: 1;
+}
+
+/* Collapse menu button */
+#menuCollapse {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+  font-size: 18px;
+}
+
+/* Collapsed mode hides elements with this class */
+.toolbar.collapsed .hide-when-collapsed {
+  display: none;
+}
+
+.toolbar.collapsed {
+  gap: 6px;
+}
+
+/* Dropdown appears under toolbar when collapsed */
+.toolbar-dropdown {
+  position: absolute;
+  left: 8px;
+  top: calc(var(--toolbar-h) + 6px);
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  z-index: 10050;
+  padding: 10px;
+  display: none;
+  min-width: 320px;
+  max-width: calc(100% - 24px);
+}
+
+.toolbar-dropdown.show {
+  display: block;
+}
+
+/**
+ * Layout: left tool column + stage viewport
+ */
+.layout {
+  display: flex;
+  flex: 1;
+  gap: 12px;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.leftcol {
+  width: 88px;
+  min-width: 72px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Tool buttons (Pen/Highlight/Eraser/Select) */
+.toolbtn {
+  width: 64px;
+  text-align: center;
+  padding: 8px;
+  border-radius: 8px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+/* Active tool highlight */
+.toolbtn.active {
+  box-shadow: 0 6px 18px rgba(244, 163, 0, 0.35);
+  border-color: var(--accent);
+}
+
+/**
+ * Stage viewport:
+ * - Holds world (canvas+objects)
+ * - Has border and watermark background
+ */
+.stage-viewport {
+  flex: 1;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ffffff, #fbfdff);
+  border: 3px solid var(--accent);
+  overflow: hidden;
+  position: relative;
+  min-height: 300px;
+}
+
+/* World = big transformable plane. JS sets width/height and transform. */
+.world {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+  background-size: 20px 20px, 20px 20px;
+}
+
+/* Grid on/off */
+.world.grid {
+  background-image:
+    linear-gradient(90deg, rgba(244, 163, 0, 0.18) 1px, transparent 1px),
+    linear-gradient(rgba(244, 163, 0, 0.18) 1px, transparent 1px);
+}
+
+.world.nogrid { background-image: none; }
+
+.objects-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: auto;
+}
+
+canvas.draw-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+}
+
+/* Objects */
+.obj {
+  position: absolute;
+  box-sizing: border-box;
+  transform-origin: center center;
+  touch-action: none;
+  user-select: none;
+  transition: box-shadow 0.12s ease;
+}
+
+.obj .content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* Default rect/circle look */
+.obj.rect {
+  background: rgba(63, 107, 255, 0.06);
+  border: 2px solid rgba(63, 107, 255, 0.18);
+  border-radius: 8px;
+}
+
+.obj.circle {
+  background: rgba(255, 200, 60, 0.10);
+  border: 2px solid rgba(255, 180, 0, 0.22);
+  border-radius: 999px;
+}
+
+.obj.text {
+  background: transparent;
+  border: 1px dashed rgba(0, 0, 0, 0.06);
+  padding: 6px 8px;
+  font-size: 16px;
+  color: #000;
+}
+
+.obj img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 6px;
+}
+
+.obj.selected {
+  box-shadow: 0 12px 30px rgba(244, 163, 0, 0.25);
+  outline: 2px solid rgba(244, 163, 0, 0.25);
+}
+
+/* Handles for rotate/resize */
+.handle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: #ffffff;
+  border: 2px solid rgba(0, 0, 0, 0.12);
+  border-radius: 3px;
+  box-sizing: border-box;
+  z-index: 40;
+}
+
+.handle.rotate {
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: grab;
+}
+
+.handle.resize {
+  right: -10px;
+  bottom: -10px;
+  cursor: se-resize;
+}
+
+/* Selection rectangle */
+.sel-rect {
+  position: fixed;
+  border: 1px dashed rgba(0, 0, 0, 0.25);
+  background: rgba(63, 107, 255, 0.06);
+  pointer-events: none;
+  z-index: 20000;
+  display: none;
+}
+
+/* Eraser cursor overlay */
+#eraserCursor {
+  position: fixed;
+  pointer-events: none;
+  border: 2px dashed rgba(0, 0, 0, 0.35);
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10030;
+  display: none;
+  box-sizing: border-box;
+}
+
+#eraserSizeLabel {
+  position: fixed;
+  pointer-events: none;
+  z-index: 10031;
+  transform: translate(-50%, -120%);
+  background: rgba(20, 30, 60, 0.9);
+  color: #ffffff;
+  font-size: 12px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  display: none;
+  white-space: nowrap;
+}
+
+/* Guide panel */
+.guide {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  width: 320px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 14px 40px rgba(31, 41, 55, 0.12);
+  z-index: 10020;
+  padding: 0;
+  border: 1px solid rgba(63, 107, 255, 0.12);
+  font-size: 13px;
+}
+
+.guide .head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.guide .content {
+  padding: 10px;
+  max-height: 320px;
+  overflow: auto;
+}
+
+/* Help button */
+#helpBtn {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid rgba(63, 107, 255, 0.25);
+  background: #ffffff;
+  font-size: 20px;
+  display: none;
+  z-index: 10025;
+
+  /* Overridden border to match saffron theme */
+  border-color: rgba(244, 163, 0, 0.4);
+}
+
+/* Responsive tweaks */
+@media (max-width: 920px) {
+  .layout { padding: 8px; gap: 8px; }
+  .leftcol { display: none; }
+  .toolbar.small-screen { flex-wrap: wrap; }
+}
+
+@media (max-width: 520px) {
+  .guide { width: 92%; right: 4%; left: 4%; bottom: 12px; }
+  #helpBtn { right: 14px; bottom: 14px; }
+  .toolbar-dropdown { left: 8px; right: 8px; min-width: auto; }
+}
+
+/**
+ * =========================================================
+ * WATERMARK
+ * =========================================================
+ * CHANGE THIS -> DO THIS:
+ * - Want watermark stronger? increase opacity
+ * - Want smaller repeats? adjust background-size
+ * - Want different text? edit the SVG text inside data URL
+ */
+.stage-viewport { position: relative; }
+
+canvas.draw-layer,
+.objects-layer {
+  position: absolute;
+  z-index: 1;
+}
+
+.stage-viewport::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+
+  opacity: 0.3;
+
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27500%27%20height%3D%27280%27%3E%3Cg%20transform%3D%27translate(40%2C160)%20rotate(-20)%27%3E%3Ctext%20x%3D%270%27%20y%3D%270%27%20font-family%3D%27Segoe%20UI%2C%20system-ui%2C%20Arial%27%20font-size%3D%2722%27%20fill%3D%27%23f4a300%27%20fill-opacity%3D%271%27%3EProgrammer%E2%80%99s%20Picnic%20%E2%80%A2%20Champak%20Roy%3C/text%3E%3C/g%3E%3C/svg%3E");
+
+  background-repeat: repeat;
+  background-size: 560px 320px;
+}
+/* Lesson button */
+.lesson-btn {
+  position: fixed;
+  left: 14px;
+  bottom: 14px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 2px solid var(--accent);
+  background: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  z-index: 10040;
+  box-shadow: 0 6px 16px rgba(244,163,0,0.25);
+}
+
+/* Modal overlay */
+.lesson-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10050;
+}
+
+.lesson-modal.hidden {
+  display: none;
+}
+
+/* Panel */
+.lesson-panel {
+  width: 420px;
+  max-width: 90%;
+  background: #fff;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+
+/* Header */
+.lesson-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  background: var(--accent-soft);
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.lesson-header button {
+  border: none;
+  background: none;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+/* Lesson list */
+.lesson-list {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Lesson card */
+.lesson-card {
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,0.08);
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.lesson-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 6px 16px rgba(244,163,0,0.25);
+}
+
+.lesson-card .title {
+  font-weight: 600;
+  color: #000;
+}
+
+.lesson-card .topic {
+  font-size: 12px;
+  color: var(--accent);
+}
+
+.lesson-card .desc {
+  font-size: 13px;
+  color: #444;
+  margin-top: 4px;
+}
