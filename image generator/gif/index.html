@@ -1,0 +1,2378 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>
+      Programmer’s Picnic — GIF Creator PRO v2 (Stickers + Timeline)
+    </title>
+
+    <meta
+      name="description"
+      content="GIF Creator PRO v2: add images, timeline editor, drag reorder, per-frame delay, pan/zoom, captions, per-frame PNG stickers, save/load project, export GIF — browser-only."
+    />
+    <meta
+      name="keywords"
+      content="gif creator, timeline editor, gif maker, stickers, png overlay, per frame delay, browser gif editor"
+    />
+    <meta name="author" content="Champak Roy" />
+    <meta name="theme-color" content="#d97706" />
+
+    <style>
+      :root {
+        --bg: #fff7e6;
+        --card: #ffffff;
+        --ink: #1f2937;
+        --muted: #6b7280;
+        --brand: #d97706;
+        --brand2: #f59e0b;
+        --border: #eadcc5;
+        --shadow: 0 18px 40px rgba(31, 41, 55, 0.14);
+        --r: 20px;
+        --bad: #ef4444;
+        --ok: #10b981;
+        --code: #0b1220;
+        --codeink: #e5e7eb;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial,
+          "Noto Sans";
+        background:
+          radial-gradient(
+            1200px 600px at 15% -10%,
+            rgba(245, 158, 11, 0.35),
+            transparent 60%
+          ),
+          radial-gradient(
+            900px 500px at 100% 0%,
+            rgba(217, 119, 6, 0.25),
+            transparent 55%
+          ),
+          var(--bg);
+        color: var(--ink);
+      }
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 60;
+        backdrop-filter: blur(10px);
+        background: rgba(255, 247, 230, 0.78);
+        border-bottom: 1px solid rgba(234, 220, 197, 0.75);
+      }
+      .topbar .inner {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 12px 18px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 900;
+      }
+      .logo {
+        width: 38px;
+        height: 38px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, var(--brand), var(--brand2));
+        display: grid;
+        place-items: center;
+        color: #fff;
+        box-shadow: 0 14px 30px rgba(217, 119, 6, 0.22);
+        font-weight: 1000;
+        letter-spacing: 0.3px;
+      }
+      .badge {
+        font-size: 12px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--brand), var(--brand2));
+        color: #fff;
+        box-shadow: 0 12px 26px rgba(217, 119, 6, 0.22);
+        white-space: nowrap;
+      }
+
+      .wrap {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 18px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1.05fr 0.95fr;
+        gap: 16px;
+      }
+      @media (max-width: 980px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--r);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+      .card h2 {
+        margin: 0;
+        padding: 14px 14px 12px;
+        font-size: 16px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .content {
+        padding: 14px;
+      }
+      .small {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .row > * {
+        flex: 1 1 160px;
+      }
+      label {
+        display: block;
+        font-size: 12px;
+        color: var(--muted);
+        margin: 0 0 6px;
+      }
+      input[type="number"],
+      input[type="text"],
+      select,
+      textarea {
+        width: 100%;
+        padding: 10px 10px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        outline: none;
+        background: #fff;
+        color: var(--ink);
+      }
+      textarea {
+        min-height: 68px;
+        resize: vertical;
+      }
+      button {
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        padding: 10px 12px;
+        border-radius: 14px;
+        font-weight: 900;
+        background: linear-gradient(90deg, var(--brand), var(--brand2));
+        color: white;
+        box-shadow: 0 14px 30px rgba(217, 119, 6, 0.22);
+      }
+      button.secondary {
+        background: white;
+        color: var(--ink);
+        border: 1px solid var(--border);
+        box-shadow: none;
+      }
+      button.danger {
+        background: linear-gradient(90deg, #ef4444, #f97316);
+      }
+      button:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+      .btns {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .drop {
+        border: 2px dashed rgba(217, 119, 6, 0.35);
+        background: rgba(245, 158, 11, 0.1);
+        border-radius: 18px;
+        padding: 14px;
+      }
+      .drop strong {
+        display: block;
+        margin-bottom: 6px;
+      }
+      .drop p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .note {
+        margin-top: 10px;
+        padding: 10px 12px;
+        border-radius: 14px;
+        background: rgba(245, 158, 11, 0.12);
+        border: 1px solid rgba(217, 119, 6, 0.25);
+        color: #7c2d12;
+        font-size: 13px;
+      }
+
+      .kpi {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .pill {
+        font-size: 12px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: rgba(255, 247, 230, 0.6);
+        color: var(--ink);
+      }
+      .sr {
+        position: absolute;
+        left: -9999px;
+      }
+
+      /* Timeline */
+      .timelineWrap {
+        margin-top: 12px;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 10px;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.72),
+          rgba(255, 255, 255, 1)
+        );
+      }
+      .timelineHead {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 8px;
+      }
+      .timeline {
+        display: flex;
+        gap: 10px;
+        overflow: auto;
+        padding-bottom: 6px;
+        scroll-snap-type: x mandatory;
+      }
+      .tItem {
+        flex: 0 0 auto;
+        width: 140px;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: #fff;
+        padding: 10px;
+        scroll-snap-align: start;
+        user-select: none;
+      }
+      .tItem.sel {
+        outline: 2px solid rgba(245, 158, 11, 0.85);
+        outline-offset: 2px;
+        box-shadow: 0 16px 38px rgba(217, 119, 6, 0.16);
+      }
+      .tThumb {
+        height: 78px;
+        border-radius: 12px;
+        background: #f3f4f6;
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        overflow: hidden;
+        display: grid;
+        place-items: center;
+      }
+      .tThumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .tMeta {
+        margin-top: 8px;
+      }
+      .tMeta .nm {
+        font-weight: 1000;
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .tMeta .sub {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+      .tTools {
+        margin-top: 8px;
+        display: flex;
+        gap: 6px;
+      }
+      .mini {
+        padding: 8px 10px;
+        border-radius: 12px;
+        font-weight: 1000;
+        background: #fff;
+        border: 1px solid var(--border);
+        color: var(--ink);
+        box-shadow: none;
+      }
+      .mini.bad {
+        border-color: rgba(239, 68, 68, 0.35);
+        color: #991b1b;
+      }
+
+      /* Preview */
+      .canvasWrap {
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 12px;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.75),
+          rgba(255, 255, 255, 1)
+        );
+      }
+      canvas {
+        max-width: 100%;
+        height: auto;
+        border-radius: 12px;
+        background: #fff;
+      }
+
+      .status {
+        margin-top: 10px;
+        padding: 10px 12px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: #fff;
+        color: var(--muted);
+        font-size: 13px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .bar {
+        flex: 1;
+        height: 10px;
+        border-radius: 999px;
+        background: #f3f4f6;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+      }
+      .bar > i {
+        display: block;
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, var(--brand), var(--brand2));
+      }
+      .out {
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: white;
+        padding: 12px;
+        display: none;
+      }
+      .out img {
+        max-width: 100%;
+        display: block;
+        border-radius: 12px;
+      }
+      .kbd {
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", monospace;
+        font-size: 12px;
+        padding: 2px 6px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: #fff;
+      }
+
+      .split {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      @media (max-width: 720px) {
+        .split {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      footer {
+        text-align: center;
+        color: var(--muted);
+        font-size: 12px;
+        padding: 18px 0 30px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="topbar">
+      <div class="inner">
+        <div class="brand">
+          <div class="logo">V2</div>
+          <div>
+            <div style="font-size: 14px; line-height: 1.1">
+              Programmer’s Picnic
+            </div>
+            <div style="font-size: 12px; color: var(--muted); line-height: 1.1">
+              GIF Creator PRO v2 — Stickers + Timeline
+            </div>
+          </div>
+        </div>
+        <div class="badge">Timeline • Stickers • Pan/Zoom • Export</div>
+      </div>
+    </div>
+
+    <div class="wrap">
+      <div class="grid">
+        <!-- LEFT: Import + Timeline -->
+        <section class="card">
+          <h2>
+            <span>Frames Timeline</span>
+            <span class="small">Drag to reorder • click to select</span>
+          </h2>
+          <div class="content">
+            <div class="drop" id="drop">
+              <strong>Drop images here</strong>
+              <p>PNG/JPG/WebP • Click area or use Choose button.</p>
+              <input
+                class="sr"
+                id="file"
+                type="file"
+                accept="image/*"
+                multiple
+              />
+              <div class="btns" style="margin-top: 10px">
+                <button class="secondary" id="pick">Choose Images</button>
+                <button class="secondary" id="addDemo">Add Demo</button>
+                <button class="secondary" id="saveLocal" disabled>
+                  Save Project
+                </button>
+                <button class="secondary" id="loadLocal">Load Saved</button>
+                <button class="danger" id="clearAll" disabled>Clear</button>
+              </div>
+              <div class="btns" style="margin-top: 10px">
+                <button class="secondary" id="exportJSON" disabled>
+                  Export Project JSON
+                </button>
+                <button class="secondary" id="importJSON">
+                  Import Project JSON
+                </button>
+                <input
+                  class="sr"
+                  id="jsonFile"
+                  type="file"
+                  accept="application/json"
+                />
+              </div>
+              <div class="small" style="margin-top: 10px">
+                Shortcuts: <span class="kbd">Space</span> play/pause •
+                <span class="kbd">R</span> reset •
+                <span class="kbd">E</span> export GIF •
+                <span class="kbd">Del</span> remove selected
+              </div>
+            </div>
+
+            <div style="margin-top: 12px" class="kpi">
+              <span class="pill" id="kFrames">Frames: 0</span>
+              <span class="pill" id="kSize">Output: —</span>
+              <span class="pill" id="kTiming">Total: —</span>
+              <span class="pill" id="kSel">Selected: —</span>
+            </div>
+
+            <div class="timelineWrap">
+              <div class="timelineHead">
+                <div style="font-weight: 1000">Timeline</div>
+                <div class="small">Quick delay edit per frame</div>
+              </div>
+              <div class="timeline" id="timeline"></div>
+            </div>
+
+            <div class="note">
+              Timeline cards: drag to reorder. Each card shows its
+              <b>delay</b> and has quick controls.
+            </div>
+          </div>
+        </section>
+
+        <!-- RIGHT: Editor + Preview + Export -->
+        <section class="card">
+          <h2>
+            <span>Editor • Preview • Export</span>
+            <span class="small" id="libStatus">Loading encoder…</span>
+          </h2>
+          <div class="content">
+            <!-- Global output -->
+            <div class="split">
+              <div>
+                <label>Output Width (px)</label>
+                <input type="number" id="outW" min="16" step="1" value="480" />
+              </div>
+              <div>
+                <label>Output Height (px)</label>
+                <input type="number" id="outH" min="16" step="1" value="270" />
+              </div>
+            </div>
+
+            <div class="split" style="margin-top: 10px">
+              <div>
+                <label>Preview FPS</label>
+                <input type="number" id="fps" min="1" max="60" value="8" />
+              </div>
+              <div>
+                <label>Default Delay (ms) (new frames)</label>
+                <input
+                  type="number"
+                  id="defaultDelay"
+                  min="10"
+                  step="10"
+                  value="125"
+                />
+              </div>
+            </div>
+
+            <div class="split" style="margin-top: 10px">
+              <div>
+                <label>Loop</label>
+                <select id="loop">
+                  <option value="0">Forever</option>
+                  <option value="1">1 time</option>
+                  <option value="2">2 times</option>
+                  <option value="3">3 times</option>
+                  <option value="5">5 times</option>
+                </select>
+              </div>
+              <div>
+                <label>Fit (global)</label>
+                <select id="fit">
+                  <option value="contain">Contain</option>
+                  <option value="cover">Cover</option>
+                  <option value="stretch">Stretch</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="split" style="margin-top: 10px">
+              <div>
+                <label>Quality (1 best, slower)</label>
+                <input type="number" id="quality" min="1" max="30" value="10" />
+              </div>
+              <div>
+                <label>Dither</label>
+                <select id="dither">
+                  <option value="false">Off</option>
+                  <option value="true">On</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Per-frame editor -->
+            <div
+              style="
+                margin-top: 14px;
+                padding-top: 12px;
+                border-top: 1px solid var(--border);
+              "
+            >
+              <div
+                style="
+                  display: flex;
+                  align-items: center;
+                  justify-content: space-between;
+                  gap: 10px;
+                  margin-bottom: 8px;
+                "
+              >
+                <div style="font-weight: 1000">Selected Frame</div>
+                <div class="small" id="selHelp">
+                  Select a frame in timeline.
+                </div>
+              </div>
+
+              <div class="split">
+                <div>
+                  <label>Per-frame Delay (ms)</label>
+                  <input
+                    type="number"
+                    id="fDelay"
+                    min="10"
+                    step="10"
+                    value="125"
+                    disabled
+                  />
+                </div>
+                <div>
+                  <label>Zoom</label>
+                  <input
+                    type="number"
+                    id="fZoom"
+                    min="0.1"
+                    step="0.05"
+                    value="1"
+                    disabled
+                  />
+                </div>
+              </div>
+
+              <div class="split" style="margin-top: 10px">
+                <div>
+                  <label>Pan X (px)</label>
+                  <input type="number" id="fPanX" step="1" value="0" disabled />
+                </div>
+                <div>
+                  <label>Pan Y (px)</label>
+                  <input type="number" id="fPanY" step="1" value="0" disabled />
+                </div>
+              </div>
+
+              <div class="split" style="margin-top: 10px">
+                <div>
+                  <label>Caption / Emoji (per-frame)</label>
+                  <textarea
+                    id="fText"
+                    placeholder="Hello 😄"
+                    disabled
+                  ></textarea>
+                </div>
+                <div>
+                  <label>Caption Style</label>
+                  <div class="row" style="margin: 0">
+                    <div>
+                      <label style="margin-top: 0">Size</label>
+                      <input
+                        type="number"
+                        id="fTextSize"
+                        min="8"
+                        max="120"
+                        value="28"
+                        disabled
+                      />
+                    </div>
+                    <div>
+                      <label style="margin-top: 0">X</label>
+                      <input
+                        type="number"
+                        id="fTextX"
+                        step="1"
+                        value="24"
+                        disabled
+                      />
+                    </div>
+                    <div>
+                      <label style="margin-top: 0">Y</label>
+                      <input
+                        type="number"
+                        id="fTextY"
+                        step="1"
+                        value="48"
+                        disabled
+                      />
+                    </div>
+                  </div>
+                  <div class="row" style="margin-top: 8px">
+                    <div>
+                      <label style="margin-top: 0">Fill</label>
+                      <input
+                        type="text"
+                        id="fTextFill"
+                        value="#111827"
+                        disabled
+                      />
+                    </div>
+                    <div>
+                      <label style="margin-top: 0">Stroke</label>
+                      <input
+                        type="text"
+                        id="fTextStroke"
+                        value="rgba(255,255,255,0.85)"
+                        disabled
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Sticker editor -->
+              <div
+                style="
+                  margin-top: 12px;
+                  padding-top: 12px;
+                  border-top: 1px dashed rgba(217, 119, 6, 0.35);
+                "
+              >
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 10px;
+                    margin-bottom: 8px;
+                  "
+                >
+                  <div style="font-weight: 1000">Sticker (PNG) — Per Frame</div>
+                  <div class="small">Upload & position</div>
+                </div>
+
+                <div class="btns">
+                  <button class="secondary" id="pickSticker" disabled>
+                    Add/Replace Sticker
+                  </button>
+                  <button class="secondary" id="removeSticker" disabled>
+                    Remove Sticker
+                  </button>
+                  <input
+                    class="sr"
+                    id="stickerFile"
+                    type="file"
+                    accept="image/png,image/webp,image/*"
+                  />
+                </div>
+
+                <div class="split" style="margin-top: 10px">
+                  <div>
+                    <label>Sticker Scale</label>
+                    <input
+                      type="number"
+                      id="sScale"
+                      min="0.05"
+                      step="0.05"
+                      value="1"
+                      disabled
+                    />
+                  </div>
+                  <div>
+                    <label>Sticker Rotate (deg)</label>
+                    <input
+                      type="number"
+                      id="sRot"
+                      step="1"
+                      value="0"
+                      disabled
+                    />
+                  </div>
+                </div>
+
+                <div class="split" style="margin-top: 10px">
+                  <div>
+                    <label>Sticker X (px)</label>
+                    <input
+                      type="number"
+                      id="sX"
+                      step="1"
+                      value="240"
+                      disabled
+                    />
+                  </div>
+                  <div>
+                    <label>Sticker Y (px)</label>
+                    <input
+                      type="number"
+                      id="sY"
+                      step="1"
+                      value="135"
+                      disabled
+                    />
+                  </div>
+                </div>
+
+                <div class="small" style="margin-top: 8px; color: var(--muted)">
+                  Tip: After adding sticker, you can fine-tune X/Y/scale/rotate.
+                  (Canvas drag controls can be added next.)
+                </div>
+              </div>
+
+              <div class="btns" style="margin-top: 10px">
+                <button class="secondary" id="copyPrev" disabled>
+                  Copy previous frame settings
+                </button>
+                <button class="secondary" id="resetFrame" disabled>
+                  Reset this frame edits
+                </button>
+              </div>
+            </div>
+
+            <!-- Watermark -->
+            <div
+              style="
+                margin-top: 14px;
+                padding-top: 12px;
+                border-top: 1px solid var(--border);
+              "
+            >
+              <div style="font-weight: 1000; margin-bottom: 8px">
+                Global Watermark (optional)
+              </div>
+              <div class="split">
+                <div>
+                  <label>Watermark Text</label>
+                  <input
+                    type="text"
+                    id="wmText"
+                    placeholder="Programmer’s Picnic"
+                  />
+                </div>
+                <div>
+                  <label>Watermark Opacity (0–1)</label>
+                  <input
+                    type="number"
+                    id="wmAlpha"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value="0.35"
+                  />
+                </div>
+              </div>
+              <div class="split" style="margin-top: 10px">
+                <div>
+                  <label>Watermark Size</label>
+                  <input
+                    type="number"
+                    id="wmSize"
+                    min="8"
+                    max="120"
+                    value="18"
+                  />
+                </div>
+                <div>
+                  <label>Position</label>
+                  <select id="wmPos">
+                    <option value="br">Bottom-right</option>
+                    <option value="bl">Bottom-left</option>
+                    <option value="tr">Top-right</option>
+                    <option value="tl">Top-left</option>
+                    <option value="c">Center</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Preview -->
+            <div style="margin-top: 14px" class="canvasWrap">
+              <div
+                style="
+                  display: flex;
+                  align-items: center;
+                  justify-content: space-between;
+                  gap: 10px;
+                  margin-bottom: 10px;
+                "
+              >
+                <div class="kpi">
+                  <span class="pill" id="pState">Preview: stopped</span>
+                  <span class="pill" id="pIdx">Frame: —</span>
+                </div>
+                <div class="btns" style="justify-content: flex-end">
+                  <button class="secondary" id="play" disabled>Play</button>
+                  <button class="secondary" id="step" disabled>Step</button>
+                  <button class="secondary" id="reset" disabled>Reset</button>
+                </div>
+              </div>
+              <canvas id="cv" width="480" height="270"></canvas>
+              <div class="small" style="margin-top: 8px; color: var(--muted)">
+                Mouse: drag canvas to pan (selected frame) • Wheel: zoom •
+                Double-click: reset pan/zoom
+              </div>
+            </div>
+
+            <!-- Export -->
+            <div class="btns" style="margin-top: 12px">
+              <button id="export" disabled>Export GIF</button>
+              <button class="secondary" id="download" disabled>
+                Download GIF
+              </button>
+              <button class="secondary" id="copyLink" disabled>
+                Copy Object URL
+              </button>
+            </div>
+
+            <div class="status">
+              <span id="statusText">Add frames to begin.</span>
+              <div class="bar" aria-hidden="true"><i id="bar"></i></div>
+            </div>
+
+            <div class="out" id="out">
+              <div
+                class="small"
+                style="margin-bottom: 8px; color: var(--muted)"
+              >
+                Export Preview
+              </div>
+              <img id="gifImg" alt="Exported GIF preview" />
+              <div class="small" id="gifMeta" style="margin-top: 8px"></div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <footer>
+        © Programmer’s Picnic • GIF Creator PRO v2 • Timeline + Stickers
+      </footer>
+    </div>
+
+    <!-- gif.js -->
+    <script src="https://cdn.jsdelivr.net/npm/gif.js.optimized@1.0.1/dist/gif.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gif.js.optimized@1.0.1/dist/gif.worker.js"></script>
+
+    <script>
+      // ----------------- State -----------------
+      const LS_KEY = "pp_gif_creator_pro_v2";
+      const state = {
+        frames: [], // {id,name,url,img,w,h, edit:{delay, zoom, panX, panY, text, ... , sticker:{dataUrl, img, x,y, scale, rot}}}
+        sel: -1,
+        playing: false,
+        idx: 0,
+        timer: null,
+        gifUrl: null,
+        drag: { on: false, sx: 0, sy: 0, startPanX: 0, startPanY: 0 },
+      };
+
+      // ----------------- Elements -----------------
+      const el = {
+        drop: document.getElementById("drop"),
+        file: document.getElementById("file"),
+        pick: document.getElementById("pick"),
+        addDemo: document.getElementById("addDemo"),
+        clearAll: document.getElementById("clearAll"),
+
+        saveLocal: document.getElementById("saveLocal"),
+        loadLocal: document.getElementById("loadLocal"),
+        exportJSON: document.getElementById("exportJSON"),
+        importJSON: document.getElementById("importJSON"),
+        jsonFile: document.getElementById("jsonFile"),
+
+        timeline: document.getElementById("timeline"),
+
+        outW: document.getElementById("outW"),
+        outH: document.getElementById("outH"),
+        fit: document.getElementById("fit"),
+        fps: document.getElementById("fps"),
+        defaultDelay: document.getElementById("defaultDelay"),
+        loop: document.getElementById("loop"),
+        quality: document.getElementById("quality"),
+        dither: document.getElementById("dither"),
+
+        // per-frame
+        fDelay: document.getElementById("fDelay"),
+        fZoom: document.getElementById("fZoom"),
+        fPanX: document.getElementById("fPanX"),
+        fPanY: document.getElementById("fPanY"),
+        fText: document.getElementById("fText"),
+        fTextSize: document.getElementById("fTextSize"),
+        fTextX: document.getElementById("fTextX"),
+        fTextY: document.getElementById("fTextY"),
+        fTextFill: document.getElementById("fTextFill"),
+        fTextStroke: document.getElementById("fTextStroke"),
+        copyPrev: document.getElementById("copyPrev"),
+        resetFrame: document.getElementById("resetFrame"),
+        selHelp: document.getElementById("selHelp"),
+
+        // sticker
+        pickSticker: document.getElementById("pickSticker"),
+        removeSticker: document.getElementById("removeSticker"),
+        stickerFile: document.getElementById("stickerFile"),
+        sScale: document.getElementById("sScale"),
+        sRot: document.getElementById("sRot"),
+        sX: document.getElementById("sX"),
+        sY: document.getElementById("sY"),
+
+        // watermark
+        wmText: document.getElementById("wmText"),
+        wmAlpha: document.getElementById("wmAlpha"),
+        wmSize: document.getElementById("wmSize"),
+        wmPos: document.getElementById("wmPos"),
+
+        // preview/export
+        cv: document.getElementById("cv"),
+        play: document.getElementById("play"),
+        step: document.getElementById("step"),
+        reset: document.getElementById("reset"),
+        export: document.getElementById("export"),
+        download: document.getElementById("download"),
+        copyLink: document.getElementById("copyLink"),
+        statusText: document.getElementById("statusText"),
+        bar: document.getElementById("bar"),
+        out: document.getElementById("out"),
+        gifImg: document.getElementById("gifImg"),
+        gifMeta: document.getElementById("gifMeta"),
+
+        // kpi
+        kFrames: document.getElementById("kFrames"),
+        kSize: document.getElementById("kSize"),
+        kTiming: document.getElementById("kTiming"),
+        kSel: document.getElementById("kSel"),
+
+        pState: document.getElementById("pState"),
+        pIdx: document.getElementById("pIdx"),
+        libStatus: document.getElementById("libStatus"),
+      };
+
+      const ctx = el.cv.getContext("2d", { willReadFrequently: true });
+
+      // ----------------- Helpers -----------------
+      const uid = () =>
+        Math.random().toString(16).slice(2) + Date.now().toString(16);
+
+      function clampNum(input, min, max, fallback) {
+        const n = Number(input.value);
+        if (!Number.isFinite(n)) {
+          input.value = fallback;
+          return fallback;
+        }
+        const v = Math.max(min, Math.min(max, n));
+        input.value = v;
+        return v;
+      }
+
+      function setStatus(text, pct = null) {
+        el.statusText.textContent = text;
+        if (pct === null) el.bar.style.width = "0%";
+        else
+          el.bar.style.width = Math.max(0, Math.min(100, pct)).toFixed(0) + "%";
+      }
+
+      function revokeGifUrl() {
+        if (state.gifUrl) {
+          URL.revokeObjectURL(state.gifUrl);
+          state.gifUrl = null;
+        }
+      }
+
+      function defaultEdit() {
+        const d = clampNum(el.defaultDelay, 10, 60000, 125);
+        return {
+          delay: d,
+          zoom: 1,
+          panX: 0,
+          panY: 0,
+          text: "",
+          textX: 24,
+          textY: 48,
+          textSize: 28,
+          fill: "#111827",
+          stroke: "rgba(255,255,255,0.85)",
+          sticker: null, // {dataUrl, img, x,y, scale, rot}
+        };
+      }
+
+      function enableFrameEditor(on) {
+        const a = [
+          el.fDelay,
+          el.fZoom,
+          el.fPanX,
+          el.fPanY,
+          el.fText,
+          el.fTextSize,
+          el.fTextX,
+          el.fTextY,
+          el.fTextFill,
+          el.fTextStroke,
+          el.copyPrev,
+          el.resetFrame,
+        ];
+        a.forEach((x) => (x.disabled = !on));
+
+        const s = [
+          el.pickSticker,
+          el.removeSticker,
+          el.sScale,
+          el.sRot,
+          el.sX,
+          el.sY,
+        ];
+        s.forEach((x) => (x.disabled = !on));
+
+        el.selHelp.textContent = on
+          ? "Edit per-frame settings here."
+          : "Select a frame in timeline.";
+      }
+
+      function selectedFrame() {
+        return state.frames[state.sel] || null;
+      }
+
+      function updateKPIs() {
+        const W = Number(el.outW.value) || 0,
+          H = Number(el.outH.value) || 0;
+        el.kFrames.textContent = `Frames: ${state.frames.length}`;
+        el.kSize.textContent = `Output: ${W}×${H}`;
+        const total = state.frames.reduce(
+          (s, f) => s + (Number(f.edit?.delay) || 0),
+          0,
+        );
+        el.kTiming.textContent = `Total: ${total}ms • Loop: ${el.loop.value === "0" ? "∞" : el.loop.value}`;
+        el.kSel.textContent =
+          state.sel >= 0
+            ? `Selected: ${state.sel + 1}/${state.frames.length}`
+            : "Selected: —";
+      }
+
+      function syncEditorFromSelected() {
+        const fr = selectedFrame();
+        if (!fr) {
+          enableFrameEditor(false);
+          return;
+        }
+        enableFrameEditor(true);
+        const e = fr.edit || (fr.edit = defaultEdit());
+
+        el.fDelay.value = e.delay;
+        el.fZoom.value = e.zoom;
+        el.fPanX.value = e.panX;
+        el.fPanY.value = e.panY;
+
+        el.fText.value = e.text;
+        el.fTextSize.value = e.textSize;
+        el.fTextX.value = e.textX;
+        el.fTextY.value = e.textY;
+        el.fTextFill.value = e.fill;
+        el.fTextStroke.value = e.stroke;
+
+        // sticker fields
+        const st = e.sticker;
+        if (st) {
+          el.sScale.value = st.scale ?? 1;
+          el.sRot.value = st.rot ?? 0;
+          el.sX.value = st.x ?? Math.round((Number(el.outW.value) || 480) / 2);
+          el.sY.value = st.y ?? Math.round((Number(el.outH.value) || 270) / 2);
+        } else {
+          el.sScale.value = 1;
+          el.sRot.value = 0;
+          el.sX.value = Math.round((Number(el.outW.value) || 480) / 2);
+          el.sY.value = Math.round((Number(el.outH.value) || 270) / 2);
+        }
+        el.removeSticker.disabled = !st;
+      }
+
+      function applyEditorToSelected() {
+        const fr = selectedFrame();
+        if (!fr) return;
+        const e = fr.edit || (fr.edit = defaultEdit());
+
+        e.delay = clampNum(el.fDelay, 10, 60000, 125);
+        e.zoom = clampNum(el.fZoom, 0.1, 10, 1);
+        e.panX = Number(el.fPanX.value) || 0;
+        e.panY = Number(el.fPanY.value) || 0;
+
+        e.text = el.fText.value || "";
+        e.textSize = clampNum(el.fTextSize, 8, 120, 28);
+        e.textX = Number(el.fTextX.value) || 0;
+        e.textY = Number(el.fTextY.value) || 0;
+        e.fill = (el.fTextFill.value || "#111827").trim();
+        e.stroke = (el.fTextStroke.value || "rgba(255,255,255,0.85)").trim();
+
+        // sticker numeric edits (if sticker exists)
+        if (e.sticker) {
+          e.sticker.scale = Number(el.sScale.value) || 1;
+          e.sticker.rot = Number(el.sRot.value) || 0;
+          e.sticker.x = Number(el.sX.value) || 0;
+          e.sticker.y = Number(el.sY.value) || 0;
+        }
+      }
+
+      // ----------------- Draw -----------------
+      function drawFrameAt(idx) {
+        const fr = state.frames[idx];
+        if (!fr) return;
+
+        const W = clampNum(el.outW, 16, 4096, 480);
+        const H = clampNum(el.outH, 16, 4096, 270);
+        el.cv.width = W;
+        el.cv.height = H;
+        ctx.clearRect(0, 0, W, H);
+
+        const img = fr.img;
+        const e = fr.edit || defaultEdit();
+        const mode = el.fit.value;
+
+        const iw = img.naturalWidth || img.width;
+        const ih = img.naturalHeight || img.height;
+
+        if (mode === "stretch") {
+          const zx = e.zoom,
+            zy = e.zoom;
+          const sw = W / zx;
+          const sh = H / zy;
+          const sx = (iw - sw) / 2 - e.panX / zx;
+          const sy = (ih - sh) / 2 - e.panY / zy;
+          ctx.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
+        } else {
+          const sContain = Math.min(W / iw, H / ih);
+          const sCover = Math.max(W / iw, H / ih);
+          const baseScale = mode === "cover" ? sCover : sContain;
+
+          const scale = baseScale * e.zoom;
+          const dw = iw * scale;
+          const dh = ih * scale;
+          const cx = (W - dw) / 2 + e.panX;
+          const cy = (H - dh) / 2 + e.panY;
+          ctx.drawImage(img, cx, cy, dw, dh);
+        }
+
+        // caption
+        if (e.text && e.text.trim()) {
+          const size = Number(e.textSize) || 28;
+          ctx.save();
+          ctx.font = `900 ${size}px ui-sans-serif, system-ui, Segoe UI, Arial`;
+          ctx.textBaseline = "top";
+          ctx.lineJoin = "round";
+          const x = Number(e.textX) || 0,
+            y = Number(e.textY) || 0;
+          const lines = e.text.split("\\n");
+          const lh = Math.round(size * 1.2);
+          ctx.lineWidth = Math.max(2, Math.round(size / 10));
+          ctx.strokeStyle = e.stroke || "rgba(255,255,255,0.85)";
+          ctx.fillStyle = e.fill || "#111827";
+          lines.forEach((line, li) => {
+            const yy = y + li * lh;
+            ctx.strokeText(line, x, yy);
+            ctx.fillText(line, x, yy);
+          });
+          ctx.restore();
+        }
+
+        // sticker
+        if (e.sticker && e.sticker.img) {
+          const st = e.sticker;
+          const sImg = st.img;
+          const sc = Number(st.scale) || 1;
+          const rot = ((Number(st.rot) || 0) * Math.PI) / 180;
+          const x = Number(st.x) || 0;
+          const y = Number(st.y) || 0;
+
+          const sw = (sImg.naturalWidth || sImg.width) * sc;
+          const sh = (sImg.naturalHeight || sImg.height) * sc;
+
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(rot);
+          ctx.drawImage(sImg, -sw / 2, -sh / 2, sw, sh);
+          ctx.restore();
+        }
+
+        // watermark
+        const wm = (el.wmText.value || "").trim();
+        if (wm) {
+          const alpha = Math.max(
+            0,
+            Math.min(1, Number(el.wmAlpha.value) || 0.35),
+          );
+          const size = Math.max(
+            8,
+            Math.min(120, Number(el.wmSize.value) || 18),
+          );
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          ctx.font = `900 ${size}px ui-sans-serif, system-ui, Segoe UI, Arial`;
+          ctx.textBaseline = "bottom";
+          ctx.fillStyle = "#111827";
+          ctx.strokeStyle = "rgba(255,255,255,0.9)";
+          ctx.lineWidth = 3;
+
+          const pad = 12;
+          const tw = ctx.measureText(wm).width;
+          let xx = pad,
+            yy = H - pad;
+          const pos = el.wmPos.value;
+          if (pos === "br") {
+            xx = W - pad - tw;
+            yy = H - pad;
+          }
+          if (pos === "bl") {
+            xx = pad;
+            yy = H - pad;
+          }
+          if (pos === "tr") {
+            xx = W - pad - tw;
+            yy = pad + size;
+          }
+          if (pos === "tl") {
+            xx = pad;
+            yy = pad + size;
+          }
+          if (pos === "c") {
+            xx = (W - tw) / 2;
+            yy = (H + size) / 2;
+            ctx.textBaseline = "middle";
+          }
+
+          ctx.strokeText(wm, xx, yy);
+          ctx.fillText(wm, xx, yy);
+          ctx.restore();
+        }
+
+        el.pIdx.textContent = `Frame: ${idx + 1}/${state.frames.length}`;
+      }
+
+      // ----------------- Preview -----------------
+      function stopPreview() {
+        state.playing = false;
+        if (state.timer) clearInterval(state.timer);
+        state.timer = null;
+        el.pState.textContent = "Preview: stopped";
+        el.play.textContent = "Play";
+      }
+      function startPreview() {
+        if (!state.frames.length) return;
+        stopPreview();
+        state.playing = true;
+        el.pState.textContent = "Preview: playing";
+        el.play.textContent = "Pause";
+
+        const fps = clampNum(el.fps, 1, 60, 8);
+        const interval = Math.round(1000 / fps);
+
+        state.timer = setInterval(() => {
+          state.idx = (state.idx + 1) % state.frames.length;
+          drawFrameAt(state.idx);
+        }, interval);
+      }
+      function togglePreview() {
+        state.playing ? stopPreview() : startPreview();
+      }
+
+      // ----------------- Timeline UI -----------------
+      function renderTimeline() {
+        el.timeline.innerHTML = "";
+        state.frames.forEach((fr, i) => {
+          const card = document.createElement("div");
+          card.className = "tItem" + (i === state.sel ? " sel" : "");
+          card.draggable = true;
+          card.dataset.id = fr.id;
+
+          card.addEventListener("click", () => {
+            state.sel = i;
+            stopPreview();
+            syncEditorFromSelected();
+            refreshUI();
+            setStatus(`Selected frame ${i + 1}.`, 0);
+          });
+
+          // drag reorder
+          card.addEventListener("dragstart", (e) => {
+            e.dataTransfer.setData("text/plain", fr.id);
+            e.dataTransfer.effectAllowed = "move";
+          });
+          card.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+            card.style.outline = "2px solid rgba(245,158,11,.7)";
+            card.style.outlineOffset = "2px";
+          });
+          card.addEventListener("dragleave", () => {
+            card.style.outline = "";
+            card.style.outlineOffset = "";
+          });
+          card.addEventListener("drop", (e) => {
+            e.preventDefault();
+            card.style.outline = "";
+            card.style.outlineOffset = "";
+            const fromId = e.dataTransfer.getData("text/plain");
+            if (!fromId || fromId === fr.id) return;
+            const fromIdx = state.frames.findIndex((x) => x.id === fromId);
+            const toIdx = state.frames.findIndex((x) => x.id === fr.id);
+            if (fromIdx < 0 || toIdx < 0) return;
+            moveFrame(fromIdx, toIdx);
+          });
+
+          const thumb = document.createElement("div");
+          thumb.className = "tThumb";
+          const im = document.createElement("img");
+          im.alt = fr.name;
+          im.src = fr.url;
+          thumb.appendChild(im);
+
+          const meta = document.createElement("div");
+          meta.className = "tMeta";
+          const nm = document.createElement("div");
+          nm.className = "nm";
+          nm.textContent = `${i + 1}. ${fr.name}`;
+          const sub = document.createElement("div");
+          sub.className = "sub";
+          sub.textContent = `${Number(fr.edit?.delay) || 0}ms • ${fr.w}×${fr.h}`;
+          meta.appendChild(nm);
+          meta.appendChild(sub);
+
+          // quick delay
+          const delay = document.createElement("input");
+          delay.type = "number";
+          delay.min = "10";
+          delay.step = "10";
+          delay.value = Number(fr.edit?.delay) || 125;
+          delay.style.marginTop = "8px";
+          delay.addEventListener("click", (e) => e.stopPropagation());
+          delay.addEventListener("input", (e) => {
+            const v = Math.max(10, Number(delay.value) || 125);
+            fr.edit.delay = v;
+            if (i === state.sel) el.fDelay.value = v;
+            updateKPIs();
+            renderTimeline(); // keep sub text updated
+          });
+
+          const tools = document.createElement("div");
+          tools.className = "tTools";
+
+          const up = document.createElement("button");
+          up.className = "mini";
+          up.textContent = "←";
+          up.title = "Move left";
+          up.disabled = i === 0;
+          up.onclick = (e) => {
+            e.stopPropagation();
+            moveFrame(i, i - 1);
+          };
+
+          const dn = document.createElement("button");
+          dn.className = "mini";
+          dn.textContent = "→";
+          dn.title = "Move right";
+          dn.disabled = i === state.frames.length - 1;
+          dn.onclick = (e) => {
+            e.stopPropagation();
+            moveFrame(i, i + 1);
+          };
+
+          const rm = document.createElement("button");
+          rm.className = "mini bad";
+          rm.textContent = "✕";
+          rm.title = "Remove";
+          rm.onclick = (e) => {
+            e.stopPropagation();
+            removeFrame(i);
+          };
+
+          tools.appendChild(up);
+          tools.appendChild(dn);
+          tools.appendChild(rm);
+
+          card.appendChild(thumb);
+          card.appendChild(meta);
+          card.appendChild(delay);
+          card.appendChild(tools);
+
+          el.timeline.appendChild(card);
+        });
+      }
+
+      function moveFrame(from, to) {
+        if (from === to) return;
+        const a = state.frames;
+        const it = a.splice(from, 1)[0];
+        a.splice(to, 0, it);
+        state.sel = to;
+        refreshUI();
+      }
+
+      function removeFrame(i) {
+        const fr = state.frames[i];
+        if (!fr) return;
+        if (fr.url.startsWith("blob:")) URL.revokeObjectURL(fr.url);
+        state.frames.splice(i, 1);
+        state.sel = Math.max(0, Math.min(state.frames.length - 1, state.sel));
+        refreshUI();
+        setStatus(
+          state.frames.length ? "Frame removed." : "Add frames to begin.",
+          0,
+        );
+      }
+
+      // ----------------- Refresh -----------------
+      function refreshUI() {
+        updateKPIs();
+        const has = state.frames.length > 0;
+
+        el.clearAll.disabled = !has;
+        el.play.disabled = !has;
+        el.step.disabled = !has;
+        el.reset.disabled = !has;
+        el.export.disabled = !has || !window.GIF;
+
+        el.saveLocal.disabled = !has;
+        el.exportJSON.disabled = !has;
+
+        if (state.sel >= state.frames.length)
+          state.sel = state.frames.length - 1;
+        if (state.sel < 0 && has) state.sel = 0;
+
+        renderTimeline();
+
+        if (!has) {
+          stopPreview();
+          ctx.clearRect(0, 0, el.cv.width, el.cv.height);
+          el.pIdx.textContent = "Frame: —";
+          el.out.style.display = "none";
+          enableFrameEditor(false);
+        } else {
+          syncEditorFromSelected();
+          drawFrameAt(state.sel);
+        }
+
+        el.download.disabled = !state.gifUrl;
+        el.copyLink.disabled = !state.gifUrl;
+      }
+
+      // ----------------- Ingest images -----------------
+      async function addFiles(files) {
+        if (!files || !files.length) return;
+        setStatus("Loading images…", 5);
+
+        for (let k = 0; k < files.length; k++) {
+          const f = files[k];
+          if (!f.type.startsWith("image/")) continue;
+
+          const url = URL.createObjectURL(f);
+          const img = new Image();
+          img.decoding = "async";
+          await new Promise((res, rej) => {
+            img.onload = res;
+            img.onerror = rej;
+            img.src = url;
+          });
+
+          state.frames.push({
+            id: uid(),
+            name: f.name || `frame_${state.frames.length + 1}`,
+            url,
+            img,
+            w: img.naturalWidth || img.width,
+            h: img.naturalHeight || img.height,
+            edit: defaultEdit(),
+          });
+
+          setStatus(
+            `Loaded ${k + 1}/${files.length}…`,
+            5 + ((k + 1) / files.length) * 35,
+          );
+        }
+
+        if (state.sel < 0) state.sel = 0;
+        refreshUI();
+        setStatus(`Ready. ${state.frames.length} frame(s) added.`, 0);
+      }
+
+      async function addDemoFrames() {
+        const W = 640,
+          H = 360;
+        const make = (n) => {
+          const c = document.createElement("canvas");
+          c.width = W;
+          c.height = H;
+          const x = c.getContext("2d");
+
+          x.fillStyle = "#fff7e6";
+          x.fillRect(0, 0, W, H);
+          x.fillStyle = "rgba(217,119,6,.18)";
+          x.beginPath();
+          x.arc(120 + n * 35, 90 + n * 10, 150, 0, Math.PI * 2);
+          x.fill();
+          x.fillStyle = "rgba(245,158,11,.18)";
+          x.beginPath();
+          x.arc(520 - n * 32, 240 - n * 8, 170, 0, Math.PI * 2);
+          x.fill();
+
+          x.fillStyle = "rgba(255,255,255,.92)";
+          x.strokeStyle = "rgba(234,220,197,.95)";
+          x.lineWidth = 3;
+          roundRect(x, 60, 70, 520, 220, 26, true, true);
+
+          x.fillStyle = "#1f2937";
+          x.font = "900 34px ui-sans-serif, system-ui, Segoe UI, Arial";
+          x.fillText("Timeline + Stickers", 95, 135);
+
+          x.fillStyle = "#6b7280";
+          x.font = "800 18px ui-sans-serif, system-ui, Segoe UI, Arial";
+          x.fillText("Frame " + (n + 1) + " • drag cards to reorder", 95, 170);
+
+          x.fillStyle = "#f59e0b";
+          roundRect(x, 95 + n * 52, 205, 150, 52, 16, true, false);
+
+          x.fillStyle = "#ffffff";
+          x.font = "1000 18px ui-sans-serif, system-ui, Segoe UI, Arial";
+          x.fillText("BALLE 😄", 115 + n * 52, 238);
+
+          return c.toDataURL("image/png");
+        };
+
+        setStatus("Generating demo frames…", 10);
+        for (let i = 0; i < 6; i++) {
+          const dataUrl = make(i);
+          const img = new Image();
+          await new Promise((res, rej) => {
+            img.onload = res;
+            img.onerror = rej;
+            img.src = dataUrl;
+          });
+
+          const fr = {
+            id: uid(),
+            name: `demo_${i + 1}.png`,
+            url: dataUrl,
+            img,
+            w: img.naturalWidth || img.width,
+            h: img.naturalHeight || img.height,
+            edit: defaultEdit(),
+          };
+          fr.edit.delay = 90 + i * 30;
+          fr.edit.text = i % 2 === 0 ? "Sticker time 😄" : "Pan/Zoom";
+          fr.edit.textX = 24;
+          fr.edit.textY = 20;
+          fr.edit.textSize = 34;
+
+          // small "fake sticker": using text only; user can upload PNG sticker to replace
+          state.frames.push(fr);
+          setStatus(`Generated ${i + 1}/6…`, 10 + ((i + 1) / 6) * 25);
+        }
+
+        if (state.sel < 0) state.sel = 0;
+        refreshUI();
+        setStatus("Demo frames ready. Now add PNG sticker on any frame!", 0);
+      }
+
+      function roundRect(ctx, x, y, w, h, r, fill, stroke) {
+        const rr = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rr, y);
+        ctx.arcTo(x + w, y, x + w, y + h, rr);
+        ctx.arcTo(x + w, y + h, x, y + h, rr);
+        ctx.arcTo(x, y + h, x, y, rr);
+        ctx.arcTo(x, y, x + w, y, rr);
+        ctx.closePath();
+        if (fill) ctx.fill();
+        if (stroke) ctx.stroke();
+      }
+
+      // ----------------- Canvas pan/zoom -----------------
+      el.cv.addEventListener("mousedown", (e) => {
+        const fr = selectedFrame();
+        if (!fr) return;
+        stopPreview();
+        const ed = fr.edit || (fr.edit = defaultEdit());
+        state.drag.on = true;
+        state.drag.sx = e.clientX;
+        state.drag.sy = e.clientY;
+        state.drag.startPanX = ed.panX;
+        state.drag.startPanY = ed.panY;
+      });
+      window.addEventListener("mousemove", (e) => {
+        if (!state.drag.on) return;
+        const fr = selectedFrame();
+        if (!fr) return;
+        const ed = fr.edit || (fr.edit = defaultEdit());
+        const dx = e.clientX - state.drag.sx;
+        const dy = e.clientY - state.drag.sy;
+        ed.panX = state.drag.startPanX + dx;
+        ed.panY = state.drag.startPanY + dy;
+        el.fPanX.value = Math.round(ed.panX);
+        el.fPanY.value = Math.round(ed.panY);
+        drawFrameAt(state.sel);
+      });
+      window.addEventListener("mouseup", () => {
+        state.drag.on = false;
+      });
+
+      el.cv.addEventListener(
+        "wheel",
+        (e) => {
+          const fr = selectedFrame();
+          if (!fr) return;
+          stopPreview();
+          e.preventDefault();
+          const ed = fr.edit || (fr.edit = defaultEdit());
+          const delta = Math.sign(e.deltaY);
+          const step = delta > 0 ? 0.9 : 1.1;
+          ed.zoom = Math.max(0.1, Math.min(10, ed.zoom * step));
+          el.fZoom.value = ed.zoom.toFixed(2);
+          drawFrameAt(state.sel);
+        },
+        { passive: false },
+      );
+
+      el.cv.addEventListener("dblclick", () => {
+        const fr = selectedFrame();
+        if (!fr) return;
+        stopPreview();
+        const ed = fr.edit || (fr.edit = defaultEdit());
+        ed.zoom = 1;
+        ed.panX = 0;
+        ed.panY = 0;
+        syncEditorFromSelected();
+        drawFrameAt(state.sel);
+        setStatus("Reset pan/zoom for selected frame.", 0);
+      });
+
+      // ----------------- Sticker upload -----------------
+      el.pickSticker.onclick = () => el.stickerFile.click();
+      el.stickerFile.onchange = async () => {
+        const fr = selectedFrame();
+        if (!fr) return;
+        const file = el.stickerFile.files?.[0];
+        if (!file) return;
+
+        try {
+          setStatus("Loading sticker…", 20);
+          const dataUrl = await fileToDataURL(file);
+          const sImg = new Image();
+          await new Promise((res, rej) => {
+            sImg.onload = res;
+            sImg.onerror = rej;
+            sImg.src = dataUrl;
+          });
+
+          const ed = fr.edit || (fr.edit = defaultEdit());
+          const W = Number(el.outW.value) || 480;
+          const H = Number(el.outH.value) || 270;
+
+          ed.sticker = {
+            dataUrl,
+            img: sImg,
+            x: Math.round(W / 2),
+            y: Math.round(H / 2),
+            scale: 1,
+            rot: 0,
+          };
+
+          syncEditorFromSelected();
+          drawFrameAt(state.sel);
+          setStatus("Sticker added to selected frame.", 0);
+          refreshUI();
+        } catch {
+          setStatus("Failed to load sticker.", 0);
+        } finally {
+          el.stickerFile.value = "";
+        }
+      };
+
+      el.removeSticker.onclick = () => {
+        const fr = selectedFrame();
+        if (!fr) return;
+        const ed = fr.edit || (fr.edit = defaultEdit());
+        ed.sticker = null;
+        syncEditorFromSelected();
+        drawFrameAt(state.sel);
+        setStatus("Sticker removed.", 0);
+        refreshUI();
+      };
+
+      async function fileToDataURL(file) {
+        return await new Promise((res, rej) => {
+          const r = new FileReader();
+          r.onload = () => res(r.result);
+          r.onerror = rej;
+          r.readAsDataURL(file);
+        });
+      }
+
+      // sticker numeric edits
+      [el.sScale, el.sRot, el.sX, el.sY].forEach((inp) =>
+        inp.addEventListener("input", () => {
+          applyEditorToSelected();
+          drawFrameAt(state.sel);
+        }),
+      );
+
+      // ----------------- Save/Load project -----------------
+      async function blobUrlToDataURL(blobUrl) {
+        const blob = await fetch(blobUrl).then((r) => r.blob());
+        return await new Promise((res) => {
+          const r = new FileReader();
+          r.onload = () => res(r.result);
+          r.readAsDataURL(blob);
+        });
+      }
+
+      async function projectToJSON() {
+        const frames = [];
+        for (const fr of state.frames) {
+          let dataUrl = fr.url;
+          if (fr.url.startsWith("blob:"))
+            dataUrl = await blobUrlToDataURL(fr.url);
+
+          const e = fr.edit || defaultEdit();
+
+          // sticker: keep only dataUrl (rebuild Image on load)
+          const st = e.sticker
+            ? {
+                dataUrl: e.sticker.dataUrl,
+                x: e.sticker.x,
+                y: e.sticker.y,
+                scale: e.sticker.scale,
+                rot: e.sticker.rot,
+              }
+            : null;
+
+          const edit = Object.assign({}, e, { sticker: st });
+
+          frames.push({ id: fr.id, name: fr.name, dataUrl, edit });
+        }
+
+        return {
+          version: 2,
+          createdAt: new Date().toISOString(),
+          output: {
+            outW: Number(el.outW.value) || 480,
+            outH: Number(el.outH.value) || 270,
+            fit: el.fit.value,
+            loop: el.loop.value,
+            quality: Number(el.quality.value) || 10,
+            dither: el.dither.value,
+          },
+          preview: {
+            fps: Number(el.fps.value) || 8,
+            defaultDelay: Number(el.defaultDelay.value) || 125,
+          },
+          watermark: {
+            text: el.wmText.value || "",
+            alpha: Number(el.wmAlpha.value) || 0.35,
+            size: Number(el.wmSize.value) || 18,
+            pos: el.wmPos.value,
+          },
+          frames,
+        };
+      }
+
+      async function loadProjectFromObject(obj) {
+        if (!obj || !Array.isArray(obj.frames))
+          throw new Error("Invalid project JSON.");
+
+        stopPreview();
+        revokeGifUrl();
+
+        // clear existing
+        state.frames.forEach((fr) => {
+          if (fr.url.startsWith("blob:")) URL.revokeObjectURL(fr.url);
+        });
+        state.frames = [];
+        state.sel = -1;
+        state.idx = 0;
+
+        // globals
+        if (obj.output) {
+          el.outW.value = obj.output.outW ?? el.outW.value;
+          el.outH.value = obj.output.outH ?? el.outH.value;
+          el.fit.value = obj.output.fit ?? el.fit.value;
+          el.loop.value = obj.output.loop ?? el.loop.value;
+          el.quality.value = obj.output.quality ?? el.quality.value;
+          el.dither.value = obj.output.dither ?? el.dither.value;
+        }
+        if (obj.preview) {
+          el.fps.value = obj.preview.fps ?? el.fps.value;
+          el.defaultDelay.value =
+            obj.preview.defaultDelay ?? el.defaultDelay.value;
+        }
+        if (obj.watermark) {
+          el.wmText.value = obj.watermark.text ?? "";
+          el.wmAlpha.value = obj.watermark.alpha ?? 0.35;
+          el.wmSize.value = obj.watermark.size ?? 18;
+          el.wmPos.value = obj.watermark.pos ?? "br";
+        }
+
+        setStatus("Loading project frames…", 10);
+
+        for (let i = 0; i < obj.frames.length; i++) {
+          const f = obj.frames[i];
+          const img = new Image();
+          await new Promise((res, rej) => {
+            img.onload = res;
+            img.onerror = rej;
+            img.src = f.dataUrl;
+          });
+
+          const edit = Object.assign(defaultEdit(), f.edit || {});
+
+          // rebuild sticker image if present
+          if (edit.sticker && edit.sticker.dataUrl) {
+            const sImg = new Image();
+            await new Promise((res, rej) => {
+              sImg.onload = res;
+              sImg.onerror = rej;
+              sImg.src = edit.sticker.dataUrl;
+            });
+            edit.sticker = Object.assign({}, edit.sticker, { img: sImg });
+          } else {
+            edit.sticker = null;
+          }
+
+          state.frames.push({
+            id: f.id || uid(),
+            name: f.name || `frame_${i + 1}.png`,
+            url: f.dataUrl,
+            img,
+            w: img.naturalWidth || img.width,
+            h: img.naturalHeight || img.height,
+            edit,
+          });
+
+          setStatus(
+            `Loaded ${i + 1}/${obj.frames.length}…`,
+            10 + ((i + 1) / obj.frames.length) * 35,
+          );
+        }
+
+        state.sel = state.frames.length ? 0 : -1;
+        refreshUI();
+        setStatus("Project loaded.", 0);
+      }
+
+      el.saveLocal.onclick = async () => {
+        if (!state.frames.length) return;
+        setStatus("Saving project…", 30);
+        const obj = await projectToJSON();
+        localStorage.setItem(LS_KEY, JSON.stringify(obj));
+        setStatus("Saved to localStorage (this browser).", 0);
+      };
+
+      el.loadLocal.onclick = async () => {
+        const raw = localStorage.getItem(LS_KEY);
+        if (!raw) {
+          setStatus("No saved project found in this browser.", 0);
+          return;
+        }
+        try {
+          const obj = JSON.parse(raw);
+          await loadProjectFromObject(obj);
+        } catch {
+          setStatus("Failed to load saved project.", 0);
+        }
+      };
+
+      el.exportJSON.onclick = async () => {
+        if (!state.frames.length) return;
+        setStatus("Preparing project JSON…", 30);
+        const obj = await projectToJSON();
+        const blob = new Blob([JSON.stringify(obj, null, 2)], {
+          type: "application/json",
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "gif-project-v2.json";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        setStatus("Exported project JSON.", 0);
+      };
+
+      el.importJSON.onclick = () => el.jsonFile.click();
+      el.jsonFile.onchange = async () => {
+        const f = el.jsonFile.files?.[0];
+        if (!f) return;
+        try {
+          setStatus("Importing project…", 20);
+          const txt = await f.text();
+          const obj = JSON.parse(txt);
+          await loadProjectFromObject(obj);
+        } catch {
+          setStatus("Import failed (invalid JSON).", 0);
+        } finally {
+          el.jsonFile.value = "";
+        }
+      };
+
+      // ----------------- Export GIF -----------------
+      async function exportGIF() {
+        if (!window.GIF) {
+          setStatus("GIF encoder not available. Check CDN access.", 0);
+          return;
+        }
+        if (!state.frames.length) return;
+
+        stopPreview();
+        revokeGifUrl();
+        el.out.style.display = "none";
+        el.download.disabled = true;
+        el.copyLink.disabled = true;
+
+        const W = clampNum(el.outW, 16, 2048, 480);
+        const H = clampNum(el.outH, 16, 2048, 270);
+        const quality = clampNum(el.quality, 1, 30, 10);
+
+        const gif = new GIF({
+          workers: Math.min(4, navigator.hardwareConcurrency || 4),
+          quality,
+          width: W,
+          height: H,
+          workerScript:
+            "https://cdn.jsdelivr.net/npm/gif.js.optimized@1.0.1/dist/gif.worker.js",
+          repeat: Number(el.loop.value),
+          dither: el.dither.value === "true" ? "FloydSteinberg" : false,
+          background: "#ffffff",
+        });
+
+        gif.on("progress", (p) => setStatus("Encoding…", Math.round(p * 100)));
+        gif.on("finished", (blob) => {
+          state.gifUrl = URL.createObjectURL(blob);
+          el.gifImg.src = state.gifUrl;
+          el.out.style.display = "block";
+
+          const total = state.frames.reduce(
+            (s, f) => s + (Number(f.edit?.delay) || 0),
+            0,
+          );
+          const kb = Math.round(blob.size / 1024);
+          el.gifMeta.textContent = `Size: ${W}×${H} • Frames: ${state.frames.length} • Total: ${total}ms • File: ~${kb} KB`;
+
+          el.download.disabled = false;
+          el.copyLink.disabled = false;
+
+          setStatus("Done! GIF ready.", 0);
+          refreshUI();
+        });
+
+        const temp = document.createElement("canvas");
+        temp.width = W;
+        temp.height = H;
+        const tctx = temp.getContext("2d", { willReadFrequently: true });
+
+        for (let i = 0; i < state.frames.length; i++) {
+          const fr = state.frames[i];
+          const e = fr.edit || defaultEdit();
+          const img = fr.img;
+          const mode = el.fit.value;
+
+          tctx.clearRect(0, 0, W, H);
+
+          const iw = img.naturalWidth || img.width;
+          const ih = img.naturalHeight || img.height;
+
+          if (mode === "stretch") {
+            const zx = e.zoom,
+              zy = e.zoom;
+            const sw = W / zx;
+            const sh = H / zy;
+            const sx = (iw - sw) / 2 - e.panX / zx;
+            const sy = (ih - sh) / 2 - e.panY / zy;
+            tctx.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
+          } else {
+            const sContain = Math.min(W / iw, H / ih);
+            const sCover = Math.max(W / iw, H / ih);
+            const baseScale = mode === "cover" ? sCover : sContain;
+
+            const scale = baseScale * e.zoom;
+            const dw = iw * scale;
+            const dh = ih * scale;
+            const cx = (W - dw) / 2 + e.panX;
+            const cy = (H - dh) / 2 + e.panY;
+
+            tctx.drawImage(img, cx, cy, dw, dh);
+          }
+
+          // caption
+          if (e.text && e.text.trim()) {
+            const size = Number(e.textSize) || 28;
+            tctx.save();
+            tctx.font = `900 ${size}px ui-sans-serif, system-ui, Segoe UI, Arial`;
+            tctx.textBaseline = "top";
+            tctx.lineJoin = "round";
+            const x = Number(e.textX) || 0,
+              y = Number(e.textY) || 0;
+            const lines = e.text.split("\\n");
+            const lh = Math.round(size * 1.2);
+            tctx.lineWidth = Math.max(2, Math.round(size / 10));
+            tctx.strokeStyle = e.stroke || "rgba(255,255,255,0.85)";
+            tctx.fillStyle = e.fill || "#111827";
+            lines.forEach((line, li) => {
+              const yy = y + li * lh;
+              tctx.strokeText(line, x, yy);
+              tctx.fillText(line, x, yy);
+            });
+            tctx.restore();
+          }
+
+          // sticker
+          if (e.sticker && e.sticker.img) {
+            const st = e.sticker;
+            const sImg = st.img;
+            const sc = Number(st.scale) || 1;
+            const rot = ((Number(st.rot) || 0) * Math.PI) / 180;
+            const x = Number(st.x) || 0;
+            const y = Number(st.y) || 0;
+
+            const sw = (sImg.naturalWidth || sImg.width) * sc;
+            const sh = (sImg.naturalHeight || sImg.height) * sc;
+
+            tctx.save();
+            tctx.translate(x, y);
+            tctx.rotate(rot);
+            tctx.drawImage(sImg, -sw / 2, -sh / 2, sw, sh);
+            tctx.restore();
+          }
+
+          // watermark
+          const wm = (el.wmText.value || "").trim();
+          if (wm) {
+            const alpha = Math.max(
+              0,
+              Math.min(1, Number(el.wmAlpha.value) || 0.35),
+            );
+            const size = Math.max(
+              8,
+              Math.min(120, Number(el.wmSize.value) || 18),
+            );
+            tctx.save();
+            tctx.globalAlpha = alpha;
+            tctx.font = `900 ${size}px ui-sans-serif, system-ui, Segoe UI, Arial`;
+            tctx.textBaseline = "bottom";
+            tctx.fillStyle = "#111827";
+            tctx.strokeStyle = "rgba(255,255,255,0.9)";
+            tctx.lineWidth = 3;
+
+            const pad = 12;
+            const tw = tctx.measureText(wm).width;
+            let xx = pad,
+              yy = H - pad;
+            const pos = el.wmPos.value;
+            if (pos === "br") {
+              xx = W - pad - tw;
+              yy = H - pad;
+            }
+            if (pos === "bl") {
+              xx = pad;
+              yy = H - pad;
+            }
+            if (pos === "tr") {
+              xx = W - pad - tw;
+              yy = pad + size;
+            }
+            if (pos === "tl") {
+              xx = pad;
+              yy = pad + size;
+            }
+            if (pos === "c") {
+              xx = (W - tw) / 2;
+              yy = (H + size) / 2;
+              tctx.textBaseline = "middle";
+            }
+
+            tctx.strokeText(wm, xx, yy);
+            tctx.fillText(wm, xx, yy);
+            tctx.restore();
+          }
+
+          gif.addFrame(tctx, { copy: true, delay: Number(e.delay) || 125 });
+        }
+
+        setStatus("Encoding…", 1);
+        gif.render();
+      }
+
+      // ----------------- Wiring -----------------
+      function wireDnD() {
+        ["dragenter", "dragover"].forEach((evt) => {
+          el.drop.addEventListener(evt, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            el.drop.style.borderColor = "rgba(245,158,11,.8)";
+            el.drop.style.background = "rgba(245,158,11,.16)";
+          });
+        });
+        ["dragleave", "drop"].forEach((evt) => {
+          el.drop.addEventListener(evt, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            el.drop.style.borderColor = "rgba(217,119,6,.35)";
+            el.drop.style.background = "rgba(245,158,11,.10)";
+          });
+        });
+        el.drop.addEventListener("drop", (e) => addFiles(e.dataTransfer.files));
+        el.drop.addEventListener("click", (e) => {
+          if (!e.target.closest("button")) el.file.click();
+        });
+      }
+
+      el.pick.onclick = () => el.file.click();
+      el.file.onchange = () => addFiles(el.file.files);
+
+      el.addDemo.onclick = () => addDemoFrames();
+
+      el.clearAll.onclick = () => {
+        stopPreview();
+        revokeGifUrl();
+        state.frames.forEach((fr) => {
+          if (fr.url.startsWith("blob:")) URL.revokeObjectURL(fr.url);
+        });
+        state.frames = [];
+        state.sel = -1;
+        state.idx = 0;
+        refreshUI();
+        setStatus("Cleared. Add frames to begin.", 0);
+      };
+
+      el.play.onclick = () => togglePreview();
+
+      el.step.onclick = () => {
+        stopPreview();
+        if (!state.frames.length) return;
+        state.idx = (state.idx + 1) % state.frames.length;
+        drawFrameAt(state.idx);
+        el.pState.textContent = "Preview: stepped";
+      };
+
+      el.reset.onclick = () => {
+        stopPreview();
+        state.idx = 0;
+        drawFrameAt(0);
+        el.pState.textContent = "Preview: reset";
+      };
+
+      el.export.onclick = exportGIF;
+
+      el.download.onclick = () => {
+        if (!state.gifUrl) return;
+        const a = document.createElement("a");
+        a.href = state.gifUrl;
+        a.download = "animation.gif";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      };
+
+      el.copyLink.onclick = async () => {
+        if (!state.gifUrl) return;
+        try {
+          await navigator.clipboard.writeText(state.gifUrl);
+          setStatus("Copied object URL to clipboard.", 0);
+        } catch {
+          setStatus("Clipboard blocked by browser.", 0);
+        }
+      };
+
+      // per-frame editor inputs
+      [
+        el.fDelay,
+        el.fZoom,
+        el.fPanX,
+        el.fPanY,
+        el.fText,
+        el.fTextSize,
+        el.fTextX,
+        el.fTextY,
+        el.fTextFill,
+        el.fTextStroke,
+      ].forEach((inp) =>
+        inp.addEventListener("input", () => {
+          applyEditorToSelected();
+          updateKPIs();
+          renderTimeline();
+          drawFrameAt(state.sel);
+        }),
+      );
+
+      el.copyPrev.onclick = () => {
+        if (state.sel <= 0) return;
+        const prev = state.frames[state.sel - 1]?.edit;
+        if (!prev) return;
+        // deep clone, but keep sticker image reference rebuilt later
+        const clone = JSON.parse(JSON.stringify(prev));
+        // if sticker existed, we must reattach img (use prev sticker img)
+        if (prev.sticker && prev.sticker.img) {
+          clone.sticker = Object.assign({}, clone.sticker, {
+            img: prev.sticker.img,
+          });
+        }
+        state.frames[state.sel].edit = clone;
+        syncEditorFromSelected();
+        renderTimeline();
+        drawFrameAt(state.sel);
+        setStatus("Copied settings from previous frame.", 0);
+      };
+
+      el.resetFrame.onclick = () => {
+        const fr = selectedFrame();
+        if (!fr) return;
+        fr.edit = defaultEdit();
+        syncEditorFromSelected();
+        renderTimeline();
+        drawFrameAt(state.sel);
+        setStatus("Reset edits for selected frame.", 0);
+      };
+
+      // global redraw
+      ["input", "change"].forEach((ev) => {
+        [
+          el.outW,
+          el.outH,
+          el.fit,
+          el.fps,
+          el.loop,
+          el.quality,
+          el.dither,
+          el.defaultDelay,
+          el.wmText,
+          el.wmAlpha,
+          el.wmSize,
+          el.wmPos,
+        ].forEach((x) =>
+          x.addEventListener(ev, () => {
+            updateKPIs();
+            if (state.frames.length)
+              drawFrameAt(state.sel >= 0 ? state.sel : 0);
+            if (state.playing) startPreview();
+          }),
+        );
+      });
+
+      // keyboard shortcuts
+      window.addEventListener("keydown", (e) => {
+        const tag =
+          e.target && e.target.tagName ? e.target.tagName.toLowerCase() : "";
+        if (tag === "input" || tag === "select" || tag === "textarea") return;
+
+        if (e.code === "Space") {
+          e.preventDefault();
+          if (!el.play.disabled) togglePreview();
+        } else if (e.key.toLowerCase() === "r") {
+          if (!el.reset.disabled) el.reset.click();
+        } else if (e.key.toLowerCase() === "e") {
+          if (!el.export.disabled) el.export.click();
+        } else if (e.key === "Delete") {
+          if (state.sel >= 0) removeFrame(state.sel);
+        }
+      });
+
+      // ----------------- Init -----------------
+      (function init() {
+        wireDnD();
+        updateKPIs();
+        setStatus("Add frames to begin.", 0);
+
+        const ok = () => {
+          el.libStatus.textContent = window.GIF
+            ? "Encoder: ready"
+            : "Encoder: not loaded";
+          refreshUI();
+        };
+        setTimeout(ok, 50);
+        setTimeout(ok, 500);
+        setTimeout(ok, 1500);
+        refreshUI();
+      })();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Undo / Redo Demo — Programmer’s Picnic</title>
+
+    <meta name="theme-color" content="#d97706" />
+    <style>
+      :root {
+        --bg: #fff7e6;
+        --card: #ffffff;
+        --ink: #1f2937;
+        --muted: #6b7280;
+        --brand: #d97706;
+        --brand2: #f59e0b;
+        --border: #eadcc5;
+        --shadow: 0 18px 40px rgba(31, 41, 55, 0.14);
+        --r: 18px;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family:
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial,
+          sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(
+            1200px 700px at 15% 0%,
+            rgba(245, 158, 11, 0.28),
+            transparent 60%
+          ),
+          radial-gradient(
+            900px 600px at 85% 10%,
+            rgba(217, 119, 6, 0.22),
+            transparent 55%
+          ),
+          var(--bg);
+        min-height: 100vh;
+      }
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        backdrop-filter: blur(10px);
+        background: rgba(255, 247, 230, 0.72);
+        border-bottom: 1px solid var(--border);
+      }
+      .wrap {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 14px 16px;
+      }
+      .top {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+      }
+      .brand {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .logo {
+        width: 40px;
+        height: 40px;
+        border-radius: 14px;
+        background: linear-gradient(145deg, var(--brand), var(--brand2));
+        box-shadow: var(--shadow);
+      }
+      h1 {
+        font-size: 18px;
+        margin: 0;
+      }
+      .sub {
+        color: var(--muted);
+        font-size: 13px;
+        margin-top: 2px;
+      }
+
+      main {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 18px 16px 40px;
+      }
+      .grid {
+        display: grid;
+        gap: 14px;
+        grid-template-columns: 1.4fr 0.9fr;
+      }
+      @media (max-width: 980px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--r);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+      .cardHead {
+        padding: 14px 14px 12px;
+        border-bottom: 1px solid var(--border);
+        background: linear-gradient(
+          180deg,
+          rgba(245, 158, 11, 0.1),
+          transparent
+        );
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .cardHead b {
+        font-size: 14px;
+      }
+      .pill {
+        font-size: 12px;
+        color: var(--ink);
+        background: rgba(245, 158, 11, 0.14);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        padding: 6px 10px;
+        border-radius: 999px;
+        white-space: nowrap;
+      }
+      .cardBody {
+        padding: 14px;
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 320px;
+        resize: vertical;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 12px 12px;
+        font:
+          14px/1.5 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          Consolas,
+          "Liberation Mono",
+          monospace;
+        outline: none;
+        background: #fffdf7;
+      }
+      textarea:focus {
+        border-color: rgba(217, 119, 6, 0.55);
+        box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.12);
+      }
+
+      .row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      button {
+        border: 1px solid var(--border);
+        background: linear-gradient(180deg, #fff, #fff6e6);
+        color: var(--ink);
+        padding: 10px 12px;
+        border-radius: 14px;
+        cursor: pointer;
+        font-weight: 600;
+        box-shadow: 0 10px 24px rgba(31, 41, 55, 0.1);
+      }
+      button.primary {
+        border-color: rgba(217, 119, 6, 0.4);
+        background: linear-gradient(
+          180deg,
+          rgba(217, 119, 6, 0.95),
+          rgba(245, 158, 11, 0.95)
+        );
+        color: white;
+      }
+      button:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+        box-shadow: none;
+      }
+      .hint {
+        color: var(--muted);
+        font-size: 13px;
+        margin: 10px 0 0;
+      }
+      .kv {
+        display: grid;
+        grid-template-columns: 140px 1fr;
+        gap: 8px 12px;
+        font-size: 13px;
+        padding: 12px;
+        border: 1px dashed rgba(217, 119, 6, 0.35);
+        border-radius: 14px;
+        background: rgba(245, 158, 11, 0.08);
+      }
+      .k {
+        color: var(--muted);
+      }
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+      .small {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 10px;
+      }
+      .list {
+        margin: 0;
+        padding-left: 18px;
+        color: var(--ink);
+        font-size: 13px;
+      }
+      .divider {
+        height: 1px;
+        background: var(--border);
+        margin: 14px 0;
+      }
+      .footer {
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 12px;
+        text-align: center;
+      }
+    </style>
+  </head>
+
+  <body>
+    <header>
+      <div class="wrap">
+        <div class="top">
+          <div class="brand">
+            <div class="logo" aria-hidden="true"></div>
+            <div>
+              <h1>Undo / Redo Demo</h1>
+              <div class="sub">
+                Programmer’s Picnic • Light Saffron Theme • History Stack
+              </div>
+            </div>
+          </div>
+
+          <div class="pill" id="statusPill">Ready</div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <div class="grid">
+        <!-- Editor -->
+        <section class="card">
+          <div class="cardHead">
+            <b>Editor</b>
+            <div class="row">
+              <button
+                class="primary"
+                id="btnUndo"
+                title="Undo (Ctrl+Z)"
+                disabled
+              >
+                ↶ Undo
+              </button>
+              <button
+                class="primary"
+                id="btnRedo"
+                title="Redo (Ctrl+Y / Ctrl+Shift+Z)"
+                disabled
+              >
+                ↷ Redo
+              </button>
+              <button id="btnClear" title="Clear history (keeps current text)">
+                Clear History
+              </button>
+              <button id="btnReset" title="Reset editor to demo text">
+                Reset Demo
+              </button>
+            </div>
+          </div>
+
+          <div class="cardBody">
+            <textarea
+              id="editor"
+              spellcheck="false"
+              placeholder="Welcome! Try this:
+
+1) Type some text.
+2) Press Ctrl+Z to Undo.
+3) Press Ctrl+Y (or Ctrl+Shift+Z) to Redo.
+
+This demo uses a history stack (undo/redo arrays)."
+            ></textarea>
+            <p class="hint">
+              Shortcuts: <span class="mono">Ctrl+Z</span> (Undo),
+              <span class="mono">Ctrl+Y</span> or
+              <span class="mono">Ctrl+Shift+Z</span> (Redo)
+            </p>
+          </div>
+        </section>
+
+        <!-- Explanation / Status -->
+        <aside class="card">
+          <div class="cardHead">
+            <b>How it works</b>
+            <span class="pill">No framework</span>
+          </div>
+
+          <div class="cardBody">
+            <div class="kv">
+              <div class="k">Undo stack</div>
+              <div><span class="mono" id="undoCount">0</span> states</div>
+              <div class="k">Redo stack</div>
+              <div><span class="mono" id="redoCount">0</span> states</div>
+              <div class="k">History limit</div>
+              <div><span class="mono" id="limitVal">100</span> states</div>
+              <div class="k">Last action</div>
+              <div class="mono" id="lastAction">—</div>
+            </div>
+
+            <div class="divider"></div>
+
+            <ul class="list">
+              <li>On each edit, we push the previous text into <b>undo</b>.</li>
+              <li>
+                When you Undo, current goes to <b>redo</b>, previous comes back.
+              </li>
+              <li>
+                When you type after undoing, redo is cleared (standard
+                behavior).
+              </li>
+              <li>
+                We debounce changes to avoid saving a new state on every
+                keystroke.
+              </li>
+            </ul>
+
+            <p class="small">
+              Tip: You can reuse this exact logic in your StudentDB project
+              inputs/forms too.
+            </p>
+          </div>
+        </aside>
+      </div>
+
+      <div class="footer">© Programmer’s Picnic • Undo/Redo Stack Demo</div>
+    </main>
+
+    <script>
+      (() => {
+        "use strict";
+
+        // ---------- CONFIG ----------
+        const HISTORY_LIMIT = 100; // max states to keep in undo stack
+        const CAPTURE_DELAY = 350; // ms debounce for capturing a change
+
+        // ---------- ELEMENTS ----------
+        const editor = document.getElementById("editor");
+        const btnUndo = document.getElementById("btnUndo");
+        const btnRedo = document.getElementById("btnRedo");
+        const btnClear = document.getElementById("btnClear");
+        const btnReset = document.getElementById("btnReset");
+
+        const undoCount = document.getElementById("undoCount");
+        const redoCount = document.getElementById("redoCount");
+        const limitVal = document.getElementById("limitVal");
+        const lastAction = document.getElementById("lastAction");
+        const statusPill = document.getElementById("statusPill");
+
+        // ---------- STATE ----------
+        let undoStack = [];
+        let redoStack = [];
+        let lastValue = "";
+        let captureTimer = null;
+        let internalSet = false; // prevents capturing changes caused by undo/redo
+
+        limitVal.textContent = String(HISTORY_LIMIT);
+
+        // ---------- HELPERS ----------
+        function setStatus(text) {
+          statusPill.textContent = text;
+        }
+
+        function setEditorValue(value, actionLabel) {
+          internalSet = true;
+          editor.value = value;
+          internalSet = false;
+
+          lastValue = value;
+          lastAction.textContent = actionLabel || "set";
+          setStatus(actionLabel || "Updated");
+          refreshUI();
+        }
+
+        function refreshUI() {
+          undoCount.textContent = String(undoStack.length);
+          redoCount.textContent = String(redoStack.length);
+          btnUndo.disabled = undoStack.length === 0;
+          btnRedo.disabled = redoStack.length === 0;
+        }
+
+        function pushUndo(state) {
+          undoStack.push(state);
+          if (undoStack.length > HISTORY_LIMIT) undoStack.shift();
+        }
+
+        function captureChangeDebounced() {
+          if (internalSet) return; // ignore changes done by our own setEditorValue
+          if (captureTimer) clearTimeout(captureTimer);
+
+          captureTimer = setTimeout(() => {
+            captureTimer = null;
+
+            const current = editor.value;
+            if (current === lastValue) return;
+
+            // store previous value into undo
+            pushUndo(lastValue);
+
+            // user typed after any undo => clear redo
+            redoStack = [];
+
+            lastValue = current;
+            lastAction.textContent = "edit";
+            setStatus("Captured change");
+            refreshUI();
+          }, CAPTURE_DELAY);
+        }
+
+        function doUndo() {
+          if (!undoStack.length) return;
+          const current = editor.value;
+
+          const prev = undoStack.pop();
+          redoStack.push(current);
+
+          setEditorValue(prev, "undo");
+        }
+
+        function doRedo() {
+          if (!redoStack.length) return;
+          const current = editor.value;
+
+          const next = redoStack.pop();
+          pushUndo(current);
+
+          setEditorValue(next, "redo");
+        }
+
+        function clearHistory() {
+          undoStack = [];
+          redoStack = [];
+          lastAction.textContent = "clearHistory";
+          setStatus("History cleared");
+          refreshUI();
+        }
+
+        // ---------- EVENTS ----------
+        editor.addEventListener("input", captureChangeDebounced);
+
+        btnUndo.addEventListener("click", doUndo);
+        btnRedo.addEventListener("click", doRedo);
+
+        btnClear.addEventListener("click", clearHistory);
+
+        btnReset.addEventListener("click", () => {
+          clearHistory();
+          setEditorValue(
+            ``,
+            "resetDemo",
+          );
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener("keydown", (e) => {
+          const key = e.key.toLowerCase();
+          const ctrlOrCmd = e.ctrlKey || e.metaKey;
+
+          if (!ctrlOrCmd) return;
+
+          // Undo: Ctrl+Z
+          if (key === "z" && !e.shiftKey) {
+            e.preventDefault();
+            doUndo();
+            return;
+          }
+
+          // Redo: Ctrl+Y OR Ctrl+Shift+Z
+          if (key === "y" || (key === "z" && e.shiftKey)) {
+            e.preventDefault();
+            doRedo();
+            return;
+          }
+        });
+
+        // ---------- INIT ----------
+        setEditorValue(
+          ``,
+          "init",
+        );
+      })();
+    </script>
+  </body>
+</html>
