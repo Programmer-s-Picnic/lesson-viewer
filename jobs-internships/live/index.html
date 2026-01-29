@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Job Links — Simple Preview Board</title>
+    <meta
+      name="description"
+      content="Loads job links from a GitHub Pages JSON file. Shows a simple list + preview iframe."
+    />
+    <meta name="theme-color" content="#d97706" />
+    <style>
+      :root {
+        --bg: #fff7e6;
+        --bg2: #fff1d6;
+        --card: rgba(255, 255, 255, 0.92);
+        --ink: #1f2937;
+        --muted: #6b7280;
+        --brand: #d97706;
+        --border: #eadcc5;
+        --r: 18px;
+        --shadow: 0 18px 40px rgba(31, 41, 55, 0.14);
+        --sans:
+          ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica,
+          Arial;
+        --mono:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: var(--sans);
+        color: var(--ink);
+        background:
+          radial-gradient(1100px 600px at 10% 0%, #fff, transparent 55%),
+          radial-gradient(900px 500px at 90% 10%, #ffe7bf, transparent 60%),
+          linear-gradient(180deg, var(--bg), var(--bg2));
+      }
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        backdrop-filter: blur(10px);
+        background: rgba(255, 247, 230, 0.76);
+        border-bottom: 1px solid rgba(234, 220, 197, 0.75);
+      }
+      .wrap {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 14px 18px;
+      }
+      .row {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+      }
+      h1 {
+        margin: 0;
+        font-size: 16px;
+      }
+      .sub {
+        margin: 2px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .pill {
+        font-size: 12px;
+        color: var(--muted);
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.7);
+        padding: 7px 10px;
+        border-radius: 999px;
+      }
+      .main {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 14px 18px;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 360px 1fr;
+        gap: 14px;
+      }
+      @media (max-width: 980px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+        .preview {
+          height: 70vh;
+        }
+      }
+      .panel {
+        background: var(--card);
+        border: 1px solid rgba(234, 220, 197, 0.85);
+        border-radius: var(--r);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+      .tools {
+        display: flex;
+        gap: 10px;
+        padding: 12px;
+        border-bottom: 1px solid rgba(234, 220, 197, 0.7);
+        flex-wrap: wrap;
+      }
+      input,
+      button {
+        padding: 10px 12px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.9);
+        outline: none;
+      }
+      input {
+        flex: 1;
+        min-width: 190px;
+      }
+      button {
+        cursor: pointer;
+        border: none;
+        font-weight: 800;
+        color: white;
+        background: linear-gradient(135deg, #d97706, #f59e0b);
+        box-shadow: 0 12px 24px rgba(217, 119, 6, 0.25);
+      }
+      button.secondary {
+        background: rgba(255, 255, 255, 0.9);
+        color: var(--ink);
+        border: 1px solid var(--border);
+        box-shadow: none;
+        font-weight: 700;
+      }
+      .list {
+        max-height: 72vh;
+        overflow: auto;
+      }
+      .item {
+        display: block;
+        padding: 12px;
+        border-bottom: 1px solid rgba(234, 220, 197, 0.7);
+        text-decoration: none;
+        color: inherit;
+      }
+      .item:hover {
+        background: rgba(255, 241, 214, 0.7);
+      }
+      .title {
+        font-weight: 900;
+        font-size: 13px;
+        line-height: 1.25;
+      }
+      .meta {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+      .mono {
+        font-family: var(--mono);
+      }
+      .previewWrap {
+        padding: 10px;
+      }
+      .preview {
+        width: 100%;
+        height: 72vh;
+        border: 1px solid rgba(234, 220, 197, 0.85);
+        border-radius: 16px;
+        background: #fff;
+      }
+      .status {
+        padding: 10px 12px;
+        color: var(--muted);
+        font-size: 12px;
+        border-top: 1px dashed rgba(234, 220, 197, 0.95);
+      }
+      .empty {
+        padding: 14px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="wrap">
+        <div class="row">
+          <div>
+            <h1>Job Links — Simple Preview Board</h1>
+            <div class="sub">
+              Loads links from a GitHub Pages JSON file • click any job to
+              preview
+            </div>
+          </div>
+          <div class="pill">
+            Tip: change <span class="mono">JOBS_JSON_URL</span> in code
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="main">
+      <div class="layout">
+        <section class="panel" aria-label="Job links list">
+          <div class="tools">
+            <input id="q" placeholder="Search…" autocomplete="off" />
+            <button id="reload" title="Reload JSON">Reload</button>
+            <button
+              id="open"
+              class="secondary"
+              title="Open selected in new tab"
+            >
+              Open
+            </button>
+          </div>
+          <div id="list" class="list"></div>
+          <div id="status" class="status">Ready.</div>
+        </section>
+
+        <section class="panel" aria-label="Preview">
+          <div class="previewWrap">
+            <iframe
+              id="preview"
+              class="preview"
+              title="Job preview"
+              loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade"
+            ></iframe>
+          </div>
+          <div class="status">
+            Preview note: some sites block iframe embedding. If preview is
+            blank, use <b>Open</b>.
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <script>
+      (() => {
+        "use strict";
+
+        // ✅ Set this to your GitHub Pages JSON file
+        const JOBS_JSON_URL =
+          "https://YOUR-USER.github.io/YOUR-REPO/data/jobs.json";
+
+        const $ = (id) => document.getElementById(id);
+        const q = $("q");
+        const list = $("list");
+        const preview = $("preview");
+        const status = $("status");
+
+        let jobs = [];
+        let selectedUrl = "";
+
+        const esc = (s) =>
+          String(s ?? "")
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#39;");
+
+        const norm = (s) =>
+          String(s ?? "")
+            .toLowerCase()
+            .trim();
+
+        function setStatus(msg) {
+          status.textContent = msg;
+        }
+
+        function render() {
+          const needle = norm(q.value);
+          const filtered = needle
+            ? jobs.filter(
+                (j) =>
+                  norm(j.title).includes(needle) ||
+                  norm(j.url).includes(needle),
+              )
+            : jobs;
+
+          if (!filtered.length) {
+            list.innerHTML = `<div class="empty">No matching links.</div>`;
+            return;
+          }
+
+          list.innerHTML = filtered
+            .map(
+              (j, idx) => `
+      <a class="item" href="#" data-url="${esc(j.url)}" data-idx="${idx}">
+        <div class="title">${esc(j.title || "Untitled Link")}</div>
+        <div class="meta mono">${esc(j.url)}</div>
+      </a>
+    `,
+            )
+            .join("");
+
+          list.querySelectorAll(".item").forEach((a) => {
+            a.addEventListener("click", (e) => {
+              e.preventDefault();
+              const url = a.getAttribute("data-url") || "";
+              select(url);
+            });
+          });
+        }
+
+        function select(url) {
+          selectedUrl = url;
+          preview.src = url; // preview only
+          setStatus("Selected: " + url);
+        }
+
+        async function load() {
+          setStatus("Loading JSON…");
+          try {
+            const res = await fetch(JOBS_JSON_URL, { cache: "no-store" });
+            if (!res.ok) throw new Error("HTTP " + res.status);
+
+            const data = await res.json();
+
+            // Supports either:
+            // 1) { "links":[ {"title":"…","url":"…"} ] }
+            // 2) { "jobs":[ {"title":"…","applyUrl":"…"} ] }
+            const links = Array.isArray(data.links)
+              ? data.links
+              : Array.isArray(data.jobs)
+                ? data.jobs.map((j) => ({ title: j.title, url: j.applyUrl }))
+                : [];
+
+            jobs = links
+              .filter((x) => x && (x.url || x.applyUrl))
+              .map((x) => ({
+                title: x.title ?? "Job Link",
+                url: x.url ?? x.applyUrl,
+              }));
+
+            setStatus("Loaded " + jobs.length + " link(s).");
+            render();
+
+            // Auto-select first
+            if (jobs[0]?.url) select(jobs[0].url);
+          } catch (err) {
+            setStatus(
+              "Failed to load JSON. Check JOBS_JSON_URL. Error: " +
+                (err?.message || err),
+            );
+            list.innerHTML = `<div class="empty">Could not load JSON.</div>`;
+          }
+        }
+
+        $("reload").addEventListener("click", load);
+        $("open").addEventListener("click", () => {
+          if (!selectedUrl) return;
+          window.open(selectedUrl, "_blank", "noopener,noreferrer");
+        });
+
+        q.addEventListener("input", render);
+
+        load();
+      })();
+    </script>
+  </body>
+</html>
