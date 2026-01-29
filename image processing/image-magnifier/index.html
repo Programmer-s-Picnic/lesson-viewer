@@ -1,0 +1,616 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Programmer’s Picnic — Product Gallery (Amazon-like Zoom)</title>
+    <meta name="description" content="Multi-image product gallery with thumbnail strip, keyboard navigation, touch support, and Amazon-like hover magnification (lens + zoom result)." />
+
+    <style>
+      :root{
+        /* Light Saffron theme */
+        --bg:#fff7e6;
+        --bg2:#fff1d6;
+        --card:rgba(255,255,255,.92);
+        --ink:#1f2937;
+        --muted:#6b7280;
+        --brand:#d97706;
+        --brand2:#f59e0b;
+        --border:#eadcc5;
+        --shadow:0 18px 40px rgba(31,41,55,.14);
+        --r:18px;
+      }
+      *{box-sizing:border-box}
+      body{
+        margin:0;
+        font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+        color:var(--ink);
+        background: radial-gradient(1200px 600px at 20% 0%, #fffaf2 0%, var(--bg) 35%, var(--bg2) 100%);
+      }
+
+      /* Root wrapper */
+      #pp-product-gallery{
+        margin: 24px auto;
+        padding: 16px;
+        max-width: 980px;
+      }
+
+      /* Card */
+      #pp-product-gallery .pp-card{
+        background: var(--card);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+        border-radius: var(--r);
+        padding: 16px;
+        overflow:hidden;
+      }
+
+      #pp-product-gallery .pp-top{
+        display:flex;
+        align-items:flex-start;
+        justify-content:space-between;
+        gap:12px;
+        margin-bottom: 12px;
+      }
+      #pp-product-gallery .pp-title{
+        margin:0;
+        font-size:18px;
+        letter-spacing:.2px;
+      }
+      #pp-product-gallery .pp-sub{
+        margin:6px 0 0;
+        font-size:13px;
+        color:var(--muted);
+        line-height:1.4;
+      }
+
+      /* Layout */
+      #pp-product-gallery .gallery-wrapper{
+        display:flex;
+        gap:16px;
+        flex-wrap:wrap;
+        align-items:flex-start;
+      }
+
+      /* Thumbnails */
+      #pp-product-gallery .thumbs{
+        width:86px;
+        display:flex;
+        flex-direction:column;
+        gap:10px;
+        padding:6px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: linear-gradient(145deg,#fffaf2,#fff1d6);
+      }
+
+      #pp-product-gallery .thumbs button{
+        all:unset;
+        display:block;
+        cursor:pointer;
+        border-radius: 12px;
+        outline:none;
+      }
+      #pp-product-gallery .thumbs button:focus-visible{
+        box-shadow: 0 0 0 3px rgba(217,119,6,.25);
+      }
+
+      #pp-product-gallery .thumbs img{
+        width: 72px;
+        height: 72px;
+        object-fit: cover;
+        border-radius: 12px;
+        display:block;
+        border: 2px solid transparent;
+        box-shadow: 0 2px 10px rgba(0,0,0,.08);
+        transition: transform .12s ease, border-color .12s ease, box-shadow .12s ease;
+      }
+      #pp-product-gallery .thumbs button:hover img{
+        transform: translateY(-1px);
+        box-shadow: 0 10px 18px rgba(31,41,55,.12);
+      }
+      #pp-product-gallery .thumbs button[aria-selected="true"] img{
+        border-color: var(--brand2);
+      }
+
+      /* Main image area */
+      #pp-product-gallery .stage{
+        display:flex;
+        flex-direction:column;
+        gap:10px;
+      }
+
+      #pp-product-gallery .magnify-container{
+        position:relative;
+        width: 340px;
+        border-radius: 16px;
+        overflow:hidden;
+        border: 1px solid var(--border);
+        background:#fff;
+        box-shadow: 0 10px 26px rgba(31,41,55,.12);
+        touch-action: none; /* allow pointermove */
+      }
+
+      #pp-product-gallery .magnify-small{
+        width:100%;
+        height:auto;
+        display:block;
+      }
+
+      /* subtle grid overlay for premium feel (very light) */
+      #pp-product-gallery .magnify-container::after{
+        content:"";
+        position:absolute;
+        inset:0;
+        background:
+          linear-gradient(to right, rgba(217,119,6,.05) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(217,119,6,.05) 1px, transparent 1px);
+        background-size: 32px 32px;
+        opacity:.22;
+        pointer-events:none;
+        mix-blend-mode:multiply;
+      }
+
+      /* Lens */
+      #pp-product-gallery .magnify-lens{
+        position:absolute;
+        width: 120px;
+        height: 120px;
+        border-radius: 999px;
+        display:none;
+        border: 2px solid rgba(0,0,0,.12);
+        background-repeat:no-repeat;
+        cursor:none;
+        box-shadow: 0 10px 24px rgba(31,41,55,.20);
+        backdrop-filter: blur(1px);
+      }
+
+      /* Zoom result */
+      #pp-product-gallery .magnify-result{
+        width: 420px;
+        height: 420px;
+        display:none;
+        border-radius: 16px;
+        background-repeat:no-repeat;
+        border: 1px solid var(--border);
+        box-shadow: 0 12px 28px rgba(31,41,55,.14);
+        background-color:#fff;
+        overflow:hidden;
+      }
+
+      /* Controls row */
+      #pp-product-gallery .controls{
+        display:flex;
+        flex-wrap:wrap;
+        gap:10px;
+        align-items:center;
+        justify-content:space-between;
+      }
+
+      #pp-product-gallery .btn-row{
+        display:flex;
+        gap:10px;
+        align-items:center;
+      }
+
+      #pp-product-gallery .pp-btn{
+        border:1px solid var(--border);
+        background: linear-gradient(180deg,#fff,#fff6e6);
+        color:var(--ink);
+        border-radius: 12px;
+        padding: 10px 12px;
+        font-size: 13px;
+        cursor:pointer;
+        user-select:none;
+        box-shadow: 0 10px 22px rgba(31,41,55,.08);
+        transition: transform .12s ease, box-shadow .12s ease;
+      }
+      #pp-product-gallery .pp-btn:hover{ transform: translateY(-1px); box-shadow: 0 14px 26px rgba(31,41,55,.12); }
+      #pp-product-gallery .pp-btn:active{ transform: translateY(0px); }
+
+      #pp-product-gallery .pp-btn.primary{
+        border-color: rgba(217,119,6,.35);
+        background: linear-gradient(180deg,#fff1d6,#ffe6b3);
+      }
+
+      #pp-product-gallery .pp-pill{
+        display:inline-flex;
+        align-items:center;
+        gap:8px;
+        padding: 9px 12px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: #fff;
+        font-size: 13px;
+        color:var(--muted);
+      }
+
+      #pp-product-gallery input[type="range"]{
+        width: 170px;
+        accent-color: var(--brand);
+      }
+
+      #pp-product-gallery .hint{
+        font-size: 12px;
+        color: var(--muted);
+        line-height:1.4;
+      }
+
+      /* Loading shimmer */
+      #pp-product-gallery .loading{
+        position:absolute;
+        inset:0;
+        display:none;
+        align-items:center;
+        justify-content:center;
+        background: rgba(255,247,230,.7);
+        backdrop-filter: blur(2px);
+        z-index:3;
+      }
+      #pp-product-gallery .loading .bar{
+        width: 74%;
+        height: 10px;
+        border-radius: 999px;
+        border:1px solid var(--border);
+        background: linear-gradient(90deg, #fff 0%, #ffe6b3 35%, #fff 70%);
+        background-size: 200% 100%;
+        animation: ppShimmer 1s linear infinite;
+        box-shadow: 0 10px 18px rgba(31,41,55,.10);
+      }
+      @keyframes ppShimmer{ 0%{background-position:0% 0} 100%{background-position:200% 0} }
+
+      /* Mobile */
+      @media (max-width: 980px){
+        #pp-product-gallery{ max-width: 760px; }
+        #pp-product-gallery .magnify-result{ width: 340px; height: 340px; }
+      }
+      @media (max-width: 860px){
+        #pp-product-gallery .gallery-wrapper{ flex-direction:column; }
+        #pp-product-gallery .thumbs{
+          width: 100%;
+          flex-direction:row;
+          overflow:auto;
+          -webkit-overflow-scrolling: touch;
+        }
+        #pp-product-gallery .thumbs img{ width: 76px; height: 76px; }
+        #pp-product-gallery .magnify-container{ width: 100%; max-width: 520px; }
+        #pp-product-gallery .magnify-result{ width: 100%; max-width: 520px; height: 320px; }
+      }
+
+      /* Reduced motion */
+      @media (prefers-reduced-motion: reduce){
+        #pp-product-gallery .thumbs img,
+        #pp-product-gallery .pp-btn,
+        #pp-product-gallery .loading .bar{ transition:none; animation:none; }
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- ======================================================
+      Programmer’s Picnic — Enhanced Product Gallery
+      - Saffron theme
+      - Keyboard navigation (←/→, Enter)
+      - Touch support (long-press / drag to magnify)
+      - Zoom slider + Fullscreen view
+      - Proper pointer math & retina-safe background sizing
+      ====================================================== -->
+
+    <div id="pp-product-gallery">
+      <div class="pp-card">
+        <div class="pp-top">
+          <div>
+            <h1 class="pp-title">Programmer’s Picnic — Product Gallery</h1>
+            <p class="pp-sub">
+              Hover (desktop) or press-and-drag (mobile) to magnify. Use <b>← / →</b> to change images.
+            </p>
+          </div>
+
+          <div class="pp-pill" aria-label="Zoom controls">
+            <span>Zoom</span>
+            <input id="ppZoom" type="range" min="2" max="6" step="0.25" value="3" />
+            <span id="ppZoomVal">3.00×</span>
+          </div>
+        </div>
+
+        <div class="gallery-wrapper">
+          <!-- Thumbnails (buttons for accessibility) -->
+          <div class="thumbs" role="listbox" aria-label="Product images">
+            <button type="button" role="option" aria-selected="true" data-full="https://programmer-s-picnic.github.io/json-images/pics/bat.jpg">
+              <img src="https://programmer-s-picnic.github.io/json-images/pics/bat.jpg" alt="Thumbnail 1" loading="lazy" />
+            </button>
+
+            <button type="button" role="option" aria-selected="false" data-full="https://programmer-s-picnic.github.io/json-images/pics/me.jpg">
+              <img src="https://programmer-s-picnic.github.io/json-images/pics/me.jpg" alt="Thumbnail 2" loading="lazy" />
+            </button>
+
+            <button type="button" role="option" aria-selected="false" data-full="https://programmer-s-picnic.github.io/json-images/pics/mango.jpg">
+              <img src="https://programmer-s-picnic.github.io/json-images/pics/mango.jpg" alt="Thumbnail 3" loading="lazy" />
+            </button>
+
+            <button type="button" role="option" aria-selected="false" data-full="https://programmer-s-picnic.github.io/json-images/pics/light.jpg">
+              <img src="https://programmer-s-picnic.github.io/json-images/pics/light.jpg" alt="Thumbnail 4" loading="lazy" />
+            </button>
+          </div>
+
+          <!-- Stage: main image -->
+          <div class="stage">
+            <div class="magnify-container" id="ppMainContainer" aria-label="Main image">
+              <div class="loading" id="ppLoading" aria-hidden="true"><div class="bar"></div></div>
+
+              <img
+                id="ppMainImg"
+                class="magnify-small"
+                src="https://programmer-s-picnic.github.io/json-images/pics/light.jpg"
+                alt="Selected product image"
+                draggable="false"
+              />
+              <div class="magnify-lens" id="ppLens" aria-hidden="true"></div>
+            </div>
+
+            <div class="controls">
+              <div class="btn-row">
+                <button class="pp-btn" type="button" id="ppPrev" aria-label="Previous image">⟵ Prev</button>
+                <button class="pp-btn" type="button" id="ppNext" aria-label="Next image">Next ⟶</button>
+                <button class="pp-btn primary" type="button" id="ppFullscreen" aria-label="Open fullscreen">Fullscreen</button>
+              </div>
+              <div class="hint">
+                Tip: On mobile, <b>press & drag</b> on the image to magnify. On desktop, simply <b>hover</b>.
+              </div>
+            </div>
+          </div>
+
+          <!-- Zoom result -->
+          <div class="magnify-result" id="ppResult" aria-label="Zoomed view"></div>
+        </div>
+      </div>
+    </div>
+   <script src="https://programmer-s-picnic.github.io/json-images/find-on-page.js"></script>
+    <script src="https://programmer-s-picnic.github.io/json-images/imgshow.js"></script>
+    <script src="https://programmer-s-picnic.github.io/json-images/hometag.js"></script>
+ 
+    <script>
+      (function () {
+        "use strict";
+
+        const root = document.getElementById("pp-product-gallery");
+        const img = document.getElementById("ppMainImg");
+        const lens = document.getElementById("ppLens");
+        const result = document.getElementById("ppResult");
+        const container = document.getElementById("ppMainContainer");
+        const thumbs = Array.from(root.querySelectorAll(".thumbs button"));
+        const prevBtn = document.getElementById("ppPrev");
+        const nextBtn = document.getElementById("ppNext");
+        const fsBtn = document.getElementById("ppFullscreen");
+        const zoomSlider = document.getElementById("ppZoom");
+        const zoomVal = document.getElementById("ppZoomVal");
+        const loading = document.getElementById("ppLoading");
+
+        let zoom = parseFloat(zoomSlider.value);
+        let activeIndex = 0;
+        let isMagnifying = false;
+
+        // For touch: start magnify only after press/hold
+        let pressTimer = null;
+        const HOLD_MS = 120;
+
+        function setZoom(v) {
+          zoom = Math.max(1.5, Math.min(8, Number(v) || 3));
+          zoomSlider.value = String(zoom);
+          zoomVal.textContent = zoom.toFixed(2) + "×";
+          // Refresh background sizes/positions if currently magnifying
+          if (isMagnifying) syncMagnify(lastPointerEvent);
+        }
+
+        function setActive(index) {
+          activeIndex = (index + thumbs.length) % thumbs.length;
+
+          thumbs.forEach((b, i) => b.setAttribute("aria-selected", i === activeIndex ? "true" : "false"));
+
+          const full = thumbs[activeIndex].dataset.full;
+          if (!full) return;
+
+          hideMagnify();
+          showLoading(true);
+
+          // swap image
+          img.src = full;
+          img.alt = "Selected product image (" + (activeIndex + 1) + ")";
+          img.onload = () => {
+            initBackgrounds();
+            showLoading(false);
+          };
+          img.onerror = () => {
+            showLoading(false);
+          };
+        }
+
+        function initBackgrounds() {
+          lens.style.backgroundImage = `url("${img.src}")`;
+          result.style.backgroundImage = `url("${img.src}")`;
+          // Reset background position
+          lens.style.backgroundPosition = "0 0";
+          result.style.backgroundPosition = "0 0";
+        }
+
+        function showLoading(on) {
+          loading.style.display = on ? "flex" : "none";
+          loading.setAttribute("aria-hidden", on ? "false" : "true");
+        }
+
+        function showMagnify() {
+          isMagnifying = true;
+          lens.style.display = "block";
+          result.style.display = "block";
+          lens.setAttribute("aria-hidden", "false");
+          // Prevent page scrolling while magnifying on touch
+          container.style.userSelect = "none";
+        }
+
+        function hideMagnify() {
+          isMagnifying = false;
+          lens.style.display = "none";
+          result.style.display = "none";
+          lens.setAttribute("aria-hidden", "true");
+          container.style.userSelect = "";
+        }
+
+        // Retina-safe background sizing and correct coordinate math
+        let lastPointerEvent = null;
+
+        function syncMagnify(e) {
+          if (!e) return;
+          lastPointerEvent = e;
+
+          const rect = img.getBoundingClientRect();
+          if (!rect.width || !rect.height) return;
+
+          // Coordinates relative to displayed image
+          const cx = e.clientX - rect.left;
+          const cy = e.clientY - rect.top;
+
+          const lensW = lens.offsetWidth;
+          const lensH = lens.offsetHeight;
+
+          // Lens top-left in displayed-image coordinates
+          let x = cx - lensW / 2;
+          let y = cy - lensH / 2;
+
+          // Clamp within displayed image area
+          x = Math.max(0, Math.min(x, rect.width - lensW));
+          y = Math.max(0, Math.min(y, rect.height - lensH));
+
+          // Position lens inside container (container == img box)
+          lens.style.left = x + "px";
+          lens.style.top = y + "px";
+
+          // Map displayed coords -> natural coords
+          const scaleX = img.naturalWidth / rect.width;
+          const scaleY = img.naturalHeight / rect.height;
+
+          // background sizes (natural * zoom)
+          const bgW = img.naturalWidth * zoom;
+          const bgH = img.naturalHeight * zoom;
+
+          lens.style.backgroundSize = `${bgW}px ${bgH}px`;
+          result.style.backgroundSize = `${bgW}px ${bgH}px`;
+
+          // natural coords for top-left of lens
+          const natX = x * scaleX;
+          const natY = y * scaleY;
+
+          const bgPosX = -(natX * zoom);
+          const bgPosY = -(natY * zoom);
+
+          lens.style.backgroundPosition = `${bgPosX}px ${bgPosY}px`;
+          result.style.backgroundPosition = `${bgPosX}px ${bgPosY}px`;
+        }
+
+        // Desktop hover behavior
+        container.addEventListener("mouseenter", () => {
+          // Only show on devices that support hover
+          if (window.matchMedia("(hover:hover)").matches) showMagnify();
+        });
+        container.addEventListener("mouseleave", () => {
+          if (window.matchMedia("(hover:hover)").matches) hideMagnify();
+        });
+
+        // Pointer handling
+        container.addEventListener("pointermove", (e) => {
+          if (!window.matchMedia("(hover:hover)").matches && !isMagnifying) return; // touch: only if active
+          syncMagnify(e);
+        });
+
+        // Touch / pen: press-and-drag to magnify
+        container.addEventListener("pointerdown", (e) => {
+          // Only for touch/pen; desktop already uses hover
+          if (e.pointerType === "mouse") return;
+
+          container.setPointerCapture(e.pointerId);
+
+          clearTimeout(pressTimer);
+          pressTimer = setTimeout(() => {
+            showMagnify();
+            syncMagnify(e);
+          }, HOLD_MS);
+        });
+
+        container.addEventListener("pointerup", () => {
+          clearTimeout(pressTimer);
+          // On touch, lift finger to close
+          if (!window.matchMedia("(hover:hover)").matches) hideMagnify();
+        });
+
+        container.addEventListener("pointercancel", () => {
+          clearTimeout(pressTimer);
+          if (!window.matchMedia("(hover:hover)").matches) hideMagnify();
+        });
+
+        // Avoid page scroll while magnifying on touch
+        container.addEventListener(
+          "touchmove",
+          (e) => {
+            if (isMagnifying) e.preventDefault();
+          },
+          { passive: false }
+        );
+
+        // Thumbnail click handler
+        thumbs.forEach((btn, idx) => {
+          btn.addEventListener("click", () => setActive(idx));
+          btn.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setActive(idx);
+            }
+          });
+        });
+
+        // Prev/Next
+        prevBtn.addEventListener("click", () => setActive(activeIndex - 1));
+        nextBtn.addEventListener("click", () => setActive(activeIndex + 1));
+
+        // Keyboard: left/right to switch, Esc to close magnify
+        root.addEventListener("keydown", (e) => {
+          if (e.key === "ArrowLeft") setActive(activeIndex - 1);
+          if (e.key === "ArrowRight") setActive(activeIndex + 1);
+          if (e.key === "Escape") hideMagnify();
+        });
+        // Make root focusable for keyboard use
+        root.tabIndex = 0;
+
+        // Zoom slider
+        zoomSlider.addEventListener("input", (e) => setZoom(e.target.value));
+
+        // Fullscreen view (native Fullscreen API)
+        fsBtn.addEventListener("click", async () => {
+          try {
+            // Prefer fullscreen on the main container (best UX)
+            const el = container;
+            if (!document.fullscreenElement) {
+              await el.requestFullscreen();
+            } else {
+              await document.exitFullscreen();
+            }
+          } catch (err) {
+            // Ignore if blocked
+          }
+        });
+
+        // When entering/exiting fullscreen, show result below on mobile by default
+        document.addEventListener("fullscreenchange", () => {
+          // If fullscreen is active, keep magnify available (hover/touch rules still apply)
+          // No extra logic needed.
+        });
+
+        // Init
+        setZoom(zoom);
+        if (img.complete) initBackgrounds();
+
+        // Start with your first thumbnail as active (Amazon behavior)
+        // (Your original code had a mismatch; now it is consistent.)
+        setActive(0);
+      })();
+    </script>
+  </body>
+</html>
