@@ -1,225 +1,385 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Programmer’s Picnic – Learn Chess</title>
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Programmer’s Picnic – Learn Chess</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1"
+    />
 
-<style>
-body{
-  margin:0;
-  font-family: system-ui, Segoe UI, Roboto, Arial;
-  background:#fffaf2;
-  color:#2b2b2b;
-}
-header{
-  background:linear-gradient(135deg,#ffedd5,#fde68a);
-  padding:14px;
-  text-align:center;
-  border-bottom:2px solid #f59e0b;
-}
-header h1{margin:0;color:#92400e;font-size:22px}
-header p{margin:4px 0 0;font-size:13px;color:#7c2d12}
+    <style>
+      body {
+        margin: 0;
+        font-family:
+          system-ui,
+          Segoe UI,
+          Roboto,
+          Arial;
+        background: #fffaf2;
+        color: #2b2b2b;
+      }
+      header {
+        background: linear-gradient(135deg, #ffedd5, #fde68a);
+        padding: 14px;
+        text-align: center;
+        border-bottom: 2px solid #f59e0b;
+      }
+      header h1 {
+        margin: 0;
+        color: #92400e;
+        font-size: 22px;
+      }
+      header p {
+        margin: 4px 0 0;
+        font-size: 13px;
+        color: #7c2d12;
+      }
 
-main{
-  max-width:900px;
-  margin:auto;
-  padding:14px;
-  display:grid;
-  grid-template-columns:340px 1fr;
-  gap:14px;
-}
-@media(max-width:800px){main{grid-template-columns:1fr}}
+      main {
+        max-width: 900px;
+        margin: auto;
+        padding: 14px;
+        display: grid;
+        grid-template-columns: 340px 1fr;
+        gap: 14px;
+      }
+      @media (max-width: 800px) {
+        main {
+          grid-template-columns: 1fr;
+        }
+      }
 
-.card{
-  background:#fff;
-  border-radius:14px;
-  box-shadow:0 10px 25px rgba(0,0,0,.1);
-  padding:14px;
-}
+      .card {
+        background: #fff;
+        border-radius: 14px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        padding: 14px;
+      }
 
-#board{
-  width:min(90vw, 360px);
-  aspect-ratio:1/1;
-  margin:auto;
-  display:grid;
-  grid-template-columns:repeat(8,1fr);
-  border:6px solid rgba(255,153,51,.25);
-  border-radius:12px;
-  overflow:hidden;
-  touch-action:manipulation;
-}
+      #board {
+        width: min(90vw, 360px);
+        aspect-ratio: 1/1;
+        margin: auto;
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        border: 6px solid rgba(255, 153, 51, 0.25);
+        border-radius: 12px;
+        overflow: hidden;
+        touch-action: manipulation;
+      }
 
-.square{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:clamp(26px, 6vw, 36px);
-  cursor:pointer;
-  user-select:none;
-  -webkit-tap-highlight-color: transparent;
-}
-.light{background:#fef3c7}
-.dark{background:#d97706}
+      .square {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: clamp(26px, 6vw, 36px);
+        cursor: pointer;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .light {
+        background: #fef3c7;
+      }
+      .dark {
+        background: #d97706;
+      }
 
-.selected{outline:4px solid #2563eb}
-.valid{box-shadow: inset 0 0 0 4px rgba(34,197,94,.9)}
+      .selected {
+        outline: 4px solid #2563eb;
+      }
+      .valid {
+        box-shadow: inset 0 0 0 4px rgba(34, 197, 94, 0.9);
+      }
 
-.lesson{
-  margin-top:10px;
-  padding:12px;
-  background:#fff7ed;
-  border:1px solid #f59e0b;
-  border-radius:10px;
-  font-size:14px;
-  line-height:1.6;
-}
-</style>
-</head>
+      .lesson {
+        margin-top: 10px;
+        padding: 12px;
+        background: #fff7ed;
+        border: 1px solid #f59e0b;
+        border-radius: 10px;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+    </style>
+  </head>
 
-<body>
-<header>
-  <h1>♟ Programmer’s Picnic – Learn Chess</h1>
-  <p>You play White • Computer plays Black</p>
-</header>
+  <body>
+    <header>
+      <h1>♟ Programmer’s Picnic – Learn Chess</h1>
+      <p>You play White • Computer plays Black</p>
+    </header>
 
-<main>
-<div class="card"><div id="board"></div></div>
-<div class="card"><h3>Coach Champak 🧠</h3><div id="lesson" class="lesson">Your move: tap a white piece.</div></div>
-</main>
+    <main>
+      <div class="card"><div id="board"></div></div>
+      <div class="card">
+        <h3>Coach Champak 🧠</h3>
+        <div id="lesson" class="lesson">Your move: tap a white piece.</div>
+      </div>
+    </main>
 
-<script>
-/* =========================
+    <script>
+      /* =========================
    BASIC SETUP
 ========================= */
-const pieces={r:"♜",n:"♞",b:"♝",q:"♛",k:"♚",p:"♟",R:"♖",N:"♘",B:"♗",Q:"♕",K:"♔",P:"♙"};
-let boardState,selected=null,validMoves=[],turn="white";
-const boardEl=document.getElementById("board"),lessonEl=document.getElementById("lesson");
+      const pieces = {
+        r: "♜",
+        n: "♞",
+        b: "♝",
+        q: "♛",
+        k: "♚",
+        p: "♟",
+        R: "♖",
+        N: "♘",
+        B: "♗",
+        Q: "♕",
+        K: "♔",
+        P: "♙",
+      };
+      let boardState,
+        selected = null,
+        validMoves = [],
+        turn = "white";
+      const boardEl = document.getElementById("board"),
+        lessonEl = document.getElementById("lesson");
 
-function resetGame(){
- boardState=["rnbqkbnr".split(""),"pppppppp".split(""),"........".split(""),"........".split(""),"........".split(""),"........".split(""),"PPPPPPPP".split(""),"RNBQKBNR".split("")];
- selected=null;validMoves=[];turn="white";
- drawBoard();
-}
+      function resetGame() {
+        boardState = [
+          "rnbqkbnr".split(""),
+          "pppppppp".split(""),
+          "........".split(""),
+          "........".split(""),
+          "........".split(""),
+          "........".split(""),
+          "PPPPPPPP".split(""),
+          "RNBQKBNR".split(""),
+        ];
+        selected = null;
+        validMoves = [];
+        turn = "white";
+        drawBoard();
+      }
 
-/* =========================
+      /* =========================
    DRAW BOARD
 ========================= */
-function drawBoard(){
- boardEl.innerHTML="";
- for(let r=0;r<8;r++)for(let c=0;c<8;c++){
-  const sq=document.createElement("div");
-  sq.className="square "+((r+c)%2?"dark":"light");
-  const p=boardState[r][c]; if(p!==".") sq.textContent=pieces[p];
-  if(selected&&selected.r===r&&selected.c===c) sq.classList.add("selected");
-  if(validMoves.some(m=>m.r===r&&m.c===c)) sq.classList.add("valid");
-  sq.onclick=()=>handleClick(r,c);
-  boardEl.appendChild(sq);
- }
-}
+      function drawBoard() {
+        boardEl.innerHTML = "";
+        for (let r = 0; r < 8; r++)
+          for (let c = 0; c < 8; c++) {
+            const sq = document.createElement("div");
+            sq.className = "square " + ((r + c) % 2 ? "dark" : "light");
+            const p = boardState[r][c];
+            if (p !== ".") sq.textContent = pieces[p];
+            if (selected && selected.r === r && selected.c === c)
+              sq.classList.add("selected");
+            if (validMoves.some((m) => m.r === r && m.c === c))
+              sq.classList.add("valid");
+            sq.onclick = () => handleClick(r, c);
+            boardEl.appendChild(sq);
+          }
+      }
 
-/* =========================
+      /* =========================
    PLAYER MOVE (WHITE)
 ========================= */
-function handleClick(r,c){
- if(turn!=="white") return;
+      function handleClick(r, c) {
+        if (turn !== "white") return;
 
- if(!selected){
-  const p=boardState[r][c];
-  if(p>="A"&&p<="Z"){
-    selected={r,c};
-    validMoves=getMoves(p,r,c,"white");
-    lessonEl.textContent="Green square par move karo.";
-  }
-  drawBoard();return;
- }
+        if (!selected) {
+          const p = boardState[r][c];
+          if (p >= "A" && p <= "Z") {
+            selected = { r, c };
+            validMoves = getMoves(p, r, c, "white");
+            lessonEl.textContent = "Green square par move karo.";
+          }
+          drawBoard();
+          return;
+        }
 
- if(validMoves.some(m=>m.r===r&&m.c===c)){
-  boardState[r][c]=boardState[selected.r][selected.c];
-  boardState[selected.r][selected.c]=".";
-  selected=null;validMoves=[];turn="black";
-  lessonEl.textContent="Computer soch raha hai…";
-  drawBoard();
-  setTimeout(computerMove,600);
-  return;
- }
+        if (validMoves.some((m) => m.r === r && m.c === c)) {
+          boardState[r][c] = boardState[selected.r][selected.c];
+          boardState[selected.r][selected.c] = ".";
+          selected = null;
+          validMoves = [];
+          turn = "black";
+          lessonEl.textContent = "Computer soch raha hai…";
+          drawBoard();
+          setTimeout(computerMove, 600);
+          return;
+        }
 
- selected=null;validMoves=[];drawBoard();
-}
+        selected = null;
+        validMoves = [];
+        drawBoard();
+      }
 
-/* =========================
+      /* =========================
    MOVE GENERATION
 ========================= */
-function slideMoves(moves,r,c,dirs,enemyCheck){
- dirs.forEach(d=>{let nr=r+d[0],nc=c+d[1];while(nr>=0&&nr<8&&nc>=0&&nc<8){
-  if(boardState[nr][nc]===".") moves.push({r:nr,c:nc});
-  else{ if(enemyCheck(nr,nc)) moves.push({r:nr,c:nc}); break; }
-  nr+=d[0];nc+=d[1];
- }});
-}
+      function slideMoves(moves, r, c, dirs, enemyCheck) {
+        dirs.forEach((d) => {
+          let nr = r + d[0],
+            nc = c + d[1];
+          while (nr >= 0 && nr < 8 && nc >= 0 && nc < 8) {
+            if (boardState[nr][nc] === ".") moves.push({ r: nr, c: nc });
+            else {
+              if (enemyCheck(nr, nc)) moves.push({ r: nr, c: nc });
+              break;
+            }
+            nr += d[0];
+            nc += d[1];
+          }
+        });
+      }
 
-function getMoves(p,r,c,side){
- const moves=[];
- const empty=(r,c)=>boardState[r][c]===".";
- const enemy= side==="white"
-   ? (r,c)=>boardState[r][c]>="a"&&boardState[r][c]<="z"
-   : (r,c)=>boardState[r][c]>="A"&&boardState[r][c]<="Z";
+      function getMoves(p, r, c, side) {
+        const moves = [];
+        const empty = (r, c) => boardState[r][c] === ".";
+        const enemy =
+          side === "white"
+            ? (r, c) => boardState[r][c] >= "a" && boardState[r][c] <= "z"
+            : (r, c) => boardState[r][c] >= "A" && boardState[r][c] <= "Z";
 
- if(p==="P"&&side==="white"){
-  if(r>0&&empty(r-1,c)){
-   moves.push({r:r-1,c});
-   if(r===6&&empty(r-2,c)) moves.push({r:r-2,c});
-  }
-  if(r>0&&c>0&&enemy(r-1,c-1)) moves.push({r:r-1,c:c-1});
-  if(r>0&&c<7&&enemy(r-1,c+1)) moves.push({r:r-1,c:c+1});
- }
+        if (p === "P" && side === "white") {
+          if (r > 0 && empty(r - 1, c)) {
+            moves.push({ r: r - 1, c });
+            if (r === 6 && empty(r - 2, c)) moves.push({ r: r - 2, c });
+          }
+          if (r > 0 && c > 0 && enemy(r - 1, c - 1))
+            moves.push({ r: r - 1, c: c - 1 });
+          if (r > 0 && c < 7 && enemy(r - 1, c + 1))
+            moves.push({ r: r - 1, c: c + 1 });
+        }
 
- if(p==="p"&&side==="black"){
-  if(r<7&&empty(r+1,c)){
-   moves.push({r:r+1,c});
-   if(r===1&&empty(r+2,c)) moves.push({r:r+2,c});
-  }
-  if(r<7&&c>0&&enemy(r+1,c-1)) moves.push({r:r+1,c:c-1});
-  if(r<7&&c<7&&enemy(r+1,c+1)) moves.push({r:r+1,c:c+1});
- }
+        if (p === "p" && side === "black") {
+          if (r < 7 && empty(r + 1, c)) {
+            moves.push({ r: r + 1, c });
+            if (r === 1 && empty(r + 2, c)) moves.push({ r: r + 2, c });
+          }
+          if (r < 7 && c > 0 && enemy(r + 1, c - 1))
+            moves.push({ r: r + 1, c: c - 1 });
+          if (r < 7 && c < 7 && enemy(r + 1, c + 1))
+            moves.push({ r: r + 1, c: c + 1 });
+        }
 
- if(p.toLowerCase()==="r") slideMoves(moves,r,c,[[1,0],[-1,0],[0,1],[0,-1]],enemy);
- if(p.toLowerCase()==="b") slideMoves(moves,r,c,[[1,1],[1,-1],[-1,1],[-1,-1]],enemy);
- if(p.toLowerCase()==="q") slideMoves(moves,r,c,[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]],enemy);
- if(p.toLowerCase()==="n") [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]].forEach(d=>{
-  const nr=r+d[0],nc=c+d[1];
-  if(nr>=0&&nr<8&&nc>=0&&nc<8&&(empty(nr,nc)||enemy(nr,nc))) moves.push({r:nr,c:nc});
- });
- if(p.toLowerCase()==="k") [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]].forEach(d=>{
-  const nr=r+d[0],nc=c+d[1];
-  if(nr>=0&&nr<8&&nc>=0&&nc<8&&(empty(nr,nc)||enemy(nr,nc))) moves.push({r:nr,c:nc});
- });
- return moves;
-}
+        if (p.toLowerCase() === "r")
+          slideMoves(
+            moves,
+            r,
+            c,
+            [
+              [1, 0],
+              [-1, 0],
+              [0, 1],
+              [0, -1],
+            ],
+            enemy,
+          );
+        if (p.toLowerCase() === "b")
+          slideMoves(
+            moves,
+            r,
+            c,
+            [
+              [1, 1],
+              [1, -1],
+              [-1, 1],
+              [-1, -1],
+            ],
+            enemy,
+          );
+        if (p.toLowerCase() === "q")
+          slideMoves(
+            moves,
+            r,
+            c,
+            [
+              [1, 0],
+              [-1, 0],
+              [0, 1],
+              [0, -1],
+              [1, 1],
+              [1, -1],
+              [-1, 1],
+              [-1, -1],
+            ],
+            enemy,
+          );
+        if (p.toLowerCase() === "n")
+          [
+            [-2, -1],
+            [-2, 1],
+            [-1, -2],
+            [-1, 2],
+            [1, -2],
+            [1, 2],
+            [2, -1],
+            [2, 1],
+          ].forEach((d) => {
+            const nr = r + d[0],
+              nc = c + d[1];
+            if (
+              nr >= 0 &&
+              nr < 8 &&
+              nc >= 0 &&
+              nc < 8 &&
+              (empty(nr, nc) || enemy(nr, nc))
+            )
+              moves.push({ r: nr, c: nc });
+          });
+        if (p.toLowerCase() === "k")
+          [
+            [1, 0],
+            [-1, 0],
+            [0, 1],
+            [0, -1],
+            [1, 1],
+            [1, -1],
+            [-1, 1],
+            [-1, -1],
+          ].forEach((d) => {
+            const nr = r + d[0],
+              nc = c + d[1];
+            if (
+              nr >= 0 &&
+              nr < 8 &&
+              nc >= 0 &&
+              nc < 8 &&
+              (empty(nr, nc) || enemy(nr, nc))
+            )
+              moves.push({ r: nr, c: nc });
+          });
+        return moves;
+      }
 
-/* =========================
+      /* =========================
    COMPUTER MOVE (BLACK)
 ========================= */
-function computerMove(){
- let allMoves=[];
- for(let r=0;r<8;r++)for(let c=0;c<8;c++){
-  const p=boardState[r][c];
-  if(p>="a"&&p<="z"){
-    const ms=getMoves(p,r,c,"black");
-    ms.forEach(m=>allMoves.push({from:{r,c},to:m}));
-  }
- }
- if(allMoves.length===0){lessonEl.textContent="Game over.";return;}
+      function computerMove() {
+        let allMoves = [];
+        for (let r = 0; r < 8; r++)
+          for (let c = 0; c < 8; c++) {
+            const p = boardState[r][c];
+            if (p >= "a" && p <= "z") {
+              const ms = getMoves(p, r, c, "black");
+              ms.forEach((m) => allMoves.push({ from: { r, c }, to: m }));
+            }
+          }
+        if (allMoves.length === 0) {
+          lessonEl.textContent = "Game over.";
+          return;
+        }
 
- const move=allMoves[Math.floor(Math.random()*allMoves.length)];
- boardState[move.to.r][move.to.c]=boardState[move.from.r][move.from.c];
- boardState[move.from.r][move.from.c]=".";
- turn="white";
- lessonEl.textContent="Your move.";
- drawBoard();
-}
+        const move = allMoves[Math.floor(Math.random() * allMoves.length)];
+        boardState[move.to.r][move.to.c] = boardState[move.from.r][move.from.c];
+        boardState[move.from.r][move.from.c] = ".";
+        turn = "white";
+        lessonEl.textContent = "Your move.";
+        drawBoard();
+      }
 
-resetGame();
-</script>
-</body>
+      resetGame();
+    </script>
+  </body>
 </html>
