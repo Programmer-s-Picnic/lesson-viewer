@@ -1,6 +1,6 @@
 import re
 import math
-
+import numpy
 STOP = {"a", "an", "the", "and", "or", "to", "of", "in", "on", "is", "are", "was", "were", "this", "that", "it"}
 
 

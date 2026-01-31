@@ -27,3 +27,7 @@ URL Params:
 - code=abc.json   : load code JSON (tabs/stdin/problem)
 Share:
 - Share button copies a link to clipboard (keeps current query params + #hash state).
+
+Packages (Options 1&2):
+- Installs are persisted via IndexedDB (IDBFS) at /pp_persist when supported.
+- Installed package names are shown in the Packages card.

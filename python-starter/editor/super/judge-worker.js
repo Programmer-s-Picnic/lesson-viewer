@@ -11,16 +11,53 @@ const MAX_OUT_CHARS = 50000;
 
 function clampOut(s) {
   s = (s ?? "").toString();
-  if (s.length > MAX_OUT_CHARS) return s.slice(0, MAX_OUT_CHARS) + "\n…(truncated)…\n";
+  if (s.length > MAX_OUT_CHARS)
+    return s.slice(0, MAX_OUT_CHARS) + "\n…(truncated)…\n";
   return s;
 }
 
 async function ensurePyodide() {
   if (ready && py) return py;
-  py = await loadPyodide({ indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.2/full/" });
+  py = await loadPyodide({
+    indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.2/full/",
+  });
+
+  // Persistent filesystem for packages across refresh (IndexedDB via IDBFS)
+  // Robust across Pyodide/Emscripten variants
+  try {
+    const FS = py.FS;
+    const IDBFS =
+      py._module && py._module.IDBFS
+        ? py._module.IDBFS
+        : FS.filesystems && FS.filesystems.IDBFS
+          ? FS.filesystems.IDBFS
+          : null;
+    if (IDBFS) {
+      if (!FS.analyzePath("/pp_persist").exists) FS.mkdir("/pp_persist");
+      FS.mount(IDBFS, {}, "/pp_persist");
+      await new Promise((res, rej) =>
+        FS.syncfs(true, (e) => (e ? rej(e) : res())),
+      );
+    }
+  } catch (e) {
+    // best effort; persistence may be unavailable in some contexts
+  }
 
   await py.runPythonAsync(`
-import sys, builtins, io, traceback, json
+import sys, builtins, io, traceback, json, os
+
+# Add persistent paths for third-party packages
+_PP_PERSIST = '/pp_persist'
+if _PP_PERSIST not in sys.path:
+    sys.path.append(_PP_PERSIST)
+
+# Add any nested site-packages under /pp_persist (micropip target layouts vary)
+try:
+    for root, dirs, files in os.walk(_PP_PERSIST):
+        if root.endswith('site-packages') and root not in sys.path:
+            sys.path.append(root)
+except Exception:
+    pass
 
 def _pp_run_capture(user_code: str, stdin_text: str, policy_json: str):
     try:
@@ -30,6 +67,16 @@ def _pp_run_capture(user_code: str, stdin_text: str, policy_json: str):
 
     out = io.StringIO()
     err = io.StringIO()
+
+    # Refresh sys.path for /pp_persist (new installs)
+    try:
+        if _PP_PERSIST not in sys.path:
+            sys.path.append(_PP_PERSIST)
+        for root, dirs, files in os.walk(_PP_PERSIST):
+            if root.endswith('site-packages') and root not in sys.path:
+                sys.path.append(root)
+    except Exception:
+        pass
 
     data = (stdin_text or "").splitlines()
     idx = 0
@@ -122,11 +169,13 @@ RES = _pp_run_capture(U_CODE, U_STDIN, U_POLICY_JSON)
 `);
       const res = py.globals.get("RES");
       const obj = res.toJs({ dict_converter: Object.fromEntries });
-      try { res.destroy?.(); } catch {}
+      try {
+        res.destroy?.();
+      } catch {}
 
       obj.stdout = clampOut(obj.stdout);
       obj.stderr = clampOut(obj.stderr);
-      obj.error  = clampOut(obj.error);
+      obj.error = clampOut(obj.error);
 
       postMessage({ type: "RUN_RESULT", result: obj });
       return;
@@ -134,13 +183,24 @@ RES = _pp_run_capture(U_CODE, U_STDIN, U_POLICY_JSON)
 
     if (msg.type === "INSTALL") {
       await ensurePyodide();
-      if (!msg.policy?.allow_micropip) throw new Error("micropip disabled by policy");
+      if (!msg.policy?.allow_micropip)
+        throw new Error("micropip disabled by policy");
       await py.loadPackage("micropip");
       py.globals.set("PKGS", msg.pkgs || []);
       await py.runPythonAsync(`
 import micropip
-await micropip.install(PKGS)
+try:
+    await micropip.install(PKGS, target='/pp_persist')
+except TypeError:
+    # Older micropip may not support target; fall back
+    await micropip.install(PKGS)
 `);
+      try {
+        const FS = py.FS;
+        await new Promise((res, rej) =>
+          FS.syncfs(false, (e) => (e ? rej(e) : res())),
+        );
+      } catch (e) {}
       postMessage({ type: "INSTALLED", pkgs: msg.pkgs || [] });
       return;
     }
@@ -157,6 +217,9 @@ OUT = "\\n".join(names[:4000])
       return;
     }
   } catch (err) {
-    postMessage({ type: "ERR", message: err?.message ? err.message : String(err) });
+    postMessage({
+      type: "ERR",
+      message: err?.message ? err.message : String(err),
+    });
   }
 };
