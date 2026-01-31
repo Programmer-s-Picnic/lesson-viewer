@@ -135,11 +135,28 @@ const PROBLEMS = [
     ],
     hints: ["Use while n>0 with %10", "Or use string reverse"],
   },
+
+{
+    id: "check_primes",
+    title: "Check for Prime Number",
+    level: "Easy",
+    statement: "Given n print True if n is prime else print False",
+    starter: "n=int(input())\n# TODO\n# print(ans)\n",
+    examples: [{ input: "1200\n", output: "False\n" }],
+    tests: [
+      { input: "11\n", output: "True\n", hidden: false },
+      { input: "97\n", output: "True\n", hidden: false },
+      { input: "10\n", output: "False\n", hidden: false },
+    ],
+    hints: ["Use a while loop and check remainder", "Use % "],
+  },
+
 ];
 
 const EXAMPLES = [
   { title: "Hello + loops", code: 'print("Hello")\nfor i in range(3):\n    print(i)\n' },
   { title: "stdin + sum", code: "n=int(input())\nt=0\nfor _ in range(n):\n    t+=int(input())\nprint(t)\n" },
+  { title: "prime + n", code: "n=int(input())\nprint(True)\n" },
 ];
 
 const DEFAULT_TABS = [{ name: "main.py", code: 'print("Namaste Champak 👋")\n' }];
