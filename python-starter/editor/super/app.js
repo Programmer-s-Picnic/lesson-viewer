@@ -694,12 +694,41 @@ function listPkgs(){
 
 // ----- Share -----
 function share(){
-  state.tabs[currentTab].code=ui.code.value;
-  const payload={ tabs: state.tabs, currentTab, stdin: ui.stdin.value||"", problem: currentProblemId||"", tmode: TM||"" };
-  const json=JSON.stringify(payload);
-  const b64=btoa(unescape(encodeURIComponent(json))).replaceAll("+","-").replaceAll("/","_").replaceAll("=","");
-  const url=location.origin+location.pathname+location.search+"#"+b64;
-  navigator.clipboard?.writeText(url).then(()=>toast("Share link copied")).catch(()=>prompt("Copy link:",url));
+  // Save current editor state into the URL hash and copy/share the link
+  state.tabs[currentTab].code = ui.code.value;
+
+  const payload = {
+    tabs: state.tabs,
+    currentTab,
+    stdin: ui.stdin.value || "",
+    problem: currentProblemId || "",
+    tmode: TM || ""
+  };
+
+  const json = JSON.stringify(payload);
+  const b64 = btoa(unescape(encodeURIComponent(json)))
+    .replaceAll("+","-").replaceAll("/","_").replaceAll("=","");
+
+  // Update address bar hash so the page itself reflects the shared state
+  location.hash = "#" + b64;
+
+  const url = location.origin + location.pathname + location.search + "#" + b64;
+
+  // Prefer Web Share API (mobile), fall back to clipboard/prompt
+  if(navigator.share){
+    navigator.share({ title: document.title, url }).then(()=>{
+      toast("Shared");
+    }).catch(()=>{
+      navigator.clipboard?.writeText(url)
+        .then(()=>toast("Share link copied"))
+        .catch(()=>prompt("Copy link:", url));
+    });
+    return;
+  }
+
+  navigator.clipboard?.writeText(url)
+    .then(()=>toast("Share link copied"))
+    .catch(()=>prompt("Copy link:", url));
 }
 function loadFromHash(){
   const h=location.hash.replace("#","");
