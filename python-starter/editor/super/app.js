@@ -4,6 +4,10 @@
 //   ?tmode=0 => Student mode (Classroom forced ON, teacher controls hidden)
 // Share button is enabled in both modes.
 
+// NOTE: Strict share revert applied:
+//   - Share writes ONLY: #pp=<base64url>
+//   - Loader accepts ONLY: #pp=<base64url>
+
 const $ = (id) => document.getElementById(id);
 
 // ----- URL mode -----
@@ -99,6 +103,9 @@ const K_ALLOW_PKGS = "pp_allow_packages_v2";
 const K_STU_NAME = "pp_student_name_v2";
 const K_STU_ROLL = "pp_student_roll_v2";
 
+// Installed packages UI list (local display)
+const K_INSTALLED_PKGS = "pp_installed_pkgs_v1";
+
 // ---- Custom Problems Store (builder exports + optional remote JSON) ----
 const K_PROBLEMS_LOCAL = "pp_problems_custom_v1";
 const K_PROBLEMS_REMOTE_CACHE = "pp_problems_remote_cache_v1";
@@ -166,7 +173,6 @@ async function loadProblemsFromURL(url){
   }
 }
 
-
 async function loadCodeFromURL(url){
   const u = String(url||"").trim();
   if(!u) return null;
@@ -206,7 +212,6 @@ async function loadCodeFromURL(url){
   }
 }
 
-
 async function loadTextFileFromURL(url){
   const u = String(url||"").trim();
   if(!u) return null;
@@ -219,9 +224,6 @@ async function loadTextFileFromURL(url){
     return null;
   }
 }
-
-
-
 
 // Single submissions store (avoid redeclare bug)
 const K_SUBS = "pp_class_submissions_v1";
@@ -297,6 +299,27 @@ function normalizeOut(s){
   s=s.split("\n").map(line=>line.replace(/[ \t]+$/g,"")).join("\n");
   s=s.replace(/\s+$/g,"");
   return s+"\n";
+}
+
+// ----- Installed packages list helpers -----
+function loadInstalledPkgs(){
+  try{
+    const raw = localStorage.getItem(K_INSTALLED_PKGS);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  }catch{ return []; }
+}
+function saveInstalledPkgs(arr){
+  try{ localStorage.setItem(K_INSTALLED_PKGS, JSON.stringify(arr||[])); }catch{}
+}
+function renderInstalledPkgs(){
+  if(!ui.installedPkgs) return;
+  const arr = loadInstalledPkgs();
+  if(!arr.length){
+    ui.installedPkgs.textContent = "—";
+    return;
+  }
+  ui.installedPkgs.innerHTML = arr.map(p => `<span class="pp-kbd" style="margin:0">${esc(p)}</span>`).join(" ");
 }
 
 // ----- State -----
@@ -496,8 +519,10 @@ function makeWorker(force=false){
     }
     if(msg.type==="PKG_LIST"){ writeStdout(msg.text||"", false); return; }
     if(msg.type==="INSTALLED"){
-      installBusy=false; try{ btn.install.disabled=false; }catch{}
+      installBusy=false;
+      try{ btn.install.disabled=false; }catch{}
       packagesInstalled=true;
+
       // Update installed packages UI list (best-effort)
       try{
         const prev = new Set(loadInstalledPkgs());
@@ -505,10 +530,14 @@ function makeWorker(force=false){
         saveInstalledPkgs(Array.from(prev).sort());
         renderInstalledPkgs();
       }catch(e){}
+
       writeStdout("Installed: "+(msg.pkgs||[]).join(", ")+"\\n", true);
+      setStatus("Installed.","ok");
       return;
     }
-    if(msg.type==="ERR"){ installBusy=false; try{ btn.install.disabled=false; }catch{}
+    if(msg.type==="ERR"){
+      installBusy=false;
+      try{ btn.install.disabled=false; }catch{}
       clearTimeout(runTimer);
       pendingReject?.(new Error(msg.message||"Worker error"));
       pendingResolve=pendingReject=null;
@@ -679,9 +708,14 @@ async function runJudge(testList, label){
 // ----- Packages -----
 function installPkgs(){
   if(!allowPackages) return toast("Packages disabled");
+  if(installBusy) return toast("Install already running");
   const raw=(ui.pkgs.value||"").trim();
   if(!raw) return toast("No packages");
   const pkgs=raw.split(/[, ]+/).map(s=>s.trim()).filter(Boolean);
+
+  installBusy = true;
+  try{ btn.install.disabled = true; }catch{}
+
   writeStdout("— Installing —\n", false); writeStderr("", false);
   setStatus("Installing…","warn");
   worker.postMessage({ type:"INSTALL", pkgs, policy: classPolicy() });
@@ -692,7 +726,7 @@ function listPkgs(){
   worker.postMessage({ type:"LIST_PKGS" });
 }
 
-// ----- Share -----
+// ----- Share (STRICT: only #pp=...) -----
 function share(){
   // Save current editor state into the URL hash and copy/share the link
   state.tabs[currentTab].code = ui.code.value;
@@ -701,18 +735,16 @@ function share(){
     tabs: state.tabs,
     currentTab,
     stdin: ui.stdin.value || "",
-    problem: currentProblemId || "",
-    tmode: TM || ""
+    problem: currentProblemId || ""
   };
 
   const json = JSON.stringify(payload);
   const b64 = btoa(unescape(encodeURIComponent(json)))
     .replaceAll("+","-").replaceAll("/","_").replaceAll("=","");
 
-  // Update address bar hash so the page itself reflects the shared state
-  location.hash = "#" + b64;
-
-  const url = location.origin + location.pathname + location.search + "#" + b64;
+  // STRICT KEY
+  location.hash = "#pp=" + b64;
+  const url = location.origin + location.pathname + location.search + "#pp=" + b64;
 
   // Prefer Web Share API (mobile), fall back to clipboard/prompt
   if(navigator.share){
@@ -730,23 +762,31 @@ function share(){
     .then(()=>toast("Share link copied"))
     .catch(()=>prompt("Copy link:", url));
 }
+
+// Strict loader: ONLY accepts #pp=...
 function loadFromHash(){
-  const h=location.hash.replace("#","");
-  if(!h) return;
+  const h = location.hash || "";
+  if(!h.startsWith("#pp=")) return;
+
+  const enc = h.slice(4);
+  if(!enc) return;
+
   try{
-    let b64=h.replaceAll("-","+").replaceAll("_","/");
-    while(b64.length%4) b64+="=";
-    const json=decodeURIComponent(escape(atob(b64)));
-    const payload=JSON.parse(json);
+    let b64 = enc.replaceAll("-","+").replaceAll("_","/");
+    while(b64.length % 4) b64 += "=";
+
+    const json = decodeURIComponent(escape(atob(b64)));
+    const payload = JSON.parse(json);
+
     if(payload?.tabs?.length){
-      state.tabs=payload.tabs;
-      currentTab=clamp(payload.currentTab||0,0,state.tabs.length-1);
-      ui.stdin.value=payload.stdin||"";
-      ui.code.value=state.tabs[currentTab].code||"";
+      state.tabs = payload.tabs;
+      currentTab = clamp(payload.currentTab||0,0,state.tabs.length-1);
+      ui.stdin.value = payload.stdin||"";
+      ui.code.value = state.tabs[currentTab].code||"";
       saveState();
       localStorage.setItem(K_STDIN, ui.stdin.value||"");
     }
-    if(payload?.problem) currentProblemId=payload.problem;
+    if(payload?.problem) currentProblemId = payload.problem;
   }catch{}
 }
 
@@ -756,7 +796,7 @@ function applyModeUI(){
   ui.teacherBtn.style.display = TEACHER_UI ? "inline-flex" : "none";
   ui.teacherPanel.style.display = TEACHER_UI ? "block" : "none";
 
-  // share is always available (your request)
+  // share is always available
   btn.share.style.display = "inline-flex";
 
   ui.packagesCard.style.display = allowPackages ? "block" : "none";
@@ -927,13 +967,14 @@ async function init(){
   setXP(getXP());
   setStreak(getStreak());
   updateSubCount();
+  renderInstalledPkgs();
 
   // Optional: load code/tests from URL params.
-// 1) ?codefile=abc.py (or full URL) loads raw .py text into editor (main.py)
-// 2) ?code=abc.json loads code state JSON (tabs/stdin/problem)
-// When neither is provided, normal share hash/local state is used.
-  const codeFile = URLP.get("codefile"); // index.html?codefile=starter.py
-  const codeURL  = URLP.get("code");     // index.html?code=https://.../code.json
+  // 1) ?codefile=abc.py (or full URL) loads raw .py text into editor (main.py)
+  // 2) ?code=abc.json loads code state JSON (tabs/stdin/problem)
+  // When neither is provided, strict share hash/local state is used.
+  const codeFile = URLP.get("codefile");
+  const codeURL  = URLP.get("code");
 
   if(codeFile){
     const txt = await loadTextFileFromURL(codeFile);
@@ -962,10 +1003,9 @@ async function init(){
       toast("Code JSON invalid/unreachable");
     }
   }else{
-    // restore hash state (share links) when no code params are provided
+    // strict share loader
     loadFromHash();
   }
-
 
   // stdin
   ui.stdin.value = localStorage.getItem(K_STDIN) || "";
@@ -977,7 +1017,7 @@ async function init(){
 
   // Load local + optional remote problems
   const custom = loadCustomProblems();
-  const remoteURL = URLP.get("problems"); // index.html?problems=...
+  const remoteURL = URLP.get("problems");
   const remote = remoteURL ? await loadProblemsFromURL(remoteURL) : loadRemoteCache();
 
   // Merge (defaults first, then custom, then remote). Dedupe by id (remote/custom can override).
