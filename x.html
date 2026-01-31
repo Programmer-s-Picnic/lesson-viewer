@@ -1,127 +1,353 @@
-<!DOCTYPE html>
+
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Logic Sage - Biography of Champak Roy</title>
-    <style>
-        body {
-            font-family: 'Georgia', serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 40px 20px;
-            background-color: #fdfdfd;
-        }
-        header {
-            text-align: center;
-            border-bottom: 2px solid #333;
-            padding-bottom: 20px;
-            margin-bottom: 40px;
-        }
-        h1 { font-size: 2.5em; margin-bottom: 10px; color: #1a1a1a; }
-        h2 { font-size: 1.8em; color: #2c3e50; border-left: 5px solid #e67e22; padding-left: 15px; margin-top: 40px; }
-        h3 { color: #d35400; margin-top: 25px; }
-        .preface { font-style: italic; background: #f9f9f9; padding: 25px; border-radius: 8px; border: 1px solid #ddd; margin: 20px 0; }
-        .sutra-table { width: 100%; border-collapse: collapse; margin: 20px 0; font-family: sans-serif; }
-        .sutra-table th, .sutra-table td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-        .sutra-table th { background-color: #2c3e50; color: white; }
-        .sutra-table tr:nth-child(even) { background-color: #f2f2f2; }
-        .quote { font-size: 1.2em; border-left: 4px solid #7f8c8d; padding-left: 20px; margin: 20px 0; color: #555; font-style: italic; }
-        .blurb { background: #2c3e50; color: white; padding: 30px; border-radius: 10px; margin-top: 50px; }
-        footer { text-align: center; font-size: 0.9em; color: #7f8c8d; margin-top: 60px; border-top: 1px solid #ddd; padding-top: 20px; }
-    </style>
-</head>
-<body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Programmer's Picnic — Pyodide Editor (Judge v2)</title>
+    <meta
+      name="description"
+      content="Pyodide editor with Worker-based judge, problems, XP, Classroom & Teacher Mode (tmode)."
+    />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div class="pp-app">
+      <div class="pp-wrap">
+        <header class="pp-topbar">
+          <div class="pp-brand">
+            <div class="pp-logo" aria-hidden="true"></div>
+            <div>
+              <h1 class="pp-title">Programmer's Picnic Pyodide Editor</h1>
+              <div class="pp-sub">
+                Judge v2 • Worker timeout • Classroom + Teacher Mode
+              </div>
+            </div>
+          </div>
+          <div class="pp-actions">
+            <button
+              class="pp-btn"
+              id="ppTeacherBtn"
+              title="Teacher Panel (tmode=1)"
+            >
+              🎓 Teacher
+            </button>
+            <button class="pp-btn" id="ppFormat">⎘ Format</button>
+            <button class="pp-btn" id="ppSave">💾 Save</button>
+            <button class="pp-btn" id="ppShare">🔗 Share</button>
+          </div>
+        </header>
 
-<header>
-    <h1>THE LOGIC SAGE</h1>
-    <p><strong>Champak Roy and the Soul of the Machine</strong></p>
-    <p><em>A Biography of Logic, Recursion, and the Varanasi Software Junction</em></p>
-</header>
+        <main class="pp-grid">
+          <section class="pp-card pp-editorwrap">
+            <div class="pp-cardhead">
+              <div>
+                <h2>Editor</h2>
+                <div class="pp-small">
+                  Ctrl+Enter to run. Use Problem Mode for tests.
+                </div>
+              </div>
+              <div class="pp-toolbar">
+                <button class="pp-btn pp-btn-primary" id="ppRun">
+                  ▶ Run <span class="pp-kbd">Ctrl</span
+                  ><span class="pp-kbd">Enter</span>
+                </button>
+                <button class="pp-btn pp-btn-danger" id="ppStop">
+                  ⛔ Stop
+                </button>
+                <select id="ppExample" class="pp-select" title="Load example">
+                  <option value="">Examples…</option>
+                </select>
+                <span class="pp-pill"
+                  ><b>Pyodide:</b> <span id="ppPyText">worker</span></span
+                >
+                <label class="pp-toggle"
+                  ><input type="checkbox" id="ppTimer" checked /> Timer</label
+                >
+              </div>
+            </div>
 
-<div class="blurb">
-    <h3>Back Cover Blurb</h3>
-    <p>While the tech world chases the next shiny AI, Champak Roy stands at a green chalkboard in Varanasi, teaching the "Sutras" of pure logic. To Roy, a computer is a Jinn—a powerful spirit requiring absolute honesty. Discover why top global engineers still look to a small room in Pandeypur to remember the "Bit-Level Truth" of their craft.</p>
-</div>
+            <div class="pp-tabs" id="ppTabs"></div>
 
-<section class="preface">
-    <h2>Preface: The Compass I Found in Pandeypur</h2>
-    <p>Ten years ago, I sat in a rain-slicked room in Varanasi with tears of frustration. I knew how to "copy-paste," but I couldn't think. Champak Roy told me: "Aditi, stop trying to outrun the machine. Listen to the Jinn."</p>
-    <p>Today, as a Lead Architect in London, I don't just write code; I dry-run life. This book is the map for anyone lost in the noise of modern technology.</p>
-    <p><strong>— Aditi Sharma, London 2026</strong></p>
-</section>
+            <div class="pp-editorarea">
+              <div class="pp-editor">
+                <pre class="pp-gutter" id="ppGutter">1</pre>
+                <textarea
+                  class="pp-code"
+                  id="ppCode"
+                  spellcheck="false"
+                ></textarea>
+              </div>
+            </div>
 
-<hr>
+            <div class="pp-footerbar">
+              <div class="pp-status">
+                <span class="pp-dot" id="ppDot"></span>
+                <span class="pp-small" id="ppStatus">Ready.</span>
+                <div class="pp-progress">
+                  <div class="pp-bar" id="ppBar"></div>
+                </div>
+              </div>
 
-<h2>Prologue: The Ghats and the Grid</h2>
-<p>The air in Varanasi smells of incense and sandalwood, but at the Varanasi Software Junction, it’s thick with the electricity of logic. Champak Roy doesn't look at monitors; he looks at the "echo" of a recursive call on a chalkboard.</p>
+              <div class="pp-footerRight">
+                <span class="pp-small">Indent:</span>
+                <select
+                  id="ppIndent"
+                  class="pp-select"
+                  style="max-width: 140px"
+                >
+                  <option value="2">2 spaces</option>
+                  <option value="4" selected>4 spaces</option>
+                  <option value="tab">Tab</option>
+                </select>
+                <button class="pp-btn pp-btn-ghost" id="ppNewTab">
+                  ➕ Tab
+                </button>
+                <button class="pp-btn pp-btn-ghost" id="ppDelTab">🗑️</button>
+              </div>
+            </div>
+          </section>
 
-<h2>Chapter 1: The Jinn in the Machine</h2>
-<p class="quote">"The computer is a Jinn. It has infinite power but zero common sense."</p>
-<p>Growing up in the gullies of Varanasi, Roy saw patterns everywhere—in the flow of the Ganga and the rows of Diwali lamps. He realized the world was already programmed; the computer was just the tool to write the rules.</p>
+          <aside class="pp-split">
+            <section class="pp-card" id="ppStudentCard">
+              <div class="pp-cardhead">
+                <div>
+                  <h2>Your Details</h2>
+                  <div class="pp-small">Used in submissions export.</div>
+                </div>
+                <div class="pp-toolbar">
+                  <span class="pp-pill">Mode: <b id="ppModeText">—</b></span>
+                </div>
+              </div>
+              <div class="pp-pad">
+                <div class="pp-row">
+                  <input
+                    id="ppStuName"
+                    class="pp-input"
+                    placeholder="Name (e.g., Ravi Kumar)"
+                    style="flex: 1; min-width: 200px"
+                  />
+                  <input
+                    id="ppStuRoll"
+                    class="pp-input"
+                    placeholder="Roll / ID (e.g., CS21)"
+                    style="flex: 1; min-width: 160px"
+                  />
+                </div>
+                <div class="pp-small" style="margin-top: 8px">
+                  Tip: fill once; saved in this browser.
+                </div>
+              </div>
+            </section>
 
-<h2>Chapter 2: The Pen and the Chalkboard</h2>
-<p>Roy bans IDEs in the early weeks. No auto-complete. No red underlines. "If you cannot run the code in your head, you have no business running it on my CPU." Students must build a "Mental Compiler" using only chalk and paper.</p>
+            <section class="pp-card">
+              <div class="pp-cardhead">
+                <div>
+                  <h2>Output</h2>
+                  <div class="pp-small">
+                    stdout shown. stderr shown separately.
+                  </div>
+                </div>
+                <div class="pp-toolbar">
+                  <button class="pp-btn pp-btn-ghost" id="ppCopyOut">
+                    📋 Copy
+                  </button>
+                  <button class="pp-btn pp-btn-ghost" id="ppClearOut">
+                    🧹 Clear
+                  </button>
+                </div>
+              </div>
+              <div class="pp-pad">
+                <div class="pp-out" id="ppOut"></div>
+                <div
+                  class="pp-out pp-out-stderr"
+                  id="ppErr"
+                  style="margin-top: 10px"
+                ></div>
+              </div>
+            </section>
 
-<h2>Chapter 3: The No-Loop Manifesto</h2>
-<p>Iteration is for the lazy; Recursion is for the divine. Roy’s "Pinch and Shave" method forces students to see data as self-similar structures. By the time the code is written, the Jinn handles the memory stack, and the logic is pure symmetry.</p>
+            <section class="pp-card">
+              <div class="pp-cardhead">
+                <div>
+                  <h2>stdin (input)</h2>
+                  <div class="pp-small">One value per line.</div>
+                </div>
+                <div class="pp-toolbar">
+                  <button class="pp-btn pp-btn-ghost" id="ppStdinSample">
+                    🎯 Sample
+                  </button>
+                  <button class="pp-btn pp-btn-ghost" id="ppStdinClear">
+                    🧽 Clear
+                  </button>
+                </div>
+              </div>
+              <div class="pp-pad">
+                <textarea
+                  class="pp-textarea pp-io"
+                  id="ppStdin"
+                  spellcheck="false"
+                  placeholder="5&#10;10&#10;hello"
+                ></textarea>
+              </div>
+            </section>
 
-<h2>Chapter 4: The DNA of Objects</h2>
-<p>Object-Oriented Programming is a social science. Inheritance is DNA; Composition is Marriage. Roy teaches that a master programmer doesn't write a thousand if-else statements; they give one command and let the object's DNA decide how to act.</p>
+            <section class="pp-card" id="ppPackagesCard">
+              <div class="pp-cardhead">
+                <div>
+                  <h2>Packages</h2>
+                  <div class="pp-small">Disabled in Classroom Mode.</div>
+                </div>
+                <div class="pp-toolbar">
+                  <button class="pp-btn" id="ppInstall">📦 Install</button>
+                  <button class="pp-btn pp-btn-ghost" id="ppList">
+                    🧾 List
+                  </button>
+                </div>
+              </div>
+              <div class="pp-pad">
+                <input
+                  id="ppPkgs"
+                  class="pp-input"
+                  style="width: 100%"
+                  placeholder="numpy, pandas, matplotlib"
+                />
+              </div>
+            </section>
 
-<h2>Chapter 5: The Programmers' Picnic</h2>
-<p>Logic puzzles over hot chai. Roy's alumni—now at Google and Microsoft—gather to solve "Saddle Point" problems under Banyan trees, proving that high-level architecture begins with a grounded soul.</p>
+            <section class="pp-card">
+              <div class="pp-cardhead">
+                <div>
+                  <h2>Problem Mode</h2>
+                  <div class="pp-small">
+                    Starter • Samples • Hidden tests • Score
+                  </div>
+                </div>
+                <div class="pp-toolbar">
+                  <span class="pp-badge"
+                    >🪙 XP: <b id="ppXP">0</b> &nbsp; 🔥 Streak:
+                    <b id="ppStreak">0</b></span
+                  >
+                </div>
+              </div>
 
-<h2>Chapter 6: The Gregorian Ghost</h2>
-<p>Taming the calendar without libraries. Roy's students calculate Leap Years and Day Zero (Jan 1, 0001) manually. To break the calendar logic is to break time itself in the eyes of the Jinn.</p>
+              <div class="pp-pad">
+                <div class="pp-row">
+                  <select
+                    id="ppProblem"
+                    class="pp-select"
+                    style="flex: 1; min-width: 260px"
+                  ></select>
+                  <button class="pp-btn" id="ppToday">📅 Today</button>
+                </div>
 
-<h2>Chapter 7: Scaling the Sutras</h2>
-<p>In the age of AI, Roy is the auditor. He teaches that AI is a hallucinating Jinn—useful only to those who already know the "Bit-Level Truth." From Flutter widget trees to Cloud scaling, the Sutras remain the same.</p>
+                <div class="pp-judge" style="margin-top: 10px">
+                  <h3 id="ppPTitle">—</h3>
+                  <p id="ppPDesc">Pick a problem.</p>
+                  <pre id="ppPExamples" style="display: none"></pre>
+                  <div class="pp-row" style="margin-top: 10px">
+                    <button class="pp-btn pp-btn-primary" id="ppLoadStarter">
+                      ⚡ Load Starter
+                    </button>
+                    <button class="pp-btn" id="ppResetStarter">↩ Reset</button>
+                    <button class="pp-btn" id="ppHint">💡 Hint</button>
+                  </div>
+                </div>
 
-<h2>Chapter 8: The Silent Code</h2>
-<p class="quote">"The best code is the code you never had to write."</p>
-<p>Roy’s legacy isn't in a GitHub repo; it's in the refactored brains of his students. He remains the Sage of Pandeypur, a silent architect of the digital age.</p>
+                <div class="pp-row" style="margin-top: 10px">
+                  <button class="pp-btn" id="ppRunSamples">
+                    🧪 Run Samples
+                  </button>
+                  <button class="pp-btn pp-btn-primary" id="ppRunAll">
+                    🏁 Run All Tests
+                  </button>
+                  <span class="pp-pill"
+                    >⏱ Timeout: <b><span id="ppTimeout">2.5</span>s</b></span
+                  >
+                </div>
 
-<hr>
+                <div
+                  id="ppJudgeSummary"
+                  class="pp-small"
+                  style="margin-top: 10px"
+                ></div>
+                <div id="ppJudgeTableWrap"></div>
+              </div>
+            </section>
 
-<h2>Technical Appendix: The Master Drills</h2>
-<table class="sutra-table">
-    <thead>
-        <tr>
-            <th>Sutra Name</th>
-            <th>Core Concept</th>
-            <th>The Roy "Vibe"</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td>The Binary Leap</td>
-            <td>Logarithmic Search</td>
-            <td>Strategic sprinting through memory.</td>
-        </tr>
-        <tr>
-            <td>The Armstrong Identity</td>
-            <td>Recursive Power Sums</td>
-            <td>Self-consumption of numbers.</td>
-        </tr>
-        <tr>
-            <td>The Binary Echo</td>
-            <td>Stack-based Bit Conversion</td>
-            <td>Letting the stack "echo" the truth.</td>
-        </tr>
-        <tr>
-            <td>The Gregorian Ghost</td>
-            <td>Manual Date Logic</td>
-            <td>Taming the chaos of man-made time.</td>
-        </tr>
-    </tbody>
-</table>
+            <section class="pp-card" id="ppTeacherPanel" style="display: none">
+              <div class="pp-cardhead">
+                <div>
+                  <h2>Teacher Panel</h2>
+                  <div class="pp-small">Visible only when <b>?tmode=1</b></div>
+                </div>
+                <div class="pp-toolbar">
+                  <span class="pp-pill"
+                    >Submissions: <b id="ppSubCount">0</b></span
+                  >
+                </div>
+              </div>
+              <div class="pp-pad">
+                <div class="pp-grid2">
+                  <label class="pp-toggle pp-toggle-wide"
+                    ><input type="checkbox" id="ppForceClass" /> Force
+                    Classroom</label
+                  >
+                  <label class="pp-toggle pp-toggle-wide"
+                    ><input type="checkbox" id="ppExamMode" /> Exam Mode</label
+                  >
+                  <label class="pp-toggle pp-toggle-wide"
+                    ><input type="checkbox" id="ppLockProblem" /> Lock
+                    Problem</label
+                  >
+                  <label class="pp-toggle pp-toggle-wide"
+                    ><input type="checkbox" id="ppLimitAttemptsOn" /> Attempt
+                    Limit</label
+                  >
+                  <label class="pp-toggle pp-toggle-wide"
+                    ><input type="checkbox" id="ppAllowPkgs" /> Allow
+                    Packages</label
+                  >
+                </div>
 
-<footer>
-    <p>&copy; 2026 The Logic Sage Biography Project. All Rights Reserved.</p>
-</footer>
+                <div class="pp-row" style="margin-top: 10px">
+                  <input
+                    class="pp-input"
+                    id="ppAttemptLimit"
+                    type="number"
+                    min="1"
+                    max="50"
+                    value="5"
+                    style="width: 140px"
+                  />
+                  <span class="pp-small">Attempts allowed</span>
+                </div>
 
-</body>
+                <div class="pp-row" style="margin-top: 12px">
+                  <button class="pp-btn" id="ppExportSubs">
+                    📤 Export Submissions
+                  </button>
+                  <button class="pp-btn pp-btn-danger" id="ppClearSubs">
+                    🧹 Clear
+                  </button>
+                </div>
+
+                <div class="pp-small" style="margin-top: 10px">
+                  Share student link:
+                  <span class="pp-mono" id="ppStudentLink"></span>
+                </div>
+              </div>
+            </section>
+          </aside>
+        </main>
+      </div>
+
+      <div class="pp-toast" id="ppToast"></div>
+    </div>
+
+    <script type="module" src="./app.js"></script>
+    <script src="https://programmer-s-picnic.github.io/json-images/find-on-page.js"></script>
+    <script src="https://programmer-s-picnic.github.io/json-images/imgshow.js"></script>
+    <script src="https://programmer-s-picnic.github.io/json-images/hometag.js"></script>
+  </body>
 </html>
