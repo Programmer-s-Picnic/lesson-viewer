@@ -3,123 +3,141 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Programmer’s Picnic — Pyodide Judge v2</title>
+    <title>Programmer's Picnic — Pyodide Editor (Judge v2)</title>
     <meta
       name="description"
-      content="Programmer’s Picnic — Python Judge with Teacher/Student mode, problems, tests, XP and packages."
+      content="Pyodide editor with Worker-based judge, problems, XP, Classroom & Teacher Mode (tmode)."
     />
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
-    <div class="pp-app" id="ppApp">
+    <div class="pp-app">
       <div class="pp-wrap">
         <header class="pp-topbar">
           <div class="pp-brand">
             <div class="pp-logo" aria-hidden="true"></div>
             <div>
-              <h1 class="pp-title">Programmer’s Picnic — Pyodide Judge</h1>
+              <h1 class="pp-title">Programmer's Picnic Pyodide Editor</h1>
               <div class="pp-sub">
-                <span class="pp-badge" id="ppModeBadge">Mode</span>
-                <span class="pp-small">Teacher: <span class="pp-mono">?tmode=1</span> • Student: <span class="pp-mono">?tmode=0</span></span>
+                Judge v2 • Worker timeout • Classroom + Teacher Mode
               </div>
             </div>
           </div>
           <div class="pp-actions">
+            <button
+              class="pp-btn"
+              id="ppTeacherBtn"
+              title="Teacher Panel (tmode=1)"
+            >
+              🎓 Teacher
+            </button>
+            <button class="pp-btn" id="ppFormat">⎘ Format</button>
             <button class="pp-btn" id="ppSave">💾 Save</button>
-            <button class="pp-btn" id="ppLoad">📂 Load</button>
             <button class="pp-btn" id="ppShare">🔗 Share</button>
-            <a class="pp-btn" href="./builder.html" title="Problem Test Builder">🧪 Builder</a>
-            <button class="pp-btn pp-btn-danger" id="ppClear">🧹 Clear</button>
+            <!-- <a class="pp-btn" href="./builder.html" title="Problem Test Builder" 
+              >🧪 Builder</a
+            >-->
           </div>
         </header>
 
-        <div class="pp-card" id="ppStudentBox" style="display:none;margin-bottom:12px">
-          <div class="pp-cardhead">
-            <h2>Student Info</h2>
-            <div class="pp-small">Saved locally in your browser</div>
-          </div>
-          <div class="pp-pad pp-grid2">
-            <div>
-              <div class="pp-small">Name</div>
-              <input class="pp-input" id="ppStudentName" placeholder="Your name" />
-            </div>
-            <div>
-              <div class="pp-small">Roll / ID</div>
-              <input class="pp-input" id="ppStudentRoll" placeholder="Your roll number" />
-            </div>
-          </div>
-        </div>
-
-        <div class="pp-grid">
-          <!-- LEFT: Editor -->
-          <section class="pp-card">
+        <main class="pp-grid">
+          <section class="pp-card pp-editorwrap">
             <div class="pp-cardhead">
               <div>
                 <h2>Editor</h2>
-                <div class="pp-small">Write Python, run safely inside a worker</div>
+                <div class="pp-small">
+                  Ctrl+Enter to run. Use Problem Mode for tests.
+                </div>
               </div>
               <div class="pp-toolbar">
-                <button class="pp-btn pp-btn-primary" id="ppRun">▶ Run</button>
-                <button class="pp-btn" id="ppStop">⏹ Stop</button>
-                <span class="pp-pill"><span class="pp-dot" id="ppDot"></span> <span id="ppStatusTxt">Idle</span></span>
+                <button class="pp-btn pp-btn-primary" id="ppRun">
+                  ▶ Run <span class="pp-kbd">Ctrl</span
+                  ><span class="pp-kbd">Enter</span>
+                </button>
+                <button class="pp-btn pp-btn-danger" id="ppStop">
+                  ⛔ Stop
+                </button>
+                <select id="ppExample" class="pp-select" title="Load example">
+                  <option value="">Examples…</option>
+                </select>
+                <span class="pp-pill"
+                  ><b>Pyodide:</b> <span id="ppPyText">worker</span></span
+                >
+                <label class="pp-toggle"
+                  ><input type="checkbox" id="ppTimer" checked /> Timer</label
+                >
               </div>
             </div>
 
-            <div class="pp-editorwrap">
-              <div class="pp-tabs" id="ppTabs"></div>
+            <div class="pp-tabs" id="ppTabs"></div>
 
-              <div class="pp-editorarea">
-                <div class="pp-editor">
-                  <pre class="pp-gutter" id="ppGutter">1</pre>
-                  <textarea class="pp-code" id="ppCode" spellcheck="false"></textarea>
+            <div class="pp-editorarea">
+              <div class="pp-editor">
+                <pre class="pp-gutter" id="ppGutter">1</pre>
+                <textarea
+                  class="pp-code"
+                  id="ppCode"
+                  spellcheck="false"
+                ></textarea>
+              </div>
+            </div>
+
+            <div class="pp-footerbar">
+              <div class="pp-status">
+                <span class="pp-dot" id="ppDot"></span>
+                <span class="pp-small" id="ppStatus">Ready.</span>
+                <div class="pp-progress">
+                  <div class="pp-bar" id="ppBar"></div>
                 </div>
               </div>
 
-              <div class="pp-footerbar">
-                <div class="pp-status">
-                  <div class="pp-progress"><div class="pp-bar" id="ppBar"></div></div>
-                  <span class="pp-badge">XP: <b id="ppXp">0</b></span>
-                  <span class="pp-badge">Streak: <b id="ppStreak">0</b></span>
-                </div>
-                <div class="pp-footerRight">
-                  <span class="pp-kbd">Ctrl</span><span class="pp-kbd">Enter</span>
-                </div>
+              <div class="pp-footerRight">
+                <span class="pp-small">Indent:</span>
+                <select
+                  id="ppIndent"
+                  class="pp-select"
+                  style="max-width: 140px"
+                >
+                  <option value="2">2 spaces</option>
+                  <option value="4" selected>4 spaces</option>
+                  <option value="tab">Tab</option>
+                </select>
+                <button class="pp-btn pp-btn-ghost" id="ppNewTab">
+                  ➕ Tab
+                </button>
+                <button class="pp-btn pp-btn-ghost" id="ppDelTab">🗑️</button>
               </div>
             </div>
           </section>
 
-          <!-- RIGHT: Problems + IO + Teacher -->
           <aside class="pp-split">
-            <section class="pp-card">
+            <section class="pp-card" id="ppStudentCard">
               <div class="pp-cardhead">
                 <div>
-                  <h2>Problems</h2>
-                  <div class="pp-small">Pick a problem and practice</div>
+                  <h2>Your Details</h2>
+                  <div class="pp-small">Used in submissions export.</div>
                 </div>
                 <div class="pp-toolbar">
-                  <select class="pp-select" id="ppProblemSel"></select>
-                  <span class="pp-badge" id="ppAttemptBadge">Attempts today: 0</span>
+                  <span class="pp-pill">Mode: <b id="ppModeText">—</b></span>
                 </div>
               </div>
-              <div class="pp-pad" id="ppProblemCard">
-                <div class="pp-judge">
-                  <h3 id="ppProbTitle">—</h3>
-                  <p class="pp-mono" id="ppProbStatement"></p>
-                  <div class="pp-grid2">
-                    <div>
-                      <div class="pp-small">Hints</div>
-                      <ul id="ppProbHints" class="pp-small"></ul>
-                    </div>
-                    <div>
-                      <div class="pp-small">Examples</div>
-                      <div id="ppProbExamples"></div>
-                    </div>
-                  </div>
-
-                  <div class="pp-row" style="margin-top:10px">
-                    <button class="pp-btn" id="ppRunSamples">🧪 Run Samples</button>
-                    <button class="pp-btn pp-btn-primary" id="ppRunAll">✅ Run All Tests</button>
-                  </div>
+              <div class="pp-pad">
+                <div class="pp-row">
+                  <input
+                    id="ppStuName"
+                    class="pp-input"
+                    placeholder="Name (e.g., Ravi Kumar)"
+                    style="flex: 1; min-width: 200px"
+                  />
+                  <input
+                    id="ppStuRoll"
+                    class="pp-input"
+                    placeholder="Roll / ID (e.g., CS21)"
+                    style="flex: 1; min-width: 160px"
+                  />
+                </div>
+                <div class="pp-small" style="margin-top: 8px">
+                  Tip: fill once; saved in this browser.
                 </div>
               </div>
             </section>
@@ -127,65 +145,222 @@
             <section class="pp-card">
               <div class="pp-cardhead">
                 <div>
-                  <h2>Input / Output</h2>
-                  <div class="pp-small">stdin, stdout, stderr</div>
+                  <h2>Output</h2>
+                  <div class="pp-small">
+                    stdout shown. stderr shown separately.
+                  </div>
+                </div>
+                <div class="pp-toolbar">
+                  <button class="pp-btn pp-btn-ghost" id="ppCopyOut">
+                    📋 Copy
+                  </button>
+                  <button class="pp-btn pp-btn-ghost" id="ppClearOut">
+                    🧹 Clear
+                  </button>
                 </div>
               </div>
               <div class="pp-pad">
-                <div class="pp-small">stdin</div>
-                <textarea class="pp-textarea pp-io" id="ppStdin" placeholder="Input lines..."></textarea>
-
-                <div class="pp-small" style="margin-top:10px">stdout</div>
-                <pre class="pp-out" id="ppOut"></pre>
-
-                <div class="pp-small" style="margin-top:10px">stderr</div>
-                <pre class="pp-out pp-out-stderr" id="ppErr"></pre>
+                <div class="pp-out" id="ppOut"></div>
+                <div
+                  class="pp-out pp-out-stderr"
+                  id="ppErr"
+                  style="margin-top: 10px"
+                ></div>
               </div>
             </section>
 
-            <section class="pp-card" id="ppTeacherPanel" style="display:none">
+            <section class="pp-card">
               <div class="pp-cardhead">
                 <div>
-                  <h2>Teacher Panel</h2>
-                  <div class="pp-small">Classroom policy + packages</div>
+                  <h2>stdin (input)</h2>
+                  <div class="pp-small">One value per line.</div>
+                </div>
+                <div class="pp-toolbar">
+                  <button class="pp-btn pp-btn-ghost" id="ppStdinSample">
+                    🎯 Sample
+                  </button>
+                  <button class="pp-btn pp-btn-ghost" id="ppStdinClear">
+                    🧽 Clear
+                  </button>
                 </div>
               </div>
-
               <div class="pp-pad">
-                <div class="pp-grid2">
-                  <label class="pp-toggle pp-toggle-wide"><input type="checkbox" id="ppToggleClassroom" /> Classroom Mode</label>
-                  <label class="pp-toggle pp-toggle-wide"><input type="checkbox" id="ppToggleImports" /> Block imports (except allow-list)</label>
-                  <label class="pp-toggle pp-toggle-wide"><input type="checkbox" id="ppToggleOpen" /> Disable open()</label>
-                  <label class="pp-toggle pp-toggle-wide"><input type="checkbox" id="ppToggleEvalExec" /> Disable eval/exec</label>
-                  <label class="pp-toggle pp-toggle-wide"><input type="checkbox" id="ppAllowPkgs" /> Allow Packages (micropip)</label>
-                </div>
+                <textarea
+                  class="pp-textarea pp-io"
+                  id="ppStdin"
+                  spellcheck="false"
+                  placeholder="5&#10;10&#10;hello"
+                ></textarea>
+              </div>
+            </section>
 
-                <div class="pp-small" style="margin-top:10px">Packages (comma-separated)</div>
+            <section class="pp-card" id="ppPackagesCard">
+              <div class="pp-cardhead">
+                <div>
+                  <h2>Packages</h2>
+                  <div class="pp-small">Disabled in Classroom Mode.</div>
+                </div>
+                <div class="pp-toolbar">
+                  <button class="pp-btn" id="ppInstall">📦 Install</button>
+                  <button class="pp-btn pp-btn-ghost" id="ppList">
+                    🧾 List
+                  </button>
+                </div>
+              </div>
+              <div class="pp-pad">
                 <input
                   id="ppPkgs"
                   class="pp-input"
                   style="width: 100%"
                   placeholder="numpy, pandas, matplotlib"
                 />
-                <div class="pp-small" style="margin-top:8px">Installed:</div>
-                <div class="pp-pill" style="width:100%;justify-content:flex-start;flex-wrap:wrap;gap:6px" id="ppInstalledPkgs"></div>
+                <div class="pp-small" style="margin-top: 8px">Installed:</div>
+                <div
+                  class="pp-pill"
+                  style="
+                    width: 100%;
+                    justify-content: flex-start;
+                    flex-wrap: wrap;
+                    gap: 6px;
+                  "
+                  id="ppInstalledPkgs"
+                ></div>
+              </div>
+            </section>
 
-                <div class="pp-row" style="margin-top:10px">
-                  <button class="pp-btn" id="ppInstall">⬇ Install</button>
-                  <button class="pp-btn" id="ppListPkgs">📦 List available</button>
+            <section class="pp-card">
+              <div class="pp-cardhead">
+                <div>
+                  <h2>Problem Mode</h2>
+                  <div class="pp-small">
+                    Starter • Samples • Hidden tests • Score
+                  </div>
+                </div>
+                <div class="pp-toolbar">
+                  <span class="pp-badge"
+                    >🪙 XP: <b id="ppXP">0</b> &nbsp; 🔥 Streak:
+                    <b id="ppStreak">0</b></span
+                  >
+                </div>
+              </div>
+
+              <div class="pp-pad">
+                <div class="pp-row">
+                  <select
+                    id="ppProblem"
+                    class="pp-select"
+                    style="flex: 1; min-width: 260px"
+                  ></select>
+                  <button class="pp-btn" id="ppToday">📅 Today</button>
                 </div>
 
-                <div class="pp-small" style="margin-top:10px">Policy JSON</div>
-                <pre class="pp-out" id="ppPolicyBlock" style="background:#fff;color:#111827"></pre>
+                <div class="pp-judge" style="margin-top: 10px">
+                  <h3 id="ppPTitle">—</h3>
+                  <p id="ppPDesc">Pick a problem.</p>
+                  <pre id="ppPExamples" style="display: none"></pre>
+                  <div class="pp-row" style="margin-top: 10px">
+                    <button class="pp-btn pp-btn-primary" id="ppLoadStarter">
+                      ⚡ Load Starter
+                    </button>
+                    <button class="pp-btn" id="ppResetStarter">↩ Reset</button>
+                    <button class="pp-btn" id="ppHint">💡 Hint</button>
+                  </div>
+                </div>
+
+                <div class="pp-row" style="margin-top: 10px">
+                  <button class="pp-btn" id="ppRunSamples">
+                    🧪 Run Samples
+                  </button>
+                  <button class="pp-btn pp-btn-primary" id="ppRunAll">
+                    🏁 Run All Tests
+                  </button>
+                  <span class="pp-pill"
+                    >⏱ Timeout: <b><span id="ppTimeout">2.5</span>s</b></span
+                  >
+                </div>
+
+                <div
+                  id="ppJudgeSummary"
+                  class="pp-small"
+                  style="margin-top: 10px"
+                ></div>
+                <div id="ppJudgeTableWrap"></div>
+              </div>
+            </section>
+
+            <section class="pp-card" id="ppTeacherPanel" style="display: none">
+              <div class="pp-cardhead">
+                <div>
+                  <h2>Teacher Panel</h2>
+                  <div class="pp-small">Visible only when <b>?tmode=1</b></div>
+                </div>
+                <div class="pp-toolbar">
+                  <span class="pp-pill"
+                    >Submissions: <b id="ppSubCount">0</b></span
+                  >
+                </div>
+              </div>
+              <div class="pp-pad">
+                <div class="pp-grid2">
+                  <label class="pp-toggle pp-toggle-wide"
+                    ><input type="checkbox" id="ppForceClass" /> Force
+                    Classroom</label
+                  >
+                  <label class="pp-toggle pp-toggle-wide"
+                    ><input type="checkbox" id="ppExamMode" /> Exam Mode</label
+                  >
+                  <label class="pp-toggle pp-toggle-wide"
+                    ><input type="checkbox" id="ppLockProblem" /> Lock
+                    Problem</label
+                  >
+                  <label class="pp-toggle pp-toggle-wide"
+                    ><input type="checkbox" id="ppLimitAttemptsOn" /> Attempt
+                    Limit</label
+                  >
+                  <label class="pp-toggle pp-toggle-wide"
+                    ><input type="checkbox" id="ppAllowPkgs" /> Allow
+                    Packages</label
+                  >
+                </div>
+
+                <div class="pp-row" style="margin-top: 10px">
+                  <input
+                    class="pp-input"
+                    id="ppAttemptLimit"
+                    type="number"
+                    min="1"
+                    max="50"
+                    value="5"
+                    style="width: 140px"
+                  />
+                  <span class="pp-small">Attempts allowed</span>
+                </div>
+
+                <div class="pp-row" style="margin-top: 12px">
+                  <button class="pp-btn" id="ppExportSubs">
+                    📤 Export Submissions
+                  </button>
+                  <button class="pp-btn pp-btn-danger" id="ppClearSubs">
+                    🧹 Clear
+                  </button>
+                </div>
+
+                <div class="pp-small" style="margin-top: 10px">
+                  Share student link:
+                  <span class="pp-mono" id="ppStudentLink"></span>
+                </div>
               </div>
             </section>
           </aside>
-        </div>
-
-        <div class="pp-toast" id="ppToast"></div>
+        </main>
       </div>
+
+      <div class="pp-toast" id="ppToast"></div>
     </div>
 
-    <script src="./app.js"></script>
+    <script type="module" src="./app.js"></script>
+    <script src="https://programmer-s-picnic.github.io/json-images/find-on-page.js"></script>
+    <script src="https://programmer-s-picnic.github.io/json-images/imgshow.js"></script>
+    <script src="https://programmer-s-picnic.github.io/json-images/hometag.js"></script>
   </body>
 </html>

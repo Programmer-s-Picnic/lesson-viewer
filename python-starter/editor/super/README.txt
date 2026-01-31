@@ -31,3 +31,7 @@ Share:
 Packages (Options 1&2):
 - Installs are persisted via IndexedDB (IDBFS) at /pp_persist when supported.
 - Installed package names are shown in the Packages card.
+
+Troubleshooting packages:
+- If imports fail in Classroom Mode, ensure policy allows imports (Allow Packages + allow imports list).
+- Persistence uses IndexedDB; some embedded iframes may block it.

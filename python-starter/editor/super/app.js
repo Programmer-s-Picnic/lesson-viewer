@@ -1,59 +1,103 @@
-/* ==========================================================
-   Programmer’s Picnic — Pyodide Judge v2
-   Teacher/Student Mode + Problems + Attempts + XP + Packages
-   ========================================================== */
+// Programmer's Picnic — Pyodide Editor (Judge v2)
+// Modes:
+//   ?tmode=1 => Teacher mode (Teacher Panel visible)
+//   ?tmode=0 => Student mode (Classroom forced ON, teacher controls hidden)
+// Share button is enabled in both modes.
 
-(function () {
-  "use strict";
+const $ = (id) => document.getElementById(id);
 
-  /* ----------------- DOM HELPERS ----------------- */
-  const $ = (id) => document.getElementById(id);
+// ----- URL mode -----
+const URLP = new URLSearchParams(location.search);
+const TM = URLP.get("tmode");     // "1" | "0" | null
+const TEACHER_UI = TM === "1";
+const STUDENT_LOCKED = TM === "0";
 
-  function escapeHtml(s) {
-    return (s ?? "").toString()
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-  }
+// ----- UI refs -----
+const ui = {
+  tabs: $("ppTabs"),
+  code: $("ppCode"),
+  gutter: $("ppGutter"),
+  out: $("ppOut"),
+  err: $("ppErr"),
+  stdin: $("ppStdin"),
+  example: $("ppExample"),
+  indent: $("ppIndent"),
+  timer: $("ppTimer"),
+  dot: $("ppDot"),
+  status: $("ppStatus"),
+  bar: $("ppBar"),
+  toast: $("ppToast"),
 
-function loadInstalledPkgs(){
-  try{
-    const raw = localStorage.getItem(K_INSTALLED_PKGS);
-    const arr = raw ? JSON.parse(raw) : [];
-    return Array.isArray(arr) ? arr : [];
-  }catch{ return []; }
-}
-function saveInstalledPkgs(arr){
-  try{ localStorage.setItem(K_INSTALLED_PKGS, JSON.stringify(arr||[])); }catch{}
-}
-function renderInstalledPkgs(){
-  if(!ui.installedPkgs) return;
-  const arr = loadInstalledPkgs();
-  if(!arr.length){
-    ui.installedPkgs.textContent = "—";
-    return;
-  }
-  ui.installedPkgs.innerHTML = arr.map(p=>`<span class="pp-kbd" style="margin:0">${escapeHtml(p)}</span>`).join("");
-}
+  modeText: $("ppModeText"),
+  stuName: $("ppStuName"),
+  stuRoll: $("ppStuRoll"),
 
-  /* ----------------- URL MODE ----------------- */
-  const URLP = new URLSearchParams(location.search);
-  const IS_TEACHER = (URLP.get("tmode") === "1");
+  packagesCard: $("ppPackagesCard"),
+  pkgs: $("ppPkgs"),
+  installedPkgs: $("ppInstalledPkgs"),
 
-  /* ----------------- STORAGE KEYS ----------------- */
-  const K_STATE = "pp_state_v2";
-  const K_STDIN = "pp_stdin_v2";
-  const K_POLICY = "pp_policy_v2";
-  const K_PKGS = "pp_pkgs_v2";
-const K_INSTALLED_PKGS = "pp_installed_pkgs_v1";
-  const K_XP = "pp_xp_v2";
-  const K_STREAK = "pp_streak_v2";
-  const K_ATTEMPTS = "pp_attempts_v2";
-  const K_LAST_DAY = "pp_last_day_v2";
-  const K_STU_NAME = "pp_student_name_v2";
-  const K_STU_ROLL = "pp_student_roll_v2";
+  problemSel: $("ppProblem"),
+  todayBtn: $("ppToday"),
+  pTitle: $("ppPTitle"),
+  pDesc: $("ppPDesc"),
+  pExamples: $("ppPExamples"),
+  loadStarter: $("ppLoadStarter"),
+  resetStarter: $("ppResetStarter"),
+  hintBtn: $("ppHint"),
+  runSamples: $("ppRunSamples"),
+  runAll: $("ppRunAll"),
+  judgeSummary: $("ppJudgeSummary"),
+  judgeTableWrap: $("ppJudgeTableWrap"),
+  xp: $("ppXP"),
+  streak: $("ppStreak"),
+  timeout: $("ppTimeout"),
+
+  teacherBtn: $("ppTeacherBtn"),
+  teacherPanel: $("ppTeacherPanel"),
+  forceClass: $("ppForceClass"),
+  examMode: $("ppExamMode"),
+  lockProblem: $("ppLockProblem"),
+  limitAttemptsOn: $("ppLimitAttemptsOn"),
+  allowPkgs: $("ppAllowPkgs"),
+  attemptLimit: $("ppAttemptLimit"),
+  exportSubs: $("ppExportSubs"),
+  clearSubs: $("ppClearSubs"),
+  subCount: $("ppSubCount"),
+  studentLink: $("ppStudentLink"),
+};
+
+const btn = {
+  run: $("ppRun"),
+  stop: $("ppStop"),
+  format: $("ppFormat"),
+  save: $("ppSave"),
+  share: $("ppShare"),
+  newTab: $("ppNewTab"),
+  delTab: $("ppDelTab"),
+  install: $("ppInstall"),
+  list: $("ppList"),
+  sample: $("ppStdinSample"),
+  clearStdin: $("ppStdinClear"),
+  copyOut: $("ppCopyOut"),
+  clearOut: $("ppClearOut"),
+};
+
+// ----- Storage keys -----
+const K_STATE = "pp_editor_v2_state";
+const K_STDIN = "pp_editor_v2_stdin";
+const K_XP = "pp_xp_v2";
+const K_STREAK = "pp_streak_v2";
+const K_LASTDAY = "pp_last_day_v2";
+
+const K_CLASS = "pp_classroom_mode_v2";
+const K_EXAM  = "pp_exam_mode_v2";
+const K_LOCK  = "pp_lock_problem_v2";
+const K_ATT_ON = "pp_attempt_limit_on_v2";
+const K_ATT_MAX = "pp_attempt_limit_max_v2";
+const K_ALLOW_PKGS = "pp_allow_packages_v2";
+
+const K_STU_NAME = "pp_student_name_v2";
+const K_STU_ROLL = "pp_student_roll_v2";
 
 // ---- Custom Problems Store (builder exports + optional remote JSON) ----
 const K_PROBLEMS_LOCAL = "pp_problems_custom_v1";
@@ -122,6 +166,7 @@ async function loadProblemsFromURL(url){
   }
 }
 
+
 async function loadCodeFromURL(url){
   const u = String(url||"").trim();
   if(!u) return null;
@@ -161,6 +206,7 @@ async function loadCodeFromURL(url){
   }
 }
 
+
 async function loadTextFileFromURL(url){
   const u = String(url||"").trim();
   if(!u) return null;
@@ -174,673 +220,689 @@ async function loadTextFileFromURL(url){
   }
 }
 
-  /* ----------------- DEFAULT PROBLEMS ----------------- */
-  const DEFAULT_PROBLEMS = [
-    {
-      id: "sum_n",
-      title: "Sum of first N numbers",
-      level: "Easy",
-      statement:
-        "Input: N (integer)\nOutput: sum of 1..N\n\nExample:\nInput: 5\nOutput: 15",
-      starter: "n=int(input())\nprint(n*(n+1)//2)\n",
-      examples: [
-        { input: "5\n", output: "15\n" },
-        { input: "10\n", output: "55\n" }
-      ],
-      tests: [
-        { input: "1\n", output: "1\n", hidden: false },
-        { input: "5\n", output: "15\n", hidden: false },
-        { input: "100\n", output: "5050\n", hidden: true }
-      ],
-      hints: ["Use formula n*(n+1)//2"]
-    },
-    {
-      id: "reverse_num",
-      title: "Reverse number",
-      level: "Easy",
-      statement:
-        "Input: N (non-negative integer)\nOutput: digits reversed (no leading zeros)\n\nExample:\nInput: 1200\nOutput: 21",
-      starter: "n=int(input())\nprint(str(n)[::-1].lstrip('0') or '0')\n",
-      examples: [{ input: "1200\n", output: "21\n" }],
-      tests: [
-        { input: "123\n", output: "321\n", hidden: false },
-        { input: "9070\n", output: "709\n", hidden: true },
-        { input: "0\n", output: "0\n", hidden: true }
-      ],
-      hints: ["String reverse works; strip leading zeros"]
-    }
-  ];
+
+
+
+// Single submissions store (avoid redeclare bug)
+const K_SUBS = "pp_class_submissions_v1";
+
+// ----- Judge timeout -----
+const JUDGE_TIMEOUT_MS = 2500;
+ui.timeout.textContent = (JUDGE_TIMEOUT_MS/1000).toFixed(1);
+
+// ----- Problems -----
+const DEFAULT_PROBLEMS = [
+  {
+    id: "sum_n",
+    title: "Sum of N",
+    level: "Easy",
+    statement: "Given N, print sum of first N natural numbers.",
+    starter: "n=int(input())\n# TODO\n# print(ans)\n",
+    examples: [{ input: "5\n", output: "15\n" }],
+    tests: [
+      { input: "10\n", output: "55\n", hidden: false },
+      { input: "100\n", output: "5050\n", hidden: true },
+      { input: "0\n", output: "0\n", hidden: true },
+    ],
+    hints: ["Use n*(n+1)//2", "Print only the number"],
+  },
+  {
+    id: "reverse_num",
+    title: "Reverse a Number",
+    level: "Selection",
+    statement: "Given N (0≤N≤1e18), print reversed digits. N=0 => 0.",
+    starter: "n=int(input())\n# TODO\n# print(ans)\n",
+    examples: [{ input: "1200\n", output: "21\n" }],
+    tests: [
+      { input: "123456\n", output: "654321\n", hidden: false },
+      { input: "9070\n", output: "709\n", hidden: true },
+      { input: "0\n", output: "0\n", hidden: true },
+    ],
+    hints: ["Use while n>0 with %10", "Or use string reverse"],
+  },
+];
 
 let PROBLEMS = [];
 
-  /* ----------------- UI REFS ----------------- */
-  const ui = {
-    app: $("ppApp"),
-    teacherPanel: $("ppTeacherPanel"),
-    tBadge: $("ppModeBadge"),
-    studentBox: $("ppStudentBox"),
-    studentName: $("ppStudentName"),
-    studentRoll: $("ppStudentRoll"),
-    tabs: $("ppTabs"),
-    gutter: $("ppGutter"),
-    code: $("ppCode"),
-    stdin: $("ppStdin"),
-    out: $("ppOut"),
-    err: $("ppErr"),
-    statusDot: $("ppDot"),
-    statusTxt: $("ppStatusTxt"),
-    progress: $("ppBar"),
+const EXAMPLES = [
+  { title: "Hello + loops", code: 'print("Hello")\nfor i in range(3):\n    print(i)\n' },
+  { title: "stdin + sum", code: "n=int(input())\nt=0\nfor _ in range(n):\n    t+=int(input())\nprint(t)\n" },
+];
 
-    problemSel: $("ppProblemSel"),
-    problemCard: $("ppProblemCard"),
-    probTitle: $("ppProbTitle"),
-    probStatement: $("ppProbStatement"),
-    probHints: $("ppProbHints"),
-    probExamples: $("ppProbExamples"),
-    attemptBadge: $("ppAttemptBadge"),
+const DEFAULT_TABS = [{ name: "main.py", code: 'print("Namaste Champak 👋")\n' }];
 
-    policyBlock: $("ppPolicyBlock"),
-    toggleClassroom: $("ppToggleClassroom"),
-    toggleImports: $("ppToggleImports"),
-    toggleOpen: $("ppToggleOpen"),
-    toggleEvalExec: $("ppToggleEvalExec"),
-    allowPkgs: $("ppAllowPkgs"),
-    pkgs: $("ppPkgs"),
-  installedPkgs: $("ppInstalledPkgs"),
+// ----- Basic helpers -----
+const clamp = (n,a,b)=>Math.max(a,Math.min(b,n));
+const esc = (s)=>String(s??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
 
-    xpTxt: $("ppXp"),
-    streakTxt: $("ppStreak"),
+function toast(msg){
+  ui.toast.textContent = msg;
+  ui.toast.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t=setTimeout(()=>ui.toast.classList.remove("show"),1600);
+}
+function setStatus(text, kind){
+  ui.status.textContent=text;
+  ui.dot.className="pp-dot"+(kind?(" "+kind):"");
+}
+function setProgress(p){ ui.bar.style.width=clamp(p,0,100)+"%"; }
 
-    toast: $("ppToast")
-  };
+function loadBool(k, d){ try{ const v=localStorage.getItem(k); return v==null?d:(v==="1"); }catch{return d;} }
+function saveBool(k, v){ try{ localStorage.setItem(k, v?"1":"0"); }catch{} }
+function loadInt(k, d){ try{ const v=parseInt(localStorage.getItem(k)||"",10); return Number.isFinite(v)?v:d; }catch{return d;} }
+function saveInt(k, v){ try{ localStorage.setItem(k, String(v)); }catch{} }
 
-  const btn = {
-    run: $("ppRun"),
-    stop: $("ppStop"),
-    clear: $("ppClear"),
-    save: $("ppSave"),
-    load: $("ppLoad"),
-    share: $("ppShare"),
+function normalizeOut(s){
+  s=String(s??"").replace(/\r\n/g,"\n");
+  s=s.split("\n").map(line=>line.replace(/[ \t]+$/g,"")).join("\n");
+  s=s.replace(/\s+$/g,"");
+  return s+"\n";
+}
 
-    runSamples: $("ppRunSamples"),
-    runAll: $("ppRunAll"),
-    install: $("ppInstall"),
-    listPkgs: $("ppListPkgs")
-  };
+// ----- State -----
+function loadState(){
+  try{
+    const raw=localStorage.getItem(K_STATE);
+    const p=raw?JSON.parse(raw):null;
+    if(p && Array.isArray(p.tabs) && p.tabs.length) return p;
+  }catch{}
+  return { tabs: structuredClone(DEFAULT_TABS), currentTab: 0 };
+}
+let state = loadState();
+let currentTab = clamp(state.currentTab||0,0,state.tabs.length-1);
+let currentProblemId = null;
+let currentStarter = null;
 
-  /* ----------------- STATE ----------------- */
-  const DEFAULT_TABS = [
-    { name: "main.py", code: "print('Namaste from Programmer\\'s Picnic!')\\n" },
-    { name: "notes.txt", code: "Write your notes here.\\n" }
-  ];
+// ----- Classroom/teacher flags -----
+let classroomMode = loadBool(K_CLASS,false);
+let examMode = loadBool(K_EXAM,false);
+let lockProblem = loadBool(K_LOCK,false);
+let attemptLimitOn = loadBool(K_ATT_ON,false);
+let attemptLimitMax = loadInt(K_ATT_MAX,5);
+let allowPackages = loadBool(K_ALLOW_PKGS,true);
 
-  function freshState() {
-    return {
-      tabs: structuredClone(DEFAULT_TABS),
-      currentTab: 0
-    };
-  }
+if(STUDENT_LOCKED){ classroomMode = true; allowPackages = true; }
 
-  function loadState() {
-    try {
-      const raw = localStorage.getItem(K_STATE);
-      if (!raw) return freshState();
-      const st = JSON.parse(raw);
-      if (!st?.tabs?.length) return freshState();
-      return st;
-    } catch {
-      return freshState();
-    }
-  }
+// ----- Submissions (single definition) -----
+function loadSubs(){ try{return JSON.parse(localStorage.getItem(K_SUBS)||"[]");}catch{return [];} }
+function saveSubs(list){ try{localStorage.setItem(K_SUBS,JSON.stringify(list));}catch{} }
+function addSub(entry){ const list=loadSubs(); list.push(entry); saveSubs(list); updateSubCount(); }
+function clearSubs(){ saveSubs([]); updateSubCount(); }
+function updateSubCount(){ if(ui.subCount) ui.subCount.textContent=String(loadSubs().length); }
 
-  function saveState() {
-    try {
-      localStorage.setItem(K_STATE, JSON.stringify(state));
-    } catch {}
-  }
+// ----- XP/streak -----
+function dayKey(d=new Date()){
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,"0");
+  const da=String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${da}`;
+}
+function getXP(){ return parseInt(localStorage.getItem(K_XP)||"0",10)||0; }
+function setXP(v){ localStorage.setItem(K_XP,String(v)); ui.xp.textContent=String(v); }
+function getStreak(){ return parseInt(localStorage.getItem(K_STREAK)||"0",10)||0; }
+function setStreak(v){ localStorage.setItem(K_STREAK,String(v)); ui.streak.textContent=String(v); }
+function updateStreakOnSolve(){
+  const today=dayKey();
+  const last=localStorage.getItem(K_LASTDAY)||"";
+  if(last===today) return;
+  const y=new Date(); y.setDate(y.getDate()-1);
+  const streak = (last===dayKey(y)) ? (getStreak()+1) : 1;
+  localStorage.setItem(K_LASTDAY,today);
+  setStreak(streak);
+}
 
-  function clamp(n, a, b) {
-    return Math.max(a, Math.min(b, n));
-  }
+// ----- Student details -----
+function loadStudent(){
+  ui.stuName.value = localStorage.getItem(K_STU_NAME)||"";
+  ui.stuRoll.value = localStorage.getItem(K_STU_ROLL)||"";
+}
+function saveStudent(){
+  localStorage.setItem(K_STU_NAME, ui.stuName.value||"");
+  localStorage.setItem(K_STU_ROLL, ui.stuRoll.value||"");
+}
+ui.stuName.addEventListener("input", saveStudent);
+ui.stuRoll.addEventListener("input", saveStudent);
 
-  function setStatus(txt, kind = "ok") {
-    ui.statusTxt.textContent = txt;
-    ui.statusDot.className = "pp-dot " + kind;
-  }
-
-  function setProgress(p) {
-    ui.progress.style.width = clamp(p, 0, 100) + "%";
-  }
-
-  function toast(msg) {
-    ui.toast.textContent = msg;
-    ui.toast.classList.add("show");
-    clearTimeout(toast._t);
-    toast._t = setTimeout(() => ui.toast.classList.remove("show"), 1600);
-  }
-
-  /* ----------------- MODES ----------------- */
-  function initModeUI() {
-    ui.teacherPanel.style.display = IS_TEACHER ? "block" : "none";
-    ui.tBadge.textContent = IS_TEACHER ? "Teacher Mode" : "Student Mode";
-    ui.studentBox.style.display = IS_TEACHER ? "none" : "block";
-  }
-
-  /* ----------------- POLICY ----------------- */
-  function defaultPolicy() {
-    return {
-      classroom: true,
-      block_imports: true,
-      allow_imports: ["math", "random"],
-      disable_open: true,
-      disable_eval_exec: false,
-      allow_micropip: false
-    };
-  }
-
-  function loadPolicy() {
-    try {
-      const raw = localStorage.getItem(K_POLICY);
-      return raw ? JSON.parse(raw) : defaultPolicy();
-    } catch {
-      return defaultPolicy();
-    }
-  }
-
-  function savePolicy(p) {
-    try {
-      localStorage.setItem(K_POLICY, JSON.stringify(p));
-    } catch {}
-  }
-
-  function classPolicy() {
-    if (!IS_TEACHER) return loadPolicy();
-    return policy;
-  }
-
-  function renderPolicy() {
-    ui.policyBlock.textContent = JSON.stringify(policy, null, 2);
-    ui.toggleClassroom.checked = !!policy.classroom;
-    ui.toggleImports.checked = !!policy.block_imports;
-    ui.toggleOpen.checked = !!policy.disable_open;
-    ui.toggleEvalExec.checked = !!policy.disable_eval_exec;
-    ui.allowPkgs.checked = !!policy.allow_micropip;
-  }
-
-  /* ----------------- XP/STREAK ----------------- */
-  function todayKey() {
-    const d = new Date();
-    return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
-  }
-
-  function loadXP() {
-    return parseInt(localStorage.getItem(K_XP) || "0", 10) || 0;
-  }
-  function saveXP(v) {
-    localStorage.setItem(K_XP, String(v));
-  }
-  function loadStreakObj() {
-    try { return JSON.parse(localStorage.getItem(K_STREAK) || "{}"); } catch { return {}; }
-  }
-  function saveStreakObj(o) {
-    localStorage.setItem(K_STREAK, JSON.stringify(o));
-  }
-  function updateXPAndStreak(addXP) {
-    let xp = loadXP();
-    xp += addXP;
-    saveXP(xp);
-
-    const day = todayKey();
-    const streakObj = loadStreakObj();
-    const last = streakObj.lastDay || "";
-    let streak = parseInt(streakObj.streak || "0", 10) || 0;
-
-    if (last !== day) {
-      const lastDate = last ? new Date(last) : null;
-      const today = new Date(day);
-      const diff = lastDate ? Math.round((today - lastDate) / 86400000) : 999;
-      if (diff === 1) streak += 1;
-      else streak = 1;
-      streakObj.lastDay = day;
-      streakObj.streak = streak;
-      saveStreakObj(streakObj);
-    }
-
-    ui.xpTxt.textContent = String(xp);
-    ui.streakTxt.textContent = String(streakObj.streak || 0);
-  }
-
-  function renderXPStreak() {
-    ui.xpTxt.textContent = String(loadXP());
-    const s = loadStreakObj();
-    ui.streakTxt.textContent = String(s.streak || 0);
-  }
-
-  /* ----------------- ATTEMPTS ----------------- */
-  function attemptsKey(pid) {
-    return `${K_ATTEMPTS}:${pid}:${todayKey()}`;
-  }
-  function loadAttempts(pid) {
-    return parseInt(localStorage.getItem(attemptsKey(pid)) || "0", 10) || 0;
-  }
-  function incAttempts(pid) {
-    const k = attemptsKey(pid);
-    const v = loadAttempts(pid) + 1;
-    localStorage.setItem(k, String(v));
-    return v;
-  }
-
-  /* ----------------- TABS/UI ----------------- */
-  let state = loadState();
-  let currentTab = clamp(parseInt(state.currentTab || 0, 10) || 0, 0, state.tabs.length-1);
-
-  function renderTabs() {
-    ui.tabs.innerHTML = "";
-    state.tabs.forEach((t, i) => {
-      const b = document.createElement("button");
-      b.className = "pp-tab" + (i === currentTab ? " pp-active" : "");
-      b.textContent = t.name;
-      b.addEventListener("click", () => {
-        state.tabs[currentTab].code = ui.code.value;
-        currentTab = i;
-        state.currentTab = currentTab;
-        ui.code.value = state.tabs[currentTab].code || "";
-        saveState();
-        renderTabs();
-        renderGutter();
-      });
-      ui.tabs.appendChild(b);
-    });
-    renderGutter();
-  }
-
-  function renderGutter() {
-    const lines = (ui.code.value || "").split("\n").length;
-    let g = "";
-    for (let i = 1; i <= lines; i++) g += i + "\n";
-    ui.gutter.textContent = g;
-  }
-
-  ui.code.addEventListener("input", () => {
-    state.tabs[currentTab].code = ui.code.value;
-    saveState();
-    renderGutter();
+// ----- Tabs -----
+function saveState(){
+  try{
+    localStorage.setItem(K_STATE, JSON.stringify({ tabs: state.tabs, currentTab }));
+  }catch{}
+}
+function renderTabs(){
+  ui.tabs.innerHTML="";
+  state.tabs.forEach((t,i)=>{
+    const b=document.createElement("button");
+    b.type="button";
+    b.className="pp-tab"+(i===currentTab?" pp-active":"");
+    b.textContent=t.name;
+    b.onclick=()=>switchTab(i);
+    ui.tabs.appendChild(b);
   });
+  ui.example.innerHTML = `<option value="">Examples…</option>` + EXAMPLES.map((e,i)=>`<option value="${i}">${e.title}</option>`).join("");
+}
+function switchTab(i){
+  state.tabs[currentTab].code=ui.code.value;
+  currentTab=clamp(i,0,state.tabs.length-1);
+  ui.code.value=state.tabs[currentTab].code||"";
+  renderTabs(); updateGutter(); saveState();
+}
+function newTab(){
+  state.tabs[currentTab].code=ui.code.value;
+  const names=new Set(state.tabs.map(t=>t.name));
+  let n=1, name=`untitled${n}.py`;
+  while(names.has(name)){ n++; name=`untitled${n}.py`; }
+  state.tabs.push({ name, code:"# new file\n" });
+  currentTab=state.tabs.length-1;
+  ui.code.value=state.tabs[currentTab].code;
+  renderTabs(); updateGutter(); saveState(); toast("New tab");
+}
+function delTab(){
+  if(state.tabs.length<=1) return toast("Can't delete last tab");
+  state.tabs[currentTab].code=ui.code.value;
+  state.tabs.splice(currentTab,1);
+  currentTab=clamp(currentTab,0,state.tabs.length-1);
+  ui.code.value=state.tabs[currentTab].code||"";
+  renderTabs(); updateGutter(); saveState(); toast("Deleted");
+}
+function updateGutter(){
+  const lines = ui.code.value.split("\n").length || 1;
+  let s=""; for(let i=1;i<=lines;i++) s+=i+"\n";
+  ui.gutter.textContent=s.trimEnd();
+  ui.gutter.scrollTop=ui.code.scrollTop;
+}
+ui.code.addEventListener("scroll", ()=> ui.gutter.scrollTop=ui.code.scrollTop);
+ui.code.addEventListener("input", ()=>{ updateGutter(); autosave(); });
 
-  /* ----------------- PROBLEMS ----------------- */
-  let currentProblemId = PROBLEMS[0]?.id || "sum_n";
+let autosaveT=null;
+function autosave(){
+  clearTimeout(autosaveT);
+  autosaveT=setTimeout(()=>{
+    state.tabs[currentTab].code=ui.code.value;
+    saveState();
+  },200);
+}
 
-  function renderProblems() {
-    ui.problemSel.innerHTML = "";
-    PROBLEMS.forEach((p) => {
-      const opt = document.createElement("option");
-      opt.value = p.id;
-      opt.textContent = `${p.title} (${p.level})`;
-      ui.problemSel.appendChild(opt);
-    });
-    if (!PROBLEMS.find(p => p.id === currentProblemId)) {
-      currentProblemId = PROBLEMS[0]?.id || "";
-    }
-    ui.problemSel.value = currentProblemId;
-    showProblem(currentProblemId);
-  }
+function basicFormat(){
+  const mode=ui.indent.value;
+  const tabToSpaces = mode!=="tab";
+  const spaceCount = parseInt(mode,10)||4;
+  const out = ui.code.value.split("\n").map(l=>{
+    let x=l.replace(/\s+$/g,"");
+    if(tabToSpaces) x=x.replace(/\t/g," ".repeat(spaceCount));
+    return x;
+  }).join("\n") + "\n";
+  ui.code.value=out;
+  updateGutter(); autosave(); toast("Formatted");
+}
 
-  function showProblem(pid) {
-    const p = PROBLEMS.find(x => x.id === pid);
-    if (!p) return;
-    currentProblemId = pid;
+// ----- Problems -----
+function getProblem(id){ return PROBLEMS.find(p=>p.id===id)||null; }
+function renderProblems(){
+  ui.problemSel.innerHTML = PROBLEMS.map(p=>`<option value="${p.id}">${p.title} • ${p.level}</option>`).join("");
+}
+function pickToday(){
+  const d=new Date();
+  const seed=d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate();
+  return PROBLEMS[seed%PROBLEMS.length].id;
+}
+function showProblem(id){
+  const p=getProblem(id); if(!p) return;
+  currentProblemId=id;
+  currentStarter=p.starter;
+  ui.pTitle.textContent = `${p.title} • ${p.level}`;
+  ui.pDesc.textContent = p.statement;
+  ui.pExamples.style.display = examMode ? "none" : "block";
+  ui.pExamples.textContent = p.examples.map(e=>`INPUT:\n${e.input}\nOUTPUT:\n${e.output}`).join("\n\n---\n\n");
+  ui.judgeSummary.textContent="";
+  ui.judgeTableWrap.innerHTML="";
+  ui.problemSel.disabled = (STUDENT_LOCKED && lockProblem);
+}
 
-    ui.probTitle.textContent = p.title + " — " + p.level;
-    ui.probStatement.textContent = p.statement;
+// ----- Attempt limit -----
+const attKey = (pid)=>`pp_attempts_${pid}_v1`;
+const attUsed = (pid)=>parseInt(localStorage.getItem(attKey(pid))||"0",10)||0;
+const attInc = (pid)=>{ const u=attUsed(pid)+1; localStorage.setItem(attKey(pid),String(u)); return u; };
+const canAttempt = (pid)=> !attemptLimitOn || attUsed(pid) < attemptLimitMax;
 
-    ui.probHints.innerHTML = (p.hints || []).map(h => `<li>${escapeHtml(h)}</li>`).join("") || "<li>—</li>";
-    ui.probExamples.innerHTML = (p.examples || []).map(ex =>
-      `<div class="pp-judge">
-        <h3>Example</h3>
-        <div class="pp-grid2">
-          <div><div class="pp-small">Input</div><pre class="pp-out">${escapeHtml(ex.input)}</pre></div>
-          <div><div class="pp-small">Output</div><pre class="pp-out">${escapeHtml(ex.output)}</pre></div>
-        </div>
-      </div>`
-    ).join("") || "";
-
-    const a = loadAttempts(pid);
-    ui.attemptBadge.textContent = `Attempts today: ${a}`;
-
-    if (!IS_TEACHER && p.starter) {
-      state.tabs[0].code = p.starter;
-      currentTab = 0;
-      state.currentTab = 0;
-      ui.code.value = state.tabs[0].code;
-      saveState();
-      renderTabs();
-    }
-  }
-
-  ui.problemSel.addEventListener("change", () => showProblem(ui.problemSel.value));
-
-  /* ----------------- WORKER (PYODIDE) ----------------- */
+// ----- Worker judge -----
 let worker=null, pendingResolve=null, pendingReject=null, runTimer=null;
 let packagesInstalled=false;
+let installBusy=false;
 
+function classPolicy(){
+  // If packages are allowed, do not block imports; otherwise classroom blocks most imports.
+  const pkgOK = !!allowPackages;
+  return {
+    disable_open: classroomMode,
+    disable_eval_exec: false,
+    block_imports: classroomMode && !pkgOK,
+    allow_imports: (classroomMode && !pkgOK) ? ["math"] : [],
+    allow_micropip: pkgOK,
+  };
+}
 function makeWorker(force=false){
   if(worker && !force && packagesInstalled){ return; }
   if(worker) worker.terminate();
   worker=new Worker("./judge-worker.js");
   worker.onmessage=(ev)=>{
-    const msg = ev.data || {};
-    if(msg.type==="READY"){
-      setStatus("Ready", "ok");
-      setProgress(0);
-      return;
-    }
+    const msg=ev.data||{};
+    if(msg.type==="READY"){ setStatus("Judge worker ready.","ok"); return; }
     if(msg.type==="RUN_RESULT"){
       clearTimeout(runTimer);
-      runTimer=null;
-      setProgress(100);
       pendingResolve?.(msg.result);
       pendingResolve=pendingReject=null;
       return;
     }
-    if(msg.type==="ERR"){
-      clearTimeout(runTimer);
-      runTimer=null;
-      setStatus("Worker error", "bad");
-      writeStderr(msg.message+"\n");
-      pendingReject?.(new Error(msg.message));
-      pendingResolve=pendingReject=null;
+    if(msg.type==="PKG_LIST"){ writeStdout(msg.text||"", false); return; }
+    if(msg.type==="INSTALLED"){
+      installBusy=false; try{ btn.install.disabled=false; }catch{}
+      packagesInstalled=true;
+      // Update installed packages UI list (best-effort)
+      try{
+        const prev = new Set(loadInstalledPkgs());
+        (msg.pkgs||[]).forEach(p=>prev.add(String(p)));
+        saveInstalledPkgs(Array.from(prev).sort());
+        renderInstalledPkgs();
+      }catch(e){}
+      writeStdout("Installed: "+(msg.pkgs||[]).join(", ")+"\\n", true);
       return;
     }
-    if(msg.type==="INSTALLED"){ packagesInstalled=true;
-      const prev = new Set(loadInstalledPkgs());
-      (msg.pkgs||[]).forEach(p=>prev.add(String(p)));
-      saveInstalledPkgs(Array.from(prev).sort());
-      renderInstalledPkgs();
-      writeStdout("Installed: "+(msg.pkgs||[]).join(", ")+"\n", true); return; }
-    if(msg.type==="PKG_LIST"){
-      writeStdout("\n--- Available modules (first 4000) ---\n"+msg.text+"\n", true);
-      return;
+    if(msg.type==="ERR"){ installBusy=false; try{ btn.install.disabled=false; }catch{}
+      clearTimeout(runTimer);
+      pendingReject?.(new Error(msg.message||"Worker error"));
+      pendingResolve=pendingReject=null;
     }
   };
   worker.postMessage({ type:"INIT", policy: classPolicy() });
 }
 
-  function stopWorker() {
-    if(worker) worker.terminate();
-    worker=null;
-    packagesInstalled=false;
-    makeWorker(true);
+function runInWorker(code, stdin){
+  return new Promise((resolve,reject)=>{
+    pendingResolve=resolve; pendingReject=reject;
+    worker.postMessage({ type:"RUN_ONE", code, stdin, policy: classPolicy() });
+    runTimer=setTimeout(()=>{
+      worker.terminate(); worker=null; makeWorker(true);
+      reject(new Error("TIMEOUT"));
+    }, JUDGE_TIMEOUT_MS);
+  });
+}
+
+// ----- Output helpers -----
+function writeStdout(text, append=true){
+  if(!append) ui.out.textContent="";
+  ui.out.textContent += text;
+  ui.out.scrollTop=ui.out.scrollHeight;
+}
+function writeStderr(text, append=true){
+  if(!append) ui.err.textContent="";
+  ui.err.textContent += text;
+  ui.err.scrollTop=ui.err.scrollHeight;
+}
+
+// ----- Run -----
+async function run(){
+  btn.run.disabled=true; btn.stop.disabled=false;
+  writeStdout("— Running —\n", false);
+  writeStderr("", false);
+  state.tabs[currentTab].code=ui.code.value; saveState();
+  try{
+    setStatus("Running…","warn");
+    const t0=performance.now();
+    const r=await runInWorker(ui.code.value||"", ui.stdin.value||"");
+    const t1=performance.now();
+    writeStdout(r.stdout||"", false);
+    writeStderr(r.stderr?("— stderr —\n"+(r.stderr||"")):"", false);
+    if(!r.ok){
+      writeStderr((r.error||"Runtime error")+"\n", true);
+      setStatus("Error.","bad");
+    }else{
+      setStatus("Done.","ok");
+    }
+    if(ui.timer.checked) writeStdout(`\n✓ Done (${Math.round(t1-t0)} ms)\n`, true);
+    else writeStdout("\n✓ Done\n", true);
+  }catch(err){
+    const isTimeout=String(err?.message||"").includes("TIMEOUT");
+    writeStderr(isTimeout?"✗ Timeout (infinite loop?)\n":("✗ "+(err?.message||String(err))+"\n"), false);
+    setStatus("Error.","bad");
+  }finally{
+    btn.run.disabled=false; btn.stop.disabled=true;
+  }
+}
+function stop(){
+  if(worker) worker.terminate();
+  worker=null; makeWorker(true);
+  setStatus("Stopped.","warn"); toast("Stopped");
+}
+
+// ----- Judge UI -----
+async function runJudge(testList, label){
+  const p=getProblem(currentProblemId);
+  if(!p) return toast("Pick a problem");
+  if(STUDENT_LOCKED && attemptLimitOn && !canAttempt(currentProblemId)){
+    return toast(`Attempt limit reached (${attemptLimitMax}).`);
   }
 
-  function runOne(code, stdin, timeoutMs=3000) {
-    return new Promise((resolve, reject) => {
-      pendingResolve = resolve;
-      pendingReject = reject;
-      setStatus("Running...", "warn");
-      setProgress(10);
-      worker.postMessage({ type:"RUN_ONE", code, stdin, policy: classPolicy() });
-      runTimer=setTimeout(()=>{
-        setStatus("Timed out", "bad");
-        writeStderr("\n[Timeout] Execution exceeded "+timeoutMs+"ms\n");
-        try{ worker.terminate(); }catch{}
-        worker=null;
-        makeWorker(true);
-        reject(new Error("timeout"));
-      }, timeoutMs);
-    });
-  }
+  ui.judgeSummary.textContent="Running tests…";
+  ui.judgeTableWrap.innerHTML="";
+  ui.runSamples.disabled=true;
+  ui.runAll.disabled=true;
 
-  /* ----------------- OUTPUT ----------------- */
-  function writeStdout(s, append=false) {
-    if(!append) ui.out.textContent = "";
-    ui.out.textContent += s;
-    ui.out.scrollTop = ui.out.scrollHeight;
-  }
-  function writeStderr(s, append=true) {
-    if(!append) ui.err.textContent = "";
-    ui.err.textContent += s;
-    ui.err.scrollTop = ui.err.scrollHeight;
-  }
-  function clearOut() {
-    ui.out.textContent = "";
-    ui.err.textContent = "";
-  }
+  state.tabs[currentTab].code=ui.code.value; saveState();
 
-  /* ----------------- SHARE (HASH STATE) ----------------- */
-  function encodeStateToHash() {
+  const code=ui.code.value||"";
+  let pass=0;
+  const rows=[];
+  for(let i=0;i<testList.length;i++){
+    const t=testList[i];
+    const name=t.hidden?`Hidden #${i+1}`:`Test #${i+1}`;
     try{
-      const payload = {
-        tabs: state.tabs.map(t => ({ name: t.name, code: t.code })),
-        currentTab,
-        stdin: ui.stdin.value || "",
-        problem: currentProblemId
-      };
-      const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
-      return "#pp=" + b64;
-    }catch{
-      return "";
-    }
-  }
-
-  function loadFromHash() {
-    try{
-      const h = location.hash || "";
-      if(!h.startsWith("#pp=")) return;
-      const b64 = h.slice(4);
-      const txt = decodeURIComponent(escape(atob(b64)));
-      const payload = JSON.parse(txt);
-      if(payload?.tabs?.length){
-        state.tabs = payload.tabs.map(t => ({ name: t.name || "main.py", code: t.code || "" }));
-        currentTab = clamp(parseInt(payload.currentTab||0,10)||0, 0, state.tabs.length-1);
-        state.currentTab = currentTab;
-        ui.stdin.value = payload.stdin || "";
-        localStorage.setItem(K_STDIN, ui.stdin.value);
-        if(payload.problem) currentProblemId = payload.problem;
-        saveState();
-      }
-    }catch{}
-  }
-
-  async function copyShareLink() {
-    const hash = encodeStateToHash();
-    const url = location.origin + location.pathname + location.search + hash;
-    try{
-      await navigator.clipboard.writeText(url);
-      toast("Link copied");
-    }catch{
-      prompt("Copy link:", url);
-    }
-  }
-
-  /* ----------------- TEACHER PANEL ----------------- */
-  function wireTeacherPanel() {
-    if(!IS_TEACHER) return;
-
-    ui.toggleClassroom.addEventListener("change", () => {
-      policy.classroom = ui.toggleClassroom.checked;
-      savePolicy(policy);
-      renderPolicy();
-      stopWorker();
-      makeWorker(true);
-    });
-    ui.toggleImports.addEventListener("change", () => {
-      policy.block_imports = ui.toggleImports.checked;
-      savePolicy(policy);
-      renderPolicy();
-      stopWorker();
-      makeWorker(true);
-    });
-    ui.toggleOpen.addEventListener("change", () => {
-      policy.disable_open = ui.toggleOpen.checked;
-      savePolicy(policy);
-      renderPolicy();
-      stopWorker();
-      makeWorker(true);
-    });
-    ui.toggleEvalExec.addEventListener("change", () => {
-      policy.disable_eval_exec = ui.toggleEvalExec.checked;
-      savePolicy(policy);
-      renderPolicy();
-      stopWorker();
-      makeWorker(true);
-    });
-    ui.allowPkgs.addEventListener("change", () => {
-      policy.allow_micropip = ui.allowPkgs.checked;
-      savePolicy(policy);
-      renderPolicy();
-      stopWorker();
-      makeWorker(true);
-    });
-    ui.pkgs.addEventListener("input", () => {
-      localStorage.setItem(K_PKGS, ui.pkgs.value || "");
-    });
-  }
-
-  /* ----------------- BUTTONS ----------------- */
-  btn.run.addEventListener("click", async () => {
-    clearOut();
-    setProgress(0);
-    const code = ui.code.value || "";
-    const stdin = ui.stdin.value || "";
-    try{
-      const res = await runOne(code, stdin, 4000);
-      if(res.stdout) writeStdout(res.stdout, true);
-      if(res.stderr) writeStderr(res.stderr, true);
-      if(res.ok) setStatus("Done", "ok");
-      else setStatus("Error", "bad"), writeStderr(res.error+"\n", true);
-    }catch(e){
-      setStatus("Stopped", "bad");
-    }
-  });
-
-  btn.stop.addEventListener("click", () => {
-    stopWorker();
-    setStatus("Stopped", "bad");
-  });
-
-  btn.clear.addEventListener("click", () => {
-    clearOut();
-    toast("Cleared");
-  });
-
-  btn.save.addEventListener("click", () => {
-    state.tabs[currentTab].code = ui.code.value;
-    saveState();
-    toast("Saved");
-  });
-
-  btn.load.addEventListener("click", () => {
-    state = loadState();
-    currentTab = clamp(parseInt(state.currentTab||0,10)||0, 0, state.tabs.length-1);
-    ui.code.value = state.tabs[currentTab].code || "";
-    renderTabs();
-    toast("Loaded");
-  });
-
-  btn.share.addEventListener("click", copyShareLink);
-
-  btn.runSamples.addEventListener("click", async () => {
-    const p = PROBLEMS.find(x => x.id === currentProblemId);
-    if(!p) return;
-    clearOut();
-    let okAll = true;
-    for(const ex of (p.examples || [])){
-      writeStdout("=== Sample ===\nInput:\n"+ex.input+"\n", true);
-      const res = await runOne(ui.code.value || "", ex.input || "", 4000);
-      if(res.stdout) writeStdout("Your output:\n"+res.stdout+"\n", true);
-      if(res.stderr) writeStderr(res.stderr+"\n", true);
-      const got = (res.stdout || "").trim();
-      const want = (ex.output || "").trim();
-      if(got === want && res.ok){
-        writeStdout("✅ Match\n\n", true);
-      }else{
-        writeStdout("❌ Mismatch\nExpected:\n"+ex.output+"\n\n", true);
-        okAll = false;
-      }
-    }
-    setStatus(okAll ? "Samples OK" : "Samples failed", okAll ? "ok" : "bad");
-  });
-
-  btn.runAll.addEventListener("click", async () => {
-    const p = PROBLEMS.find(x => x.id === currentProblemId);
-    if(!p) return;
-
-    // student attempts
-    if(!IS_TEACHER){
-      const a = incAttempts(currentProblemId);
-      ui.attemptBadge.textContent = `Attempts today: ${a}`;
-      if(a > 5){
-        toast("Attempt limit reached");
-        setStatus("Attempt limit", "bad");
-        return;
-      }
-    }
-
-    clearOut();
-    let pass = 0, total = 0;
-    for(const t of (p.tests || [])){
-      total++;
-      const res = await runOne(ui.code.value || "", t.input || "", 4000);
-      const got = (res.stdout || "").trim();
-      const want = (t.output || "").trim();
-      const ok = res.ok && got === want;
+      const r=await runInWorker(code, t.input);
+      const got=normalizeOut(r.stdout||"");
+      const exp=normalizeOut(t.output);
+      const ok=(r.ok===true && got===exp);
       if(ok) pass++;
-
-      if(!t.hidden || IS_TEACHER){
-        writeStdout(`Test #${total} ${t.hidden ? "(hidden)" : ""}\nInput:\n${t.input}\n`, true);
-        writeStdout(`Expected:\n${t.output}\n`, true);
-        writeStdout(`Got:\n${res.stdout || ""}\n`, true);
-        writeStdout(ok ? "✅ PASS\n\n" : "❌ FAIL\n\n", true);
-      }
-      if(res.stderr) writeStderr(res.stderr+"\n", true);
+      rows.push({ name, hidden:!!t.hidden, ok, input:t.input, expected:t.output, got, error:r.ok?"":(r.error||"Runtime error"), stderr:r.stderr||"" });
+    }catch(err){
+      const isTimeout=String(err?.message||"").includes("TIMEOUT");
+      rows.push({ name, hidden:!!t.hidden, ok:false, input:t.input, expected:t.output, got:"", error:isTimeout?"Timeout (infinite loop?)":(err?.message||String(err)), stderr:"" });
     }
+  }
 
-    const allOk = (pass === total);
-    setStatus(allOk ? "All tests passed" : `${pass}/${total} passed`, allOk ? "ok" : "bad");
+  const total=testList.length;
+  const score=Math.round((pass/total)*100);
+  ui.judgeSummary.innerHTML = `<b>${label}:</b> <span style="font-weight:900">${pass}/${total}</span> • Score: <b>${score}</b>`;
 
-    if(allOk && !IS_TEACHER){
-      updateXPAndStreak(10);
-      toast("+10 XP");
+  const table=document.createElement("table");
+  table.className="pp-table";
+  table.innerHTML=`<thead><tr><th style="width:90px">Result</th><th>Details</th><th style="width:90px">Status</th></tr></thead><tbody></tbody>`;
+  const tb=table.querySelector("tbody");
+
+  rows.forEach(r=>{
+    const tr=document.createElement("tr");
+    const showExpected = (!examMode && !r.hidden);
+    const expText = showExpected ? esc(r.expected) : "(hidden)";
+    const gotText = (r.hidden && r.ok) ? "(hidden)" : esc(r.got);
+    tr.innerHTML = `
+      <td><b>${r.ok?"✅":"❌"}</b></td>
+      <td>
+        <div class="pp-small">${esc(r.name)} ${r.hidden?"• hidden":""}</div>
+        <div style="margin-top:6px"><b>Input</b><pre class="pp-mono" style="margin:6px 0 0;padding:8px;border:1px solid var(--pp-border);border-radius:12px;background:rgba(11,18,32,.04)">${esc(r.input)}</pre></div>
+        ${showExpected?`<div style="margin-top:8px"><b>Expected</b><pre class="pp-mono" style="margin:6px 0 0;padding:8px;border:1px solid var(--pp-border);border-radius:12px;background:rgba(11,18,32,.04)">${expText}</pre></div>`:""}
+        <div style="margin-top:8px"><b>Got (stdout)</b><pre class="pp-mono" style="margin:6px 0 0;padding:8px;border:1px solid var(--pp-border);border-radius:12px;background:rgba(11,18,32,.04)">${gotText}</pre></div>
+        ${r.stderr?`<div style="margin-top:8px"><b>stderr</b><pre class="pp-mono" style="margin:6px 0 0;padding:8px;border:1px solid var(--pp-border);border-radius:12px;background:rgba(11,18,32,.04)">${esc(r.stderr)}</pre></div>`:""}
+        ${r.error?`<div style="margin-top:8px"><b style="color:#b91c1c">Error</b><pre class="pp-mono" style="margin:6px 0 0;padding:8px;border:1px solid #f3c7c7;border-radius:12px;background:rgba(185,28,28,.06)">${esc(r.error)}</pre></div>`:""}
+      </td>
+      <td>${r.ok?`<span style="color:var(--pp-ok);font-weight:900">PASS</span>`:`<span style="color:var(--pp-bad);font-weight:900">FAIL</span>`}</td>
+    `;
+    tb.appendChild(tr);
+  });
+
+  ui.judgeTableWrap.innerHTML="";
+  ui.judgeTableWrap.appendChild(table);
+
+  // XP
+  if(pass===total){
+    const gained=25+total*5;
+    setXP(getXP()+gained);
+    updateStreakOnSolve();
+    toast(`🏆 All tests passed! +${gained} XP`);
+  }else{
+    const gained=Math.max(5, pass*3);
+    setXP(getXP()+gained);
+    toast(`Keep going! +${gained} XP`);
+  }
+
+  // Record submission (students always; teachers only when classroom on)
+  if(STUDENT_LOCKED || (TEACHER_UI && classroomMode)){
+    const usedNow = attemptLimitOn ? attInc(currentProblemId) : attUsed(currentProblemId);
+    addSub({
+      name: (ui.stuName.value||"").trim() || "Unknown",
+      roll: (ui.stuRoll.value||"").trim() || "NA",
+      problem: currentProblemId,
+      score, pass, total,
+      attempts_used: usedNow,
+      attempt_limit: attemptLimitOn ? attemptLimitMax : null,
+      exam_mode: !!examMode,
+      timestamp: new Date().toISOString(),
+      code
+    });
+    if(STUDENT_LOCKED && attemptLimitOn){
+      toast(`Submitted. Attempts left: ${Math.max(0, attemptLimitMax-usedNow)}`);
     }
+  }
+
+  ui.runSamples.disabled=false;
+  ui.runAll.disabled=false;
+}
+
+// ----- Packages -----
+function installPkgs(){
+  if(!allowPackages) return toast("Packages disabled");
+  const raw=(ui.pkgs.value||"").trim();
+  if(!raw) return toast("No packages");
+  const pkgs=raw.split(/[, ]+/).map(s=>s.trim()).filter(Boolean);
+  writeStdout("— Installing —\n", false); writeStderr("", false);
+  setStatus("Installing…","warn");
+  worker.postMessage({ type:"INSTALL", pkgs, policy: classPolicy() });
+  toast("Install requested");
+}
+function listPkgs(){
+  writeStdout("— Installed packages —\n", false); writeStderr("", false);
+  worker.postMessage({ type:"LIST_PKGS" });
+}
+
+// ----- Share -----
+function share(){
+  state.tabs[currentTab].code=ui.code.value;
+  const payload={ tabs: state.tabs, currentTab, stdin: ui.stdin.value||"", problem: currentProblemId||"", tmode: TM||"" };
+  const json=JSON.stringify(payload);
+  const b64=btoa(unescape(encodeURIComponent(json))).replaceAll("+","-").replaceAll("/","_").replaceAll("=","");
+  const url=location.origin+location.pathname+location.search+"#"+b64;
+  navigator.clipboard?.writeText(url).then(()=>toast("Share link copied")).catch(()=>prompt("Copy link:",url));
+}
+function loadFromHash(){
+  const h=location.hash.replace("#","");
+  if(!h) return;
+  try{
+    let b64=h.replaceAll("-","+").replaceAll("_","/");
+    while(b64.length%4) b64+="=";
+    const json=decodeURIComponent(escape(atob(b64)));
+    const payload=JSON.parse(json);
+    if(payload?.tabs?.length){
+      state.tabs=payload.tabs;
+      currentTab=clamp(payload.currentTab||0,0,state.tabs.length-1);
+      ui.stdin.value=payload.stdin||"";
+      ui.code.value=state.tabs[currentTab].code||"";
+      saveState();
+      localStorage.setItem(K_STDIN, ui.stdin.value||"");
+    }
+    if(payload?.problem) currentProblemId=payload.problem;
+  }catch{}
+}
+
+// ----- Teacher panel -----
+function applyModeUI(){
+  ui.modeText.textContent = TEACHER_UI ? "Teacher (tmode=1)" : (STUDENT_LOCKED ? "Student (tmode=0)" : "Practice");
+  ui.teacherBtn.style.display = TEACHER_UI ? "inline-flex" : "none";
+  ui.teacherPanel.style.display = TEACHER_UI ? "block" : "none";
+
+  // share is always available (your request)
+  btn.share.style.display = "inline-flex";
+
+  ui.packagesCard.style.display = allowPackages ? "block" : "none";
+  ui.runSamples.disabled = !!examMode;
+
+  ui.problemSel.disabled = (STUDENT_LOCKED && lockProblem);
+
+  if(TEACHER_UI){
+    ui.forceClass.checked = classroomMode;
+    ui.examMode.checked = examMode;
+    ui.lockProblem.checked = lockProblem;
+    ui.limitAttemptsOn.checked = attemptLimitOn;
+    ui.allowPkgs.checked = allowPackages;
+    ui.attemptLimit.value = String(attemptLimitMax);
+    updateSubCount();
+    const base = location.origin + location.pathname;
+    ui.studentLink.textContent = base + "?tmode=0";
+  }
+}
+
+function wireTeacherPanel(){
+  if(!TEACHER_UI) return;
+  ui.forceClass.addEventListener("change", ()=>{
+    classroomMode = ui.forceClass.checked;
+    saveBool(K_CLASS, classroomMode);
+    applyModeUI();
+    makeWorker(true);
+    toast(classroomMode ? "Classroom forced" : "Classroom off");
   });
-
-  btn.install.addEventListener("click", () => {
-    if(!IS_TEACHER && !policy.allow_micropip) return toast("Packages disabled");
-    const list = (ui.pkgs.value || "").split(",").map(s=>s.trim()).filter(Boolean);
-    if(!list.length) return toast("Enter packages first");
-    worker.postMessage({ type:"INSTALL", pkgs:list, policy: classPolicy() });
-    toast("Installing...");
+  ui.examMode.addEventListener("change", ()=>{
+    examMode = ui.examMode.checked;
+    saveBool(K_EXAM, examMode);
+    applyModeUI();
+    showProblem(currentProblemId);
+    toast(examMode ? "Exam Mode ON" : "Exam Mode OFF");
   });
-
-  btn.listPkgs.addEventListener("click", () => {
-    worker.postMessage({ type:"LIST_PKGS" });
+  ui.lockProblem.addEventListener("change", ()=>{
+    lockProblem = ui.lockProblem.checked;
+    saveBool(K_LOCK, lockProblem);
+    applyModeUI();
+    toast(lockProblem ? "Problem locked" : "Problem unlocked");
   });
+  ui.limitAttemptsOn.addEventListener("change", ()=>{
+    attemptLimitOn = ui.limitAttemptsOn.checked;
+    saveBool(K_ATT_ON, attemptLimitOn);
+    toast(attemptLimitOn ? "Attempt limit enabled" : "Attempt limit disabled");
+  });
+  ui.allowPkgs.addEventListener("change", ()=>{
+    allowPackages = ui.allowPkgs.checked;
+    saveBool(K_ALLOW_PKGS, allowPackages);
+    applyModeUI();
+    makeWorker(true);
+    toast(allowPackages ? "Packages allowed" : "Packages blocked");
+  });
+  ui.attemptLimit.addEventListener("change", ()=>{
+    attemptLimitMax = clamp(parseInt(ui.attemptLimit.value,10)||5, 1, 50);
+    ui.attemptLimit.value = String(attemptLimitMax);
+    saveInt(K_ATT_MAX, attemptLimitMax);
+    toast("Attempt limit set to " + attemptLimitMax);
+  });
+  ui.exportSubs.addEventListener("click", ()=>{
+    const list=loadSubs();
+    const blob=new Blob([JSON.stringify(list,null,2)],{type:"application/json"});
+    const a=document.createElement("a");
+    const ts=new Date().toISOString().replaceAll(":","-");
+    a.href=URL.createObjectURL(blob);
+    a.download=`pp_submissions_${ts}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    toast("Exported submissions");
+  });
+  ui.clearSubs.addEventListener("click", ()=>{
+    if(!confirm("Clear all submissions stored in this browser?")) return;
+    clearSubs(); toast("Submissions cleared");
+  });
+}
 
-  /* ----------------- INIT ----------------- */
-  let policy = loadPolicy();
+// ----- Bindings -----
+btn.run.onclick = run;
+btn.stop.onclick = stop;
+btn.format.onclick = basicFormat;
+btn.save.onclick = ()=>{ state.tabs[currentTab].code=ui.code.value; saveState(); localStorage.setItem(K_STDIN, ui.stdin.value||""); toast("Saved"); };
+btn.share.onclick = share;
 
-  async function init(){
-    initModeUI();
-    renderXPStreak();
-    renderInstalledPkgs();
-    renderTabs();
+btn.newTab.onclick = newTab;
+btn.delTab.onclick = delTab;
 
-  // Load local + optional remote problems
-  const custom = loadCustomProblems();
-  const remoteURL = URLP.get("problems"); // index.html?problems=...
-  const remote = remoteURL ? await loadProblemsFromURL(remoteURL) : loadRemoteCache();
+btn.install.onclick = installPkgs;
+btn.list.onclick = listPkgs;
 
-  // Merge (defaults first, then custom, then remote). Dedupe by id (remote/custom can override).
-  const byId = new Map();
-  [...DEFAULT_PROBLEMS, ...custom, ...remote].forEach(p => { byId.set(p.id, p); });
-  PROBLEMS = Array.from(byId.values());
+btn.sample.onclick = ()=>{ ui.stdin.value="5\n10\n20\n30\n40\n50\n"; localStorage.setItem(K_STDIN,ui.stdin.value||""); toast("stdin sample"); };
+btn.clearStdin.onclick = ()=>{ ui.stdin.value=""; localStorage.setItem(K_STDIN,""); toast("stdin cleared"); };
 
-  renderProblems();
+btn.copyOut.onclick = ()=>{
+  const t=(ui.out.textContent||"")+"\n"+(ui.err.textContent||"");
+  navigator.clipboard?.writeText(t).then(()=>toast("Output copied")).catch(()=>prompt("Copy:",t));
+};
+btn.clearOut.onclick = ()=>{ ui.out.textContent=""; ui.err.textContent=""; toast("Cleared"); };
+
+ui.example.onchange = ()=>{
+  const i=parseInt(ui.example.value,10);
+  if(Number.isFinite(i) && EXAMPLES[i]){
+    ui.code.value=EXAMPLES[i].code;
+    updateGutter(); autosave(); toast("Example loaded");
+  }
+  ui.example.value="";
+};
+
+ui.code.addEventListener("keydown",(e)=>{
+  if((e.ctrlKey||e.metaKey) && e.key==="Enter"){ e.preventDefault(); run(); }
+  if(e.key==="Tab"){
+    e.preventDefault();
+    const mode=ui.indent.value;
+    const ins=(mode==="tab")? "\t" : " ".repeat(parseInt(mode,10)||4);
+    const el=ui.code;
+    const s=el.selectionStart, t=el.selectionEnd;
+    if(s!==t){
+      const v=el.value;
+      const ls=v.lastIndexOf("\n", s-1)+1;
+      const le=v.indexOf("\n", t);
+      const end=(le===-1)? v.length : le;
+      const block=v.slice(ls,end).split("\n").map(line=>ins+line).join("\n");
+      el.value=v.slice(0,ls)+block+v.slice(end);
+      el.selectionStart=ls; el.selectionEnd=ls+block.length;
+    }else{
+      el.setRangeText(ins,s,s,"end");
+    }
+    updateGutter(); autosave();
+  }
+});
+
+// problems
+ui.problemSel.onchange=()=>{
+  if(STUDENT_LOCKED && lockProblem) return toast("Problem locked");
+  showProblem(ui.problemSel.value);
+};
+ui.todayBtn.onclick=()=>{
+  if(STUDENT_LOCKED && lockProblem) return toast("Problem locked");
+  const id=pickToday();
+  ui.problemSel.value=id;
+  showProblem(id);
+};
+ui.loadStarter.onclick=()=>{
+  const p=getProblem(currentProblemId); if(!p) return toast("Pick a problem");
+  ui.code.value=p.starter; updateGutter(); autosave(); toast("Starter loaded");
+};
+ui.resetStarter.onclick=()=>{
+  if(!currentStarter) return toast("No starter");
+  ui.code.value=currentStarter; updateGutter(); autosave(); toast("Reset");
+};
+ui.hintBtn.onclick=()=>{
+  if(examMode) return toast("Hints disabled in Exam Mode");
+  const p=getProblem(currentProblemId); if(!p) return toast("Pick a problem");
+  ui.hintBtn._i=(ui.hintBtn._i??-1)+1;
+  toast("💡 "+p.hints[ui.hintBtn._i % p.hints.length]);
+};
+ui.runSamples.onclick=async ()=>{
+  if(examMode) return toast("Samples disabled in Exam Mode");
+  const p=getProblem(currentProblemId); if(!p) return toast("Pick a problem");
+  await runJudge(p.examples.map(e=>({input:e.input, output:e.output, hidden:false})), "Samples");
+};
+ui.runAll.onclick=async ()=>{
+  const p=getProblem(currentProblemId); if(!p) return toast("Pick a problem");
+  await runJudge(p.tests, "All tests");
+};
+
+// ----- Init -----
+async function init(){
+  setXP(getXP());
+  setStreak(getStreak());
+  updateSubCount();
 
   // Optional: load code/tests from URL params.
-  // 1) ?codefile=abc.py (or full URL) loads raw .py text into editor (main.py)
-  // 2) ?code=abc.json loads code state JSON (tabs/stdin/problem)
-  // When neither is provided, normal share hash/local state is used.
+// 1) ?codefile=abc.py (or full URL) loads raw .py text into editor (main.py)
+// 2) ?code=abc.json loads code state JSON (tabs/stdin/problem)
+// When neither is provided, normal share hash/local state is used.
   const codeFile = URLP.get("codefile"); // index.html?codefile=starter.py
   const codeURL  = URLP.get("code");     // index.html?code=https://.../code.json
 
@@ -875,28 +937,42 @@ function makeWorker(force=false){
     loadFromHash();
   }
 
-    if(!codeURL && !codeFile) ui.code.value = state.tabs[currentTab].code || "";
-    ui.stdin.value = localStorage.getItem(K_STDIN) || "";
 
-    if(IS_TEACHER){
-      renderPolicy();
-      wireTeacherPanel();
-      ui.pkgs.value = localStorage.getItem(K_PKGS) || "";
-    }
+  // stdin
+  ui.stdin.value = localStorage.getItem(K_STDIN) || "";
+  ui.stdin.addEventListener("input", ()=> localStorage.setItem(K_STDIN, ui.stdin.value||""));
 
-    makeWorker();
-    setStatus("Ready", "ok");
-    setProgress(0);
+  loadStudent();
 
-    // student info
-    if(!IS_TEACHER){
-      ui.studentName.value = localStorage.getItem(K_STU_NAME) || "";
-      ui.studentRoll.value = localStorage.getItem(K_STU_ROLL) || "";
-      ui.studentName.addEventListener("input", ()=>localStorage.setItem(K_STU_NAME, ui.studentName.value||""));
-      ui.studentRoll.addEventListener("input", ()=>localStorage.setItem(K_STU_ROLL, ui.studentRoll.value||""));
-    }
-  }
+  renderTabs();
 
-  init();
+  // Load local + optional remote problems
+  const custom = loadCustomProblems();
+  const remoteURL = URLP.get("problems"); // index.html?problems=...
+  const remote = remoteURL ? await loadProblemsFromURL(remoteURL) : loadRemoteCache();
 
-})();
+  // Merge (defaults first, then custom, then remote). Dedupe by id (remote/custom can override).
+  const byId = new Map();
+  [...DEFAULT_PROBLEMS, ...custom, ...remote].forEach(p => { byId.set(p.id, p); });
+  PROBLEMS = Array.from(byId.values());
+
+  renderProblems();
+
+  ui.code.value = state.tabs[currentTab].code || "";
+  updateGutter();
+  btn.stop.disabled=true;
+
+  // mode UI
+  applyModeUI();
+  wireTeacherPanel();
+
+  // problem
+  const pid = currentProblemId || pickToday();
+  ui.problemSel.value = pid;
+  showProblem(pid);
+
+  makeWorker();
+  setStatus("Ready.","ok");
+  setProgress(0);
+}
+init();
