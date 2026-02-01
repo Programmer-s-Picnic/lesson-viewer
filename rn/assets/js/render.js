@@ -24,6 +24,7 @@
         </button>
         <div class="nav__menu" id="navMenu">
           ${links}
+          <a class="btn btn--ghost nav__cta" data-guided-open href="#">Guided Start</a>
           <a class="btn btn--primary nav__cta" data-wa data-wa-context="Header CTA" href="#">${esc(site.cta?.primary_label || "WhatsApp")}</a>
         </div>
       </nav>
@@ -31,7 +32,9 @@
   }
 
   function fab(site){
-    return `<a class="fab" href="#" data-wa data-wa-context="Floating WhatsApp" aria-label="Chat on WhatsApp">
+    return `<a class="gsFloat" href="#" data-guided-open aria-label="Guided Start">
+      <span class="fab__icon" aria-hidden="true">🧭</span><span class="fab__text">Guided Start</span></a>
+    <a class="fab" href="#" data-wa data-wa-context="Floating WhatsApp" aria-label="Chat on WhatsApp">
       <span class="fab__icon" aria-hidden="true">💬</span><span class="fab__text">${esc(site.cta?.primary_label || "WhatsApp")}</span></a>`;
   }
 
@@ -135,12 +138,12 @@
       </div></div></section>`;
   }
 
-  function sectionTestimonials(testimonials){
+  function sectionTestimonials(testimonials, sec){
     const items = (testimonials?.items || []).slice(0,3).map(it=>`
       <div class="quote"><div class="quote__text">“${esc(it.text||"")}”</div><div class="quote__by">— ${esc(it.by||"Anonymous")}</div></div>
     `).join("");
     return `<section class="section section--soft"><div class="container">
-      <div class="sectionHead"><h2 class="h2">What people say</h2><p class="muted">Short, anonymous feedback.</p></div>
+      <div class="sectionHead"><h2 class="h2">${esc(sec?.heading || "What people say")}</h2><p class="muted">${esc(sec?.sub || "Short, anonymous feedback.")}</p></div>
       <div class="grid3">${items}</div></div></section>`;
   }
 
@@ -201,13 +204,79 @@
       </div></div></section>`;
   }
 
+  
+  function fmtDate(d){
+    try{
+      const dt = new Date(d);
+      if(String(dt) === "Invalid Date") return String(d||"");
+      return dt.toLocaleDateString(undefined, { year:"numeric", month:"short", day:"numeric" });
+    }catch(e){ return String(d||""); }
+  }
+
+  function sectionBlogs(sec, blogs, assetBase){
+    const showControls = !!sec.enableSearch || !!sec.enableTags;
+    const controls = showControls ? `
+      <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        ${sec.enableSearch ? `
+          <div style="flex:1;min-width:240px">
+            <input data-blogs-q type="search" placeholder="Search blogs…" aria-label="Search blogs"
+              style="width:100%;padding:12px 14px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,.92);font-weight:600" />
+          </div>` : ``}
+        ${sec.enableTags ? `
+          <div data-blogs-tags class="choiceGrid" style="grid-template-columns:repeat(6,1fr);gap:8px;min-width:min(560px,100%)"></div>` : ``}
+      </div>` : ``;
+
+    return `
+<section class="section" data-blogs-root data-mode="${esc(sec.mode||"latest")}" data-limit="${esc(sec.limit||6)}" data-current="${esc(window.PAGE_ID||"")}" data-asset-base="${esc(assetBase)}">
+  <div class="container">
+    <div class="sectionHead">
+      <h2 class="h2">${esc(sec.heading||"Blogs")}</h2>
+      <p class="muted">${esc(sec.sub||"")}</p>
+      ${controls}
+    </div>
+    <div class="grid3" data-blogs-list></div>
+    ${sec.mode==="all" ? `<div style="margin-top:14px"><span class="muted small">Tip: Use URL like <b>?q=anxiety</b> or <b>?tag=stress</b> on the Blogs page.</span></div>` : ``}
+  </div>
+</section>`;
+  }
+
+function sectionRichText(sec){
+    return `
+<section class="section section--soft">
+  <div class="container">
+    ${sec.heading ? `<h2 class="h2">${esc(sec.heading)}</h2>` : ""}
+    <div class="cardSoft" style="background:rgba(255,255,255,.94)">${sec.html || ""}</div>
+  </div>
+</section>`;
+  }
+
   function modalShell(){
     return `<div class="modalBackdrop" id="ppModalBackdrop" aria-hidden="true"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="ppModalTitle">
       <div class="modal__head"><div class="modal__title" id="ppModalTitle">Self-assessment</div><button class="modal__close" id="ppModalClose" type="button" aria-label="Close">✕</button></div>
       <div class="modal__body" id="ppModalBody"></div>
       <div class="modal__foot"><div class="scoreBox" id="ppScoreBox">Score: 0</div>
         <div class="actionsRow"><button class="btn btn--ghost" id="ppSaveBtn" type="button" disabled>Save</button><button class="btn btn--primary" id="ppShareBtn" type="button" disabled>Share on WhatsApp</button></div>
-      </div></div></div><div class="toast" id="ppToast" role="status" aria-live="polite"></div>`;
+      </div></div></div>
+<div class="modalBackdrop" id="ppGuidedBackdrop" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="ppGuidedTitle">
+    <div class="modal__head">
+      <div class="modal__title" id="ppGuidedTitle">Guided Start</div>
+      <button class="modal__close" id="ppGuidedClose" type="button" aria-label="Close">✕</button>
+    </div>
+    <div class="modal__body" id="ppGuidedBody"></div>
+    <div class="modal__foot">
+      <div class="scoreBox" id="ppGuidedProg">Step 1 / 3</div>
+      <div class="actionsRow">
+        <button class="btn btn--ghost" id="ppGuidedBack" type="button">Back</button>
+        <button class="btn btn--primary" id="ppGuidedNext" type="button" disabled>Next →</button>
+        <button class="btn btn--ghost" id="ppGuidedSave" type="button" style="display:none">Save</button>
+        <button class="btn btn--primary" id="ppGuidedShare" type="button" style="display:none">Continue on WhatsApp</button>
+        <button class="btn btn--soft" id="ppGuidedReset" type="button" style="display:none">Reset</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="ppToast" role="status" aria-live="polite"></div>`;
   }
 
   function renderSections({site,page,testimonials,assetBase}){
@@ -219,10 +288,12 @@
         case "meet": return sectionMeet(sec, assetBase);
         case "feelLike": return sectionFeelLike();
         case "proof": return sectionProof();
-        case "testimonials": return sectionTestimonials(testimonials);
+        case "testimonials": return sectionTestimonials(testimonials, sec);
         case "bookingBlock": return sectionBooking(sec, site, assetBase);
         case "contactCards": return sectionContactCards(sec, site);
         case "assessments": return sectionAssessments(sec);
+        case "blogs": return sectionBlogs(sec, window.__PP_BLOGS__, assetBase);
+        case "richText": return sectionRichText(sec);
         default: return "";
       }
     }).join("");

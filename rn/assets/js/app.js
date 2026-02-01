@@ -26,18 +26,23 @@
 
   try{
     const site = await loadJSON(rel("data/site.json"));
+    window.__PP_SITE__ = site;
     const page = await loadJSON(rel(`data/pages/${PAGE_ID}.json`));
     const testimonials = await loadJSON(rel("data/testimonials.json"));
+    const blogs = await loadJSON(rel("data/blogs.json"));
     const assessments = await loadJSON(rel("data/assessments.json"));
 
     setMeta(page);
 
+    window.__PP_BLOGS__ = blogs;
     app.innerHTML = window.PP_RENDER.page({site,page,testimonials,pageId:PAGE_ID,assetBase:ASSET_BASE});
 
     window.PP_WA.wireAll(site);
     window.PP_FAQ && window.PP_FAQ.init();
     window.PP_NAV && window.PP_NAV.init();
     window.PP_ASSESS && window.PP_ASSESS.wire(site, assessments.tools || []);
+    window.PP_BLOGS_UI && window.PP_BLOGS_UI.init();
+    window.PP_GUIDED && window.PP_GUIDED.init();
 
     const y = document.getElementById("year");
     if(y) y.textContent = String(new Date().getFullYear());
