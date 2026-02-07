@@ -1,640 +1,863 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Face Detection Stage-1 PRO (Mobile)</title>
-    <meta name="theme-color" content="#f59e0b" />
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>JavaScript — Promises & Async/Await (with Embedded Editor)</title>
+  <meta name="description" content="A comprehensive lesson on JavaScript Promises and async/await, leading to fetch + SWAPI. Includes an embedded JavaScript editor." />
 
-    <style>
-      :root {
-        --bg: #fff7e6;
-        --card: #ffffffcc;
-        --ink: #1f2937;
-        --muted: #6b7280;
-        --brand: #d97706;
-        --brand2: #f59e0b;
-        --border: #eadcc5;
-        --shadow: 0 18px 40px rgba(31, 41, 55, 0.14);
-        --r: 18px;
-        --sans:
-          ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica,
-          Arial;
-        --mono:
-          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-          "Liberation Mono", "Courier New", monospace;
-      }
-      * {
-        box-sizing: border-box;
-      }
-      body {
-        margin: 0;
-        font-family: var(--sans);
-        color: var(--ink);
-        background:
-          radial-gradient(
-            900px 520px at 15% 10%,
-            rgba(245, 158, 11, 0.22),
-            transparent 60%
-          ),
-          radial-gradient(
-            900px 520px at 85% 0%,
-            rgba(217, 119, 6, 0.18),
-            transparent 60%
-          ),
-          var(--bg);
-      }
-      .wrap {
-        max-width: 1050px;
-        margin: 0 auto;
-        padding: 14px;
-      }
-      .top {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        padding: 10px 12px;
-        border-radius: 999px;
-        background: rgba(255, 247, 230, 0.72);
-        border: 1px solid rgba(234, 220, 197, 0.95);
-        box-shadow: 0 10px 24px rgba(31, 41, 55, 0.1);
-        position: sticky;
-        top: 0;
-        z-index: 5;
-        backdrop-filter: blur(10px);
-        flex-wrap: wrap;
-      }
-      .title {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-      .logo {
-        width: 34px;
-        height: 34px;
-        border-radius: 12px;
-        background: linear-gradient(135deg, var(--brand), var(--brand2));
-        box-shadow: 0 12px 26px rgba(217, 119, 6, 0.28);
-      }
-      h1 {
-        margin: 0;
-        font-size: 14px;
-        line-height: 1.1;
-      }
-      .sub {
-        font-size: 12px;
-        color: var(--muted);
-        margin-top: 2px;
-      }
-      .pill {
-        font-size: 12px;
-        padding: 6px 10px;
-        border-radius: 999px;
-        background: rgba(245, 158, 11, 0.16);
-        border: 1px solid rgba(217, 119, 6, 0.22);
-        color: #92400e;
-        white-space: nowrap;
-      }
-      .card {
-        margin-top: 12px;
-        background: var(--card);
-        border: 1px solid rgba(234, 220, 197, 0.95);
-        border-radius: var(--r);
-        box-shadow: var(--shadow);
-        overflow: hidden;
-      }
-      .card-h {
-        padding: 12px 12px 10px 12px;
-        border-bottom: 1px solid rgba(234, 220, 197, 0.8);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        flex-wrap: wrap;
-      }
-      .btn {
-        border-radius: 12px;
-        border: 1px solid rgba(234, 220, 197, 0.95);
-        background: #fff;
-        padding: 10px 12px;
-        font-size: 13px;
-        cursor: pointer;
-        box-shadow: 0 10px 22px rgba(31, 41, 55, 0.08);
-        user-select: none;
-      }
-      .btn.primary {
-        background: linear-gradient(135deg, var(--brand), var(--brand2));
-        color: #fff;
-        border-color: rgba(217, 119, 6, 0.35);
-        box-shadow: 0 14px 30px rgba(217, 119, 6, 0.22);
-      }
-      .btn:disabled {
-        opacity: 0.55;
-        cursor: not-allowed;
-      }
-      .controls {
-        padding: 12px;
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        align-items: center;
-      }
-      .toggle {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 10px;
-        border-radius: 14px;
-        border: 1px solid rgba(234, 220, 197, 0.95);
-        background: rgba(255, 255, 255, 0.75);
-        font-size: 12px;
-        color: var(--ink);
-      }
-      .toggle input {
-        transform: scale(1.15);
-      }
-      .stage {
-        position: relative;
-        background: #0b1220;
-        border-radius: 16px;
-        overflow: hidden;
-      }
-      video {
-        width: 100%;
-        height: auto;
-        display: block;
-        transform: scaleX(-1);
-      }
-      canvas {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        pointer-events: none;
-      }
-      .hud {
-        position: absolute;
-        left: 10px;
-        top: 10px;
-        background: rgba(255, 255, 255, 0.14);
-        border: 1px solid rgba(245, 158, 11, 0.22);
-        backdrop-filter: blur(10px);
-        padding: 8px 10px;
-        border-radius: 14px;
-        color: #fff;
-        font-size: 12px;
-        display: flex;
-        gap: 10px;
-        align-items: center;
-        flex-wrap: wrap;
-      }
-      .hud b {
-        font-family: var(--mono);
-        font-weight: 700;
-      }
-      .note {
-        margin: 12px;
-        padding: 10px 12px;
-        border-radius: 14px;
-        border: 1px solid rgba(245, 158, 11, 0.35);
-        background: rgba(245, 158, 11, 0.14);
-        color: #7c2d12;
-        font-size: 12px;
-      }
-      .range {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      input[type="range"] {
-        width: 160px;
-      }
-    </style>
+  <style>
+    :root{
+      /* Light Saffron theme */
+      --bg0:#fff7e6;
+      --bg1:#fff1d6;
+      --card:rgba(255,255,255,.9);
+      --ink:#1f2937;
+      --muted:#6b7280;
+      --brand:#d97706;
+      --brand2:#b45309;
+      --border:rgba(31,41,55,.12);
+      --shadow:0 12px 30px rgba(0,0,0,.08);
+      --radius:18px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica,Arial;
+      --maxw: 1150px;
+    }
 
-    <!-- Face API (vladmandic fork) -->
-    <script
-      defer
-      src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1/dist/face-api.js"
-    ></script>
-  </head>
-  <body>
-    <div class="wrap">
-      <div class="top">
-        <div class="title">
-          <div class="logo" aria-hidden="true"></div>
-          <div>
-            <h1>Face Detection Stage-1 PRO</h1>
-            <div class="sub">FPS • Face Count • Switch Cam • Pinch Zoom</div>
-          </div>
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:var(--sans);
+      color:var(--ink);
+      background:
+        radial-gradient(900px 450px at 20% 10%, rgba(217,119,6,.18), transparent 60%),
+        radial-gradient(800px 400px at 85% 12%, rgba(245,158,11,.16), transparent 60%),
+        linear-gradient(180deg,var(--bg0),var(--bg1));
+    }
+
+    a{color:var(--brand2); text-decoration:none}
+    a:hover{text-decoration:underline}
+
+    .topbar{
+      position:sticky; top:0; z-index:50;
+      backdrop-filter: blur(10px);
+      background: rgba(255,247,230,.75);
+      border-bottom: 1px solid var(--border);
+    }
+    .topbar-inner{
+      max-width:var(--maxw);
+      margin:0 auto;
+      padding:12px 16px;
+      display:flex;
+      gap:12px;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .brand{
+      display:flex; gap:10px; align-items:center;
+    }
+    .logo{
+      width:40px;height:40px;border-radius:12px;
+      background: linear-gradient(135deg, rgba(217,119,6,.95), rgba(245,158,11,.85));
+      box-shadow: 0 10px 22px rgba(217,119,6,.25);
+      display:grid;place-items:center;
+      color:#fff; font-weight:800;
+      letter-spacing:.5px;
+    }
+    .brand h1{
+      margin:0;
+      font-size:16px;
+      line-height:1.2;
+    }
+    .brand small{display:block; color:var(--muted); font-weight:600}
+
+    .actions{
+      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+    }
+
+    .pill{
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.75);
+      padding:8px 10px;
+      border-radius:999px;
+      font-size:12px;
+      color:var(--muted);
+      display:flex; gap:8px; align-items:center;
+    }
+    .btn{
+      cursor:pointer;
+      border:1px solid rgba(217,119,6,.35);
+      background: linear-gradient(180deg, rgba(255,255,255,.9), rgba(255,255,255,.72));
+      color:var(--brand2);
+      padding:9px 12px;
+      border-radius:12px;
+      font-weight:700;
+      box-shadow: 0 10px 20px rgba(0,0,0,.06);
+      transition: transform .08s ease, box-shadow .12s ease;
+      user-select:none;
+    }
+    .btn:active{ transform: translateY(1px); box-shadow: 0 8px 16px rgba(0,0,0,.06); }
+    .btn.primary{
+      border:1px solid rgba(217,119,6,.55);
+      background: linear-gradient(180deg, rgba(217,119,6,.95), rgba(180,83,9,.95));
+      color:#fff;
+    }
+    .btn.ghost{
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.6);
+      color:var(--ink);
+      font-weight:700;
+    }
+
+    main{
+      max-width:var(--maxw);
+      margin:0 auto;
+      padding:18px 16px 40px;
+      display:grid;
+      gap:16px;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1.05fr .95fr;
+      gap:16px;
+      align-items:start;
+    }
+    @media (max-width: 980px){
+      .grid{ grid-template-columns: 1fr; }
+    }
+
+    .card{
+      background: var(--card);
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+
+    .card h2, .card h3{
+      margin:0;
+    }
+    .card-head{
+      padding:14px 14px 12px;
+      border-bottom:1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,255,255,.85), rgba(255,255,255,.72));
+    }
+    .card-head .kicker{
+      font-size:12px;
+      color:var(--muted);
+      font-weight:700;
+      letter-spacing:.3px;
+      text-transform:uppercase;
+    }
+    .card-head h2{
+      margin-top:6px;
+      font-size:18px;
+      line-height:1.25;
+    }
+    .card-body{
+      padding:14px;
+    }
+
+    .toc{
+      display:flex; flex-wrap:wrap; gap:8px;
+      margin-top:10px;
+    }
+    .toc a{
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.65);
+      padding:8px 10px;
+      border-radius:999px;
+      font-size:12px;
+      color:var(--ink);
+      font-weight:700;
+    }
+    .toc a:hover{border-color: rgba(217,119,6,.35);}
+
+    .note{
+      padding:12px;
+      border:1px solid rgba(217,119,6,.22);
+      background: rgba(255, 248, 235, .75);
+      border-radius: 14px;
+      color: var(--ink);
+    }
+    .note b{ color: var(--brand2); }
+
+    .codeblock{
+      margin:12px 0 14px;
+      border:1px solid var(--border);
+      border-radius: 14px;
+      overflow:hidden;
+      background: rgba(255,255,255,.72);
+    }
+    .codebar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:10px 10px;
+      border-bottom:1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,255,255,.85), rgba(255,255,255,.72));
+    }
+    .codebar .title{
+      font-size:12px;
+      font-weight:800;
+      color:var(--muted);
+      letter-spacing:.2px;
+    }
+    pre{
+      margin:0;
+      padding:12px 12px;
+      overflow:auto;
+      font-family: var(--mono);
+      font-size:12.7px;
+      line-height:1.45;
+      color:#0f172a;
+      max-height: 310px;
+      background: rgba(255,255,255,.66);
+    }
+
+    .mini{
+      font-size:13px;
+      color:var(--muted);
+      line-height:1.55;
+    }
+    ul,ol{ margin: 8px 0 0 18px; padding:0; }
+    li{ margin: 6px 0; }
+
+    .split{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:12px;
+    }
+    @media (max-width: 700px){
+      .split{ grid-template-columns: 1fr; }
+    }
+
+    .editorWrap{
+      height: min(78vh, 860px);
+      min-height: 520px;
+      display:flex;
+      flex-direction:column;
+    }
+    .editorWrap iframe{
+      width:100%;
+      height:100%;
+      border:0;
+      background:#fff;
+    }
+    .editorTips{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:10px;
+    }
+
+    .toast{
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(17,24,39,.92);
+      color: #fff;
+      padding: 10px 12px;
+      border-radius: 999px;
+      box-shadow: 0 12px 26px rgba(0,0,0,.18);
+      border: 1px solid rgba(255,255,255,.14);
+      font-size: 12px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s ease, transform .18s ease;
+      z-index: 9999;
+      max-width: 92vw;
+      text-align:center;
+    }
+    .toast.show{
+      opacity: 1;
+      transform: translateX(-50%) translateY(-2px);
+    }
+
+    .footer{
+      text-align:center;
+      color:var(--muted);
+      font-size:12px;
+      padding:18px 0 6px;
+    }
+
+    /* Quick search highlight for internal navigation feel */
+    .anchor{
+      scroll-margin-top: 86px;
+    }
+  </style>
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="logo">JS</div>
+        <div>
+          <h1>Promises & Async/Await</h1>
+          <small>Lead-up to <b>fetch()</b> + SWAPI — with an embedded editor</small>
         </div>
-        <span class="pill" id="status">Loading models…</span>
       </div>
 
-      <div class="card">
-        <div class="card-h">
-          <div class="sub" style="margin: 0">
-            Use HTTPS Only
-          </div>
-          <div style="display: flex; gap: 10px; flex-wrap: wrap">
-            <button class="btn primary" id="startBtn" disabled>Start</button>
-            <button class="btn" id="stopBtn" disabled>Stop</button>
-            <button class="btn" id="switchBtn" disabled>Switch Camera</button>
-          </div>
+      <div class="actions">
+        <div class="pill" title="Tip">
+          <span>✅</span>
+          <span>Copy a snippet → paste into the editor → Run</span>
         </div>
-
-        <div class="controls">
-          <label class="toggle" title="Mirror video for front camera feel">
-            <input type="checkbox" id="mirror" checked /> Mirror
-          </label>
-
-          <label
-            class="toggle"
-            title="Detection strictness (higher = fewer false positives)"
-          >
-            <span style="color: #6b7280">Score ≥</span>
-            <select id="score" class="btn" style="padding: 8px 10px">
-              <option value="0.35">0.35 (loose)</option>
-              <option value="0.5" selected>0.50 (default)</option>
-              <option value="0.65">0.65 (strict)</option>
-            </select>
-          </label>
-
-          <label
-            class="toggle"
-            title="Detection frequency (lower = faster, less accurate)"
-          >
-            <span style="color: #6b7280">Detect ms</span>
-            <select id="detectEvery" class="btn" style="padding: 8px 10px">
-              <option value="80">80</option>
-              <option value="120">120</option>
-              <option value="160" selected>160</option>
-              <option value="220">220</option>
-              <option value="300">300</option>
-            </select>
-          </label>
-
-          <div
-            class="toggle range"
-            id="zoomWrap"
-            style="display: none"
-            title="Camera zoom (if supported)"
-          >
-            <span style="color: #6b7280">Zoom</span>
-            <input
-              type="range"
-              id="zoom"
-              min="1"
-              max="1"
-              step="0.1"
-              value="1"
-            />
-            <span id="zoomVal" style="font-family: var(--mono); font-size: 12px"
-              >1.0×</span
-            >
-          </div>
-        </div>
-
-        <div class="stage" id="stage">
-          <video id="video" playsinline muted></video>
-          <canvas id="overlay"></canvas>
-
-          <div class="hud">
-            <span>FPS: <b id="fps">0</b></span>
-            <span>Faces: <b id="faces">0</b></span>
-            <span>Cam: <b id="cam">user</b></span>
-          </div>
-        </div>
-
-        <div class="note">
-          Select back and front camera.
-        </div>
+        <button class="btn ghost" id="btnOpenEditor">Open Editor in New Tab</button>
+        <button class="btn primary" id="btnScrollEditor">Jump to Editor</button>
       </div>
     </div>
+  </header>
 
-    <script>
-      (() => {
-        const MODEL_BASE =
-          "https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/model/";
+  <main>
+    <section class="card">
+      <div class="card-head">
+        <div class="kicker">What you will learn</div>
+        <h2>From “normal tasks” → Promises → async/await → fetch + SWAPI</h2>
+        <div class="toc">
+          <a href="#sync-vs-async">Sync vs Async</a>
+          <a href="#promise-basics">Promise Basics</a>
+          <a href="#chaining-errors">Chaining & Errors</a>
+          <a href="#promise-tools">Promise Tools</a>
+          <a href="#async-await">Async/Await</a>
+          <a href="#fetch-swapi">Fetch + SWAPI</a>
+          <a href="#practice">Practice</a>
+          <a href="#editor">Embedded Editor</a>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="note">
+          <b>How to use this page:</b> Each code box has a <b>Copy</b> button. Copy → paste into the embedded editor (right side on desktop / below on mobile) → run and observe the output.
+        </div>
+      </div>
+    </section>
 
-        const video = document.getElementById("video");
-        const canvas = document.getElementById("overlay");
-        const statusEl = document.getElementById("status");
+    <div class="grid">
+      <!-- LESSON COLUMN -->
+      <section class="card">
+        <div class="card-head">
+          <div class="kicker anchor" id="sync-vs-async">Part 1</div>
+          <h2>Normal tasks vs async tasks (the core idea)</h2>
+        </div>
+        <div class="card-body">
+          <p class="mini">
+            JavaScript runs your code top-to-bottom. But some operations finish <b>later</b> (timers, network, I/O).
+            Promises + async/await help you write clean “do this, then do that” logic without messy callbacks.
+          </p>
 
-        const startBtn = document.getElementById("startBtn");
-        const stopBtn = document.getElementById("stopBtn");
-        const switchBtn = document.getElementById("switchBtn");
+          <div class="split">
+            <div>
+              <h3>✅ Synchronous (normal) tasks</h3>
+              <div class="codeblock">
+                <div class="codebar">
+                  <div class="title">Demo A — Normal flow</div>
+                  <button class="btn" data-copy="codeA">Copy</button>
+                </div>
+<pre id="codeA">console.log("A: Start");
 
-        const mirrorCb = document.getElementById("mirror");
-        const scoreSel = document.getElementById("score");
-        const detectEverySel = document.getElementById("detectEvery");
+function normalTask() {
+  console.log("B: Normal task running");
+}
 
-        const fpsEl = document.getElementById("fps");
-        const facesEl = document.getElementById("faces");
-        const camEl = document.getElementById("cam");
+normalTask();
 
-        const zoomWrap = document.getElementById("zoomWrap");
-        const zoomRange = document.getElementById("zoom");
-        const zoomVal = document.getElementById("zoomVal");
+console.log("C: End");</pre>
+              </div>
+            </div>
 
-        let stream = null;
-        let running = false;
-        let rafId = null;
+            <div>
+              <h3>⏳ Asynchronous task (timer)</h3>
+              <div class="codeblock">
+                <div class="codebar">
+                  <div class="title">Demo B — Async without waiting</div>
+                  <button class="btn" data-copy="codeB">Copy</button>
+                </div>
+<pre id="codeB">console.log("A: Start");
 
-        // current facing mode
-        let facing = "user"; // "user" or "environment"
+setTimeout(() => {
+  console.log("B: Timer finished (async)");
+}, 1500);
 
-        // detection throttle
-        let lastDetectAt = 0;
-        let lastDetections = [];
+console.log("C: End (runs before timer)");</pre>
+              </div>
+            </div>
+          </div>
 
-        // fps calc
-        let frames = 0;
-        let lastFpsAt = performance.now();
+          <div class="note">
+            <b>Key rule:</b> async work starts, JS continues.  
+            To “wait nicely”, we use a <b>Promise</b> (then) or <b>await</b>.
+          </div>
+        </div>
+      </section>
 
-        function setStatus(txt) {
-          statusEl.textContent = txt;
-        }
+      <!-- EDITOR COLUMN -->
+      <section class="card anchor" id="editor">
+        <div class="card-head">
+          <div class="kicker">Embedded JavaScript Editor</div>
+          <h2>Programmer’s Picnic Editor (iframe)</h2>
+        </div>
+        <div class="card-body editorWrap">
+          <iframe
+            id="ppEditor"
+            title="Programmer's Picnic JavaScript Editor"
+            src="https://programmer-s-picnic.github.io/lesson-viewer/java-script/editor/"
+            loading="lazy"
+            referrerpolicy="no-referrer"
+            allow="clipboard-read; clipboard-write; fullscreen"
+          ></iframe>
 
-        function setMirror(on) {
-          video.style.transform = on ? "scaleX(-1)" : "none";
-        }
-        mirrorCb.addEventListener("change", () => setMirror(mirrorCb.checked));
-        setMirror(true);
+          <div class="editorTips">
+            <div class="pill">Tip: Use <b>Console</b> output to observe order</div>
+            <div class="pill">Try changing delays: 100ms, 1000ms, 2000ms</div>
+          </div>
+        </div>
+      </section>
 
-        function resizeCanvas() {
-          const w = video.videoWidth || video.clientWidth;
-          const h = video.videoHeight || video.clientHeight;
-          if (!w || !h) return;
-          if (canvas.width !== w) canvas.width = w;
-          if (canvas.height !== h) canvas.height = h;
-        }
+      <section class="card">
+        <div class="card-head">
+          <div class="kicker anchor" id="promise-basics">Part 2</div>
+          <h2>Promise basics: pending → fulfilled/rejected</h2>
+        </div>
+        <div class="card-body">
+          <p class="mini">
+            A <b>Promise</b> is an object representing a result that you’ll get in the future.
+            It has three states: <b>pending</b>, <b>fulfilled</b> (success), <b>rejected</b> (error).
+          </p>
 
-        function tinyOptions() {
-          return new faceapi.TinyFaceDetectorOptions({
-            inputSize: 320,
-            scoreThreshold: Number(scoreSel.value || 0.5),
-          });
-        }
+          <div class="codeblock">
+            <div class="codebar">
+              <div class="title">Demo C — Creating a Promise</div>
+              <button class="btn" data-copy="codeC">Copy</button>
+            </div>
+<pre id="codeC">const p = new Promise((resolve, reject) => {
+  console.log("1) Promise started (pending)");
 
-        async function loadModels() {
-          setStatus("Loading models…");
-          for (let i = 0; i < 80; i++) {
-            if (window.faceapi) break;
-            await new Promise((r) => setTimeout(r, 50));
+  setTimeout(() => {
+    const ok = Math.random() &gt; 0.3;
+
+    if (ok) {
+      resolve("✅ Success value");
+    } else {
+      reject(new Error("❌ Something failed"));
+    }
+  }, 1200);
+});
+
+p.then(value =&gt; {
+  console.log("2) then:", value);
+})
+.catch(err =&gt; {
+  console.log("3) catch:", err.message);
+})
+.finally(() =&gt; {
+  console.log("4) finally: always runs");
+});</pre>
+          </div>
+
+          <div class="note">
+            <b>Remember:</b> Once a promise is fulfilled or rejected, it’s <b>settled</b> and can’t change again.
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <div class="kicker anchor" id="chaining-errors">Part 3</div>
+          <h2>Chaining + errors: “return” is everything</h2>
+        </div>
+        <div class="card-body">
+          <p class="mini">
+            In a chain, each <code>.then()</code> receives the previous result. If you return a value, the next then gets it.
+            If you return a Promise, the chain waits for it.
+          </p>
+
+          <div class="codeblock">
+            <div class="codebar">
+              <div class="title">Demo D — Chaining transformations</div>
+              <button class="btn" data-copy="codeD">Copy</button>
+            </div>
+<pre id="codeD">Promise.resolve(5)
+  .then(x =&gt; {
+    console.log("Step1 got:", x);
+    return x * 2;
+  })
+  .then(x =&gt; {
+    console.log("Step2 got:", x);
+    return new Promise(resolve =&gt; setTimeout(() =&gt; resolve(x + 1), 800));
+  })
+  .then(x =&gt; {
+    console.log("Step3 got:", x);
+    return x;
+  })
+  .catch(err =&gt; console.error("Error:", err));</pre>
+          </div>
+
+          <div class="codeblock">
+            <div class="codebar">
+              <div class="title">Demo E — Errors: throw → catch</div>
+              <button class="btn" data-copy="codeE">Copy</button>
+            </div>
+<pre id="codeE">Promise.resolve("ok")
+  .then(() =&gt; {
+    console.log("Before throw");
+    throw new Error("Boom!");
+  })
+  .then(() =&gt; {
+    console.log("This will not run");
+  })
+  .catch(err =&gt; {
+    console.log("Caught:", err.message);
+    return "Recovered value";
+  })
+  .then(v =&gt; {
+    console.log("After recovery:", v);
+  });</pre>
+          </div>
+
+          <div class="note">
+            <b>Most common bug:</b> forgetting <b>return</b> inside <code>.then()</code>.  
+            If you don’t return the Promise/value, the next step gets <code>undefined</code>.
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <div class="kicker anchor" id="promise-tools">Part 4</div>
+          <h2>Promise utilities: all, allSettled, race, any</h2>
+        </div>
+        <div class="card-body">
+          <p class="mini">
+            These helpers are essential for handling multiple async operations cleanly.
+          </p>
+
+          <div class="codeblock">
+            <div class="codebar">
+              <div class="title">Demo F — Promise.all (fail-fast)</div>
+              <button class="btn" data-copy="codeF">Copy</button>
+            </div>
+<pre id="codeF">function delayValue(ms, value, shouldFail=false){
+  return new Promise((resolve, reject) =&gt; {
+    setTimeout(() =&gt; {
+      if(shouldFail) reject(new Error("Failed: " + value));
+      else resolve(value);
+    }, ms);
+  });
+}
+
+Promise.all([
+  delayValue(600, "A"),
+  delayValue(900, "B"),
+  delayValue(700, "C")
+])
+.then(values =&gt; console.log("all values:", values))
+.catch(err =&gt; console.log("all failed because:", err.message));</pre>
+          </div>
+
+          <div class="codeblock">
+            <div class="codebar">
+              <div class="title">Demo G — Promise.allSettled (always waits)</div>
+              <button class="btn" data-copy="codeG">Copy</button>
+            </div>
+<pre id="codeG">function delayValue(ms, value, shouldFail=false){
+  return new Promise((resolve, reject) =&gt; {
+    setTimeout(() =&gt; {
+      if(shouldFail) reject(new Error("Failed: " + value));
+      else resolve(value);
+    }, ms);
+  });
+}
+
+Promise.allSettled([
+  delayValue(400, "OK-1"),
+  delayValue(700, "BAD-2", true),
+  delayValue(500, "OK-3")
+])
+.then(report =&gt; console.log(report));</pre>
+          </div>
+
+          <div class="note">
+            Use <b>all</b> when you need everything (and want to fail early).  
+            Use <b>allSettled</b> when you need a full report (success + failures).
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <div class="kicker anchor" id="async-await">Part 5</div>
+          <h2>Async/await: Promises with clean syntax</h2>
+        </div>
+        <div class="card-body">
+          <p class="mini">
+            <code>async</code> makes a function return a Promise.  
+            <code>await</code> pauses <b>only that async function</b> until the Promise settles.
+          </p>
+
+          <div class="codeblock">
+            <div class="codebar">
+              <div class="title">Demo H — async without await (no waiting)</div>
+              <button class="btn" data-copy="codeH">Copy</button>
+            </div>
+<pre id="codeH">console.log("A: start");
+
+async function demo(){
+  setTimeout(() =&gt; console.log("B: inside async (but not awaited)"), 1000);
+}
+
+demo();
+
+console.log("C: end");</pre>
+          </div>
+
+          <div class="codeblock">
+            <div class="codebar">
+              <div class="title">Demo I — async + await (real pause inside the function)</div>
+              <button class="btn" data-copy="codeI">Copy</button>
+            </div>
+<pre id="codeI">function delay(ms){
+  return new Promise(resolve =&gt; setTimeout(resolve, ms));
+}
+
+console.log("A: start");
+
+async function demo(){
+  console.log("B: before await");
+  await delay(1200);
+  console.log("C: after await");
+}
+
+demo();
+console.log("D: end (runs while demo is waiting)");</pre>
+          </div>
+
+          <div class="codeblock">
+            <div class="codebar">
+              <div class="title">Demo J — try/catch with await</div>
+              <button class="btn" data-copy="codeJ">Copy</button>
+            </div>
+<pre id="codeJ">function mayFail(){
+  return new Promise((resolve, reject) =&gt; {
+    setTimeout(() =&gt; {
+      Math.random() &gt; 0.5 ? resolve("OK ✅") : reject(new Error("Random fail ❌"));
+    }, 800);
+  });
+}
+
+async function run(){
+  try{
+    const v = await mayFail();
+    console.log("Success:", v);
+  }catch(err){
+    console.log("Caught:", err.message);
+  }
+}
+run();</pre>
+          </div>
+
+          <div class="note">
+            <b>Rule:</b> If you can write it as a chain, you can write it as <code>await</code>.  
+            Many learners find async/await easier to read and debug.
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <div class="kicker anchor" id="fetch-swapi">Part 6</div>
+          <h2>fetch() + SWAPI: Promises in the real world</h2>
+        </div>
+        <div class="card-body">
+          <p class="mini">
+            <code>fetch(url)</code> returns a Promise of a <b>Response</b>.  
+            Important: fetch rejects mostly on <b>network errors</b>. For 404/500, you must check <code>res.ok</code>.
+          </p>
+
+          <div class="codeblock">
+            <div class="codebar">
+              <div class="title">Demo K — fetch + then + json (Promise style)</div>
+              <button class="btn" data-copy="codeK">Copy</button>
+            </div>
+<pre id="codeK">fetch("https://swapi.py4e.com/api/people/1/")
+  .then(res =&gt; {
+    if(!res.ok) throw new Error("HTTP " + res.status);
+    return res.json(); // returns a Promise
+  })
+  .then(person =&gt; {
+    console.log("Name:", person.name);
+    console.log("Homeworld URL:", person.homeworld);
+  })
+  .catch(err =&gt; console.error("Fetch error:", err.message));</pre>
+          </div>
+
+          <div class="codeblock">
+            <div class="codebar">
+              <div class="title">Demo L — fetch + await (recommended)</div>
+              <button class="btn" data-copy="codeL">Copy</button>
+            </div>
+<pre id="codeL">async function fetchJSON(url){
+  const res = await fetch(url);
+  if(!res.ok) throw new Error("HTTP " + res.status + " for " + url);
+  return res.json();
+}
+
+async function run(){
+  try{
+    const person = await fetchJSON("https://swapi.py4e.com/api/people/1/");
+    const world  = await fetchJSON(person.homeworld);
+    console.log(person.name, "is from", world.name);
+  }catch(err){
+    console.error("Error:", err.message);
+  }
+}
+
+run();</pre>
+          </div>
+
+          <div class="codeblock">
+            <div class="codebar">
+              <div class="title">Demo M — SWAPI search</div>
+              <button class="btn" data-copy="codeM">Copy</button>
+            </div>
+<pre id="codeM">async function searchPeople(query){
+  const url = "https://swapi.py4e.com/api/people/?search=" + encodeURIComponent(query);
+  const res = await fetch(url);
+  if(!res.ok) throw new Error("HTTP " + res.status);
+  const data = await res.json();
+  console.log("Found:", data.count);
+  data.results.forEach(p =&gt; console.log("-", p.name));
+}
+
+searchPeople("skywalker");</pre>
+          </div>
+
+          <div class="note">
+            <b>Practice tip:</b> Change person id: <code>/people/1/</code> → <code>/people/2/</code>, <code>/people/3/</code>…  
+            Try an invalid id: <code>/people/9999/</code> to see HTTP error handling.
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <div class="kicker anchor" id="practice">Part 7</div>
+          <h2>Practice tasks (for students)</h2>
+        </div>
+        <div class="card-body">
+          <ol class="mini">
+            <li>
+              Make a <code>delay(ms)</code> function that returns a Promise. Use it to print:
+              <b>1…2…3…GO!</b> with 1 second gap between each.
+            </li>
+            <li>
+              Use <code>Promise.all</code> to fetch 3 people in parallel:
+              <code>/people/1/</code>, <code>/people/2/</code>, <code>/people/3/</code>.
+            </li>
+            <li>
+              Write <code>fetchJSON(url)</code> and reuse it everywhere. (You already have it in Demo L.)
+            </li>
+            <li>
+              Take a person and fetch their <code>homeworld</code> and then fetch the world’s <code>residents</code> (first 3).
+            </li>
+          </ol>
+
+          <div class="codeblock">
+            <div class="codebar">
+              <div class="title">Starter — 1…2…3…GO! using await</div>
+              <button class="btn" data-copy="codeP">Copy</button>
+            </div>
+<pre id="codeP">function delay(ms){
+  return new Promise(resolve =&gt; setTimeout(resolve, ms));
+}
+
+async function countdown(){
+  console.log("1");
+  await delay(1000);
+  console.log("2");
+  await delay(1000);
+  console.log("3");
+  await delay(1000);
+  console.log("GO!");
+}
+
+countdown();</pre>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="footer">
+      Built for your lessons: Promises → Async/Await → fetch + SWAPI • Light Saffron Theme
+    </div>
+  </main>
+
+  <div class="toast" id="toast">Copied!</div>
+
+  <script>
+    (function(){
+      const toast = document.getElementById("toast");
+
+      function showToast(msg){
+        toast.textContent = msg || "Copied!";
+        toast.classList.add("show");
+        setTimeout(() => toast.classList.remove("show"), 900);
+      }
+
+      async function copyText(text){
+        // Prefer modern clipboard API; fallback to execCommand.
+        try{
+          await navigator.clipboard.writeText(text);
+          showToast("Copied snippet ✅");
+          return true;
+        }catch(e){
+          try{
+            const ta = document.createElement("textarea");
+            ta.value = text;
+            ta.style.position = "fixed";
+            ta.style.opacity = "0";
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand("copy");
+            document.body.removeChild(ta);
+            showToast("Copied snippet ✅");
+            return true;
+          }catch(err){
+            showToast("Copy failed — select & copy manually");
+            return false;
           }
-          if (!window.faceapi)
-            throw new Error("face-api failed to load (CDN blocked/offline).");
-
-          await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_BASE);
-          setStatus("Models loaded ✓ Tap Start");
-          startBtn.disabled = false;
         }
+      }
 
-        async function start() {
-          if (running) return;
-          try {
-            setStatus("Requesting camera…");
+      document.addEventListener("click", async (e) => {
+        const btn = e.target.closest("[data-copy]");
+        if(!btn) return;
 
-            stream = await navigator.mediaDevices.getUserMedia({
-              video: { facingMode: facing },
-              audio: false,
-            });
+        const id = btn.getAttribute("data-copy");
+        const pre = document.getElementById(id);
+        if(!pre) return;
 
-            video.srcObject = stream;
-            await video.play();
-            resizeCanvas();
-            window.addEventListener("resize", resizeCanvas);
+        await copyText(pre.innerText);
+      });
 
-            running = true;
-            startBtn.disabled = true;
-            stopBtn.disabled = false;
-            switchBtn.disabled = false;
+      document.getElementById("btnScrollEditor").addEventListener("click", () => {
+        document.getElementById("editor").scrollIntoView({behavior:"smooth", block:"start"});
+      });
 
-            camEl.textContent = facing;
-            setStatus("Running ✓ Box should appear");
+      document.getElementById("btnOpenEditor").addEventListener("click", () => {
+        window.open("https://programmer-s-picnic.github.io/lesson-viewer/java-script/editor/", "_blank", "noopener,noreferrer");
+      });
 
-            // setup zoom slider if supported
-            await setupZoom();
-
-            loop();
-          } catch (err) {
-            setStatus("Camera blocked ✗");
-            alert(
-              "Camera did not start.\n\nFix:\n1) Use HTTPS (GitHub Pages) or localhost.\n2) Allow camera permission.\n3) Close other apps using camera.\n\nDetails: " +
-                (err?.message || err),
-            );
-          }
-        }
-
-        function stop() {
-          running = false;
-          if (rafId) cancelAnimationFrame(rafId);
-          rafId = null;
-
-          if (stream) {
-            stream.getTracks().forEach((t) => t.stop());
-            stream = null;
-          }
-          video.srcObject = null;
-
-          const ctx = canvas.getContext("2d");
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-          startBtn.disabled = false;
-          stopBtn.disabled = true;
-          switchBtn.disabled = true;
-
-          zoomWrap.style.display = "none";
-
-          facesEl.textContent = "0";
-          fpsEl.textContent = "0";
-          setStatus("Stopped");
-        }
-
-        async function restartWithFacing(newFacing) {
-          facing = newFacing;
-          camEl.textContent = facing;
-          if (!running) return;
-          stop();
-          await new Promise((r) => setTimeout(r, 120));
-          await start();
-        }
-
-        // Switch camera without reloading page
-        switchBtn.addEventListener("click", async () => {
-          const next = facing === "user" ? "environment" : "user";
-          await restartWithFacing(next);
-          // Mirror default: on for user cam, off for environment cam (you can still toggle manually)
-          if (next === "environment") mirrorCb.checked = false;
-          if (next === "user") mirrorCb.checked = true;
-          setMirror(mirrorCb.checked);
-        });
-
-        startBtn.addEventListener("click", start);
-        stopBtn.addEventListener("click", stop);
-
-        // Pinch-to-zoom via slider + capabilities
-        async function setupZoom() {
-          zoomWrap.style.display = "none";
-          zoomRange.oninput = null;
-
-          const track = stream?.getVideoTracks?.()[0];
-          if (!track) return;
-
-          // Some browsers support getCapabilities; others don’t.
-          const caps = track.getCapabilities ? track.getCapabilities() : null;
-          if (!caps || caps.zoom == null) return;
-
-          const { min, max, step } = caps.zoom;
-          zoomRange.min = String(min);
-          zoomRange.max = String(max);
-          zoomRange.step = String(step || 0.1);
-
-          // current zoom from settings if available
-          const settings = track.getSettings ? track.getSettings() : {};
-          const current = settings.zoom || 1;
-          zoomRange.value = String(current);
-          zoomVal.textContent = Number(current).toFixed(1) + "×";
-
-          zoomWrap.style.display = "flex";
-
-          zoomRange.oninput = async () => {
-            const z = Number(zoomRange.value);
-            zoomVal.textContent = z.toFixed(1) + "×";
-            try {
-              await track.applyConstraints({ advanced: [{ zoom: z }] });
-            } catch (e) {
-              // ignore if not supported at runtime
-            }
-          };
-
-          // Optional: pinch gesture to move zoom slider
-          enablePinchZoom(zoomRange, Number(min), Number(max));
-        }
-
-        function enablePinchZoom(rangeEl, min, max) {
-          // Pinch on the video/stage to set zoom (works only if slider exists)
-          const stage = document.getElementById("stage");
-          let startDist = null;
-          let startVal = null;
-
-          stage.ontouchstart = (e) => {
-            if (zoomWrap.style.display === "none") return;
-            if (e.touches.length === 2) {
-              startDist = touchDist(e.touches[0], e.touches[1]);
-              startVal = Number(rangeEl.value);
-            }
-          };
-          stage.ontouchmove = (e) => {
-            if (zoomWrap.style.display === "none") return;
-            if (e.touches.length === 2 && startDist != null) {
-              e.preventDefault();
-              const d = touchDist(e.touches[0], e.touches[1]);
-              const ratio = d / startDist;
-              // scale zoom by ratio, clamp
-              let next = startVal * ratio;
-              next = Math.max(min, Math.min(max, next));
-              // set and trigger input
-              rangeEl.value = String(next);
-              rangeEl.dispatchEvent(new Event("input"));
-            }
-          };
-          stage.ontouchend = () => {
-            startDist = null;
-            startVal = null;
-          };
-
-          function touchDist(a, b) {
-            const dx = a.clientX - b.clientX;
-            const dy = a.clientY - b.clientY;
-            return Math.hypot(dx, dy);
-          }
-        }
-
-        // Main loop: draw every frame, detect faces only every N ms
-        async function loop() {
-          if (!running) return;
-
-          resizeCanvas();
-          const ctx = canvas.getContext("2d");
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-          // FPS
-          frames++;
-          const now = performance.now();
-          if (now - lastFpsAt >= 500) {
-            const fps = Math.round((frames * 1000) / (now - lastFpsAt));
-            fpsEl.textContent = String(fps);
-            frames = 0;
-            lastFpsAt = now;
-          }
-
-          // Throttled detection
-          const detectEvery = Number(detectEverySel.value || 160);
-          if (now - lastDetectAt >= detectEvery) {
-            lastDetectAt = now;
-            try {
-              lastDetections = await faceapi.detectAllFaces(
-                video,
-                tinyOptions(),
-              );
-              facesEl.textContent = String(lastDetections.length);
-            } catch (e) {
-              // ignore occasional detection errors
-            }
-          }
-
-          // Draw mirrored overlay if video is mirrored
-          ctx.save();
-          if (mirrorCb.checked) {
-            ctx.translate(canvas.width, 0);
-            ctx.scale(-1, 1);
-          }
-
-          ctx.lineWidth = 3;
-          ctx.strokeStyle = "rgba(245,158,11,.95)";
-          ctx.fillStyle = "rgba(245,158,11,.12)";
-
-          for (const d of lastDetections) {
-            const b = d.box;
-            roundRect(ctx, b.x, b.y, b.width, b.height, 10, true, true);
-          }
-
-          ctx.restore();
-          rafId = requestAnimationFrame(loop);
-        }
-
-        function roundRect(ctx, x, y, w, h, r, fill, stroke) {
-          const rr = Math.min(r, w / 2, h / 2);
-          ctx.beginPath();
-          ctx.moveTo(x + rr, y);
-          ctx.arcTo(x + w, y, x + w, y + h, rr);
-          ctx.arcTo(x + w, y + h, x, y + h, rr);
-          ctx.arcTo(x, y + h, x, y, rr);
-          ctx.arcTo(x, y, x + w, y, rr);
-          ctx.closePath();
-          if (fill) ctx.fill();
-          if (stroke) ctx.stroke();
-        }
-
-        // Init
-        if (!navigator.mediaDevices?.getUserMedia) {
-          setStatus("Browser unsupported ✗");
-          alert(
-            "This browser does not support camera access. Try Chrome on Android.",
-          );
-          return;
-        }
-
-        loadModels().catch((err) => {
-          setStatus("Model load failed ✗");
-          alert(
-            "Models could not be loaded.\n\nPossible reasons:\n- No internet / CDN blocked\n- Adblock blocks jsdelivr\n\nDetails: " +
-              (err?.message || err),
-          );
-        });
-      })();
-    </script>
-  </body>
+      // Optional: deep-link to sections if user arrives with #hash
+      if(location.hash){
+        const el = document.querySelector(location.hash);
+        if(el) setTimeout(() => el.scrollIntoView({behavior:"smooth"}), 250);
+      }
+    })();
+  </script>
+</body>
 </html>

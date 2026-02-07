@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Face Recognition (Multi-Image)</title>
+    <meta name="theme-color" content="#f59e0b" />
+    <style>
+      body {
+        margin: 0;
+        background: #111;
+        font-family: system-ui;
+        color: #fff;
+      }
+      .wrap {
+        max-width: 900px;
+        margin: auto;
+        padding: 10px;
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      button {
+        padding: 10px 14px;
+        font-size: 16px;
+      }
+      .pill {
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(245, 158, 11, 0.18);
+        border: 1px solid rgba(245, 158, 11, 0.25);
+      }
+      .stage {
+        position: relative;
+      }
+      video,
+      canvas {
+        width: 100%;
+        display: block;
+      }
+      canvas {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+    </style>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1/dist/face-api.js"
+    ></script>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="row" style="justify-content: space-between">
+        <div>
+          <div style="font-weight: 900">Face Recognition (Multi-Image)</div>
+          <div style="opacity: 0.75; font-size: 12px">
+            Loads data/faces.json → many photos per name → better accuracy
+          </div>
+        </div>
+        <span class="pill" id="status">Loading…</span>
+      </div>
+
+      <div class="row" style="margin: 10px 0">
+        <button id="start" disabled>START</button>
+        <button id="stop" disabled>STOP</button>
+      </div>
+
+      <div class="stage">
+        <video id="video" playsinline muted></video>
+        <canvas id="canvas"></canvas>
+      </div>
+    </div>
+
+    <script>
+      (() => {
+        const MODEL_URL =
+          "https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/model/";
+        const FACES_JSON = "data/faces.json";
+
+        const statusEl = document.getElementById("status");
+        const btnStart = document.getElementById("start");
+        const btnStop = document.getElementById("stop");
+        const video = document.getElementById("video");
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+
+        let stream = null;
+        let running = false;
+        let matcher = null;
+
+        function setStatus(t) {
+          statusEl.textContent = t;
+        }
+
+        function resizeCanvas() {
+          const w = video.videoWidth,
+            h = video.videoHeight;
+          if (!w || !h) return;
+          if (canvas.width !== w) canvas.width = w;
+          if (canvas.height !== h) canvas.height = h;
+        }
+
+        async function loadModels() {
+          setStatus("Loading models…");
+          for (let i = 0; i < 80; i++) {
+            if (window.faceapi) break;
+            await new Promise((r) => setTimeout(r, 50));
+          }
+          if (!window.faceapi) throw new Error("face-api failed to load");
+
+          await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+          await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+          await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+        }
+
+        async function buildMatcher() {
+          setStatus("Loading faces.json…");
+          const people = await fetch(FACES_JSON, { cache: "no-store" }).then(
+            (r) => r.json(),
+          );
+
+          setStatus("Building descriptors…");
+          const labeled = [];
+          let used = 0;
+
+          for (const person of people) {
+            const descs = [];
+
+            for (const file of person.files || []) {
+              try {
+                const img = await faceapi.fetchImage(file);
+                const det = await faceapi
+                  .detectSingleFace(
+                    img,
+                    new faceapi.TinyFaceDetectorOptions({
+                      inputSize: 320,
+                      scoreThreshold: 0.2,
+                    }),
+                  )
+                  .withFaceLandmarks()
+                  .withFaceDescriptor();
+
+                if (det?.descriptor) {
+                  descs.push(det.descriptor);
+                  used++;
+                } else {
+                  console.warn("No face found in training image:", file);
+                }
+              } catch (e) {
+                console.warn("Failed training image:", file, e);
+              }
+            }
+
+            if (descs.length) {
+              labeled.push(
+                new faceapi.LabeledFaceDescriptors(person.name, descs),
+              );
+            }
+          }
+
+          if (!labeled.length)
+            throw new Error(
+              "No usable training faces. Check images/faces/* and faces.json paths.",
+            );
+
+          matcher = new faceapi.FaceMatcher(labeled, 0.55);
+          setStatus(`Ready ✓ (${labeled.length} people, ${used} photos)`);
+          btnStart.disabled = false;
+        }
+
+        async function startCam() {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "user" },
+            audio: false,
+          });
+          video.srcObject = stream;
+
+          await video.play();
+          await new Promise((r) =>
+            video.addEventListener("loadedmetadata", r, { once: true }),
+          );
+          resizeCanvas();
+
+          running = true;
+          btnStart.disabled = true;
+          btnStop.disabled = false;
+          loop();
+        }
+
+        function stopCam() {
+          running = false;
+          if (stream) {
+            stream.getTracks().forEach((t) => t.stop());
+            stream = null;
+          }
+          video.srcObject = null;
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          btnStart.disabled = false;
+          btnStop.disabled = true;
+          setStatus("Stopped");
+        }
+
+        async function loop() {
+          if (!running) return;
+          if (!video.videoWidth) {
+            requestAnimationFrame(loop);
+            return;
+          }
+          resizeCanvas();
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+          const dets = await faceapi
+            .detectAllFaces(
+              video,
+              new faceapi.TinyFaceDetectorOptions({
+                inputSize: 320,
+                scoreThreshold: 0.2,
+              }),
+            )
+            .withFaceLandmarks()
+            .withFaceDescriptors();
+
+          for (const d of dets) {
+            const b = d.detection.box;
+            const best = matcher ? matcher.findBestMatch(d.descriptor) : null;
+
+            const label = best
+              ? `${best.label} (${best.distance.toFixed(2)})`
+              : "Unknown";
+
+            ctx.strokeStyle = "red";
+            ctx.lineWidth = 4;
+            ctx.strokeRect(b.x, b.y, b.width, b.height);
+
+            ctx.font = "14px system-ui";
+            const pad = 6;
+            const tw = ctx.measureText(label).width + pad * 2;
+            ctx.fillStyle = "rgba(0,0,0,.65)";
+            ctx.fillRect(b.x, Math.max(0, b.y - 24), tw, 22);
+            ctx.fillStyle = "#fff";
+            ctx.fillText(label, b.x + pad, Math.max(16, b.y - 8));
+          }
+
+          requestAnimationFrame(loop);
+        }
+
+        btnStart.addEventListener("click", startCam);
+        btnStop.addEventListener("click", stopCam);
+
+        (async () => {
+          try {
+            await loadModels();
+            await buildMatcher();
+          } catch (e) {
+            setStatus("Failed ✗");
+            alert(
+              (e?.message || e) +
+                "\n\nCheck:\n- data/faces.json path\n- images/faces/* exists\n- open via HTTPS (GitHub Pages)",
+            );
+          }
+        })();
+      })();
+    </script>
+  </body>
+</html>

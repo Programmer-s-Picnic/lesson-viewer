@@ -20,3 +20,7 @@ Upload the folder to GitHub Pages and open `index.html`.
 - Theme: Light Saffron
 - Includes centralized find-on-page script:
   https://programmer-s-picnic.github.io/json-images/find-on-page.js
+
+
+## Embedded Python Editor
+All lesson and test pages embed the Python editor via iframe for quick practice.

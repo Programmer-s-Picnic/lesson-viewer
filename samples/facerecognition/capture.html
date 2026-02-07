@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Face Capture (Multi-Image)</title>
+<meta name="theme-color" content="#f59e0b" />
+<style>
+  :root{--bg:#fff7e6;--card:#ffffffcc;--ink:#1f2937;--muted:#6b7280;--brand:#d97706;--brand2:#f59e0b;--border:#eadcc5;--r:18px;}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui;background:var(--bg);color:var(--ink)}
+  .wrap{max-width:980px;margin:auto;padding:14px}
+  .top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;
+    padding:10px 12px;border-radius:999px;background:#fff7e6cc;border:1px solid var(--border);position:sticky;top:0;backdrop-filter:blur(10px)}
+  .btn{padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:#fff;cursor:pointer}
+  .btn.primary{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;border-color:#f2c98e}
+  .btn.danger{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.25);color:#991b1b}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .card{margin-top:12px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+  .card-h{padding:12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .card-b{padding:12px}
+  input,select{padding:10px 12px;border-radius:12px;border:1px solid var(--border);min-width:220px}
+  .stage{position:relative;background:#111;border-radius:16px;overflow:hidden}
+  video{width:100%;display:block;transform:scaleX(-1)}
+  canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-top:12px}
+  .thumb{border:1px solid var(--border);border-radius:14px;overflow:hidden;background:#fff}
+  .thumb img{width:100%;height:120px;object-fit:cover;display:block}
+  .thumb .meta{padding:8px;font-size:12px;color:var(--muted)}
+  .pill{padding:6px 10px;border-radius:999px;background:rgba(245,158,11,.16);border:1px solid rgba(217,119,6,.22);color:#92400e;font-size:12px}
+  .note{margin-top:10px;padding:10px 12px;border-radius:14px;border:1px solid rgba(245,158,11,.35);background:rgba(245,158,11,.14);color:#7c2d12;font-size:12px}
+</style>
+<script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1/dist/face-api.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <div style="font-weight:900">Face Capture (Multi-Image)</div>
+      <div style="font-size:12px;color:var(--muted)">Save 3–5 crops per person → export grouped faces.json</div>
+    </div>
+    <span class="pill" id="status">Loading…</span>
+  </div>
+
+  <div class="card">
+    <div class="card-h">
+      <div class="row">
+        <input id="name" placeholder="Person name (e.g., Champak)" />
+        <select id="pad" title="Padding around face">
+          <option value="0.10">Pad 10%</option>
+          <option value="0.20" selected>Pad 20%</option>
+          <option value="0.30">Pad 30%</option>
+        </select>
+        <button class="btn primary" id="start" disabled>Start Camera</button>
+        <button class="btn" id="stop" disabled>Stop</button>
+        <button class="btn primary" id="save" disabled>Save Face</button>
+        <button class="btn danger" id="clear">Clear Local</button>
+      </div>
+      <div class="row">
+        <button class="btn" id="exportJson">Export faces.json</button>
+        <button class="btn" id="downloadAll">Download All Images</button>
+      </div>
+    </div>
+
+    <div class="card-b">
+      <div class="stage">
+        <video id="video" playsinline muted></video>
+        <canvas id="overlay"></canvas>
+      </div>
+
+      <div class="note">
+        Workflow: Save 3–5 images per person → upload images into <b>/images/faces/</b> → upload JSON into <b>/data/faces.json</b>.
+      </div>
+
+      <div id="gallery" class="grid"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const MODEL_URL = "https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/model/";
+  const DB_KEY = "pp_faces_capture_multi_v1"; // [{name,file,dataUrl,ts}]
+  const statusEl = document.getElementById("status");
+  const nameEl = document.getElementById("name");
+  const padSel = document.getElementById("pad");
+  const video = document.getElementById("video");
+  const canvas = document.getElementById("overlay");
+  const ctx = canvas.getContext("2d");
+  const btnStart = document.getElementById("start");
+  const btnStop = document.getElementById("stop");
+  const btnSave = document.getElementById("save");
+  const btnClear = document.getElementById("clear");
+  const btnExport = document.getElementById("exportJson");
+  const btnDlAll = document.getElementById("downloadAll");
+  const gallery = document.getElementById("gallery");
+
+  let stream = null;
+  let running = false;
+  let lastBox = null;
+
+  const getDB = () => { try { return JSON.parse(localStorage.getItem(DB_KEY) || "[]"); } catch { return []; } };
+  const setDB = (a) => localStorage.setItem(DB_KEY, JSON.stringify(a));
+
+  function setStatus(t){ statusEl.textContent = t; }
+
+  async function loadModels(){
+    setStatus("Loading models…");
+    for (let i=0;i<80;i++){ if (window.faceapi) break; await new Promise(r=>setTimeout(r,50)); }
+    if (!window.faceapi) throw new Error("face-api failed to load");
+    await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+    setStatus("Ready ✓");
+    btnStart.disabled = false;
+  }
+
+  function resizeCanvas(){
+    const w = video.videoWidth, h = video.videoHeight;
+    if (!w || !h) return;
+    if (canvas.width !== w) canvas.width = w;
+    if (canvas.height !== h) canvas.height = h;
+  }
+
+  function clampBox(b,w,h){
+    const x = Math.max(0, Math.min(w-1, b.x));
+    const y = Math.max(0, Math.min(h-1, b.y));
+    const r = Math.max(0, Math.min(w, b.x + b.width));
+    const bt= Math.max(0, Math.min(h, b.y + b.height));
+    return { x, y, width: Math.max(1, r-x), height: Math.max(1, bt-y) };
+  }
+
+  function padBox(b, frac){
+    const px=b.width*frac, py=b.height*frac;
+    return { x:b.x-px, y:b.y-py, width:b.width+px*2, height:b.height+py*2 };
+  }
+
+  async function startCamera(){
+    stream = await navigator.mediaDevices.getUserMedia({ video:{facingMode:"user"}, audio:false });
+    video.srcObject = stream;
+
+    await video.play();
+    await new Promise(r => video.addEventListener("loadedmetadata", r, {once:true}));
+    resizeCanvas();
+
+    running = true;
+    btnStart.disabled = true;
+    btnStop.disabled = false;
+    btnSave.disabled = false;
+    setStatus("Running ✓");
+    loop();
+  }
+
+  function stopCamera(){
+    running = false;
+    lastBox = null;
+    if (stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
+    video.srcObject=null;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    btnStart.disabled = false;
+    btnStop.disabled = true;
+    btnSave.disabled = true;
+    setStatus("Stopped");
+  }
+
+  async function loop(){
+    if (!running) return;
+    if (!video.videoWidth){ requestAnimationFrame(loop); return; }
+
+    resizeCanvas();
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    const det = await faceapi.detectSingleFace(
+      video,
+      new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.2 })
+    );
+
+    lastBox = det?.box || null;
+    if (lastBox){
+      ctx.strokeStyle = "red";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(lastBox.x, lastBox.y, lastBox.width, lastBox.height);
+    }
+    requestAnimationFrame(loop);
+  }
+
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m])); }
+
+  function renderGallery(){
+    const db = getDB().slice().reverse();
+    gallery.innerHTML = "";
+    db.forEach(item => {
+      const div = document.createElement("div");
+      div.className = "thumb";
+      div.innerHTML = `
+        <img alt="face" src="${item.dataUrl}">
+        <div class="meta"><b>${escapeHtml(item.name)}</b><br>${escapeHtml(item.file)}</div>
+      `;
+      gallery.appendChild(div);
+    });
+  }
+
+  function downloadDataUrl(dataUrl, filename){
+    const a = document.createElement("a");
+    a.href = dataUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  function makeFileName(name){
+    const safe = name.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"") || "person";
+    return `${safe}-${Date.now()}.jpg`;
+  }
+
+  function saveFace(){
+    const name = (nameEl.value || "").trim();
+    if (!name) return alert("Enter a name first.");
+    if (!lastBox) return alert("No face detected yet. Wait for the red box.");
+
+    const vw = video.videoWidth, vh = video.videoHeight;
+
+    // capture frame
+    const src = document.createElement("canvas");
+    src.width = vw; src.height = vh;
+    src.getContext("2d").drawImage(video, 0, 0, vw, vh);
+
+    // crop with padding
+    const padFrac = Number(padSel.value || 0.2);
+    const padded = padBox(lastBox, padFrac);
+    const b = clampBox(padded, vw, vh);
+
+    const out = document.createElement("canvas");
+    out.width = Math.round(b.width);
+    out.height = Math.round(b.height);
+    out.getContext("2d").drawImage(src, b.x, b.y, b.width, b.height, 0, 0, out.width, out.height);
+
+    const dataUrl = out.toDataURL("image/jpeg", 0.92);
+    const file = makeFileName(name);
+
+    const db = getDB();
+    db.push({ name, file, dataUrl, ts: Date.now() });
+    setDB(db);
+
+    // download each saved image immediately (so you can upload to GitHub)
+    downloadDataUrl(dataUrl, file);
+
+    renderGallery();
+  }
+
+  function exportFacesJson(){
+    // grouped format: [{ name, files:[...]}]
+    const db = getDB();
+    const map = new Map();
+    for (const item of db){
+      const key = item.name.trim();
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(`images/faces/${item.file}`);
+    }
+    const out = Array.from(map.entries()).map(([name, files]) => ({ name, files }));
+
+    const blob = new Blob([JSON.stringify(out, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "faces.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function downloadAll(){
+    const db = getDB();
+    if (!db.length) return alert("Nothing saved yet.");
+    db.forEach(x => downloadDataUrl(x.dataUrl, x.file));
+  }
+
+  btnStart.addEventListener("click", startCamera);
+  btnStop.addEventListener("click", stopCamera);
+  btnSave.addEventListener("click", saveFace);
+  btnExport.addEventListener("click", exportFacesJson);
+  btnDlAll.addEventListener("click", downloadAll);
+
+  btnClear.addEventListener("click", () => {
+    if (!confirm("Clear local saved faces (localStorage)?")) return;
+    localStorage.removeItem(DB_KEY);
+    renderGallery();
+  });
+
+  renderGallery();
+  loadModels().catch(e => {
+    setStatus("Model load failed ✗");
+    alert("Models failed to load. Check internet / CDN blocked.\n\n" + (e?.message || e));
+  });
+})();
+</script>
+</body>
+</html>
