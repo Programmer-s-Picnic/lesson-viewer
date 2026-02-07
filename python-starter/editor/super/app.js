@@ -20,9 +20,9 @@ const STUDENT_LOCKED = TM === "0";
 const ui = {
   tabs: $("ppTabs"),
   code: $("ppCode"),
-  output: $("ppOut"),
+  
   gutter: $("ppGutter"),
-  out: $("ppOut"),
+
   err: $("ppErr"),
   stdin: $("ppStdin"),
   example: $("ppExample"),
