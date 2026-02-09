@@ -929,7 +929,7 @@ function listPkgs() {
 // ----- Share (STRICT: only #pp=...) -----
 function share() {
   // Save current editor state into the URL hash and copy/share the link
-  alert(ui.output.value);
+  // alert(ui.output.value);
   console.log("Sharing 1",ui);
   state.tabs[currentTab].code = ui.code.value;
   console.log("Sharing 2",ui.code.value);
