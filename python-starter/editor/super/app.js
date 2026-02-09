@@ -927,12 +927,55 @@ function listPkgs() {
 }
 
 // ----- Share (STRICT: only #pp=...) -----
-function share() {
+const shareUI = {
+  modal: document.getElementById("ppShareModal"),
+  input: document.getElementById("ppShareInput"),
+  copy: document.getElementById("ppShareCopy"),
+  open: document.getElementById("ppShareOpen"),
+  close: document.getElementById("ppShareClose"),
+  hint: document.getElementById("ppShareHint"),
+};
+
+function openShareModal(url, hint = "") {
+  if (!shareUI.modal || !shareUI.input) {
+    // last-resort fallback (still better than prompt spam)
+    console.log("Share link:", url);
+    toast("Share link in console");
+    return;
+  }
+  shareUI.input.value = url;
+  shareUI.open.href = url;
+  shareUI.hint.textContent = hint || "";
+  shareUI.modal.style.display = "block";
+  shareUI.modal.setAttribute("aria-hidden", "false");
+  setTimeout(() => shareUI.input.select(), 0);
+}
+
+function closeShareModal() {
+  if (!shareUI.modal) return;
+  shareUI.modal.style.display = "none";
+  shareUI.modal.setAttribute("aria-hidden", "true");
+}
+
+shareUI?.close?.addEventListener("click", closeShareModal);
+shareUI?.modal?.addEventListener("click", (e) => {
+  if (e.target?.dataset?.close) closeShareModal();
+});
+shareUI?.copy?.addEventListener("click", async () => {
+  const url = shareUI.input.value || "";
+  try {
+    await navigator.clipboard.writeText(url);
+    toast("Share link copied");
+    shareUI.hint.textContent = "Copied ✓";
+  } catch {
+    shareUI.hint.textContent = "Copy failed (browser blocked clipboard). Select and copy manually.";
+  }
+});
+
+// ----- Share (STRICT: only #pp=...) -----
+async function share() {
   // Save current editor state into the URL hash and copy/share the link
-  // alert(ui.output.value);
-  console.log("Sharing 1",ui);
   state.tabs[currentTab].code = ui.code.value;
-  console.log("Sharing 2",ui.code.value);
 
   const payload = {
     tabs: state.tabs,
@@ -940,40 +983,36 @@ function share() {
     stdin: ui.stdin.value || "",
     problem: currentProblemId || "",
   };
-console.log(payload);
+
   const json = JSON.stringify(payload);
   const b64 = btoa(unescape(encodeURIComponent(json)))
     .replaceAll("+", "-")
     .replaceAll("/", "_")
     .replaceAll("=", "");
 
-  // STRICT KEY
   location.hash = "#pp=" + b64;
-  const url =
-    location.origin + location.pathname + location.search + "#pp=" + b64;
-console.log({ title: document.title, url });
-  // Prefer Web Share API (mobile), fall back to clipboard/prompt
+  const url = location.origin + location.pathname + location.search + "#pp=" + b64;
+
+  // Mobile/native share when available
   if (navigator.share) {
-    navigator
-      .share({ title: document.title, url })
-      .then(() => {
-        toast("Shared");
-      })
-      .catch(() => {
-        navigator.clipboard
-          ?.writeText(url)
-          .then(() => toast("Share link copied"))
-          .catch(() => prompt("Copy link:", url));
-      });
-    return;
+    try {
+      await navigator.share({ title: document.title, url });
+      toast("Shared");
+      return;
+    } catch {
+      // fall through to clipboard/modal
+    }
   }
 
-  navigator.clipboard
-    ?.writeText(url)
-    .then(() => toast("Share link copied"))
-    .catch(() => prompt("Copy link:", url));
+  // Desktop: try clipboard first (no prompt)
+  try {
+    await navigator.clipboard.writeText(url);
+    toast("Share link copied");
+  } catch {
+    // If clipboard blocked, show modal with selectable input
+    openShareModal(url, "Select the link and press Ctrl+C if Copy is blocked.");
+  }
 }
-
 // Strict loader: ONLY accepts #pp=...
 function loadFromHash() {
   const h = location.hash || "";
