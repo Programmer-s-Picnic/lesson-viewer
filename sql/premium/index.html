@@ -4,6 +4,13 @@
     <meta charset="UTF-8" />
     <title>SQL in Browser — SQLite Demo (Improved)</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- tiny inline favicon to avoid 404 -->
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='24' fill='%23d97706'/%3E%3Ctext x='64' y='82' font-size='64' text-anchor='middle'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E"
+    />
+
     <style>
       :root {
         --bg: #fff7e6;
@@ -19,179 +26,396 @@
       * { box-sizing: border-box; }
       body {
         margin: 0;
-        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-        background: var(--bg);
+        font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        background: linear-gradient(180deg, var(--bg), #fff1d6);
         color: var(--ink);
       }
-      .container {
-        max-width: 1100px;
-        margin: 28px auto;
-        padding: 18px;
+      a { color: inherit; }
+
+      .wrap {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 18px 16px 26px;
       }
-      h1 {
-        text-align: center;
-        color: var(--brand);
-        margin: 0 0 14px;
+
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 12px;
+        margin: 0 -16px 14px;
+        background: rgba(255,255,255,0.82);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(31,41,55,0.10);
       }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+        flex: 1;
+      }
+      .brand .logo {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background: radial-gradient(circle at 30% 30%, #f59e0b, #b45309);
+        box-shadow: 0 12px 26px rgba(217, 119, 6, 0.18);
+      }
+      .brand h1 {
+        font-size: 16px;
+        margin: 0;
+        font-weight: 900;
+        letter-spacing: 0.2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .brand p {
+        margin: 2px 0 0;
+        font-size: 12px;
+        color: var(--muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .status {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+      .pill {
+        border: 1px solid rgba(31,41,55,0.10);
+        background: rgba(255,255,255,0.9);
+        padding: 8px 10px;
+        border-radius: 999px;
+        font-weight: 800;
+        font-size: 12px;
+        color: var(--ink);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: #94a3b8;
+        box-shadow: 0 0 0 4px rgba(148,163,184,0.12);
+      }
+      .dot.ok {
+        background: #22c55e;
+        box-shadow: 0 0 0 4px rgba(34,197,94,0.12);
+      }
+
       .grid {
         display: grid;
-        grid-template-columns: 1.5fr 1fr;
         gap: 14px;
-        align-items: start;
       }
-      @media (max-width: 980px) {
-        .grid { grid-template-columns: 1fr; }
+      @media (min-width: 960px) {
+        .grid { grid-template-columns: 1.1fr 0.9fr; }
       }
+
       .card {
-        background: var(--card);
-        padding: 18px;
-        border-radius: 12px;
-        border: 1px solid var(--border);
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+        background: rgba(255,255,255,0.88);
+        border: 1px solid rgba(31,41,55,0.10);
+        border-radius: 18px;
+        box-shadow: 0 14px 38px rgba(8,36,64,0.06);
+        padding: 14px;
+        overflow: hidden;
       }
-      .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-      .row.space { justify-content: space-between; }
-      .muted { color: var(--muted); }
-      textarea, input[type="text"] {
-        width: 100%;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-        border-radius: 8px;
-        border: 1px solid var(--border);
-        outline: none;
-        background: #fff;
+      .panel-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
       }
-      textarea {
-        height: 170px;
-        font-size: 15px;
-        padding: 10px;
-      }
-      textarea:focus, input[type="text"]:focus { box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.18); }
-      button {
-        background: var(--brand);
-        color: #fff;
-        border: none;
-        padding: 10px 14px;
+      .panel-title h2 {
         font-size: 14px;
+        margin: 0;
+        font-weight: 1000;
+      }
+      .muted { color: var(--muted); }
+      .small { font-size: 12px; }
+      code.inline {
+        background: rgba(245, 158, 11, 0.10);
+        border: 1px solid rgba(245, 158, 11, 0.15);
+        padding: 2px 6px;
         border-radius: 8px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Roboto Mono", monospace;
+        font-size: 12px;
+      }
+
+      textarea#sqlInput {
+        width: 100%;
+        min-height: 190px;
+        resize: vertical;
+        padding: 12px;
+        border-radius: 14px;
+        border: 1px solid rgba(31,41,55,0.12);
+        background: rgba(255,255,255,0.95);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Roboto Mono", monospace;
+        font-size: 14px;
+        outline: none;
+        box-shadow: inset 0 10px 22px rgba(2,6,23,0.03);
+      }
+      textarea#sqlInput:focus {
+        border-color: rgba(217, 119, 6, 0.35);
+        box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.18);
+      }
+
+      .row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      button {
+        border: none;
         cursor: pointer;
-        white-space: nowrap;
+        font-weight: 900;
       }
-      button:hover { opacity: 0.92; }
-      button:disabled { opacity: 0.55; cursor: not-allowed; }
-      .btn-secondary { background: #9a3412; }
-      .btn-ghost {
-        background: #fffaf2; color: #92400e; border: 1px solid var(--border);
+      button:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
       }
-      .btn-ghost:hover { background: #fff3db; opacity: 1; }
+      .btn {
+        padding: 10px 12px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: #fff;
+        box-shadow: 0 12px 26px rgba(217, 119, 6, 0.16);
+      }
       .btn-outline {
-        background: #fff; color: var(--brand2); border: 1px solid var(--border);
+        padding: 10px 12px;
+        border-radius: 14px;
+        background: rgba(255,255,255,0.92);
+        border: 1px solid rgba(31,41,55,0.12);
+        color: var(--ink);
+      }
+      .btn-ghost {
+        padding: 10px 12px;
+        border-radius: 14px;
+        background: transparent;
+        border: 1px solid rgba(31,41,55,0.10);
+        color: var(--ink);
       }
 
-      .badge {
-        display: inline-flex; align-items: center; gap: 8px;
-        padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border);
-        background: #fffaf2; color: var(--muted); font-size: 13px; user-select: none;
+      .samples {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 8px;
       }
-      .dot { width: 10px; height: 10px; border-radius: 999px; background: #f59e0b; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18); }
-      .dot.ok { background: #22c55e; box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18); }
-
-      .samples { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
       .chip {
-        border: 1px solid var(--border); background: #fffaf2; color: #92400e;
-        padding: 7px 10px; border-radius: 999px; cursor: pointer; font-size: 13px;
+        padding: 8px 10px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.92);
+        border: 1px solid rgba(31,41,55,0.12);
+        font-weight: 950;
+        font-size: 12px;
       }
-      .chip:hover { background: #fff3db; }
-
-      #error { color: var(--danger); margin-top: 10px; white-space: pre-wrap; }
-      #result { margin-top: 10px; }
-      .okmsg { color: var(--ok); margin-top: 10px; }
-
-      .tableWrap {
-        margin-top: 12px; background: #fff; border: 1px solid var(--border);
-        border-radius: 10px; overflow: auto; max-height: 55vh;
+      .chip:hover {
+        background: rgba(245, 158, 11, 0.12);
+        border-color: rgba(245, 158, 11, 0.20);
       }
-      table { border-collapse: collapse; width: 100%; }
+
+      .result {
+        margin-top: 10px;
+        border-radius: 16px;
+        border: 1px solid rgba(31,41,55,0.10);
+        overflow: hidden;
+        background: rgba(255,255,255,0.95);
+      }
+      .result .meta {
+        padding: 10px 12px;
+        border-bottom: 1px solid rgba(31,41,55,0.08);
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .result .meta .left {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .ok { color: var(--ok); font-weight: 1000; }
+      .danger { color: var(--danger); font-weight: 1000; }
+
+      .tablewrap { width: 100%; overflow: auto; }
+      table { width: 100%; border-collapse: collapse; font-size: 13px; }
       th, td {
-        border-bottom: 1px solid var(--border);
-        padding: 8px; text-align: left; vertical-align: top; font-size: 13px;
+        padding: 10px 10px;
+        border-bottom: 1px solid rgba(31,41,55,0.08);
+        vertical-align: top;
+        text-align: left;
       }
-      th { background: #fdecc8; position: sticky; top: 0; z-index: 1; }
-      .table-title { margin-top: 14px; font-weight: 800; color: #92400e; }
-
-      .panel-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 10px; }
-      .panel-title h2 { margin: 0; font-size: 16px; color: #92400e; }
-      .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 999px; overflow: hidden; background: #fffaf2; }
-      .seg button { border-radius: 0; border: none; background: transparent; color: #92400e; padding: 8px 10px; font-size: 13px; }
-      .seg button.active { background: #fdecc8; font-weight: 700; }
-
-      .list { margin: 0; padding: 0; list-style: none; max-height: 320px; overflow: auto; border: 1px solid var(--border); border-radius: 10px; background: #fff; }
-      .item { padding: 10px 10px; border-bottom: 1px solid var(--border); cursor: pointer; }
-      .item:last-child { border-bottom: none; }
-      .item:hover { background: #fffaf2; }
-      .meta { display: flex; justify-content: space-between; gap: 10px; color: var(--muted); font-size: 12px; margin-top: 6px; }
-      code.inline { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 12px; background: #fff7e6; border: 1px solid var(--border); padding: 1px 6px; border-radius: 6px; }
-      .small { font-size: 12px; color: var(--muted); }
-
-      .helpbox { margin-top: 14px; padding: 12px; border: 1px dashed var(--border); background: #fffaf2; border-radius: 12px; }
-      .helpbox h3 { margin: 0 0 10px; color: #92400e; font-size: 15px; }
-      .helpresults { margin-top: 10px; border: 1px solid var(--border); border-radius: 10px; background: #fff; max-height: 280px; overflow: auto; }
-      .helpitem { padding: 10px; border-bottom: 1px solid var(--border); }
-      .helpitem:last-child { border-bottom: none; }
-      .helpitem .title { font-weight: 800; color: #92400e; margin-bottom: 6px; }
-      .helpitem .desc { color: var(--muted); font-size: 13px; line-height: 1.4; margin-bottom: 8px; }
-      pre.snip { margin: 0; padding: 10px; border-radius: 10px; background: #fff7e6; border: 1px solid var(--border); overflow: auto; font-size: 12.5px; white-space: pre-wrap; }
-
-      .guide {
-        margin: 12px 0 16px; padding: 12px; border: 1px solid var(--border);
-        background: #fffaf2; border-radius: 12px;
+      th {
+        position: sticky;
+        top: 0;
+        background: rgba(255,255,255,0.98);
+        font-weight: 1000;
       }
-      .guide h3 { margin: 0 0 8px; color: #92400e; font-size: 15px; }
 
-      .footer { text-align: center; margin-top: 12px; font-size: 13px; color: var(--muted); }
-      .switch { display: inline-flex; align-items: center; gap: 8px; }
-      .switch input { transform: scale(1.2); }
+      .errorbox {
+        margin-top: 10px;
+        padding: 10px 12px;
+        border-radius: 14px;
+        border: 1px solid rgba(185, 28, 28, 0.18);
+        background: rgba(185, 28, 28, 0.06);
+        color: #7f1d1d;
+        white-space: pre-wrap;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Roboto Mono", monospace;
+        font-size: 13px;
+        display: none;
+      }
+
+      .history {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin: 10px 0;
+        flex-wrap: wrap;
+      }
+      .tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+      .tab {
+        padding: 8px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(31,41,55,0.12);
+        background: rgba(255,255,255,0.92);
+        font-size: 12px;
+        font-weight: 950;
+      }
+      .tab.on {
+        border-color: rgba(217, 119, 6, 0.35);
+        background: rgba(217, 119, 6, 0.12);
+      }
+      .histlist {
+        max-height: 520px;
+        overflow: auto;
+        border-radius: 16px;
+        border: 1px solid rgba(31,41,55,0.10);
+        background: rgba(255,255,255,0.95);
+      }
+      .histitem { padding: 10px 12px; border-bottom: 1px solid rgba(31,41,55,0.08); }
+      .histitem:last-child { border-bottom: none; }
+      .histitem .hmeta {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        font-size: 12px;
+        color: var(--muted);
+        font-weight: 800;
+      }
+      .histitem pre {
+        margin: 8px 0 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Roboto Mono", monospace;
+        font-size: 13px;
+        color: var(--ink);
+      }
+      .histitem .actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+      .histitem .actions button {
+        padding: 8px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(31,41,55,0.12);
+        background: rgba(255,255,255,0.92);
+        font-size: 12px;
+        font-weight: 950;
+      }
+      .histitem .actions button:hover {
+        background: rgba(245, 158, 11, 0.12);
+        border-color: rgba(245, 158, 11, 0.18);
+      }
+
+      .helpbox {
+        margin-top: 12px;
+        border-radius: 16px;
+        border: 1px dashed rgba(31,41,55,0.15);
+        background: rgba(255,255,255,0.65);
+        padding: 12px;
+      }
+      .helpresults { margin-top: 10px; display: grid; gap: 10px; }
+      .helpitem {
+        border: 1px solid rgba(31,41,55,0.10);
+        background: rgba(255,255,255,0.92);
+        border-radius: 14px;
+        padding: 10px 12px;
+      }
+      .helpitem b { font-weight: 1000; }
+
+      input[type="text"], input[type="file"] {
+        padding: 10px 12px;
+        border-radius: 14px;
+        border: 1px solid rgba(31,41,55,0.12);
+        background: rgba(255,255,255,0.95);
+        outline: none;
+        font-weight: 800;
+      }
+      input[type="text"]:focus, input[type="file"]:focus {
+        border-color: rgba(217, 119, 6, 0.35);
+        box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.16);
+      }
+
+      .footerNote {
+        margin-top: 14px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 800;
+      }
     </style>
   </head>
 
   <body>
-    <div class="container">
-      <h1>Run SQL in Your Browser 🧠</h1>
+    <div class="wrap">
+      <div class="topbar">
+        <div class="brand">
+          <div class="logo" aria-hidden="true"></div>
+          <div style="min-width:0">
+            <h1>SQL in Browser — SQLite Demo</h1>
+            <p>Runs entirely on your device using <code class="inline">sql.js</code> (no server).</p>
+          </div>
+        </div>
 
-      <!-- Start Here (Beginner Roadmap) -->
-      <div class="guide card" role="note" aria-label="Getting started">
-        <h3>Start here (3 minutes)</h3>
-        <ol class="small" style="margin: 4px 0 0 16px;">
-          <li>Click <b>Show tables</b> then <b>Describe birthdays</b>.</li>
-          <li>Run <code class="inline">SELECT * FROM birthdays;</code></li>
-          <li>Try <b>JOIN demo</b>, then <b>GROUP BY demo</b>.</li>
-          <li>Use <b>Intentional error</b> to see a real error message.</li>
-          <li>Use <b>Reset DB</b> anytime to restore the sample data.</li>
-        </ol>
-        <div class="row" style="margin-top:10px">
-          <label class="switch small" title="Blocks destructive queries like DROP/DELETE without WHERE">
-            <input id="safeMode" type="checkbox" checked />
-            <span><b>Safe Mode</b> (recommended for students)</span>
-          </label>
-          <span class="small muted">Tip: add <code class="inline">?tmode=1</code> to URL to start with Safe Mode OFF.</span>
+        <div class="status">
+          <div class="pill" title="SQLite readiness">
+            <span class="dot" id="statusDot"></span>
+            <span id="statusText">Loading SQLite…</span>
+          </div>
+          <div class="pill" title="CSV tools work after a SELECT">
+            📄 CSV: <span id="csvHint">Run a SELECT</span>
+          </div>
         </div>
       </div>
 
       <div class="grid">
         <!-- LEFT -->
         <div class="card">
-          <div class="row space">
-            <div>
-              <p style="margin: 0 0 6px"><b>Try editing and running SQL:</b></p>
-              <div class="muted small">
-                Tip: Press <b>Ctrl + Enter</b> (Cmd ⌘ + Enter on Mac). Multiple statements are
-                allowed (separated by <code class="inline">;</code>).
-              </div>
+          <div class="panel-title">
+            <h2>SQL Editor</h2>
+            <div class="row">
+              <button id="runBtn" class="btn" disabled>Run SQL</button>
+              <button id="resetBtn" class="btn-outline" disabled>Reset DB</button>
+              <button id="copySqlBtn" class="btn-ghost" disabled>Copy SQL</button>
             </div>
+          </div>
 
-            <div class="badge" title="SQLite engine status">
-              <span class="dot" id="statusDot"></span>
-              <span id="statusText">Loading SQLite…</span>
-            </div>
+          <div class="muted small">
+            Tip: Use <code class="inline">Show tables</code> then explore schemas with
+            <code class="inline">PRAGMA table_info(table)</code>.
           </div>
 
           <div class="samples" aria-label="Sample queries">
@@ -200,49 +424,60 @@
             <button class="chip" data-sql="PRAGMA foreign_keys;">FK status</button>
             <button class="chip" data-sql="SELECT * FROM employees;">Employees (FK)</button>
             <button class="chip" data-sql="SELECT * FROM birthdays;">Birthdays</button>
-            <button class="chip" data-sql="SELECT * FROM customers;">Customers</button>
-            <button class="chip" data-sql="SELECT * FROM orders;">Orders</button>
-            <button class="chip" data-sql="SELECT c.name, c.city, o.total, o.order_date FROM customers c JOIN orders o ON o.customer_id = c.id ORDER BY o.order_date DESC;">JOIN demo</button>
-            <button class="chip" data-sql="SELECT category, COUNT(*) AS items, ROUND(AVG(price),2) AS avg_price FROM products GROUP BY category ORDER BY items DESC;">GROUP BY demo</button>
-            <button class="chip" data-sql="SELECT * FROM not_a_table;">Intentional error</button>
+            <button class="chip" data-sql="INSERT INTO birthdays (name, birthday) VALUES ('New Friend', '2000-01-01'); SELECT * FROM birthdays;">Insert sample row</button>
+            <button class="chip" data-sql="UPDATE birthdays SET name='Updated Friend' WHERE name='New Friend'; SELECT * FROM birthdays;">Update sample row</button>
+            <button class="chip" data-sql="DELETE FROM birthdays WHERE name='Updated Friend'; SELECT * FROM birthdays;">Delete sample row</button>
+          </div>
+
+          <!-- LOAD SQLITE FILE (.db/.sqlite) -->
+          <div class="row" style="margin-top: 10px">
+            <input id="sqliteFile" type="file" accept=".db,.sqlite,.sqlite3,application/x-sqlite3" />
+            <button id="loadDbBtn" class="btn-outline" disabled>Load DB file</button>
+            <button id="useSampleBtn" class="btn-ghost" disabled>Use Sample DB</button>
+          </div>
+          <div class="muted small" style="margin-top: 6px">
+            Choose a <code class="inline">.db</code>/<code class="inline">.sqlite</code> file. It loads only on this device (in-browser).
           </div>
 
           <textarea id="sqlInput" aria-label="SQL editor">SELECT * FROM birthdays;</textarea>
 
           <div class="row" style="margin-top: 10px">
-            <button id="runBtn" disabled>Run SQL</button>
-            <button id="resetBtn" class="btn-secondary" disabled>Reset DB</button>
-            <button id="copySqlBtn" class="btn-outline" disabled>Copy SQL</button>
-            <button id="downloadCsvBtn" class="btn-ghost" disabled>Download last result CSV</button>
-            <button id="copyCsvBtn" class="btn-ghost" disabled>Copy last result CSV</button>
+            <button id="downloadCsvBtn" class="btn-outline" disabled>Download CSV</button>
+            <button id="copyCsvBtn" class="btn-ghost" disabled>Copy CSV</button>
           </div>
 
-          <div id="error" role="alert"></div>
-          <div id="result" aria-live="polite"></div>
-
-          <div class="muted small" style="margin-top:8px">
-            CSV actions use the <b>last table result</b> (i.e., the last statement that returned rows).
-          </div>
-
-          <!-- HELP -->
-          <div class="helpbox" id="helpBox">
-            <div class="row space">
-              <h3 style="margin: 0">SQL Help (Search & Insert)</h3>
-              <button id="toggleHelpBtn" class="btn-ghost" type="button">Hide</button>
+          <div class="result" aria-live="polite" style="margin-top: 12px">
+            <div class="meta">
+              <div class="left">
+                <span id="metaMsg" class="muted small">Ready when SQLite loads.</span>
+                <span id="metaRows" class="muted small"></span>
+              </div>
+              <div class="row">
+                <button id="toggleHelpBtn" class="btn-ghost">Help</button>
+              </div>
             </div>
+            <div class="tablewrap" id="result"></div>
+          </div>
 
-            <div class="muted small" style="margin-top: 6px">
-              Search: <code class="inline">create</code>, <code class="inline">alter</code>,
-              <code class="inline">drop</code>, <code class="inline">references</code>,
-              <code class="inline">check</code>, <code class="inline">commit</code>,
-              <code class="inline">rollback</code>. Click “Insert” to paste into the editor.
+          <div class="errorbox" id="error"></div>
+
+          <div class="helpbox" id="helpBox" style="display:none">
+            <div class="muted small">
+              Quick help: <code class="inline">select</code>, <code class="inline">join</code>,
+              <code class="inline">where</code>, <code class="inline">group by</code>,
+              <code class="inline">order by</code>, <code class="inline">limit</code>,
+              <code class="inline">pragma</code>.
             </div>
 
             <div style="margin-top: 10px">
-              <input id="helpSearch" type="text" placeholder="Search SQL help… (e.g., references, check, commit)" autocomplete="off" />
+              <input id="helpSearch" type="text" placeholder="Search SQL help… (e.g., commit, foreign key)" autocomplete="off" />
             </div>
 
             <div class="helpresults" id="helpResults"></div>
+          </div>
+
+          <div class="footerNote">
+            ✅ Works offline once loaded. Query history is saved in localStorage on this device.
           </div>
         </div>
 
@@ -250,34 +485,33 @@
         <div class="card">
           <div class="panel-title">
             <h2>Query History</h2>
-            <div class="seg" role="tablist" aria-label="History tabs">
-              <button id="tabSuccess" class="active" type="button" role="tab" aria-selected="true">Success</button>
-              <button id="tabFail" type="button" role="tab" aria-selected="false">Failure</button>
+            <div class="row">
+              <button id="exportHistoryBtn" class="btn-outline" disabled>Export</button>
+              <button id="importHistoryBtn" class="btn-outline" disabled>Import</button>
+              <button id="clearHistoryBtn" class="btn-ghost" disabled>Clear</button>
+              <input id="importFile" type="file" accept="application/json,.json" style="display:none" />
             </div>
           </div>
 
-          <div class="row" style="margin-bottom: 10px">
-            <button id="exportHistoryBtn" class="btn-ghost" disabled>Export history (JSON)</button>
-            <button id="importHistoryBtn" class="btn-ghost" disabled>Import history (JSON)</button>
-            <button id="clearHistoryBtn" class="btn-ghost" disabled>Clear tab</button>
-            <input id="importFile" type="file" accept="application/json" style="display: none" />
+          <div class="history">
+            <div class="tabs" role="tablist" aria-label="History tabs">
+              <button class="tab on" id="tabSuccess" type="button" role="tab" aria-selected="true">Success</button>
+              <button class="tab" id="tabFail" type="button" role="tab" aria-selected="false">Failed</button>
+            </div>
+            <div class="muted small" id="histCount"></div>
           </div>
 
-          <ul id="historyList" class="list"></ul>
-
-          <div class="muted small" style="margin-top:8px">
-            - Click an item to load it into the editor.<br />
-            - Duplicates are ignored (same SQL text, trimmed).<br />
-            - History is <b>Remembered</b>.
-          </div>
+          <div class="histlist" id="historyList"></div>
         </div>
       </div>
-
-      <div class="footer">Powered by SQLite — Programmer's Picnic</div>
     </div>
 
-    <!-- SQL.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+    <!-- IMPORTANT FIX: removed integrity attribute so the browser won't block -->
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
 
     <script>
       (function () {
@@ -289,512 +523,521 @@
         var db = null;
         var SQLlib = null;
         var activeTab = "success";
-        var lastSelectResult = null; // {columns, values, filenameHint}
-        var safeMode = true;
+        var lastSelectResult = null; // {columns, values}
 
         // ===== DOM
+        var statusDot = document.getElementById("statusDot");
+        var statusText = document.getElementById("statusText");
+        var csvHint = document.getElementById("csvHint");
+
         var sqlInput = document.getElementById("sqlInput");
         var runBtn = document.getElementById("runBtn");
         var resetBtn = document.getElementById("resetBtn");
         var copySqlBtn = document.getElementById("copySqlBtn");
         var downloadCsvBtn = document.getElementById("downloadCsvBtn");
         var copyCsvBtn = document.getElementById("copyCsvBtn");
-        var safeModeCb = document.getElementById("safeMode");
 
+        var metaMsg = document.getElementById("metaMsg");
+        var metaRows = document.getElementById("metaRows");
         var resultDiv = document.getElementById("result");
         var errorDiv = document.getElementById("error");
 
-        var statusDot = document.getElementById("statusDot");
-        var statusText = document.getElementById("statusText");
-
+        var historyList = document.getElementById("historyList");
+        var histCount = document.getElementById("histCount");
         var tabSuccess = document.getElementById("tabSuccess");
         var tabFail = document.getElementById("tabFail");
-        var historyList = document.getElementById("historyList");
 
         var exportHistoryBtn = document.getElementById("exportHistoryBtn");
         var importHistoryBtn = document.getElementById("importHistoryBtn");
         var clearHistoryBtn = document.getElementById("clearHistoryBtn");
         var importFile = document.getElementById("importFile");
 
+        var sqliteFile = document.getElementById("sqliteFile");
+        var loadDbBtn = document.getElementById("loadDbBtn");
+        var useSampleBtn = document.getElementById("useSampleBtn");
+
         var toggleHelpBtn = document.getElementById("toggleHelpBtn");
         var helpSearch = document.getElementById("helpSearch");
+        var helpBox = document.getElementById("helpBox");
         var helpResults = document.getElementById("helpResults");
 
-        // ===== Helpers
-        function nowISO() { return new Date().toISOString(); }
-        function normalizeSQL(sql) { return (sql || "").replace(/^\s+|\s+$/g, ""); }
-        function safeParseJSON(str, fallback) { try { return JSON.parse(str); } catch (e) { return fallback; } }
-        function escapeHTML(str) {
-          return String(str)
-            .replace(/&/g, "&amp;").replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        // ===== Utils
+        function nowISO() {
+          return new Date().toISOString().replace("T", " ").slice(0, 19);
         }
-        function getParam(name) {
-          var m = new RegExp("[?&]" + name + "=([^&]+)").exec(location.search);
-          return m ? decodeURIComponent(m[1]) : null;
+        function readLS(key) {
+          try { return JSON.parse(localStorage.getItem(key) || "[]"); } catch { return []; }
         }
-
-        // ===== History storage
-        function getHistory(kind) {
-          var key = kind === "success" ? LS_SUCCESS : LS_FAIL;
-          var raw = localStorage.getItem(key);
-          var arr = safeParseJSON(raw, []);
-          return Object.prototype.toString.call(arr) === "[object Array]" ? arr : [];
+        function writeLS(key, arr) {
+          localStorage.setItem(key, JSON.stringify(arr));
         }
-        function setHistory(kind, arr) {
-          var key = kind === "success" ? LS_SUCCESS : LS_FAIL;
-          try {
-            localStorage.setItem(key, JSON.stringify(arr));
-          } catch (e) {
-            // Graceful: trim and retry once
-            if (arr.length > 50) {
-              arr.length = 50;
-              try { localStorage.setItem(key, JSON.stringify(arr)); } catch (e2) {}
-            }
-          }
-        }
-        function hasSQL(kind, sqlNorm) {
-          var arr = getHistory(kind);
-          for (var i = 0; i < arr.length; i++) if (arr[i] && arr[i].sqlNorm === sqlNorm) return true;
-          return false;
-        }
-        function addToHistory(kind, payload) {
-          if (!payload || !payload.sqlNorm) return;
-          if (payload.sql && payload.sql.length > 5000) payload.sql = payload.sql.slice(0, 5000);
-          if (hasSQL(kind, payload.sqlNorm)) return;
-
-          var arr = getHistory(kind);
-          arr.unshift(payload);
-          var CAP = 300; if (arr.length > CAP) arr.length = CAP;
-          setHistory(kind, arr);
+        function escapeHtml(s) {
+          return String(s)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
         }
 
-        // ===== UI
+        function enableDbLoadUI(ready) {
+          loadDbBtn.disabled = !ready;
+          useSampleBtn.disabled = !ready;
+        }
+
         function setStatus(ready) {
           if (ready) {
             statusDot.className = "dot ok";
             statusText.textContent = "DB Ready ✅";
-            runBtn.disabled = false; resetBtn.disabled = false;
-            exportHistoryBtn.disabled = false; importHistoryBtn.disabled = false; clearHistoryBtn.disabled = false;
-            downloadCsvBtn.disabled = !lastSelectResult; copyCsvBtn.disabled = !lastSelectResult;
+            runBtn.disabled = false;
+            resetBtn.disabled = false;
+            exportHistoryBtn.disabled = false;
+            importHistoryBtn.disabled = false;
+            clearHistoryBtn.disabled = false;
             copySqlBtn.disabled = false;
+            downloadCsvBtn.disabled = !lastSelectResult;
+            copyCsvBtn.disabled = !lastSelectResult;
+            enableDbLoadUI(true);
           } else {
             statusDot.className = "dot";
             statusText.textContent = "Loading SQLite…";
-            runBtn.disabled = true; resetBtn.disabled = true;
-            exportHistoryBtn.disabled = true; importHistoryBtn.disabled = true; clearHistoryBtn.disabled = true;
-            downloadCsvBtn.disabled = true; copyCsvBtn.disabled = true;
+            runBtn.disabled = true;
+            resetBtn.disabled = true;
+            exportHistoryBtn.disabled = true;
+            importHistoryBtn.disabled = true;
+            clearHistoryBtn.disabled = true;
             copySqlBtn.disabled = true;
+            downloadCsvBtn.disabled = true;
+            copyCsvBtn.disabled = true;
+            enableDbLoadUI(false);
           }
         }
-        function clearOutput() { resultDiv.innerHTML = ""; errorDiv.textContent = ""; }
+
+        function clearOutput() {
+          resultDiv.innerHTML = "";
+          errorDiv.textContent = "";
+          errorDiv.style.display = "none";
+          metaRows.textContent = "";
+        }
+
+        function showInfo(msg) {
+          metaMsg.innerHTML = '<span class="muted small">' + escapeHtml(msg) + "</span>";
+        }
+
         function showOk(msg) {
-          var div = document.createElement("div"); div.className = "okmsg"; div.textContent = msg;
-          resultDiv.appendChild(div);
+          metaMsg.innerHTML = '<span class="ok">✅ ' + escapeHtml(msg) + "</span>";
         }
 
-        // ===== DB seed (includes FK + CHECK demo tables)
-        function createFreshDB() {
+        function showErr(msg) {
+          errorDiv.style.display = "block";
+          errorDiv.textContent = msg;
+          metaMsg.innerHTML = '<span class="danger">❌ Error</span>';
+        }
+
+        // ===== Load external SQLite file into sql.js
+        function loadSQLiteArrayBuffer(arrayBuffer) {
           if (!SQLlib) return;
-          db = new SQLlib.Database();
-          var seedSQL =
-            "PRAGMA foreign_keys = ON;" +
-            "DROP TABLE IF EXISTS birthdays;" +
-            "CREATE TABLE birthdays (id INTEGER PRIMARY KEY, name TEXT, birthday TEXT);" +
-            "INSERT INTO birthdays (name, birthday) VALUES " +
-            "('Champak Roy','1970-01-16')," +
-            "('Amitabh Pandey','2001-07-11')," +
-            "('Anita Sharma','1996-03-22')," +
-            "('Ravi Kumar','1992-12-05');" +
-            "DROP TABLE IF EXISTS students;" +
-            "CREATE TABLE students (id INTEGER PRIMARY KEY, name TEXT, marks INTEGER);" +
-            "INSERT INTO students (name, marks) VALUES " +
-            "('Aarav',88),('Diya',95),('Kabir',76),('Meera',84);" +
-            "DROP TABLE IF EXISTS customers;" +
-            "CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT, city TEXT);" +
-            "INSERT INTO customers (name, city) VALUES " +
-            "('Champak Roy','Varanasi'),('Neha Singh','Lucknow'),('Rahul Verma','Delhi'),('Priya Gupta','Kolkata');" +
-            "DROP TABLE IF EXISTS orders;" +
-            "CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, total REAL, order_date TEXT);" +
-            "INSERT INTO orders (customer_id, total, order_date) VALUES " +
-            "(1, 499.50, '2025-12-28'),(2, 1299.00, '2025-12-30'),(1, 250.00, '2026-01-02'),(3, 899.99, '2026-01-04'),(4, 159.00, '2026-01-05');" +
-            "DROP TABLE IF EXISTS products;" +
-            "CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT, category TEXT, price REAL);" +
-            "INSERT INTO products (name, category, price) VALUES " +
-            "('Notebook','Stationery',45.00),('Pen','Stationery',10.00),('Eraser','Stationery',5.00)," +
-            "('Headphones','Electronics',799.00),('Mouse','Electronics',399.00),('Keyboard','Electronics',999.00)," +
-            "('Mug','Kitchen',149.00),('Bottle','Kitchen',299.00);" +
-            "DROP TABLE IF EXISTS employees; DROP TABLE IF EXISTS departments;" +
-            "CREATE TABLE departments (id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE);" +
-            "CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT NOT NULL, dept_id INTEGER NOT NULL REFERENCES departments(id) ON UPDATE CASCADE ON DELETE RESTRICT);" +
-            "INSERT INTO departments (name) VALUES ('IT'),('HR'),('Sales');" +
-            "INSERT INTO employees (name, dept_id) VALUES ('Sonal',1),('Imran',1),('Kavya',2),('Rohit',3);" +
-            "DROP TABLE IF EXISTS payments;" +
-            "CREATE TABLE payments (id INTEGER PRIMARY KEY, payer TEXT NOT NULL, amount REAL NOT NULL CHECK (amount > 0), status TEXT NOT NULL CHECK (status IN ('PENDING','PAID','FAILED')));" +
-            "INSERT INTO payments (payer, amount, status) VALUES ('Champak Roy',499.00,'PAID'),('Neha Singh',250.00,'PENDING'),('Rahul Verma',100.00,'FAILED');" +
-            "DROP VIEW IF EXISTS v_customer_orders;" +
-            "CREATE VIEW v_customer_orders AS SELECT o.id AS order_id, c.name AS customer_name, c.city, o.total, o.order_date FROM orders o JOIN customers c ON c.id = o.customer_id;";
-          db.run(seedSQL);
+          try {
+            if (db) { try { db.close(); } catch (e) {} }
+            db = new SQLlib.Database(new Uint8Array(arrayBuffer));
+            try { db.run("PRAGMA foreign_keys = ON;"); } catch (e) {}
+
+            lastSelectResult = null;
+            downloadCsvBtn.disabled = true;
+            copyCsvBtn.disabled = true;
+            csvHint.textContent = "Run a SELECT";
+
+            clearOutput();
+            showOk("Loaded SQLite DB file successfully ✅");
+            renderHistory();
+          } catch (e) {
+            showErr(
+              "Failed to open this file as a SQLite database.\n\n" +
+              ((e && e.message) ? e.message : String(e))
+            );
+          }
         }
 
-        // ===== Results table
-        function renderResultSet(res, index) {
-          var title = document.createElement("div");
-          title.className = "table-title";
-          title.textContent = "Result " + (index + 1);
-          resultDiv.appendChild(title);
+        function loadSelectedSQLiteFile(file) {
+          if (!file) return;
+          var reader = new FileReader();
+          reader.onload = function () {
+            var buf = reader.result;
+            if (!buf) { showErr("Could not read file."); return; }
+            loadSQLiteArrayBuffer(buf);
+          };
+          reader.onerror = function () {
+            showErr("Failed to read file. Please try again.");
+          };
+          reader.readAsArrayBuffer(file);
+        }
 
-          var wrap = document.createElement("div");
-          wrap.className = "tableWrap";
+        // ===== DB init
+        function createFreshDB() {
+          db = new SQLlib.Database();
+          db.run("PRAGMA foreign_keys = ON;");
+          db.run("DROP TABLE IF EXISTS employees;");
+          db.run("DROP TABLE IF EXISTS birthdays;");
 
-          var table = document.createElement("table");
-          var thead = table.createTHead();
-          var tbody = table.createTBody();
+          db.run("CREATE TABLE birthdays (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, birthday TEXT NOT NULL);");
+          db.run("INSERT INTO birthdays (name, birthday) VALUES ('Alice', '1998-07-14');");
+          db.run("INSERT INTO birthdays (name, birthday) VALUES ('Bob', '1995-02-28');");
+          db.run("INSERT INTO birthdays (name, birthday) VALUES ('Charlie', '2001-12-05');");
 
-          var headerRow = thead.insertRow();
-          for (var c = 0; c < res.columns.length; c++) {
-            var th = document.createElement("th");
-            th.textContent = res.columns[c];
-            headerRow.appendChild(th);
-          }
+          db.run("CREATE TABLE employees (emp_id INTEGER PRIMARY KEY, emp_name TEXT NOT NULL, birthday_id INTEGER, FOREIGN KEY(birthday_id) REFERENCES birthdays(id));");
+          db.run("INSERT INTO employees (emp_id, emp_name, birthday_id) VALUES (1, 'Riya', 1);");
+          db.run("INSERT INTO employees (emp_id, emp_name, birthday_id) VALUES (2, 'Sahil', 2);");
+          db.run("INSERT INTO employees (emp_id, emp_name, birthday_id) VALUES (3, 'Nisha', 3);");
+        }
 
-          for (var r = 0; r < res.values.length; r++) {
-            var tr = tbody.insertRow();
-            var row = res.values[r];
-            for (var k = 0; k < row.length; k++) {
-              var td = tr.insertCell();
-              td.textContent = row[k] === null ? "NULL" : String(row[k]);
+        // ===== SQL execution
+        function isSelectLike(sql) {
+          var s = (sql || "").trim().toLowerCase();
+          return s.startsWith("select") || s.startsWith("pragma") || s.startsWith("with") || s.startsWith("explain");
+        }
+
+        function renderTable(columns, values) {
+          var html = "<table><thead><tr>";
+          for (var i = 0; i < columns.length; i++) html += "<th>" + escapeHtml(columns[i]) + "</th>";
+          html += "</tr></thead><tbody>";
+
+          if (!values || values.length === 0) {
+            html += '<tr><td colspan="' + columns.length + '" class="muted small">No rows.</td></tr>';
+          } else {
+            for (var r = 0; r < values.length; r++) {
+              html += "<tr>";
+              for (var c = 0; c < columns.length; c++) {
+                var v = values[r][c];
+                html += "<td>" + escapeHtml(v === null ? "NULL" : v) + "</td>";
+              }
+              html += "</tr>";
             }
           }
-
-          wrap.appendChild(table);
-          resultDiv.appendChild(wrap);
+          html += "</tbody></table>";
+          resultDiv.innerHTML = html;
         }
 
-        // ===== CSV
-        function csvEscape(val) {
-          var s = val === null || typeof val === "undefined" ? "" : String(val);
-          if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
-          return s;
-        }
-        function toCSV(columns, values) {
-          var lines = [];
-          var header = [];
-          for (var i = 0; i < columns.length; i++) header.push(csvEscape(columns[i]));
-          lines.push(header.join(","));
-          for (var r = 0; r < values.length; r++) {
-            var row = [];
-            for (var c = 0; c < values[r].length; c++) row.push(csvEscape(values[r][c]));
-            lines.push(row.join(","));
+        function runSQL() {
+          clearOutput();
+          if (!db) return;
+
+          var sql = sqlInput.value || "";
+          var start = performance.now();
+
+          try {
+            if (isSelectLike(sql)) {
+              var res = db.exec(sql);
+              if (!res || res.length === 0) {
+                lastSelectResult = { columns: ["(message)"], values: [["Query returned no result set."]] };
+                renderTable(lastSelectResult.columns, lastSelectResult.values);
+                showOk("Query executed.");
+                metaRows.textContent = "";
+              } else {
+                var columns = res[0].columns || [];
+                var values = res[0].values || [];
+                lastSelectResult = { columns: columns, values: values };
+                renderTable(columns, values);
+                showOk("SELECT executed.");
+                metaRows.textContent = values.length + " row(s)";
+              }
+              downloadCsvBtn.disabled = !lastSelectResult;
+              copyCsvBtn.disabled = !lastSelectResult;
+              csvHint.textContent = lastSelectResult ? "Ready" : "Run a SELECT";
+            } else {
+              db.run(sql);
+              lastSelectResult = null;
+              downloadCsvBtn.disabled = true;
+              copyCsvBtn.disabled = true;
+              csvHint.textContent = "Run a SELECT";
+              showOk("Statement executed.");
+              metaRows.textContent = "";
+            }
+
+            var ms = Math.round(performance.now() - start);
+            showInfo("Executed in " + ms + " ms — " + nowISO());
+            saveHistory("success", sql, ms);
+            renderHistory();
+          } catch (e) {
+            showErr((e && e.message) ? e.message : String(e));
+            saveHistory("fail", sql, 0, (e && e.message) ? e.message : String(e));
+            renderHistory();
           }
-          return lines.join("\n");
-        }
-        function downloadText(filename, text, mime) {
-          var blob = new Blob([text], { type: mime || "text/plain" });
-          var url = URL.createObjectURL(blob);
-          var a = document.createElement("a");
-          a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
-          URL.revokeObjectURL(url);
-        }
-        function suggestCSVFilename(sqlNorm) {
-          var name = "result";
-          var m = /from\s+([a-zA-Z_][\w]*)/i.exec(sqlNorm);
-          if (m && m[1]) name = m[1];
-          var dt = new Date();
-          function pad(n){return (n<10?"0":"")+n;}
-          var stamp = dt.getFullYear()+""+pad(dt.getMonth()+1)+pad(dt.getDate())+"_"+pad(dt.getHours())+pad(dt.getMinutes())+pad(dt.getSeconds());
-          return name + "_" + stamp + ".csv";
         }
 
-        // ===== History UI
-        function setActiveTab(tab) {
+        // ===== History
+        function saveHistory(kind, sql, ms, err) {
+          var key = kind === "success" ? LS_SUCCESS : LS_FAIL;
+          var arr = readLS(key);
+          arr.unshift({ ts: nowISO(), sql: sql, ms: ms || 0, err: err || "" });
+          if (arr.length > 80) arr = arr.slice(0, 80);
+          writeLS(key, arr);
+        }
+
+        function setTab(tab) {
           activeTab = tab;
-          if (tab === "success") { tabSuccess.className = "active"; tabFail.className = ""; }
-          else { tabSuccess.className = ""; tabFail.className = "active"; }
+          tabSuccess.classList.toggle("on", tab === "success");
+          tabFail.classList.toggle("on", tab === "fail");
+          tabSuccess.setAttribute("aria-selected", String(tab === "success"));
+          tabFail.setAttribute("aria-selected", String(tab === "fail"));
           renderHistory();
         }
+
         function renderHistory() {
-          var arr = getHistory(activeTab);
+          var key = activeTab === "success" ? LS_SUCCESS : LS_FAIL;
+          var arr = readLS(key);
+          histCount.textContent = arr.length + " item(s)";
           historyList.innerHTML = "";
+
           if (!arr.length) {
-            var li0 = document.createElement("li");
-            li0.className = "item"; li0.style.cursor = "default";
-            li0.innerHTML = '<div class="small">No ' + activeTab + ' queries yet.</div>';
-            historyList.appendChild(li0); return;
+            historyList.innerHTML = '<div class="histitem"><div class="muted small">No history yet.</div></div>';
+            return;
           }
-          for (var i = 0; i < arr.length; i++) (function (entry) {
-            var li = document.createElement("li"); li.className = "item";
-            var sqlShort = entry.sql.length > 180 ? entry.sql.slice(0, 180) + "…" : entry.sql;
-            li.innerHTML =
-              "<div style=\"white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono','Courier New', monospace; font-size: 12.5px;\">" +
-              escapeHTML(sqlShort) + "</div>" +
-              '<div class="meta"><span>' + new Date(entry.ts).toLocaleString() + "</span><span>" +
-              (activeTab === "success" ? "✅ Success" : "❌ Failure") + "</span></div>";
-            li.onclick = function () { sqlInput.value = entry.sql; sqlInput.focus(); };
-            historyList.appendChild(li);
-          })(arr[i]);
+
+          arr.forEach(function (it, idx) {
+            var wrap = document.createElement("div");
+            wrap.className = "histitem";
+            wrap.innerHTML =
+              '<div class="hmeta"><span>' + escapeHtml(it.ts) + '</span>' +
+              '<span>' + (activeTab === "success" ? escapeHtml(it.ms + " ms") : "Failed") + '</span></div>' +
+              '<pre>' + escapeHtml(it.sql) + '</pre>' +
+              (it.err ? '<div class="muted small" style="margin-top:8px"><span class="danger">Error:</span> ' + escapeHtml(it.err) + '</div>' : "") +
+              '<div class="actions">' +
+              '<button data-act="insert" data-idx="' + idx + '">Insert</button>' +
+              '<button data-act="copy" data-idx="' + idx + '">Copy</button>' +
+              "</div>";
+
+            historyList.appendChild(wrap);
+          });
         }
 
-        // ===== Export/Import
-        function exportHistoryJSON() {
-          var payload = { version: 1, exportedAt: nowISO(), success: getHistory("success"), fail: getHistory("fail") };
-          var filename = "sql_history_" + nowISO().replace(/:/g, "-") + ".json";
-          downloadText(filename, JSON.stringify(payload, null, 2), "application/json");
+        function exportHistory() {
+          var payload = { success: readLS(LS_SUCCESS), fail: readLS(LS_FAIL) };
+          var blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement("a");
+          a.href = url;
+          a.download = "sql_history.json";
+          a.click();
+          URL.revokeObjectURL(url);
         }
-        function importHistoryJSON(file) {
+
+        function importHistoryFile(file) {
           var reader = new FileReader();
           reader.onload = function () {
             try {
-              var obj = JSON.parse(String(reader.result || "{}"));
-              var incomingSuccess = Object.prototype.toString.call(obj.success) === "[object Array]" ? obj.success : [];
-              var incomingFail = Object.prototype.toString.call(obj.fail) === "[object Array]" ? obj.fail : [];
-              function merge(kind, incoming) {
-                var existing = getHistory(kind), seen = {};
-                for (var i = 0; i < existing.length; i++) if (existing[i] && existing[i].sqlNorm) seen[existing[i].sqlNorm] = true;
-                for (var j = 0; j < incoming.length; j++) {
-                  var x = incoming[j]; if (!x || !x.sqlNorm || !x.sql) continue;
-                  if (seen[x.sqlNorm]) continue; seen[x.sqlNorm] = true; existing.push(x);
-                }
-                existing.sort(function (a,b){ return new Date(b.ts) - new Date(a.ts); });
-                var CAP = 300; if (existing.length > CAP) existing.length = CAP;
-                setHistory(kind, existing);
-              }
-              merge("success", incomingSuccess); merge("fail", incomingFail);
-              renderHistory(); showOk("History imported successfully.");
-            } catch (e) { errorDiv.textContent = "Import failed. Invalid JSON.\n\n" + (e && e.message ? e.message : String(e)); }
+              var payload = JSON.parse(reader.result || "{}");
+              if (payload.success) writeLS(LS_SUCCESS, payload.success);
+              if (payload.fail) writeLS(LS_FAIL, payload.fail);
+              showOk("History imported ✅");
+              renderHistory();
+            } catch (e) {
+              showErr("Import failed: " + ((e && e.message) ? e.message : String(e)));
+            }
           };
           reader.readAsText(file);
         }
-        function clearActiveHistory() { setHistory(activeTab, []); renderHistory(); showOk("Cleared " + activeTab + " history."); }
 
-        // ===== Safe Mode gate
-        var DANGEROUS = [
-          /\bdrop\s+table\b/i,
-          /\bdrop\s+view\b/i,
-          /\bdrop\s+database\b/i,
-          /\btruncate\s+table\b/i,
-          /\balter\s+table\b/i,
-          /\bdelete\s+from\s+([^\s;]+)\s*(;|$)/i, // We'll post-check WHERE
-          /\bupdate\s+([^\s;]+)\s+set\b/i       // We'll post-check WHERE
+        function clearHistory() {
+          writeLS(LS_SUCCESS, []);
+          writeLS(LS_FAIL, []);
+          showOk("History cleared.");
+          renderHistory();
+        }
+
+        // ===== CSV
+        function toCSV(columns, values) {
+          function csvCell(v) {
+            if (v === null || v === undefined) return "";
+            var s = String(v);
+            if (/[",\n]/.test(s)) s = '"' + s.replaceAll('"', '""') + '"';
+            return s;
+          }
+          var lines = [];
+          lines.push(columns.map(csvCell).join(","));
+          (values || []).forEach(function (row) {
+            lines.push(row.map(csvCell).join(","));
+          });
+          return lines.join("\n");
+        }
+
+        function downloadCSV() {
+          if (!lastSelectResult) return;
+          var csv = toCSV(lastSelectResult.columns, lastSelectResult.values);
+          var blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement("a");
+          a.href = url;
+          a.download = "result.csv";
+          a.click();
+          URL.revokeObjectURL(url);
+        }
+
+        function copyCSV() {
+          if (!lastSelectResult) return;
+          var csv = toCSV(lastSelectResult.columns, lastSelectResult.values);
+          navigator.clipboard.writeText(csv).then(function () {
+            showOk("CSV copied ✅");
+          }).catch(function () {
+            showErr("Clipboard blocked by browser.");
+          });
+        }
+
+        // ===== Help
+        var HELP = [
+          { k: "select", d: "Retrieve rows: SELECT col FROM table WHERE ... ORDER BY ... LIMIT ..." },
+          { k: "where", d: "Filter rows: WHERE condition (e.g., age > 18 AND city='Delhi')" },
+          { k: "join", d: "Combine tables: INNER JOIN / LEFT JOIN using ON t1.id=t2.ref" },
+          { k: "group by", d: "Aggregate rows: GROUP BY col with COUNT/SUM/AVG/MAX/MIN" },
+          { k: "order by", d: "Sort rows: ORDER BY col ASC|DESC" },
+          { k: "limit", d: "Limit output rows: LIMIT 10 OFFSET 20" },
+          { k: "pragma", d: "SQLite settings & introspection: PRAGMA table_info(tbl); PRAGMA foreign_keys;" },
+          { k: "transaction", d: "Transactions: BEGIN; ...; COMMIT; or ROLLBACK;" },
+          { k: "foreign key", d: "FK constraints: create table ... FOREIGN KEY(col) REFERENCES other(id)" },
+          { k: "sqlite_master", d: "System catalog: SELECT name,type,sql FROM sqlite_master WHERE type='table';" }
         ];
-        function blocksInSafeMode(sql) {
-          // allow PRAGMA, SELECT, INSERT by default
-          for (var i = 0; i < DANGEROUS.length; i++) {
-            var m = DANGEROUS[i].exec(sql);
-            if (!m) continue;
-            // If DELETE without WHERE: block
-            if (/^\bdelete\s+/i.test(m[0])) {
-              if (!/\bwhere\b/i.test(sql)) return "DELETE without WHERE is blocked in Safe Mode.";
-              return null; // allowed with WHERE
-            }
-            // If UPDATE without WHERE: block
-            if (/^\bupdate\s+/i.test(m[0])) {
-              if (!/\bwhere\b/i.test(sql)) return "UPDATE without WHERE is blocked in Safe Mode.";
-              return null;
-            }
-            return "Dangerous statement blocked in Safe Mode.";
-          }
-          return null;
+
+        function renderHelp(q) {
+          var query = (q || "").trim().toLowerCase();
+          var items = HELP.filter(function (it) {
+            return !query || it.k.includes(query) || it.d.toLowerCase().includes(query);
+          }).slice(0, 10);
+
+          helpResults.innerHTML =
+            items.map(function (it) {
+              return (
+                '<div class="helpitem"><b>' +
+                escapeHtml(it.k) +
+                "</b><div class='muted small' style='margin-top:6px'>" +
+                escapeHtml(it.d) +
+                "</div></div>"
+              );
+            }).join("") || '<div class="muted small">No matches.</div>';
         }
 
-        // ===== Run SQL
-        function runSQL() {
-          clearOutput();
-          if (!db) { errorDiv.textContent = "SQLite is still loading… please wait."; return; }
+        // ===== Wire UI
+        document.querySelectorAll("[data-sql]").forEach(function (b) {
+          b.addEventListener("click", function () {
+            sqlInput.value = b.getAttribute("data-sql") || "";
+            sqlInput.focus();
+          });
+        });
 
-          var sql = sqlInput.value;
-          var sqlNorm = normalizeSQL(sql);
-          if (!sqlNorm) { errorDiv.textContent = "Please type a SQL query first."; return; }
-
-          if (safeMode) {
-            var guard = blocksInSafeMode(sqlNorm);
-            if (guard) { errorDiv.textContent = guard + " (Toggle Safe Mode off to proceed.)"; return; }
-          }
-
-          try {
-            var results = db.exec(sql);
-
-            addToHistory("success", { sql: sql, sqlNorm: sqlNorm, ts: nowISO() });
-
-            var anySelect = false;
-            if (results && results.length) {
-              for (var i = 0; i < results.length; i++) {
-                var r = results[i];
-                if (r && r.columns && r.columns.length) {
-                  renderResultSet(r, i);
-                  lastSelectResult = { columns: r.columns || [], values: r.values || [], filenameHint: suggestCSVFilename(sqlNorm) };
-                  anySelect = true;
-                }
-              }
-            }
-            if (!anySelect) {
-              showOk("Query executed successfully (no rows returned).");
-              lastSelectResult = null;
-            }
-
-            downloadCsvBtn.disabled = !lastSelectResult;
-            copyCsvBtn.disabled = !lastSelectResult;
-            renderHistory();
-          } catch (err) {
-            var msg = err && err.message ? err.message : String(err);
-            errorDiv.textContent = msg;
-            addToHistory("fail", { sql: sql, sqlNorm: sqlNorm, ts: nowISO(), error: msg });
-            lastSelectResult = null;
-            downloadCsvBtn.disabled = true; copyCsvBtn.disabled = true;
-            renderHistory();
-          }
-        }
-
-        // ===== Help data
-        var HELP_DATA = [
-          { title: "Show tables + views", keywords: ["tables", "views", "sqlite_master", "schema"], desc: "List tables and views in the database.", sql: "SELECT name, type FROM sqlite_master WHERE type IN ('table','view') ORDER BY type, name;" },
-          { title: "Describe a table (columns)", keywords: ["describe", "pragma", "table_info"], desc: "See columns of a table using PRAGMA.", sql: "PRAGMA table_info(birthdays);" },
-
-          { title: "REFERENCES / Foreign Key basics", keywords: ["references", "foreign key", "fk"], desc: "employees.dept_id REFERENCES departments(id). FK enforcement is ON in this demo.", sql: "PRAGMA foreign_keys;\nSELECT e.name AS employee, d.name AS department\nFROM employees e\nJOIN departments d ON d.id = e.dept_id\nORDER BY d.name, e.name;" },
-          { title: "Try a FK violation (should fail)", keywords: ["references", "foreign key", "violation"], desc: "This tries to insert an employee pointing to a non-existing department id 999.", sql: "INSERT INTO employees (name, dept_id) VALUES ('Bad FK Row', 999);\nSELECT * FROM employees;" },
-
-          { title: "CHECK constraint (payments demo)", keywords: ["check", "constraint", "validate"], desc: "payments table has CHECK(amount > 0) and CHECK(status IN ...).", sql: "SELECT * FROM payments;\n-- This should FAIL (amount must be > 0)\nINSERT INTO payments (payer, amount, status) VALUES ('Test', -10, 'PAID');" },
-          { title: "CHECK constraint success example", keywords: ["check", "payments"], desc: "A valid insert into payments.", sql: "INSERT INTO payments (payer, amount, status) VALUES ('New Payer', 99.50, 'PAID');\nSELECT * FROM payments ORDER BY id DESC LIMIT 5;" },
-
-          { title: "COMMIT (transaction example)", keywords: ["commit", "transaction", "begin"], desc: "Begins a transaction, updates rows, then COMMIT makes it permanent.", sql: "BEGIN;\nUPDATE products SET price = price + 10 WHERE category = 'Kitchen';\nCOMMIT;\nSELECT * FROM products WHERE category='Kitchen' ORDER BY id;" },
-          { title: "ROLLBACK (undo changes)", keywords: ["rollback", "transaction", "begin"], desc: "Begins a transaction, makes changes, then ROLLBACK cancels them.", sql: "BEGIN;\nUPDATE products SET price = price + 1000 WHERE category = 'Electronics';\nROLLBACK;\nSELECT * FROM products WHERE category='Electronics' ORDER BY id;" },
-
-          { title: "CREATE TABLE (example)", keywords: ["create", "create table", "ddl"], desc: "Create a new table and insert rows.", sql: "CREATE TABLE departments2 (\n  id INTEGER PRIMARY KEY,\n  name TEXT NOT NULL\n);\nINSERT INTO departments2 (name) VALUES ('A'),('B');\nSELECT * FROM departments2;" },
-          { title: "ALTER TABLE: ADD COLUMN (SQLite)", keywords: ["alter", "alter table", "add column"], desc: "SQLite commonly supports ADD COLUMN.", sql: "ALTER TABLE students ADD COLUMN grade TEXT;\nUPDATE students SET grade='A' WHERE marks >= 90;\nUPDATE students SET grade='B' WHERE marks BETWEEN 80 AND 89;\nUPDATE students SET grade='C' WHERE marks < 80;\nSELECT * FROM students ORDER BY marks DESC;" },
-          { title: "DROP TABLE", keywords: ["drop", "drop table"], desc: "Drop a table (permanent). Use IF EXISTS to avoid errors.", sql: "DROP TABLE IF EXISTS temp_to_delete;\nCREATE TABLE temp_to_delete(id INTEGER);\nDROP TABLE IF EXISTS temp_to_delete;\nSELECT name FROM sqlite_master WHERE type='table' AND name='temp_to_delete';" },
-
-          { title: "SELECT basics", keywords: ["select", "from"], desc: "Select columns from a table.", sql: "SELECT id, name FROM birthdays;" },
-          { title: "WHERE filtering", keywords: ["where", "like"], desc: "Filter rows using conditions.", sql: "SELECT * FROM birthdays\nWHERE name LIKE '%Roy%';" },
-          { title: "JOIN (customers + orders)", keywords: ["join", "customers", "orders"], desc: "Join customers with orders (tables included).", sql: "SELECT c.name, c.city, o.total, o.order_date\nFROM customers c\nJOIN orders o ON o.customer_id = c.id\nORDER BY o.order_date DESC;" },
-          { title: "GROUP BY (products)", keywords: ["group by", "count", "avg", "products"], desc: "Aggregate products by category (table included).", sql: "SELECT category, COUNT(*) AS items, ROUND(AVG(price),2) AS avg_price\nFROM products\nGROUP BY category\nORDER BY items DESC;" }
-        ];
-        function helpMatches(item, q) {
-          var hay = (item.title + " " + item.desc + " " + item.sql + " " + (item.keywords || []).join(" ")).toLowerCase();
-          return hay.indexOf(q) !== -1;
-        }
-        function renderHelpResults(query) {
-          var q = (query || "").replace(/^\s+|\s+$/g, "").toLowerCase();
-          helpResults.innerHTML = "";
-          var matches = [];
-          for (var i = 0; i < HELP_DATA.length; i++) if (!q || helpMatches(HELP_DATA[i], q)) matches.push(HELP_DATA[i]);
-          if (!matches.length) {
-            helpResults.innerHTML = '<div class="helpitem"><div class="desc">No matches. Try: <b>references</b>, <b>check</b>, <b>commit</b>, <b>rollback</b>.</div></div>';
-            return;
-          }
-          for (var j = 0; j < matches.length; j++) (function (item) {
-            var wrap = document.createElement("div"); wrap.className = "helpitem";
-            wrap.innerHTML =
-              '<div class="title">' + escapeHTML(item.title) + '</div>' +
-              '<div class="desc">' + escapeHTML(item.desc) + '</div>' +
-              '<pre class="snip">' + escapeHTML(item.sql) + '</pre>' +
-              '<div class="row" style="margin-top:10px"><button class="btn-ghost" type="button">Insert into editor</button></div>';
-            var btn = wrap.getElementsByTagName("button")[0];
-            btn.onclick = function () {
-              var toInsert = item.sql + "\n";
-              var before = sqlInput.value;
-              if (before && before.charAt(before.length - 1) !== "\n") before += "\n";
-              sqlInput.value = before + toInsert; sqlInput.focus();
-            };
-            helpResults.appendChild(wrap);
-          })(matches[j]);
-        }
-
-        // ===== Events
         runBtn.onclick = runSQL;
+
         resetBtn.onclick = function () {
-          clearOutput(); if (!db) return;
+          clearOutput();
+          if (!db) return;
           try { db.close(); } catch (e) {}
-          createFreshDB(); lastSelectResult = null;
-          downloadCsvBtn.disabled = true; copyCsvBtn.disabled = true;
+          createFreshDB();
+          lastSelectResult = null;
+          downloadCsvBtn.disabled = true;
+          copyCsvBtn.disabled = true;
+          csvHint.textContent = "Run a SELECT";
           showOk("Database reset (tables + sample rows recreated).");
         };
-        copySqlBtn.onclick = function () {
-          navigator.clipboard && navigator.clipboard.writeText(sqlInput.value).then(
-            function(){ showOk("SQL copied to clipboard."); },
-            function(){ showOk("Copy failed. Select and copy manually."); }
-          );
-        };
-        downloadCsvBtn.onclick = function () {
-          if (!lastSelectResult) { errorDiv.textContent = "No result available to export as CSV."; return; }
-          var csv = toCSV(lastSelectResult.columns, lastSelectResult.values);
-          downloadText(lastSelectResult.filenameHint, csv, "text/csv");
-          showOk("Downloaded CSV: " + lastSelectResult.filenameHint);
-        };
-        copyCsvBtn.onclick = function () {
-          if (!lastSelectResult) { errorDiv.textContent = "No table result to copy."; return; }
-          var csv = toCSV(lastSelectResult.columns, lastSelectResult.values);
-          navigator.clipboard && navigator.clipboard.writeText(csv).then(
-            function(){ showOk("CSV copied to clipboard."); },
-            function(){ showOk("Copy failed. Use Download CSV instead."); }
-          );
+
+        loadDbBtn.onclick = function () {
+          clearOutput();
+          if (!SQLlib) return;
+          var file = sqliteFile && sqliteFile.files ? sqliteFile.files[0] : null;
+          if (!file) { showErr("Please choose a .db/.sqlite file first."); return; }
+          showInfo("Loading DB file: " + file.name + " …");
+          loadSelectedSQLiteFile(file);
         };
 
-        sqlInput.addEventListener("keydown", function (e) {
-          e = e || window.event; var key = e.key || e.keyCode;
-          var isEnter = key === "Enter" || key === 13;
-          if (isEnter && (e.ctrlKey || e.metaKey)) { e.preventDefault(); runSQL(); }
+        useSampleBtn.onclick = function () {
+          clearOutput();
+          if (!SQLlib) return;
+          try {
+            if (db) { try { db.close(); } catch (e) {} }
+            createFreshDB();
+            lastSelectResult = null;
+            downloadCsvBtn.disabled = true;
+            copyCsvBtn.disabled = true;
+            csvHint.textContent = "Run a SELECT";
+            showOk("Switched back to Sample DB ✅");
+            runSQL();
+          } catch (e) {
+            showErr("Failed to restore sample DB.\n\n" + ((e && e.message) ? e.message : String(e)));
+          }
+        };
+
+        copySqlBtn.onclick = function () {
+          navigator.clipboard.writeText(sqlInput.value || "").then(function () {
+            showOk("SQL copied ✅");
+          }).catch(function () {
+            showErr("Clipboard blocked by browser.");
+          });
+        };
+
+        downloadCsvBtn.onclick = downloadCSV;
+        copyCsvBtn.onclick = copyCSV;
+
+        tabSuccess.onclick = function () { setTab("success"); };
+        tabFail.onclick = function () { setTab("fail"); };
+
+        historyList.addEventListener("click", function (e) {
+          var btn = e.target.closest("button[data-act]");
+          if (!btn) return;
+          var act = btn.getAttribute("data-act");
+          var idx = parseInt(btn.getAttribute("data-idx") || "0", 10);
+          var arr = readLS(activeTab === "success" ? LS_SUCCESS : LS_FAIL);
+          var item = arr[idx];
+          if (!item) return;
+
+          if (act === "insert") {
+            sqlInput.value = item.sql || "";
+            sqlInput.focus();
+          }
+          if (act === "copy") {
+            navigator.clipboard.writeText(item.sql || "").then(function () {
+              showOk("Copied ✅");
+            }).catch(function () {
+              showErr("Clipboard blocked by browser.");
+            });
+          }
         });
 
-        // Chips
-        var chips = document.querySelectorAll(".chip");
-        for (var i = 0; i < chips.length; i++) (function (chip) {
-          chip.addEventListener("click", function () {
-            var sql = chip.getAttribute("data-sql") || "";
-            sql = sql.replace(/&#10;/g, "\n");
-            sqlInput.value = sql; sqlInput.focus();
-          });
-        })(chips[i]);
-
-        // Tabs
-        tabSuccess.onclick = function () { setActiveTab("success"); };
-        tabFail.onclick = function () { setActiveTab("fail"); };
-
-        // Export/Import/Clear
-        exportHistoryBtn.onclick = exportHistoryJSON;
+        exportHistoryBtn.onclick = exportHistory;
         importHistoryBtn.onclick = function () { importFile.click(); };
         importFile.addEventListener("change", function () {
-          var file = importFile.files && importFile.files[0]; if (!file) return;
-          importHistoryJSON(file); importFile.value = "";
+          var file = importFile.files && importFile.files[0];
+          if (file) importHistoryFile(file);
+          importFile.value = "";
         });
-        clearHistoryBtn.onclick = clearActiveHistory;
+        clearHistoryBtn.onclick = clearHistory;
 
-        // Help
-        helpSearch.addEventListener("input", function () { renderHelpResults(helpSearch.value); });
         toggleHelpBtn.onclick = function () {
-          var hidden = helpSearch.style.display === "none";
-          if (hidden) { helpSearch.style.display = ""; helpResults.style.display = ""; toggleHelpBtn.textContent = "Hide"; }
-          else { helpSearch.style.display = "none"; helpResults.style.display = "none"; toggleHelpBtn.textContent = "Show"; }
+          var show = helpBox.style.display === "none";
+          helpBox.style.display = show ? "block" : "none";
+          if (show) renderHelp(helpSearch.value);
         };
+        helpSearch.addEventListener("input", function () { renderHelp(helpSearch.value); });
 
-        // Safe Mode toggle + tmode param
-        function initSafeMode() {
-          var tmode = getParam("tmode");
-          if (tmode === "1") { safeMode = false; }
-          safeModeCb.checked = safeMode;
-          safeModeCb.addEventListener("change", function () { safeMode = !!safeModeCb.checked; });
-        }
+        // ===== Init sql.js
+        setStatus(false);
 
-        // ===== Init SQL.js
-        setStatus(false); initSafeMode();
-        initSqlJs({
-          locateFile: function (file) {
-            return "https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/" + file;
-          },
-        })
-          .then(function (SQL) {
-            SQLlib = SQL; createFreshDB(); setStatus(true);
-            renderHistory(); renderHelpResults(""); runSQL();
-          })
-          .catch(function (e) {
+        if (window.initSqlJs) {
+          window.initSqlJs({
+            locateFile: function (f) {
+              return "https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/" + f;
+            }
+          }).then(function (SQL) {
+            SQLlib = SQL;
+            createFreshDB();
+            setStatus(true);
+            showOk("SQLite loaded. Sample DB created.");
+            renderHistory();
+            renderHelp("");
+          }).catch(function (e) {
+            showErr("Failed to load sql.js\n\n" + ((e && e.message) ? e.message : String(e)));
             setStatus(false);
-            errorDiv.textContent = "Failed to load SQL.js. Check internet/CDN access.\n\n" + (e && e.message ? e.message : String(e));
           });
+        } else {
+          showErr("sql.js not available (initSqlJs missing). Check the script include.");
+          setStatus(false);
+        }
       })();
     </script>
-
-    <!-- Optional project scripts (non-blocking) -->
-    <script src="https://programmer-s-picnic.github.io/json-images/find-on-page.js" defer></script>
-    <script src="https://programmer-s-picnic.github.io/json-images/imgshow.js" defer></script>
-    <script src="https://programmer-s-picnic.github.io/json-images/hometag.js" defer></script>
   </body>
 </html>
