@@ -1,0 +1,2718 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>
+      MongoDB in Browser — Complete Beginner Playground (Collections + Insert +
+      Delete + Aggregate + Joins)
+    </title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- tiny inline favicon to avoid 404 -->
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='24' fill='%23d97706'/%3E%3Ctext x='64' y='82' font-size='64' text-anchor='middle'%3E%F0%9F%93%9A%3C/text%3E%3C/svg%3E"
+    />
+
+    <style>
+      :root {
+        --bg: #fff7e6;
+        --card: #ffffff;
+        --ink: #1f2937;
+        --brand: #d97706;
+        --brand2: #b45309;
+        --border: #f3d7a6;
+        --muted: #6b7280;
+        --danger: #b91c1c;
+        --ok: #166534;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family:
+          Inter,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial,
+          sans-serif;
+        background: linear-gradient(180deg, var(--bg), #fff1d6);
+        color: var(--ink);
+      }
+      a {
+        color: inherit;
+      }
+
+      .wrap {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 18px 16px 26px;
+      }
+
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 12px;
+        margin: 0 -16px 14px;
+        background: rgba(255, 255, 255, 0.82);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(31, 41, 55, 0.1);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+        flex: 1;
+      }
+      .brand .logo {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background: radial-gradient(circle at 30% 30%, #f59e0b, #b45309);
+        box-shadow: 0 12px 26px rgba(217, 119, 6, 0.18);
+      }
+      .brand h1 {
+        font-size: 16px;
+        margin: 0;
+        font-weight: 900;
+        letter-spacing: 0.2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .brand p {
+        margin: 2px 0 0;
+        font-size: 12px;
+        color: var(--muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .status {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+      .pill {
+        border: 1px solid rgba(31, 41, 55, 0.1);
+        background: rgba(255, 255, 255, 0.9);
+        padding: 8px 10px;
+        border-radius: 999px;
+        font-weight: 800;
+        font-size: 12px;
+        color: var(--ink);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: #94a3b8;
+        box-shadow: 0 0 0 4px rgba(148, 163, 184, 0.12);
+      }
+      .dot.ok {
+        background: #22c55e;
+        box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.12);
+      }
+
+      .grid {
+        display: grid;
+        gap: 14px;
+      }
+      @media (min-width: 960px) {
+        .grid {
+          grid-template-columns: 1.2fr 0.8fr;
+        }
+      }
+
+      .card {
+        background: rgba(255, 255, 255, 0.88);
+        border: 1px solid rgba(31, 41, 55, 0.1);
+        border-radius: 18px;
+        box-shadow: 0 14px 38px rgba(8, 36, 64, 0.06);
+        padding: 14px;
+        overflow: hidden;
+      }
+      .panel-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .panel-title h2 {
+        font-size: 14px;
+        margin: 0;
+        font-weight: 1000;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .small {
+        font-size: 12px;
+      }
+      code.inline {
+        background: rgba(245, 158, 11, 0.1);
+        border: 1px solid rgba(245, 158, 11, 0.15);
+        padding: 2px 6px;
+        border-radius: 8px;
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Roboto Mono",
+          monospace;
+        font-size: 12px;
+      }
+
+      textarea,
+      select,
+      input[type="text"],
+      input[type="file"] {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 14px;
+        border: 1px solid rgba(31, 41, 55, 0.12);
+        background: rgba(255, 255, 255, 0.95);
+        outline: none;
+        font-weight: 800;
+      }
+      textarea {
+        min-height: 120px;
+        resize: vertical;
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Roboto Mono",
+          monospace;
+        font-size: 13px;
+        font-weight: 700;
+        box-shadow: inset 0 10px 22px rgba(2, 6, 23, 0.03);
+      }
+      textarea:focus,
+      select:focus,
+      input[type="text"]:focus,
+      input[type="file"]:focus {
+        border-color: rgba(217, 119, 6, 0.35);
+        box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.16);
+      }
+
+      .row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .row > * {
+        flex: 1;
+        min-width: 170px;
+      }
+      .row.compact > * {
+        flex: 0 0 auto;
+        min-width: auto;
+      }
+
+      button {
+        border: none;
+        cursor: pointer;
+        font-weight: 900;
+      }
+      button:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+
+      .btn {
+        padding: 10px 12px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: #fff;
+        box-shadow: 0 12px 26px rgba(217, 119, 6, 0.16);
+      }
+      .btn-outline {
+        padding: 10px 12px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.92);
+        border: 1px solid rgba(31, 41, 55, 0.12);
+        color: var(--ink);
+      }
+      .btn-ghost {
+        padding: 10px 12px;
+        border-radius: 14px;
+        background: transparent;
+        border: 1px solid rgba(31, 41, 55, 0.1);
+        color: var(--ink);
+      }
+
+      .samples {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .chip {
+        padding: 8px 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.92);
+        border: 1px solid rgba(31, 41, 55, 0.12);
+        font-weight: 950;
+        font-size: 12px;
+      }
+      .chip:hover {
+        background: rgba(245, 158, 11, 0.12);
+        border-color: rgba(245, 158, 11, 0.2);
+      }
+
+      .result {
+        margin-top: 10px;
+        border-radius: 16px;
+        border: 1px solid rgba(31, 41, 55, 0.1);
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.95);
+      }
+      .result .meta {
+        padding: 10px 12px;
+        border-bottom: 1px solid rgba(31, 41, 55, 0.08);
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .result .meta .left {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .ok {
+        color: var(--ok);
+        font-weight: 1000;
+      }
+      .danger {
+        color: var(--danger);
+        font-weight: 1000;
+      }
+
+      .tablewrap {
+        width: 100%;
+        overflow: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      th,
+      td {
+        padding: 10px 10px;
+        border-bottom: 1px solid rgba(31, 41, 55, 0.08);
+        vertical-align: top;
+        text-align: left;
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Roboto Mono",
+          monospace;
+        font-size: 12px;
+      }
+      th {
+        position: sticky;
+        top: 0;
+        background: rgba(255, 255, 255, 0.98);
+        font-weight: 1000;
+      }
+
+      .errorbox {
+        margin-top: 10px;
+        padding: 10px 12px;
+        border-radius: 14px;
+        border: 1px solid rgba(185, 28, 28, 0.18);
+        background: rgba(185, 28, 28, 0.06);
+        color: #7f1d1d;
+        white-space: pre-wrap;
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Roboto Mono",
+          monospace;
+        font-size: 13px;
+        display: none;
+      }
+
+      .history {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin: 10px 0;
+        flex-wrap: wrap;
+      }
+      .tabs {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .tab {
+        padding: 8px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(31, 41, 55, 0.12);
+        background: rgba(255, 255, 255, 0.92);
+        font-size: 12px;
+        font-weight: 950;
+      }
+      .tab.on {
+        border-color: rgba(217, 119, 6, 0.35);
+        background: rgba(217, 119, 6, 0.12);
+      }
+
+      .histlist {
+        max-height: 520px;
+        overflow: auto;
+        border-radius: 16px;
+        border: 1px solid rgba(31, 41, 55, 0.1);
+        background: rgba(255, 255, 255, 0.95);
+      }
+      .histitem {
+        padding: 10px 12px;
+        border-bottom: 1px solid rgba(31, 41, 55, 0.08);
+      }
+      .histitem:last-child {
+        border-bottom: none;
+      }
+      .histitem .hmeta {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        font-size: 12px;
+        color: var(--muted);
+        font-weight: 800;
+      }
+      .histitem pre {
+        margin: 8px 0 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Roboto Mono",
+          monospace;
+        font-size: 12px;
+        color: var(--ink);
+      }
+      .histitem .actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+        flex-wrap: wrap;
+      }
+      .histitem .actions button {
+        padding: 8px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(31, 41, 55, 0.12);
+        background: rgba(255, 255, 255, 0.92);
+        font-size: 12px;
+        font-weight: 950;
+      }
+      .histitem .actions button:hover {
+        background: rgba(245, 158, 11, 0.12);
+        border-color: rgba(245, 158, 11, 0.18);
+      }
+
+      .helpbox {
+        margin-top: 12px;
+        border-radius: 16px;
+        border: 1px dashed rgba(31, 41, 55, 0.15);
+        background: rgba(255, 255, 255, 0.65);
+        padding: 12px;
+      }
+      .helpTop {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .helpTop > * {
+        flex: 1;
+        min-width: 180px;
+      }
+
+      .helpTabsWrap {
+        margin-top: 10px;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .helpTab {
+        padding: 8px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(31, 41, 55, 0.12);
+        background: rgba(255, 255, 255, 0.92);
+        font-size: 12px;
+        font-weight: 950;
+      }
+      .helpTab.on {
+        border-color: rgba(217, 119, 6, 0.35);
+        background: rgba(217, 119, 6, 0.12);
+      }
+
+      .helpBody {
+        margin-top: 12px;
+        display: grid;
+        gap: 12px;
+      }
+      .helpCard {
+        border: 1px solid rgba(31, 41, 55, 0.1);
+        background: rgba(255, 255, 255, 0.92);
+        border-radius: 14px;
+        padding: 10px 12px;
+      }
+      .helpCard h3 {
+        margin: 0 0 6px;
+        font-size: 13px;
+        font-weight: 1000;
+      }
+      .helpCard p {
+        margin: 0;
+        font-size: 12px;
+        color: var(--muted);
+        font-weight: 800;
+        line-height: 1.45;
+      }
+      .helpCard .mono {
+        margin-top: 10px;
+        background: rgba(245, 158, 11, 0.08);
+        border: 1px solid rgba(245, 158, 11, 0.15);
+        border-radius: 12px;
+        padding: 10px;
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Roboto Mono",
+          monospace;
+        font-size: 12px;
+        white-space: pre-wrap;
+        word-break: break-word;
+        color: var(--ink);
+      }
+
+      .miniAlert {
+        margin-top: 10px;
+        padding: 10px 12px;
+        border-radius: 14px;
+        border: 1px solid rgba(217, 119, 6, 0.18);
+        background: rgba(245, 158, 11, 0.1);
+        color: rgba(31, 41, 55, 0.92);
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .kpi {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-top: 8px;
+      }
+      .kpi .pill {
+        font-weight: 900;
+      }
+
+      .footerNote {
+        margin-top: 14px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 800;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="wrap">
+      <div class="topbar">
+        <div class="brand">
+          <div class="logo" aria-hidden="true"></div>
+          <div style="min-width: 0">
+            <h1>MongoDB for Beginners — Complete Playground</h1>
+            <p>
+              Works offline • JSON collections • Find/Insert/Update/Delete •
+              Aggregate • Joins via
+              <code class="inline">$lookup</code> (simulated)
+            </p>
+          </div>
+        </div>
+
+        <div class="status">
+          <div class="pill" title="Playground readiness">
+            <span class="dot ok" id="statusDot"></span>
+            <span id="statusText">Ready ✅</span>
+          </div>
+          <div class="pill" title="CSV tools work after a result set">
+            📄 CSV: <span id="csvHint">Run a query</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <!-- LEFT -->
+        <div class="card">
+          <div class="panel-title">
+            <h2>Query Playground</h2>
+            <div class="row compact">
+              <button id="runBtn" class="btn">Run</button>
+              <button
+                id="showCollBtn"
+                class="btn-outline"
+                title="Show first 50 docs from selected collection"
+              >
+                Show Collection
+              </button>
+              <button id="resetBtn" class="btn-outline">Reset Sample DB</button>
+              <button id="copyBtn" class="btn-ghost">Copy Inputs</button>
+            </div>
+          </div>
+
+          <div class="muted small">
+            Beginner tip: Think in <b>Collections</b> (like tables) and
+            <b>Documents</b> (rows), written as JSON. Choose a collection, pick
+            an operation, then fill JSON boxes.
+          </div>
+
+          <div class="samples" aria-label="Quick demos">
+            <!-- Books -->
+            <button class="chip" data-demo="books_all">Books: show all</button>
+            <button class="chip" data-demo="books_subject_rec">
+              Books: Subject=Recursion
+            </button>
+            <button class="chip" data-demo="books_insert">
+              Books: insert a new book
+            </button>
+            <button class="chip" data-demo="books_delete">
+              Books: delete BookId=3
+            </button>
+
+            <!-- Users -->
+            <button class="chip" data-demo="users_active">
+              Users: active users
+            </button>
+            <button class="chip" data-demo="users_delhi_gt25">
+              Users: Delhi & age&gt;25
+            </button>
+
+            <!-- Aggregate -->
+            <button class="chip" data-demo="agg_city_count">
+              Agg: count users by city
+            </button>
+            <button class="chip" data-demo="agg_revenue_city">
+              Agg: revenue by city
+            </button>
+
+            <!-- Join -->
+            <button class="chip" data-demo="join_orders_users">
+              Join: orders + user details
+            </button>
+          </div>
+
+          <div class="row" style="margin-top: 10px">
+            <div>
+              <div class="muted small" style="margin-bottom: 6px">
+                Collection (table)
+              </div>
+              <select id="collectionSel"></select>
+            </div>
+            <div>
+              <div class="muted small" style="margin-bottom: 6px">
+                Operation
+              </div>
+              <select id="opSel">
+                <option value="find">find (search)</option>
+                <option value="insertOne">insertOne (add 1)</option>
+                <option value="insertMany">insertMany (add many)</option>
+                <option value="updateMany">updateMany (modify)</option>
+                <option value="deleteMany">deleteMany (remove)</option>
+                <option value="aggregate">aggregate (pipeline)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row" style="margin-top: 10px">
+            <div>
+              <div class="muted small" style="margin-bottom: 6px">
+                Filter (JSON): “Which documents?”
+              </div>
+              <textarea id="filterInput">{}</textarea>
+            </div>
+            <div>
+              <div class="muted small" style="margin-bottom: 6px">
+                Payload (JSON): projection / update / docs
+              </div>
+              <textarea id="payloadInput">{}</textarea>
+            </div>
+          </div>
+
+          <div style="margin-top: 10px">
+            <div class="muted small" style="margin-bottom: 6px">
+              Aggregate Pipeline (JSON array) — used only by
+              <code class="inline">aggregate</code>
+            </div>
+            <textarea id="pipeInput">
+[
+  { "$match": { } },
+  { "$limit": 10 }
+]</textarea
+            >
+          </div>
+
+          <div class="row compact" style="margin-top: 10px">
+            <button id="downloadCsvBtn" class="btn-outline" disabled>
+              Download CSV
+            </button>
+            <button id="copyCsvBtn" class="btn-ghost" disabled>Copy CSV</button>
+            <button id="exportDbBtn" class="btn-outline">Export DB JSON</button>
+            <button id="importDbBtn" class="btn-outline">Import DB JSON</button>
+            <input
+              id="importDbFile"
+              type="file"
+              accept="application/json,.json"
+              style="display: none"
+            />
+          </div>
+
+          <div class="kpi">
+            <div class="pill">Docs: <span id="kpiDocs">0</span></div>
+            <div class="pill">Collections: <span id="kpiCols">0</span></div>
+            <div class="pill">Last ms: <span id="kpiMs">0</span></div>
+          </div>
+
+          <div class="result" aria-live="polite" style="margin-top: 12px">
+            <div class="meta">
+              <div class="left">
+                <span id="metaMsg" class="muted small">Ready.</span>
+                <span id="metaRows" class="muted small"></span>
+              </div>
+              <div class="row compact">
+                <button id="toggleHelpBtn" class="btn-ghost">
+                  Beginner Help
+                </button>
+              </div>
+            </div>
+            <div class="tablewrap" id="result"></div>
+          </div>
+
+          <div class="errorbox" id="error"></div>
+
+          <!-- HELP -->
+          <div class="helpbox" id="helpBox" style="display: none">
+            <div class="helpTop">
+              <div>
+                <div class="muted small" style="margin-bottom: 6px">
+                  Search help (type: find, insert, delete, aggregate, join,
+                  $lookup)
+                </div>
+                <input
+                  id="helpSearch"
+                  type="text"
+                  placeholder="Try: find, projection, insert, delete, aggregate, join, $lookup..."
+                  autocomplete="off"
+                />
+              </div>
+              <div class="row compact" style="justify-content: flex-end">
+                <button class="btn-outline" id="helpLoadSampleBtn">
+                  Load Sample DB
+                </button>
+                <button class="btn-ghost" id="helpCloseBtn">Close</button>
+              </div>
+            </div>
+
+            <div
+              class="helpTabsWrap"
+              id="helpTabsWrap"
+              role="tablist"
+              aria-label="Help tabs"
+            ></div>
+
+            <div class="miniAlert">
+              🧑‍🎓 <b>How to learn here:</b> Click an example tab → press
+              <b>Load</b> → press <b>Run</b> → read the result table.
+              <br />Collections = tables, Documents = rows, JSON = the language.
+            </div>
+
+            <div class="helpBody" id="helpBody"></div>
+          </div>
+
+          <div class="footerNote">
+            ✅ Works offline. DB + history saved in
+            <code class="inline">localStorage</code> on this device.
+          </div>
+        </div>
+
+        <!-- RIGHT -->
+        <div class="card">
+          <div class="panel-title">
+            <h2>Collections + History</h2>
+            <div class="row compact">
+              <button id="exportHistoryBtn" class="btn-outline">
+                Export History
+              </button>
+              <button id="importHistoryBtn" class="btn-outline">
+                Import History
+              </button>
+              <button id="clearHistoryBtn" class="btn-ghost">Clear</button>
+              <input
+                id="importHistFile"
+                type="file"
+                accept="application/json,.json"
+                style="display: none"
+              />
+            </div>
+          </div>
+
+          <div class="miniAlert" id="collectionsBox">Loading collections…</div>
+
+          <div class="history">
+            <div class="tabs" role="tablist" aria-label="History tabs">
+              <button
+                class="tab on"
+                id="tabSuccess"
+                type="button"
+                role="tab"
+                aria-selected="true"
+              >
+                Success
+              </button>
+              <button
+                class="tab"
+                id="tabFail"
+                type="button"
+                role="tab"
+                aria-selected="false"
+              >
+                Failed
+              </button>
+            </div>
+            <div class="muted small" id="histCount"></div>
+          </div>
+
+          <div class="histlist" id="historyList"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        // ===== Storage keys
+        var LS_SUCCESS = "pp_mongo_history_success_v2";
+        var LS_FAIL = "pp_mongo_history_fail_v2";
+        var LS_DB = "pp_mongo_db_v2";
+
+        // ===== State
+        var db = {}; // { collectionName: [docs...] }
+        var activeTab = "success";
+        var lastResult = null; // array of docs/objects/scalars
+        var helpActiveTabId = "basics";
+
+        // ===== DOM
+        var statusDot = document.getElementById("statusDot");
+        var statusText = document.getElementById("statusText");
+        var csvHint = document.getElementById("csvHint");
+
+        var collectionSel = document.getElementById("collectionSel");
+        var opSel = document.getElementById("opSel");
+
+        var filterInput = document.getElementById("filterInput");
+        var payloadInput = document.getElementById("payloadInput");
+        var pipeInput = document.getElementById("pipeInput");
+
+        var runBtn = document.getElementById("runBtn");
+        var showCollBtn = document.getElementById("showCollBtn");
+        var resetBtn = document.getElementById("resetBtn");
+        var copyBtn = document.getElementById("copyBtn");
+
+        var downloadCsvBtn = document.getElementById("downloadCsvBtn");
+        var copyCsvBtn = document.getElementById("copyCsvBtn");
+
+        var exportDbBtn = document.getElementById("exportDbBtn");
+        var importDbBtn = document.getElementById("importDbBtn");
+        var importDbFile = document.getElementById("importDbFile");
+
+        var metaMsg = document.getElementById("metaMsg");
+        var metaRows = document.getElementById("metaRows");
+        var resultDiv = document.getElementById("result");
+        var errorDiv = document.getElementById("error");
+
+        var kpiDocs = document.getElementById("kpiDocs");
+        var kpiCols = document.getElementById("kpiCols");
+        var kpiMs = document.getElementById("kpiMs");
+
+        var collectionsBox = document.getElementById("collectionsBox");
+
+        var historyList = document.getElementById("historyList");
+        var histCount = document.getElementById("histCount");
+        var tabSuccess = document.getElementById("tabSuccess");
+        var tabFail = document.getElementById("tabFail");
+
+        var exportHistoryBtn = document.getElementById("exportHistoryBtn");
+        var importHistoryBtn = document.getElementById("importHistoryBtn");
+        var clearHistoryBtn = document.getElementById("clearHistoryBtn");
+        var importHistFile = document.getElementById("importHistFile");
+
+        var toggleHelpBtn = document.getElementById("toggleHelpBtn");
+        var helpBox = document.getElementById("helpBox");
+        var helpCloseBtn = document.getElementById("helpCloseBtn");
+        var helpLoadSampleBtn = document.getElementById("helpLoadSampleBtn");
+        var helpSearch = document.getElementById("helpSearch");
+        var helpTabsWrap = document.getElementById("helpTabsWrap");
+        var helpBody = document.getElementById("helpBody");
+
+        // ===== Utils
+        function nowISO() {
+          return new Date().toISOString().replace("T", " ").slice(0, 19);
+        }
+        function readLS(key) {
+          try {
+            return JSON.parse(localStorage.getItem(key) || "[]");
+          } catch {
+            return [];
+          }
+        }
+        function writeLS(key, val) {
+          localStorage.setItem(key, JSON.stringify(val));
+        }
+        function escapeHtml(s) {
+          return String(s)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+        }
+        function showInfo(msg) {
+          metaMsg.innerHTML =
+            '<span class="muted small">' + escapeHtml(msg) + "</span>";
+        }
+        function showOk(msg) {
+          metaMsg.innerHTML =
+            '<span class="ok">✅ ' + escapeHtml(msg) + "</span>";
+        }
+        function showErr(msg) {
+          errorDiv.style.display = "block";
+          errorDiv.textContent = msg;
+          metaMsg.innerHTML = '<span class="danger">❌ Error</span>';
+        }
+        function clearOutput() {
+          resultDiv.innerHTML = "";
+          errorDiv.textContent = "";
+          errorDiv.style.display = "none";
+          metaRows.textContent = "";
+        }
+        function safeJSON(text, label) {
+          var t = (text || "").trim();
+          if (!t) return null;
+          try {
+            return JSON.parse(t);
+          } catch (e) {
+            throw new Error(
+              "Invalid JSON in " +
+                label +
+                ": " +
+                (e && e.message ? e.message : String(e)),
+            );
+          }
+        }
+        function deepClone(x) {
+          return JSON.parse(JSON.stringify(x));
+        }
+        function setCSVEnabled(on) {
+          downloadCsvBtn.disabled = !on;
+          copyCsvBtn.disabled = !on;
+          csvHint.textContent = on ? "Ready" : "Run a query";
+        }
+        function isPlainObject(x) {
+          return x && typeof x === "object" && !Array.isArray(x);
+        }
+        function ensureArray(x, label) {
+          if (!Array.isArray(x))
+            throw new Error(label + " must be a JSON array.");
+          return x;
+        }
+
+        // ===== Sample DB (includes books + relationships for join demo)
+        function sampleDB() {
+          return {
+            books: [
+              {
+                BookId: 1,
+                BookName: "The Recursion Sutras",
+                Author: "Champak Roy",
+                Subject: "Recursion",
+              },
+              {
+                BookId: 2,
+                BookName: "How to Do Object Oriented Programing?",
+                Author: "Champak Roy",
+                Subject: "OOPS",
+              },
+              {
+                BookId: 3,
+                BookName: "The Big Book of Java Programs",
+                Author: "Champak Roy",
+                Subject: "Java Programming",
+              },
+            ],
+            users: [
+              {
+                _id: 1,
+                name: "Asha",
+                age: 22,
+                city: "Delhi",
+                active: true,
+                points: 15,
+                tags: ["student", "js"],
+                joined: "2025-10-01",
+              },
+              {
+                _id: 2,
+                name: "Ravi",
+                age: 29,
+                city: "Mumbai",
+                active: true,
+                points: 40,
+                tags: ["dev", "mongo"],
+                joined: "2025-05-12",
+              },
+              {
+                _id: 3,
+                name: "Neha",
+                age: 27,
+                city: "Delhi",
+                active: false,
+                points: 5,
+                tags: ["designer"],
+                joined: "2024-12-20",
+              },
+              {
+                _id: 4,
+                name: "Sahil",
+                age: 31,
+                city: "Pune",
+                active: true,
+                points: 55,
+                tags: ["dev", "backend"],
+                joined: "2023-08-05",
+              },
+              {
+                _id: 5,
+                name: "Nisha",
+                age: 24,
+                city: "Kolkata",
+                active: true,
+                points: 18,
+                tags: ["student", "python"],
+                joined: "2025-01-19",
+              },
+              {
+                _id: 6,
+                name: "Arjun",
+                age: 26,
+                city: "Delhi",
+                active: true,
+                points: 33,
+                tags: ["dev", "js"],
+                joined: "2025-11-07",
+              },
+              {
+                _id: 7,
+                name: "Meera",
+                age: 35,
+                city: "Mumbai",
+                active: true,
+                points: 72,
+                tags: ["lead", "sales"],
+                joined: "2022-04-15",
+              },
+            ],
+            employees: [
+              {
+                _id: "e1",
+                name: "Riya",
+                dept: "Eng",
+                salary: 120000,
+                city: "Delhi",
+              },
+              {
+                _id: "e2",
+                name: "Aman",
+                dept: "Eng",
+                salary: 150000,
+                city: "Pune",
+              },
+              {
+                _id: "e3",
+                name: "Meera",
+                dept: "HR",
+                salary: 80000,
+                city: "Mumbai",
+              },
+              {
+                _id: "e4",
+                name: "Kabir",
+                dept: "Sales",
+                salary: 90000,
+                city: "Delhi",
+              },
+              {
+                _id: "e5",
+                name: "Isha",
+                dept: "Sales",
+                salary: 110000,
+                city: "Mumbai",
+              },
+              {
+                _id: "e6",
+                name: "Zoya",
+                dept: "Eng",
+                salary: 175000,
+                city: "Delhi",
+              },
+            ],
+            orders: [
+              {
+                _id: "o1",
+                userId: 2,
+                total: 499,
+                items: 3,
+                status: "PAID",
+                city: "Mumbai",
+                ts: "2026-01-21",
+              },
+              {
+                _id: "o2",
+                userId: 1,
+                total: 1299,
+                items: 5,
+                status: "PAID",
+                city: "Delhi",
+                ts: "2026-01-28",
+              },
+              {
+                _id: "o3",
+                userId: 4,
+                total: 199,
+                items: 1,
+                status: "CANCEL",
+                city: "Pune",
+                ts: "2026-02-02",
+              },
+              {
+                _id: "o4",
+                userId: 6,
+                total: 999,
+                items: 2,
+                status: "PAID",
+                city: "Delhi",
+                ts: "2026-02-10",
+              },
+              {
+                _id: "o5",
+                userId: 7,
+                total: 2599,
+                items: 6,
+                status: "PAID",
+                city: "Mumbai",
+                ts: "2026-02-12",
+              },
+            ],
+          };
+        }
+
+        function loadDBFromStorageOrSample() {
+          try {
+            var stored = JSON.parse(localStorage.getItem(LS_DB) || "null");
+            if (stored && typeof stored === "object") {
+              db = stored;
+              return;
+            }
+          } catch (e) {}
+          db = sampleDB();
+          writeLS(LS_DB, db);
+        }
+
+        function persistDB() {
+          writeLS(LS_DB, db);
+          updateKPIs();
+          renderCollectionsBox();
+        }
+
+        // ===== Core helpers
+        function getValue(obj, path) {
+          if (!path) return undefined;
+          if (path === "$$ROOT") return obj;
+          if (path.startsWith("$")) path = path.slice(1);
+          var parts = path.split(".");
+          var cur = obj;
+          for (var i = 0; i < parts.length; i++) {
+            if (cur == null) return undefined;
+            cur = cur[parts[i]];
+          }
+          return cur;
+        }
+
+        function matchCondition(value, cond) {
+          if (!isPlainObject(cond)) return value === cond;
+
+          for (var op in cond) {
+            var v = cond[op];
+            if (op === "$eq" && !(value === v)) return false;
+            if (op === "$ne" && !(value !== v)) return false;
+            if (op === "$gt" && !(value > v)) return false;
+            if (op === "$gte" && !(value >= v)) return false;
+            if (op === "$lt" && !(value < v)) return false;
+            if (op === "$lte" && !(value <= v)) return false;
+
+            if (op === "$in") {
+              if (!Array.isArray(v)) return false;
+              if (!v.includes(value)) return false;
+            }
+            if (op === "$nin") {
+              if (!Array.isArray(v)) return false;
+              if (v.includes(value)) return false;
+            }
+            if (op === "$regex") {
+              var re = new RegExp(String(v), cond.$options || "");
+              if (!re.test(String(value ?? ""))) return false;
+            }
+            if (op === "$exists") {
+              var exists = value !== undefined;
+              if (Boolean(v) !== exists) return false;
+            }
+          }
+          return true;
+        }
+
+        function matches(doc, filter) {
+          if (!filter || Object.keys(filter).length === 0) return true;
+
+          if (filter.$and) {
+            if (!Array.isArray(filter.$and)) return false;
+            return filter.$and.every(function (f) {
+              return matches(doc, f);
+            });
+          }
+          if (filter.$or) {
+            if (!Array.isArray(filter.$or)) return false;
+            return filter.$or.some(function (f) {
+              return matches(doc, f);
+            });
+          }
+
+          for (var key in filter) {
+            if (key.startsWith("$")) continue;
+            var expected = filter[key];
+            var actual = getValue(doc, key);
+            if (!matchCondition(actual, expected)) return false;
+          }
+          return true;
+        }
+
+        function applyProjection(doc, proj) {
+          if (!proj || Object.keys(proj).length === 0) return doc;
+
+          var keys = Object.keys(proj);
+          var includeKeys = keys.filter(function (k) {
+            return proj[k] === 1 || proj[k] === true;
+          });
+          var excludeKeys = keys.filter(function (k) {
+            return proj[k] === 0 || proj[k] === false;
+          });
+
+          var hasInclusion = includeKeys.length > 0;
+          var hasExclusion = excludeKeys.length > 0;
+
+          if (hasInclusion && hasExclusion) {
+            var onlyIdMixed = excludeKeys.every(function (k) {
+              return k === "_id";
+            });
+            if (!onlyIdMixed)
+              throw new Error(
+                "Projection cannot mix include and exclude (except _id).",
+              );
+          }
+
+          if (hasInclusion) {
+            var out = {};
+            includeKeys.forEach(function (k) {
+              out[k] = getValue(doc, k);
+            });
+            if (proj._id !== 0 && proj._id !== false && doc._id !== undefined)
+              out._id = doc._id;
+            for (var kk in out) if (out[kk] === undefined) delete out[kk];
+            return out;
+          }
+
+          var clone = deepClone(doc);
+          excludeKeys.forEach(function (k) {
+            if (k === "_id") {
+              delete clone._id;
+              return;
+            }
+            var parts = k.split(".");
+            var cur = clone;
+            for (var i = 0; i < parts.length - 1; i++) {
+              if (!cur || typeof cur !== "object") return;
+              cur = cur[parts[i]];
+            }
+            if (cur && typeof cur === "object")
+              delete cur[parts[parts.length - 1]];
+          });
+          return clone;
+        }
+
+        // ===== CRUD
+        function find(coll, filter, projection) {
+          var out = [];
+          for (var i = 0; i < coll.length; i++) {
+            var doc = coll[i];
+            if (matches(doc, filter))
+              out.push(applyProjection(doc, projection));
+          }
+          return out;
+        }
+
+        function insertOne(coll, doc) {
+          if (!isPlainObject(doc))
+            throw new Error("insertOne payload must be a JSON object.");
+          coll.push(deepClone(doc));
+          return { acknowledged: true, insertedCount: 1 };
+        }
+
+        function insertMany(coll, docs) {
+          ensureArray(docs, "insertMany payload");
+          for (var i = 0; i < docs.length; i++) {
+            if (!isPlainObject(docs[i]))
+              throw new Error(
+                "insertMany payload must be an array of objects.",
+              );
+            coll.push(deepClone(docs[i]));
+          }
+          return { acknowledged: true, insertedCount: docs.length };
+        }
+
+        function applyUpdate(doc, update) {
+          if (!isPlainObject(update))
+            throw new Error(
+              'Update must be a JSON object (e.g., {"$set":{...}} ).',
+            );
+          var modified = false;
+
+          if (update.$set) {
+            for (var k in update.$set) {
+              var parts = k.split(".");
+              var cur = doc;
+              for (var i = 0; i < parts.length - 1; i++) {
+                var p = parts[i];
+                if (!cur[p] || typeof cur[p] !== "object") cur[p] = {};
+                cur = cur[p];
+              }
+              cur[parts[parts.length - 1]] = update.$set[k];
+              modified = true;
+            }
+          }
+          if (update.$inc) {
+            for (var k2 in update.$inc) {
+              var incVal = Number(update.$inc[k2]);
+              var curVal = getValue(doc, k2);
+              var next = Number(curVal || 0) + incVal;
+
+              var parts2 = k2.split(".");
+              var cur2 = doc;
+              for (var j = 0; j < parts2.length - 1; j++) {
+                var p2 = parts2[j];
+                if (!cur2[p2] || typeof cur2[p2] !== "object") cur2[p2] = {};
+                cur2 = cur2[p2];
+              }
+              cur2[parts2[parts2.length - 1]] = next;
+              modified = true;
+            }
+          }
+          if (update.$push) {
+            for (var k3 in update.$push) {
+              var arr = getValue(doc, k3);
+              if (!Array.isArray(arr)) {
+                var parts3 = k3.split(".");
+                var cur3 = doc;
+                for (var a = 0; a < parts3.length - 1; a++) {
+                  var pp = parts3[a];
+                  if (!cur3[pp] || typeof cur3[pp] !== "object") cur3[pp] = {};
+                  cur3 = cur3[pp];
+                }
+                cur3[parts3[parts3.length - 1]] = [];
+                arr = getValue(doc, k3);
+              }
+              arr.push(update.$push[k3]);
+              modified = true;
+            }
+          }
+          if (update.$pull) {
+            for (var k4 in update.$pull) {
+              var arr2 = getValue(doc, k4);
+              if (!Array.isArray(arr2)) continue;
+              var toRemove = update.$pull[k4];
+              var before = arr2.length;
+
+              var kept = arr2.filter(function (item) {
+                if (isPlainObject(toRemove))
+                  return !matchCondition(item, toRemove);
+                return item !== toRemove;
+              });
+
+              if (kept.length !== before) {
+                var parts4 = k4.split(".");
+                var cur4 = doc;
+                for (var b = 0; b < parts4.length - 1; b++)
+                  cur4 = cur4[parts4[b]];
+                cur4[parts4[parts4.length - 1]] = kept;
+                modified = true;
+              }
+            }
+          }
+          return modified;
+        }
+
+        function updateMany(coll, filter, update) {
+          var matched = 0,
+            modified = 0;
+          for (var i = 0; i < coll.length; i++) {
+            if (matches(coll[i], filter)) {
+              matched++;
+              if (applyUpdate(coll[i], update)) modified++;
+            }
+          }
+          return {
+            acknowledged: true,
+            matchedCount: matched,
+            modifiedCount: modified,
+          };
+        }
+
+        function deleteMany(coll, filter) {
+          var before = coll.length;
+          var kept = coll.filter(function (doc) {
+            return !matches(doc, filter);
+          });
+          coll.length = 0;
+          kept.forEach(function (d) {
+            coll.push(d);
+          });
+          return { acknowledged: true, deletedCount: before - kept.length };
+        }
+
+        // ===== Aggregate (includes $lookup join stage)
+        function evalExpr(doc, expr) {
+          if (typeof expr === "string" && expr.startsWith("$"))
+            return getValue(doc, expr);
+          return expr;
+        }
+
+        function stageMatch(input, spec) {
+          return input.filter(function (doc) {
+            return matches(doc, spec);
+          });
+        }
+
+        function stageProject(input, spec) {
+          return input.map(function (doc) {
+            var out = {};
+            var hasInclusion = Object.keys(spec).some(function (k) {
+              return spec[k] === 1 || spec[k] === true;
+            });
+            if (hasInclusion) {
+              for (var k in spec) {
+                if (k === "_id" && (spec[k] === 0 || spec[k] === false))
+                  continue;
+                if (spec[k] === 1 || spec[k] === true)
+                  out[k] = getValue(doc, k);
+                else out[k] = evalExpr(doc, spec[k]);
+              }
+              if (
+                spec._id !== 0 &&
+                spec._id !== false &&
+                doc._id !== undefined &&
+                out._id === undefined
+              )
+                out._id = doc._id;
+              for (var kk in out) if (out[kk] === undefined) delete out[kk];
+              return out;
+            }
+            for (var k2 in spec) {
+              if (k2 === "_id" && (spec[k2] === 0 || spec[k2] === false))
+                continue;
+              out[k2] = evalExpr(doc, spec[k2]);
+            }
+            return out;
+          });
+        }
+
+        function stageSort(input, spec) {
+          var keys = Object.keys(spec || {});
+          return input.slice().sort(function (a, b) {
+            for (var i = 0; i < keys.length; i++) {
+              var k = keys[i];
+              var dir = Number(spec[k] || 1);
+              var av = getValue(a, k);
+              var bv = getValue(b, k);
+              if (av < bv) return -1 * dir;
+              if (av > bv) return 1 * dir;
+            }
+            return 0;
+          });
+        }
+
+        function stageLimit(input, n) {
+          return input.slice(0, Math.max(0, Number(n || 0)));
+        }
+
+        function stageGroup(input, spec) {
+          var idExpr = spec._id;
+          var accKeys = Object.keys(spec).filter(function (k) {
+            return k !== "_id";
+          });
+          var groups = new Map();
+
+          function ensureGroup(idVal) {
+            var key = JSON.stringify(idVal);
+            if (!groups.has(key)) {
+              var base = { _id: idVal, __acc: {} };
+              accKeys.forEach(function (k) {
+                var opObj = spec[k];
+                var op = Object.keys(opObj || {})[0];
+                base.__acc[k] = {
+                  op: op,
+                  sum: 0,
+                  count: 0,
+                  min: undefined,
+                  max: undefined,
+                };
+              });
+              groups.set(key, base);
+            }
+            return groups.get(key);
+          }
+
+          input.forEach(function (doc) {
+            var idVal = evalExpr(doc, idExpr);
+            var g = ensureGroup(idVal);
+
+            accKeys.forEach(function (k) {
+              var opObj = spec[k];
+              var op = Object.keys(opObj || {})[0];
+              var expr = opObj[op];
+              var acc = g.__acc[k];
+
+              if (op === "$sum") {
+                var v =
+                  typeof expr === "number"
+                    ? expr
+                    : Number(evalExpr(doc, expr) || 0);
+                acc.sum += v;
+              } else if (op === "$avg") {
+                var v2 = Number(evalExpr(doc, expr) || 0);
+                acc.sum += v2;
+                acc.count += 1;
+              } else if (op === "$min") {
+                var v3 = evalExpr(doc, expr);
+                if (acc.min === undefined || v3 < acc.min) acc.min = v3;
+              } else if (op === "$max") {
+                var v4 = evalExpr(doc, expr);
+                if (acc.max === undefined || v4 > acc.max) acc.max = v4;
+              } else if (op === "$count") {
+                acc.sum += 1;
+              } else {
+                throw new Error("Unsupported group accumulator: " + op);
+              }
+            });
+          });
+
+          var out = [];
+          groups.forEach(function (g) {
+            var row = { _id: g._id };
+            accKeys.forEach(function (k) {
+              var opObj = spec[k];
+              var op = Object.keys(opObj || {})[0];
+              var acc = g.__acc[k];
+              if (op === "$sum" || op === "$count") row[k] = acc.sum;
+              else if (op === "$avg")
+                row[k] = acc.count ? acc.sum / acc.count : 0;
+              else if (op === "$min") row[k] = acc.min;
+              else if (op === "$max") row[k] = acc.max;
+            });
+            out.push(row);
+          });
+          return out;
+        }
+
+        // JOIN: $lookup (very common in MongoDB to join collections)
+        // Syntax:
+        // { $lookup: { from: "users", localField: "userId", foreignField: "_id", as: "user" } }
+        function stageLookup(input, spec) {
+          if (!spec || typeof spec !== "object")
+            throw new Error("$lookup spec must be an object.");
+          var from = spec.from;
+          var localField = spec.localField;
+          var foreignField = spec.foreignField;
+          var as = spec.as || "joined";
+
+          if (!from || !db[from])
+            throw new Error("$lookup 'from' collection not found: " + from);
+          if (!localField || !foreignField)
+            throw new Error("$lookup needs localField + foreignField.");
+
+          var foreign = db[from];
+          // build index for speed
+          var index = new Map();
+          for (var i = 0; i < foreign.length; i++) {
+            var fv = getValue(foreign[i], foreignField);
+            var key = JSON.stringify(fv);
+            if (!index.has(key)) index.set(key, []);
+            index.get(key).push(foreign[i]);
+          }
+
+          return input.map(function (doc) {
+            var lv = getValue(doc, localField);
+            var matchesArr = index.get(JSON.stringify(lv)) || [];
+            var out = deepClone(doc);
+            out[as] = matchesArr.map(deepClone);
+            return out;
+          });
+        }
+
+        function aggregate(coll, pipeline) {
+          ensureArray(pipeline, "Pipeline");
+          var cur = coll.slice();
+          for (var i = 0; i < pipeline.length; i++) {
+            var stage = pipeline[i];
+            if (!isPlainObject(stage))
+              throw new Error("Each pipeline stage must be an object.");
+            var key = Object.keys(stage)[0];
+            var spec = stage[key];
+
+            if (key === "$match") cur = stageMatch(cur, spec);
+            else if (key === "$project") cur = stageProject(cur, spec);
+            else if (key === "$group") cur = stageGroup(cur, spec);
+            else if (key === "$sort") cur = stageSort(cur, spec);
+            else if (key === "$limit") cur = stageLimit(cur, spec);
+            else if (key === "$lookup") cur = stageLookup(cur, spec);
+            else throw new Error("Unsupported pipeline stage: " + key);
+          }
+          return cur;
+        }
+
+        // ===== Render result as table
+        function toRows(objs) {
+          if (!Array.isArray(objs))
+            return { cols: ["(message)"], rows: [[String(objs)]] };
+          if (!objs.length)
+            return { cols: ["(message)"], rows: [["No rows."]] };
+
+          if (
+            typeof objs[0] !== "object" ||
+            objs[0] === null ||
+            Array.isArray(objs[0])
+          ) {
+            return {
+              cols: ["value"],
+              rows: objs.map(function (v) {
+                return [v];
+              }),
+            };
+          }
+
+          var colsSet = new Set();
+          objs.forEach(function (o) {
+            Object.keys(o || {}).forEach(function (k) {
+              colsSet.add(k);
+            });
+          });
+          var cols = Array.from(colsSet);
+          cols.sort(function (a, b) {
+            if (a === "_id") return -1;
+            if (b === "_id") return 1;
+            return a.localeCompare(b);
+          });
+
+          var rows = objs.map(function (o) {
+            return cols.map(function (k) {
+              var v = o[k];
+              if (v === null) return "null";
+              if (v === undefined) return "";
+              if (typeof v === "object") return JSON.stringify(v);
+              return v;
+            });
+          });
+          return { cols: cols, rows: rows };
+        }
+
+        function renderTable(cols, rows) {
+          var html = "<table><thead><tr>";
+          for (var i = 0; i < cols.length; i++)
+            html += "<th>" + escapeHtml(cols[i]) + "</th>";
+          html += "</tr></thead><tbody>";
+
+          for (var r = 0; r < rows.length; r++) {
+            html += "<tr>";
+            for (var c = 0; c < cols.length; c++)
+              html += "<td>" + escapeHtml(rows[r][c]) + "</td>";
+            html += "</tr>";
+          }
+          html += "</tbody></table>";
+          resultDiv.innerHTML = html;
+        }
+
+        // ===== CSV
+        function csvCell(v) {
+          if (v === null || v === undefined) return "";
+          var s = String(v);
+          if (/[",\n]/.test(s)) s = '"' + s.replaceAll('"', '""') + '"';
+          return s;
+        }
+        function toCSV(cols, rows) {
+          var lines = [];
+          lines.push(cols.map(csvCell).join(","));
+          rows.forEach(function (row) {
+            lines.push(row.map(csvCell).join(","));
+          });
+          return lines.join("\n");
+        }
+        function downloadCSV() {
+          if (!lastResult) return;
+          var pack = toRows(lastResult);
+          var csv = toCSV(pack.cols, pack.rows);
+          var blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement("a");
+          a.href = url;
+          a.download = "result.csv";
+          a.click();
+          URL.revokeObjectURL(url);
+        }
+        function copyCSV() {
+          if (!lastResult) return;
+          var pack = toRows(lastResult);
+          var csv = toCSV(pack.cols, pack.rows);
+          navigator.clipboard
+            .writeText(csv)
+            .then(function () {
+              showOk("CSV copied ✅");
+            })
+            .catch(function () {
+              showErr("Clipboard blocked by browser.");
+            });
+        }
+
+        // ===== History
+        function saveHistory(kind, payload, ms, err) {
+          var key = kind === "success" ? LS_SUCCESS : LS_FAIL;
+          var arr = readLS(key);
+          arr.unshift({
+            ts: nowISO(),
+            payload: payload,
+            ms: ms || 0,
+            err: err || "",
+          });
+          if (arr.length > 80) arr = arr.slice(0, 80);
+          writeLS(key, arr);
+        }
+
+        function setTab(tab) {
+          activeTab = tab;
+          tabSuccess.classList.toggle("on", tab === "success");
+          tabFail.classList.toggle("on", tab === "fail");
+          tabSuccess.setAttribute("aria-selected", String(tab === "success"));
+          tabFail.setAttribute("aria-selected", String(tab === "fail"));
+          renderHistory();
+        }
+
+        function renderHistory() {
+          var key = activeTab === "success" ? LS_SUCCESS : LS_FAIL;
+          var arr = readLS(key);
+          histCount.textContent = arr.length + " item(s)";
+          historyList.innerHTML = "";
+
+          if (!arr.length) {
+            historyList.innerHTML =
+              '<div class="histitem"><div class="muted small">No history yet.</div></div>';
+            return;
+          }
+
+          arr.forEach(function (it, idx) {
+            var wrap = document.createElement("div");
+            wrap.className = "histitem";
+
+            var p = it.payload || {};
+            var summary = (p.op || "?") + " on " + (p.collection || "?");
+
+            wrap.innerHTML =
+              '<div class="hmeta"><span>' +
+              escapeHtml(it.ts) +
+              "</span>" +
+              "<span>" +
+              (activeTab === "success" ? escapeHtml(it.ms + " ms") : "Failed") +
+              "</span></div>" +
+              '<div class="muted small" style="margin-top:8px"><b>' +
+              escapeHtml(summary) +
+              "</b></div>" +
+              "<pre>" +
+              escapeHtml(JSON.stringify(it.payload, null, 2)) +
+              "</pre>" +
+              (it.err
+                ? '<div class="muted small" style="margin-top:8px"><span class="danger">Error:</span> ' +
+                  escapeHtml(it.err) +
+                  "</div>"
+                : "") +
+              '<div class="actions">' +
+              '<button data-act="load" data-idx="' +
+              idx +
+              '">Load</button>' +
+              '<button data-act="copy" data-idx="' +
+              idx +
+              '">Copy</button>' +
+              "</div>";
+
+            historyList.appendChild(wrap);
+          });
+        }
+
+        function exportHistory() {
+          var payload = { success: readLS(LS_SUCCESS), fail: readLS(LS_FAIL) };
+          var blob = new Blob([JSON.stringify(payload, null, 2)], {
+            type: "application/json",
+          });
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement("a");
+          a.href = url;
+          a.download = "mongo_history.json";
+          a.click();
+          URL.revokeObjectURL(url);
+        }
+
+        function importHistoryFile(file) {
+          var reader = new FileReader();
+          reader.onload = function () {
+            try {
+              var payload = JSON.parse(reader.result || "{}");
+              if (payload.success) writeLS(LS_SUCCESS, payload.success);
+              if (payload.fail) writeLS(LS_FAIL, payload.fail);
+              showOk("History imported ✅");
+              renderHistory();
+            } catch (e) {
+              showErr(
+                "Import failed: " + (e && e.message ? e.message : String(e)),
+              );
+            }
+          };
+          reader.readAsText(file);
+        }
+
+        function clearHistory() {
+          writeLS(LS_SUCCESS, []);
+          writeLS(LS_FAIL, []);
+          showOk("History cleared.");
+          renderHistory();
+        }
+
+        // ===== DB Import/Export
+        function exportDB() {
+          var blob = new Blob([JSON.stringify(db, null, 2)], {
+            type: "application/json",
+          });
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement("a");
+          a.href = url;
+          a.download = "mongo_db.json";
+          a.click();
+          URL.revokeObjectURL(url);
+        }
+
+        function importDBFile(file) {
+          var reader = new FileReader();
+          reader.onload = function () {
+            try {
+              var payload = JSON.parse(reader.result || "{}");
+              if (!payload || typeof payload !== "object")
+                throw new Error(
+                  "DB JSON must be an object: { collection: [docs] }",
+                );
+              Object.keys(payload).forEach(function (k) {
+                if (!Array.isArray(payload[k]))
+                  throw new Error("Collection '" + k + "' must be an array.");
+              });
+              db = payload;
+              persistDB();
+              rebuildCollections();
+              showOk("DB imported ✅");
+              clearOutput();
+              lastResult = null;
+              setCSVEnabled(false);
+              renderHistory();
+            } catch (e) {
+              showErr(
+                "DB import failed: " + (e && e.message ? e.message : String(e)),
+              );
+            }
+          };
+          reader.readAsText(file);
+        }
+
+        // ===== UI helpers
+        function rebuildCollections() {
+          var names = Object.keys(db);
+          names.sort();
+          collectionSel.innerHTML = names
+            .map(function (n) {
+              return (
+                '<option value="' +
+                escapeHtml(n) +
+                '">' +
+                escapeHtml(n) +
+                "</option>"
+              );
+            })
+            .join("");
+          if (!names.length)
+            collectionSel.innerHTML = '<option value="(none)">(none)</option>';
+          updateKPIs();
+          renderCollectionsBox();
+        }
+
+        function updateKPIs() {
+          var colNames = Object.keys(db);
+          var docs = 0;
+          colNames.forEach(function (k) {
+            docs += Array.isArray(db[k]) ? db[k].length : 0;
+          });
+          kpiDocs.textContent = String(docs);
+          kpiCols.textContent = String(colNames.length);
+        }
+
+        function renderCollectionsBox() {
+          var names = Object.keys(db).sort();
+          if (!names.length) {
+            collectionsBox.textContent = "No collections loaded.";
+            return;
+          }
+
+          var parts = [];
+          parts.push("<b>Collections (tables)</b> in this in-browser DB:");
+          parts.push(
+            "<div style='margin-top:8px; display:flex; gap:8px; flex-wrap:wrap'>",
+          );
+          names.forEach(function (n) {
+            var count = db[n] && db[n].length ? db[n].length : 0;
+            parts.push(
+              "<span class='pill' style='margin:0'>📁 " +
+                escapeHtml(n) +
+                " <span class='muted'>(" +
+                count +
+                ")</span></span>",
+            );
+          });
+          parts.push("</div>");
+          parts.push(
+            "<div class='muted small' style='margin-top:10px'>Tip: Select a collection → click <b>Show Collection</b> to view documents.</div>",
+          );
+          collectionsBox.innerHTML = parts.join("");
+        }
+
+        function setInputsFromPayload(p) {
+          if (!p) return;
+          if (p.collection && db[p.collection])
+            collectionSel.value = p.collection;
+          if (p.op) opSel.value = p.op;
+          filterInput.value = JSON.stringify(p.filter || {}, null, 2);
+          payloadInput.value = JSON.stringify(p.payload || {}, null, 2);
+          pipeInput.value = JSON.stringify(p.pipeline || [], null, 2);
+        }
+
+        function snapshotInputs() {
+          return {
+            collection: collectionSel.value,
+            op: opSel.value,
+            filter: safeJSON(filterInput.value, "Filter") || {},
+            payload: safeJSON(payloadInput.value, "Payload") || {},
+            pipeline: safeJSON(pipeInput.value, "Pipeline") || [],
+          };
+        }
+
+        // ===== Demos
+        var DEMOS = {
+          // BOOKS
+          books_all: {
+            title: "Books: show all",
+            collection: "books",
+            op: "find",
+            filter: {},
+            payload: { BookId: 1, BookName: 1, Author: 1, Subject: 1, _id: 0 },
+            pipeline: [],
+            note: "Find all books. Projection shows only selected fields.",
+          },
+          books_subject_rec: {
+            title: "Books: Subject=Recursion",
+            collection: "books",
+            op: "find",
+            filter: { Subject: "Recursion" },
+            payload: { BookId: 1, BookName: 1, Author: 1, Subject: 1, _id: 0 },
+            pipeline: [],
+            note: "Filter chooses only documents where Subject equals 'Recursion'.",
+          },
+          books_insert: {
+            title: "Books: insert a new book",
+            collection: "books",
+            op: "insertOne",
+            filter: {},
+            payload: {
+              BookId: 4,
+              BookName: "JavaScript Champion — Beginner to Pro",
+              Author: "Champak Roy",
+              Subject: "JavaScript",
+            },
+            pipeline: [],
+            note: "insertOne adds 1 new document to the collection.",
+          },
+          books_delete: {
+            title: "Books: delete BookId=3",
+            collection: "books",
+            op: "deleteMany",
+            filter: { BookId: 3 },
+            payload: {},
+            pipeline: [],
+            note: "deleteMany removes all documents matching the filter.",
+          },
+
+          // USERS
+          users_active: {
+            title: "Users: active users",
+            collection: "users",
+            op: "find",
+            filter: { active: true },
+            payload: { name: 1, city: 1, age: 1, points: 1, _id: 0 },
+            pipeline: [],
+            note: "Find active users, show only a few fields.",
+          },
+          users_delhi_gt25: {
+            title: "Users: Delhi & age > 25",
+            collection: "users",
+            op: "find",
+            filter: { city: "Delhi", age: { $gt: 25 } },
+            payload: { name: 1, city: 1, age: 1, _id: 0 },
+            pipeline: [],
+            note: "Uses an operator: { age: { $gt: 25 } }.",
+          },
+
+          // AGGREGATE
+          agg_city_count: {
+            title: "Aggregate: count users by city",
+            collection: "users",
+            op: "aggregate",
+            filter: {},
+            payload: {},
+            pipeline: [
+              { $match: { active: true } },
+              { $group: { _id: "$city", count: { $sum: 1 } } },
+              { $sort: { count: -1 } },
+            ],
+            note: "Aggregate pipeline: match → group → sort.",
+          },
+          agg_revenue_city: {
+            title: "Aggregate: revenue by city",
+            collection: "orders",
+            op: "aggregate",
+            filter: {},
+            payload: {},
+            pipeline: [
+              { $match: { status: "PAID" } },
+              {
+                $group: {
+                  _id: "$city",
+                  revenue: { $sum: "$total" },
+                  orders: { $sum: 1 },
+                },
+              },
+              { $sort: { revenue: -1 } },
+            ],
+            note: "Sums totals and counts orders by city.",
+          },
+
+          // JOIN
+          join_orders_users: {
+            title: "Join: orders + user details",
+            collection: "orders",
+            op: "aggregate",
+            filter: {},
+            payload: {},
+            pipeline: [
+              { $match: { status: "PAID" } },
+              {
+                $lookup: {
+                  from: "users",
+                  localField: "userId",
+                  foreignField: "_id",
+                  as: "user",
+                },
+              },
+              {
+                $project: {
+                  _id: 1,
+                  userId: 1,
+                  total: 1,
+                  city: 1,
+                  ts: 1,
+                  user: 1,
+                },
+              },
+              { $limit: 20 },
+            ],
+            note: "Join with $lookup: each order gets a 'user' array containing matching user docs.",
+          },
+        };
+
+        // ===== Beginner Help (tabs)
+        var HELP_SECTIONS = [
+          {
+            id: "basics",
+            title: "Basics",
+            cards: [
+              {
+                h: "Collections vs Documents (tables vs rows)",
+                p: "A Collection is like a table. A Document is like one row, written in JSON. Example: collection 'books' has documents with BookId, BookName, Author, Subject.",
+                mono: `Example document:
+{
+  "BookId": 1,
+  "BookName": "The Recursion Sutras",
+  "Author": "Champak Roy",
+  "Subject": "Recursion"
+}`,
+              },
+              {
+                h: "Three input boxes (Filter / Payload / Pipeline)",
+                p: "Filter chooses WHICH documents. Payload changes WHAT to show (projection), or WHAT to change (update), or WHAT to insert. Pipeline is used only for aggregate.",
+                mono: `Find:
+  Filter  = { "Author": "Champak Roy" }
+  Payload = { "BookName": 1, "Subject": 1, "_id": 0 }
+
+Insert:
+  Payload = { "BookId": 4, "BookName": "...", "Author": "...", "Subject": "..." }
+
+Update:
+  Filter  = { "BookId": 2 }
+  Payload = { "$set": { "Subject": "OOP" } }
+
+Aggregate:
+  Pipeline = [ { "$match": {...} }, { "$group": {...} } ]`,
+              },
+            ],
+            examples: ["books_all", "users_active"],
+          },
+          {
+            id: "find",
+            title: "Find",
+            cards: [
+              {
+                h: "find = search",
+                p: "find returns all documents matching the Filter. Start simple: { } means match everything.",
+                mono: `Show all books:
+Collection: books
+Operation:  find
+Filter:     {}
+Payload:    {}`,
+              },
+              {
+                h: "Projection (show only some fields)",
+                p: "In Payload, put 1 for fields you want. Put _id:0 to hide _id if present.",
+                mono: `Show only BookName + Subject:
+Payload: { "BookName": 1, "Subject": 1, "_id": 0 }`,
+              },
+              {
+                h: "Operators ($gt, $in, $regex)",
+                p: "Use operators inside a field for smarter filtering.",
+                mono: `Age > 25:
+{ "age": { "$gt": 25 } }
+
+City in list:
+{ "city": { "$in": ["Delhi","Mumbai"] } }
+
+Name starts with A:
+{ "name": { "$regex": "^A", "$options": "i" } }`,
+              },
+            ],
+            examples: ["books_subject_rec", "users_delhi_gt25"],
+          },
+          {
+            id: "insert",
+            title: "Insert",
+            cards: [
+              {
+                h: "insertOne = add one document",
+                p: "To insert, choose insertOne and write the new document in Payload. Filter is ignored.",
+                mono: `Collection: books
+Operation:  insertOne
+Payload:
+{ "BookId": 4, "BookName": "New Book", "Author": "Champak Roy", "Subject": "JavaScript" }`,
+              },
+              {
+                h: "insertMany = add many documents",
+                p: "Payload must be a JSON array [ ... ] of documents.",
+                mono: `Operation: insertMany
+Payload:
+[
+  { "BookId": 10, "BookName": "A", "Author": "X", "Subject": "S1" },
+  { "BookId": 11, "BookName": "B", "Author": "Y", "Subject": "S2" }
+]`,
+              },
+            ],
+            examples: ["books_insert"],
+          },
+          {
+            id: "delete",
+            title: "Delete",
+            cards: [
+              {
+                h: "deleteMany = remove matching documents",
+                p: "Delete is powerful. Filter chooses what to remove. Example: remove BookId=3.",
+                mono: `Collection: books
+Operation:  deleteMany
+Filter:     { "BookId": 3 }`,
+              },
+              {
+                h: "Safety tip",
+                p: "If your Filter is { } then deleteMany will remove everything in that collection.",
+                mono: `⚠️ DANGEROUS:
+Filter: {}`,
+              },
+            ],
+            examples: ["books_delete"],
+          },
+          {
+            id: "aggregate",
+            title: "Aggregate",
+            cards: [
+              {
+                h: "aggregate = step-by-step pipeline",
+                p: "Aggregate uses a Pipeline array. Each stage transforms the results.",
+                mono: `Pipeline stages are like:
+1) $match  = filter
+2) $group  = group + calculate
+3) $sort   = order results
+4) $limit  = keep first N`,
+              },
+              {
+                h: "Count by city (example)",
+                p: "This groups users by city and counts them.",
+                mono: `[
+  { "$match": { "active": true } },
+  { "$group": { "_id": "$city", "count": { "$sum": 1 } } },
+  { "$sort": { "count": -1 } }
+]`,
+              },
+            ],
+            examples: ["agg_city_count", "agg_revenue_city"],
+          },
+          {
+            id: "joins",
+            title: "Joins (Lookup)",
+            cards: [
+              {
+                h: "MongoDB joins use $lookup",
+                p: "MongoDB is document-based, but you can 'join' by using $lookup in an aggregate pipeline.",
+                mono: `$lookup meaning:
+- from: which collection to join
+- localField: field in current collection
+- foreignField: field in other collection
+- as: output field name (array)`,
+              },
+              {
+                h: "Orders joined with Users",
+                p: "orders.userId matches users._id. After $lookup, each order has a 'user' array.",
+                mono: `[
+  { "$match": { "status": "PAID" } },
+  { "$lookup": { "from": "users", "localField": "userId", "foreignField": "_id", "as": "user" } },
+  { "$project": { "_id": 1, "userId": 1, "total": 1, "city": 1, "ts": 1, "user": 1 } }
+]`,
+              },
+              {
+                h: "Important beginner note",
+                p: "In real MongoDB, you might also use $unwind to turn the 'user' array into a single object. This playground keeps it as an array to stay simple.",
+                mono: `Result shape:
+{ _id:"o1", userId:2, total:499, user:[ { _id:2, name:"Ravi", ... } ] }`,
+              },
+            ],
+            examples: ["join_orders_users"],
+          },
+          {
+            id: "troubleshoot",
+            title: "Troubleshoot",
+            cards: [
+              {
+                h: "JSON rules (most common beginner error)",
+                p: "JSON needs double quotes. No trailing commas. true/false are lowercase.",
+                mono: `✅ { "active": true }
+❌ { active: true }
+❌ { "a": 1, }`,
+              },
+              {
+                h: "Projection mix error",
+                p: "Don’t mix include and exclude in projection, except _id.",
+                mono: `✅ { "name": 1, "city": 1, "_id": 0 }
+✅ { "tags": 0, "joined": 0 }
+❌ { "name": 1, "tags": 0 }`,
+              },
+              {
+                h: "Pipeline must be an array",
+                p: "Aggregate pipeline must be [ ... ]. Each stage is an object with one key.",
+                mono: `✅ [ { "$match": {...} }, { "$group": {...} } ]
+❌ { "$match": {...} }`,
+              },
+            ],
+            examples: ["agg_city_count"],
+          },
+        ];
+
+        // ===== Help rendering
+        function helpMatchesSearch(section, q) {
+          if (!q) return true;
+          var needle = q.toLowerCase();
+          if ((section.title || "").toLowerCase().includes(needle)) return true;
+
+          for (var i = 0; i < (section.cards || []).length; i++) {
+            var c = section.cards[i];
+            var blob = (c.h || "") + " " + (c.p || "") + " " + (c.mono || "");
+            if (blob.toLowerCase().includes(needle)) return true;
+          }
+          for (var j = 0; j < (section.examples || []).length; j++) {
+            var d = DEMOS[section.examples[j]];
+            if (!d) continue;
+            var blob2 =
+              (d.title || "") +
+              " " +
+              (d.note || "") +
+              " " +
+              JSON.stringify(d.filter || {}) +
+              " " +
+              JSON.stringify(d.payload || {}) +
+              " " +
+              JSON.stringify(d.pipeline || []);
+            if (blob2.toLowerCase().includes(needle)) return true;
+          }
+          return false;
+        }
+
+        function renderHelpTabs(q) {
+          helpTabsWrap.innerHTML = "";
+          var visibleSections = HELP_SECTIONS.filter(function (s) {
+            return helpMatchesSearch(s, q);
+          });
+
+          if (
+            !visibleSections.some(function (s) {
+              return s.id === helpActiveTabId;
+            })
+          ) {
+            helpActiveTabId = visibleSections.length
+              ? visibleSections[0].id
+              : "basics";
+          }
+
+          visibleSections.forEach(function (s) {
+            var b = document.createElement("button");
+            b.className = "helpTab" + (s.id === helpActiveTabId ? " on" : "");
+            b.type = "button";
+            b.textContent = s.title;
+            b.setAttribute("role", "tab");
+            b.setAttribute("aria-selected", String(s.id === helpActiveTabId));
+            b.addEventListener("click", function () {
+              helpActiveTabId = s.id;
+              renderHelp(q);
+            });
+            helpTabsWrap.appendChild(b);
+          });
+
+          if (!visibleSections.length) {
+            helpTabsWrap.innerHTML =
+              '<div class="muted small">No help sections match your search.</div>';
+          }
+        }
+
+        function renderHelpBody(section) {
+          helpBody.innerHTML = "";
+          if (!section) {
+            helpBody.innerHTML = '<div class="muted small">No section.</div>';
+            return;
+          }
+
+          (section.cards || []).forEach(function (c) {
+            var card = document.createElement("div");
+            card.className = "helpCard";
+            card.innerHTML =
+              "<h3>" +
+              escapeHtml(c.h || "") +
+              "</h3>" +
+              "<p>" +
+              escapeHtml(c.p || "") +
+              "</p>" +
+              (c.mono
+                ? '<div class="mono">' + escapeHtml(c.mono) + "</div>"
+                : "");
+            helpBody.appendChild(card);
+          });
+
+          // examples block
+          var exCard = document.createElement("div");
+          exCard.className = "helpCard";
+          exCard.innerHTML =
+            "<h3>Examples</h3>" +
+            "<p>Click <b>Load</b> to fill the editor, then press <b>Run</b>.</p>";
+
+          var exWrap = document.createElement("div");
+          exWrap.style.marginTop = "10px";
+          exWrap.style.display = "grid";
+          exWrap.style.gap = "10px";
+
+          (section.examples || []).forEach(function (key) {
+            var d = DEMOS[key];
+            if (!d) return;
+
+            var box = document.createElement("div");
+            box.className = "helpCard";
+            box.style.background = "rgba(255,255,255,0.97)";
+            box.innerHTML =
+              "<h3 style='margin-bottom:4px'>" +
+              escapeHtml(d.title || key) +
+              "</h3>" +
+              "<p>" +
+              escapeHtml(d.note || "") +
+              "</p>" +
+              "<div class='mono'>" +
+              escapeHtml(
+                JSON.stringify(
+                  {
+                    collection: d.collection,
+                    op: d.op,
+                    filter: d.filter || {},
+                    payload: d.payload || {},
+                    pipeline: d.pipeline || [],
+                  },
+                  null,
+                  2,
+                ),
+              ) +
+              "</div>" +
+              "<div class='row compact' style='margin-top:10px'>" +
+              "<button class='btn-outline' data-act='load' data-id='" +
+              escapeHtml(key) +
+              "'>Load</button>" +
+              "<button class='btn-ghost' data-act='loadrun' data-id='" +
+              escapeHtml(key) +
+              "'>Load + Run</button>" +
+              "</div>";
+
+            exWrap.appendChild(box);
+          });
+
+          exCard.appendChild(exWrap);
+          helpBody.appendChild(exCard);
+        }
+
+        function renderHelp(q) {
+          var query = (q || "").trim();
+          renderHelpTabs(query);
+          var visible = HELP_SECTIONS.filter(function (s) {
+            return helpMatchesSearch(s, query);
+          });
+          var section =
+            visible.find(function (s) {
+              return s.id === helpActiveTabId;
+            }) || visible[0];
+          renderHelpBody(section);
+        }
+
+        // ===== Run operation
+        function run() {
+          clearOutput();
+
+          var collection = collectionSel.value;
+          var op = opSel.value;
+
+          if (!db[collection]) {
+            showErr("Collection not found: " + collection);
+            setCSVEnabled(false);
+            return;
+          }
+
+          var payloadForHistory = {
+            collection: collection,
+            op: op,
+            filter: null,
+            payload: null,
+            pipeline: null,
+          };
+          var start = performance.now();
+
+          try {
+            var coll = db[collection];
+            var filter = safeJSON(filterInput.value, "Filter") || {};
+            var payload = safeJSON(payloadInput.value, "Payload") || {};
+            var pipeline = safeJSON(pipeInput.value, "Pipeline") || [];
+
+            payloadForHistory.filter = filter;
+            if (op === "aggregate") payloadForHistory.pipeline = pipeline;
+            else payloadForHistory.payload = payload;
+
+            var out;
+
+            if (op === "find") {
+              out = find(coll, filter, payload);
+              lastResult = out;
+              var pack = toRows(out);
+              renderTable(pack.cols, pack.rows);
+              showOk("find executed.");
+              metaRows.textContent = out.length + " doc(s)";
+              setCSVEnabled(true);
+            } else if (op === "insertOne") {
+              var res1 = insertOne(coll, payload);
+              persistDB();
+              lastResult = [res1];
+              var pack1 = toRows([res1]);
+              renderTable(pack1.cols, pack1.rows);
+              showOk("insertOne executed.");
+              metaRows.textContent = "Inserted 1";
+              setCSVEnabled(true);
+            } else if (op === "insertMany") {
+              var res2 = insertMany(coll, payload);
+              persistDB();
+              lastResult = [res2];
+              var pack2 = toRows([res2]);
+              renderTable(pack2.cols, pack2.rows);
+              showOk("insertMany executed.");
+              metaRows.textContent = "Inserted " + res2.insertedCount;
+              setCSVEnabled(true);
+            } else if (op === "updateMany") {
+              var res3 = updateMany(coll, filter, payload);
+              persistDB();
+              lastResult = [res3];
+              var pack3 = toRows([res3]);
+              renderTable(pack3.cols, pack3.rows);
+              showOk("updateMany executed.");
+              metaRows.textContent = res3.modifiedCount + " modified";
+              setCSVEnabled(true);
+            } else if (op === "deleteMany") {
+              var res4 = deleteMany(coll, filter);
+              persistDB();
+              lastResult = [res4];
+              var pack4 = toRows([res4]);
+              renderTable(pack4.cols, pack4.rows);
+              showOk("deleteMany executed.");
+              metaRows.textContent = res4.deletedCount + " deleted";
+              setCSVEnabled(true);
+            } else if (op === "aggregate") {
+              out = aggregate(coll, pipeline);
+              lastResult = out;
+              var pack5 = toRows(out);
+              renderTable(pack5.cols, pack5.rows);
+              showOk("aggregate executed.");
+              metaRows.textContent = out.length + " row(s)";
+              setCSVEnabled(true);
+            } else {
+              throw new Error("Unsupported operation: " + op);
+            }
+
+            var ms = Math.round(performance.now() - start);
+            kpiMs.textContent = String(ms);
+            showInfo("Executed in " + ms + " ms — " + nowISO());
+            saveHistory("success", payloadForHistory, ms);
+            renderHistory();
+            updateKPIs();
+          } catch (e) {
+            var emsg = e && e.message ? e.message : String(e);
+            showErr(emsg);
+            setCSVEnabled(false);
+            saveHistory("fail", payloadForHistory, 0, emsg);
+            renderHistory();
+          }
+        }
+
+        // ===== Show collection (first 50 docs)
+        function showCollection() {
+          clearOutput();
+          var collection = collectionSel.value;
+          if (!db[collection]) {
+            showErr("Collection not found: " + collection);
+            return;
+          }
+          var out = db[collection].slice(0, 50).map(deepClone);
+          lastResult = out;
+          var pack = toRows(out);
+          renderTable(pack.cols, pack.rows);
+          showOk(
+            "Showing first " +
+              out.length +
+              " document(s) from '" +
+              collection +
+              "'.",
+          );
+          metaRows.textContent = out.length + " doc(s)";
+          setCSVEnabled(true);
+        }
+
+        // ===== Wire UI
+        runBtn.onclick = run;
+        showCollBtn.onclick = showCollection;
+
+        resetBtn.onclick = function () {
+          clearOutput();
+          db = sampleDB();
+          persistDB();
+          rebuildCollections();
+          lastResult = null;
+          setCSVEnabled(false);
+          showOk("Sample DB reset ✅");
+        };
+
+        copyBtn.onclick = function () {
+          var snap;
+          try {
+            snap = snapshotInputs();
+          } catch (e) {
+            showErr(e && e.message ? e.message : String(e));
+            return;
+          }
+
+          navigator.clipboard
+            .writeText(JSON.stringify(snap, null, 2))
+            .then(function () {
+              showOk("Inputs copied ✅");
+            })
+            .catch(function () {
+              showErr("Clipboard blocked by browser.");
+            });
+        };
+
+        downloadCsvBtn.onclick = downloadCSV;
+        copyCsvBtn.onclick = copyCSV;
+
+        exportDbBtn.onclick = exportDB;
+        importDbBtn.onclick = function () {
+          importDbFile.click();
+        };
+        importDbFile.addEventListener("change", function () {
+          var file = importDbFile.files && importDbFile.files[0];
+          if (file) importDBFile(file);
+          importDbFile.value = "";
+        });
+
+        document.querySelectorAll("[data-demo]").forEach(function (b) {
+          b.addEventListener("click", function () {
+            var key = b.getAttribute("data-demo");
+            var d = DEMOS[key];
+            if (!d) return;
+            setInputsFromPayload(d);
+            showOk("Loaded: " + (d.title || key));
+          });
+        });
+
+        tabSuccess.onclick = function () {
+          setTab("success");
+        };
+        tabFail.onclick = function () {
+          setTab("fail");
+        };
+
+        historyList.addEventListener("click", function (e) {
+          var btn = e.target.closest("button[data-act]");
+          if (!btn) return;
+          var act = btn.getAttribute("data-act");
+          var idx = parseInt(btn.getAttribute("data-idx") || "0", 10);
+          var arr = readLS(activeTab === "success" ? LS_SUCCESS : LS_FAIL);
+          var item = arr[idx];
+          if (!item || !item.payload) return;
+
+          if (act === "load") {
+            setInputsFromPayload(item.payload);
+            showOk("Loaded from history ✅");
+          }
+          if (act === "copy") {
+            navigator.clipboard
+              .writeText(JSON.stringify(item.payload, null, 2))
+              .then(function () {
+                showOk("Copied ✅");
+              })
+              .catch(function () {
+                showErr("Clipboard blocked by browser.");
+              });
+          }
+        });
+
+        exportHistoryBtn.onclick = exportHistory;
+        importHistoryBtn.onclick = function () {
+          importHistFile.click();
+        };
+        importHistFile.addEventListener("change", function () {
+          var file = importHistFile.files && importHistFile.files[0];
+          if (file) importHistoryFile(file);
+          importHistFile.value = "";
+        });
+        clearHistoryBtn.onclick = clearHistory;
+
+        toggleHelpBtn.onclick = function () {
+          var show = helpBox.style.display === "none";
+          helpBox.style.display = show ? "block" : "none";
+          if (show) {
+            helpSearch.value = "";
+            renderHelp("");
+            helpSearch.focus();
+          }
+        };
+
+        helpCloseBtn.onclick = function () {
+          helpBox.style.display = "none";
+        };
+
+        helpLoadSampleBtn.onclick = function () {
+          db = sampleDB();
+          persistDB();
+          rebuildCollections();
+          showOk("Sample DB loaded ✅");
+        };
+
+        helpSearch.addEventListener("input", function () {
+          renderHelp(helpSearch.value);
+        });
+
+        helpBody.addEventListener("click", function (e) {
+          var btn = e.target.closest("button[data-act]");
+          if (!btn) return;
+          var act = btn.getAttribute("data-act");
+          var id = btn.getAttribute("data-id");
+          var d = DEMOS[id];
+          if (!d) return;
+
+          if (act === "load") {
+            setInputsFromPayload(d);
+            showOk("Loaded: " + (d.title || id));
+          } else if (act === "loadrun") {
+            setInputsFromPayload(d);
+            showOk("Loaded + running…");
+            run();
+          }
+        });
+
+        // ===== Init
+        statusDot.className = "dot ok";
+        statusText.textContent = "Ready ✅";
+
+        loadDBFromStorageOrSample();
+        rebuildCollections();
+        setCSVEnabled(false);
+        renderHistory();
+        renderHelp("");
+      })();
+    </script>
+  </body>
+</html>
