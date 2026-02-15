@@ -33,25 +33,11 @@
 
       body {
         margin: 0;
-        font-family:
-          system-ui,
-          -apple-system,
-          Segoe UI,
-          Roboto,
-          Arial,
-          sans-serif;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
         color: var(--ink);
         background:
-          radial-gradient(
-            1200px 600px at 15% -10%,
-            rgba(245, 158, 11, 0.18),
-            transparent 55%
-          ),
-          radial-gradient(
-            900px 500px at 85% 0%,
-            rgba(217, 119, 6, 0.16),
-            transparent 60%
-          ),
+          radial-gradient(1200px 600px at 15% -10%, rgba(245, 158, 11, 0.18), transparent 55%),
+          radial-gradient(900px 500px at 85% 0%, rgba(217, 119, 6, 0.16), transparent 60%),
           linear-gradient(180deg, var(--bg), #ffffff);
       }
 
@@ -127,6 +113,11 @@
         border-color: rgba(185, 28, 28, 0.25);
         background: rgba(185, 28, 28, 0.08);
       }
+      .btn:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+        transform: none;
+      }
 
       .grid {
         display: grid;
@@ -160,12 +151,14 @@
       }
 
       select,
-      input[type="number"] {
+      input[type="number"],
+      textarea.inputBox {
         border: 1px solid var(--border);
         border-radius: 12px;
         padding: 8px 10px;
         font-weight: 800;
         background: #fff;
+        font-family: inherit;
       }
 
       .hint {
@@ -331,10 +324,26 @@
         font-weight: 900;
       }
 
-      .footerHint {
-        margin-top: 2px;
+      .modePill {
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: rgba(245, 158, 11, 0.12);
+        font-weight: 950;
         font-size: 12px;
-        color: var(--muted);
+      }
+
+      textarea.inputBox {
+        width: 100%;
+        min-height: 110px;
+        resize: vertical;
+        font-family: var(--mono);
+        font-size: 12.5px;
+        line-height: 1.5;
+        padding: 10px;
       }
     </style>
   </head>
@@ -344,50 +353,26 @@
       <div class="top">
         <div class="title">
           <h1>🧠 Programmer's Picnic — JavaScript Editor</h1>
-          <span class="badge"> </span>
+          <span class="badge"></span>
         </div>
 
         <div class="btnbar">
-          <button
-            class="btn primary"
-            id="run"
-            title="Run current code (Ctrl/⌘ + Enter)"
-          >
+          <button class="btn primary" id="run" title="Run current code (Ctrl/⌘ + Enter)">
             ▶ Run
           </button>
-          <button
-            class="btn danger"
-            id="stop"
-            title="Stop (terminate current worker)"
-          >
+          <button class="btn danger" id="stop" title="Stop (terminate current worker)">
             ⛔ Stop
           </button>
-          <button
-            class="btn"
-            id="runTests"
-            title="Run tests for selected problem"
-          >
+          <button class="btn" id="runTests" title="Run tests for selected problem">
             🏁 Run Tests
           </button>
-          <button
-            class="btn"
-            id="reset"
-            title="Reset editor to starter for this problem"
-          >
+          <button class="btn" id="reset" title="Reset editor to starter for this problem">
             ♻ Reset
           </button>
-          <button
-            class="btn"
-            id="share"
-            title="Copy a shareable link (includes code)"
-          >
+          <button class="btn" id="share" title="Copy a shareable link (includes code)">
             🔗 Share
           </button>
-          <button
-            class="btn"
-            id="download"
-            title="Download this as a standalone HTML file"
-          >
+          <button class="btn" id="download" title="Download this as a standalone HTML file">
             ⬇ App
           </button>
         </div>
@@ -421,22 +406,24 @@
           </div>
           <div style="padding: 12px">
             <textarea id="editor" class="editor" spellcheck="false"></textarea>
-            <div class="footerHint">
-              Tip: In problems, define
-              <code>function solve(input){...}</code> and return the final
-              value. You can still use <code>console.log</code> for debugging.
-            </div>
           </div>
         </div>
 
-        <!-- RIGHT: Problem + Output + Judge -->
+        <!-- RIGHT: Problem + Input + Output + Judge -->
         <div class="card">
           <div class="paneHead">
             <div class="meta">
-              <b>Problem Mode</b>
-              <select id="problem"></select>
+              <b>Mode</b>
+              <select id="modeSel" title="Switch between Practice and Judge mode">
+                <option value="practice">🧪 Practice Mode</option>
+                <option value="judge">🏁 Judge Mode</option>
+              </select>
+              <span class="modePill" id="modeHint">Write any JS. Use console.log().</span>
             </div>
+
             <div class="meta">
+              <b>Problem</b>
+              <select id="problem"></select>
               <button class="btn" id="starterBtn" title="Load starter template">
                 ⚡ Starter
               </button>
@@ -449,11 +436,22 @@
               <p id="pStatement" class="hint">—</p>
               <div class="row2">
                 <div class="hint"><b>Input:</b> <span id="pInput">—</span></div>
-                <div class="hint">
-                  <b>Output:</b> <span id="pOutput">—</span>
-                </div>
+                <div class="hint"><b>Output:</b> <span id="pOutput">—</span></div>
               </div>
               <p class="hint" id="pNotes"></p>
+            </div>
+
+            <div class="block">
+              <h3>Custom Input (Practice Mode)</h3>
+              <p class="hint" style="margin-top: 6px">
+                This text is available to your program as the variable <code>input</code>.
+                You can parse it yourself (split lines, JSON.parse, Number, etc.).
+              </p>
+              <textarea
+                id="customInput"
+                class="inputBox"
+                placeholder="Example:\n5\n\nOr JSON:\n{\"n\":5}"
+              ></textarea>
             </div>
 
             <div class="block">
@@ -469,13 +467,11 @@
 
             <div class="block">
               <h3>Judge</h3>
-              <div class="hint" style="margin-bottom: 8px">
-                <!-- We call your <code>solve(input)</code> directly in a worker.
-                Hidden tests are included in the score. -->
+              <div class="hint" id="judgeHint" style="margin-bottom: 8px">
+                In Judge Mode, define <code>function solve(input){...}</code> and return the final value.
+                Then click <b>🏁 Run Tests</b>.
               </div>
-              <div id="judgeSummary" class="small" style="margin-bottom: 8px">
-                —
-              </div>
+              <div id="judgeSummary" class="small" style="margin-bottom: 8px">—</div>
               <div class="judgeList" id="judge"></div>
             </div>
 
@@ -495,6 +491,11 @@
        * - share link embeds code (URL hash)
        * - problem statement panel
        * - FULL console methods (best-effort)
+       *
+       * Updates (Practice + Judge modes):
+       * - Practice Mode: no solve() required
+       * - Judge Mode: tests require solve(input) (friendly message)
+       * - Added Custom Input box passed as "input"
        **********************/
 
       // ----- Problems (extend freely) -----
@@ -507,18 +508,20 @@
           inputDesc: "A single non-negative integer N.",
           outputDesc: "Sum from 1..N (0 if N is 0).",
           notes:
-            "Implement solve(n) and return a number. Example: solve(5) → 15.",
+            "Judge Mode: define solve(input) and return the answer. Example: solve(5) → 15.",
           starter: `// Sum N
-// Define solve(n) and RETURN the answer.
-// You may use console.log for debugging.
+// Judge Mode starter:
+// Define solve(input) and RETURN the answer.
+// "input" here will be the test value (a number).
 
-function solve(n){
+function solve(input){
+  const n = Number(input);
   // TODO
   return 0;
 }
 
-// Quick manual run:
-console.log(solve(5));`,
+// Debug:
+console.log("Try:", solve(5));`,
           tests: [
             { name: "Sample 1", input: 5, expected: 15 },
             { name: "Sample 2", input: 10, expected: 55 },
@@ -533,11 +536,13 @@ console.log(solve(5));`,
             "Given an integer N, return true if it is a prime number, else return false.",
           inputDesc: "A single integer N.",
           outputDesc: "Boolean true/false.",
-          notes: "Treat N ≤ 1 as not prime. Return a boolean (true/false).",
+          notes: "Judge Mode: treat N ≤ 1 as not prime. Return a boolean (true/false).",
           starter: `// Prime Check
+// Judge Mode starter:
 // Return true/false
 
-function solve(n){
+function solve(input){
+  const n = Number(input);
   // TODO
   return false;
 }
@@ -557,16 +562,18 @@ console.log(solve(7));`,
             "Given an integer N, return true if it is even number, else return false.",
           inputDesc: "A single integer N.",
           outputDesc: "Boolean true/false.",
-          notes: "Treat a N divided by 2 remainder 0 as even.",
+          notes: "Judge Mode: remainder 0 when divided by 2 means even.",
           starter: `// Even Check
+// Judge Mode starter:
 // Return true/false
 
-function solve(n){
+function solve(input){
+  const n = Number(input);
   // TODO
   return false;
 }
 
-console.log(solve(7));`,
+console.log(solve(8));`,
           tests: [
             { name: "Even", input: 8, expected: true },
             { name: "Odd", input: 11, expected: false },
@@ -595,6 +602,14 @@ console.log(solve(7));`,
       const pNotes = document.getElementById("pNotes");
       const judgeSummary = document.getElementById("judgeSummary");
 
+      const modeSel = document.getElementById("modeSel");
+      const modeHint = document.getElementById("modeHint");
+      const customInput = document.getElementById("customInput");
+      const judgeHint = document.getElementById("judgeHint");
+
+      const btnRun = document.getElementById("run");
+      const btnRunTests = document.getElementById("runTests");
+
       // ----- Utilities -----
       const nowStamp = () => new Date().toLocaleString();
 
@@ -619,8 +634,7 @@ console.log(solve(7));`,
         if (typeof v === "number") return { t: "number", v: v };
         if (typeof v === "boolean") return { t: "boolean", v: v };
         if (typeof v === "string") return { t: "string", v: v.trim() };
-        if (v && typeof v === "object")
-          return { t: "json", v: JSON.stringify(v) };
+        if (v && typeof v === "object") return { t: "json", v: JSON.stringify(v) };
         if (typeof v === "undefined") return { t: "undefined", v: undefined };
         return { t: typeof v, v: v };
       }
@@ -630,6 +644,19 @@ console.log(solve(7));`,
         const E = normalizeForCompare(expected);
         if (A.t !== E.t) return false;
         return A.v === E.v;
+      }
+
+      function hasSolveFunction(code) {
+        // Simple, practical detection for classroom use (not a full parser)
+        const patterns = [
+          /function\s+solve\s*\(/,
+          /const\s+solve\s*=\s*\(/,
+          /let\s+solve\s*=\s*\(/,
+          /var\s+solve\s*=\s*\(/,
+          /solve\s*=\s*function\s*\(/,
+          /function\s*\(\s*input\s*\)\s*{[\s\S]*}/, // loose
+        ];
+        return patterns.some((re) => re.test(code));
       }
 
       // ----- Problem selection UI -----
@@ -683,6 +710,8 @@ console.log(solve(7));`,
           const store = loadStore();
           store[codeKey(p.id)] = editor.value;
           store["lastProblem"] = p.id;
+          store["mode"] = modeSel.value;
+          store["customInput"] = customInput.value;
           saveStore(store);
           saveState.textContent = "Saved";
           saveState.style.color = "var(--muted)";
@@ -723,10 +752,12 @@ console.log(solve(7));`,
       function buildShareHash() {
         const p = getProblem();
         const payload = {
-          v: 2,
+          v: 3,
           p: p.id,
           t: Number(timeoutMsEl.value) || 2000,
           c: editor.value,
+          m: modeSel.value,
+          i: customInput.value,
         };
         return "#cb=" + b64EncodeUnicode(JSON.stringify(payload));
       }
@@ -737,7 +768,8 @@ console.log(solve(7));`,
         if (!m) return false;
         try {
           const payload = JSON.parse(b64DecodeUnicode(m[1]));
-          if (!payload || payload.v !== 2) return false;
+          if (!payload || (payload.v !== 2 && payload.v !== 3)) return false;
+
           const problemId = payload.p || PROBLEMS[0].id;
           probSel.value = problemId;
           const p = getProblem();
@@ -745,10 +777,17 @@ console.log(solve(7));`,
           editor.value = String(payload.c || p.starter);
           timeoutMsEl.value = String(payload.t || 2000);
 
+          if (payload.v === 3) {
+            modeSel.value = payload.m === "judge" ? "judge" : "practice";
+            customInput.value = String(payload.i || "");
+          }
+
           // Save immediately
           const store = loadStore();
           store[codeKey(p.id)] = editor.value;
           store["lastProblem"] = p.id;
+          store["mode"] = modeSel.value;
+          store["customInput"] = customInput.value;
           saveStore(store);
 
           return true;
@@ -786,7 +825,7 @@ const __info = [];
 const __debug = [];
 const __warn = [];
 const __trace = [];
-const __groupEvents = []; // markers for group/groupEnd
+const __groupEvents = [];
 const __counts = new Map();
 const __timers = new Map();
 
@@ -803,17 +842,10 @@ function __stringifyOne(x) {
   }
 }
 
-function __formatArgs(args) {
-  return args.map(__stringifyOne).join(" ");
-}
+function __formatArgs(args) { return args.map(__stringifyOne).join(" "); }
+function __push(arr, args) { arr.push(__formatArgs(args)); }
 
-function __push(arr, args) {
-  arr.push(__formatArgs(args));
-}
-
-function __timeNow() {
-  try { return performance.now(); } catch { return Date.now(); }
-}
+function __timeNow() { try { return performance.now(); } catch { return Date.now(); } }
 
 function __stackTrace(skip = 0) {
   try {
@@ -860,19 +892,13 @@ const safeConsole = {
 
   time: (label = "default") => {
     const k = String(label);
-    if (__timers.has(k)) {
-      __warn.push("Timer '" + k + "' already exists");
-      return;
-    }
+    if (__timers.has(k)) { __warn.push("Timer '" + k + "' already exists"); return; }
     __timers.set(k, __timeNow());
   },
 
   timeLog: (label = "default", ...a) => {
     const k = String(label);
-    if (!__timers.has(k)) {
-      __warn.push("Timer '" + k + "' does not exist");
-      return;
-    }
+    if (!__timers.has(k)) { __warn.push("Timer '" + k + "' does not exist"); return; }
     const ms = __timeNow() - __timers.get(k);
     const extra = a.length ? " " + __formatArgs(a) : "";
     __log.push(k + ": " + ms.toFixed(3) + "ms" + extra);
@@ -880,10 +906,7 @@ const safeConsole = {
 
   timeEnd: (label = "default") => {
     const k = String(label);
-    if (!__timers.has(k)) {
-      __warn.push("Timer '" + k + "' does not exist");
-      return;
-    }
+    if (!__timers.has(k)) { __warn.push("Timer '" + k + "' does not exist"); return; }
     const ms = __timeNow() - __timers.get(k);
     __timers.delete(k);
     __log.push(k + ": " + ms.toFixed(3) + "ms");
@@ -898,54 +921,31 @@ const safeConsole = {
     const title = a.length ? __formatArgs(a) : "";
     __groupEvents.push({ type: "group", title });
   },
-
   groupCollapsed: (...a) => {
     const title = a.length ? __formatArgs(a) : "";
     __groupEvents.push({ type: "groupCollapsed", title });
   },
-
-  groupEnd: () => {
-    __groupEvents.push({ type: "groupEnd" });
-  },
+  groupEnd: () => { __groupEvents.push({ type: "groupEnd" }); },
 
   dir: (...a) => __push(__log, a),
   dirxml: (...a) => __push(__log, a),
 
   table: (data, columns) => {
-    try {
-      __log.push("[table] " + JSON.stringify({ data, columns }));
-    } catch {
-      __log.push("[table] (unserializable)");
-    }
+    try { __log.push("[table] " + JSON.stringify({ data, columns })); }
+    catch { __log.push("[table] (unserializable)"); }
   },
 
   clear: () => {
-    __log.length = 0;
-    __err.length = 0;
-    __info.length = 0;
-    __debug.length = 0;
-    __warn.length = 0;
-    __trace.length = 0;
-    __groupEvents.length = 0;
-    __counts.clear();
-    __timers.clear();
+    __log.length = 0; __err.length = 0; __info.length = 0; __debug.length = 0; __warn.length = 0; __trace.length = 0; __groupEvents.length = 0;
+    __counts.clear(); __timers.clear();
   },
 
-  profile: (label = "default") => {
-    __warn.push("console.profile('" + label + "') not supported in this sandbox");
-  },
-
-  profileEnd: (label = "default") => {
-    __warn.push("console.profileEnd('" + label + "') not supported in this sandbox");
-  },
+  profile: (label = "default") => { __warn.push("console.profile('" + label + "') not supported"); },
+  profileEnd: (label = "default") => { __warn.push("console.profileEnd('" + label + "') not supported"); },
 };
-
 Object.freeze(safeConsole);
 
-/* ===== Runner ===== */
-function reply(obj){
-  try { postMessage(obj); } catch(e) {}
-}
+function reply(obj){ try { postMessage(obj); } catch(e) {} }
 
 let __timer = null;
 
@@ -953,41 +953,36 @@ onmessage = (e) => {
   const msg = e.data || {};
   const code = String(msg.code || "");
   const input = msg.input;
+  const mode = String(msg.mode || "run");
 
-  // reset streams (keep counts/timers across run inside same worker instance, but we recreate worker per run anyway)
   __log.length = 0; __err.length = 0; __info.length = 0; __debug.length = 0; __warn.length = 0; __trace.length = 0; __groupEvents.length = 0;
 
   if (__timer) clearTimeout(__timer);
 
   try {
     __timer = setTimeout(() => {
-      reply({
-        ok:false,
-        kind:"timeout-soft",
-        log: __log.slice(),
-        err: __err.slice(),
-        info: __info.slice(),
-        debug: __debug.slice(),
-        warn: __warn.slice(),
-        trace: __trace.slice(),
-        groups: __groupEvents.slice()
+      reply({ ok:false, kind:"timeout-soft",
+        log: __log.slice(), err: __err.slice(), info: __info.slice(), debug: __debug.slice(), warn: __warn.slice(), trace: __trace.slice(), groups: __groupEvents.slice()
       });
     }, Math.max(50, Number(msg.timeoutMs) || 2000));
 
-    // isolate user code in a function scope
-    const runner = new Function("console", "input", \`
+    const runner = new Function("console", "input", "mode", \`
       "use strict";
       \${code}
 
-      if (typeof solve !== "function") {
-        throw new Error("Missing required function: solve(input)");
+      // Practice/Run: no solve() required. User code executes as-is.
+      // Judge/Test: if solve exists, call it. (Main thread also checks.)
+      if (mode === "test") {
+        if (typeof solve !== "function") {
+          throw new Error("Missing solve(input). Click ⚡ Starter or define function solve(input){...}");
+        }
+        return solve(input);
       }
 
-      const __result = solve(input);
-      return __result;
+      return undefined;
     \`);
 
-    const result = runner(safeConsole, input);
+    const result = runner(safeConsole, input, mode);
 
     clearTimeout(__timer);
     reply({
@@ -1019,30 +1014,25 @@ onmessage = (e) => {
 };
           `;
 
-          const blob = new Blob([workerSource], {
-            type: "application/javascript",
-          });
+          const blob = new Blob([workerSource], { type: "application/javascript" });
           workerURL = URL.createObjectURL(blob);
           worker = new Worker(workerURL);
 
-          const hardTimeout = setTimeout(
-            () => {
-              killWorker();
-              resolve({
-                ok: false,
-                kind: "timeout",
-                error: "Timeout",
-                log: [],
-                err: [],
-                info: [],
-                debug: [],
-                warn: [],
-                trace: [],
-                groups: [],
-              });
-            },
-            Math.max(100, timeoutMs),
-          );
+          const hardTimeout = setTimeout(() => {
+            killWorker();
+            resolve({
+              ok: false,
+              kind: "timeout",
+              error: "Timeout",
+              log: [],
+              err: [],
+              info: [],
+              debug: [],
+              warn: [],
+              trace: [],
+              groups: [],
+            });
+          }, Math.max(100, timeoutMs));
 
           worker.onmessage = (ev) => {
             clearTimeout(hardTimeout);
@@ -1077,7 +1067,6 @@ onmessage = (e) => {
       }
 
       function renderStreams(r) {
-        // Show in a readable order
         const blocks = [];
         const pushBlock = (label, arr) => {
           if (arr && arr.length) blocks.push(`— ${label} —\n` + arr.join("\n"));
@@ -1089,15 +1078,38 @@ onmessage = (e) => {
         pushBlock("stderr", r.err);
         pushBlock("trace", r.trace);
 
-        // groups are markers; we show them as-is for now (Phase-2)
         if (r.groups && r.groups.length) {
-          blocks.push(
-            "— groups —\n" + r.groups.map((g) => JSON.stringify(g)).join("\n"),
-          );
+          blocks.push("— groups —\n" + r.groups.map((g) => JSON.stringify(g)).join("\n"));
         }
 
         if (blocks.length) setOut(blocks.join("\n\n"));
         else setOut("");
+      }
+
+      function syncModeUI() {
+        const mode = modeSel.value;
+
+        if (mode === "practice") {
+          modeHint.textContent = "Write any JS. Use console.log().";
+          btnRun.title = "Run code (Practice Mode)";
+          btnRunTests.disabled = true;
+          btnRunTests.title = "Switch to Judge Mode to run tests";
+          judgeHint.style.opacity = "0.95";
+          judgeHint.innerHTML =
+            'Switch to <b>🏁 Judge Mode</b> for tests. In Judge Mode, define <code>function solve(input){...}</code> and return the final value.';
+        } else {
+          modeHint.textContent = "Define solve(input) to run tests.";
+          btnRun.title = "Run code (you can still use console.log)";
+          btnRunTests.disabled = false;
+          btnRunTests.title = "Run tests for selected problem (Judge Mode)";
+          judgeHint.style.opacity = "1";
+          judgeHint.innerHTML =
+            'In Judge Mode, define <code>function solve(input){...}</code> and return the final value. Then click <b>🏁 Run Tests</b>.';
+        }
+
+        const store = loadStore();
+        store["mode"] = mode;
+        saveStore(store);
       }
 
       async function runCodeOnly() {
@@ -1108,7 +1120,13 @@ onmessage = (e) => {
         setOut("");
 
         const code = editor.value;
-        const payload = { mode: "run", code, input: undefined };
+        const mode = modeSel.value;
+
+        // Practice Mode: pass custom input string (available as variable "input")
+        // Judge Mode: Run button still just runs code (no auto-solve call) so learners can debug with console.
+        const inputVal = customInput.value;
+
+        const payload = { mode: "run", code, input: inputVal };
 
         const started = Date.now();
         const r = await runInWorker(payload, timeoutMs);
@@ -1122,11 +1140,7 @@ onmessage = (e) => {
           appendOut(out.textContent ? "\n✓ Done" : "✓ Done");
           setExecState("ok", "Done");
         } else {
-          appendOut(
-            out.textContent
-              ? "\n✗ " + (r.error || "Error")
-              : "✗ " + (r.error || "Error"),
-          );
+          appendOut(out.textContent ? "\n✗ " + (r.error || "Error") : "✗ " + (r.error || "Error"));
           setExecState("bad", r.kind === "timeout" ? "Timeout" : "Error");
         }
       }
@@ -1162,15 +1176,31 @@ onmessage = (e) => {
       }
 
       async function runProblemTests() {
+        if (modeSel.value !== "judge") {
+          setOut("🧪 You are in Practice Mode.\nSwitch to 🏁 Judge Mode to run tests.");
+          setExecState("warn", "Practice mode");
+          return;
+        }
+
         const p = getProblem();
         const timeoutMs = Number(timeoutMsEl.value) || 2000;
+
+        const code = editor.value;
+        if (!hasSolveFunction(code)) {
+          setExecState("warn", "Need solve()");
+          setOut(
+            "⚠ To run tests, define:\n\nfunction solve(input){\n  // ...\n  return ...;\n}\n\nTip: Click ⚡ Starter to insert a template."
+          );
+          judge.innerHTML = "";
+          judgeSummary.textContent = "—";
+          return;
+        }
 
         setExecState("warn", "Testing…");
         setOut("");
         judge.innerHTML = "";
         judgeSummary.textContent = "Running…";
 
-        const code = editor.value;
         let pass = 0;
         const total = p.tests.length;
         let visibleFailCount = 0;
@@ -1183,7 +1213,7 @@ onmessage = (e) => {
 
           const r = await runInWorker(
             { mode: "test", code, input: safeJsonClone(t.input) },
-            timeoutMs,
+            timeoutMs
           );
           const ms = Date.now() - started;
 
@@ -1202,15 +1232,10 @@ onmessage = (e) => {
               infoLines.push(`got: ${JSON.stringify(r.result)}`);
             }
 
-            // show only log/warn/error quickly for tests
-            if (r.log && r.log.length)
-              infoLines.push(`log: ${r.log.join(" | ")}`);
-            if (r.warn && r.warn.length)
-              infoLines.push(`warn: ${r.warn.join(" | ")}`);
-            if (r.err && r.err.length)
-              infoLines.push(`stderr: ${r.err.join(" | ")}`);
-            if (r.trace && r.trace.length)
-              infoLines.push(`trace: ${r.trace[0].split("\n")[0]}...`);
+            if (r.log && r.log.length) infoLines.push(`log: ${r.log.join(" | ")}`);
+            if (r.warn && r.warn.length) infoLines.push(`warn: ${r.warn.join(" | ")}`);
+            if (r.err && r.err.length) infoLines.push(`stderr: ${r.err.join(" | ")}`);
+            if (r.trace && r.trace.length) infoLines.push(`trace: ${r.trace[0].split("\n")[0]}...`);
             infoLines.push(`time: ${ms} ms`);
 
             judge.appendChild(
@@ -1219,22 +1244,17 @@ onmessage = (e) => {
                 hidden: !!t.hidden,
                 status: ok ? "PASS" : "FAIL",
                 info: infoLines.join(" • "),
-              }),
+              })
             );
           } else {
             if (!t.hidden) visibleFailCount++;
 
             const infoLines = [];
             infoLines.push(`input: ${JSON.stringify(t.input)}`);
-            infoLines.push(
-              `error: ${r.kind === "timeout" ? "Timeout" : r.error || "Error"}`,
-            );
-            if (r.log && r.log.length)
-              infoLines.push(`log: ${r.log.join(" | ")}`);
-            if (r.warn && r.warn.length)
-              infoLines.push(`warn: ${r.warn.join(" | ")}`);
-            if (r.err && r.err.length)
-              infoLines.push(`stderr: ${r.err.join(" | ")}`);
+            infoLines.push(`error: ${r.kind === "timeout" ? "Timeout" : r.error || "Error"}`);
+            if (r.log && r.log.length) infoLines.push(`log: ${r.log.join(" | ")}`);
+            if (r.warn && r.warn.length) infoLines.push(`warn: ${r.warn.join(" | ")}`);
+            if (r.err && r.err.length) infoLines.push(`stderr: ${r.err.join(" | ")}`);
             infoLines.push(`time: ${ms} ms`);
 
             judge.appendChild(
@@ -1243,7 +1263,7 @@ onmessage = (e) => {
                 hidden: !!t.hidden,
                 status: "ERROR",
                 info: infoLines.join(" • "),
-              }),
+              })
             );
           }
         }
@@ -1259,13 +1279,11 @@ onmessage = (e) => {
 
         if (pass === total) {
           setExecState("ok", "All Pass");
-          setOut(
-            "✓ All tests passed.\nReady to submit / move to next problem.",
-          );
+          setOut("✓ All tests passed.\nReady to submit / move to next problem.");
         } else {
           setExecState("bad", "Some Fail");
           setOut(
-            `✗ Not all tests passed.\nScore: ${pass}/${total}\n\nTip: Read the FAIL cards. For hidden fails, try more edge cases yourself.`,
+            `✗ Not all tests passed.\nScore: ${pass}/${total}\n\nTip: Read the FAIL cards. For hidden fails, try more edge cases yourself.`
           );
         }
       }
@@ -1283,7 +1301,11 @@ onmessage = (e) => {
 
       document.getElementById("starterBtn").onclick = () => {
         const p = getProblem();
+        // Always provide solve(input) starter (works best in Judge Mode)
         editor.value = p.starter;
+        // Helpful: auto-switch to Judge Mode when they click Starter
+        modeSel.value = "judge";
+        syncModeUI();
         markDirty();
       };
 
@@ -1293,6 +1315,8 @@ onmessage = (e) => {
         const store = loadStore();
         store[codeKey(p.id)] = editor.value;
         store["lastProblem"] = p.id;
+        store["mode"] = modeSel.value;
+        store["customInput"] = customInput.value;
         saveStore(store);
         setOut("♻ Reset to starter.");
         judge.innerHTML = "";
@@ -1308,21 +1332,18 @@ onmessage = (e) => {
           setOut("🔗 Share link copied to clipboard:\n" + url);
         } catch {
           window.open(
-            "https://wa.me/?text=" +
-              encodeURIComponent("Champak Brain JS Editor:\n" + url),
-            "_blank",
+            "https://wa.me/?text=" + encodeURIComponent("Champak Brain JS Editor:\n" + url),
+            "_blank"
           );
           setOut("Opened WhatsApp share (clipboard not available).");
         }
       };
 
       document.getElementById("download").onclick = () => {
-        const blob = new Blob([document.documentElement.outerHTML], {
-          type: "text/html",
-        });
+        const blob = new Blob([document.documentElement.outerHTML], { type: "text/html" });
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
-        a.download = "champak-brain-js-editor-phase2-proper.html";
+        a.download = "champak-brain-js-editor-phase2-practice-judge.html";
         a.click();
         URL.revokeObjectURL(a.href);
       };
@@ -1340,6 +1361,7 @@ onmessage = (e) => {
 
       // ----- Editor events -----
       editor.addEventListener("input", markDirty);
+      customInput.addEventListener("input", markDirty);
 
       editor.addEventListener("keydown", (e) => {
         if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
@@ -1357,13 +1379,18 @@ onmessage = (e) => {
         }
       });
 
+      modeSel.addEventListener("change", () => {
+        syncModeUI();
+        markDirty();
+      });
+
       // ----- Init -----
       function init() {
         populateProblems();
 
         const loadedFromHash = tryLoadFromHash();
-
         const store = loadStore();
+
         if (!loadedFromHash) {
           const last = store.lastProblem;
           if (last && PROBLEMS.some((p) => p.id === last)) probSel.value = last;
@@ -1372,12 +1399,18 @@ onmessage = (e) => {
           const p = getProblem();
           renderProblem(p);
           loadEditorForProblem(p, false);
+
+          // restore mode + input
+          modeSel.value = store.mode === "judge" ? "judge" : "practice";
+          customInput.value = typeof store.customInput === "string" ? store.customInput : "";
         } else {
           renderProblem(getProblem());
         }
 
+        syncModeUI();
+
         setOut(
-          "Ready.\n▶ Run for manual output.\n🏁 Run Tests for the selected problem.",
+          "Ready.\n🧪 Practice Mode: write any JS + console.log.\n🏁 Judge Mode: define solve(input) then Run Tests."
         );
         setExecState("", "Idle");
         lastRun.textContent = "—";
