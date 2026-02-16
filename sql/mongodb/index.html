@@ -611,6 +611,29 @@
             <button class="chip" data-demo="join_orders_users">
               Join: orders + user details
             </button>
+
+            <!-- SQL-style examples -->
+            <button class="chip" data-demo="agg_cricket_maxminsumavg">
+              Oracle Agg: batsman stats
+            </button>
+            <button class="chip" data-demo="agg_matchtype_max">
+              Oracle Agg: max score by match type
+            </button>
+            <button class="chip" data-demo="having_max_ge_100">
+              Oracle Agg: HAVING max≥100
+            </button>
+            <button class="chip" data-demo="join_cricketers_footballers">
+              SQL Join: cricketers ⟕ footballers
+            </button>
+            <button class="chip" data-demo="join_trains_stops_between">
+              Join: trains between stations
+            </button>
+            <button class="chip" data-demo="keys_check_duplicate_rollno">
+              Keys: find duplicate RollNo
+            </button>
+            <button class="chip" data-demo="keys_check_duplicate_ticket">
+              Keys: composite key duplicates
+            </button>
           </div>
 
           <div class="row" style="margin-top: 10px">
@@ -1121,6 +1144,142 @@
                 city: "Mumbai",
                 ts: "2026-02-12",
               },
+            ],
+            // --- SQL-style demo collections (from your PDFs) ---
+            students: [
+              { RollNo: 1, Name: "Himanshu", Age: 35, Course: "MBBS" },
+              { RollNo: 2, Name: "Himanshu", Age: 35, Course: "MBBS" },
+              { RollNo: 3, Name: "Ashish", Age: 15, Course: "MD" },
+            ],
+            publications: [
+              { PublicationName: "Yuva Bharati" },
+              { PublicationName: "Vivekananda Kendra Patrika" },
+            ],
+            subscribers: [
+              { PublicationName: "Yuva Bharati", CustomerId: "Ashish" },
+              {
+                PublicationName: "Vivekananda Kendra Patrika",
+                CustomerId: "Manish",
+              },
+            ],
+            tickets: [
+              {
+                TicketNo: "T1",
+                PNRNo: "P1",
+                PassengerName: "Ashish",
+                DateofJourney: "2013-01-01",
+                TrainNo: "1",
+                CoachNo: "S1",
+                BerthNo: 1,
+                compositeKey: "P1#1",
+              },
+              {
+                TicketNo: "T2",
+                PNRNo: "P2",
+                PassengerName: "New Ashish",
+                DateofJourney: "2013-01-01",
+                TrainNo: "1",
+                CoachNo: "S2",
+                BerthNo: 1,
+                compositeKey: "P2#1",
+              },
+            ],
+            cricketers: [
+              { name: "A", runs: 100 },
+              { name: "C", runs: 150 },
+            ],
+            footballers: [
+              { name: "B", goals: 15 },
+              { name: "C", goals: 25 },
+            ],
+            cricket_scores: [
+              {
+                batsman: "Champak",
+                InningsNo: 1,
+                MatchType: "Test",
+                score: 111,
+              },
+              {
+                batsman: "Champak",
+                InningsNo: 1,
+                MatchType: "One Day",
+                score: 112,
+              },
+              {
+                batsman: "Gaurav",
+                InningsNo: 1,
+                MatchType: "One Day",
+                score: 0,
+              },
+              {
+                batsman: "Gaurav",
+                InningsNo: 2,
+                MatchType: "One Day",
+                score: 10,
+              },
+              {
+                batsman: "Champak",
+                InningsNo: 2,
+                MatchType: "One Day",
+                score: 113,
+              },
+              {
+                batsman: "Pappu",
+                InningsNo: 1,
+                MatchType: "One Day",
+                score: 3,
+              },
+              {
+                batsman: "Pappu",
+                InningsNo: 2,
+                MatchType: "One Day",
+                score: 2,
+              },
+              {
+                batsman: "Pappu",
+                InningsNo: 3,
+                MatchType: "One Day",
+                score: 1,
+              },
+              {
+                batsman: "Pappu",
+                InningsNo: 4,
+                MatchType: "One Day",
+                score: 0,
+              },
+              {
+                batsman: "Pappu",
+                InningsNo: 5,
+                MatchType: "One Day",
+                score: 0,
+              },
+            ],
+            trains: [
+              {
+                TrainNo: "1",
+                TrainName: "Mahanagari",
+                Source: "Varanasi",
+                Dest: "Mumbai",
+              },
+              {
+                TrainNo: "2",
+                TrainName: "Mahanagari",
+                Source: "Mumbai",
+                Dest: "Varanasi",
+              },
+              {
+                TrainNo: "3",
+                TrainName: "Ratnagiri",
+                Source: "Varanasi",
+                Dest: "Mumbai",
+              },
+            ],
+            stops: [
+              { stopno: 1, trainno: "1", station: "Varanasi" },
+              { stopno: 2, trainno: "1", station: "Jabalpur" },
+              { stopno: 3, trainno: "1", station: "Itarsi" },
+              { stopno: 4, trainno: "1", station: "Jalgaon" },
+              { stopno: 5, trainno: "1", station: "Mumbai" },
             ],
           };
         }
@@ -2072,6 +2231,134 @@
             ],
             note: "Join with $lookup: each order gets a 'user' array containing matching user docs.",
           },
+          // ===== SQL / Oracle inspired demos (from PDFs)
+          agg_cricket_maxminsumavg: {
+            title: "Oracle-style aggregate: batsman stats",
+            collection: "cricket_scores",
+            op: "aggregate",
+            filter: {},
+            payload: {},
+            pipeline: [
+              {
+                $group: {
+                  _id: "$batsman",
+                  maxScore: { $max: "$score" },
+                  minScore: { $min: "$score" },
+                  avgScore: { $avg: "$score" },
+                  sumScore: { $sum: "$score" },
+                  countRows: { $sum: 1 },
+                },
+              },
+              { $sort: { maxScore: -1 } },
+            ],
+            note: "Like Oracle GROUP BY batsman with MAX/MIN/AVG/SUM/COUNT.",
+          },
+          agg_matchtype_max: {
+            title: "Oracle-style: highest score by MatchType",
+            collection: "cricket_scores",
+            op: "aggregate",
+            filter: {},
+            payload: {},
+            pipeline: [
+              { $group: { _id: "$MatchType", maxScore: { $max: "$score" } } },
+              { $sort: { maxScore: -1 } },
+            ],
+            note: "Equivalent to: SELECT MatchType, MAX(score) FROM cricket_scores GROUP BY MatchType.",
+          },
+          having_max_ge_100: {
+            title: "Oracle HAVING: max score ≥ 100",
+            collection: "cricket_scores",
+            op: "aggregate",
+            filter: {},
+            payload: {},
+            pipeline: [
+              { $group: { _id: "$batsman", maxScore: { $max: "$score" } } },
+              { $match: { maxScore: { $gte: 100 } } },
+            ],
+            note: "HAVING is like a $match AFTER $group.",
+          },
+          join_cricketers_footballers: {
+            title: "SQL join idea: who plays both games?",
+            collection: "cricketers",
+            op: "aggregate",
+            filter: {},
+            payload: {},
+            pipeline: [
+              {
+                $lookup: {
+                  from: "footballers",
+                  localField: "name",
+                  foreignField: "name",
+                  as: "football",
+                },
+              },
+              { $project: { _id: 0, name: 1, runs: 1, football: 1 } },
+              { $sort: { name: 1 } },
+            ],
+            note: "This behaves like a LEFT JOIN from cricketers to footballers (matches appear in football[]).",
+          },
+          join_trains_stops_between: {
+            title: "Join example: trains between Itarsi → Jalgaon",
+            collection: "stops",
+            op: "aggregate",
+            filter: {},
+            payload: {},
+            pipeline: [
+              { $match: { station: { $in: ["Itarsi", "Jalgaon"] } } },
+              {
+                $group: {
+                  _id: "$trainno",
+                  stations: { $sum: 1 },
+                },
+              },
+              { $match: { stations: { $gte: 2 } } },
+              {
+                $lookup: {
+                  from: "trains",
+                  localField: "_id",
+                  foreignField: "TrainNo",
+                  as: "train",
+                },
+              },
+              { $project: { _id: 0, TrainNo: "$_id", train: 1 } },
+            ],
+            note: "Simplified from the PDF: find trains whose stops include BOTH stations, then lookup train details.",
+          },
+          keys_check_duplicate_rollno: {
+            title: "Keys: find duplicate RollNo (primary key concept)",
+            collection: "students",
+            op: "aggregate",
+            filter: {},
+            payload: {},
+            pipeline: [
+              {
+                $group: {
+                  _id: "$RollNo",
+                  count: { $sum: 1 },
+                  names: { $sum: 1 },
+                },
+              },
+              { $match: { count: { $gt: 1 } } },
+            ],
+            note: "In SQL, RollNo would be PRIMARY KEY. Here we just DETECT duplicates with $group.",
+          },
+          keys_check_duplicate_ticket: {
+            title: "Keys: composite key duplicates (PNRNo + BerthNo)",
+            collection: "tickets",
+            op: "aggregate",
+            filter: {},
+            payload: {},
+            pipeline: [
+              {
+                $group: {
+                  _id: { PNRNo: "$PNRNo", BerthNo: "$BerthNo" },
+                  count: { $sum: 1 },
+                },
+              },
+              { $match: { count: { $gt: 1 } } },
+            ],
+            note: "Composite primary key check using a grouped _id object.",
+          },
         };
 
         // ===== Beginner Help (tabs)
@@ -2245,6 +2532,129 @@ Filter: {}`,
               },
             ],
             examples: ["join_orders_users"],
+          },
+
+          {
+            id: "keys",
+            title: "Keys (Primary / Composite / Foreign)",
+            cards: [
+              {
+                h: "Primary Key = unique identifier",
+                p: "In SQL, PRIMARY KEY means no duplicates and no NULL. In this playground we do not enforce uniqueness, but we can DETECT duplicates using aggregation.",
+                mono: `Detect duplicate RollNo (like PRIMARY KEY check):
+Pipeline:
+[
+  { "$group": { "_id": "$RollNo", "count": { "$sum": 1 } } },
+  { "$match": { "count": { "$gt": 1 } } }
+]`,
+              },
+              {
+                h: "Composite Key = uniqueness using multiple fields",
+                p: "A composite key uses more than one column (e.g., PNRNo + BerthNo). Here we store a precomputed field compositeKey like 'P1#1' to demonstrate uniqueness checks.",
+                mono: `Detect duplicate compositeKey:
+[
+  { "$group": { "_id": "$compositeKey", "count": { "$sum": 1 } } },
+  { "$match": { "count": { "$gt": 1 } } }
+]`,
+              },
+              {
+                h: "Foreign Key = reference to another table",
+                p: "Foreign keys connect tables. MongoDB often stores the referenced id (like orders.userId → users._id). In Mongo, the join is done via $lookup.",
+                mono: `Join orders with users:
+[
+  { "$lookup": { "from": "users", "localField": "userId", "foreignField": "_id", "as": "user" } }
+]`,
+              },
+            ],
+            examples: [
+              "keys_check_duplicate_rollno",
+              "keys_check_duplicate_ticket",
+              "join_orders_users",
+            ],
+          },
+          {
+            id: "oracleAgg",
+            title: "Oracle Aggregate Examples",
+            cards: [
+              {
+                h: "MAX / MIN / SUM / AVG / COUNT",
+                p: "Aggregate functions summarize many rows. In Mongo, use $group with $max/$min/$sum/$avg. COUNT is usually $sum: 1.",
+                mono: `Batsman wise stats:
+[
+  { "$group": {
+      "_id": "$batsman",
+      "maxScore": { "$max": "$score" },
+      "minScore": { "$min": "$score" },
+      "avgScore": { "$avg": "$score" },
+      "sumScore": { "$sum": "$score" },
+      "countRows": { "$sum": 1 }
+  } }
+]`,
+              },
+              {
+                h: "GROUP BY and HAVING",
+                p: "GROUP BY in SQL becomes $group. HAVING becomes a $match after $group.",
+                mono: `HAVING max(score) >= 100:
+[
+  { "$group": { "_id": "$batsman", "maxScore": { "$max": "$score" } } },
+  { "$match": { "maxScore": { "$gte": 100 } } }
+]`,
+              },
+            ],
+            examples: [
+              "agg_cricket_maxminsumavg",
+              "agg_matchtype_max",
+              "having_max_ge_100",
+            ],
+          },
+          {
+            id: "sqlJoins",
+            title: "SQL Joins & Set Operations",
+            cards: [
+              {
+                h: "Inner / Left / Right / Full joins",
+                p: "In SQL you can join tables in multiple ways. Here, $lookup behaves most like a LEFT JOIN (keeps left side, attaches matches in an array).",
+                mono: `LEFT JOIN idea (cricketers -> footballers):
+[
+  { "$lookup": { "from": "footballers", "localField": "name", "foreignField": "name", "as": "football" } }
+]`,
+              },
+              {
+                h: "UNION / INTERSECT / MINUS",
+                p: "These are SQL set operators. This playground does not implement UNION/INTERSECT/MINUS as operations, but the SQL examples are included below for learning.",
+                mono: `SQL examples:
+-- UNION
+select name from Cricketers
+union
+select name from Footballers;
+
+-- UNION ALL
+select name from Cricketers
+union all
+select name from Footballers;
+
+-- INTERSECT
+select name from Cricketers
+intersect
+select name from Footballers;
+
+-- MINUS
+select name from Cricketers
+minus
+select name from Footballers;`,
+              },
+              {
+                h: "Train route join example (same-table join in SQL)",
+                p: "The PDF shows joining stops table to itself (source/dest) and then joining trains. Here we provide a simplified version using $group + $lookup.",
+                mono: `Simplified in this playground:
+1) Find trainno that has BOTH stations.
+2) Lookup train details from trains.`,
+              },
+            ],
+            examples: [
+              "join_cricketers_footballers",
+              "join_trains_stops_between",
+            ],
           },
           {
             id: "troubleshoot",
