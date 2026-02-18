@@ -1,10 +1,10 @@
-// Programmer's Picnic — Pyodide Editor (Judge v2)
+// Programmer's Picnic — Pyodide Editor (Judge v2 + Matplotlib Lessons)
 // Modes:
 //   ?tmode=1 => Teacher mode (Teacher Panel visible)
 //   ?tmode=0 => Student mode (Classroom forced ON, teacher controls hidden)
 // Share button is enabled in both modes.
-
-// NOTE: Strict share revert applied:
+//
+// Strict share:
 //   - Share writes ONLY: #pp=<base64url>
 //   - Loader accepts ONLY: #pp=<base64url>
 
@@ -20,7 +20,7 @@ const STUDENT_LOCKED = TM === "0";
 const ui = {
   tabs: $("ppTabs"),
   code: $("ppCode"),
-   out: $("ppOut"),
+  out: $("ppOut"),
   gutter: $("ppGutter"),
 
   err: $("ppErr"),
@@ -173,11 +173,9 @@ async function loadProblemsFromURL(url) {
     }));
     saveRemoteCache(u, cleaned);
     return cleaned;
-  } catch (e) {
+  } catch {
     const cachedURL = localStorage.getItem(K_PROBLEMS_REMOTE_URL) || "";
-    if (cachedURL === u) {
-      return loadRemoteCache();
-    }
+    if (cachedURL === u) return loadRemoteCache();
     return [];
   }
 }
@@ -213,7 +211,9 @@ async function loadCodeFromURL(url) {
     if (!Array.isArray(tabs) || !tabs.length)
       throw new Error("Invalid code JSON");
     tabs = tabs.map((t, i) => ({
-      name: String(t?.name || (i === 0 ? "main.py" : "file" + (i + 1) + ".py")),
+      name: String(
+        t?.name || (i === 0 ? "main.py" : "file" + (i + 1) + ".py"),
+      ),
       code: String(t?.code || ""),
     }));
 
@@ -223,7 +223,7 @@ async function loadCodeFromURL(url) {
       stdin: String(stdin || ""),
       problem: String(problem || ""),
     };
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -236,12 +236,12 @@ async function loadTextFileFromURL(url) {
     if (!res.ok) throw new Error("HTTP " + res.status);
     const txt = await res.text();
     return String(txt ?? "");
-  } catch (e) {
+  } catch {
     return null;
   }
 }
 
-// Single submissions store (avoid redeclare bug)
+// Single submissions store
 const K_SUBS = "pp_class_submissions_v1";
 
 // ----- Judge timeout -----
@@ -282,6 +282,11 @@ const DEFAULT_PROBLEMS = [
 
 let PROBLEMS = [];
 
+/* -------------------------
+   MATPLOTLIB INTERACTIVE LESSONS
+   - These appear under Examples…
+   - When selected, they can auto-request packages install (matplotlib)
+-------------------------- */
 const EXAMPLES = [
   {
     title: "Hello + loops",
@@ -291,11 +296,101 @@ const EXAMPLES = [
     title: "stdin + sum",
     code: "n=int(input())\nt=0\nfor _ in range(n):\n    t+=int(input())\nprint(t)\n",
   },
+
+  // --- Matplotlib lessons ---
+  {
+    title: "📈 Matplotlib Lesson 1 — Line Plot",
+    needsPkgs: ["matplotlib"],
+    code:
+      `# Matplotlib Lesson 1: Line Plot\n` +
+      `# Goal: Plot y = x^2\n\n` +
+      `import matplotlib.pyplot as plt\n\n` +
+      `x = [0,1,2,3,4,5]\n` +
+      `y = [i*i for i in x]\n\n` +
+      `plt.figure()\n` +
+      `plt.plot(x, y, marker="o")\n` +
+      `plt.title("y = x^2")\n` +
+      `plt.xlabel("x")\n` +
+      `plt.ylabel("y")\n` +
+      `plt.grid(True)\n\n` +
+      `print("✅ Plot created. See image below.")\n` +
+      `plt.show()\n`,
+  },
+  {
+    title: "📊 Matplotlib Lesson 2 — Bar Chart",
+    needsPkgs: ["matplotlib"],
+    code:
+      `# Matplotlib Lesson 2: Bar Chart\n` +
+      `# Goal: Plot student marks\n\n` +
+      `import matplotlib.pyplot as plt\n\n` +
+      `names = ["A", "B", "C", "D"]\n` +
+      `marks = [72, 88, 64, 91]\n\n` +
+      `plt.figure()\n` +
+      `plt.bar(names, marks)\n` +
+      `plt.title("Marks")\n` +
+      `plt.xlabel("Student")\n` +
+      `plt.ylabel("Marks")\n\n` +
+      `print("✅ Bar chart created. See image below.")\n` +
+      `plt.show()\n`,
+  },
+  {
+    title: "🟣 Matplotlib Lesson 3 — Scatter + Labels",
+    needsPkgs: ["matplotlib"],
+    code:
+      `# Matplotlib Lesson 3: Scatter + Labels\n` +
+      `# Goal: Plot points and annotate them\n\n` +
+      `import matplotlib.pyplot as plt\n\n` +
+      `pts = [(1,2), (2,1), (3,4), (4,3)]\n` +
+      `x = [p[0] for p in pts]\n` +
+      `y = [p[1] for p in pts]\n\n` +
+      `plt.figure()\n` +
+      `plt.scatter(x, y)\n` +
+      `for i,(a,b) in enumerate(pts, start=1):\n` +
+      `    plt.text(a+0.05, b+0.05, f"P{i}")\n` +
+      `plt.title("Scatter + Labels")\n` +
+      `plt.grid(True)\n\n` +
+      `print("✅ Scatter plot created. See image below.")\n` +
+      `plt.show()\n`,
+  },
+  {
+    title: "📉 Matplotlib Lesson 4 — Histogram",
+    needsPkgs: ["matplotlib"],
+    code:
+      `# Matplotlib Lesson 4: Histogram\n` +
+      `# Goal: Frequency distribution\n\n` +
+      `import matplotlib.pyplot as plt\n\n` +
+      `data = [12, 15, 12, 20, 22, 15, 14, 14, 14, 18, 19, 20, 21, 22, 23]\n\n` +
+      `plt.figure()\n` +
+      `plt.hist(data, bins=6)\n` +
+      `plt.title("Histogram")\n` +
+      `plt.xlabel("Value")\n` +
+      `plt.ylabel("Frequency")\n\n` +
+      `print("✅ Histogram created. See image below.")\n` +
+      `plt.show()\n`,
+  },
+  {
+    title: "🌊 Matplotlib Lesson 5 — Multiple Plots (sin & cos)",
+    needsPkgs: ["matplotlib"],
+    code:
+      `# Matplotlib Lesson 5: Multiple Plots\n` +
+      `# Goal: Plot sin(x) and cos(x)\n\n` +
+      `import math\n` +
+      `import matplotlib.pyplot as plt\n\n` +
+      `x = [i*0.2 for i in range(0, 50)]\n` +
+      `sinx = [math.sin(v) for v in x]\n` +
+      `cosx = [math.cos(v) for v in x]\n\n` +
+      `plt.figure()\n` +
+      `plt.plot(x, sinx, label="sin(x)")\n` +
+      `plt.plot(x, cosx, label="cos(x)")\n` +
+      `plt.title("sin(x) & cos(x)")\n` +
+      `plt.legend()\n` +
+      `plt.grid(True)\n\n` +
+      `print("✅ Two curves plotted. See image below.")\n` +
+      `plt.show()\n`,
+  },
 ];
 
-const DEFAULT_TABS = [
-  { name: "main.py", code: 'print("Namaste Champak 👋")\n' },
-];
+const DEFAULT_TABS = [{ name: "main.py", code: 'print("Namaste Champak 👋")\n' }];
 
 // ----- Basic helpers -----
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
@@ -383,6 +478,33 @@ function renderInstalledPkgs() {
     .join(" ");
 }
 
+// ----- Output renderer (stdout + plots) -----
+let _lastStdout = "";
+let _lastPlots = []; // array of data:image/png;base64,...
+function renderOut(stdoutText, plots = []) {
+  _lastStdout = String(stdoutText || "");
+  _lastPlots = Array.isArray(plots) ? plots : [];
+
+  const pre = `<pre class="pp-mono pp-pre" style="margin:0">${esc(_lastStdout)}</pre>`;
+  const imgs =
+    _lastPlots.length
+      ? `<div style="margin-top:10px;display:grid;gap:10px">
+          ${_lastPlots
+            .map(
+              (src, i) =>
+                `<div style="border:1px solid var(--pp-border, rgba(31,41,55,.12));border-radius:14px;overflow:hidden;background:rgba(255,255,255,.7)">
+                   <div class="pp-small" style="padding:8px 10px;border-bottom:1px solid rgba(31,41,55,.08)">Plot #${i + 1}</div>
+                   <img alt="plot ${i + 1}" src="${src}" style="width:100%;display:block" />
+                 </div>`,
+            )
+            .join("")}
+        </div>`
+      : "";
+
+  ui.out.innerHTML = pre + imgs;
+  ui.out.scrollTop = ui.out.scrollHeight;
+}
+
 // ----- State -----
 function loadState() {
   try {
@@ -410,7 +532,7 @@ if (STUDENT_LOCKED) {
   allowPackages = true;
 }
 
-// ----- Submissions (single definition) -----
+// ----- Submissions -----
 function loadSubs() {
   try {
     return JSON.parse(localStorage.getItem(K_SUBS) || "[]");
@@ -500,6 +622,7 @@ function renderTabs() {
     b.onclick = () => switchTab(i);
     ui.tabs.appendChild(b);
   });
+
   ui.example.innerHTML =
     `<option value="">Examples…</option>` +
     EXAMPLES.map((e, i) => `<option value="${i}">${e.title}</option>`).join("");
@@ -634,13 +757,14 @@ let packagesInstalled = false;
 let installBusy = false;
 
 function classPolicy() {
-  // If packages are allowed, do not block imports; otherwise classroom blocks most imports.
   const pkgOK = !!allowPackages;
   return {
     disable_open: classroomMode,
     disable_eval_exec: false,
     block_imports: classroomMode && !pkgOK,
-    allow_imports: classroomMode && !pkgOK ? ["math"] : [],
+    allow_imports: classroomMode && !pkgOK
+      ? ["math", "random", "re", "statistics"]
+      : [],
     allow_micropip: pkgOK,
   };
 }
@@ -663,7 +787,7 @@ function makeWorker(force = false) {
       return;
     }
     if (msg.type === "PKG_LIST") {
-      writeStdout(msg.text || "", false);
+      renderOut(msg.text || "", []); // show list in stdout box
       return;
     }
     if (msg.type === "INSTALLED") {
@@ -679,10 +803,11 @@ function makeWorker(force = false) {
         (msg.pkgs || []).forEach((p) => prev.add(String(p)));
         saveInstalledPkgs(Array.from(prev).sort());
         renderInstalledPkgs();
-      } catch (e) {}
+      } catch {}
 
-      writeStdout("Installed: " + (msg.pkgs || []).join(", ") + "\\n", true);
+      renderOut("Installed: " + (msg.pkgs || []).join(", ") + "\n", []);
       setStatus("Installed.", "ok");
+      toast("Installed");
       return;
     }
     if (msg.type === "ERR") {
@@ -712,24 +837,14 @@ function runInWorker(code, stdin) {
   });
 }
 
-// ----- Output helpers -----
-function writeStdout(text, append = true) {
-  if (!append) ui.out.textContent = "";
-  ui.out.textContent += text;
-  ui.out.scrollTop = ui.out.scrollHeight;
-}
-function writeStderr(text, append = true) {
-  if (!append) ui.err.textContent = "";
-  ui.err.textContent += text;
-  ui.err.scrollTop = ui.err.scrollHeight;
-}
-
 // ----- Run -----
 async function run() {
   btn.run.disabled = true;
   btn.stop.disabled = false;
-  writeStdout("— Running —\n", false);
-  writeStderr("", false);
+
+  renderOut("— Running —\n", []);
+  ui.err.textContent = "";
+
   state.tabs[currentTab].code = ui.code.value;
   saveState();
   try {
@@ -737,25 +852,28 @@ async function run() {
     const t0 = performance.now();
     const r = await runInWorker(ui.code.value || "", ui.stdin.value || "");
     const t1 = performance.now();
-    writeStdout(r.stdout || "", false);
-    writeStderr(r.stderr ? "— stderr —\n" + (r.stderr || "") : "", false);
+
+    const plots = Array.isArray(r.plots) ? r.plots : [];
+    renderOut(r.stdout || "", plots);
+
+    ui.err.textContent = r.stderr ? "— stderr —\n" + (r.stderr || "") : "";
     if (!r.ok) {
-      writeStderr((r.error || "Runtime error") + "\n", true);
+      ui.err.textContent += (r.error || "Runtime error") + "\n";
       setStatus("Error.", "bad");
     } else {
       setStatus("Done.", "ok");
     }
-    if (ui.timer.checked)
-      writeStdout(`\n✓ Done (${Math.round(t1 - t0)} ms)\n`, true);
-    else writeStdout("\n✓ Done\n", true);
+
+    if (ui.timer.checked) {
+      renderOut((r.stdout || "") + `\n✓ Done (${Math.round(t1 - t0)} ms)\n`, plots);
+    } else {
+      renderOut((r.stdout || "") + "\n✓ Done\n", plots);
+    }
   } catch (err) {
     const isTimeout = String(err?.message || "").includes("TIMEOUT");
-    writeStderr(
-      isTimeout
-        ? "✗ Timeout (infinite loop?)\n"
-        : "✗ " + (err?.message || String(err)) + "\n",
-      false,
-    );
+    ui.err.textContent = isTimeout
+      ? "✗ Timeout (infinite loop?)\n"
+      : "✗ " + (err?.message || String(err)) + "\n";
     setStatus("Error.", "bad");
   } finally {
     btn.run.disabled = false;
@@ -789,14 +907,18 @@ async function runJudge(testList, label) {
   const code = ui.code.value || "";
   let pass = 0;
   const rows = [];
+
   for (let i = 0; i < testList.length; i++) {
     const t = testList[i];
     const name = t.hidden ? `Hidden #${i + 1}` : `Test #${i + 1}`;
     try {
       const r = await runInWorker(code, t.input);
+
+      // IMPORTANT: judge compares stdout only (plots ignored)
       const got = normalizeOut(r.stdout || "");
       const exp = normalizeOut(t.output);
       const ok = r.ok === true && got === exp;
+
       if (ok) pass++;
       rows.push({
         name,
@@ -843,13 +965,25 @@ async function runJudge(testList, label) {
       <td><b>${r.ok ? "✅" : "❌"}</b></td>
       <td>
         <div class="pp-small">${esc(r.name)} ${r.hidden ? "• hidden" : ""}</div>
-        <div style="margin-top:6px"><b>Input</b><pre class="pp-mono" style="margin:6px 0 0;padding:8px;border:1px solid var(--pp-border);border-radius:12px;background:rgba(11,18,32,.04)">${esc(r.input)}</pre></div>
-        ${showExpected ? `<div style="margin-top:8px"><b>Expected</b><pre class="pp-mono" style="margin:6px 0 0;padding:8px;border:1px solid var(--pp-border);border-radius:12px;background:rgba(11,18,32,.04)">${expText}</pre></div>` : ""}
-        <div style="margin-top:8px"><b>Got (stdout)</b><pre class="pp-mono" style="margin:6px 0 0;padding:8px;border:1px solid var(--pp-border);border-radius:12px;background:rgba(11,18,32,.04)">${gotText}</pre></div>
-        ${r.stderr ? `<div style="margin-top:8px"><b>stderr</b><pre class="pp-mono" style="margin:6px 0 0;padding:8px;border:1px solid var(--pp-border);border-radius:12px;background:rgba(11,18,32,.04)">${esc(r.stderr)}</pre></div>` : ""}
-        ${r.error ? `<div style="margin-top:8px"><b style="color:#b91c1c">Error</b><pre class="pp-mono" style="margin:6px 0 0;padding:8px;border:1px solid #f3c7c7;border-radius:12px;background:rgba(185,28,28,.06)">${esc(r.error)}</pre></div>` : ""}
+        <div style="margin-top:6px"><b>Input</b><pre class="pp-mono pp-pre">${esc(r.input)}</pre></div>
+        ${
+          showExpected
+            ? `<div style="margin-top:8px"><b>Expected</b><pre class="pp-mono pp-pre">${expText}</pre></div>`
+            : ""
+        }
+        <div style="margin-top:8px"><b>Got (stdout)</b><pre class="pp-mono pp-pre">${gotText}</pre></div>
+        ${
+          r.stderr
+            ? `<div style="margin-top:8px"><b>stderr</b><pre class="pp-mono pp-pre">${esc(r.stderr)}</pre></div>`
+            : ""
+        }
+        ${
+          r.error
+            ? `<div style="margin-top:8px"><b style="color:#b91c1c">Error</b><pre class="pp-mono pp-pre" style="border-color:#f3c7c7;background:rgba(185,28,28,.06)">${esc(r.error)}</pre></div>`
+            : ""
+        }
       </td>
-      <td>${r.ok ? `<span style="color:var(--pp-ok);font-weight:900">PASS</span>` : `<span style="color:var(--pp-bad);font-weight:900">FAIL</span>`}</td>
+      <td>${r.ok ? `<span style="color:var(--pp-ok,#16a34a);font-weight:900">PASS</span>` : `<span style="color:var(--pp-bad,#dc2626);font-weight:900">FAIL</span>`}</td>
     `;
     tb.appendChild(tr);
   });
@@ -904,6 +1038,7 @@ function installPkgs() {
   if (installBusy) return toast("Install already running");
   const raw = (ui.pkgs.value || "").trim();
   if (!raw) return toast("No packages");
+
   const pkgs = raw
     .split(/[, ]+/)
     .map((s) => s.trim())
@@ -914,19 +1049,19 @@ function installPkgs() {
     btn.install.disabled = true;
   } catch {}
 
-  writeStdout("— Installing —\n", false);
-  writeStderr("", false);
+  renderOut("— Installing —\n", []);
+  ui.err.textContent = "";
   setStatus("Installing…", "warn");
   worker.postMessage({ type: "INSTALL", pkgs, policy: classPolicy() });
   toast("Install requested");
 }
 function listPkgs() {
-  writeStdout("— Installed packages —\n", false);
-  writeStderr("", false);
+  renderOut("— Installed packages —\n", []);
+  ui.err.textContent = "";
   worker.postMessage({ type: "LIST_PKGS" });
 }
 
-// ----- Share (STRICT: only #pp=...) -----
+// ----- Share modal -----
 const shareUI = {
   modal: document.getElementById("ppShareModal"),
   input: document.getElementById("ppShareInput"),
@@ -938,7 +1073,6 @@ const shareUI = {
 
 function openShareModal(url, hint = "") {
   if (!shareUI.modal || !shareUI.input) {
-    // last-resort fallback (still better than prompt spam)
     console.log("Share link:", url);
     toast("Share link in console");
     return;
@@ -965,16 +1099,16 @@ shareUI?.copy?.addEventListener("click", async () => {
   const url = shareUI.input.value || "";
   try {
     await navigator.clipboard.writeText(url);
-    toast("Share link copied");
+    toast("Copied");
     shareUI.hint.textContent = "Copied ✓";
   } catch {
-    shareUI.hint.textContent = "Copy failed (browser blocked clipboard). Select and copy manually.";
+    shareUI.hint.textContent =
+      "Copy failed (browser blocked clipboard). Select and copy manually.";
   }
 });
 
 // ----- Share (STRICT: only #pp=...) -----
 async function share() {
-  // Save current editor state into the URL hash and copy/share the link
   state.tabs[currentTab].code = ui.code.value;
 
   const payload = {
@@ -991,25 +1125,21 @@ async function share() {
     .replaceAll("=", "");
 
   location.hash = "#pp=" + b64;
-  const url = location.origin + location.pathname + location.search + "#pp=" + b64;
+  const url =
+    location.origin + location.pathname + location.search + "#pp=" + b64;
 
-  // Mobile/native share when available
   if (navigator.share) {
     try {
       await navigator.share({ title: document.title, url });
       toast("Shared");
       return;
-    } catch {
-      // fall through to clipboard/modal
-    }
+    } catch {}
   }
 
-  // Desktop: try clipboard first (no prompt)
   try {
     await navigator.clipboard.writeText(url);
     toast("Share link copied");
   } catch {
-    // If clipboard blocked, show modal with selectable input
     openShareModal(url, "Select the link and press Ctrl+C if Copy is blocked.");
   }
 }
@@ -1047,10 +1177,13 @@ function applyModeUI() {
     : STUDENT_LOCKED
       ? "Student (tmode=0)"
       : "Practice";
+
+  // Fix: HTML uses visibility:hidden sometimes; enforce visibility here too.
   ui.teacherBtn.style.display = TEACHER_UI ? "inline-flex" : "none";
+  ui.teacherBtn.style.visibility = TEACHER_UI ? "visible" : "hidden";
   ui.teacherPanel.style.display = TEACHER_UI ? "block" : "none";
 
-  // share is always available
+  // share always available
   btn.share.style.display = "inline-flex";
 
   ui.packagesCard.style.display = allowPackages ? "block" : "none";
@@ -1073,6 +1206,7 @@ function applyModeUI() {
 
 function wireTeacherPanel() {
   if (!TEACHER_UI) return;
+
   ui.forceClass.addEventListener("change", () => {
     classroomMode = ui.forceClass.checked;
     saveBool(K_CLASS, classroomMode);
@@ -1161,26 +1295,45 @@ btn.clearStdin.onclick = () => {
   toast("stdin cleared");
 };
 
-btn.copyOut.onclick = () => {
-  const t = (ui.out.textContent || "") + "\n" + (ui.err.textContent || "");
-  navigator.clipboard
-    ?.writeText(t)
-    .then(() => toast("Output copied"))
-    .catch(() => prompt("Copy:", t));
+btn.copyOut.onclick = async () => {
+  // Copy stdout (text) + stderr (text). Plots are images so we only copy text.
+  const stdoutText = _lastStdout || (ui.out.textContent || "");
+  const t = stdoutText + "\n" + (ui.err.textContent || "");
+  try {
+    await navigator.clipboard.writeText(t);
+    toast("Output copied");
+  } catch {
+    openShareModal(t, "Clipboard blocked. Select the text and copy manually.");
+  }
 };
 btn.clearOut.onclick = () => {
-  ui.out.textContent = "";
+  renderOut("", []);
   ui.err.textContent = "";
   toast("Cleared");
 };
 
+// Examples (Matplotlib lessons included)
 ui.example.onchange = () => {
   const i = parseInt(ui.example.value, 10);
   if (Number.isFinite(i) && EXAMPLES[i]) {
-    ui.code.value = EXAMPLES[i].code;
+    const ex = EXAMPLES[i];
+
+    ui.code.value = ex.code;
     updateGutter();
     autosave();
     toast("Example loaded");
+
+    // If this example needs packages, auto-fill and auto-install.
+    if (ex.needsPkgs && Array.isArray(ex.needsPkgs) && ex.needsPkgs.length) {
+      ui.pkgs.value = ex.needsPkgs.join(", ");
+      if (!allowPackages) {
+        toast("This lesson needs packages, but packages are disabled.");
+      } else {
+        // try auto install (no confirm/prompt)
+        toast("Installing: " + ui.pkgs.value);
+        installPkgs();
+      }
+    }
   }
   ui.example.value = "";
 };
@@ -1197,6 +1350,7 @@ ui.code.addEventListener("keydown", (e) => {
     const el = ui.code;
     const s = el.selectionStart,
       t = el.selectionEnd;
+
     if (s !== t) {
       const v = el.value;
       const ls = v.lastIndexOf("\n", s - 1) + 1;
@@ -1277,10 +1431,7 @@ async function init() {
   updateSubCount();
   renderInstalledPkgs();
 
-  // Optional: load code/tests from URL params.
-  // 1) ?codefile=abc.py (or full URL) loads raw .py text into editor (main.py)
-  // 2) ?code=abc.json loads code state JSON (tabs/stdin/problem)
-  // When neither is provided, strict share hash/local state is used.
+  // Optional URL loaders
   const codeFile = URLP.get("codefile");
   const codeURL = URLP.get("code");
 
@@ -1340,7 +1491,7 @@ async function init() {
     ? await loadProblemsFromURL(remoteURL)
     : loadRemoteCache();
 
-  // Merge (defaults first, then custom, then remote). Dedupe by id (remote/custom can override).
+  // Merge (defaults first, then custom, then remote). Dedupe by id.
   const byId = new Map();
   [...DEFAULT_PROBLEMS, ...custom, ...remote].forEach((p) => {
     byId.set(p.id, p);
@@ -1352,6 +1503,9 @@ async function init() {
   ui.code.value = state.tabs[currentTab].code || "";
   updateGutter();
   btn.stop.disabled = true;
+
+  // output init
+  renderOut("", []);
 
   // mode UI
   applyModeUI();
