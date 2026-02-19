@@ -1,29 +1,564 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>DOM Master Lesson + Embedded HTML Preview Editor</title>
+
+    <style>
+      :root {
+        --bg: #fff7e6;
+        --card: #ffffff;
+        --accent: #ff9800;
+        --line: #f2d2a2;
+        --ink: #1b1b1b;
+        --muted: #6b6b6b;
+        --soft: #fff1d6;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family:
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial,
+          sans-serif;
+        background:
+          radial-gradient(900px 420px at 15% 0%, #ffe2b3, transparent),
+          radial-gradient(900px 420px at 85% 0%, #ffd4a8, transparent),
+          var(--bg);
+        color: var(--ink);
+      }
+
+      .wrap {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 22px;
+      }
+
+      .hero {
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.72);
+        backdrop-filter: blur(6px);
+        border-radius: 18px;
+        padding: 16px;
+      }
+      .hero h1 {
+        margin: 0 0 6px 0;
+        font-size: 24px;
+      }
+      .hero p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.4;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 14px;
+        margin-top: 14px;
+      }
+      @media (min-width: 980px) {
+        .grid {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 14px;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
+        overflow: hidden;
+      }
+
+      .bar {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+      }
+      .bar .left {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .pill {
+        font-size: 12px;
+        color: #3a2c12;
+        background: var(--soft);
+        border: 1px solid var(--line);
+        padding: 6px 10px;
+        border-radius: 999px;
+      }
+
+      button {
+        padding: 9px 12px;
+        border-radius: 12px;
+        border: 1px solid var(--line);
+        background: #fff;
+        cursor: pointer;
+      }
+      button:hover {
+        border-color: var(--accent);
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 520px;
+        resize: vertical;
+        padding: 12px;
+        border-radius: 14px;
+        border: 1px solid #e8cda7;
+        background: #fffdf8;
+        outline: none;
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", monospace;
+        font-size: 13px;
+        line-height: 1.45;
+        tab-size: 2;
+      }
+      textarea:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.18);
+      }
+
+      iframe {
+        width: 100%;
+        height: 580px;
+        border: 1px solid #e8cda7;
+        border-radius: 14px;
+        background: #fff;
+      }
+
+      .hint {
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .status {
+        margin-top: 10px;
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid var(--line);
+        background: var(--soft);
+        color: #3a2c12;
+      }
+      .status.ok {
+        background: #f3fff3;
+        border-color: #b7e0b7;
+      }
+      .status.warn {
+        background: #fff1e6;
+        border-color: #ffd0a8;
+      }
+
+      .foot {
+        margin-top: 14px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="wrap">
+      <section class="hero">
+        <h1>
+          DOM Master Lesson (createElement + remove + dynamic datalist) ✅
+        </h1>
+        <p>
+          This page embeds a simple <strong>HTML Preview Editor</strong>. Edit
+          the lesson code on the left and click <strong>Run</strong> to preview
+          on the right.
+        </p>
+      </section>
+
+      <section class="grid">
+        <div class="card">
+          <div class="bar">
+            <div class="left">
+              <span class="pill">Editor (HTML/CSS/JS)</span>
+              <span class="pill">In-page JS • Light Saffron</span>
+            </div>
+            <div class="left">
+              <button id="runBtn" type="button">Run ▶</button>
+              <button id="resetBtn" type="button">Reset ↩</button>
+              <button id="copyBtn" type="button">Copy Code ⧉</button>
+            </div>
+          </div>
+
+          <textarea id="editor" spellcheck="false"></textarea>
+
+          <div id="status" class="status">Status: Ready.</div>
+          <div class="hint">
+            Tip: This is a real “mini IDE”. Whatever is in the editor is sent
+            into the preview using <code>iframe.srcdoc</code>. Great for
+            teaching your students interactively.
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="bar">
+            <div class="left">
+              <span class="pill">Live Preview</span>
+              <span class="pill">Sandboxed iframe</span>
+            </div>
+          </div>
+
+          <iframe
+            id="preview"
+            sandbox="allow-scripts allow-forms allow-modals allow-pointer-lock allow-popups"
+          ></iframe>
+
+          <div class="foot">Programmer’s Picnic • Light Saffron theme</div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      // ---------------------------------------------------------
+      // 1) The lesson HTML (this is what loads into the editor)
+      // ---------------------------------------------------------
+      const LESSON_HTML = `<!DOCTYPE html>
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Document</title>
+<meta charset="UTF-8">
+<title>DOM Master Lesson</title>
+
+<style>
+:root{
+  --bg:#fff7e6;
+  --card:#ffffff;
+  --accent:#ff9800;
+  --line:#f2d2a2;
+}
+
+body{
+  margin:0;
+  font-family:Arial;
+  background:
+  radial-gradient(900px 400px at 10% 0%, #ffe2b3, transparent),
+  radial-gradient(900px 400px at 90% 0%, #ffd4a8, transparent),
+  var(--bg);
+  padding:30px;
+}
+
+.card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:18px;
+  padding:20px;
+  margin-bottom:20px;
+  box-shadow:0 10px 25px rgba(0,0,0,.05);
+}
+
+h2{ margin-top:0; }
+
+button{
+  padding:8px 12px;
+  border-radius:10px;
+  border:1px solid var(--line);
+  background:#fff;
+  cursor:pointer;
+  margin-right:6px;
+  margin-top:6px;
+}
+button:hover{ border-color:var(--accent); }
+
+input{
+  padding:8px;
+  width:100%;
+  border-radius:10px;
+  border:1px solid var(--line);
+  margin-bottom:8px;
+}
+
+.log{
+  background:#111;
+  color:#eee;
+  padding:10px;
+  border-radius:10px;
+  margin-top:10px;
+  overflow:auto;
+}
+small{ color:#666; }
+</style>
 </head>
+
 <body>
-  <script>
-    function f()
-    {
-  const urlString = window.location;
-const url = new URL(urlString);
-const params = url.searchParams;
 
-const page = params.get('page'); // 'javascript'
+<div class="card">
+  <h2>Part 1 – createElement() + remove()</h2>
+  <small>Click “Create Box” multiple times. Then remove the last box.</small><br>
+  <button onclick="createBox()">Create Box</button>
+  <button onclick="removeLastBox()">Remove Last Box</button>
+  <div id="boxContainer"></div>
+</div>
 
-console.log(page);
-const iframeurl=`http://127.0.0.1:5503/${page}.html;`;
-const ifr=document.getElementById("fr");
-console.log(ifr);
-console.log(iframeurl);
-ifr.src=iframeurl;
-    }
-</script>
-<button onclick="f()">Click</button>
-<iframe id="fr" src="index.html"></iframe>
+<div class="card">
+  <h2>Part 2 – Dynamic List (Add & Remove Items)</h2>
+  <small>Create & delete items using createElement() and remove().</small>
+  <input id="itemInput" placeholder="Enter item name">
+  <button onclick="addItem()">Add Item</button>
+  <button onclick="clearList()">Clear All</button>
+  <ul id="itemList"></ul>
+</div>
+
+<div class="card">
+  <h2>Part 3 – Dynamic Datalist (State → City → Locality)</h2>
+  <small>Datalist is suggestions. We fill & clear options dynamically.</small><br><br>
+
+  <input id="stateInput" list="stateList" placeholder="Select State">
+  <datalist id="stateList"></datalist>
+
+  <input id="cityInput" list="cityList" placeholder="Select City" disabled>
+  <datalist id="cityList"></datalist>
+
+  <input id="localityInput" list="localityList" placeholder="Select Locality" disabled>
+  <datalist id="localityList"></datalist>
+
+  <div class="log" id="selectionLog">Selection will appear here.</div>
+</div>
+
+<script>
+/* ==============================
+   PART 1 – CREATE & REMOVE
+================================
+Baby steps:
+1) createElement
+2) customize
+3) appendChild
+4) remove
+*/
+
+function createBox(){
+  const box = document.createElement("div"); // 1) create
+  box.textContent = "I am a dynamic box";    // 2) customize
+
+  // style (customize)
+  box.style.padding = "8px";
+  box.style.margin = "6px 0";
+  box.style.border = "1px solid orange";
+  box.style.borderRadius = "10px";
+  box.style.background = "#fffaf0";
+
+  // 3) append (attach to DOM)
+  document.getElementById("boxContainer").appendChild(box);
+}
+
+function removeLastBox(){
+  const container = document.getElementById("boxContainer");
+  if(container.lastElementChild){
+    container.lastElementChild.remove(); // 4) remove
+  }
+}
+
+/* ==============================
+   PART 2 – LIST ADD & REMOVE
+================================
+We create:
+- li
+- button inside li
+Button removes its own li.
+*/
+
+function addItem(){
+  const input = document.getElementById("itemInput");
+  const value = input.value.trim();
+  if(!value) return;
+
+  const li = document.createElement("li");
+  li.textContent = value + " ";
+
+  const delBtn = document.createElement("button");
+  delBtn.textContent = "Delete";
+
+  delBtn.onclick = function(){
+    li.remove(); // remove the li
+  };
+
+  li.appendChild(delBtn);
+  document.getElementById("itemList").appendChild(li);
+
+  input.value = "";
+  input.focus();
+}
+
+function clearList(){
+  // Clears all children at once (fast & common for UI reset)
+  document.getElementById("itemList").innerHTML = "";
+}
+
+/* ==============================
+   PART 3 – DYNAMIC DATALIST
+================================
+Data structure:
+State -> { City -> [Localities] }
+We fill datalist with createElement("option").
+We clear old options using innerHTML = "".
+*/
+
+const DATA = {
+  "Uttar Pradesh": {
+    "Varanasi": ["Lanka","Assi","Godowlia","Sigra","Bhelupur"],
+    "Lucknow": ["Hazratganj","Gomti Nagar","Alambagh","Indira Nagar"],
+    "Prayagraj": ["Civil Lines","Katra","Naini"]
+  },
+  "Bihar": {
+    "Patna": ["Boring Road","Kankarbagh","Danapur"],
+    "Gaya": ["Bodh Gaya","Tekari Road"]
+  },
+  "Maharashtra": {
+    "Mumbai": ["Andheri","Bandra","Juhu","Dadar"],
+    "Pune": ["Hinjewadi","Kothrud","Shivaji Nagar"]
+  }
+};
+
+const stateInput = document.getElementById("stateInput");
+const cityInput = document.getElementById("cityInput");
+const localityInput = document.getElementById("localityInput");
+
+const stateList = document.getElementById("stateList");
+const cityList = document.getElementById("cityList");
+const localityList = document.getElementById("localityList");
+
+function fillDatalist(listEl, values){
+  listEl.innerHTML = ""; // remove old <option> elements
+
+  values.forEach(val => {
+    const option = document.createElement("option"); // create
+    option.value = val;                              // customize
+    listEl.appendChild(option);                      // attach
+  });
+}
+
+function loadStates(){
+  fillDatalist(stateList, Object.keys(DATA));
+}
+
+stateInput.addEventListener("input", function(){
+  // reset city + locality whenever state changes
+  cityInput.value = "";
+  localityInput.value = "";
+
+  cityList.innerHTML = "";      // clear old cities
+  localityList.innerHTML = "";  // clear old localities
+
+  cityInput.disabled = true;
+  localityInput.disabled = true;
+
+  const state = stateInput.value.trim();
+
+  if(DATA[state]){
+    fillDatalist(cityList, Object.keys(DATA[state]));
+    cityInput.disabled = false;
+  }
+});
+
+cityInput.addEventListener("input", function(){
+  // reset locality whenever city changes
+  localityInput.value = "";
+  localityList.innerHTML = "";
+  localityInput.disabled = true;
+
+  const state = stateInput.value.trim();
+  const city = cityInput.value.trim();
+
+  if(DATA[state] && DATA[state][city]){
+    fillDatalist(localityList, DATA[state][city]);
+    localityInput.disabled = false;
+  }
+});
+
+localityInput.addEventListener("input", function(){
+  document.getElementById("selectionLog").textContent =
+    stateInput.value + " → " + cityInput.value + " → " + localityInput.value;
+});
+
+loadStates();
+<\/script>
+
 </body>
+</html>`;
+
+      // ---------------------------------------------------------
+      // 2) Minimal editor + preview wiring
+      // ---------------------------------------------------------
+      const editor = document.getElementById("editor");
+      const preview = document.getElementById("preview");
+      const status = document.getElementById("status");
+
+      function setStatus(msg, type = "") {
+        status.className = "status" + (type ? " " + type : "");
+        status.textContent = "Status: " + msg;
+      }
+
+      function run() {
+        const code = editor.value;
+        preview.srcdoc = code;
+        setStatus("Rendered preview.", "ok");
+      }
+
+      function reset() {
+        editor.value = LESSON_HTML;
+        run();
+        setStatus("Reset to lesson code.", "ok");
+      }
+
+      async function copyCode() {
+        try {
+          await navigator.clipboard.writeText(editor.value);
+          setStatus("Copied to clipboard.", "ok");
+        } catch (e) {
+          setStatus(
+            "Clipboard blocked (browser permission). Select all and copy manually.",
+            "warn",
+          );
+        }
+      }
+
+      // Tab key support in textarea (nice for teaching)
+      editor.addEventListener("keydown", (e) => {
+        if (e.key === "Tab") {
+          e.preventDefault();
+          const start = editor.selectionStart;
+          const end = editor.selectionEnd;
+          editor.value =
+            editor.value.substring(0, start) +
+            "  " +
+            editor.value.substring(end);
+          editor.selectionStart = editor.selectionEnd = start + 2;
+        }
+      });
+
+      document.getElementById("runBtn").addEventListener("click", run);
+      document.getElementById("resetBtn").addEventListener("click", reset);
+      document.getElementById("copyBtn").addEventListener("click", copyCode);
+
+      // Optional: live preview on pause (lightweight debounce)
+      let t = null;
+      editor.addEventListener("input", () => {
+        setStatus("Typing… (auto-run in 600ms)", "");
+        clearTimeout(t);
+        t = setTimeout(run, 600);
+      });
+
+      // Start
+      reset();
+    </script>
+  </body>
 </html>

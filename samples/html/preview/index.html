@@ -235,7 +235,7 @@
         font-weight: 700;
       }
 
-      /* ---- NEW: Explanation panel styling ---- */
+      /* ---- Explanation panel styling ---- */
       .learn {
         margin-top: 14px;
         background: var(--card);
@@ -337,6 +337,10 @@
 
         <button id="btnSave" title="Save to localStorage">Save</button>
         <button id="btnLoad" title="Load from localStorage">Load</button>
+
+        <!-- ✅ NEW: Share button -->
+        <button id="btnShare" title="Share a link to this code">Share</button>
+
         <button class="danger" id="btnClear" title="Clear editor">Clear</button>
 
         <label class="chip" title="Auto-run while typing (debounced)">
@@ -347,6 +351,7 @@
         <!-- ✅ No JSON: templates are functions + switch -->
         <select id="templateSelect" title="Insert ready-made content">
           <option value="" selected>➕ Add content…</option>
+
           <optgroup label="Starters">
             <option value="tpl_html5">HTML5 skeleton (full page)</option>
             <option value="tpl_basic">Basic page (header + sections)</option>
@@ -360,6 +365,20 @@
             <option value="tpl_css_cardgrid_vars">Card grid with variables</option>
           </optgroup>
 
+          <optgroup label="DOM (createElement)">
+            <option value="tpl_dom_create_append">createElement + append</option>
+            <option value="tpl_dom_append_vs_appendChild">
+              append vs appendChild
+            </option>
+            <option value="tpl_dom_prepend_insertBefore">
+              prepend + insertBefore
+            </option>
+            <option value="tpl_dom_remove_replace">remove + replaceWith</option>
+            <option value="tpl_dom_card_generator">
+              Mini Project: Card Generator
+            </option>
+          </optgroup>
+
           <optgroup label="Snippets">
             <option value="tpl_heading">Heading + paragraph</option>
             <option value="tpl_image">Image block</option>
@@ -369,6 +388,7 @@
             <option value="tpl_style">Style tag starter</option>
             <option value="tpl_script">Script tag starter</option>
           </optgroup>
+
           <optgroup label="Components">
             <option value="tpl_navbar">Navbar</option>
             <option value="tpl_cards">3 cards row</option>
@@ -399,7 +419,6 @@
             <span class="hint">HTML/CSS/JS highlighting</span>
           </div>
 
-          <!-- CodeMirror will attach to this textarea -->
           <div class="cm-wrap">
             <textarea id="editor" spellcheck="false"></textarea>
           </div>
@@ -421,7 +440,7 @@
         <div>Status: <b id="statusText">Ready</b></div>
       </div>
 
-      <!-- NEW: Explanations (built-in mini help system) -->
+      <!-- Explanations -->
       <section class="learn" aria-label="CSS var and calc explanations">
         <div class="learn-head">
           <h2>CSS <code>var()</code> + <code>calc()</code> — Explanations</h2>
@@ -464,9 +483,7 @@
             <pre><code>.box{
   padding: var(--missing-padding, 14px);
 }</code></pre>
-            <p>
-              Use this when you want safe defaults or allow optional overrides.
-            </p>
+            <p>Use this when you want safe defaults or allow optional overrides.</p>
           </div>
         </details>
 
@@ -520,6 +537,27 @@
             </ul>
           </div>
         </details>
+
+        <details class="pp-acc">
+          <summary>6) DOM Basics — createElement + append + remove</summary>
+          <div class="learn-body">
+            <p>
+              DOM means the page is a tree of nodes. JavaScript can create new nodes and
+              attach them anywhere.
+            </p>
+            <ul>
+              <li><code>document.createElement("div")</code> → creates an element</li>
+              <li><code>parent.append(child)</code> → adds at end (can add strings too)</li>
+              <li><code>parent.prepend(child)</code> → adds at start</li>
+              <li><code>parent.insertBefore(newNode, existingNode)</code> → insert at a position</li>
+              <li><code>node.remove()</code> → deletes an element</li>
+              <li><code>old.replaceWith(newEl)</code> → replaces a node</li>
+            </ul>
+            <pre><code>const li = document.createElement("li");
+li.textContent = "Hello";
+list.append(li);</code></pre>
+          </div>
+        </details>
       </section>
     </main>
 
@@ -541,6 +579,9 @@
       const btnSave = document.getElementById("btnSave");
       const btnLoad = document.getElementById("btnLoad");
       const btnClear = document.getElementById("btnClear");
+
+      // ✅ NEW: Share button handle
+      const btnShare = document.getElementById("btnShare");
 
       const templateSelect = document.getElementById("templateSelect");
       const btnInsert = document.getElementById("btnInsert");
@@ -570,7 +611,7 @@
     <h1>Hello, HTML!</h1>
     <p>Edit this code on the left. Preview updates on the right.</p>
   </div>
-</`+`body>
+</` + `body>
 </html>
 `;
 
@@ -632,6 +673,67 @@
         setStatus("Cleared", "ok");
       }
 
+      // ============================
+      // ✅ SHARE (URL hash based)
+      // ============================
+      function encodeShare(code) {
+        // UTF-8 safe -> base64 -> URL safe
+        const b64 = btoa(unescape(encodeURIComponent(code)));
+        return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+      }
+
+      function decodeShare(token) {
+        let b64 = token.replace(/-/g, "+").replace(/_/g, "/");
+        while (b64.length % 4) b64 += "=";
+        return decodeURIComponent(escape(atob(b64)));
+      }
+
+      async function copyToClipboard(text) {
+        try {
+          await navigator.clipboard.writeText(text);
+          return true;
+        } catch {
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          ta.style.position = "fixed";
+          ta.style.left = "-9999px";
+          document.body.appendChild(ta);
+          ta.focus();
+          ta.select();
+          const ok = document.execCommand("copy");
+          ta.remove();
+          return ok;
+        }
+      }
+
+      async function shareLink() {
+        const code = getCode();
+        const token = encodeShare(code);
+
+        const url = new URL(location.href);
+        url.hash = "code=" + token;
+
+        const shareData = {
+          title: "HTML Live Preview Code",
+          text: "Open this link to load the code in the editor:",
+          url: url.toString(),
+        };
+
+        // Native share (mobile)
+        if (navigator.share) {
+          try {
+            await navigator.share(shareData);
+            setStatus("Shared!", "ok");
+            return;
+          } catch (e) {
+            // user cancelled or failed → fallback to copy
+          }
+        }
+
+        const ok = await copyToClipboard(shareData.url);
+        setStatus(ok ? "Link copied!" : "Copy failed", ok ? "ok" : "bad");
+      }
+
       // ===== Templates (NO JSON) =====
       function tpl_html5() {
         return `<!doctype html>
@@ -643,7 +745,7 @@
 </head>
 <body>
 
-</`+`body>
+</` + `body>
 </html>
 `;
       }
@@ -685,7 +787,7 @@
   </main>
 
   <footer>© 2026</footer>
-</`+`body>
+</` + `body>
 </html>
 `;
       }
@@ -721,13 +823,12 @@
       <div class="card"><h3>Simple</h3><p>Just type and run.</p></div>
     </div>
   </div>
-</`+`body>
+</` + `body>
 </html>
 `;
       }
 
-      // ===== NEW: CSS var()/calc() lesson templates =====
-
+      // ===== CSS var()/calc() lesson templates =====
       function tpl_css_vars() {
         return `<!doctype html>
 <html lang="en">
@@ -736,20 +837,16 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>CSS Variables (var) — Theme Tokens</title>
   <style>
-    /* 1) Define variables once (global scope) */
     :root{
       --bg:#fff7e6;
       --card:#ffffff;
       --ink:#1f2937;
       --muted:#6b7280;
       --brand:#d97706;
-
       --radius:16px;
-      --pad:16px;          /* change this to 24px and see everything update */
+      --pad:16px;
       --shadow: 0 14px 34px rgba(31,41,55,.14);
     }
-
-    /* 2) Use variables via var(--name) */
     body{
       margin:0;
       font-family:system-ui;
@@ -757,7 +854,6 @@
       color:var(--ink);
       padding:24px;
     }
-
     .card{
       background:var(--card);
       border-radius:var(--radius);
@@ -766,7 +862,6 @@
       max-width:900px;
       border:1px solid rgba(217,119,6,.25);
     }
-
     .badge{
       display:inline-block;
       padding:6px 10px;
@@ -777,10 +872,7 @@
       letter-spacing:.2px;
       font-size:12px;
     }
-
     .muted{ color: var(--muted); }
-
-    /* 3) Fallback: if --unknown isn't defined, use the second value */
     .fallback-demo{
       padding: var(--unknownPadding, 12px);
       border: 1px dashed rgba(31,41,55,.25);
@@ -788,7 +880,6 @@
       margin-top: 12px;
       background: #fffaf0;
     }
-
     button{
       border:1px solid rgba(217,119,6,.25);
       background:linear-gradient(180deg,#fff,#fff1d6);
@@ -833,39 +924,30 @@
   <title>CSS calc() — Responsive Layout</title>
   <style>
     body{margin:0;font-family:system-ui;background:#0b1220;color:#e5e7eb;padding:24px}
-
-    /* calc() allows math with units (%, px, rem, vw...) */
     .wrap{
-      /* full width minus side padding */
-      width: calc(100% - 32px);  /* must have spaces around + - * / */
+      width: calc(100% - 32px);
       max-width: 1000px;
       margin: 0 auto;
     }
-
     .hero{
       border:1px solid rgba(255,255,255,.14);
       border-radius:18px;
       padding: 22px;
       background: rgba(255,255,255,.06);
     }
-
     .grid{
       display:grid;
       gap:12px;
       margin-top:12px;
-
-      /* 3 columns, but never smaller than 220px */
       grid-template-columns: repeat(3, minmax(220px, 1fr));
     }
     @media(max-width:900px){ .grid{ grid-template-columns: 1fr; } }
-
     .card{
       border:1px solid rgba(255,255,255,.14);
       border-radius:16px;
       padding:16px;
       background: rgba(255,255,255,.06);
     }
-
     .meter{
       margin-top:14px;
       border-radius:999px;
@@ -876,7 +958,6 @@
     }
     .meter > div{
       height:100%;
-      /* Example: 60% minus 10px */
       width: calc(60% - 10px);
       background: #f59e0b;
     }
@@ -922,38 +1003,27 @@
     :root{
       --gutter: 16px;
       --max: 980px;
-
-      /* Try editing these two: */
-      --scale: 1.0; /* 1.0, 1.1, 1.2... */
+      --scale: 1.0;
       --brand: #d97706;
     }
-
     body{margin:0;font-family:system-ui;background:#fff7e6;color:#1f2937;padding:24px}
-
-    /* Use variables inside calc() */
     .wrap{
       width: min(var(--max), calc(100% - (var(--gutter) * 2)));
       margin: 0 auto;
     }
-
     .card{
       background:#fff;
       border:1px solid rgba(217,119,6,.25);
       border-radius:18px;
-
-      /* Padding grows with scale */
       padding: calc(18px * var(--scale));
       box-shadow: 0 16px 40px rgba(31,41,55,.14);
     }
-
     h1{
       margin:0 0 8px;
       color: var(--brand);
-      /* Fluid-ish font: base + viewport-based */
       font-size: calc(22px + 1.2vw);
       line-height: 1.15;
     }
-
     .pill{
       display:inline-block;
       margin-top:10px;
@@ -965,7 +1035,6 @@
       color: var(--brand);
       font-size: 12px;
     }
-
     .row{
       display:flex;
       gap: var(--gutter);
@@ -979,8 +1048,6 @@
       border-radius:14px;
       padding: calc(12px * var(--scale));
     }
-
-    input[type="range"]{ width: 240px; }
   </style>
 </head>
 <body>
@@ -1028,11 +1095,8 @@
       --ink:#1f2937;
       --muted:#6b7280;
       --brand:#d97706;
-
       --gutter: 14px;
       --radius: 18px;
-
-      /* card padding changes everything */
       --pad: 16px;
       --max: 1100px;
     }
@@ -1057,7 +1121,7 @@
       background:#fff;
       border:1px solid rgba(217,119,6,.18);
       border-radius:var(--radius);
-      padding: calc(var(--pad) + 2px); /* calc() with variable */
+      padding: calc(var(--pad) + 2px);
     }
     .tag{
       display:inline-block;
@@ -1105,14 +1169,179 @@
 `;
       }
 
-      // ===== Existing snippet templates =====
+      // ===== DOM templates =====
+      function tpl_dom_create_append() {
+        return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>DOM: createElement + append()</title>
+  <style>
+    body{font-family:system-ui;margin:0;padding:24px;background:#fff7e6;color:#1f2937}
+    .card{background:#fff;border:1px solid rgba(217,119,6,.25);border-radius:16px;padding:16px;max-width:900px}
+    button{padding:10px 14px;border-radius:12px;border:1px solid rgba(217,119,6,.25);background:#fff1d6;font-weight:800;cursor:pointer}
+    .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    ul{padding-left:18px}
+    .hint{color:#6b7280}
+    .pill{display:inline-block;padding:6px 10px;border-radius:999px;background:rgba(217,119,6,.10);border:1px solid rgba(217,119,6,.22);color:#d97706;font-weight:800;font-size:12px}
+    code{background:#fffaf0;border:1px solid rgba(217,119,6,.22);padding:2px 6px;border-radius:8px}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <span class="pill">createElement + append()</span>
+    <h1>Build elements using JavaScript</h1>
 
+    <div class="row">
+      <button id="btnAdd">Add list item</button>
+      <button id="btnAdd3">Add 3 items</button>
+      <button id="btnClear">Clear list</button>
+    </div>
+
+    <h3 style="margin-top:14px">Output</h3>
+    <ul id="list"></ul>
+  </div>
+
+  <script>
+    const list = document.getElementById("list");
+    let n = 1;
+
+    function addOne(){
+      const li = document.createElement("li");
+      li.textContent = "Item " + n;
+      list.append(li);
+      n++;
+    }
+
+    document.getElementById("btnAdd").addEventListener("click", addOne);
+    document.getElementById("btnAdd3").addEventListener("click", () => {
+      addOne(); addOne(); addOne();
+    });
+    document.getElementById("btnClear").addEventListener("click", () => {
+      list.innerHTML = "";
+      n = 1;
+    });
+  <\\/script>
+</body>
+</html>
+`;
+      }
+
+      function tpl_dom_append_vs_appendChild() {
+        return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>DOM: append() vs appendChild()</title>
+  <style>
+    body{font-family:system-ui;margin:0;padding:24px;background:#fff7e6;color:#1f2937}
+    .card{background:#fff;border:1px solid rgba(217,119,6,.25);border-radius:16px;padding:16px;max-width:980px}
+    button{padding:10px 14px;border-radius:12px;border:1px solid rgba(217,119,6,.25);background:#fff1d6;font-weight:800;cursor:pointer}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+    @media(max-width:900px){.grid{grid-template-columns:1fr}}
+    .box{background:#fffaf0;border:1px dashed rgba(31,41,55,.25);border-radius:14px;padding:12px}
+    .hint{color:#6b7280}
+    code{background:#fffaf0;border:1px solid rgba(217,119,6,.22);padding:2px 6px;border-radius:8px}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>append() vs appendChild()</h1>
+    <p class="hint">
+      appendChild(node) accepts only nodes.
+      append(...) can take many items (including strings).
+    </p>
+
+    <button id="btnRun">Run demo</button>
+
+    <div class="grid">
+      <div class="box">
+        <h3>appendChild()</h3>
+        <div id="a"></div>
+      </div>
+      <div class="box">
+        <h3>append()</h3>
+        <div id="b"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const a = document.getElementById("a");
+    const b = document.getElementById("b");
+
+    document.getElementById("btnRun").addEventListener("click", () => {
+      a.innerHTML = "";
+      b.innerHTML = "";
+
+      const strong1 = document.createElement("strong");
+      strong1.textContent = "Hello";
+      a.appendChild(strong1);
+      a.appendChild(document.createTextNode(" (appendChild)"));
+
+      const strong2 = document.createElement("strong");
+      strong2.textContent = "Hello";
+      b.append(strong2, " ", "(append accepts strings too)");
+    });
+  <\\/script>
+</body>
+</html>
+`;
+      }
+
+      function tpl_dom_prepend_insertBefore() {
+        return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>DOM: prepend() + insertBefore()</title>
+</head>
+<body>
+  <h1>Prepend + insertBefore</h1>
+  <p>Try these methods.</p>
+<\\/body>
+</html>`;
+      }
+
+      function tpl_dom_remove_replace() {
+        return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>DOM: remove() + replaceWith()</title>
+</head>
+<body>
+  <h1>Remove + Replace</h1>
+  <p>Try these methods.</p>
+<\\/body>
+</html>`;
+      }
+
+      function tpl_dom_card_generator() {
+        return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mini Project: Card Generator</title>
+</head>
+<body>
+  <h1>Card Generator</h1>
+  <p>Use the full template from earlier if needed.</p>
+<\\/body>
+</html>`;
+      }
+
+      // ===== Existing snippet templates =====
       function tpl_heading() {
         return `<h1>Heading</h1>
 <p>This is a paragraph. Replace this text with your own.</p>
 `;
       }
-
       function tpl_image() {
         return `<figure>
   <img src="https://picsum.photos/900/380" alt="Sample image" style="max-width:100%;border-radius:14px" />
@@ -1120,7 +1349,6 @@
 </figure>
 `;
       }
-
       function tpl_list() {
         return `<ul>
   <li>First item</li>
@@ -1129,7 +1357,6 @@
 </ul>
 `;
       }
-
       function tpl_table() {
         return `<table border="1" cellpadding="10" style="border-collapse:collapse;width:100%;max-width:900px">
   <thead>
@@ -1141,7 +1368,6 @@
 </table>
 `;
       }
-
       function tpl_form() {
         return `<form onsubmit="event.preventDefault(); alert('Submitted!');" style="max-width:520px">
   <label>Name<br><input name="name" required style="width:100%;padding:10px;border-radius:10px;border:1px solid #ddd"></label><br><br>
@@ -1152,7 +1378,6 @@
 </form>
 `;
       }
-
       function tpl_style() {
         return `<style>
   /* Add your CSS here */
@@ -1160,8 +1385,6 @@
 </style>
 `;
       }
-
-      // ✅ CRITICAL FIX: prevent breaking the main page's <script> tag
       function tpl_script() {
         return `<script>
   // Add your JavaScript here
@@ -1169,7 +1392,6 @@
 <\\/script>
 `;
       }
-
       function tpl_navbar() {
         return `<nav style="display:flex;gap:12px;align-items:center;justify-content:space-between;padding:14px 18px;border:1px solid #e5e7eb;border-radius:14px;max-width:980px">
   <strong>MySite</strong>
@@ -1181,7 +1403,6 @@
 </nav>
 `;
       }
-
       function tpl_cards() {
         return `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:980px">
   <div style="border:1px solid #e5e7eb;border-radius:16px;padding:14px">
@@ -1196,7 +1417,6 @@
 </div>
 `;
       }
-
       function tpl_footer() {
         return `<footer style="margin-top:18px;padding:18px;border-top:1px solid #e5e7eb;color:#6b7280">
   © 2026 • Your footer text
@@ -1213,7 +1433,6 @@
           case "tpl_landing":
             return tpl_landing();
 
-          // NEW CSS lesson templates
           case "tpl_css_vars":
             return tpl_css_vars();
           case "tpl_css_calc":
@@ -1222,6 +1441,17 @@
             return tpl_css_vars_calc();
           case "tpl_css_cardgrid_vars":
             return tpl_css_cardgrid_vars();
+
+          case "tpl_dom_create_append":
+            return tpl_dom_create_append();
+          case "tpl_dom_append_vs_appendChild":
+            return tpl_dom_append_vs_appendChild();
+          case "tpl_dom_prepend_insertBefore":
+            return tpl_dom_prepend_insertBefore();
+          case "tpl_dom_remove_replace":
+            return tpl_dom_remove_replace();
+          case "tpl_dom_card_generator":
+            return tpl_dom_card_generator();
 
           case "tpl_heading":
             return tpl_heading();
@@ -1261,13 +1491,15 @@
         cm.focus();
         runPreview();
       }
-      // ===== End templates =====
 
       // ----- events -----
       btnRun.addEventListener("click", runPreview);
       btnSave.addEventListener("click", saveCode);
       btnLoad.addEventListener("click", loadCode);
       btnClear.addEventListener("click", clearEditor);
+
+      // ✅ NEW: share click
+      btnShare.addEventListener("click", shareLink);
 
       btnInsert.addEventListener("click", () => {
         const key = templateSelect.value;
@@ -1303,8 +1535,22 @@
         t = setTimeout(runPreview, 220);
       });
 
-      // init: load saved or starter
+      // ✅ UPDATED init: load shared link first, else saved/starter
       (function init() {
+        try {
+          const hash = location.hash || "";
+          const m = hash.match(/code=([^&]+)/);
+          if (m && m[1]) {
+            const shared = decodeShare(m[1]);
+            setCode(shared);
+            runPreview();
+            setStatus("Loaded shared code from link", "ok");
+            return;
+          }
+        } catch (e) {
+          console.warn("Share decode failed:", e);
+        }
+
         const saved = localStorage.getItem(STORAGE_KEY);
         setCode(saved || starter);
         runPreview();
