@@ -85,11 +85,13 @@
       .boardBox {
         position: absolute;
         /* default placement (you will calibrate and it will save) */
-        left: 38%;
-        top: 56%;
-        width: 46%;
-        height: 28%;
+        left: 25%;
+        top: 25%;
+        width: 50%;
+        height: 50%;
         border-radius: 10px;
+        border-color: red;
+        border-style: none;
         touch-action: none;
       }
 
@@ -501,13 +503,32 @@
           fitCanvasToBox();
         });
 
-        saveBtn.addEventListener("click", () => {
-          // exports ONLY the writing layer (canvas)
-          const a = document.createElement("a");
-          a.download = "board-writing.png";
-          a.href = canvas.toDataURL("image/png");
-          a.click();
-        });
+        saveBtn.onclick = () => {
+          const stage = document.querySelector(".stage");
+          const stageRect = stage.getBoundingClientRect();
+
+          const output = document.createElement("canvas");
+          const dpr = window.devicePixelRatio || 1;
+          output.width = stageRect.width * dpr;
+          output.height = stageRect.height * dpr;
+          const octx = output.getContext("2d");
+          octx.scale(dpr, dpr);
+
+          const img = new Image();
+          img.onload = function () {
+            octx.drawImage(img, 0, 0, stageRect.width, stageRect.height);
+            const boardRect = boardBox.getBoundingClientRect();
+            const x = boardRect.left - stageRect.left;
+            const y = boardRect.top - stageRect.top;
+            octx.drawImage(canvas, x, y, boardRect.width, boardRect.height);
+
+            const link = document.createElement("a");
+            link.download = "full-classroom-board.png";
+            link.href = output.toDataURL("image/png");
+            link.click();
+          };
+          img.src = "classroom.jpg";
+        };
 
         calibBtn.addEventListener("click", () => {
           setCalibrate(!calibrate);
