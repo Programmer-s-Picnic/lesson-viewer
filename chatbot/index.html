@@ -142,41 +142,15 @@
         const input = document.getElementById("crx-chat-input");
         const send = document.getElementById("crx-chat-send");
 
-        /* ============================
-           JSON DATA (Converted)
-        ============================ */
+        // JSON will be stored in the same folder as data.json
+        const DATA_URL = "./data.json";
 
-        const dictionaryJSON = `{
-          "Basic Units": {
-            "Token": "Smallest unit of code.",
-            "Lexeme": "Characters forming a token.",
-            "Identifier": "Name for variables/functions.",
-            "Keyword": "Reserved word in the language.",
-            "Literal": "Fixed constant value.",
-            "Operator": "Symbol performing an operation."
-          },
-          "Compiler Phases": {
-            "Lexical Analysis": "Breaks code into tokens.",
-            "Parsing": "Checks grammar structure of tokens.",
-            "Syntax": "Language grammar rules.",
-            "Semantic Analysis": "Ensures meaning is correct."
-          },
-          "Code Constructs": {
-            "Expression": "Produces a value from literals/operators.",
-            "Statement": "A complete instruction in code."
-          },
-          "Data Structures in Compilers": {
-            "Symbol Table": "Stores identifiers with details.",
-            "Abstract Syntax Tree": "Tree form of code structure."
-          }
-        }`;
+        let dictionary = null; // raw JSON
+        let searchIndex = []; // flattened index for fast search
 
-        const dictionary = JSON.parse(dictionaryJSON);
-
-        /* ============================
-           (REST OF YOUR JS — UNCHANGED)
-        ============================ */
-
+        /* -----------------------------
+       UI Helpers (unchanged)
+    ----------------------------- */
         function addMessage(text, from = "bot", html = false) {
           const wrap = document.createElement("div");
           wrap.className = from === "user" ? "crx-user-msg" : "crx-bot-msg";
@@ -194,81 +168,318 @@
         }
 
         function normalize(s) {
-          return s.trim().toLowerCase();
+          return String(s ?? "")
+            .trim()
+            .toLowerCase();
         }
 
-        function findTerm(term) {
-          const t = normalize(term),
-            results = [];
-          for (const cat in dictionary) {
-            for (const key in dictionary[cat]) {
-              if (key.toLowerCase() === t)
-                results.push({ cat, term: key, def: dictionary[cat][key] });
-            }
+        function escHtml(s) {
+          return String(s ?? "")
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+        }
+
+        /* -----------------------------
+       Load JSON
+    ----------------------------- */
+        async function loadDictionary() {
+          try {
+            addMessage("Loading dictionary...", "bot");
+            const res = await fetch(DATA_URL, { cache: "no-store" });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            dictionary = await res.json();
+            searchIndex = buildSearchIndex(dictionary);
+
+            addBotHtml(
+              "✅ Dictionary loaded. Try <code>/define recursion</code>, <code>/search stack</code>, or <code>list categories</code>.",
+            );
+          } catch (err) {
+            addBotHtml(
+              `<div>
+            <strong>❌ Could not load</strong> <code>${escHtml(DATA_URL)}</code><br>
+            <span class="crx-small">Tip: If you are opening the HTML as a file (file://), fetch may be blocked. Use a local server or GitHub Pages.</span>
+           </div>`,
+            );
           }
-          if (results.length === 0) {
-            for (const cat in dictionary) {
-              for (const key in dictionary[cat]) {
-                if (key.toLowerCase().includes(t))
-                  results.push({ cat, term: key, def: dictionary[cat][key] });
-              }
+        }
+
+        /* -----------------------------
+       Deep Search Index
+       - indexes EVERY key + value in the JSON (nested objects/arrays)
+       - each entry becomes: { path, term, def, blob }
+    ----------------------------- */
+        function buildSearchIndex(json) {
+          const out = [];
+
+          function walk(node, pathParts) {
+            if (node === null || node === undefined) return;
+
+            // arrays
+            if (Array.isArray(node)) {
+              node.forEach((item, i) =>
+                walk(item, pathParts.concat([String(i)])),
+              );
+              return;
             }
+
+            // objects
+            if (typeof node === "object") {
+              for (const k of Object.keys(node)) {
+                const v = node[k];
+                const nextPath = pathParts.concat([k]);
+
+                // if v is a primitive, treat k as term and v as def
+                if (v === null || v === undefined) {
+                  out.push(makeEntry(nextPath, k, ""));
+                } else if (
+                  typeof v === "string" ||
+                  typeof v === "number" ||
+                  typeof v === "boolean"
+                ) {
+                  out.push(makeEntry(nextPath, k, String(v)));
+                } else {
+                  // still index the key itself as searchable even if nested
+                  out.push(makeEntry(nextPath, k, ""));
+                  walk(v, nextPath);
+                }
+              }
+              return;
+            }
+
+            // primitive leaf without key (rare): index by path end
+            const term = pathParts[pathParts.length - 1] || "value";
+            out.push(makeEntry(pathParts, term, String(node)));
+          }
+
+          function makeEntry(pathParts, term, def) {
+            const path = pathParts.join(" › ");
+            const blob = normalize([path, term, def].join(" "));
+            return {
+              path,
+              term: String(term),
+              def: String(def ?? ""),
+              blob,
+            };
+          }
+
+          walk(json, []);
+          return out;
+        }
+
+        /* -----------------------------
+       Search everywhere (ranked)
+       ranking:
+         - exact term match highest
+         - startsWith term
+         - includes term
+         - includes in definition/path
+    ----------------------------- */
+        function searchEverywhere(query, limit = 8) {
+          const q = normalize(query);
+          if (!q) return [];
+
+          const scored = [];
+
+          for (const item of searchIndex) {
+            const termN = normalize(item.term);
+            const defN = normalize(item.def);
+            const pathN = normalize(item.path);
+
+            let score = 0;
+
+            if (termN === q) score += 1000;
+            if (termN.startsWith(q)) score += 250;
+            if (termN.includes(q)) score += 120;
+
+            if (defN.includes(q)) score += 90;
+            if (pathN.includes(q)) score += 40;
+
+            // also allow matching anywhere in blob
+            if (score === 0 && item.blob.includes(q)) score += 20;
+
+            if (score > 0) scored.push({ score, item });
+          }
+
+          scored.sort((a, b) => b.score - a.score);
+
+          // de-dup by (path + term + def)
+          const seen = new Set();
+          const results = [];
+          for (const s of scored) {
+            const key = s.item.path + "|" + s.item.term + "|" + s.item.def;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            results.push(s.item);
+            if (results.length >= limit) break;
           }
           return results;
         }
 
+        /* -----------------------------
+       Category listing (top-level keys)
+    ----------------------------- */
         function listCategories() {
+          if (!dictionary || typeof dictionary !== "object") return [];
           return Object.keys(dictionary);
         }
 
         function listTerms(catName) {
-          const c = Object.keys(dictionary).find(
+          if (!dictionary || typeof dictionary !== "object") return null;
+          const key = Object.keys(dictionary).find(
             (x) => x.toLowerCase() === catName.toLowerCase(),
           );
-          return c
-            ? Object.keys(dictionary[c]).map((k) => ({
-                term: k,
-                def: dictionary[c][k],
-              }))
-            : null;
+          if (!key) return null;
+
+          const node = dictionary[key];
+          if (!node || typeof node !== "object") return null;
+
+          // terms at that category = keys under it (if object)
+          return Object.keys(node).map((k) => ({
+            term: k,
+            def:
+              typeof node[k] === "string" ||
+              typeof node[k] === "number" ||
+              typeof node[k] === "boolean"
+                ? String(node[k])
+                : "(nested)",
+          }));
         }
 
         function randomTerm() {
-          const cats = Object.keys(dictionary);
-          const c = cats[Math.floor(Math.random() * cats.length)];
-          const terms = Object.keys(dictionary[c]);
-          const t = terms[Math.floor(Math.random() * terms.length)];
-          return { cat: c, term: t, def: dictionary[c][t] };
+          if (!searchIndex.length) return null;
+          const itemsWithDefs = searchIndex.filter(
+            (x) => x.def && x.def.trim().length > 0,
+          );
+          const pool = itemsWithDefs.length ? itemsWithDefs : searchIndex;
+          return pool[Math.floor(Math.random() * pool.length)];
         }
 
-        function handleUserText(text) {
-          const raw = text.trim(),
-            low = raw.toLowerCase();
-          if (low === "list categories") {
-            const cats = listCategories();
-            addBotHtml(`<div class='crx-small'>${cats.join("<br>")}</div>`);
+        /* -----------------------------
+       Render result cards
+    ----------------------------- */
+        function renderResults(items, title = "") {
+          if (!items || items.length === 0) {
+            addMessage("Not found. Try /search keyword or list categories.");
             return;
           }
-          if (low.startsWith("/define ")) {
-            const term = raw.replace(/^\/define\s+/i, "");
-            const res = findTerm(term);
-            if (res.length === 0) {
-              addMessage("Not found. Try list categories.");
-              return;
-            }
+
+          const html = `
+        <div>
+          ${title ? `<div class="crx-small" style="margin-bottom:6px;"><strong>${escHtml(title)}</strong></div>` : ""}
+          ${items
+            .map((r) => {
+              const def =
+                r.def && r.def.trim()
+                  ? escHtml(r.def)
+                  : "<span class='crx-small'>(no direct definition here — nested node)</span>";
+              return `
+                <div style="margin-bottom:10px;">
+                  <span class="crx-term">${escHtml(r.term)}</span>
+                  <div class="crx-cat">${escHtml(r.path)}</div>
+                  <div>${def}</div>
+                </div>
+              `;
+            })
+            .join("")}
+        </div>
+      `;
+          addBotHtml(html);
+        }
+
+        /* -----------------------------
+       Handle user input (improved)
+    ----------------------------- */
+        function handleUserText(text) {
+          if (!dictionary) {
+            addMessage("Dictionary not loaded yet.");
+            return;
+          }
+
+          const raw = text.trim();
+          const low = raw.toLowerCase();
+
+          if (low === "help" || low === "/help") {
             addBotHtml(
-              res
-                .map(
-                  (r) =>
-                    `<div><span class='crx-term'>${r.term}</span><div class='crx-cat'>${r.cat}</div><div>${r.def}</div></div>`,
-                )
-                .join(""),
+              "<div class='crx-small'>Commands:<br>• <code>/define term</code><br>• <code>/search text</code><br>• <code>list categories</code><br>• <code>list categoryName</code><br>• <code>/random</code></div>",
             );
             return;
           }
-          addMessage("Type list categories or /define term");
+
+          if (low === "/random" || low === "random") {
+            const r = randomTerm();
+            if (!r) return addMessage("No data.");
+            renderResults([r], "Random");
+            return;
+          }
+
+          if (low === "list categories") {
+            const cats = listCategories();
+            addBotHtml(
+              `<div class='crx-small'>${cats.map(escHtml).join("<br>")}</div>`,
+            );
+            return;
+          }
+
+          if (low.startsWith("list ")) {
+            const cat = raw.slice(5);
+            const terms = listTerms(cat);
+            if (!terms) {
+              addMessage("Category not found");
+              return;
+            }
+            addBotHtml(
+              `<div><strong>${escHtml(cat)}</strong><br>${terms.map((t) => escHtml(t.term)).join(", ")}</div>`,
+            );
+            return;
+          }
+
+          if (
+            low.startsWith("/define ") ||
+            low.startsWith("define ") ||
+            low.startsWith("what is ")
+          ) {
+            const term = raw.replace(/^(\/define|define|what is)\s+/i, "");
+            const res = searchEverywhere(term, 8);
+
+            // prefer entries where term is exact
+            const exact = res.filter(
+              (r) => normalize(r.term) === normalize(term),
+            );
+            renderResults(exact.length ? exact : res, `Define: ${term}`);
+            return;
+          }
+
+          if (low.startsWith("/search ")) {
+            const q = raw.slice(8);
+            const res = searchEverywhere(q, 10);
+            renderResults(res, `Search: ${q}`);
+            return;
+          }
+
+          // Greeting
+          if (low.includes("hello") || low.includes("hi")) {
+            addMessage(
+              "Hello! Try /define recursion or /search stack or list categories",
+            );
+            return;
+          }
+
+          // Fallback: deep search everywhere
+          const fb = searchEverywhere(raw, 10);
+          if (fb.length) {
+            renderResults(fb, `Results for: ${raw}`);
+            return;
+          }
+
+          addMessage("Sorry, I couldn’t understand. Type help for commands.");
         }
 
+        /* -----------------------------
+       Events (unchanged)
+    ----------------------------- */
         send.addEventListener("click", () => {
           const text = input.value.trim();
           if (!text) return;
@@ -281,9 +492,9 @@
           if (e.key === "Enter") send.click();
         });
 
-        addBotHtml(
-          "Hello! Ask me about programming terms. Try <code>/define recursion</code> or type <code>list categories</code>.",
-        );
+        // Boot
+        addBotHtml("Hello! Loading dictionary from <code>data.json</code>…");
+        loadDictionary();
       })();
     </script>
   </body>
