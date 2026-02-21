@@ -1353,7 +1353,6 @@
         }
       }
     </style>
-    
   </head>
 
   <body>
@@ -1602,8 +1601,8 @@
                 We build real apps: cart, booking, dashboards.
               </h1>
               <p class="hero-sub">
-                Tap â€œRequestâ€ in the â€œBuild for youâ€ section and WhatsApp your
-                requirements instantly.
+                Tap â€œRequestâ€ in the â€œBuild for youâ€ section and WhatsApp
+                your requirements instantly.
               </p>
               <div class="hero-cta">
                 <button class="btn primary" type="button" id="heroGoBuild">
@@ -2032,7 +2031,9 @@
         </div>
       </section>
 
-      <div id="back-to-top" aria-label="Back to top" title="Back to top">â†‘</div>
+      <div id="back-to-top" aria-label="Back to top" title="Back to top">
+        â†‘
+      </div>
     </main>
 
     <div class="ls-toast" id="lsToast">Saved</div>
@@ -2050,7 +2051,9 @@
         const WA_NUMBER = "919335874326";
         function waOpen(text) {
           const msg = encodeURIComponent(text);
-          window.location.assign(`https://wa.me/${WA_NUMBER}?text=${msg}`);
+          const url = `https://wa.me/${WA_NUMBER}?text=${msg}`;
+          notifyParentRoute(url, false);
+          window.location.assign(url);
         }
 
         // --------------------------
@@ -2115,6 +2118,44 @@
               "*",
             );
           } catch {}
+        }
+        function notifyParentRoute(url, replace = false) {
+          if (!url) return;
+          notifyParent(replace ? "route:replace" : "route:push", {
+            url,
+            title: document.title || "Learning Sutras",
+          });
+        }
+        function initRouteBridge() {
+          document.addEventListener(
+            "click",
+            (e) => {
+              const a = e.target.closest("a[href]");
+              if (!a || e.defaultPrevented) return;
+              if (a.hasAttribute("download")) return;
+              if (
+                e.button !== 0 ||
+                e.metaKey ||
+                e.ctrlKey ||
+                e.shiftKey ||
+                e.altKey
+              )
+                return;
+              const href = a.getAttribute("href");
+              if (!href || href.startsWith("#")) return;
+              if (
+                href.startsWith("javascript:") ||
+                href.startsWith("mailto:") ||
+                href.startsWith("tel:")
+              )
+                return;
+              try {
+                const abs = new URL(href, window.location.href).href;
+                notifyParentRoute(abs, false);
+              } catch {}
+            },
+            true,
+          );
         }
         function requestParentState() {
           notifyParent("state:get", {
@@ -2263,8 +2304,7 @@
           $("lsPoints").textContent = String(points);
         }
         function addPoints(n) {
-          const points =
-            parseInt(storageGet(K.points) || "0", 10) + n;
+          const points = parseInt(storageGet(K.points) || "0", 10) + n;
           storageSet(K.points, String(points));
           $("lsPoints").textContent = String(points);
         }
@@ -2438,10 +2478,7 @@
           "mongodb",
         ];
         function getRecentSearches() {
-          return safeJSONParse(
-            storageGet(K.recentSearch) || "[]",
-            [],
-          );
+          return safeJSONParse(storageGet(K.recentSearch) || "[]", []);
         }
         function pushRecentSearch(q) {
           const arr = getRecentSearches();
@@ -2458,6 +2495,7 @@
           if (!cleaned) return;
           pushRecentSearch(cleaned);
           const url = `https://www.learnwithchampak.live/search?q=${encodeURIComponent(cleaned)}`;
+          notifyParentRoute(url, false);
           window.location.assign(url);
         }
 
@@ -2601,9 +2639,9 @@
             if (!b) return;
             const streak = storageGet(K.streak) || "0";
             const points = storageGet(K.points) || "0";
-              waOpen(
-                `🔥 Learning Sutras Daily\nStreak: ${streak} days\nPoints: ${points}\n\nJoin me:\nhttps://www.learnwithchampak.live/`,
-              );
+            waOpen(
+              `🔥 Learning Sutras Daily\nStreak: ${streak} days\nPoints: ${points}\n\nJoin me:\nhttps://www.learnwithchampak.live/`,
+            );
           });
         }
 
@@ -3015,6 +3053,7 @@
         // --------------------------
         initParentStateBridge();
         initIframeLinkMode();
+        initRouteBridge();
         initTheme();
         initStreak();
         initDailyTiles();
