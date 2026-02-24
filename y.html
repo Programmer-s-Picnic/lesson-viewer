@@ -75,6 +75,12 @@
       background:linear-gradient(135deg, rgba(185,28,28,.06), rgba(245,158,11,.08));
       color:var(--danger);
     }
+    .btn.tiny{
+      padding:7px 10px;
+      border-radius:12px;
+      font-size:12px;
+      box-shadow:0 6px 14px rgba(17,24,39,.05);
+    }
     .btn:focus-visible{outline:none;box-shadow:var(--shadow),var(--ring)}
     select, input[type="number"]{
       border:1px solid rgba(31,41,55,.14);
@@ -111,6 +117,7 @@
     }
     .ph strong{color:var(--brand); font-size:13px; letter-spacing:.2px}
     .hint{color:var(--muted); font-size:12px; font-weight:700}
+    .ph-actions{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
     .cm-wrap{flex:1; display:flex}
     .CodeMirror{
       height:100%;
@@ -202,7 +209,10 @@
         <section class="panel" aria-label="HTML editor">
           <div class="ph">
             <strong>HTML / CSS Editor</strong>
-            <span class="hint">Ctrl/⌘ + Enter = Run Preview</span>
+            <div class="ph-actions">
+              <button class="btn tiny danger" id="btnClearHtml" title="Clear HTML editor">Clear</button>
+              <span class="hint">Ctrl/⌘ + Enter = Run Preview</span>
+            </div>
           </div>
           <div class="cm-wrap"><textarea id="htmlEditor"></textarea></div>
         </section>
@@ -211,7 +221,10 @@
         <section class="panel" aria-label="JS editor">
           <div class="ph">
             <strong>JavaScript Editor</strong>
-            <span class="hint">Ctrl/⌘ + Enter = Run JS Sandbox</span>
+            <div class="ph-actions">
+              <button class="btn tiny danger" id="btnClearJs" title="Clear JS editor">Clear</button>
+              <span class="hint">Ctrl/⌘ + Enter = Run JS Sandbox</span>
+            </div>
           </div>
           <div class="cm-wrap"><textarea id="jsEditor"></textarea></div>
 
@@ -259,9 +272,6 @@ Champak
   <script>
     /* ==========================
        PP Mini Runner (Worker Sandbox)
-       - console capture
-       - input(prompt) from stdin lines
-       - timeout kill
        ========================== */
     (function () {
       "use strict";
@@ -434,7 +444,6 @@ Champak
       };
     }
 
-    // Starter HTML + JS
     const starterHTML = `<!doctype html>
 <html lang="en">
 <head>
@@ -482,6 +491,18 @@ console.log("Hi", name, "- age", age);
       tabSize:2, indentUnit:2, indentWithTabs:false
     });
 
+    // NEW: Clear buttons for HTML and JS editors
+    $("btnClearHtml").addEventListener("click", () => {
+      htmlCM.setValue("");
+      setStatus("HTML cleared.", "ok");
+      if (autoPreview.checked) runPreview();
+    });
+
+    $("btnClearJs").addEventListener("click", () => {
+      jsCM.setValue("");
+      setStatus("JS cleared.", "ok");
+    });
+
     // Share encode/decode (URL hash) for BOTH editors + stdin + toggles
     function b64EncodeUnicode(str){
       const utf8 = new TextEncoder().encode(str);
@@ -511,7 +532,6 @@ console.log("Hi", name, "- age", age);
     }
 
     function safePreviewHTML(html, jsInject){
-      // add a small error forwarder so preview errors show in status
       const shim = `
 <script>
 (function(){
@@ -569,17 +589,11 @@ console.log("Hi", name, "- age", age);
     const runPreviewDebounced = debounce(()=>{ if(autoPreview.checked) runPreview(); }, 300);
 
     htmlCM.on("change", ()=>{ setStatus("Editing HTML…", ""); runPreviewDebounced(); });
-    jsCM.on("change", ()=>{ setStatus("Editing JS…", ""); /* no auto-run sandbox */ });
+    jsCM.on("change", ()=>{ setStatus("Editing JS…", ""); });
 
     // Keyboard shortcuts
-    htmlCM.addKeyMap({
-      "Ctrl-Enter": ()=>runPreview(),
-      "Cmd-Enter": ()=>runPreview()
-    });
-    jsCM.addKeyMap({
-      "Ctrl-Enter": ()=>runJsSandbox(),
-      "Cmd-Enter": ()=>runJsSandbox()
-    });
+    htmlCM.addKeyMap({ "Ctrl-Enter": ()=>runPreview(), "Cmd-Enter": ()=>runPreview() });
+    jsCM.addKeyMap({ "Ctrl-Enter": ()=>runJsSandbox(), "Cmd-Enter": ()=>runJsSandbox() });
 
     // Buttons
     $("btnRunAll").addEventListener("click", runPreview);
@@ -632,10 +646,8 @@ console.log("Hi", name, "- age", age);
     });
 
     async function copyToClipboard(text){
-      try{
-        await navigator.clipboard.writeText(text);
-        return true;
-      }catch(_){
+      try{ await navigator.clipboard.writeText(text); return true; }
+      catch(_){
         const ta=document.createElement("textarea");
         ta.value=text; ta.style.position="fixed"; ta.style.left="-9999px";
         document.body.appendChild(ta); ta.select();
@@ -657,7 +669,7 @@ console.log("Hi", name, "- age", age);
           });
           setStatus("Shared ✅", "ok");
           return;
-        }catch(e){ /* fallback to copy */ }
+        }catch(e){}
       }
       const ok = await copyToClipboard(url);
       setStatus(ok ? "Share link copied ✅" : "Could not copy link", ok ? "ok":"bad");
@@ -692,7 +704,6 @@ console.log("Hi", name, "- age", age);
         }
       }
       if (!loaded){
-        // fallback: localStorage or defaults
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw){
           try{
