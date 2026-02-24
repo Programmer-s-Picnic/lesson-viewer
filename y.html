@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="theme-color" content="#d97706" />
-  <title>Programmer’s Picnic — HTML + JS Runner (Merged)</title>
+  <title>Programmer’s Picnic — HTML + JS Runner + JSON UI (Merged)</title>
 
   <!-- CodeMirror (CDN) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
@@ -32,7 +32,7 @@
         radial-gradient(900px 420px at 92% 18%, rgba(217,119,6,.18), transparent 55%),
         linear-gradient(180deg,var(--bg0),var(--bg1));
     }
-    .wrap{max-width:1400px;margin:0 auto;padding:14px 14px 60px}
+    .wrap{max-width:1600px;margin:0 auto;padding:14px 14px 60px}
     .card{
       border:1px solid var(--border); border-radius:24px; background:var(--card);
       box-shadow:var(--shadow); overflow:hidden;
@@ -93,11 +93,14 @@
     input[type="checkbox"]{transform:translateY(1px)}
     .grid{
       display:grid;
-      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
       gap:12px;
       padding:14px;
     }
-    @media (max-width: 1100px){
+    @media (max-width: 1400px){
+      .grid{grid-template-columns:1fr 1fr}
+    }
+    @media (max-width: 980px){
       .grid{grid-template-columns:1fr}
     }
     .panel{
@@ -105,7 +108,7 @@
       border-radius:18px;
       background:rgba(255,255,255,.78);
       overflow:hidden;
-      min-height:560px;
+      min-height:600px;
       display:flex;
       flex-direction:column;
     }
@@ -146,7 +149,7 @@
       font-size:12.5px;
       white-space:pre-wrap;
       overflow:auto;
-      max-height:220px;
+      max-height:240px;
     }
     .ok{color:var(--ok); font-weight:800}
     .bad{color:var(--danger); font-weight:800}
@@ -165,6 +168,23 @@
     }
     .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
     .grow{flex:1; min-width:220px}
+    .note{
+      padding:10px 12px;
+      border-top:1px solid rgba(31,41,55,.10);
+      background:#fffaf0;
+      color:var(--muted);
+      font-size:12px;
+      font-weight:750;
+      line-height:1.35;
+    }
+    .note code{
+      font-family:var(--mono);
+      background:#fff7ea;
+      border:1px solid rgba(217,119,6,.18);
+      padding:1px 6px;
+      border-radius:8px;
+      color:#111827;
+    }
   </style>
 </head>
 
@@ -174,8 +194,8 @@
       <div class="hd">
         <div>
           <div class="pill">🟠 Programmer’s Picnic</div>
-          <h1>Merged Editor: HTML Live Preview + JS Runner (Worker Sandbox)</h1>
-          <p class="sub">Build UI in HTML/CSS + run student JS safely (timeout, console capture, input()).</p>
+          <h1>Merged Editor: HTML Preview + JS Runner + JSON UI Builder</h1>
+          <p class="sub">HTML/CSS preview + safe JS sandbox + JSON → UI (createElement) rendering inside preview.</p>
         </div>
 
         <div class="actions">
@@ -186,9 +206,14 @@
             Auto Preview
           </label>
 
-          <label class="pill" title="Inject JS editor into iframe (DOM lessons). Not sandboxed.">
+          <label class="pill" title="Inject JS editor into preview (DOM lessons). Not sandboxed.">
             <input type="checkbox" id="injectJs" />
             Inject JS into Preview
+          </label>
+
+          <label class="pill" title="Render JSON into preview as UI elements">
+            <input type="checkbox" id="renderJson" checked />
+            Render JSON UI
           </label>
 
           <button class="btn" id="btnClearConsole">Clear Console</button>
@@ -197,6 +222,7 @@
           <button class="btn" id="btnShare">Share</button>
           <button class="btn danger" id="btnReset">Reset</button>
 
+          <button class="btn primary" id="btnRunJson">▶ Render JSON</button>
           <button class="btn primary" id="btnRunJs">▶ Run JS (Sandbox)</button>
           <button class="btn primary" id="btnRunAll">▶ Run Preview</button>
 
@@ -244,11 +270,30 @@ Champak
           </div>
         </section>
 
+        <!-- JSON -->
+        <section class="panel" aria-label="JSON editor">
+          <div class="ph">
+            <strong>JSON Editor (UI Schema)</strong>
+            <div class="ph-actions">
+              <button class="btn tiny danger" id="btnClearJson" title="Clear JSON editor">Clear</button>
+              <span class="hint">Ctrl/⌘ + Enter = Render JSON</span>
+            </div>
+          </div>
+          <div class="cm-wrap"><textarea id="jsonEditor"></textarea></div>
+
+          <div class="note">
+            JSON format:
+            <code>{ "mountId":"pp_json_root", "nodes":[ ... ] }</code><br/>
+            Each node:
+            <code>{ "tag":"div", "text":"Hello", "attrs":{...}, "style":{...}, "children":[...] }</code>
+          </div>
+        </section>
+
         <!-- Preview + Console -->
         <section class="panel" aria-label="Preview panel">
           <div class="ph">
             <strong>Preview (iframe)</strong>
-            <span class="hint">Uses srcdoc + sandbox</span>
+            <span class="hint">srcdoc + sandbox</span>
           </div>
 
           <iframe
@@ -408,7 +453,7 @@ Champak
     /* ==========================
        Merged App Logic
        ========================== */
-    const STORAGE_KEY = "pp_merged_html_js_editor_v1";
+    const STORAGE_KEY = "pp_merged_html_js_json_editor_v1";
     const $ = (id) => document.getElementById(id);
 
     const status = $("status");
@@ -416,6 +461,7 @@ Champak
     const preview = $("preview");
     const autoPreview = $("autoPreview");
     const injectJs = $("injectJs");
+    const renderJson = $("renderJson");
     const timeoutMsEl = $("timeoutMs");
 
     function setStatus(text, kind){
@@ -444,6 +490,7 @@ Champak
       };
     }
 
+    // Starters
     const starterHTML = `<!doctype html>
 <html lang="en">
 <head>
@@ -453,17 +500,19 @@ Champak
   <style>
     :root{ --brand:#d97706; }
     body{font-family:system-ui;margin:0;padding:24px;background:#fff}
-    .card{border:1px solid #e5e7eb;border-radius:14px;padding:16px;max-width:900px}
+    .card{border:1px solid #e5e7eb;border-radius:14px;padding:16px;max-width:980px}
     h1{margin:0 0 8px;color:var(--brand)}
     button{padding:10px 12px;border:1px solid #e5e7eb;border-radius:12px;background:#fff;cursor:pointer}
+    .muted{color:#6b7280}
+    #pp_json_root{margin-top:12px}
   </style>
 </head>
 <body>
   <div class="card">
-    <h1>HTML Preview</h1>
-    <p>Edit HTML/CSS on the left. Toggle “Inject JS into Preview” for DOM lessons.</p>
-    <button id="btn">Click me</button>
-    <div id="out"></div>
+    <h1>Preview + JSON UI</h1>
+    <p class="muted">JSON UI will mount into <code>#pp_json_root</code> (below).</p>
+
+    <div id="pp_json_root"></div>
   </div>
 </body>
 </html>`;
@@ -478,6 +527,33 @@ console.log("Hi", name, "- age", age);
 // Try timeout:
 // while(true){};`;
 
+    const starterJSON = `{
+  "mountId": "pp_json_root",
+  "nodes": [
+    {
+      "tag": "div",
+      "attrs": { "class": "card" },
+      "style": {
+        "border": "1px solid #e5e7eb",
+        "borderRadius": "14px",
+        "padding": "14px",
+        "background": "#fffaf0"
+      },
+      "children": [
+        { "tag": "h2", "text": "Hello from JSON UI", "style": { "margin": "0 0 6px", "color": "#d97706" } },
+        { "tag": "p", "text": "This UI was created using createElement() from JSON.", "style": { "margin": "0 0 10px", "color": "#6b7280" } },
+        {
+          "tag": "button",
+          "text": "Click me",
+          "attrs": { "id": "jsonBtn" },
+          "style": { "padding": "10px 12px", "borderRadius": "12px", "border": "1px solid #e5e7eb", "background": "#fff", "cursor": "pointer" }
+        },
+        { "tag": "div", "attrs": { "id": "jsonOut" }, "style": { "marginTop": "10px", "color": "#111827", "fontWeight": "700" } }
+      ]
+    }
+  ]
+}`;
+
     // Initialize CodeMirror editors
     const htmlCM = CodeMirror.fromTextArea($("htmlEditor"), {
       mode:"htmlmixed", theme:"eclipse",
@@ -491,19 +567,31 @@ console.log("Hi", name, "- age", age);
       tabSize:2, indentUnit:2, indentWithTabs:false
     });
 
-    // NEW: Clear buttons for HTML and JS editors
+    // JSON mode: CodeMirror JS mode supports JSON via option
+    const jsonCM = CodeMirror.fromTextArea($("jsonEditor"), {
+      mode:{ name:"javascript", json:true },
+      theme:"eclipse",
+      lineNumbers:true, lineWrapping:true,
+      tabSize:2, indentUnit:2, indentWithTabs:false
+    });
+
+    // Clear buttons
     $("btnClearHtml").addEventListener("click", () => {
       htmlCM.setValue("");
       setStatus("HTML cleared.", "ok");
       if (autoPreview.checked) runPreview();
     });
-
     $("btnClearJs").addEventListener("click", () => {
       jsCM.setValue("");
       setStatus("JS cleared.", "ok");
     });
+    $("btnClearJson").addEventListener("click", () => {
+      jsonCM.setValue("");
+      setStatus("JSON cleared.", "ok");
+      if (autoPreview.checked) runPreview();
+    });
 
-    // Share encode/decode (URL hash) for BOTH editors + stdin + toggles
+    // Share encode/decode for HTML+JS+JSON+stdin+toggles
     function b64EncodeUnicode(str){
       const utf8 = new TextEncoder().encode(str);
       let bin=""; utf8.forEach(b=>bin+=String.fromCharCode(b));
@@ -519,10 +607,12 @@ console.log("Hi", name, "- age", age);
       const state = {
         html: htmlCM.getValue(),
         js: jsCM.getValue(),
+        json: jsonCM.getValue(),
         stdin: $("stdin").value,
         timeout: Number(timeoutMsEl.value || 2000),
         autoPreview: !!autoPreview.checked,
-        injectJs: !!injectJs.checked
+        injectJs: !!injectJs.checked,
+        renderJson: !!renderJson.checked
       };
       return encodeURIComponent(b64EncodeUnicode(JSON.stringify(state)));
     }
@@ -531,7 +621,90 @@ console.log("Hi", name, "- age", age);
       return JSON.parse(json);
     }
 
-    function safePreviewHTML(html, jsInject){
+    // JSON -> DOM builder injected into preview
+    function jsonBuilderScript(jsonText){
+      // jsonText is embedded as string; parse inside iframe
+      return `
+<script>
+(function(){
+  function isObj(x){ return x && typeof x === "object" && !Array.isArray(x); }
+  function applyStyles(el, styleObj){
+    if(!isObj(styleObj)) return;
+    for (var k in styleObj){
+      try { el.style[k] = String(styleObj[k]); } catch(_) {}
+    }
+  }
+  function applyAttrs(el, attrs){
+    if(!isObj(attrs)) return;
+    for (var k in attrs){
+      try{
+        if(k === "class") el.className = String(attrs[k]);
+        else if(k === "text") el.textContent = String(attrs[k]);
+        else el.setAttribute(k, String(attrs[k]));
+      }catch(_){}
+    }
+  }
+  function makeNode(doc, node){
+    if(typeof node === "string") return doc.createTextNode(node);
+    if(!node || typeof node !== "object") return doc.createTextNode("");
+    var tag = String(node.tag || "div");
+    var el = doc.createElement(tag);
+    if(node.text != null) el.textContent = String(node.text);
+    applyAttrs(el, node.attrs);
+    applyStyles(el, node.style);
+    var kids = Array.isArray(node.children) ? node.children : [];
+    for (var i=0;i<kids.length;i++){
+      el.appendChild(makeNode(doc, kids[i]));
+    }
+    return el;
+  }
+
+  function mount(schema){
+    var doc = document;
+    var mountId = (schema && schema.mountId) ? String(schema.mountId) : "pp_json_root";
+    var root = doc.getElementById(mountId);
+    if(!root){
+      root = doc.createElement("div");
+      root.id = mountId;
+      doc.body.appendChild(root);
+    }
+    // clear mount
+    while(root.firstChild) root.removeChild(root.firstChild);
+
+    var nodes = (schema && Array.isArray(schema.nodes)) ? schema.nodes : [];
+    for (var i=0;i<nodes.length;i++){
+      root.appendChild(makeNode(doc, nodes[i]));
+    }
+
+    // optional: tiny demo hook if present
+    var btn = doc.getElementById("jsonBtn");
+    if(btn){
+      btn.addEventListener("click", function(){
+        var out = doc.getElementById("jsonOut");
+        if(out) out.textContent = "Clicked at " + new Date().toLocaleTimeString();
+      });
+    }
+  }
+
+  try{
+    var schema = JSON.parse(${JSON.stringify(jsonText)});
+    mount(schema);
+  }catch(e){
+    try{
+      var root = document.getElementById("pp_json_root");
+      if(!root){ root = document.createElement("pre"); document.body.appendChild(root); }
+      root.textContent = "JSON parse error: " + (e && (e.message||e) ? (e.message||e) : "Invalid JSON");
+      root.style.color = "#b91c1c";
+      root.style.whiteSpace = "pre-wrap";
+    }catch(_){}
+    try{ parent.postMessage({type:"pp_preview_error", message:"JSON parse error"}, "*"); }catch(_){}
+  }
+})();
+<\/script>
+`;
+    }
+
+    function safePreviewHTML(html, jsInject, jsonText, doJson){
       const shim = `
 <script>
 (function(){
@@ -548,19 +721,38 @@ console.log("Hi", name, "- age", age);
       if (/<\/head\s*>/i.test(out)) out = out.replace(/<\/head\s*>/i, shim + "\n</head>");
       else out = shim + "\n" + out;
 
+      // JSON UI render (before optional injected JS so injected JS can interact with JSON DOM)
+      if (doJson) {
+        const jsonScript = jsonBuilderScript(jsonText || "");
+        if (/<\/body\s*>/i.test(out)) out = out.replace(/<\/body\s*>/i, "\n" + jsonScript + "\n</body>");
+        else out += "\n" + jsonScript + "\n";
+      }
+
+      // Optional JS injection into preview (unsafe but useful for DOM lessons)
       if (jsInject && jsInject.trim()) {
         const scriptTag = `\n<script>\n${jsInject}\n<\/script>\n`;
         if (/<\/body\s*>/i.test(out)) out = out.replace(/<\/body\s*>/i, scriptTag + "</body>");
         else out += scriptTag;
       }
+
       return out;
     }
 
     function runPreview(){
       const html = htmlCM.getValue();
       const js = injectJs.checked ? jsCM.getValue() : "";
-      preview.srcdoc = safePreviewHTML(html, js);
+      const json = jsonCM.getValue();
+      const doJson = !!renderJson.checked;
+
+      preview.srcdoc = safePreviewHTML(html, js, json, doJson);
       setStatus("Preview updated ✅", "ok");
+    }
+
+    function runJsonOnly(){
+      // Render preview but with the same current HTML and JS toggle state,
+      // ensures JSON changes reflect immediately even if autoPreview is off.
+      runPreview();
+      setStatus("JSON rendered ✅", "ok");
     }
 
     async function runJsSandbox(){
@@ -590,24 +782,30 @@ console.log("Hi", name, "- age", age);
 
     htmlCM.on("change", ()=>{ setStatus("Editing HTML…", ""); runPreviewDebounced(); });
     jsCM.on("change", ()=>{ setStatus("Editing JS…", ""); });
+    jsonCM.on("change", ()=>{ setStatus("Editing JSON…", ""); runPreviewDebounced(); });
 
     // Keyboard shortcuts
     htmlCM.addKeyMap({ "Ctrl-Enter": ()=>runPreview(), "Cmd-Enter": ()=>runPreview() });
     jsCM.addKeyMap({ "Ctrl-Enter": ()=>runJsSandbox(), "Cmd-Enter": ()=>runJsSandbox() });
+    jsonCM.addKeyMap({ "Ctrl-Enter": ()=>runJsonOnly(), "Cmd-Enter": ()=>runJsonOnly() });
 
     // Buttons
     $("btnRunAll").addEventListener("click", runPreview);
     $("btnRunJs").addEventListener("click", runJsSandbox);
+    $("btnRunJson").addEventListener("click", runJsonOnly);
+
     $("btnClearConsole").addEventListener("click", ()=>{ clearConsole(); setStatus("Console cleared.", "ok"); });
 
     $("btnSave").addEventListener("click", ()=>{
       const payload = {
         html: htmlCM.getValue(),
         js: jsCM.getValue(),
+        json: jsonCM.getValue(),
         stdin: $("stdin").value,
         timeout: Number(timeoutMsEl.value || 2000),
         autoPreview: !!autoPreview.checked,
-        injectJs: !!injectJs.checked
+        injectJs: !!injectJs.checked,
+        renderJson: !!renderJson.checked
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
       setStatus("Saved ✅", "ok");
@@ -620,10 +818,12 @@ console.log("Hi", name, "- age", age);
         const payload = JSON.parse(raw);
         htmlCM.setValue(payload.html || starterHTML);
         jsCM.setValue(payload.js || starterJS);
+        jsonCM.setValue(payload.json || starterJSON);
         $("stdin").value = payload.stdin || "";
         timeoutMsEl.value = String(payload.timeout || 2000);
         autoPreview.checked = !!payload.autoPreview;
         injectJs.checked = !!payload.injectJs;
+        renderJson.checked = payload.renderJson !== false;
         $("tLabel").textContent = String(timeoutMsEl.value);
         runPreview();
         setStatus("Loaded ✅", "ok");
@@ -635,10 +835,12 @@ console.log("Hi", name, "- age", age);
     $("btnReset").addEventListener("click", ()=>{
       htmlCM.setValue(starterHTML);
       jsCM.setValue(starterJS);
+      jsonCM.setValue(starterJSON);
       $("stdin").value = "Champak\n25";
       timeoutMsEl.value = "2000";
       autoPreview.checked = true;
       injectJs.checked = false;
+      renderJson.checked = true;
       $("tLabel").textContent = "2000";
       clearConsole();
       runPreview();
@@ -664,7 +866,7 @@ console.log("Hi", name, "- age", age);
         try{
           await navigator.share({
             title:"PP Merged Editor — shared code",
-            text:"Open this link to load HTML + JS + stdin.",
+            text:"Open this link to load HTML + JS + JSON + stdin.",
             url
           });
           setStatus("Shared ✅", "ok");
@@ -683,7 +885,7 @@ console.log("Hi", name, "- age", age);
       }
     });
 
-    // Load from share hash if present
+    // Init: load share hash or localStorage or defaults
     (function init(){
       let loaded = false;
       if (location.hash && location.hash.startsWith("#pp=")){
@@ -692,10 +894,12 @@ console.log("Hi", name, "- age", age);
           const state = unpackState(packed);
           htmlCM.setValue(state.html || starterHTML);
           jsCM.setValue(state.js || starterJS);
+          jsonCM.setValue(state.json || starterJSON);
           $("stdin").value = state.stdin || "";
           timeoutMsEl.value = String(state.timeout || 2000);
           autoPreview.checked = !!state.autoPreview;
           injectJs.checked = !!state.injectJs;
+          renderJson.checked = state.renderJson !== false;
           $("tLabel").textContent = String(timeoutMsEl.value);
           loaded = true;
           setStatus("Loaded from shared link ✅", "ok");
@@ -703,6 +907,7 @@ console.log("Hi", name, "- age", age);
           setStatus("Share link invalid.", "bad");
         }
       }
+
       if (!loaded){
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw){
@@ -710,22 +915,27 @@ console.log("Hi", name, "- age", age);
             const payload = JSON.parse(raw);
             htmlCM.setValue(payload.html || starterHTML);
             jsCM.setValue(payload.js || starterJS);
-            $("stdin").value = payload.stdin || "";
+            jsonCM.setValue(payload.json || starterJSON);
+            $("stdin").value = payload.stdin || "Champak\n25";
             timeoutMsEl.value = String(payload.timeout || 2000);
             autoPreview.checked = !!payload.autoPreview;
             injectJs.checked = !!payload.injectJs;
+            renderJson.checked = payload.renderJson !== false;
             $("tLabel").textContent = String(timeoutMsEl.value);
           }catch(_){
             htmlCM.setValue(starterHTML);
             jsCM.setValue(starterJS);
+            jsonCM.setValue(starterJSON);
             $("stdin").value = "Champak\n25";
           }
         } else {
           htmlCM.setValue(starterHTML);
           jsCM.setValue(starterJS);
+          jsonCM.setValue(starterJSON);
           $("stdin").value = "Champak\n25";
         }
       }
+
       runPreview();
     })();
   </script>
