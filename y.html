@@ -1,0 +1,722 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#d97706" />
+  <title>Programmer’s Picnic — HTML + JS Runner (Merged)</title>
+
+  <!-- CodeMirror (CDN) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/eclipse.min.css"/>
+
+  <style>
+    :root{
+      --bg0:#fff7e6; --bg1:#fff1d6;
+      --card:rgba(255,255,255,.9);
+      --ink:#1f2937; --muted:#6b7280;
+      --brand:#d97706; --brand2:#f59e0b;
+      --border:rgba(31,41,55,.12);
+      --shadow:0 14px 40px rgba(17,24,39,.10);
+      --ring:0 0 0 4px rgba(217,119,6,.18);
+      --r2:18px;
+      --mono: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+      --sans: system-ui,-apple-system,Segoe UI,Roboto,Arial;
+      --danger:#9a3412; --ok:#065f46;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:var(--sans); color:var(--ink);
+      background:
+        radial-gradient(1100px 520px at 12% 0%, rgba(245,158,11,.22), transparent 60%),
+        radial-gradient(900px 420px at 92% 18%, rgba(217,119,6,.18), transparent 55%),
+        linear-gradient(180deg,var(--bg0),var(--bg1));
+    }
+    .wrap{max-width:1400px;margin:0 auto;padding:14px 14px 60px}
+    .card{
+      border:1px solid var(--border); border-radius:24px; background:var(--card);
+      box-shadow:var(--shadow); overflow:hidden;
+    }
+    .hd{
+      padding:14px 16px 10px;
+      border-bottom:1px solid rgba(31,41,55,.10);
+      background:
+        radial-gradient(900px 360px at 10% 0%, rgba(245,158,11,.18), transparent 55%),
+        radial-gradient(800px 320px at 92% 10%, rgba(217,119,6,.14), transparent 55%);
+      display:flex; gap:12px; align-items:flex-start; justify-content:space-between; flex-wrap:wrap;
+    }
+    h1{margin:0 0 6px;font-size:clamp(20px,2.6vw,34px);letter-spacing:-.4px}
+    .sub{margin:0;color:var(--muted);font-weight:750}
+    .pill{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:6px 10px;border-radius:999px;
+      border:1px solid rgba(217,119,6,.25);
+      background:rgba(255,255,255,.70);
+      font-weight:900;color:#92400e;
+      user-select:none; white-space:nowrap;
+    }
+    .actions{display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:flex-end}
+    .btn{
+      border:1px solid var(--border);
+      background:white;
+      color:var(--ink);
+      padding:10px 12px;
+      border-radius:14px;
+      box-shadow:0 6px 18px rgba(17,24,39,.06);
+      cursor:pointer;
+      font-weight:900;
+    }
+    .btn.primary{
+      border-color:rgba(217,119,6,.35);
+      background:linear-gradient(135deg, rgba(217,119,6,.12), rgba(245,158,11,.16));
+    }
+    .btn.danger{
+      border-color:rgba(185,28,28,.20);
+      background:linear-gradient(135deg, rgba(185,28,28,.06), rgba(245,158,11,.08));
+      color:var(--danger);
+    }
+    .btn:focus-visible{outline:none;box-shadow:var(--shadow),var(--ring)}
+    select, input[type="number"]{
+      border:1px solid rgba(31,41,55,.14);
+      border-radius:14px;
+      padding:10px 12px;
+      background:rgba(255,255,255,.75);
+      font-family:var(--sans);
+      font-weight:800;
+    }
+    input[type="checkbox"]{transform:translateY(1px)}
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap:12px;
+      padding:14px;
+    }
+    @media (max-width: 1100px){
+      .grid{grid-template-columns:1fr}
+    }
+    .panel{
+      border:1px solid rgba(31,41,55,.12);
+      border-radius:18px;
+      background:rgba(255,255,255,.78);
+      overflow:hidden;
+      min-height:560px;
+      display:flex;
+      flex-direction:column;
+    }
+    .ph{
+      padding:10px 12px;
+      border-bottom:1px solid rgba(31,41,55,.10);
+      background:#fffaf0;
+      display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+    }
+    .ph strong{color:var(--brand); font-size:13px; letter-spacing:.2px}
+    .hint{color:var(--muted); font-size:12px; font-weight:700}
+    .cm-wrap{flex:1; display:flex}
+    .CodeMirror{
+      height:100%;
+      width:100%;
+      font-family:var(--mono);
+      font-size:13px;
+      line-height:1.45;
+      background:#fff;
+    }
+    .CodeMirror-gutters{
+      background:#fffaf0;
+      border-right:1px solid rgba(31,41,55,.10);
+    }
+    iframe{
+      width:100%;
+      height:100%;
+      border:0;
+      background:#fff;
+      flex:1;
+    }
+    .out{
+      border-top:1px solid rgba(31,41,55,.10);
+      background:rgba(255,255,255,.80);
+      padding:10px 12px;
+      font-family:var(--mono);
+      font-size:12.5px;
+      white-space:pre-wrap;
+      overflow:auto;
+      max-height:220px;
+    }
+    .ok{color:var(--ok); font-weight:800}
+    .bad{color:var(--danger); font-weight:800}
+    .mini{color:var(--muted); font-weight:750; font-size:12px}
+    textarea.stdin{
+      width:100%;
+      border:1px solid rgba(31,41,55,.14);
+      border-radius:14px;
+      padding:10px 12px;
+      background:rgba(255,255,255,.75);
+      font-family:var(--mono);
+      font-weight:800;
+      line-height:1.35;
+      resize:vertical;
+      min-height:90px;
+    }
+    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+    .grow{flex:1; min-width:220px}
+  </style>
+</head>
+
+<body>
+  <main class="wrap">
+    <section class="card">
+      <div class="hd">
+        <div>
+          <div class="pill">🟠 Programmer’s Picnic</div>
+          <h1>Merged Editor: HTML Live Preview + JS Runner (Worker Sandbox)</h1>
+          <p class="sub">Build UI in HTML/CSS + run student JS safely (timeout, console capture, input()).</p>
+        </div>
+
+        <div class="actions">
+          <span class="pill">Timeout: <span id="tLabel">2000</span> ms</span>
+
+          <label class="pill" title="Auto-update iframe while typing (debounced)">
+            <input type="checkbox" id="autoPreview" checked />
+            Auto Preview
+          </label>
+
+          <label class="pill" title="Inject JS editor into iframe (DOM lessons). Not sandboxed.">
+            <input type="checkbox" id="injectJs" />
+            Inject JS into Preview
+          </label>
+
+          <button class="btn" id="btnClearConsole">Clear Console</button>
+          <button class="btn" id="btnSave">Save</button>
+          <button class="btn" id="btnLoad">Load</button>
+          <button class="btn" id="btnShare">Share</button>
+          <button class="btn danger" id="btnReset">Reset</button>
+
+          <button class="btn primary" id="btnRunJs">▶ Run JS (Sandbox)</button>
+          <button class="btn primary" id="btnRunAll">▶ Run Preview</button>
+
+          <span class="pill mini" id="status">Ready</span>
+        </div>
+      </div>
+
+      <div class="grid">
+        <!-- HTML/CSS -->
+        <section class="panel" aria-label="HTML editor">
+          <div class="ph">
+            <strong>HTML / CSS Editor</strong>
+            <span class="hint">Ctrl/⌘ + Enter = Run Preview</span>
+          </div>
+          <div class="cm-wrap"><textarea id="htmlEditor"></textarea></div>
+        </section>
+
+        <!-- JS -->
+        <section class="panel" aria-label="JS editor">
+          <div class="ph">
+            <strong>JavaScript Editor</strong>
+            <span class="hint">Ctrl/⌘ + Enter = Run JS Sandbox</span>
+          </div>
+          <div class="cm-wrap"><textarea id="jsEditor"></textarea></div>
+
+          <div style="padding:10px 12px;border-top:1px solid rgba(31,41,55,.10);background:#fffaf0">
+            <div class="row">
+              <div class="grow">
+                <div class="mini">stdin (each line = one input())</div>
+                <textarea class="stdin" id="stdin" placeholder="Example:
+Champak
+25"></textarea>
+              </div>
+              <div style="min-width:160px">
+                <div class="mini">Timeout (ms)</div>
+                <input id="timeoutMs" type="number" min="50" step="50" value="2000" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Preview + Console -->
+        <section class="panel" aria-label="Preview panel">
+          <div class="ph">
+            <strong>Preview (iframe)</strong>
+            <span class="hint">Uses srcdoc + sandbox</span>
+          </div>
+
+          <iframe
+            id="preview"
+            sandbox="allow-forms allow-modals allow-pointer-lock allow-presentation allow-scripts allow-popups"
+          ></iframe>
+
+          <div class="out" id="consoleOut"></div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <!-- CodeMirror JS (CDN) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+
+  <script>
+    /* ==========================
+       PP Mini Runner (Worker Sandbox)
+       - console capture
+       - input(prompt) from stdin lines
+       - timeout kill
+       ========================== */
+    (function () {
+      "use strict";
+
+      function nowMs() {
+        return typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+      }
+      function splitLines(s) {
+        if (!s) return [];
+        return String(s).replace(/\r\n/g, "\n").split("\n");
+      }
+      function createWorkerURL() {
+        var workerCode =
+          '"use strict";\n' +
+          "function send(type, payload){ postMessage(Object.assign({type:type}, payload||{})); }\n" +
+          "function safeStringify(v){\n" +
+          "  try {\n" +
+          "    if (typeof v === 'string') return v;\n" +
+          "    if (v && v.name && v.message && (v.stack || (v.constructor && v.constructor.name==='Error'))){\n" +
+          "      return v.stack || (v.name + ': ' + v.message);\n" +
+          "    }\n" +
+          "    var seen=[];\n" +
+          "    return JSON.stringify(v, function(k,val){\n" +
+          "      if (typeof val === 'function') return '[Function]';\n" +
+          "      if (val && typeof val === 'object'){\n" +
+          "        if (seen.indexOf(val)>=0) return '[Circular]';\n" +
+          "        seen.push(val);\n" +
+          "      }\n" +
+          "      return val;\n" +
+          "    });\n" +
+          "  } catch(e){\n" +
+          "    try { return String(v); } catch(_) { return '[Unserializable]'; }\n" +
+          "  }\n" +
+          "}\n" +
+          "function makeConsole(warnToStderr){\n" +
+          "  function mk(level){\n" +
+          "    return function(){\n" +
+          "      var args = Array.prototype.slice.call(arguments);\n" +
+          "      var safe = args.map(function(a){ return safeStringify(a); });\n" +
+          "      send('log',{level:level,args:safe});\n" +
+          "    };\n" +
+          "  }\n" +
+          "  return { log:mk('log'), info:mk('info'), warn:mk(warnToStderr?'error':'warn'), error:mk('error') };\n" +
+          "}\n" +
+          "onmessage = function(ev){\n" +
+          "  var msg = ev.data || {};\n" +
+          "  if(msg.type !== 'run') return;\n" +
+          "  var code = String(msg.code || '');\n" +
+          "  var stdinLines = Array.isArray(msg.stdinLines) ? msg.stdinLines : [];\n" +
+          "  var stdinIndex = 0;\n" +
+          "  var warnToStderr = !!msg.warnToStderr;\n" +
+          "  var consoleProxy = makeConsole(warnToStderr);\n" +
+          "  function input(promptText){\n" +
+          "    if (promptText != null && String(promptText).length) send('log',{level:'log',args:[String(promptText)]});\n" +
+          "    var v = (stdinIndex < stdinLines.length) ? String(stdinLines[stdinIndex]) : '';\n" +
+          "    stdinIndex++;\n" +
+          "    return v;\n" +
+          "  }\n" +
+          "  try {\n" +
+          "    var wrapped = 'return (async function(console,input){\\n\"use strict\";\\n' + code + '\\n});';\n" +
+          "    var factory = new Function(wrapped);\n" +
+          "    var fn = factory();\n" +
+          "    Promise.resolve(fn(consoleProxy, input)).then(function(){ send('done',{ok:true}); })\n" +
+          "    .catch(function(err){ var t=(err&&(err.stack||err.message))?(err.stack||err.message):String(err); send('done',{ok:false,error:t}); });\n" +
+          "  } catch(err){\n" +
+          "    var text=(err&&(err.stack||err.message))?(err.stack||err.message):String(err);\n" +
+          "    send('done',{ok:false,error:text});\n" +
+          "  }\n" +
+          "};";
+
+        var blob = new Blob([workerCode], { type: "application/javascript" });
+        return URL.createObjectURL(blob);
+      }
+
+      function runUserCode(options) {
+        options = options || {};
+        var start = nowMs();
+        var workerURL = createWorkerURL();
+        var worker = new Worker(workerURL);
+
+        var timeoutMs = Number(options.timeoutMs || 2000);
+        var onStdout = options.onStdout || function () {};
+        var onStderr = options.onStderr || function () {};
+        var warnToStderr = options.warnToStderr !== false;
+
+        var finished = false;
+        function finish(payload) {
+          if (finished) return;
+          finished = true;
+          try { worker.terminate(); } catch (_) {}
+          try { URL.revokeObjectURL(workerURL); } catch (_) {}
+          payload.ms = Math.max(0, nowMs() - start);
+          return payload;
+        }
+
+        return new Promise(function (resolve) {
+          var timer = setTimeout(function () {
+            resolve(finish({ ok: false, timeout: true, error: "Timeout exceeded" }));
+          }, Math.max(50, timeoutMs));
+
+          worker.onmessage = function (ev) {
+            var msg = ev.data || {};
+            if (msg.type === "log") {
+              var line = (msg.args || []).join(" ");
+              if (msg.level === "error") onStderr(line);
+              else onStdout(line);
+              return;
+            }
+            if (msg.type === "done") {
+              clearTimeout(timer);
+              if (msg && msg.ok) resolve(finish({ ok: true }));
+              else resolve(finish({ ok: false, timeout: false, error: msg.error || "Error" }));
+            }
+          };
+
+          worker.onerror = function (err) {
+            clearTimeout(timer);
+            var message = (err && err.message) ? err.message : "Worker error";
+            resolve(finish({ ok: false, timeout: false, error: message }));
+          };
+
+          worker.postMessage({
+            type: "run",
+            code: options.code || "",
+            stdinLines: splitLines(options.stdin || ""),
+            warnToStderr: warnToStderr
+          });
+        });
+      }
+
+      window.PP_MINI_RUNNER = { runUserCode: runUserCode };
+    })();
+
+    /* ==========================
+       Merged App Logic
+       ========================== */
+    const STORAGE_KEY = "pp_merged_html_js_editor_v1";
+    const $ = (id) => document.getElementById(id);
+
+    const status = $("status");
+    const consoleOut = $("consoleOut");
+    const preview = $("preview");
+    const autoPreview = $("autoPreview");
+    const injectJs = $("injectJs");
+    const timeoutMsEl = $("timeoutMs");
+
+    function setStatus(text, kind){
+      status.textContent = text;
+      status.classList.remove("ok","bad");
+      if (kind === "ok") status.classList.add("ok");
+      if (kind === "bad") status.classList.add("bad");
+    }
+
+    function appendConsole(line, cls){
+      const div = document.createElement("div");
+      if (cls) div.className = cls;
+      div.textContent = line;
+      consoleOut.appendChild(div);
+      consoleOut.scrollTop = consoleOut.scrollHeight;
+    }
+    function clearConsole(){
+      consoleOut.innerHTML = "";
+    }
+
+    function debounce(fn, ms){
+      let t=null;
+      return (...args)=>{
+        clearTimeout(t);
+        t=setTimeout(()=>fn(...args), ms);
+      };
+    }
+
+    // Starter HTML + JS
+    const starterHTML = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>My UI</title>
+  <style>
+    :root{ --brand:#d97706; }
+    body{font-family:system-ui;margin:0;padding:24px;background:#fff}
+    .card{border:1px solid #e5e7eb;border-radius:14px;padding:16px;max-width:900px}
+    h1{margin:0 0 8px;color:var(--brand)}
+    button{padding:10px 12px;border:1px solid #e5e7eb;border-radius:12px;background:#fff;cursor:pointer}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>HTML Preview</h1>
+    <p>Edit HTML/CSS on the left. Toggle “Inject JS into Preview” for DOM lessons.</p>
+    <button id="btn">Click me</button>
+    <div id="out"></div>
+  </div>
+</body>
+</html>`;
+
+    const starterJS = `// JS Sandbox demo (safe worker: console + input + timeout)
+console.log("Hello from JS sandbox!");
+
+const name = input("Enter your name:");
+const age = input("Enter your age:");
+console.log("Hi", name, "- age", age);
+
+// Try timeout:
+// while(true){};`;
+
+    // Initialize CodeMirror editors
+    const htmlCM = CodeMirror.fromTextArea($("htmlEditor"), {
+      mode:"htmlmixed", theme:"eclipse",
+      lineNumbers:true, lineWrapping:true,
+      tabSize:2, indentUnit:2, indentWithTabs:false
+    });
+
+    const jsCM = CodeMirror.fromTextArea($("jsEditor"), {
+      mode:"javascript", theme:"eclipse",
+      lineNumbers:true, lineWrapping:true,
+      tabSize:2, indentUnit:2, indentWithTabs:false
+    });
+
+    // Share encode/decode (URL hash) for BOTH editors + stdin + toggles
+    function b64EncodeUnicode(str){
+      const utf8 = new TextEncoder().encode(str);
+      let bin=""; utf8.forEach(b=>bin+=String.fromCharCode(b));
+      return btoa(bin);
+    }
+    function b64DecodeUnicode(b64){
+      const bin = atob(b64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+      return new TextDecoder().decode(bytes);
+    }
+    function packState(){
+      const state = {
+        html: htmlCM.getValue(),
+        js: jsCM.getValue(),
+        stdin: $("stdin").value,
+        timeout: Number(timeoutMsEl.value || 2000),
+        autoPreview: !!autoPreview.checked,
+        injectJs: !!injectJs.checked
+      };
+      return encodeURIComponent(b64EncodeUnicode(JSON.stringify(state)));
+    }
+    function unpackState(packed){
+      const json = b64DecodeUnicode(decodeURIComponent(packed));
+      return JSON.parse(json);
+    }
+
+    function safePreviewHTML(html, jsInject){
+      // add a small error forwarder so preview errors show in status
+      const shim = `
+<script>
+(function(){
+  window.addEventListener("error", function(ev){
+    try{ parent.postMessage({type:"pp_preview_error", message:String(ev.message||"Error")}, "*"); }catch(_){}
+  });
+  window.addEventListener("unhandledrejection", function(ev){
+    try{ parent.postMessage({type:"pp_preview_error", message:String((ev.reason&&ev.reason.message)||ev.reason||"Promise rejection")}, "*"); }catch(_){}
+  });
+})();
+<\/script>
+`;
+      let out = String(html || "");
+      if (/<\/head\s*>/i.test(out)) out = out.replace(/<\/head\s*>/i, shim + "\n</head>");
+      else out = shim + "\n" + out;
+
+      if (jsInject && jsInject.trim()) {
+        const scriptTag = `\n<script>\n${jsInject}\n<\/script>\n`;
+        if (/<\/body\s*>/i.test(out)) out = out.replace(/<\/body\s*>/i, scriptTag + "</body>");
+        else out += scriptTag;
+      }
+      return out;
+    }
+
+    function runPreview(){
+      const html = htmlCM.getValue();
+      const js = injectJs.checked ? jsCM.getValue() : "";
+      preview.srcdoc = safePreviewHTML(html, js);
+      setStatus("Preview updated ✅", "ok");
+    }
+
+    async function runJsSandbox(){
+      clearConsole();
+      setStatus("Running JS sandbox…", "");
+      const t = Number(timeoutMsEl.value || 2000);
+      $("tLabel").textContent = String(t);
+
+      const result = await window.PP_MINI_RUNNER.runUserCode({
+        code: jsCM.getValue(),
+        stdin: $("stdin").value,
+        timeoutMs: t,
+        warnToStderr: true,
+        onStdout: (s)=>appendConsole(s),
+        onStderr: (s)=>appendConsole(s, "bad"),
+      });
+
+      if (result.ok){
+        setStatus(`✅ JS done in ${result.ms} ms`, "ok");
+      } else {
+        if (result.timeout) setStatus(`⏱️ ${result.error} (killed safely)`, "bad");
+        else setStatus(`❌ ${result.error}`, "bad");
+      }
+    }
+
+    const runPreviewDebounced = debounce(()=>{ if(autoPreview.checked) runPreview(); }, 300);
+
+    htmlCM.on("change", ()=>{ setStatus("Editing HTML…", ""); runPreviewDebounced(); });
+    jsCM.on("change", ()=>{ setStatus("Editing JS…", ""); /* no auto-run sandbox */ });
+
+    // Keyboard shortcuts
+    htmlCM.addKeyMap({
+      "Ctrl-Enter": ()=>runPreview(),
+      "Cmd-Enter": ()=>runPreview()
+    });
+    jsCM.addKeyMap({
+      "Ctrl-Enter": ()=>runJsSandbox(),
+      "Cmd-Enter": ()=>runJsSandbox()
+    });
+
+    // Buttons
+    $("btnRunAll").addEventListener("click", runPreview);
+    $("btnRunJs").addEventListener("click", runJsSandbox);
+    $("btnClearConsole").addEventListener("click", ()=>{ clearConsole(); setStatus("Console cleared.", "ok"); });
+
+    $("btnSave").addEventListener("click", ()=>{
+      const payload = {
+        html: htmlCM.getValue(),
+        js: jsCM.getValue(),
+        stdin: $("stdin").value,
+        timeout: Number(timeoutMsEl.value || 2000),
+        autoPreview: !!autoPreview.checked,
+        injectJs: !!injectJs.checked
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      setStatus("Saved ✅", "ok");
+    });
+
+    $("btnLoad").addEventListener("click", ()=>{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw){ setStatus("Nothing saved yet.", "bad"); return; }
+      try{
+        const payload = JSON.parse(raw);
+        htmlCM.setValue(payload.html || starterHTML);
+        jsCM.setValue(payload.js || starterJS);
+        $("stdin").value = payload.stdin || "";
+        timeoutMsEl.value = String(payload.timeout || 2000);
+        autoPreview.checked = !!payload.autoPreview;
+        injectJs.checked = !!payload.injectJs;
+        $("tLabel").textContent = String(timeoutMsEl.value);
+        runPreview();
+        setStatus("Loaded ✅", "ok");
+      }catch(e){
+        setStatus("Load failed.", "bad");
+      }
+    });
+
+    $("btnReset").addEventListener("click", ()=>{
+      htmlCM.setValue(starterHTML);
+      jsCM.setValue(starterJS);
+      $("stdin").value = "Champak\n25";
+      timeoutMsEl.value = "2000";
+      autoPreview.checked = true;
+      injectJs.checked = false;
+      $("tLabel").textContent = "2000";
+      clearConsole();
+      runPreview();
+      setStatus("Reset ✅", "ok");
+    });
+
+    async function copyToClipboard(text){
+      try{
+        await navigator.clipboard.writeText(text);
+        return true;
+      }catch(_){
+        const ta=document.createElement("textarea");
+        ta.value=text; ta.style.position="fixed"; ta.style.left="-9999px";
+        document.body.appendChild(ta); ta.select();
+        try{ document.execCommand("copy"); document.body.removeChild(ta); return true; }
+        catch(e){ document.body.removeChild(ta); return false; }
+      }
+    }
+
+    $("btnShare").addEventListener("click", async ()=>{
+      const packed = packState();
+      const url = location.origin + location.pathname + "#pp=" + packed;
+
+      if (navigator.share){
+        try{
+          await navigator.share({
+            title:"PP Merged Editor — shared code",
+            text:"Open this link to load HTML + JS + stdin.",
+            url
+          });
+          setStatus("Shared ✅", "ok");
+          return;
+        }catch(e){ /* fallback to copy */ }
+      }
+      const ok = await copyToClipboard(url);
+      setStatus(ok ? "Share link copied ✅" : "Could not copy link", ok ? "ok":"bad");
+    });
+
+    // Preview error bridge
+    window.addEventListener("message", (ev)=>{
+      const d = ev.data || {};
+      if (d.type === "pp_preview_error"){
+        setStatus("Preview error: " + d.message, "bad");
+      }
+    });
+
+    // Load from share hash if present
+    (function init(){
+      let loaded = false;
+      if (location.hash && location.hash.startsWith("#pp=")){
+        const packed = location.hash.slice(4);
+        try{
+          const state = unpackState(packed);
+          htmlCM.setValue(state.html || starterHTML);
+          jsCM.setValue(state.js || starterJS);
+          $("stdin").value = state.stdin || "";
+          timeoutMsEl.value = String(state.timeout || 2000);
+          autoPreview.checked = !!state.autoPreview;
+          injectJs.checked = !!state.injectJs;
+          $("tLabel").textContent = String(timeoutMsEl.value);
+          loaded = true;
+          setStatus("Loaded from shared link ✅", "ok");
+        }catch(e){
+          setStatus("Share link invalid.", "bad");
+        }
+      }
+      if (!loaded){
+        // fallback: localStorage or defaults
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw){
+          try{
+            const payload = JSON.parse(raw);
+            htmlCM.setValue(payload.html || starterHTML);
+            jsCM.setValue(payload.js || starterJS);
+            $("stdin").value = payload.stdin || "";
+            timeoutMsEl.value = String(payload.timeout || 2000);
+            autoPreview.checked = !!payload.autoPreview;
+            injectJs.checked = !!payload.injectJs;
+            $("tLabel").textContent = String(timeoutMsEl.value);
+          }catch(_){
+            htmlCM.setValue(starterHTML);
+            jsCM.setValue(starterJS);
+            $("stdin").value = "Champak\n25";
+          }
+        } else {
+          htmlCM.setValue(starterHTML);
+          jsCM.setValue(starterJS);
+          $("stdin").value = "Champak\n25";
+        }
+      }
+      runPreview();
+    })();
+  </script>
+</body>
+</html>
