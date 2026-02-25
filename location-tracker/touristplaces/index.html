@@ -1,0 +1,989 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+    <title>Programmer’s Picnic — Tourist Places Nearby</title>
+    <meta
+      name="description"
+      content="Find tourist attractions near your live location. Built by Champak Roy for Programmer’s Picnic."
+    />
+    <meta name="theme-color" content="#d97706" />
+
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+
+    <style>
+      :root {
+        --bg: #fff7e6;
+        --panel: rgba(255, 255, 255, 0.85);
+        --ink: #1f2328;
+        --muted: #5b6570;
+        --line: rgba(31, 35, 40, 0.12);
+        --saffron: #ff9f1c;
+        --saffron2: #ffb74d;
+        --shadow: 0 14px 40px rgba(31, 35, 40, 0.12);
+        --radius: 18px;
+        --mono: ui-monospace, monospace;
+        --sans: system-ui;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: var(--sans);
+        background:
+          radial-gradient(
+            800px 500px at 20% 0%,
+            rgba(255, 159, 28, 0.22),
+            transparent 60%
+          ),
+          var(--bg);
+        color: var(--ink);
+      }
+
+      .wrap {
+        max-width: 1200px;
+        margin: auto;
+        padding: 16px;
+        display: grid;
+        grid-template-columns: 400px 1fr;
+        gap: 14px;
+      }
+      @media (max-width: 900px) {
+        .wrap {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      header.card {
+        grid-column: 1/-1;
+        padding: 14px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+      }
+      .logo {
+        width: 40px;
+        height: 40px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, var(--saffron), var(--saffron2));
+        display: grid;
+        place-items: center;
+        font-weight: 900;
+        flex: 0 0 auto;
+      }
+      h1 {
+        font-size: 16px;
+        margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .sub {
+        font-size: 12px;
+        color: var(--muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .status {
+        font-size: 12px;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        white-space: nowrap;
+      }
+      .spin {
+        width: 14px;
+        height: 14px;
+        border-radius: 999px;
+        border: 2px solid rgba(31, 35, 40, 0.18);
+        border-top-color: rgba(31, 35, 40, 0.55);
+        animation: rot 1s linear infinite;
+        display: none;
+      }
+      @keyframes rot {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .left {
+        padding: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      button {
+        padding: 10px 12px;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        font-weight: 800;
+        cursor: pointer;
+        background: rgba(255, 255, 255, 0.75);
+        box-shadow: 0 8px 18px rgba(31, 35, 40, 0.08);
+      }
+      button.primary {
+        background: linear-gradient(135deg, var(--saffron), var(--saffron2));
+      }
+      button:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+
+      label {
+        font-size: 12px;
+        color: var(--muted);
+        font-weight: 700;
+      }
+
+      select,
+      input {
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid var(--line);
+        width: 100%;
+        background: rgba(255, 255, 255, 0.9);
+      }
+
+      .row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .row > * {
+        flex: 1;
+      }
+
+      #map {
+        height: 70vh;
+        min-height: 520px;
+      }
+
+      .kv {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.75);
+        padding: 10px 12px;
+        font-size: 12px;
+        color: var(--muted);
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px 10px;
+      }
+      .kv b {
+        color: var(--ink);
+        font-family: var(--mono);
+        font-weight: 800;
+      }
+
+      .list {
+        max-height: 320px;
+        overflow: auto;
+        font-size: 13px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 6px;
+        background: rgba(255, 255, 255, 0.92);
+      }
+      .place-item {
+        padding: 10px 10px;
+        border-radius: 12px;
+        border: 1px solid rgba(31, 35, 40, 0.08);
+        margin: 6px 0;
+        cursor: pointer;
+        background: white;
+        position: relative;
+      }
+      .place-item:hover {
+        background: #fff3e0;
+      }
+      .place-item .meta {
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 4px;
+      }
+      .place-item .idx {
+        position: absolute;
+        right: 10px;
+        top: 10px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.75);
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .warn {
+        border: 1px dashed rgba(180, 35, 24, 0.28);
+        background: rgba(180, 35, 24, 0.06);
+        color: #7a271a;
+        padding: 10px 12px;
+        border-radius: 14px;
+        font-size: 12px;
+        display: none;
+        line-height: 1.45;
+      }
+
+      /* New: radius input row */
+      .radiusRow {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 10px;
+      }
+      @media (max-width: 520px) {
+        .radiusRow {
+          grid-template-columns: 1fr;
+        }
+      }
+      .hint {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: -6px;
+      }
+
+      /* Modal */
+      .modalOverlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(31, 35, 40, 0.55);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 18px;
+        z-index: 9999;
+      }
+      .modalOverlay.show {
+        display: flex;
+      }
+      .modal {
+        width: min(720px, 100%);
+        border-radius: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: 0 18px 60px rgba(31, 35, 40, 0.22);
+        overflow: hidden;
+      }
+      .modalHead {
+        padding: 12px 14px;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.8);
+      }
+      .modalTitle {
+        margin: 0;
+        font-size: 16px;
+      }
+      .modalSub {
+        margin: 4px 0 0;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .modalClose {
+        border-radius: 12px;
+        padding: 8px 10px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.85);
+        font-weight: 900;
+        cursor: pointer;
+      }
+      .modalBody {
+        padding: 14px;
+        display: grid;
+        gap: 12px;
+      }
+      .modalGrid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      @media (max-width: 700px) {
+        .modalGrid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .miniCard {
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.8);
+        border-radius: 14px;
+        padding: 10px 12px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .miniCard b {
+        color: var(--ink);
+        font-family: var(--mono);
+      }
+      .modalActions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      a.actionLink {
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 12px;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.85);
+        color: var(--ink);
+        font-weight: 800;
+      }
+
+      .footer {
+        padding: 10px;
+        font-size: 12px;
+        color: var(--muted);
+        text-align: center;
+      }
+    </style>
+  </head>
+
+  <body>
+    <header class="card">
+      <div class="brand">
+        <div class="logo">PP</div>
+        <div style="min-width: 0">
+          <h1>Tourist Places Nearby</h1>
+          <div class="sub">Programmer’s Picnic • Created by Champak Roy</div>
+        </div>
+      </div>
+
+      <div class="status">
+        <span class="spin" id="spin"></span>
+        <span id="statusText">Idle</span>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section class="card left">
+        <div class="row">
+          <button id="btnLocate" class="primary">Find Nearby Places</button>
+          <button id="btnFit" title="Fit results on map" disabled>Fit</button>
+        </div>
+
+        <!-- ✅ NEW: Select + typed radius (km float) -->
+        <div class="radiusRow">
+          <div>
+            <label>Radius preset</label>
+            <select id="radiusPreset">
+              <option value="0.5">0.5 km</option>
+              <option value="1">1 km</option>
+              <option value="3">3 km</option>
+              <option value="5" selected>5 km</option>
+              <option value="10">10 km</option>
+              <option value="100">100 km</option>
+            </select>
+          </div>
+          <div>
+            <label>Radius (km)</label>
+            <input
+              id="radiusKm"
+              type="number"
+              inputmode="decimal"
+              step="0.1"
+              min="0.1"
+              value="5"
+              placeholder="e.g., 0.5"
+            />
+          </div>
+        </div>
+        <div class="hint">
+          Tip: You can type decimals like <b>0.5</b> (km). The search uses
+          meters internally.
+        </div>
+
+        <div class="row">
+          <div>
+            <label>Max results</label>
+            <select id="limit">
+              <option value="50">50</option>
+              <option value="100" selected>100</option>
+              <option value="200">200</option>
+            </select>
+          </div>
+          <div>
+            <label>Search tag</label>
+            <select id="tagMode">
+              <option value="tourism" selected>tourism=*</option>
+              <option value="attractions">tourism + historic + amenity</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="warn" id="warnBox">
+          <b>Large radius selected.</b> Very large searches can time out. This
+          page caps results and may take longer.
+        </div>
+
+        <div class="kv">
+          <div>Lat,Lng<br /><b id="kvLatLng">—</b></div>
+          <div>Accuracy<br /><b id="kvAcc">—</b></div>
+          <div>Radius<br /><b id="kvRadius">—</b></div>
+          <div>Found<br /><b id="kvCount">0</b></div>
+        </div>
+
+        <div class="row">
+          <span class="badge" id="tagBadge">Tag: tourism=*</span>
+          <span class="badge" id="endpointBadge">Overpass</span>
+        </div>
+
+        <div>
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              gap: 10px;
+            "
+          >
+            <b>Places found</b>
+            <span style="font-size: 12px; color: var(--muted)" id="hint2"
+              >Tap a place for details.</span
+            >
+          </div>
+          <div id="placesList" class="list" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div id="map"></div>
+      </section>
+    </main>
+
+    <div class="footer">
+      © 2026 Programmer’s Picnic • Educational Tourism Tool
+    </div>
+
+    <!-- Modal -->
+    <div
+      class="modalOverlay"
+      id="modalOverlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modalTitle"
+    >
+      <div class="modal">
+        <div class="modalHead">
+          <div>
+            <h2 class="modalTitle" id="modalTitle">Place</h2>
+            <div class="modalSub" id="modalSub">—</div>
+          </div>
+          <button class="modalClose" id="modalClose" aria-label="Close">
+            ✕
+          </button>
+        </div>
+        <div class="modalBody">
+          <div class="modalGrid">
+            <div class="miniCard">Type<br /><b id="mType">—</b></div>
+            <div class="miniCard">Distance<br /><b id="mDist">—</b></div>
+            <div class="miniCard">Coordinates<br /><b id="mLatLng">—</b></div>
+            <div class="miniCard">
+              Source<br /><b id="mSource">OpenStreetMap</b>
+            </div>
+          </div>
+          <div class="modalActions">
+            <a class="actionLink" id="mOpenOSM" target="_blank" rel="noopener"
+              >Open in OSM</a
+            >
+            <a
+              class="actionLink"
+              id="mDirections"
+              target="_blank"
+              rel="noopener"
+              >Directions</a
+            >
+            <a class="actionLink" id="mCopy" href="#">Copy details</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+      /* Map */
+      const map = L.map("map").setView([25.3176, 82.9739], 13);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "© OpenStreetMap contributors",
+      }).addTo(map);
+
+      let userMarker = null;
+      let placeMarkers = L.layerGroup().addTo(map);
+      let lastBounds = null;
+
+      // Connections
+      let connectionsLayer = null;
+      let spokesLayer = null;
+      let markersByIndex = [];
+
+      // Modal refs
+      const modalOverlay = document.getElementById("modalOverlay");
+      const modalClose = document.getElementById("modalClose");
+      const mTitle = document.getElementById("modalTitle");
+      const mSub = document.getElementById("modalSub");
+      const mType = document.getElementById("mType");
+      const mDist = document.getElementById("mDist");
+      const mLatLng = document.getElementById("mLatLng");
+      const mOpenOSM = document.getElementById("mOpenOSM");
+      const mDirections = document.getElementById("mDirections");
+      const mCopy = document.getElementById("mCopy");
+
+      const spin = document.getElementById("spin");
+      const statusText = document.getElementById("statusText");
+      const listEl = document.getElementById("placesList");
+      const btnFit = document.getElementById("btnFit");
+      const warnBox = document.getElementById("warnBox");
+      const endpointBadge = document.getElementById("endpointBadge");
+
+      const kvLatLng = document.getElementById("kvLatLng");
+      const kvAcc = document.getElementById("kvAcc");
+      const kvRadius = document.getElementById("kvRadius");
+      const kvCount = document.getElementById("kvCount");
+
+      const radiusPreset = document.getElementById("radiusPreset");
+      const radiusKm = document.getElementById("radiusKm");
+      const limitEl = document.getElementById("limit");
+      const tagModeEl = document.getElementById("tagMode");
+      const tagBadge = document.getElementById("tagBadge");
+
+      const OVERPASS_ENDPOINTS = [
+        "https://overpass-api.de/api/interpreter",
+        "https://overpass.kumi.systems/api/interpreter",
+        "https://overpass.openstreetmap.ru/api/interpreter",
+      ];
+
+      let lastUser = null;
+      let lastPlaces = [];
+
+      function setBusy(on, msg) {
+        spin.style.display = on ? "inline-block" : "none";
+        statusText.textContent = msg || (on ? "Working…" : "Idle");
+      }
+
+      function haversine(lat1, lng1, lat2, lng2) {
+        const R = 6371000;
+        const toRad = (x) => (x * Math.PI) / 180;
+        const dLat = toRad(lat2 - lat1);
+        const dLng = toRad(lng2 - lng1);
+        const a =
+          Math.sin(dLat / 2) ** 2 +
+          Math.cos(toRad(lat1)) *
+            Math.cos(toRad(lat2)) *
+            Math.sin(dLng / 2) ** 2;
+        return 2 * R * Math.asin(Math.sqrt(a));
+      }
+      function fmtDist(m) {
+        if (!isFinite(m)) return "—";
+        if (m < 1000) return `${Math.round(m)} m`;
+        return `${(m / 1000).toFixed(2)} km`;
+      }
+      function safeText(s) {
+        return String(s || "").replace(
+          /[&<>"']/g,
+          (ch) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[ch],
+        );
+      }
+
+      function kmToMeters(km) {
+        const n = Number(km);
+        if (!isFinite(n) || n <= 0) return NaN;
+        return Math.round(n * 1000);
+      }
+      function clampRadiusM(m) {
+        // practical clamp: 100 m to 200 km
+        if (!isFinite(m)) return NaN;
+        return Math.max(100, Math.min(200000, m));
+      }
+
+      function readRadiusMeters() {
+        // prefer typed value; if empty use preset
+        const typed = radiusKm.value.trim();
+        let km = typed ? Number(typed) : Number(radiusPreset.value);
+        if (!isFinite(km) || km <= 0) km = Number(radiusPreset.value);
+        let m = kmToMeters(km);
+        m = clampRadiusM(m);
+        return m;
+      }
+
+      function updateWarnFromRadiusM(radiusM) {
+        warnBox.style.display = radiusM >= 50000 ? "block" : "none";
+      }
+
+      function updateRadiusUIFromPreset() {
+        // preset is in km, update typed input too
+        radiusKm.value = String(radiusPreset.value);
+      }
+
+      radiusPreset.addEventListener("change", () => {
+        updateRadiusUIFromPreset();
+        updateWarnFromRadiusM(readRadiusMeters());
+      });
+      radiusKm.addEventListener("input", () => {
+        updateWarnFromRadiusM(readRadiusMeters());
+      });
+
+      function buildQuery(lat, lng, radiusM) {
+        const mode = tagModeEl.value;
+        if (mode === "attractions") {
+          // broader but still tourism-ish: tourism OR historic OR leisure OR amenity=viewpoint/museum
+          tagBadge.textContent = "Tag: tourism + historic + viewpoints";
+          return `
+[out:json][timeout:25];
+(
+  node["tourism"](around:${radiusM},${lat},${lng});
+  way["tourism"](around:${radiusM},${lat},${lng});
+  relation["tourism"](around:${radiusM},${lat},${lng});
+
+  node["historic"](around:${radiusM},${lat},${lng});
+  way["historic"](around:${radiusM},${lat},${lng});
+  relation["historic"](around:${radiusM},${lat},${lng});
+
+  node["amenity"~"museum|arts_centre"](around:${radiusM},${lat},${lng});
+  node["tourism"="viewpoint"](around:${radiusM},${lat},${lng});
+  node["leisure"="park"](around:${radiusM},${lat},${lng});
+);
+out center;
+`;
+        }
+        tagBadge.textContent = "Tag: tourism=*";
+        return `
+[out:json][timeout:25];
+(
+  node["tourism"](around:${radiusM},${lat},${lng});
+  way["tourism"](around:${radiusM},${lat},${lng});
+  relation["tourism"](around:${radiusM},${lat},${lng});
+);
+out center;
+`;
+      }
+
+      async function postOverpass(query) {
+        let lastErr = null;
+        for (let i = 0; i < OVERPASS_ENDPOINTS.length; i++) {
+          const url = OVERPASS_ENDPOINTS[i];
+          try {
+            endpointBadge.textContent = `Overpass #${i + 1}`;
+            const controller = new AbortController();
+            const t = setTimeout(() => controller.abort(), 30000);
+
+            const res = await fetch(url, {
+              method: "POST",
+              body: query,
+              signal: controller.signal,
+              headers: { "Content-Type": "text/plain;charset=UTF-8" },
+            });
+
+            clearTimeout(t);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return await res.json();
+          } catch (e) {
+            lastErr = e;
+          }
+        }
+        throw lastErr || new Error("Overpass failed");
+      }
+
+      function clearConnections() {
+        if (connectionsLayer) {
+          try {
+            map.removeLayer(connectionsLayer);
+          } catch (_) {}
+          connectionsLayer = null;
+        }
+        if (spokesLayer) {
+          try {
+            map.removeLayer(spokesLayer);
+          } catch (_) {}
+          spokesLayer = null;
+        }
+      }
+
+      function drawConnections(userLat, userLng, places) {
+        clearConnections();
+        if (!places || places.length === 0) return;
+
+        const spokeLatLngs = places.map((p) => [
+          [userLat, userLng],
+          [p.lat, p.lng],
+        ]);
+        spokesLayer = L.layerGroup(
+          spokeLatLngs.map((seg) =>
+            L.polyline(seg, { weight: 2, opacity: 0.55, dashArray: "6 8" }),
+          ),
+        ).addTo(map);
+
+        const routeLatLngs = [
+          [userLat, userLng],
+          ...places.map((p) => [p.lat, p.lng]),
+        ];
+        connectionsLayer = L.polyline(routeLatLngs, {
+          weight: 4,
+          opacity: 0.85,
+        }).addTo(map);
+      }
+
+      function renderPlaces(userLat, userLng, elements, limit) {
+        placeMarkers.clearLayers();
+        markersByIndex = [];
+        listEl.innerHTML = "";
+        lastBounds = null;
+        lastPlaces = [];
+
+        const points = elements
+          .map((el) => {
+            const latP = el.lat ?? el.center?.lat;
+            const lngP = el.lon ?? el.center?.lon;
+            if (latP == null || lngP == null) return null;
+
+            const name = el.tags?.name || "Unnamed Place";
+            const type =
+              el.tags?.tourism ||
+              el.tags?.historic ||
+              el.tags?.amenity ||
+              el.tags?.leisure ||
+              "place";
+            const dist = haversine(userLat, userLng, latP, lngP);
+            return { lat: latP, lng: lngP, name, type, dist };
+          })
+          .filter(Boolean);
+
+        points.sort((a, b) => a.dist - b.dist);
+        const sliced = points.slice(0, limit);
+
+        lastPlaces = sliced;
+        kvCount.textContent = String(sliced.length);
+
+        if (!sliced.length) {
+          listEl.innerHTML = `<div style="padding:10px;color:var(--muted)">No places found in this radius.</div>`;
+          btnFit.disabled = true;
+          statusText.textContent = "No results";
+          clearConnections();
+          return;
+        }
+
+        const bounds = L.latLngBounds([[userLat, userLng]]);
+        sliced.forEach((p, idx) => {
+          bounds.extend([p.lat, p.lng]);
+
+          const marker = L.marker([p.lat, p.lng]).addTo(placeMarkers);
+          marker.bindPopup(
+            `<b>${safeText(p.name)}</b><br>${safeText(p.type)}<br>${safeText(fmtDist(p.dist))}`,
+          );
+          markersByIndex[idx] = marker;
+
+          const div = document.createElement("div");
+          div.className = "place-item";
+          div.innerHTML = `
+      <div class="idx">#${idx + 1}</div>
+      <div><b>${safeText(p.name)}</b></div>
+      <div class="meta">${safeText(p.type)} • ${safeText(fmtDist(p.dist))}</div>
+    `;
+          div.onclick = () => {
+            map.setView([p.lat, p.lng], 16, { animate: true });
+            marker.openPopup();
+            openModalForPlace(idx);
+          };
+          listEl.appendChild(div);
+        });
+
+        lastBounds = bounds;
+        btnFit.disabled = false;
+
+        drawConnections(userLat, userLng, sliced);
+      }
+
+      function fitToResults() {
+        if (!lastBounds) return;
+        map.fitBounds(lastBounds.pad(0.2));
+      }
+      document.getElementById("btnFit").onclick = fitToResults;
+
+      /* Modal */
+      function openModalForPlace(idx) {
+        const p = lastPlaces[idx];
+        if (!p || !lastUser) return;
+
+        const { lat: ulat, lng: ulng } = lastUser;
+
+        mTitle.textContent = p.name || "Place";
+        mSub.textContent = `#${idx + 1} • ${fmtDist(p.dist)} away`;
+        mType.textContent = p.type || "place";
+        mDist.textContent = fmtDist(p.dist);
+        mLatLng.textContent = `${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}`;
+
+        mOpenOSM.href = `https://www.openstreetmap.org/?mlat=${encodeURIComponent(p.lat)}&mlon=${encodeURIComponent(p.lng)}#map=18/${encodeURIComponent(p.lat)}/${encodeURIComponent(p.lng)}`;
+        mDirections.href = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(ulat)},${encodeURIComponent(ulng)}&destination=${encodeURIComponent(p.lat)},${encodeURIComponent(p.lng)}&travelmode=walking`;
+
+        mCopy.onclick = async (e) => {
+          e.preventDefault();
+          const txt = `${p.name}
+Type: ${p.type}
+Distance: ${fmtDist(p.dist)}
+LatLng: ${p.lat}, ${p.lng}`;
+          try {
+            await navigator.clipboard.writeText(txt);
+            statusText.textContent = "Copied details";
+          } catch (_) {
+            statusText.textContent = "Copy not available";
+          }
+        };
+
+        modalOverlay.classList.add("show");
+      }
+      function closeModal() {
+        modalOverlay.classList.remove("show");
+      }
+      modalClose.addEventListener("click", closeModal);
+      modalOverlay.addEventListener("click", (e) => {
+        if (e.target === modalOverlay) closeModal();
+      });
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeModal();
+      });
+
+      /* Locate */
+      document.getElementById("btnLocate").onclick = () => {
+        if (!navigator.geolocation) {
+          alert("Geolocation not supported.");
+          return;
+        }
+
+        setBusy(true, "Getting location…");
+        listEl.innerHTML = `<div style="padding:10px;color:var(--muted)">Preparing…</div>`;
+        btnFit.disabled = true;
+
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            const acc = pos.coords.accuracy;
+
+            lastUser = { lat, lng };
+
+            const radiusM = readRadiusMeters();
+            if (!isFinite(radiusM)) {
+              setBusy(false, "Invalid radius");
+              alert("Please enter a valid radius in km (example: 0.5).");
+              return;
+            }
+            updateWarnFromRadiusM(radiusM);
+
+            const limit = parseInt(limitEl.value, 10);
+
+            kvLatLng.textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+            kvAcc.textContent = `${Math.round(acc)} m`;
+            kvRadius.textContent =
+              radiusM >= 1000
+                ? `${(radiusM / 1000).toFixed(2)} km`
+                : `${radiusM} m`;
+
+            if (userMarker) userMarker.setLatLng([lat, lng]);
+            else
+              userMarker = L.circleMarker([lat, lng], {
+                radius: 9,
+                fillColor: "#ff9f1c",
+                color: "#1f2328",
+                weight: 2,
+                fillOpacity: 0.92,
+              })
+                .addTo(map)
+                .bindPopup("<b>You are here</b>");
+
+            map.setView([lat, lng], 14);
+
+            setBusy(true, "Searching tourist places…");
+
+            try {
+              const query = buildQuery(lat, lng, radiusM);
+              const data = await postOverpass(query);
+
+              // light de-dupe
+              const seen = new Set();
+              const elements = (data.elements || []).filter((el) => {
+                const la = el.lat ?? el.center?.lat;
+                const lo = el.lon ?? el.center?.lon;
+                if (la == null || lo == null) return false;
+                const key = `${Math.round(la * 1e5)}:${Math.round(lo * 1e5)}:${(el.tags?.name || "").trim().toLowerCase()}`;
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+              });
+
+              renderPlaces(lat, lng, elements, limit);
+
+              if (radiusM <= 10000) fitToResults();
+
+              setBusy(
+                false,
+                `Found ${Math.min(elements.length, limit)} place(s)`,
+              );
+            } catch (e) {
+              kvCount.textContent = "0";
+              listEl.innerHTML = `
+        <div style="padding:10px;color:#7a271a;background:rgba(180,35,24,.06);border:1px dashed rgba(180,35,24,.25);border-radius:12px">
+          <b>Search failed.</b><br>
+          Overpass may be busy. Try again after a minute, reduce radius, or use a smaller value like 0.5–10 km.
+        </div>
+      `;
+              clearConnections();
+              setBusy(false, "Error");
+            }
+          },
+          () => {
+            setBusy(false, "Permission denied");
+            alert("Location permission denied.");
+          },
+          { enableHighAccuracy: true, timeout: 15000, maximumAge: 3000 },
+        );
+      };
+
+      // init warn state
+      updateWarnFromRadiusM(readRadiusMeters());
+    </script>
+  </body>
+</html>
