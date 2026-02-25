@@ -663,6 +663,22 @@
         transform: translateX(-50%) translateY(-2px);
       }
 
+      /* IFRAME RENDER PREVIEW */
+      .renderBox {
+        margin-top: 12px;
+        padding: 12px;
+        border-radius: 18px;
+        border: 1px solid rgba(31, 35, 40, 0.12);
+        background: rgba(255, 255, 255, 0.78);
+      }
+      .renderFrame {
+        width: 100%;
+        height: 440px;
+        border: 1px solid rgba(31, 35, 40, 0.12);
+        border-radius: 14px;
+        background: #fff;
+      }
+
       @media (max-width: 980px) {
         .heroGrid {
           grid-template-columns: 1fr;
@@ -685,6 +701,9 @@
         }
         .brand {
           min-width: unset;
+        }
+        .renderFrame {
+          height: 520px;
         }
       }
 
@@ -1197,8 +1216,8 @@
           <div>
             <h2>🧪 Practice Lab — Embedded Editors</h2>
             <p>
-              Switch tabs for Python, JavaScript, SQL, HTML Preview and MongoDB.
-              Use “Open Fullscreen” any time.
+              Switch tabs for Python, JavaScript, SQL, HTML Editor, HTML Preview
+              and MongoDB. Use “Open Fullscreen” any time.
             </p>
           </div>
           <div class="hint">
@@ -1236,6 +1255,18 @@
               >
                 🧱 SQL
               </button>
+
+              <!-- NEW: HTML Editor -->
+              <button
+                class="tabBtn"
+                type="button"
+                data-labtab="htmled"
+                role="tab"
+                aria-selected="false"
+              >
+                🧩 HTML Editor
+              </button>
+
               <button
                 class="tabBtn"
                 type="button"
@@ -1299,6 +1330,17 @@
             allow="clipboard-read; clipboard-write; fullscreen"
             allowfullscreen
             src="https://programmer-s-picnic.github.io/lesson-viewer/sql/premium/"
+          ></iframe>
+
+          <!-- NEW: Embedded HTML Editor -->
+          <iframe
+            id="labHtmlEd"
+            class="embedFrame"
+            title="HTML Editor"
+            loading="lazy"
+            allow="clipboard-read; clipboard-write; fullscreen"
+            allowfullscreen
+            src="https://programmer-s-picnic.github.io/lesson-viewer/samples/html/editor/"
           ></iframe>
 
           <iframe
@@ -1365,7 +1407,11 @@
               <a class="btn primary" id="mOpen" target="_blank" rel="noopener"
                 >🔗 Open</a
               >
-              <button class="btn" id="mCopy">📋 Copy</button>
+              <button class="btn" id="mRender" type="button">🧾 Render</button>
+              <button class="btn" id="mCopy" type="button">📋 Copy</button>
+            </div>
+            <div class="hint" style="margin-top: 10px">
+              Render uses a <b>sandboxed iframe</b> (scripts blocked).
             </div>
           </aside>
         </div>
@@ -1393,15 +1439,13 @@
 
       const DEFAULT_CFG = {
         base: "https://www.learnwithchampak.live",
-        mode: "default", // default or summary
-        maxResults: 50, // 1..150
+        mode: "default",
+        maxResults: 50,
         autoCrawl: true,
-        maxTotalItems: 800, // safety cap
-        maxAutoPages: 40, // safety cap
-        crawlDelayMs: 450, // polite delay between pages
+        maxTotalItems: 800,
+        maxAutoPages: 40,
+        crawlDelayMs: 450,
 
-        // Featured labels (case-insensitive).
-        // Any post carrying one of these labels will appear in Featured.
         featuredLabels: ["featured", "pp-featured", "star", "recommended"],
         featuredLimit: 9,
       };
@@ -1417,6 +1461,7 @@
         suggest: { items: [], idx: -1, t: null },
         crawl: { running: false, stop: false, pages: 0 },
         loading: false,
+        preview: { mode: "plain", last: null }, // "plain" | "render"
       };
 
       $("#y").textContent = new Date().getFullYear();
@@ -1501,7 +1546,7 @@
 
           const contentHtml = e?.content?.$t || e?.summary?.$t || "";
           const text = contentHtml;
-          const snippet = smartSnippet(text, 240);
+          const snippet = smartSnippet(htmlToText(text), 240);
 
           out.push({
             id,
@@ -1516,6 +1561,16 @@
           });
         }
         return out;
+      }
+
+      function htmlToText(html) {
+        const s = String(html || "");
+        return s
+          .replace(/<script[\s\S]*?<\/script>/gi, " ")
+          .replace(/<style[\s\S]*?<\/style>/gi, " ")
+          .replace(/<[^>]+>/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
       }
 
       function smartSnippet(text, n) {
@@ -1707,7 +1762,6 @@
 
         let list = state.items.filter(isFeaturedPost);
 
-        // Respect active label filters (if user has filtered)
         if (state.activeLabels.size) {
           list = list.filter((p) =>
             (p.labels || []).some((l) => state.activeLabels.has(l)),
@@ -1796,7 +1850,7 @@
           );
         else if (state.sort === "old")
           list.sort((a, b) =>
-            (a.published || "").localeCompare(a.published || ""),
+            (a.published || "").localeCompare(b.published || ""),
           );
         else if (state.sort === "alpha")
           list.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
@@ -1808,7 +1862,6 @@
         const list = getFiltered();
         $("#count").textContent = `Results (${list.length})`;
 
-        // ⭐ Featured section
         renderFeatured();
 
         const grid = $("#grid");
@@ -1875,6 +1928,55 @@
         return el;
       }
 
+      // ------------------------- IFRAME SAFE RENDER -------------------------
+      function sanitizeForIframe(html) {
+        const doc = new DOMParser().parseFromString(
+          String(html || ""),
+          "text/html",
+        );
+        doc
+          .querySelectorAll("script, iframe, object, embed, link, meta")
+          .forEach((n) => n.remove());
+
+        doc.querySelectorAll("*").forEach((el) => {
+          Array.from(el.attributes).forEach((a) => {
+            const name = a.name.toLowerCase();
+            const val = String(a.value || "");
+            if (name.startsWith("on")) el.removeAttribute(a.name);
+            if (
+              (name === "href" || name === "src") &&
+              val.trim().toLowerCase().startsWith("javascript:")
+            ) {
+              el.removeAttribute(a.name);
+            }
+          });
+        });
+
+        doc.querySelectorAll("a").forEach((a) => {
+          a.setAttribute("target", "_blank");
+          a.setAttribute("rel", "noopener");
+        });
+
+        const body = doc.body ? doc.body.innerHTML : "";
+        const frameDoc = `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  body{ font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 14px; color:#1f2328; line-height:1.55; }
+  img{ max-width:100%; height:auto; border-radius:12px; }
+  pre, code{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  pre{ background:#fff7e6; border:1px solid rgba(31,35,40,.12); padding:12px; border-radius:14px; overflow:auto; }
+  blockquote{ margin:12px 0; padding:10px 12px; border-left:4px solid #ff9f1c; background:rgba(255,159,28,.10); border-radius:12px; }
+  a{ color:#0b57d0; }
+  hr{ border:none; border-top:1px solid rgba(31,35,40,.12); margin:14px 0; }
+</style>
+</head>
+<body>${body}</body></html>`;
+        return frameDoc;
+      }
+
       // ------------------------- Modal -------------------------
       const backdrop = $("#backdrop");
       let lastFocusEl = null;
@@ -1925,7 +2027,11 @@
       }
 
       function openPreview(p) {
+        state.preview.last = p;
         const q = state.q.trim();
+
+        const plain = smartSnippet(htmlToText(p.text || ""), 1400);
+        const frameDoc = sanitizeForIframe(p.text || "");
 
         openModal(
           p.title,
@@ -1939,11 +2045,25 @@
           )}</p>
         </div>
 
-        <div class="mini">
-          <h3 style="margin:0 0 6px; font-size:14px;">Text</h3>
+        <div class="mini" id="plainBox">
+          <h3 style="margin:0 0 6px; font-size:14px;">Text (plain)</h3>
           <p style="margin:0; color:var(--muted); font-size:13px; line-height:1.55; white-space:pre-wrap;">
-            ${highlight(smartSnippet(p.text || "", 1400), q)}
+            ${highlight(escapeHtml(plain), q)}
           </p>
+        </div>
+
+        <div class="renderBox" id="renderBox" style="display:none;">
+          <h3 style="margin:0 0 6px; font-size:14px;">Rendered HTML (sandboxed)</h3>
+          <iframe
+            id="renderFrame"
+            class="renderFrame"
+            sandbox="allow-popups allow-popups-to-escape-sandbox"
+            referrerpolicy="no-referrer"
+            title="Rendered HTML preview"
+          ></iframe>
+          <div class="hint" style="margin-top:8px;">
+            Note: scripts are blocked in this preview.
+          </div>
         </div>
       `,
           {
@@ -1958,7 +2078,40 @@
           },
         );
 
+        setPreviewMode(state.preview.mode, frameDoc);
+
+        const btn = document.getElementById("mRender");
+        if (btn) {
+          btn.onclick = () => {
+            const next = state.preview.mode === "plain" ? "render" : "plain";
+            state.preview.mode = next;
+            setPreviewMode(next, frameDoc);
+            toast(next === "render" ? "Rendered" : "Plain");
+          };
+        }
+
         bindModalDelegatesOnce();
+      }
+
+      function setPreviewMode(mode, frameDoc) {
+        const rb = document.getElementById("renderBox");
+        const pb = document.getElementById("plainBox");
+        const rf = document.getElementById("renderFrame");
+        if (!rb || !pb) return;
+
+        if (mode === "render") {
+          pb.style.display = "none";
+          rb.style.display = "";
+          if (rf && rf.getAttribute("data-loaded") !== "1") {
+            rf.srcdoc = frameDoc;
+            rf.setAttribute("data-loaded", "1");
+          }
+          $("#mRender").textContent = "📝 Plain";
+        } else {
+          rb.style.display = "none";
+          pb.style.display = "";
+          $("#mRender").textContent = "🧾 Render";
+        }
       }
 
       function closeModal() {
@@ -2343,7 +2496,6 @@
             .split(",")
             .map((s) => s.trim())
             .filter(Boolean);
-
           const featuredLimit = clampInt(
             root.querySelector("#cfgFeatLim").value,
             1,
@@ -2670,6 +2822,7 @@
         const framePy = document.getElementById("labPy");
         const frameJs = document.getElementById("labJs");
         const frameSql = document.getElementById("labSql");
+        const frameHtmlEd = document.getElementById("labHtmlEd"); // NEW
         const frameHtml = document.getElementById("labHtml");
         const frameMongo = document.getElementById("labMongo");
 
@@ -2680,6 +2833,7 @@
           py: framePy.getAttribute("src"),
           js: frameJs.getAttribute("src"),
           sql: frameSql.getAttribute("src"),
+          htmled: frameHtmlEd.getAttribute("src"), // NEW
           html: frameHtml.getAttribute("src"),
           mongo: frameMongo.getAttribute("src"),
         };
@@ -2698,6 +2852,7 @@
           framePy.classList.toggle("show", t === "py");
           frameJs.classList.toggle("show", t === "js");
           frameSql.classList.toggle("show", t === "sql");
+          frameHtmlEd.classList.toggle("show", t === "htmled"); // NEW
           frameHtml.classList.toggle("show", t === "html");
           frameMongo.classList.toggle("show", t === "mongo");
 
@@ -2710,9 +2865,11 @@
                 ? "JavaScript editor"
                 : t === "sql"
                   ? "SQL editor"
-                  : t === "html"
-                    ? "HTML preview"
-                    : "MongoDB editor",
+                  : t === "htmled"
+                    ? "HTML editor"
+                    : t === "html"
+                      ? "HTML preview"
+                      : "MongoDB editor",
           );
         }
 
@@ -2728,9 +2885,11 @@
                 ? frameJs
                 : current === "sql"
                   ? frameSql
-                  : current === "html"
-                    ? frameHtml
-                    : frameMongo;
+                  : current === "htmled"
+                    ? frameHtmlEd
+                    : current === "html"
+                      ? frameHtml
+                      : frameMongo;
 
           const src = f.getAttribute("src");
           f.setAttribute("src", src);
