@@ -1,0 +1,1342 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#d97706" />
+  <title>Programmer’s Picnic — HTML + CSS + JS + JSON (Merged)</title>
+
+  <!-- CodeMirror (CDN) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/eclipse.min.css"/>
+
+  <style>
+    :root{
+      --bg0:#fff7e6; --bg1:#fff1d6;
+      --card:rgba(255,255,255,.9);
+      --ink:#1f2937; --muted:#6b7280;
+      --brand:#d97706; --brand2:#f59e0b;
+      --border:rgba(31,41,55,.12);
+      --shadow:0 14px 40px rgba(17,24,39,.10);
+      --ring:0 0 0 4px rgba(217,119,6,.18);
+      --mono: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+      --sans: system-ui,-apple-system,Segoe UI,Roboto,Arial;
+      --danger:#9a3412; --ok:#065f46;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:var(--sans); color:var(--ink);
+      background:
+        radial-gradient(1100px 520px at 12% 0%, rgba(245,158,11,.22), transparent 60%),
+        radial-gradient(900px 420px at 92% 18%, rgba(217,119,6,.18), transparent 55%),
+        linear-gradient(180deg,var(--bg0),var(--bg1));
+    }
+    .wrap{max-width:1900px;margin:0 auto;padding:14px 14px 60px}
+    .card{
+      border:1px solid var(--border); border-radius:24px; background:var(--card);
+      box-shadow:var(--shadow); overflow:hidden;
+    }
+    .hd{
+      padding:14px 16px 10px;
+      border-bottom:1px solid rgba(31,41,55,.10);
+      background:
+        radial-gradient(900px 360px at 10% 0%, rgba(245,158,11,.18), transparent 55%),
+        radial-gradient(800px 320px at 92% 10%, rgba(217,119,6,.14), transparent 55%);
+      display:flex; gap:12px; align-items:flex-start; justify-content:space-between; flex-wrap:wrap;
+    }
+    h1{margin:0 0 6px;font-size:clamp(20px,2.35vw,34px);letter-spacing:-.4px}
+    .sub{margin:0;color:var(--muted);font-weight:750}
+    .pill{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:6px 10px;border-radius:999px;
+      border:1px solid rgba(217,119,6,.25);
+      background:rgba(255,255,255,.70);
+      font-weight:900;color:#92400e;
+      user-select:none; white-space:nowrap;
+    }
+    .actions{display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:flex-end}
+    .btn{
+      border:1px solid var(--border);
+      background:white;
+      color:var(--ink);
+      padding:10px 12px;
+      border-radius:14px;
+      box-shadow:0 6px 18px rgba(17,24,39,.06);
+      cursor:pointer;
+      font-weight:900;
+    }
+    .btn.primary{
+      border-color:rgba(217,119,6,.35);
+      background:linear-gradient(135deg, rgba(217,119,6,.12), rgba(245,158,11,.16));
+    }
+    .btn.danger{
+      border-color:rgba(185,28,28,.20);
+      background:linear-gradient(135deg, rgba(185,28,28,.06), rgba(245,158,11,.08));
+      color:var(--danger);
+    }
+    .btn.tiny{
+      padding:7px 10px;
+      border-radius:12px;
+      font-size:12px;
+      box-shadow:0 6px 14px rgba(17,24,39,.05);
+    }
+    .btn:focus-visible{outline:none;box-shadow:var(--shadow),var(--ring)}
+    select, input[type="number"]{
+      border:1px solid rgba(31,41,55,.14);
+      border-radius:14px;
+      padding:10px 12px;
+      background:rgba(255,255,255,.75);
+      font-family:var(--sans);
+      font-weight:800;
+    }
+    input[type="checkbox"]{transform:translateY(1px)}
+    .grid{
+      display:grid;
+      grid-template-columns: 0.95fr 0.95fr 1fr 1fr 1.25fr;
+      gap:12px;
+      padding:14px;
+    }
+    @media (max-width: 1700px){
+      .grid{grid-template-columns: 1fr 1fr 1fr 1.25fr}
+      .examples-panel{grid-column: 1 / -1;}
+    }
+    @media (max-width: 1300px){
+      .grid{grid-template-columns: 1fr 1fr}
+    }
+    @media (max-width: 980px){
+      .grid{grid-template-columns:1fr}
+    }
+    .panel{
+      border:1px solid rgba(31,41,55,.12);
+      border-radius:18px;
+      background:rgba(255,255,255,.78);
+      overflow:hidden;
+      min-height:640px;
+      display:flex;
+      flex-direction:column;
+    }
+    .ph{
+      padding:10px 12px;
+      border-bottom:1px solid rgba(31,41,55,.10);
+      background:#fffaf0;
+      display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+    }
+    .ph strong{color:var(--brand); font-size:13px; letter-spacing:.2px}
+    .hint{color:var(--muted); font-size:12px; font-weight:700}
+    .ph-actions{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+    .cm-wrap{flex:1; display:flex}
+    .CodeMirror{
+      height:100%;
+      width:100%;
+      font-family:var(--mono);
+      font-size:13px;
+      line-height:1.45;
+      background:#fff;
+    }
+    .CodeMirror-gutters{
+      background:#fffaf0;
+      border-right:1px solid rgba(31,41,55,.10);
+    }
+    iframe{
+      width:100%;
+      height:100%;
+      border:0;
+      background:#fff;
+      flex:1;
+    }
+    .out{
+      border-top:1px solid rgba(31,41,55,.10);
+      background:rgba(255,255,255,.80);
+      padding:10px 12px;
+      font-family:var(--mono);
+      font-size:12.5px;
+      white-space:pre-wrap;
+      overflow:auto;
+      max-height:260px;
+    }
+    .ok{color:var(--ok); font-weight:800}
+    .bad{color:var(--danger); font-weight:800}
+    .mini{color:var(--muted); font-weight:750; font-size:12px}
+    textarea.stdin{
+      width:100%;
+      border:1px solid rgba(31,41,55,.14);
+      border-radius:14px;
+      padding:10px 12px;
+      background:rgba(255,255,255,.75);
+      font-family:var(--mono);
+      font-weight:800;
+      line-height:1.35;
+      resize:vertical;
+      min-height:90px;
+    }
+    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+    .grow{flex:1; min-width:220px}
+    .note{
+      padding:10px 12px;
+      border-top:1px solid rgba(31,41,55,.10);
+      background:#fffaf0;
+      color:var(--muted);
+      font-size:12px;
+      font-weight:750;
+      line-height:1.35;
+    }
+    .note code{
+      font-family:var(--mono);
+      background:#fff7ea;
+      border:1px solid rgba(217,119,6,.18);
+      padding:1px 6px;
+      border-radius:8px;
+      color:#111827;
+    }
+
+    /* Examples panel */
+    .examples-panel{ min-height:640px; }
+    .examples{
+      padding:12px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      overflow:auto;
+    }
+    .ex-card{
+      border:1px solid rgba(31,41,55,.12);
+      border-radius:16px;
+      background:rgba(255,255,255,.85);
+      box-shadow:0 10px 26px rgba(17,24,39,.06);
+      padding:10px 10px 12px;
+    }
+    .ex-title{
+      display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+      margin-bottom:6px;
+    }
+    .ex-title b{ color:var(--brand); font-size:13px; }
+    .ex-desc{ color:var(--muted); font-size:12px; font-weight:700; line-height:1.35; margin:0 0 8px; }
+    .ex-actions{ display:flex; gap:8px; flex-wrap:wrap; }
+    .tagrow{ display:flex; gap:6px; flex-wrap:wrap; }
+    .tag{
+      font-size:11px; font-weight:800;
+      padding:4px 8px; border-radius:999px;
+      border:1px solid rgba(217,119,6,.22);
+      background:#fffaf0;
+      color:#92400e;
+      user-select:none;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="wrap">
+    <section class="card">
+      <div class="hd">
+        <div>
+          <div class="pill">🟠 Programmer’s Picnic</div>
+          <h1>Merged Editor: HTML + CSS + JS + JSON UI Builder</h1>
+          <p class="sub">Preview (iframe) + safe JS sandbox + JSON → UI (createElement) inside preview. Share everything via one link.</p>
+        </div>
+
+        <div class="actions">
+          <span class="pill">Timeout: <span id="tLabel">2000</span> ms</span>
+
+          <label class="pill" title="Auto-update preview while typing (debounced)">
+            <input type="checkbox" id="autoPreview" checked />
+            Auto Preview
+          </label>
+
+          <label class="pill" title="Inject JS editor into preview (DOM lessons). Not sandboxed.">
+            <input type="checkbox" id="injectJs" />
+            Inject JS into Preview
+          </label>
+
+          <label class="pill" title="Render JSON into preview as UI elements">
+            <input type="checkbox" id="renderJson" checked />
+            Render JSON UI
+          </label>
+
+          <button class="btn" id="btnClearConsole">Clear Console</button>
+          <button class="btn" id="btnSave">Save</button>
+          <button class="btn" id="btnLoad">Load</button>
+          <button class="btn" id="btnShare">Share</button>
+          <button class="btn danger" id="btnReset">Reset</button>
+
+          <button class="btn primary" id="btnRunJson">▶ Render JSON</button>
+          <button class="btn primary" id="btnRunJs">▶ Run JS (Sandbox)</button>
+          <button class="btn primary" id="btnRunAll">▶ Run Preview</button>
+
+          <span class="pill mini" id="status">Ready</span>
+        </div>
+      </div>
+
+      <div class="grid">
+        <!-- HTML -->
+        <section class="panel" aria-label="HTML editor">
+          <div class="ph">
+            <strong>HTML Editor</strong>
+            <div class="ph-actions">
+              <button class="btn tiny danger" id="btnClearHtml" title="Clear HTML editor">Clear</button>
+              <span class="hint">Ctrl/⌘ + Enter = Run Preview</span>
+            </div>
+          </div>
+          <div class="cm-wrap"><textarea id="htmlEditor"></textarea></div>
+        </section>
+
+        <!-- CSS -->
+        <section class="panel" aria-label="CSS editor">
+          <div class="ph">
+            <strong>CSS Editor</strong>
+            <div class="ph-actions">
+              <button class="btn tiny danger" id="btnClearCss" title="Clear CSS editor">Clear</button>
+              <span class="hint">Ctrl/⌘ + Enter = Run Preview</span>
+            </div>
+          </div>
+          <div class="cm-wrap"><textarea id="cssEditor"></textarea></div>
+          <div class="note">
+            CSS is injected into preview as <code>&lt;style id="pp_user_css"&gt;</code> in <code>&lt;head&gt;</code>.
+          </div>
+        </section>
+
+        <!-- JS -->
+        <section class="panel" aria-label="JS editor">
+          <div class="ph">
+            <strong>JavaScript Editor</strong>
+            <div class="ph-actions">
+              <button class="btn tiny danger" id="btnClearJs" title="Clear JS editor">Clear</button>
+              <span class="hint">Ctrl/⌘ + Enter = Run JS Sandbox</span>
+            </div>
+          </div>
+          <div class="cm-wrap"><textarea id="jsEditor"></textarea></div>
+
+          <div style="padding:10px 12px;border-top:1px solid rgba(31,41,55,.10);background:#fffaf0">
+            <div class="row">
+              <div class="grow">
+                <div class="mini">stdin (each line = one input())</div>
+                <textarea class="stdin" id="stdin" placeholder="Example:
+Champak
+25"></textarea>
+              </div>
+              <div style="min-width:160px">
+                <div class="mini">Timeout (ms)</div>
+                <input id="timeoutMs" type="number" min="50" step="50" value="2000" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- JSON -->
+        <section class="panel" aria-label="JSON editor">
+          <div class="ph">
+            <strong>JSON Editor (UI Schema)</strong>
+            <div class="ph-actions">
+              <button class="btn tiny danger" id="btnClearJson" title="Clear JSON editor">Clear</button>
+              <span class="hint">Ctrl/⌘ + Enter = Render JSON</span>
+            </div>
+          </div>
+          <div class="cm-wrap"><textarea id="jsonEditor"></textarea></div>
+
+          <div class="note">
+            Schema:
+            <code>{ "mountId":"pp_json_root", "nodes":[ ... ] }</code><br/>
+            Node:
+            <code>{ "tag":"div","text":"Hi","attrs":{...},"style":{...},"children":[...] }</code>
+          </div>
+        </section>
+
+        <!-- Preview + Console -->
+        <section class="panel" aria-label="Preview panel">
+          <div class="ph">
+            <strong>Preview (iframe)</strong>
+            <span class="hint">srcdoc + sandbox</span>
+          </div>
+
+          <iframe
+            id="preview"
+            sandbox="allow-forms allow-modals allow-pointer-lock allow-presentation allow-scripts allow-popups"
+          ></iframe>
+
+          <div class="out" id="consoleOut"></div>
+        </section>
+
+        <!-- EXAMPLES -->
+        <section class="panel examples-panel" aria-label="Examples">
+          <div class="ph">
+            <strong>Important Examples (Load + Test + Share)</strong>
+            <span class="hint">One-click loads → run → Share</span>
+          </div>
+          <div class="examples" id="examples"></div>
+          <div class="note">
+            Tip: After loading an example, hit <code>Run Preview</code> (and <code>Run JS Sandbox</code> if needed), then <code>Share</code>.
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <!-- CodeMirror JS (CDN) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+
+  <script>
+    /* ==========================
+       PP Mini Runner (Worker Sandbox)
+       ========================== */
+    (function () {
+      "use strict";
+
+      function nowMs() {
+        return typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+      }
+      function splitLines(s) {
+        if (!s) return [];
+        return String(s).replace(/\r\n/g, "\n").split("\n");
+      }
+      function createWorkerURL() {
+        var workerCode =
+          '"use strict";\n' +
+          "function send(type, payload){ postMessage(Object.assign({type:type}, payload||{})); }\n" +
+          "function safeStringify(v){\n" +
+          "  try {\n" +
+          "    if (typeof v === 'string') return v;\n" +
+          "    if (v && v.name && v.message && (v.stack || (v.constructor && v.constructor.name==='Error'))){\n" +
+          "      return v.stack || (v.name + ': ' + v.message);\n" +
+          "    }\n" +
+          "    var seen=[];\n" +
+          "    return JSON.stringify(v, function(k,val){\n" +
+          "      if (typeof val === 'function') return '[Function]';\n" +
+          "      if (val && typeof val === 'object'){\n" +
+          "        if (seen.indexOf(val)>=0) return '[Circular]';\n" +
+          "        seen.push(val);\n" +
+          "      }\n" +
+          "      return val;\n" +
+          "    });\n" +
+          "  } catch(e){\n" +
+          "    try { return String(v); } catch(_) { return '[Unserializable]'; }\n" +
+          "  }\n" +
+          "}\n" +
+          "function makeConsole(warnToStderr){\n" +
+          "  function mk(level){\n" +
+          "    return function(){\n" +
+          "      var args = Array.prototype.slice.call(arguments);\n" +
+          "      var safe = args.map(function(a){ return safeStringify(a); });\n" +
+          "      send('log',{level:level,args:safe});\n" +
+          "    };\n" +
+          "  }\n" +
+          "  return { log:mk('log'), info:mk('info'), warn:mk(warnToStderr?'error':'warn'), error:mk('error') };\n" +
+          "}\n" +
+          "onmessage = function(ev){\n" +
+          "  var msg = ev.data || {};\n" +
+          "  if(msg.type !== 'run') return;\n" +
+          "  var code = String(msg.code || '');\n" +
+          "  var stdinLines = Array.isArray(msg.stdinLines) ? msg.stdinLines : [];\n" +
+          "  var stdinIndex = 0;\n" +
+          "  var warnToStderr = !!msg.warnToStderr;\n" +
+          "  var consoleProxy = makeConsole(warnToStderr);\n" +
+          "  function input(promptText){\n" +
+          "    if (promptText != null && String(promptText).length) send('log',{level:'log',args:[String(promptText)]});\n" +
+          "    var v = (stdinIndex < stdinLines.length) ? String(stdinLines[stdinIndex]) : '';\n" +
+          "    stdinIndex++;\n" +
+          "    return v;\n" +
+          "  }\n" +
+          "  try {\n" +
+          "    var wrapped = 'return (async function(console,input){\\n\"use strict\";\\n' + code + '\\n});';\n" +
+          "    var factory = new Function(wrapped);\n" +
+          "    var fn = factory();\n" +
+          "    Promise.resolve(fn(consoleProxy, input)).then(function(){ send('done',{ok:true}); })\n" +
+          "    .catch(function(err){ var t=(err&&(err.stack||err.message))?(err.stack||err.message):String(err); send('done',{ok:false,error:t}); });\n" +
+          "  } catch(err){\n" +
+          "    var text=(err&&(err.stack||err.message))?(err.stack||err.message):String(err);\n" +
+          "    send('done',{ok:false,error:text});\n" +
+          "  }\n" +
+          "};";
+
+        var blob = new Blob([workerCode], { type: "application/javascript" });
+        return URL.createObjectURL(blob);
+      }
+
+      function runUserCode(options) {
+        options = options || {};
+        var start = nowMs();
+        var workerURL = createWorkerURL();
+        var worker = new Worker(workerURL);
+
+        var timeoutMs = Number(options.timeoutMs || 2000);
+        var onStdout = options.onStdout || function () {};
+        var onStderr = options.onStderr || function () {};
+        var warnToStderr = options.warnToStderr !== false;
+
+        var finished = false;
+        function finish(payload) {
+          if (finished) return;
+          finished = true;
+          try { worker.terminate(); } catch (_) {}
+          try { URL.revokeObjectURL(workerURL); } catch (_) {}
+          payload.ms = Math.max(0, nowMs() - start);
+          return payload;
+        }
+
+        return new Promise(function (resolve) {
+          var timer = setTimeout(function () {
+            resolve(finish({ ok: false, timeout: true, error: "Timeout exceeded" }));
+          }, Math.max(50, timeoutMs));
+
+          worker.onmessage = function (ev) {
+            var msg = ev.data || {};
+            if (msg.type === "log") {
+              var line = (msg.args || []).join(" ");
+              if (msg.level === "error") onStderr(line);
+              else onStdout(line);
+              return;
+            }
+            if (msg.type === "done") {
+              clearTimeout(timer);
+              if (msg && msg.ok) resolve(finish({ ok: true }));
+              else resolve(finish({ ok: false, timeout: false, error: msg.error || "Error" }));
+            }
+          };
+
+          worker.onerror = function (err) {
+            clearTimeout(timer);
+            var message = (err && err.message) ? err.message : "Worker error";
+            resolve(finish({ ok: false, timeout: false, error: message }));
+          };
+
+          worker.postMessage({
+            type: "run",
+            code: options.code || "",
+            stdinLines: splitLines(options.stdin || ""),
+            warnToStderr: warnToStderr
+          });
+        });
+      }
+
+      window.PP_MINI_RUNNER = { runUserCode: runUserCode };
+    })();
+
+    /* ==========================
+       Merged App Logic
+       ========================== */
+    const STORAGE_KEY = "pp_merged_html_css_js_json_editor_v2_examples";
+    const $ = (id) => document.getElementById(id);
+
+    const status = $("status");
+    const consoleOut = $("consoleOut");
+    const preview = $("preview");
+    const autoPreview = $("autoPreview");
+    const injectJs = $("injectJs");
+    const renderJson = $("renderJson");
+    const timeoutMsEl = $("timeoutMs");
+
+    function setStatus(text, kind){
+      status.textContent = text;
+      status.classList.remove("ok","bad");
+      if (kind === "ok") status.classList.add("ok");
+      if (kind === "bad") status.classList.add("bad");
+    }
+
+    function appendConsole(line, cls){
+      const div = document.createElement("div");
+      if (cls) div.className = cls;
+      div.textContent = line;
+      consoleOut.appendChild(div);
+      consoleOut.scrollTop = consoleOut.scrollHeight;
+    }
+    function clearConsole(){ consoleOut.innerHTML = ""; }
+
+    function debounce(fn, ms){
+      let t=null;
+      return (...args)=>{
+        clearTimeout(t);
+        t=setTimeout(()=>fn(...args), ms);
+      };
+    }
+
+    // CodeMirror editors
+    const htmlCM = CodeMirror.fromTextArea($("htmlEditor"), {
+      mode:"htmlmixed", theme:"eclipse", lineNumbers:true, lineWrapping:true,
+      tabSize:2, indentUnit:2, indentWithTabs:false
+    });
+
+    const cssCM = CodeMirror.fromTextArea($("cssEditor"), {
+      mode:"css", theme:"eclipse", lineNumbers:true, lineWrapping:true,
+      tabSize:2, indentUnit:2, indentWithTabs:false
+    });
+
+    const jsCM = CodeMirror.fromTextArea($("jsEditor"), {
+      mode:"javascript", theme:"eclipse", lineNumbers:true, lineWrapping:true,
+      tabSize:2, indentUnit:2, indentWithTabs:false
+    });
+
+    const jsonCM = CodeMirror.fromTextArea($("jsonEditor"), {
+      mode:{ name:"javascript", json:true },
+      theme:"eclipse", lineNumbers:true, lineWrapping:true,
+      tabSize:2, indentUnit:2, indentWithTabs:false
+    });
+
+    // Clear buttons
+    $("btnClearHtml").addEventListener("click", () => {
+      htmlCM.setValue("");
+      setStatus("HTML cleared.", "ok");
+      if (autoPreview.checked) runPreview();
+    });
+    $("btnClearCss").addEventListener("click", () => {
+      cssCM.setValue("");
+      setStatus("CSS cleared.", "ok");
+      if (autoPreview.checked) runPreview();
+    });
+    $("btnClearJs").addEventListener("click", () => {
+      jsCM.setValue("");
+      setStatus("JS cleared.", "ok");
+    });
+    $("btnClearJson").addEventListener("click", () => {
+      jsonCM.setValue("");
+      setStatus("JSON cleared.", "ok");
+      if (autoPreview.checked) runPreview();
+    });
+
+    // Share encode/decode for HTML+CSS+JS+JSON+stdin+toggles
+    function b64EncodeUnicode(str){
+      const utf8 = new TextEncoder().encode(str);
+      let bin=""; utf8.forEach(b=>bin+=String.fromCharCode(b));
+      return btoa(bin);
+    }
+    function b64DecodeUnicode(b64){
+      const bin = atob(b64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+      return new TextDecoder().decode(bytes);
+    }
+    function packState(){
+      const state = {
+        html: htmlCM.getValue(),
+        css: cssCM.getValue(),
+        js: jsCM.getValue(),
+        json: jsonCM.getValue(),
+        stdin: $("stdin").value,
+        timeout: Number(timeoutMsEl.value || 2000),
+        autoPreview: !!autoPreview.checked,
+        injectJs: !!injectJs.checked,
+        renderJson: !!renderJson.checked
+      };
+      return encodeURIComponent(b64EncodeUnicode(JSON.stringify(state)));
+    }
+    function unpackState(packed){
+      const json = b64DecodeUnicode(decodeURIComponent(packed));
+      return JSON.parse(json);
+    }
+
+    // JSON -> DOM builder injected into preview
+    function jsonBuilderScript(jsonText){
+      return `
+<script>
+(function(){
+  function isObj(x){ return x && typeof x === "object" && !Array.isArray(x); }
+  function applyStyles(el, styleObj){
+    if(!isObj(styleObj)) return;
+    for (var k in styleObj){ try { el.style[k] = String(styleObj[k]); } catch(_) {} }
+  }
+  function applyAttrs(el, attrs){
+    if(!isObj(attrs)) return;
+    for (var k in attrs){
+      try{
+        if(k === "class") el.className = String(attrs[k]);
+        else if(k === "text") el.textContent = String(attrs[k]);
+        else el.setAttribute(k, String(attrs[k]));
+      }catch(_){}
+    }
+  }
+  function makeNode(doc, node){
+    if(typeof node === "string") return doc.createTextNode(node);
+    if(!node || typeof node !== "object") return doc.createTextNode("");
+    var tag = String(node.tag || "div");
+    var el = doc.createElement(tag);
+    if(node.text != null) el.textContent = String(node.text);
+    applyAttrs(el, node.attrs);
+    applyStyles(el, node.style);
+    var kids = Array.isArray(node.children) ? node.children : [];
+    for (var i=0;i<kids.length;i++) el.appendChild(makeNode(doc, kids[i]));
+    return el;
+  }
+  function mount(schema){
+    var doc = document;
+    var mountId = (schema && schema.mountId) ? String(schema.mountId) : "pp_json_root";
+    var root = doc.getElementById(mountId);
+    if(!root){
+      root = doc.createElement("div");
+      root.id = mountId;
+      doc.body.appendChild(root);
+    }
+    while(root.firstChild) root.removeChild(root.firstChild);
+    var nodes = (schema && Array.isArray(schema.nodes)) ? schema.nodes : [];
+    for (var i=0;i<nodes.length;i++) root.appendChild(makeNode(doc, nodes[i]));
+  }
+
+  try{
+    var schema = JSON.parse(${JSON.stringify(jsonText)});
+    mount(schema);
+  }catch(e){
+    try{
+      var root = document.getElementById("pp_json_root");
+      if(!root){ root = document.createElement("pre"); document.body.appendChild(root); }
+      root.textContent = "JSON parse error: " + (e && (e.message||e) ? (e.message||e) : "Invalid JSON");
+      root.style.color = "#b91c1c";
+      root.style.whiteSpace = "pre-wrap";
+    }catch(_){}
+    try{ parent.postMessage({type:"pp_preview_error", message:"JSON parse error"}, "*"); }catch(_){}
+  }
+})();
+<\/script>
+`;
+    }
+
+    function cssInjectTag(cssText){
+      return `\n<style id="pp_user_css">\n${cssText || ""}\n</style>\n`;
+    }
+
+    function safePreviewHTML(html, cssText, jsInject, jsonText, doJson){
+      const shim = `
+<script>
+(function(){
+  window.addEventListener("error", function(ev){
+    try{ parent.postMessage({type:"pp_preview_error", message:String(ev.message||"Error")}, "*"); }catch(_){}
+  });
+  window.addEventListener("unhandledrejection", function(ev){
+    try{ parent.postMessage({type:"pp_preview_error", message:String((ev.reason&&ev.reason.message)||ev.reason||"Promise rejection")}, "*"); }catch(_){}
+  });
+})();
+<\/script>
+`;
+      let out = String(html || "");
+      if (!/<html[\s>]/i.test(out)) {
+        out = `<!doctype html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Preview</title></head><body></body></html>`;
+      }
+
+      // inject shim + css into head
+      const headInject = shim + "\n" + cssInjectTag(cssText);
+      if (/<\/head\s*>/i.test(out)) out = out.replace(/<\/head\s*>/i, headInject + "\n</head>");
+      else out = headInject + "\n" + out;
+
+      // JSON UI render
+      if (doJson) {
+        const jsonScript = jsonBuilderScript(jsonText || "");
+        if (/<\/body\s*>/i.test(out)) out = out.replace(/<\/body\s*>/i, "\n" + jsonScript + "\n</body>");
+        else out += "\n" + jsonScript + "\n";
+      }
+
+      // Optional JS injection into preview (unsafe)
+      if (jsInject && jsInject.trim()) {
+        const scriptTag = `\n<script>\n${jsInject}\n<\/script>\n`;
+        if (/<\/body\s*>/i.test(out)) out = out.replace(/<\/body\s*>/i, scriptTag + "</body>");
+        else out += scriptTag;
+      }
+
+      return out;
+    }
+
+    function runPreview(){
+      const html = htmlCM.getValue();
+      const css = cssCM.getValue();
+      const js = injectJs.checked ? jsCM.getValue() : "";
+      const json = jsonCM.getValue();
+      const doJson = !!renderJson.checked;
+
+      preview.srcdoc = safePreviewHTML(html, css, js, json, doJson);
+      setStatus("Preview updated ✅", "ok");
+    }
+
+    function runJsonOnly(){
+      runPreview();
+      setStatus("JSON rendered ✅", "ok");
+    }
+
+    async function runJsSandbox(){
+      clearConsole();
+      setStatus("Running JS sandbox…", "");
+      const t = Number(timeoutMsEl.value || 2000);
+      $("tLabel").textContent = String(t);
+
+      const result = await window.PP_MINI_RUNNER.runUserCode({
+        code: jsCM.getValue(),
+        stdin: $("stdin").value,
+        timeoutMs: t,
+        warnToStderr: true,
+        onStdout: (s)=>appendConsole(s),
+        onStderr: (s)=>appendConsole(s, "bad"),
+      });
+
+      if (result.ok){
+        setStatus(`✅ JS done in ${result.ms} ms`, "ok");
+      } else {
+        if (result.timeout) setStatus(`⏱️ ${result.error} (killed safely)`, "bad");
+        else setStatus(`❌ ${result.error}`, "bad");
+      }
+    }
+
+    const runPreviewDebounced = debounce(()=>{ if(autoPreview.checked) runPreview(); }, 300);
+
+    htmlCM.on("change", ()=>{ setStatus("Editing HTML…", ""); runPreviewDebounced(); });
+    cssCM.on("change", ()=>{ setStatus("Editing CSS…", ""); runPreviewDebounced(); });
+    jsonCM.on("change", ()=>{ setStatus("Editing JSON…", ""); runPreviewDebounced(); });
+    jsCM.on("change", ()=>{ setStatus("Editing JS…", ""); });
+
+    // Keyboard shortcuts
+    htmlCM.addKeyMap({ "Ctrl-Enter": ()=>runPreview(), "Cmd-Enter": ()=>runPreview() });
+    cssCM.addKeyMap({ "Ctrl-Enter": ()=>runPreview(), "Cmd-Enter": ()=>runPreview() });
+    jsCM.addKeyMap({ "Ctrl-Enter": ()=>runJsSandbox(), "Cmd-Enter": ()=>runJsSandbox() });
+    jsonCM.addKeyMap({ "Ctrl-Enter": ()=>runJsonOnly(), "Cmd-Enter": ()=>runJsonOnly() });
+
+    // Buttons
+    $("btnRunAll").addEventListener("click", runPreview);
+    $("btnRunJs").addEventListener("click", runJsSandbox);
+    $("btnRunJson").addEventListener("click", runJsonOnly);
+    $("btnClearConsole").addEventListener("click", ()=>{ clearConsole(); setStatus("Console cleared.", "ok"); });
+
+    // Save/Load/Reset/Share
+    $("btnSave").addEventListener("click", ()=>{
+      const payload = {
+        html: htmlCM.getValue(),
+        css: cssCM.getValue(),
+        js: jsCM.getValue(),
+        json: jsonCM.getValue(),
+        stdin: $("stdin").value,
+        timeout: Number(timeoutMsEl.value || 2000),
+        autoPreview: !!autoPreview.checked,
+        injectJs: !!injectJs.checked,
+        renderJson: !!renderJson.checked
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      setStatus("Saved ✅", "ok");
+    });
+
+    $("btnLoad").addEventListener("click", ()=>{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw){ setStatus("Nothing saved yet.", "bad"); return; }
+      try{
+        const payload = JSON.parse(raw);
+        htmlCM.setValue(payload.html || "");
+        cssCM.setValue(payload.css || "");
+        jsCM.setValue(payload.js || "");
+        jsonCM.setValue(payload.json || "");
+        $("stdin").value = payload.stdin || "";
+        timeoutMsEl.value = String(payload.timeout || 2000);
+        autoPreview.checked = !!payload.autoPreview;
+        injectJs.checked = !!payload.injectJs;
+        renderJson.checked = payload.renderJson !== false;
+        $("tLabel").textContent = String(timeoutMsEl.value);
+        runPreview();
+        setStatus("Loaded ✅", "ok");
+      }catch(e){
+        setStatus("Load failed.", "bad");
+      }
+    });
+
+    $("btnReset").addEventListener("click", ()=>{
+      // default to first example (starter) after examples array is defined; temporary placeholders here
+      loadExampleById("ex_starter");
+      setStatus("Reset ✅", "ok");
+    });
+
+    async function copyToClipboard(text){
+      try{ await navigator.clipboard.writeText(text); return true; }
+      catch(_){
+        const ta=document.createElement("textarea");
+        ta.value=text; ta.style.position="fixed"; ta.style.left="-9999px";
+        document.body.appendChild(ta); ta.select();
+        try{ document.execCommand("copy"); document.body.removeChild(ta); return true; }
+        catch(e){ document.body.removeChild(ta); return false; }
+      }
+    }
+
+    $("btnShare").addEventListener("click", async ()=>{
+      const packed = packState();
+      const url = location.origin + location.pathname + "#pp=" + packed;
+
+      if (navigator.share){
+        try{
+          await navigator.share({
+            title:"PP Merged Editor — shared code",
+            text:"Open this link to load HTML + CSS + JS + JSON + stdin.",
+            url
+          });
+          setStatus("Shared ✅", "ok");
+          return;
+        }catch(e){}
+      }
+      const ok = await copyToClipboard(url);
+      setStatus(ok ? "Share link copied ✅" : "Could not copy link", ok ? "ok":"bad");
+    });
+
+    // Preview error bridge
+    window.addEventListener("message", (ev)=>{
+      const d = ev.data || {};
+      if (d.type === "pp_preview_error"){
+        setStatus("Preview error: " + d.message, "bad");
+      }
+    });
+
+    /* ==========================
+       IMPORTANT EXAMPLES
+       - Each example includes HTML, CSS, JS, JSON, plus recommended toggles.
+       - One-click load => test => share.
+       ========================== */
+    const EXAMPLES = [
+      {
+        id:"ex_starter",
+        title:"Starter: JSON mounts into #pp_json_root",
+        desc:"Baseline template: HTML + CSS + JSON UI. Great for first-time sharing.",
+        tags:["json-ui","createElement","beginner"],
+        state:{
+          autoPreview:true, injectJs:false, renderJson:true,
+          stdin:"Champak\n25",
+          timeout:2000,
+          html:`<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PP Starter</title>
+</head>
+<body>
+  <div class="card">
+    <h1>Programmer’s Picnic</h1>
+    <p class="muted">JSON UI mounts below:</p>
+    <div id="pp_json_root"></div>
+  </div>
+</body>
+</html>`,
+          css:`:root{ --brand:#d97706; }
+body{ font-family:system-ui; margin:0; padding:24px; background:#fff; color:#111827; }
+.card{ border:1px solid #e5e7eb; border-radius:14px; padding:16px; max-width:980px; background:#fff; }
+h1{ margin:0 0 8px; color:var(--brand); }
+.muted{ color:#6b7280; margin:0 0 10px; }
+code{ background:#fff7ea; border:1px solid #f3d7a6; padding:1px 6px; border-radius:8px; }`,
+          js:`// JS Sandbox demo (safe worker)
+console.log("Hello from JS sandbox!");
+const name = input("Enter your name:");
+console.log("Hi", name);`,
+          json:`{
+  "mountId": "pp_json_root",
+  "nodes": [
+    {
+      "tag": "div",
+      "style": {
+        "border": "1px dashed #f59e0b",
+        "borderRadius": "14px",
+        "padding": "12px",
+        "background": "#fffaf0"
+      },
+      "children": [
+        { "tag": "h2", "text": "Hello from JSON UI", "style": { "margin": "0 0 6px", "color": "#d97706" } },
+        { "tag": "p", "text": "Edit JSON to change this UI instantly.", "style": { "margin": "0", "color": "#6b7280" } }
+      ]
+    }
+  ]
+}`
+        }
+      },
+
+      {
+        id:"ex_css_vars_calc",
+        title:"CSS var() + calc(): Fluid card layout",
+        desc:"Teaches design tokens and responsive spacing using var() + calc().",
+        tags:["css","var()","calc()","responsive"],
+        state:{
+          autoPreview:true, injectJs:false, renderJson:false,
+          stdin:"",
+          timeout:2000,
+          html:`<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CSS var() + calc()</title>
+</head>
+<body>
+  <header class="top">
+    <div>
+      <h1>Fluid Layout</h1>
+      <p>Resize the window — spacing and card width adapt using <code>var()</code> + <code>calc()</code>.</p>
+    </div>
+    <div class="badge">Programmer’s Picnic</div>
+  </header>
+
+  <main class="wrap">
+    <section class="grid">
+      <article class="card"><h2>Card 1</h2><p>Uses tokenized spacing.</p></article>
+      <article class="card"><h2>Card 2</h2><p>Width uses min() and calc().</p></article>
+      <article class="card"><h2>Card 3</h2><p>Try changing --gutter or --max.</p></article>
+    </section>
+  </main>
+</body>
+</html>`,
+          css:`:root{
+  --brand:#d97706;
+  --bg:#fff7e6;
+  --gutter: clamp(12px, calc(10px + 1.2vw), 22px);
+  --max: 1050px;
+  --radius: 18px;
+}
+*{ box-sizing:border-box; }
+body{ margin:0; font-family:system-ui; background:var(--bg); color:#111827; }
+.top{
+  display:flex; justify-content:space-between; gap:12px; align-items:flex-start;
+  padding: var(--gutter);
+  background: linear-gradient(180deg, rgba(255,255,255,.85), rgba(255,255,255,.55));
+  border-bottom: 1px solid rgba(17,24,39,.10);
+}
+.top h1{ margin:0 0 6px; color:var(--brand); letter-spacing:-.3px; }
+.top p{ margin:0; color:#6b7280; font-weight:650; }
+.badge{
+  border:1px solid rgba(217,119,6,.25);
+  background:rgba(255,255,255,.8);
+  padding:8px 10px;
+  border-radius:999px;
+  font-weight:900;
+  color:#92400e;
+  white-space:nowrap;
+}
+.wrap{
+  width: min(var(--max), calc(100% - (var(--gutter) * 2)));
+  margin: 0 auto;
+  padding: var(--gutter);
+}
+.grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--gutter);
+}
+.card{
+  background:rgba(255,255,255,.85);
+  border:1px solid rgba(17,24,39,.12);
+  border-radius: var(--radius);
+  padding: calc(var(--gutter) * 0.9);
+  box-shadow: 0 14px 36px rgba(17,24,39,.10);
+}
+.card h2{ margin:0 0 8px; color:#111827; }
+.card p{ margin:0; color:#6b7280; font-weight:650; }
+code{ background:#fff; border:1px solid rgba(217,119,6,.18); padding:1px 6px; border-radius:8px; }`,
+          js:`// No JS needed`,
+          json:`{ "mountId":"pp_json_root", "nodes":[] }`
+        }
+      },
+
+      {
+        id:"ex_dom_injected",
+        title:"DOM: createElement() + events (Injected JS)",
+        desc:"Teaches DOM manipulation inside preview. Toggle Inject JS ON automatically.",
+        tags:["dom","createElement","events","preview-js"],
+        state:{
+          autoPreview:true, injectJs:true, renderJson:false,
+          stdin:"",
+          timeout:2000,
+          html:`<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>DOM createElement</title>
+</head>
+<body>
+  <div class="card">
+    <h1>DOM Builder</h1>
+    <p class="muted">Click buttons to add/remove items. (Runs in preview JS)</p>
+    <div class="row">
+      <button id="add">Add Item</button>
+      <button id="clear">Clear</button>
+    </div>
+    <ul id="list"></ul>
+  </div>
+</body>
+</html>`,
+          css:`:root{ --brand:#d97706; }
+body{ font-family:system-ui; margin:0; padding:24px; background:#fff; color:#111827; }
+.card{ border:1px solid #e5e7eb; border-radius:14px; padding:16px; max-width:980px; background:#fff; }
+h1{ margin:0 0 8px; color:var(--brand); }
+.muted{ color:#6b7280; margin:0 0 10px; font-weight:650; }
+.row{ display:flex; gap:10px; flex-wrap:wrap; }
+button{ padding:10px 12px; border:1px solid #e5e7eb; border-radius:12px; background:#fff; cursor:pointer; font-weight:800; }
+ul{ margin:12px 0 0; padding-left:18px; }
+li{ margin:6px 0; }`,
+          js:`// This runs INSIDE the preview (because Inject JS is ON)
+let n = 0;
+const list = document.getElementById("list");
+
+document.getElementById("add").addEventListener("click", ()=>{
+  n++;
+  const li = document.createElement("li");
+  li.textContent = "Item " + n;
+
+  // Remove on click
+  li.addEventListener("click", ()=> li.remove());
+
+  list.append(li);
+});
+
+document.getElementById("clear").addEventListener("click", ()=>{
+  list.innerHTML = "";
+  n = 0;
+});`,
+          json:`{ "mountId":"pp_json_root", "nodes":[] }`
+        }
+      },
+
+      {
+        id:"ex_sandbox_input_math",
+        title:"JS Sandbox: input() + parsing + math + loops",
+        desc:"Classic test: reads numbers/strings, computes results, prints to console output safely.",
+        tags:["js-sandbox","input()","parseInt","loops"],
+        state:{
+          autoPreview:false, injectJs:false, renderJson:false,
+          stdin:"5\n10\n3\n7\n",
+          timeout:2000,
+          html:`<!doctype html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sandbox Only</title></head><body>
+<div style="font-family:system-ui;padding:24px">
+  <h1 style="margin:0 0 8px;color:#d97706">JS Sandbox Example</h1>
+  <p style="margin:0;color:#6b7280;font-weight:650">Run <b>JS Sandbox</b> to see output on the right.</p>
+</div></body></html>`,
+          css:`/* optional */`,
+          js:`// Reads 4 lines: a, b, c, d
+const a = Number(input("Enter a:"));
+const b = Number(input("Enter b:"));
+const c = Number(input("Enter c:"));
+const d = Number(input("Enter d:"));
+
+console.log("a+b =", a + b);
+console.log("c*d =", c * d);
+
+// Loop example
+let sum = 0;
+for(let i=1;i<=a;i++) sum += i;
+console.log("Sum 1..a =", sum);
+
+// Edge: NaN check
+if (Number.isNaN(a) || Number.isNaN(b) || Number.isNaN(c) || Number.isNaN(d)){
+  console.error("Invalid number input (NaN).");
+}`,
+          json:`{ "mountId":"pp_json_root", "nodes":[] }`
+        }
+      },
+
+      {
+        id:"ex_json_form_generator",
+        title:"JSON UI: Form generator + minimal styling",
+        desc:"Shows how JSON creates a form layout quickly (labels, inputs, button).",
+        tags:["json-ui","forms","layout"],
+        state:{
+          autoPreview:true, injectJs:false, renderJson:true,
+          stdin:"",
+          timeout:2000,
+          html:`<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>JSON Form</title>
+</head>
+<body>
+  <div class="card">
+    <h1>JSON Form Generator</h1>
+    <p class="muted">Edit JSON to add fields. The UI is created with createElement().</p>
+    <div id="pp_json_root"></div>
+  </div>
+</body>
+</html>`,
+          css:`:root{ --brand:#d97706; }
+body{ font-family:system-ui; margin:0; padding:24px; background:#fff; color:#111827; }
+.card{ border:1px solid #e5e7eb; border-radius:14px; padding:16px; max-width:980px; background:#fff; }
+h1{ margin:0 0 8px; color:var(--brand); }
+.muted{ color:#6b7280; margin:0 0 10px; font-weight:650; }
+label{ font-weight:800; font-size:13px; }
+input, select{ width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:12px; }
+button{ padding:10px 12px; border:1px solid #e5e7eb; border-radius:12px; background:#fff; cursor:pointer; font-weight:900; }
+.grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+@media(max-width:800px){ .grid{ grid-template-columns:1fr; } }`,
+          js:`// Optional: leave empty`,
+          json:`{
+  "mountId": "pp_json_root",
+  "nodes": [
+    {
+      "tag": "form",
+      "attrs": { "id": "f" },
+      "style": { "display": "grid", "gap": "12px" },
+      "children": [
+        {
+          "tag": "div",
+          "attrs": { "class": "grid" },
+          "children": [
+            { "tag": "div", "children": [
+              { "tag": "label", "text": "Name" },
+              { "tag": "input", "attrs": { "placeholder": "Your name" } }
+            ]},
+            { "tag": "div", "children": [
+              { "tag": "label", "text": "Age" },
+              { "tag": "input", "attrs": { "type": "number", "placeholder": "18" } }
+            ]}
+          ]
+        },
+        { "tag": "div", "children": [
+          { "tag": "label", "text": "Message" },
+          { "tag": "input", "attrs": { "placeholder": "Say hello…" } }
+        ]},
+        {
+          "tag": "button",
+          "text": "Submit",
+          "attrs": { "type": "button", "id": "btnSubmit" }
+        },
+        {
+          "tag": "div",
+          "attrs": { "id": "result" },
+          "style": { "fontWeight":"900", "color":"#065f46" }
+        }
+      ]
+    }
+  ]
+}`
+        }
+      }
+    ];
+
+    function applyExampleState(st){
+      $("stdin").value = st.stdin || "";
+      timeoutMsEl.value = String(st.timeout || 2000);
+      $("tLabel").textContent = String(timeoutMsEl.value);
+
+      autoPreview.checked = !!st.autoPreview;
+      injectJs.checked = !!st.injectJs;
+      renderJson.checked = st.renderJson !== false;
+
+      htmlCM.setValue(st.html || "");
+      cssCM.setValue(st.css || "");
+      jsCM.setValue(st.js || "");
+      jsonCM.setValue(st.json || "");
+
+      clearConsole();
+      runPreview();
+      setStatus("Example loaded ✅", "ok");
+    }
+
+    function loadExampleById(id){
+      const ex = EXAMPLES.find(x=>x.id===id);
+      if(!ex) return;
+      applyExampleState(ex.state);
+    }
+
+    function renderExamples(){
+      const host = $("examples");
+      host.innerHTML = "";
+      EXAMPLES.forEach(ex=>{
+        const card = document.createElement("div");
+        card.className = "ex-card";
+
+        const title = document.createElement("div");
+        title.className = "ex-title";
+        title.innerHTML = `<b>${ex.title}</b>`;
+
+        const tags = document.createElement("div");
+        tags.className = "tagrow";
+        (ex.tags||[]).forEach(t=>{
+          const s=document.createElement("span");
+          s.className="tag";
+          s.textContent=t;
+          tags.appendChild(s);
+        });
+
+        const desc = document.createElement("p");
+        desc.className = "ex-desc";
+        desc.textContent = ex.desc || "";
+
+        const actions = document.createElement("div");
+        actions.className = "ex-actions";
+
+        const btnLoad = document.createElement("button");
+        btnLoad.className = "btn tiny primary";
+        btnLoad.textContent = "Load";
+        btnLoad.addEventListener("click", ()=>loadExampleById(ex.id));
+
+        const btnLoadRun = document.createElement("button");
+        btnLoadRun.className = "btn tiny";
+        btnLoadRun.textContent = "Load + Run";
+        btnLoadRun.addEventListener("click", ()=>{
+          loadExampleById(ex.id);
+          // for sandbox examples, run sandbox too
+          if ((ex.tags||[]).includes("js-sandbox")) {
+            setTimeout(()=>$("btnRunJs").click(), 50);
+          }
+        });
+
+        const btnLoadShare = document.createElement("button");
+        btnLoadShare.className = "btn tiny";
+        btnLoadShare.textContent = "Load + Share";
+        btnLoadShare.addEventListener("click", async ()=>{
+          loadExampleById(ex.id);
+          // copy share link (same as Share button)
+          $("btnShare").click();
+        });
+
+        actions.appendChild(btnLoad);
+        actions.appendChild(btnLoadRun);
+        actions.appendChild(btnLoadShare);
+
+        card.appendChild(title);
+        card.appendChild(tags);
+        card.appendChild(desc);
+        card.appendChild(actions);
+        host.appendChild(card);
+      });
+    }
+
+    /* ==========================
+       INIT load from share hash or localStorage, else load Starter example
+       ========================== */
+    function initFromStateObject(state){
+      $("stdin").value = state.stdin || "";
+      timeoutMsEl.value = String(state.timeout || 2000);
+      $("tLabel").textContent = String(timeoutMsEl.value);
+
+      autoPreview.checked = !!state.autoPreview;
+      injectJs.checked = !!state.injectJs;
+      renderJson.checked = state.renderJson !== false;
+
+      htmlCM.setValue(state.html || "");
+      cssCM.setValue(state.css || "");
+      jsCM.setValue(state.js || "");
+      jsonCM.setValue(state.json || "");
+      runPreview();
+    }
+
+    renderExamples();
+
+    (function init(){
+      let loaded = false;
+
+      if (location.hash && location.hash.startsWith("#pp=")){
+        const packed = location.hash.slice(4);
+        try{
+          const state = unpackState(packed);
+          initFromStateObject(state);
+          loaded = true;
+          setStatus("Loaded from shared link ✅", "ok");
+        }catch(e){
+          setStatus("Share link invalid.", "bad");
+        }
+      }
+
+      if (!loaded){
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw){
+          try{
+            const payload = JSON.parse(raw);
+            initFromStateObject(payload);
+            loaded = true;
+            setStatus("Loaded from local save ✅", "ok");
+          }catch(_){}
+        }
+      }
+
+      if (!loaded){
+        loadExampleById("ex_starter");
+      }
+    })();
+  </script>
+</body>
+</html>
