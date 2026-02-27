@@ -945,6 +945,75 @@
         animation: labGlow 900ms ease-out;
         border-color: rgba(217, 119, 6, 0.35);
       }
+
+      /* =========================================================
+         VOICE SEARCH UI (ADDED)
+         ========================================================= */
+      .voiceBtn {
+        border: 1px solid rgba(31, 35, 40, 0.12);
+        background: rgba(255, 255, 255, 0.78);
+        border-radius: 999px;
+        padding: 10px 12px;
+        font-weight: 1000;
+        font-size: 13px;
+        cursor: pointer;
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        box-shadow: 0 8px 18px rgba(31, 35, 40, 0.08);
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+        transition:
+          transform 0.15s ease,
+          box-shadow 0.15s ease,
+          background 0.15s ease;
+      }
+      .voiceBtn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 14px 26px rgba(31, 35, 40, 0.12);
+        background: rgba(255, 255, 255, 0.9);
+      }
+      .voiceBtn:active {
+        transform: translateY(0px) scale(0.99);
+      }
+      .voiceBtn[aria-pressed="true"] {
+        background: rgba(255, 159, 28, 0.22);
+        border-color: rgba(217, 119, 6, 0.28);
+      }
+      .voicePill {
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(31, 35, 40, 0.12);
+        background: rgba(255, 255, 255, 0.7);
+        font-size: 12px;
+        font-weight: 900;
+        color: var(--muted);
+        user-select: none;
+      }
+      .voiceDot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: rgba(47, 125, 74, 0.9);
+        box-shadow: 0 0 0 4px rgba(47, 125, 74, 0.14);
+        opacity: 0;
+      }
+      .voicePill.on .voiceDot {
+        opacity: 1;
+        animation: voicePulse 1.05s ease-in-out infinite;
+      }
+      @keyframes voicePulse {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.35);
+        }
+      }
     </style>
   </head>
 
@@ -976,6 +1045,31 @@
               hidden
             ></div>
           </div>
+
+          <!-- VOICE CONTROLS (ADDED) -->
+          <button
+            class="voiceBtn"
+            id="btnVoiceGlobal"
+            type="button"
+            aria-pressed="false"
+            title="Voice search"
+          >
+            🎙️ Voice
+          </button>
+
+          <button
+            class="voiceBtn"
+            id="btnSpeakResults"
+            type="button"
+            title="Speak results"
+          >
+            🔊 Speak
+          </button>
+
+          <span class="voicePill" id="voicePill" aria-live="polite">
+            <span class="voiceDot" aria-hidden="true"></span>
+            <span id="voiceMsg">Voice: off</span>
+          </span>
 
           <a
             class="btn green"
@@ -1618,7 +1712,9 @@
         const q = state.q.trim();
         const html = `
         <div class="mini" style="margin-bottom:12px;">
-          <h3 style="margin:0 0 6px; font-size:14px;">Label: ${escapeHtml(label)}</h3>
+          <h3 style="margin:0 0 6px; font-size:14px;">Label: ${escapeHtml(
+            label,
+          )}</h3>
           <p class="hint" style="margin:0;">${list.length} results</p>
         </div>
         <div class="mini">
@@ -1640,7 +1736,9 @@
               )}</div>
               <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
                 <button class="btn" style="padding:8px 10px; border-radius:12px; font-size:12px; box-shadow:none;"
-                  data-act="preview" data-id="${escapeAttr(p.id)}">👀 Preview</button>
+                  data-act="preview" data-id="${escapeAttr(
+                    p.id,
+                  )}">👀 Preview</button>
                 <a class="btn primary" style="padding:8px 10px; border-radius:12px; font-size:12px; box-shadow:none;"
                   href="${escapeAttr(
                     p.url,
@@ -2261,7 +2359,9 @@
 
           <div class="field">
             <div class="label">Base URL</div>
-            <input class="input" id="cfgBase" value="${escapeAttr(cfg.base)}" placeholder="https://www.learnwithchampak.live" />
+            <input class="input" id="cfgBase" value="${escapeAttr(
+              cfg.base,
+            )}" placeholder="https://www.learnwithchampak.live" />
           </div>
 
           <div class="row2" style="margin-top:10px;">
@@ -2272,8 +2372,12 @@
             <div class="field">
               <div class="label">Mode</div>
               <select class="select" id="cfgMode">
-                <option value="default" ${cfg.mode === "default" ? "selected" : ""}>default</option>
-                <option value="summary" ${cfg.mode === "summary" ? "selected" : ""}>summary</option>
+                <option value="default" ${
+                  cfg.mode === "default" ? "selected" : ""
+                }>default</option>
+                <option value="summary" ${
+                  cfg.mode === "summary" ? "selected" : ""
+                }>summary</option>
               </select>
             </div>
           </div>
@@ -2283,23 +2387,31 @@
               <div class="label">Auto-load all</div>
               <select class="select" id="cfgAuto">
                 <option value="yes" ${cfg.autoCrawl ? "selected" : ""}>Yes</option>
-                <option value="no"  ${!cfg.autoCrawl ? "selected" : ""}>No</option>
+                <option value="no"  ${
+                  !cfg.autoCrawl ? "selected" : ""
+                }>No</option>
               </select>
             </div>
             <div class="field">
               <div class="label">Max total items (cap)</div>
-              <input class="input" id="cfgCap" value="${escapeAttr(String(cfg.maxTotalItems))}" />
+              <input class="input" id="cfgCap" value="${escapeAttr(
+                String(cfg.maxTotalItems),
+              )}" />
             </div>
           </div>
 
           <div class="row2" style="margin-top:10px;">
             <div class="field">
               <div class="label">Featured labels (comma-separated)</div>
-              <input class="input" id="cfgFeat" value="${escapeAttr((cfg.featuredLabels || DEFAULT_CFG.featuredLabels).join(", "))}" />
+              <input class="input" id="cfgFeat" value="${escapeAttr(
+                (cfg.featuredLabels || DEFAULT_CFG.featuredLabels).join(", "),
+              )}" />
             </div>
             <div class="field">
               <div class="label">Featured limit</div>
-              <input class="input" id="cfgFeatLim" value="${escapeAttr(String(cfg.featuredLimit || 9))}" />
+              <input class="input" id="cfgFeatLim" value="${escapeAttr(
+                String(cfg.featuredLimit || 9),
+              )}" />
             </div>
           </div>
 
@@ -2660,6 +2772,202 @@
         $("#stLoaded").textContent = String(state.items.length);
         $("#stStart").textContent = String(state.startIndex);
       }
+
+      // =========================================================
+      // Voice Search + Speech Output (ADDED)
+      // =========================================================
+      const Voice = (function () {
+        const SR =
+          window.SpeechRecognition || window.webkitSpeechRecognition || null;
+
+        const synth = window.speechSynthesis || null;
+
+        let rec = null;
+        let listening = false;
+        let lastSpokenKey = "";
+
+        function supportedRecognition() {
+          return !!SR;
+        }
+        function supportedSpeech() {
+          return !!synth && !!window.SpeechSynthesisUtterance;
+        }
+
+        function setPill(on, msg) {
+          const pill = document.getElementById("voicePill");
+          const t = document.getElementById("voiceMsg");
+          if (!pill || !t) return;
+          pill.classList.toggle("on", !!on);
+          t.textContent = msg || (on ? "Listening…" : "Voice: off");
+        }
+
+        function cancelSpeech() {
+          if (!supportedSpeech()) return;
+          try {
+            synth.cancel();
+          } catch {}
+        }
+
+        function speak(text, opts = {}) {
+          if (!supportedSpeech()) {
+            toast("Speech output not supported");
+            return;
+          }
+          const clean = String(text || "").trim();
+          if (!clean) return;
+
+          const key = clean.slice(0, 220);
+          if (opts.dedupe && key === lastSpokenKey) return;
+          lastSpokenKey = key;
+
+          cancelSpeech();
+
+          const u = new SpeechSynthesisUtterance(clean);
+          u.rate = typeof opts.rate === "number" ? opts.rate : 1.0;
+          u.pitch = typeof opts.pitch === "number" ? opts.pitch : 1.0;
+          u.lang = opts.lang || "en-IN";
+
+          try {
+            synth.speak(u);
+          } catch {
+            toast("Speech failed");
+          }
+        }
+
+        function initRecognition() {
+          if (!supportedRecognition()) return null;
+          rec = new SR();
+          rec.continuous = false;
+          rec.interimResults = true;
+          rec.maxAlternatives = 1;
+          rec.lang = "en-IN";
+          return rec;
+        }
+
+        function stopListening() {
+          listening = false;
+          setPill(false, "Voice: off");
+          const b = document.getElementById("btnVoiceGlobal");
+          if (b) b.setAttribute("aria-pressed", "false");
+          try {
+            rec && rec.stop();
+          } catch {}
+        }
+
+        function speakResultsSummary(opts = {}) {
+          const alsoTop = !!opts.alsoTop;
+          const list = getFiltered();
+          const count = list.length;
+
+          if (!count) {
+            speak("No results found.", { lang: "en-IN", dedupe: true });
+            return;
+          }
+
+          const top = alsoTop
+            ? list
+                .slice(0, 5)
+                .map((p) => p?.title)
+                .filter(Boolean)
+            : [];
+
+          const msg = top.length
+            ? `Found ${count} results. Top results: ${top.join(". ")}.`
+            : `Found ${count} results.`;
+
+          speak(msg, { lang: "en-IN", dedupe: true });
+        }
+
+        function startVoiceGlobal() {
+          if (!supportedRecognition()) {
+            toast("Voice search not supported in this browser");
+            return;
+          }
+          if (!rec) initRecognition();
+
+          if (listening) {
+            stopListening();
+            toast("Voice stopped");
+            return;
+          }
+
+          listening = true;
+          setPill(true, "Listening…");
+          const b = document.getElementById("btnVoiceGlobal");
+          if (b) b.setAttribute("aria-pressed", "true");
+
+          let interim = "";
+          let finalText = "";
+
+          rec.onresult = (ev) => {
+            let txt = "";
+            for (let i = ev.resultIndex; i < ev.results.length; i++) {
+              const res = ev.results[i];
+              const piece = res[0]?.transcript || "";
+              if (res.isFinal) finalText += piece + " ";
+              else txt += piece + " ";
+            }
+            interim = txt.trim();
+
+            const gqEl = document.getElementById("gq");
+            if (gqEl) gqEl.value = (finalText + " " + interim).trim();
+          };
+
+          rec.onerror = () => {
+            stopListening();
+            toast("Voice error");
+          };
+
+          rec.onend = () => {
+            const spoken = (finalText || interim || "").trim();
+            stopListening();
+
+            if (!spoken) {
+              toast("No speech detected");
+              return;
+            }
+
+            const gqEl = document.getElementById("gq");
+            const qEl = document.getElementById("q");
+            if (gqEl) gqEl.value = spoken;
+            if (qEl) qEl.value = spoken;
+
+            state.q = spoken;
+            renderChips();
+            render();
+
+            speakResultsSummary({ alsoTop: true });
+          };
+
+          try {
+            cancelSpeech();
+            rec.start();
+            toast("Listening…");
+          } catch {
+            stopListening();
+            toast("Could not start voice");
+          }
+        }
+
+        return {
+          startVoiceGlobal,
+          speakResultsSummary,
+          speak,
+          cancelSpeech,
+        };
+      })();
+
+      (function initVoiceUI() {
+        const btnVoice = document.getElementById("btnVoiceGlobal");
+        const btnSpeak = document.getElementById("btnSpeakResults");
+
+        if (btnVoice)
+          btnVoice.addEventListener("click", () => Voice.startVoiceGlobal());
+        if (btnSpeak)
+          btnSpeak.addEventListener("click", () =>
+            Voice.speakResultsSummary({ alsoTop: true }),
+          );
+      })();
 
       // ------------------------- Practice Lab: tabs + reload + open full
       function initPracticeLab() {
