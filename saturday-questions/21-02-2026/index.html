@@ -1,13 +1,14 @@
-.<!doctype html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Saturday Questions — Spiral Challenge</title>
+    <title>Saturday Questions</title>
     <meta
       name="description"
-      content="Programmer’s Picnic — Saturday Questions. SVG targets only. Solve in embedded Python editor."
+      content="Programmer’s Picnic — Saturday Questions. Solve in embedded Python editor."
     />
+    <meta name="theme-color" content="#d97706" />
 
     <style>
       :root {
@@ -29,6 +30,8 @@
       }
       * {
         box-sizing: border-box;
+      }
+      .codelink {
       }
       html,
       body {
@@ -55,7 +58,7 @@
       .topbar {
         position: sticky;
         top: 0;
-        z-index: 20;
+        z-index: 30;
         backdrop-filter: blur(10px);
         background: rgba(255, 247, 230, 0.8);
         border-bottom: 1px solid var(--line);
@@ -159,6 +162,26 @@
         margin: 0 auto;
         padding: 14px;
       }
+      .banner {
+        display: none;
+        margin: 14px 0 0;
+        border-radius: var(--radius);
+        border: 1px solid var(--line);
+        overflow: hidden;
+        box-shadow: var(--shadow);
+        background: rgba(255, 255, 255, 0.55);
+      }
+      .banner a {
+        display: block;
+        text-decoration: none;
+        color: inherit;
+      }
+      .banner img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
       .grid {
         display: grid;
         grid-template-columns: 360px 1fr;
@@ -341,8 +364,26 @@
         padding: 12px 14px;
         font-size: 14px;
         line-height: 1.55;
+        color: var(--ink);
+      }
+      .muted {
         color: var(--muted);
       }
+      .content h3 {
+        margin: 0 0 6px;
+        font-size: 14px;
+      }
+      .content p {
+        margin: 0 0 10px;
+      }
+      .content ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+      .content li {
+        margin: 4px 0;
+      }
+
       .svg-wrap {
         padding: 12px 14px 14px;
       }
@@ -405,6 +446,44 @@
         background: rgba(255, 255, 255, 0.58);
       }
 
+      .replies {
+        padding: 12px;
+        border-top: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.7);
+      }
+      .reply {
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.86);
+        padding: 10px;
+        margin: 10px 0 0;
+      }
+      .reply-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .reply-student {
+        font-weight: 950;
+        color: #111;
+      }
+      .reply-msg {
+        margin-top: 6px;
+        color: var(--ink);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+      .reply-code {
+        margin-top: 10px;
+        display: none;
+      }
+      .reply-code pre {
+        margin: 0;
+      }
+
       .toast {
         position: fixed;
         left: 50%;
@@ -421,6 +500,7 @@
           opacity 0.2s ease,
           transform 0.2s ease;
         font-weight: 950;
+        z-index: 50;
       }
       .toast.show {
         opacity: 1;
@@ -450,16 +530,14 @@
         <div class="brand">
           <div class="logo" aria-hidden="true">PP</div>
           <div>
-            <!-- From JSON -->
-            <div class="brand-title" id="brandTitle"></div>
-            <div class="brand-sub" id="brandSub"></div>
+            <div class="brand-title" id="brandTitle">Saturday Questions</div>
+            <div class="brand-sub" id="brandSub">Loading…</div>
           </div>
         </div>
         <div class="actions">
-          <!-- From JSON -->
-          <div class="date-pill" id="todayDate"></div>
-          <button class="btn ghost" id="btnTeacher" type="button">
-            Teacher
+          <div class="date-pill" id="todayDate">—</div>
+          <button style="display: none;" class="btn ghost" id="btnTeacher" type="button">
+            🙂
           </button>
           <button class="btn" id="btnShare" type="button">Share</button>
         </div>
@@ -467,13 +545,17 @@
     </header>
 
     <div class="wrap">
+      <div class="banner" id="banner"></div>
+
       <div class="grid">
         <!-- Left -->
         <aside class="panel" aria-label="Question Bank">
           <div class="panel-head">
             <div>
-              <div class="panel-title" id="bankTitle"></div>
-              <div class="panel-sub" id="bankSub"></div>
+              <div class="panel-title" id="bankTitle">Question Bank</div>
+              <div class="panel-sub" id="bankSub">
+                Search and select a question.
+              </div>
             </div>
           </div>
 
@@ -486,7 +568,8 @@
                 color: var(--muted);
                 font-weight: 950;
               "
-            ></label>
+              >Search</label
+            >
             <input id="qSearch" class="input" autocomplete="off" />
             <div class="row" style="margin-top: 10px">
               <select
@@ -499,8 +582,6 @@
           </div>
 
           <div id="qList" class="q-list" role="list"></div>
-
-          <!-- From JSON -->
           <div class="tip" id="bankTip"></div>
         </aside>
 
@@ -508,8 +589,10 @@
         <section class="panel work" aria-label="Work Area">
           <div class="panel-head">
             <div>
-              <div id="qTitle" class="panel-title"></div>
-              <div id="qMeta" class="panel-sub"></div>
+              <div id="qTitle" class="panel-title">Select a question</div>
+              <div id="qMeta" class="panel-sub">
+                Difficulty • Tags • Estimated time
+              </div>
             </div>
             <div class="work-actions">
               <button
@@ -517,76 +600,86 @@
                 id="btnCopyStarter"
                 type="button"
                 disabled
-              ></button>
+              >
+                Copy starter
+              </button>
               <a
                 class="btn"
                 id="btnOpenEditor"
                 href="#"
                 target="_blank"
                 rel="noopener noreferrer"
-              ></a>
+                >Open editor</a
+              >
             </div>
           </div>
 
           <div class="work-grid">
-            <!-- Target -->
+            <!-- Problem -->
             <div class="card">
               <div class="card-head">
-                <!-- From JSON -->
-                <div class="card-title" id="targetTitle"></div>
+                <div class="card-title" id="targetTitle">Problem</div>
                 <div class="card-actions">
-                  <button
-                    class="chip"
-                    id="btnHints"
-                    type="button"
-                    disabled
-                  ></button>
-                  <button
-                    class="chip"
-                    id="btnSolution"
-                    type="button"
-                    disabled
-                  ></button>
+                  <button class="chip" id="btnHints" type="button" disabled>
+                    Hints
+                  </button>
+                  <button class="chip" id="btnSolution" type="button" disabled>
+                    Solution
+                  </button>
                 </div>
               </div>
 
-              <!-- From JSON -->
-              <div class="content" id="targetSub"></div>
+              <!-- ✅ This is where prompt + examples will appear -->
+              <div class="content" id="problemBox">
+                <div class="muted">
+                  Select a question to view its statement.
+                </div>
+              </div>
 
+              <!-- ✅ This is where SVG will appear -->
               <div class="svg-wrap">
                 <div
                   class="svg-card"
                   id="svgTarget"
-                  aria-label="SVG target output"
+                  aria-label="SVG illustration"
                 ></div>
               </div>
 
               <div class="section" id="hintsSection">
-                <!-- From JSON -->
-                <div class="section-title" id="hintsTitle"></div>
+                <div class="section-title" id="hintsTitle">Hints</div>
                 <ol id="qHints" style="margin: 0; padding-left: 18px"></ol>
               </div>
 
               <div class="section" id="solutionSection">
-                <!-- From JSON -->
-                <div class="section-title" id="solutionTitle"></div>
+                <div class="section-title" id="solutionTitle">
+                  Solution (Teacher mode)
+                </div>
                 <pre class="codeblock" id="qSolution"></pre>
               </div>
             </div>
 
-            <!-- Editor -->
+            <!-- Editor + Replies -->
             <div class="card editor">
               <div class="card-head">
-                <!-- From JSON -->
-                <div class="card-title" id="editorTitle"></div>
+                <div class="card-title" id="editorTitle">Python Editor</div>
                 <div class="card-actions">
-                  <span class="pill" id="editorStatus"></span>
+                  <span class="pill" id="editorStatus">🙂</span>
                   <button
                     class="chip"
                     id="btnCopyQuestionLink"
                     type="button"
                     disabled
-                  ></button>
+                  >
+                    Copy Q link
+                  </button>
+                  <button
+                    class="chip"
+                    id="btnSubmitReply"
+                    type="button"
+                    disabled
+                  >
+                    Submit reply
+                  </button>
                 </div>
               </div>
 
@@ -601,8 +694,33 @@
                 ></iframe>
               </div>
 
-              <!-- From JSON -->
-              <div class="small" id="editorTip"></div>
+              <div class="small" id="editorTip">Loading…</div>
+
+              <div class="replies">
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 10px;
+                  "
+                >
+                  <div
+                    class="card-title"
+                    id="repliesTitle"
+                    style="font-size: 14px"
+                  >
+                    Replies
+                  </div>
+                  <button class="chip" id="btnReloadReplies" type="button">
+                    Reload
+                  </button>
+                </div>
+                <div
+                  id="repliesList"
+                  style="margin-top: 6px; color: var(--muted); font-size: 12px"
+                ></div>
+              </div>
 
               <div class="footer">
                 © Programmer’s Picnic • <span id="publishedLabel"></span>:
@@ -616,115 +734,6 @@
 
     <div class="toast" id="toast" aria-live="polite"></div>
 
-    <!-- ✅ EVERYTHING comes from this JSON -->
-    <script id="app-json" type="application/json">
-      {
-        "meta": {
-          "site_title": "Saturday Questions",
-          "subtitle": "Spiral Patterns • Solve in the embedded Python editor",
-          "published_label": "",
-          "published_date": "Saturday, 21 February 2026",
-          "today_date": "Saturday, 21 February 2026",
-          "version": 5
-        },
-        "config": {
-          "editor_url": "https://programmer-s-picnic.github.io/lesson-viewer/python-starter/editor/super/?tmode=0"
-        },
-        "ui": {
-          "bank_title": "",
-          "bank_sub": "",
-          "bank_tip": "",
-          "search_label": "Search",
-          "search_placeholder": "Title or tags...",
-          "difficulty_all": "All levels",
-          "difficulty_values": ["medium", "hard"],
-          "difficulty_labels": { "medium": "Medium", "hard": "Hard" },
-          "tag_all": "All tags",
-          "btn_teacher_off": "Teacher",
-          "btn_teacher_on": "Teacher: ON",
-          "btn_share": "Share",
-          "btn_copy_starter": "Copy starter",
-          "btn_open_editor": "Open editor",
-          "target_title": "Target Output",
-          "target_sub": "The target output is shown as an SVG grid.",
-          "btn_hints": "Hints",
-          "btn_solution": "Solution",
-          "hints_title": "Hints",
-          "solution_title": "Solution (Teacher mode)",
-          "editor_title": "Python Editor",
-          "editor_status": "iframe",
-          "btn_copy_q_link": "Copy Q link",
-          "editor_tip": "Paste starter code into the editor. Share this page with a question selected for direct access."
-        },
-        "questions": [
-          {
-            "id": "Q3-spiral-direct-4x4",
-            "title": "Spiral 4×4 (Direct / Clockwise)",
-            "difficulty": "medium",
-            "tags": ["loops", "matrix", "spiral"],
-            "estimated_minutes": 15,
-            "svg_type": "spiral_direct",
-            "n": 4,
-            "hints": [
-              "Use boundaries: top, bottom, left, right.",
-              "Fill: top row → right column → bottom row → left column.",
-              "Shrink boundaries after each side."
-            ],
-            "starter_code": "n = 4\nmat = [[0]*n for _ in range(n)]\n\n# TODO: fill mat in direct spiral order (clockwise)\n\nfor row in mat:\n    print(*row)\n",
-            "solution_code": "n = 4\nmat = [[0]*n for _ in range(n)]\n\nnum = 1\ntop, bottom = 0, n-1\nleft, right = 0, n-1\n\nwhile left <= right and top <= bottom:\n    for j in range(left, right+1):\n        mat[top][j] = num; num += 1\n    top += 1\n\n    for i in range(top, bottom+1):\n        mat[i][right] = num; num += 1\n    right -= 1\n\n    for j in range(right, left-1, -1):\n        mat[bottom][j] = num; num += 1\n    bottom -= 1\n\n    for i in range(bottom, top-1, -1):\n        mat[i][left] = num; num += 1\n    left += 1\n\nfor row in mat:\n    print(*row)\n"
-          },
-          {
-            "id": "Q4-spiral-reverse-4x4",
-            "title": "Spiral 4×4 (Reverse / Counter-Clockwise)",
-            "difficulty": "hard",
-            "tags": ["loops", "matrix", "spiral"],
-            "estimated_minutes": 20,
-            "svg_type": "spiral_reverse",
-            "n": 4,
-            "hints": [
-              "Use boundaries: top, bottom, left, right.",
-              "Fill: left column → bottom row → right column → top row.",
-              "Shrink boundaries after each side."
-            ],
-            "starter_code": "n = 4\nmat = [[0]*n for _ in range(n)]\n\n# TODO: fill mat in reverse spiral order (counter-clockwise)\n\nfor row in mat:\n    print(*row)\n",
-            "solution_code": "n = 4\nmat = [[0]*n for _ in range(n)]\n\nnum = 1\ntop, bottom = 0, n-1\nleft, right = 0, n-1\n\nwhile left <= right and top <= bottom:\n    for i in range(top, bottom+1):\n        mat[i][left] = num; num += 1\n    left += 1\n\n    for j in range(left, right+1):\n        mat[bottom][j] = num; num += 1\n    bottom -= 1\n\n    for i in range(bottom, top-1, -1):\n        mat[i][right] = num; num += 1\n    right -= 1\n\n    for j in range(right, left-1, -1):\n        mat[top][j] = num; num += 1\n    top += 1\n\nfor row in mat:\n    print(*row)\n"
-          },
-          {
-            "id": "Q5-spiral-direct-4x4-inverted",
-            "title": "Spiral 4×4 (Direct) — Inverted Series",
-            "difficulty": "medium",
-            "tags": ["loops", "matrix", "spiral"],
-            "estimated_minutes": 18,
-            "svg_type": "spiral_direct_inverted",
-            "n": 4,
-            "hints": [
-              "Generate normal direct spiral values first (1..n*n).",
-              "Then convert each cell: new = (n*n + 1) - old.",
-              "Now 1↔16, 2↔15, …"
-            ],
-            "starter_code": "n = 4\nmat = [[0]*n for _ in range(n)]\n\n# TODO:\n# 1) Fill direct spiral (1..n*n)\n# 2) Invert values: v = (n*n + 1) - v\n\nfor row in mat:\n    print(*row)\n",
-            "solution_code": "n = 4\nmat = [[0]*n for _ in range(n)]\n\nnum = 1\ntop, bottom = 0, n-1\nleft, right = 0, n-1\n\nwhile left <= right and top <= bottom:\n    for j in range(left, right+1):\n        mat[top][j] = num; num += 1\n    top += 1\n\n    for i in range(top, bottom+1):\n        mat[i][right] = num; num += 1\n    right -= 1\n\n    for j in range(right, left-1, -1):\n        mat[bottom][j] = num; num += 1\n    bottom -= 1\n\n    for i in range(bottom, top-1, -1):\n        mat[i][left] = num; num += 1\n    left += 1\n\nmx = n*n + 1\nfor i in range(n):\n    for j in range(n):\n        mat[i][j] = mx - mat[i][j]\n\nfor row in mat:\n    print(*row)\n"
-          },
-          {
-            "id": "Q6-spiral-reverse-4x4-inverted",
-            "title": "Spiral 4×4 (Reverse) — Inverted Series",
-            "difficulty": "hard",
-            "tags": ["loops", "matrix", "spiral"],
-            "estimated_minutes": 22,
-            "svg_type": "spiral_reverse_inverted",
-            "n": 4,
-            "hints": [
-              "Generate normal reverse spiral first (1..n*n).",
-              "Then invert values: new = (n*n + 1) - old.",
-              "Check: 1 becomes 16 and 16 becomes 1."
-            ],
-            "starter_code": "n = 4\nmat = [[0]*n for _ in range(n)]\n\n# TODO:\n# 1) Fill reverse spiral (1..n*n)\n# 2) Invert values: v = (n*n + 1) - v\n\nfor row in mat:\n    print(*row)\n",
-            "solution_code": "n = 4\nmat = [[0]*n for _ in range(n)]\n\nnum = 1\ntop, bottom = 0, n-1\nleft, right = 0, n-1\n\nwhile left <= right and top <= bottom:\n    for i in range(top, bottom+1):\n        mat[i][left] = num; num += 1\n    left += 1\n\n    for j in range(left, right+1):\n        mat[bottom][j] = num; num += 1\n    bottom -= 1\n\n    for i in range(bottom, top-1, -1):\n        mat[i][right] = num; num += 1\n    right -= 1\n\n    for j in range(right, left-1, -1):\n        mat[top][j] = num; num += 1\n    top += 1\n\nmx = n*n + 1\nfor i in range(n):\n    for j in range(n):\n        mat[i][j] = mx - mat[i][j]\n\nfor row in mat:\n    print(*row)\n"
-          }
-        ]
-      }
-    </script>
-
     <script>
       const $ = (sel) => document.querySelector(sel);
 
@@ -732,6 +741,8 @@
         brandTitle: $("#brandTitle"),
         brandSub: $("#brandSub"),
         todayDate: $("#todayDate"),
+
+        banner: $("#banner"),
 
         bankTitle: $("#bankTitle"),
         bankSub: $("#bankSub"),
@@ -755,7 +766,9 @@
         btnSolution: $("#btnSolution"),
 
         targetTitle: $("#targetTitle"),
-        targetSub: $("#targetSub"),
+
+        // ✅ NEW: problem box
+        problemBox: $("#problemBox"),
 
         hintsTitle: $("#hintsTitle"),
         solutionTitle: $("#solutionTitle"),
@@ -773,20 +786,38 @@
         svgTarget: $("#svgTarget"),
         editorFrame: $("#ppEditorFrame"),
         toast: $("#toast"),
+
+        repliesTitle: $("#repliesTitle"),
+        repliesList: $("#repliesList"),
+        btnReloadReplies: $("#btnReloadReplies"),
+        btnSubmitReply: $("#btnSubmitReply"),
       };
 
+      const QUESTIONS_URL = "./questions.json";
+      const REPLIES_URL = "./replies.json";
+
       let QUESTIONS = [];
+      let REPLIES = [];
       let CONFIG = { editor_url: "" };
       let UI = {};
       let META = {};
       let activeId = null;
-      let teacherMode = false;
+      let teacherMode = true;
 
       function toast(msg) {
         els.toast.textContent = String(msg || "");
         els.toast.classList.add("show");
         clearTimeout(toast._t);
         toast._t = setTimeout(() => els.toast.classList.remove("show"), 1400);
+      }
+
+      function escapeHTML(s) {
+        return String(s ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
       }
 
       function getQueryParam(name) {
@@ -803,6 +834,7 @@
         if (activeId) u.searchParams.set("q", activeId);
         return u.toString();
       }
+
       async function copyText(text) {
         const t = String(text || "");
         try {
@@ -819,12 +851,6 @@
         }
       }
 
-      function readAppJSON() {
-        const raw = $("#app-json")?.textContent;
-        if (!raw) throw new Error("Missing app JSON");
-        return JSON.parse(raw);
-      }
-
       function safeText(el, v) {
         el.textContent = String(v ?? "");
       }
@@ -832,168 +858,144 @@
         while (el.firstChild) el.removeChild(el.firstChild);
       }
 
-      // SVG generator (trusted)
-      function makeGridSVG(matrix, opts = {}) {
-        const n = matrix.length;
-        const cell = opts.cell ?? 64;
-        const pad = opts.pad ?? 14;
-        const r = opts.radius ?? 14;
-        const w = pad * 2 + n * cell;
-        const h = pad * 2 + n * cell;
-
-        const maxVal = Math.max(...matrix.flat());
-        const digits = String(maxVal).length;
-        const font = digits <= 2 ? 18 : 16;
-
-        const bg1 = "rgba(255,159,28,0.10)";
-        const bg2 = "rgba(255,255,255,0.78)";
-        const stroke = "rgba(31,35,40,0.18)";
-        const strokeBold = "rgba(255,159,28,0.75)";
-        const text = "#1f2328";
-
-        let cells = "";
-        for (let i = 0; i < n; i++) {
-          for (let j = 0; j < n; j++) {
-            const x = pad + j * cell;
-            const y = pad + i * cell;
-            const v = matrix[i][j];
-            cells += `
-            <g>
-              <rect x="${x}" y="${y}" width="${cell}" height="${cell}" rx="${r}" ry="${r}"
-                    fill="${(i + j) % 2 === 0 ? bg2 : bg1}" stroke="${stroke}" stroke-width="1.2"/>
-              <text x="${x + cell / 2}" y="${y + cell / 2}"
-                    font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial"
-                    font-size="${font}" font-weight="900"
-                    fill="${text}" text-anchor="middle" dominant-baseline="central">${v}</text>
-            </g>`;
-          }
-        }
-
-        const outer = `
-        <rect x="${pad - 6}" y="${pad - 6}" width="${n * cell + 12}" height="${n * cell + 12}"
-              rx="${r + 6}" ry="${r + 6}" fill="none" stroke="${strokeBold}" stroke-width="2"/>`;
-
-        return `
-        <svg viewBox="0 0 ${w} ${h}" width="100%" height="auto" role="img" aria-label="Target grid">
-          <defs>
-            <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-              <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="rgba(31,35,40,0.12)"/>
-            </filter>
-          </defs>
-          <rect x="0" y="0" width="${w}" height="${h}" rx="18" ry="18" fill="rgba(255,255,255,0.52)"/>
-          <g filter="url(#shadow)">
-            ${outer}
-            ${cells}
-          </g>
-        </svg>`;
+      async function fetchJSON(url) {
+        const u = new URL(url, location.href);
+        u.searchParams.set("_ts", String(Date.now()));
+        const res = await fetch(u.toString(), { cache: "no-store" });
+        if (!res.ok)
+          throw new Error("Failed to load " + url + " (" + res.status + ")");
+        return await res.json();
       }
 
-      function buildSpiralDirect(n) {
-        const a = Array.from({ length: n }, () => Array(n).fill(0));
-        let num = 1,
-          top = 0,
-          bottom = n - 1,
-          left = 0,
-          right = n - 1;
-        while (left <= right && top <= bottom) {
-          for (let j = left; j <= right; j++) a[top][j] = num++;
-          top++;
-          for (let i = top; i <= bottom; i++) a[i][right] = num++;
-          right--;
-          for (let j = right; j >= left; j--) a[bottom][j] = num++;
-          bottom--;
-          for (let i = bottom; i >= top; i--) a[i][left] = num++;
-          left++;
-        }
-        return a;
-      }
-      function buildSpiralReverse(n) {
-        const a = Array.from({ length: n }, () => Array(n).fill(0));
-        let num = 1,
-          top = 0,
-          bottom = n - 1,
-          left = 0,
-          right = n - 1;
-        while (left <= right && top <= bottom) {
-          for (let i = top; i <= bottom; i++) a[i][left] = num++;
-          left++;
-          for (let j = left; j <= right; j++) a[bottom][j] = num++;
-          bottom--;
-          for (let i = bottom; i >= top; i--) a[i][right] = num++;
-          right--;
-          for (let j = right; j >= left; j--) a[top][j] = num++;
-          top++;
-        }
-        return a;
-      }
-      function invertMatrix(mat) {
-        const n = mat.length;
-        const mx = n * n + 1;
-        return mat.map((row) => row.map((v) => mx - v));
-      }
-      function getMatrixForQuestion(q) {
-        const n = Number(q.n || 4) || 4;
-        if (q.svg_type === "spiral_direct") return buildSpiralDirect(n);
-        if (q.svg_type === "spiral_reverse") return buildSpiralReverse(n);
-        if (q.svg_type === "spiral_direct_inverted")
-          return invertMatrix(buildSpiralDirect(n));
-        if (q.svg_type === "spiral_reverse_inverted")
-          return invertMatrix(buildSpiralReverse(n));
-        return Array.from({ length: n }, () => Array(n).fill(0));
+      // Keep compatibility with older/minimal question objects
+      function normalizeQuestions(rawQuestions) {
+        return (Array.isArray(rawQuestions) ? rawQuestions : [])
+          .map((q) => {
+            const id = String(q.id || "").trim();
+            return {
+              id,
+              title: q.title || id,
+              difficulty: q.difficulty || "",
+              tags: Array.isArray(q.tags) ? q.tags.map(String) : [],
+              estimated_minutes: q.estimated_minutes ?? q.minutes ?? "",
+              prompt: q.prompt || q.question || q.problem || "",
+              examples: Array.isArray(q.examples) ? q.examples : [],
+              svg_html: q.svg_html || q.svg || "",
+              hints: Array.isArray(q.hints) ? q.hints : [],
+              starter_code: q.starter_code || "",
+              solution_code: q.solution_code || "",
+            };
+          })
+          .filter((q) => q.id);
       }
 
-      function setupFromJSON() {
-        // Meta
-        safeText(els.brandTitle, META.site_title);
-        safeText(els.brandSub, META.subtitle);
-        safeText(els.todayDate, META.today_date);
-        safeText(els.publishedLabel, META.published_label);
-        safeText(els.publishedDate, META.published_date);
+      function applyMetaUI() {
+        document.title = META.site_title
+          ? String(META.site_title)
+          : "Saturday Questions";
 
-        // Bank UI
-        safeText(els.bankTitle, UI.bank_title);
-        safeText(els.bankSub, UI.bank_sub);
-        safeText(els.bankTip, UI.bank_tip);
-        safeText(els.searchLabel, UI.search_label);
-        els.qSearch.placeholder = String(UI.search_placeholder || "");
+        safeText(els.brandTitle, META.site_title || "Saturday Questions");
+        safeText(els.brandSub, META.subtitle || "");
+        safeText(els.todayDate, META.today_date || META.last_updated || "");
+
+        safeText(els.bankTitle, UI.bank_title || "Question Bank");
+        safeText(els.bankSub, UI.bank_sub || "Search and select a question.");
+        safeText(els.bankTip, UI.bank_tip || "");
+
+        safeText(els.searchLabel, UI.search_label || "Search");
+        els.qSearch.placeholder = String(
+          UI.search_placeholder || "Title or tags…",
+        );
         els.qSearch.value = "";
 
-        // Buttons / labels
-        safeText(els.btnTeacher, UI.btn_teacher_off);
-        safeText(els.btnShare, UI.btn_share);
-        safeText(els.btnCopyStarter, UI.btn_copy_starter);
-        safeText(els.btnOpenEditor, UI.btn_open_editor);
+        safeText(
+          els.btnTeacher,
+          teacherMode
+            ? UI.teacher_on || "Teacher Mode ON"
+            : UI.teacher_off || "Teacher Mode OFF",
+        );
+        safeText(els.targetTitle, UI.target_title || "Problem");
+        safeText(els.hintsTitle, UI.hints_title || "Hints");
+        safeText(
+          els.solutionTitle,
+          UI.solution_title || "Solution (Teacher mode)",
+        );
+        safeText(els.editorTitle, UI.editor_title || "Python Editor");
+        safeText(els.editorStatus, UI.editor_status || "🙂");
+        safeText(
+          els.editorTip,
+          UI.editor_tip || "Paste starter code into the editor.",
+        );
 
-        safeText(els.targetTitle, UI.target_title);
-        safeText(els.targetSub, UI.target_sub);
-        safeText(els.btnHints, UI.btn_hints);
-        safeText(els.btnSolution, UI.btn_solution);
-        safeText(els.hintsTitle, UI.hints_title);
-        safeText(els.solutionTitle, UI.solution_title);
+        safeText(els.repliesTitle, UI.replies_title || "Replies");
+        safeText(
+          els.publishedLabel,
+          META.published_label || UI.published_label || "Published",
+        );
+        safeText(
+          els.publishedDate,
+          META.published_date || META.last_updated || "",
+        );
 
-        safeText(els.editorTitle, UI.editor_title);
-        safeText(els.editorStatus, UI.editor_status);
-        safeText(els.btnCopyQuestionLink, UI.btn_copy_q_link);
-        safeText(els.editorTip, UI.editor_tip);
+        const b = META.banner || {};
+        if (b && b.enabled && b.image_url) {
+          const link = b.link_url ? String(b.link_url) : "";
+          const imgUrl = String(b.image_url);
+          els.banner.style.display = "block";
+          els.banner.innerHTML = `
+          <a href="${link ? link : "#"}" ${link ? 'target="_blank" rel="noopener noreferrer"' : ""}>
+            <img src="${imgUrl}" alt="Banner" loading="lazy">
+          </a>`;
+          if (!link) {
+            const a = els.banner.querySelector("a");
+            if (a) {
+              a.removeAttribute("href");
+              a.style.cursor = "default";
+            }
+          }
+        } else {
+          els.banner.style.display = "none";
+          els.banner.innerHTML = "";
+        }
+      }
 
-        // Difficulty options
+      function initEditor() {
+        const override = getQueryParam("editor");
+        const editorUrl = override || CONFIG.editor_url;
+        const safeUrl =
+          typeof editorUrl === "string" && editorUrl.startsWith("https://")
+            ? editorUrl
+            : "";
+        els.editorFrame.src = safeUrl;
+        els.btnOpenEditor.href = safeUrl || "#";
+      }
+
+      function populateFilters() {
         clearEl(els.qDifficulty);
         const d0 = document.createElement("option");
         d0.value = "";
         d0.textContent = UI.difficulty_all || "All levels";
         els.qDifficulty.appendChild(d0);
 
-        (UI.difficulty_values || []).forEach((v) => {
+        const values = Array.isArray(UI.difficulty_values)
+          ? UI.difficulty_values
+          : Array.from(
+              new Set(
+                QUESTIONS.map((q) =>
+                  String(q.difficulty || "").toLowerCase(),
+                ).filter(Boolean),
+              ),
+            );
+
+        values.forEach((v) => {
+          const vv = String(v);
           const opt = document.createElement("option");
-          opt.value = String(v);
-          opt.textContent =
-            UI.difficulty_labels && UI.difficulty_labels[v]
-              ? UI.difficulty_labels[v]
-              : String(v);
+          opt.value = vv.toLowerCase();
+          const labels = UI.difficulty_labels || {};
+          opt.textContent = labels[vv] || labels[vv.toLowerCase()] || vv;
           els.qDifficulty.appendChild(opt);
         });
 
-        // Tag options (from questions)
         const tags = new Set();
         QUESTIONS.forEach((q) =>
           (q.tags || []).forEach((t) => tags.add(String(t))),
@@ -1011,36 +1013,11 @@
             opt.textContent = t;
             els.qTag.appendChild(opt);
           });
-
-        // Defaults
-        safeText(els.qTitle, "Select a question");
-        safeText(els.qMeta, "Difficulty • Tags • Estimated time");
-        els.btnCopyStarter.disabled = true;
-        els.btnCopyQuestionLink.disabled = true;
-        els.btnHints.disabled = true;
-        els.btnSolution.disabled = true;
-        els.hintsSection.style.display = "none";
-        els.solutionSection.style.display = "none";
-        clearEl(els.qHints);
-        safeText(els.qSolution, "");
-        els.svgTarget.innerHTML = "";
-      }
-
-      function initEditor() {
-        const override = getQueryParam("editor");
-        const editorUrl = override || CONFIG.editor_url;
-
-        const safeUrl =
-          typeof editorUrl === "string" && editorUrl.startsWith("https://")
-            ? editorUrl
-            : "";
-        els.editorFrame.src = safeUrl;
-        els.btnOpenEditor.href = safeUrl || "#";
       }
 
       function filterQuestions() {
         const s = (els.qSearch.value || "").trim().toLowerCase();
-        const diff = els.qDifficulty.value;
+        const diff = (els.qDifficulty.value || "").toLowerCase();
         const tag = els.qTag.value;
 
         return QUESTIONS.filter((q) => {
@@ -1064,7 +1041,7 @@
           const div = document.createElement("div");
           div.style.padding = "10px";
           div.style.color = "var(--muted)";
-          div.textContent = "No questions match.";
+          div.textContent = UI.no_match || "No questions match.";
           els.qList.appendChild(div);
           return;
         }
@@ -1116,12 +1093,125 @@
       function setQuestionButtons(q) {
         els.btnCopyStarter.disabled = !q;
         els.btnCopyQuestionLink.disabled = !q;
+        els.btnSubmitReply.disabled = !q;
         els.btnHints.disabled = !(q && q.hints && q.hints.length);
         els.btnSolution.disabled = !(
           q &&
           q.solution_code &&
           String(q.solution_code).trim().length
         );
+      }
+
+      function renderReplies() {
+        const qid = activeId;
+        if (!qid) {
+          els.repliesList.textContent = UI.replies_empty || "No replies yet.";
+          return;
+        }
+
+        const list = REPLIES.filter(
+          (r) => String(r.q_id || "") === String(qid),
+        ).sort((a, b) =>
+          String(a.created_at || "").localeCompare(String(b.created_at || "")),
+        );
+
+        clearEl(els.repliesList);
+
+        if (!list.length) {
+          els.repliesList.textContent = UI.replies_empty || "No replies yet.";
+          return;
+        }
+
+        list.forEach((r) => {
+          const box = document.createElement("div");
+          box.className = "reply";
+
+          const head = document.createElement("div");
+          head.className = "reply-head";
+
+          const left = document.createElement("div");
+          left.innerHTML = `<span class="reply-student"></span>`;
+
+          const student = left.querySelector(".reply-student");
+          student.textContent = String(r.student || "Student");
+
+          const right = document.createElement("div");
+          right.textContent = String(r.created_at || "");
+
+          head.appendChild(left);
+          head.appendChild(right);
+
+          const msg = document.createElement("div");
+          msg.className = "reply-msg";
+          msg.textContent = String(r.message || "");
+
+          const codeWrap = document.createElement("div");
+          codeWrap.className = "reply-code";
+          const pre = document.createElement("pre");
+          pre.className = "codeblock";
+          // pre.textContent = String(r.code || "").trim();
+          pre.innerHTML = `<a class=\"btn pp-active\" target=\"saturday-question\" href=\"${r.code}\">Answer</a>`;
+          // pre.innerHTML = `${r.code}`;
+          codeWrap.appendChild(pre);
+
+          const teacherOnly = !!UI.replies_code_teacher_only;
+          const hasCode = String(r.code || "").trim().length > 0;
+
+          if (hasCode) {
+            if (!teacherOnly) {
+              codeWrap.style.display = "block";
+            } else {
+              codeWrap.style.display = teacherMode ? "block" : "none";
+            }
+          } else {
+            codeWrap.style.display = "none";
+          }
+
+          box.appendChild(head);
+          box.appendChild(msg);
+          box.appendChild(codeWrap);
+
+          els.repliesList.appendChild(box);
+        });
+      }
+
+      // ✅ MAIN FIX: prompt + examples + svg are rendered here
+      function renderProblem(q) {
+        const prompt = String(q.prompt || "").trim();
+        const examples = Array.isArray(q.examples) ? q.examples : [];
+
+        let html = "";
+        if (prompt) {
+          html += `<h3>Question</h3>`;
+          html += `<p style="white-space:pre-wrap;margin-top:0;">${escapeHTML(prompt)}</p>`;
+        } else {
+          html += `<div class="muted">No prompt found for this question.</div>`;
+        }
+
+        if (examples.length) {
+          html += `<h3 style="margin-top:12px;">Examples</h3>`;
+          html += `<ul>`;
+          for (const ex of examples) {
+            if (
+              ex &&
+              typeof ex === "object" &&
+              ("input" in ex || "output" in ex)
+            ) {
+              html += `<li><b>Input:</b> ${escapeHTML(ex.input ?? "")}<br><b>Output:</b> ${escapeHTML(ex.output ?? "")}</li>`;
+            } else {
+              html += `<li>${escapeHTML(String(ex))}</li>`;
+            }
+          }
+          html += `</ul>`;
+        }
+
+        els.problemBox.innerHTML = html;
+
+        // SVG
+        const svg = String(q.svg_html || "").trim();
+        els.svgTarget.innerHTML = svg
+          ? svg
+          : `<div class="muted">No SVG provided for this question.</div>`;
       }
 
       function selectQuestion(id) {
@@ -1133,19 +1223,17 @@
         renderList();
 
         safeText(els.qTitle, q.title || q.id);
-        safeText(
-          els.qMeta,
-          `${String(q.difficulty || "level").toUpperCase()} • ${(q.tags || []).join(", ") || "no tags"} • ${q.estimated_minutes ? q.estimated_minutes + " min" : "time n/a"}`,
-        );
+        const diff = String(q.difficulty || "level").toUpperCase();
+        const tags = (q.tags || []).join(", ") || "no tags";
+        const mins = q.estimated_minutes
+          ? q.estimated_minutes + " min"
+          : "time n/a";
+        safeText(els.qMeta, `${diff} • ${tags} • ${mins}`);
 
-        const mat = getMatrixForQuestion(q);
-        els.svgTarget.innerHTML = makeGridSVG(mat, {
-          cell: 64,
-          pad: 14,
-          radius: 14,
-        });
+        // ✅ Render problem statement + examples + svg
+        renderProblem(q);
 
-        // hints (text only)
+        // Hints
         clearEl(els.qHints);
         (q.hints || []).forEach((h) => {
           const li = document.createElement("li");
@@ -1153,23 +1241,84 @@
           els.qHints.appendChild(li);
         });
 
-        // solution (text only)
+        // Solution
         els.qSolution.textContent = String(q.solution_code || "").trim();
 
         els.hintsSection.style.display = "none";
         els.solutionSection.style.display = "none";
 
         setQuestionButtons(q);
+        renderReplies();
         toast("Loaded: " + (q.title || q.id));
       }
 
       function toggleTeacherMode() {
-        teacherMode = !teacherMode;
+        teacherMode =true;// !teacherMode;
         els.btnTeacher.textContent = teacherMode
-          ? UI.btn_teacher_on || "Teacher: ON"
-          : UI.btn_teacher_off || "Teacher";
+          ? UI.teacher_on || "Teacher Mode ON"
+          : UI.teacher_off || "Teacher Mode OFF";
+
         if (!teacherMode) els.solutionSection.style.display = "none";
+        renderReplies();
         toast(teacherMode ? "Teacher mode ON" : "Teacher mode OFF");
+      }
+
+      async function loadReplies() {
+        try {
+          const rData = await fetchJSON(REPLIES_URL);
+          REPLIES = Array.isArray(rData.replies) ? rData.replies : [];
+          renderReplies();
+        } catch (err) {
+          console.error(err);
+          REPLIES = [];
+          renderReplies();
+        }
+      }
+
+      async function loadAll() {
+        try {
+          safeText(els.brandSub, "Loading questions.json…");
+          const qData = await fetchJSON(QUESTIONS_URL);
+
+          META = qData.meta || {};
+          UI = qData.ui || {};
+          CONFIG = qData.config || { editor_url: "" };
+          QUESTIONS = normalizeQuestions(qData.questions || []);
+
+          applyMetaUI();
+          initEditor();
+          populateFilters();
+          renderList();
+
+          await loadReplies();
+
+          const fromUrl = getQueryParam("q");
+          if (fromUrl && QUESTIONS.some((q) => q.id === fromUrl)) {
+            selectQuestion(fromUrl);
+          } else if (QUESTIONS[0]) {
+            selectQuestion(QUESTIONS[0].id);
+          } else {
+            setQuestionButtons(null);
+            safeText(
+              els.brandSub,
+              UI.no_questions || "No questions found in questions.json",
+            );
+            els.problemBox.innerHTML = `<div class="muted">No questions.</div>`;
+            els.svgTarget.innerHTML = "";
+          }
+
+          safeText(
+            els.editorTip,
+            UI.editor_tip || "Paste starter code into the editor.",
+          );
+        } catch (err) {
+          console.error(err);
+          safeText(els.brandSub, "Failed to load external JSON.");
+          els.problemBox.innerHTML = `<div class="muted">Load error: check questions.json path</div>`;
+          els.svgTarget.innerHTML = "";
+          els.repliesList.textContent = "—";
+          toast("Load error: check questions.json path");
+        }
       }
 
       // Events
@@ -1209,27 +1358,33 @@
         toast("Question link copied!");
       });
 
-      // Boot
-      (function boot() {
-        const data = readAppJSON();
-        META = data.meta || {};
-        UI = data.ui || {};
-        CONFIG = data.config || { editor_url: "" };
-        QUESTIONS = Array.isArray(data.questions) ? data.questions : [];
+      els.btnReloadReplies.addEventListener("click", async () => {
+        await loadReplies();
+        toast("Replies reloaded");
+      });
 
-        setupFromJSON();
-        initEditor();
-        renderList();
+      els.btnSubmitReply.addEventListener("click", async () => {
+        if (!activeId) return;
 
-        const fromUrl = getQueryParam("q");
-        if (fromUrl && QUESTIONS.some((q) => q.id === fromUrl)) {
-          selectQuestion(fromUrl);
-        } else if (QUESTIONS[0]) {
-          selectQuestion(QUESTIONS[0].id);
-        } else {
-          setQuestionButtons(null);
-        }
-      })();
+        const now = new Date();
+        const pad2 = (n) => String(n).padStart(2, "0");
+        const stamp = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())} ${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
+
+        const skel = {
+          id: "r" + String(Math.random()).slice(2, 6),
+          q_id: activeId,
+          student: prompt("Student name? (optional)", "") || "",
+          message: prompt("Message? (optional)", "") || "",
+          code: prompt("Code? (optional)", "") || "",
+          created_at: stamp,
+        };
+
+        const payload = JSON.stringify(skel, null, 2);
+        await copyText(payload);
+        toast((UI.btn_submit_reply || "Submit reply") + ": copied JSON");
+      });
+
+      loadAll();
     </script>
   </body>
 </html>
