@@ -536,7 +536,12 @@
         </div>
         <div class="actions">
           <div class="date-pill" id="todayDate">—</div>
-          <button style="display: none;" class="btn ghost" id="btnTeacher" type="button">
+          <button
+            style="display: none"
+            class="btn ghost"
+            id="btnTeacher"
+            type="button"
+          >
             🙂
           </button>
           <button class="btn" id="btnShare" type="button">Share</button>
@@ -793,8 +798,30 @@
         btnSubmitReply: $("#btnSubmitReply"),
       };
 
-      const QUESTIONS_URL = "./questions.json";
-      const REPLIES_URL = "./replies.json";
+      function getDataURL(paramName, fallback) {
+        const v = (getQueryParam(paramName) || "").trim();
+        if (!v) return fallback;
+
+        // allow absolute https OR same-origin relative
+        try {
+          const u = new URL(v, location.href);
+
+          // block non-http(s) protocols
+          if (u.protocol !== "https:" && u.protocol !== "http:")
+            return fallback;
+
+          // (optional) allow only .json files
+          if (!u.pathname.toLowerCase().endsWith(".json")) return fallback;
+
+          // return original string if it was relative, else absolute
+          return u.href;
+        } catch {
+          return fallback;
+        }
+      }
+
+      const QUESTIONS_URL = getDataURL("questions", "./questions.json");
+      const REPLIES_URL = getDataURL("replies", "./replies.json");
 
       let QUESTIONS = [];
       let REPLIES = [];
@@ -1253,7 +1280,7 @@
       }
 
       function toggleTeacherMode() {
-        teacherMode =true;// !teacherMode;
+        teacherMode = true; // !teacherMode;
         els.btnTeacher.textContent = teacherMode
           ? UI.teacher_on || "Teacher Mode ON"
           : UI.teacher_off || "Teacher Mode OFF";
