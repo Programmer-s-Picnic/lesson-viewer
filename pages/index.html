@@ -371,6 +371,12 @@
         );
         position: relative;
       }
+      .thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
 
       .pBody {
         padding: 12px;
@@ -887,6 +893,39 @@
         }
       }
 
+      /* HTML mini toggle group */
+      .htmlMini {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .seg {
+        display: flex;
+        gap: 8px;
+        padding: 6px;
+        border-radius: 999px;
+        border: 1px solid rgba(31, 35, 40, 0.12);
+        background: rgba(255, 255, 255, 0.75);
+      }
+      .segBtn {
+        border: 1px solid transparent;
+        background: rgba(255, 255, 255, 0.85);
+        color: var(--ink);
+        border-radius: 999px;
+        padding: 8px 12px;
+        font-weight: 1000;
+        font-size: 12px;
+        cursor: pointer;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .segBtn.on {
+        background: rgba(255, 159, 28, 0.22);
+        border-color: rgba(217, 119, 6, 0.28);
+        box-shadow: 0 10px 22px rgba(255, 159, 28, 0.12);
+      }
+
       /* Floating Open Lab Button */
       .fabLab {
         position: fixed;
@@ -1046,7 +1085,7 @@
             ></div>
           </div>
 
-          <!-- VOICE CONTROLS (ADDED) -->
+          <!-- VOICE CONTROLS -->
           <button
             class="voiceBtn"
             id="btnVoiceGlobal"
@@ -1291,8 +1330,8 @@
           <div>
             <h2>🧪 Practice Lab — Embedded Editors</h2>
             <p>
-              Switch tabs for Python, JavaScript, SQL, HTML Preview and MongoDB.
-              Use “Open Fullscreen” any time.
+              Switch tabs for Python, JavaScript, SQL, HTML and MongoDB. Use the
+              HTML toggle for Preview/Editor. Use “Open Fullscreen” any time.
             </p>
           </div>
           <div class="hint">
@@ -1337,7 +1376,7 @@
                 role="tab"
                 aria-selected="false"
               >
-                🧾 HTML Preview
+                🧾 HTML
               </button>
               <button
                 class="tabBtn"
@@ -1348,6 +1387,29 @@
               >
                 🍃 MongoDB
               </button>
+            </div>
+
+            <!-- HTML MINI TOGGLE (Preview/Editor) -->
+            <div class="htmlMini" id="htmlMini" hidden>
+              <span class="hint" style="font-weight: 1000">HTML:</span>
+              <div class="seg" role="group" aria-label="HTML mode">
+                <button
+                  class="segBtn on"
+                  type="button"
+                  id="htmlModePreview"
+                  aria-pressed="true"
+                >
+                  Preview
+                </button>
+                <button
+                  class="segBtn"
+                  type="button"
+                  id="htmlModeEditor"
+                  aria-pressed="false"
+                >
+                  Editor
+                </button>
+              </div>
             </div>
 
             <div class="embedActions">
@@ -1395,6 +1457,7 @@
             src="https://programmer-s-picnic.github.io/lesson-viewer/sql/premium/"
           ></iframe>
 
+          <!-- HTML PREVIEW -->
           <iframe
             id="labHtml"
             class="embedFrame"
@@ -1403,6 +1466,17 @@
             allow="clipboard-read; clipboard-write; fullscreen"
             allowfullscreen
             src="https://www.learnwithchampak.live/2026/01/programmers-picnic-html-preview.html"
+          ></iframe>
+
+          <!-- HTML EDITOR (SAMPLES) -->
+          <iframe
+            id="labHtml2"
+            class="embedFrame"
+            title="HTML Editor (Samples)"
+            loading="lazy"
+            allow="clipboard-read; clipboard-write; fullscreen"
+            allowfullscreen
+            src="https://programmer-s-picnic.github.io/lesson-viewer/samples/html/editor/"
           ></iframe>
 
           <iframe
@@ -1772,7 +1846,11 @@
       // ------------------------- Featured -------------------------
       function isFeaturedPost(p) {
         const labs = (p.labels || [])
-          .map((x) => String(x || "").trim())
+          .map((x) =>
+            String(x || "")
+              .trim()
+              .toLowerCase(),
+          )
           .filter(Boolean);
         if (!labs.length) return false;
 
@@ -1788,11 +1866,7 @@
           )
           .filter(Boolean);
 
-        return labs.some((l) => {
-          const lc = l.toLowerCase();
-          if (lc === "featured") return true;
-          return wanted.includes(lc);
-        });
+        return labs.some((lc) => lc === "featured" || wanted.includes(lc));
       }
 
       function renderFeatured() {
@@ -1934,7 +2008,15 @@
         const q = state.q.trim();
 
         el.innerHTML = `
-        <div class="thumb"><img class="thumb" src="https://blogger.googleusercontent.com/img/a/AVvXsEhlfwIqq3YYxj6LMFr4E7IKN2bYIor-bFpbUXBT3Jthp8PKmRdWozV3hEk2xcj3kPrJ9WBIkXCr4lw5MTAz0AE5b0lPhQ2ReNbCmMOumP4zLTEOb7GY6s4YWcgcCfzltJVmQcgCObeQNRvn_SWPa_2c6cROZUOBHhRJB20PaV-peuA3GTSafM8JxgaYu5M=s257"/></div>
+        <div class="thumb">
+          <img
+            src="https://blogger.googleusercontent.com/img/a/AVvXsEhlfwIqq3YYxj6LMFr4E7IKN2bYIor-bFpbUXBT3Jthp8PKmRdWozV3hEk2xcj3kPrJ9WBIkXCr4lw5MTAz0AE5b0lPhQ2ReNbCmMOumP4zLTEOb7GY6s4YWcgcCfzltJVmQcgCObeQNRvn_SWPa_2c6cROZUOBHhRJB20PaV-peuA3GTSafM8JxgaYu5M=s257"
+            alt=""
+            loading="lazy"
+            decoding="async"
+            referrerpolicy="no-referrer"
+          />
+        </div>
         <div class="pBody">
           <h3 class="pTitle">${highlight(p.title, q)}</h3>
           <div class="meta">
@@ -2709,16 +2791,20 @@
         return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       }
 
+      // Highlight tokens (multi-word)
       function highlight(text, query) {
         const t = String(text ?? "");
         const q = String(query ?? "").trim();
-        if (!q) return escapeHtml(t);
-
         const safe = escapeHtml(t);
-        const qSafe = escapeHtml(q);
-        if (!qSafe) return safe;
+        if (!q) return safe;
 
-        const re = new RegExp(escapeRegExp(qSafe), "ig");
+        const parts = q
+          .split(/\s+/)
+          .map((x) => x.trim())
+          .filter(Boolean);
+        if (!parts.length) return safe;
+
+        const re = new RegExp(parts.map(escapeRegExp).join("|"), "ig");
         return safe.replace(re, (m) => `<mark>${m}</mark>`);
       }
 
@@ -2774,7 +2860,7 @@
       }
 
       // =========================================================
-      // Voice Search + Speech Output (ADDED)
+      // Voice Search + Speech Output
       // =========================================================
       const Voice = (function () {
         const SR =
@@ -2883,6 +2969,17 @@
             toast("Voice search not supported in this browser");
             return;
           }
+
+          // Voice needs HTTPS in most browsers
+          if (
+            location.protocol !== "https:" &&
+            location.hostname !== "localhost"
+          ) {
+            toast("Voice needs HTTPS");
+            stopListening();
+            return;
+          }
+
           if (!rec) initRecognition();
 
           if (listening) {
@@ -2913,9 +3010,9 @@
             if (gqEl) gqEl.value = (finalText + " " + interim).trim();
           };
 
-          rec.onerror = () => {
+          rec.onerror = (e) => {
             stopListening();
-            toast("Voice error");
+            toast("Voice error" + (e && e.error ? `: ${e.error}` : ""));
           };
 
           rec.onend = () => {
@@ -2978,21 +3075,61 @@
         const framePy = document.getElementById("labPy");
         const frameJs = document.getElementById("labJs");
         const frameSql = document.getElementById("labSql");
-        const frameHtml = document.getElementById("labHtml");
+        const frameHtmlPreview = document.getElementById("labHtml"); // preview
+        const frameHtmlEditor = document.getElementById("labHtml2"); // editor
         const frameMongo = document.getElementById("labMongo");
 
         const btnReload = document.getElementById("labReload");
         const btnOpenFull = document.getElementById("labOpenFull");
 
+        // HTML mini toggle controls
+        const htmlMini = document.getElementById("htmlMini");
+        const btnHtmlPrev = document.getElementById("htmlModePreview");
+        const btnHtmlEdit = document.getElementById("htmlModeEditor");
+
         const URLS = {
           py: framePy.getAttribute("src"),
           js: frameJs.getAttribute("src"),
           sql: frameSql.getAttribute("src"),
-          html: frameHtml.getAttribute("src"),
+          htmlPreview: frameHtmlPreview
+            ? frameHtmlPreview.getAttribute("src")
+            : "#",
+          htmlEditor: frameHtmlEditor
+            ? frameHtmlEditor.getAttribute("src")
+            : "#",
           mongo: frameMongo.getAttribute("src"),
         };
 
-        let current = "py";
+        let current = "py"; // py | js | sql | html | mongo
+        let htmlMode = "preview"; // preview | editor
+
+        function setHtmlMode(mode) {
+          htmlMode = mode === "editor" ? "editor" : "preview";
+
+          if (btnHtmlPrev && btnHtmlEdit) {
+            const onPrev = htmlMode === "preview";
+            btnHtmlPrev.classList.toggle("on", onPrev);
+            btnHtmlEdit.classList.toggle("on", !onPrev);
+            btnHtmlPrev.setAttribute("aria-pressed", String(onPrev));
+            btnHtmlEdit.setAttribute("aria-pressed", String(!onPrev));
+          }
+
+          if (frameHtmlPreview)
+            frameHtmlPreview.classList.toggle(
+              "show",
+              current === "html" && htmlMode === "preview",
+            );
+          if (frameHtmlEditor)
+            frameHtmlEditor.classList.toggle(
+              "show",
+              current === "html" && htmlMode === "editor",
+            );
+
+          if (current === "html") {
+            btnOpenFull.href =
+              htmlMode === "preview" ? URLS.htmlPreview : URLS.htmlEditor;
+          }
+        }
 
         function setTab(t) {
           current = t;
@@ -3006,10 +3143,20 @@
           framePy.classList.toggle("show", t === "py");
           frameJs.classList.toggle("show", t === "js");
           frameSql.classList.toggle("show", t === "sql");
-          frameHtml.classList.toggle("show", t === "html");
           frameMongo.classList.toggle("show", t === "mongo");
 
-          btnOpenFull.href = URLS[t] || "#";
+          if (htmlMini) htmlMini.hidden = t !== "html";
+
+          // Hide both HTML frames; setHtmlMode will show the correct one
+          if (frameHtmlPreview)
+            frameHtmlPreview.classList.toggle("show", false);
+          if (frameHtmlEditor) frameHtmlEditor.classList.toggle("show", false);
+
+          if (t === "py") btnOpenFull.href = URLS.py;
+          else if (t === "js") btnOpenFull.href = URLS.js;
+          else if (t === "sql") btnOpenFull.href = URLS.sql;
+          else if (t === "mongo") btnOpenFull.href = URLS.mongo;
+          else if (t === "html") setHtmlMode(htmlMode);
 
           toast(
             t === "py"
@@ -3019,7 +3166,9 @@
                 : t === "sql"
                   ? "SQL editor"
                   : t === "html"
-                    ? "HTML preview"
+                    ? htmlMode === "preview"
+                      ? "HTML preview"
+                      : "HTML editor"
                     : "MongoDB editor",
           );
         }
@@ -3027,6 +3176,20 @@
         tabBtns.forEach((b) => {
           b.addEventListener("click", () => setTab(b.dataset.labtab));
         });
+
+        if (btnHtmlPrev)
+          btnHtmlPrev.addEventListener("click", () => {
+            if (current !== "html") setTab("html");
+            setHtmlMode("preview");
+            toast("HTML preview");
+          });
+
+        if (btnHtmlEdit)
+          btnHtmlEdit.addEventListener("click", () => {
+            if (current !== "html") setTab("html");
+            setHtmlMode("editor");
+            toast("HTML editor");
+          });
 
         btnReload.addEventListener("click", () => {
           const f =
@@ -3036,16 +3199,21 @@
                 ? frameJs
                 : current === "sql"
                   ? frameSql
-                  : current === "html"
-                    ? frameHtml
-                    : frameMongo;
+                  : current === "mongo"
+                    ? frameMongo
+                    : htmlMode === "preview"
+                      ? frameHtmlPreview
+                      : frameHtmlEditor;
 
           const src = f.getAttribute("src");
           f.setAttribute("src", src);
           toast("Reloaded");
         });
 
+        if (htmlMini) htmlMini.hidden = true;
         btnOpenFull.href = URLS[current];
+
+        setHtmlMode(htmlMode);
       }
 
       // ------------------------- Boot -------------------------
