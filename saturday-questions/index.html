@@ -446,17 +446,121 @@
         background: rgba(255, 255, 255, 0.58);
       }
 
+      /* =========================
+         Replies: highlight + collapse + badge + sort + newest
+         ========================= */
       .replies {
         padding: 12px;
         border-top: 1px solid var(--line);
-        background: rgba(255, 255, 255, 0.7);
+        background:
+          radial-gradient(
+            900px 260px at 10% 0%,
+            rgba(255, 159, 28, 0.16),
+            transparent 60%
+          ),
+          rgba(255, 255, 255, 0.78);
+        border-left: 4px solid rgba(255, 159, 28, 0.55);
       }
+      .replies-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .replies-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .replies-right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 159, 28, 0.28);
+        background: rgba(255, 255, 255, 0.85);
+        font-weight: 950;
+        color: #111;
+        white-space: nowrap;
+        box-shadow: 0 8px 18px rgba(255, 159, 28, 0.14);
+      }
+      .mini-select {
+        width: auto;
+        min-width: 140px;
+        padding: 8px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.9);
+        font-family: var(--sans);
+        font-weight: 950;
+        cursor: pointer;
+      }
+      .mini-select:focus {
+        border-color: rgba(255, 159, 28, 0.55);
+        box-shadow: 0 0 0 4px rgba(255, 159, 28, 0.16);
+        outline: none;
+      }
+      .collapse-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .chev {
+        width: 10px;
+        height: 10px;
+        display: inline-block;
+        border-right: 2px solid rgba(31, 35, 40, 0.55);
+        border-bottom: 2px solid rgba(31, 35, 40, 0.55);
+        transform: rotate(45deg);
+        transition: transform 0.15s ease;
+        margin-top: -1px;
+      }
+      .replies.collapsed .chev {
+        transform: rotate(-45deg);
+      }
+      .replies-body {
+        margin-top: 6px;
+      }
+      .replies.collapsed .replies-body {
+        display: none;
+      }
+
       .reply {
         border: 1px solid var(--line);
         border-radius: 16px;
         background: rgba(255, 255, 255, 0.86);
         padding: 10px;
         margin: 10px 0 0;
+      }
+      .reply.newest {
+        border-color: rgba(255, 159, 28, 0.72);
+        box-shadow: 0 0 0 4px rgba(255, 159, 28, 0.14);
+        background:
+          linear-gradient(
+            180deg,
+            rgba(255, 159, 28, 0.12),
+            rgba(255, 255, 255, 0.92)
+          );
+      }
+      .reply.newest .reply-head::after {
+        content: "Newest";
+        margin-left: 8px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 159, 28, 0.35);
+        background: rgba(255, 255, 255, 0.92);
+        color: #111;
+        font-weight: 950;
+        font-size: 11px;
       }
       .reply-head {
         display: flex;
@@ -701,30 +805,58 @@
 
               <div class="small" id="editorTip">Loading…</div>
 
-              <div class="replies">
-                <div
-                  style="
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    gap: 10px;
-                  "
-                >
-                  <div
-                    class="card-title"
-                    id="repliesTitle"
-                    style="font-size: 14px"
-                  >
-                    Replies
+              <!-- ✅ Replies upgraded -->
+              <div class="replies" id="repliesBox">
+                <div class="replies-head">
+                  <div class="replies-left">
+                    <div
+                      class="card-title"
+                      id="repliesTitle"
+                      style="font-size: 14px"
+                    >
+                      Replies
+                    </div>
+
+                    <!-- 💬 badge -->
+                    <span class="badge" id="repliesBadge">💬 0 Replies</span>
                   </div>
-                  <button class="chip" id="btnReloadReplies" type="button">
-                    Reload
-                  </button>
+
+                  <div class="replies-right">
+                    <!-- Sort -->
+                    <select
+                      id="repliesSort"
+                      class="mini-select"
+                      aria-label="Sort replies"
+                      title="Sort replies"
+                    >
+                      <option value="newest">Newest</option>
+                      <option value="oldest">Oldest</option>
+                    </select>
+
+                    <!-- Collapse -->
+                    <button
+                      class="chip collapse-btn"
+                      id="btnToggleReplies"
+                      type="button"
+                      title="Collapse replies"
+                    >
+                      <span class="chev" aria-hidden="true"></span>
+                      <span id="repliesToggleText">Collapse</span>
+                    </button>
+
+                    <!-- Reload -->
+                    <button class="chip" id="btnReloadReplies" type="button">
+                      Reload
+                    </button>
+                  </div>
                 </div>
-                <div
-                  id="repliesList"
-                  style="margin-top: 6px; color: var(--muted); font-size: 12px"
-                ></div>
+
+                <div class="replies-body">
+                  <div
+                    id="repliesList"
+                    style="margin-top: 6px; color: var(--muted); font-size: 12px"
+                  ></div>
+                </div>
               </div>
 
               <div class="footer">
@@ -792,10 +924,18 @@
         editorFrame: $("#ppEditorFrame"),
         toast: $("#toast"),
 
+        // Replies UI
+        repliesBox: $("#repliesBox"),
         repliesTitle: $("#repliesTitle"),
+        repliesBadge: $("#repliesBadge"),
         repliesList: $("#repliesList"),
+        repliesSort: $("#repliesSort"),
         btnReloadReplies: $("#btnReloadReplies"),
+        btnToggleReplies: $("#btnToggleReplies"),
+        repliesToggleText: $("#repliesToggleText"),
+
         btnSubmitReply: $("#btnSubmitReply"),
+        btnCopyQuestionLink2: $("#btnCopyQuestionLink"),
       };
 
       function getDataURL(paramName, fallback) {
@@ -830,6 +970,9 @@
       let META = {};
       let activeId = null;
       let teacherMode = true;
+
+      const K_REPLIES_COLLAPSED = "pp_sq_replies_collapsed";
+      const K_REPLIES_SORT = "pp_sq_replies_sort";
 
       function toast(msg) {
         els.toast.textContent = String(msg || "");
@@ -916,6 +1059,23 @@
           .filter((q) => q.id);
       }
 
+      function applyRepliesPrefs() {
+        // sort pref
+        const savedSort = (localStorage.getItem(K_REPLIES_SORT) || "").trim();
+        if (savedSort === "oldest" || savedSort === "newest") {
+          els.repliesSort.value = savedSort;
+        }
+
+        // collapse pref
+        const collapsed = localStorage.getItem(K_REPLIES_COLLAPSED) === "1";
+        els.repliesBox.classList.toggle("collapsed", collapsed);
+        safeText(
+          els.repliesToggleText,
+          collapsed ? "Expand" : "Collapse"
+        );
+        els.btnToggleReplies.title = collapsed ? "Expand replies" : "Collapse replies";
+      }
+
       function applyMetaUI() {
         document.title = META.site_title
           ? String(META.site_title)
@@ -931,7 +1091,7 @@
 
         safeText(els.searchLabel, UI.search_label || "Search");
         els.qSearch.placeholder = String(
-          UI.search_placeholder || "Title or tags…",
+          UI.search_placeholder || "Title or tags…"
         );
         els.qSearch.value = "";
 
@@ -939,29 +1099,30 @@
           els.btnTeacher,
           teacherMode
             ? UI.teacher_on || "Teacher Mode ON"
-            : UI.teacher_off || "Teacher Mode OFF",
+            : UI.teacher_off || "Teacher Mode OFF"
         );
         safeText(els.targetTitle, UI.target_title || "Problem");
         safeText(els.hintsTitle, UI.hints_title || "Hints");
         safeText(
           els.solutionTitle,
-          UI.solution_title || "Solution (Teacher mode)",
+          UI.solution_title || "Solution (Teacher mode)"
         );
         safeText(els.editorTitle, UI.editor_title || "Python Editor");
         safeText(els.editorStatus, UI.editor_status || "🙂");
         safeText(
           els.editorTip,
-          UI.editor_tip || "Paste starter code into the editor.",
+          UI.editor_tip || "Paste starter code into the editor."
         );
 
         safeText(els.repliesTitle, UI.replies_title || "Replies");
+
         safeText(
           els.publishedLabel,
-          META.published_label || UI.published_label || "Published",
+          META.published_label || UI.published_label || "Published"
         );
         safeText(
           els.publishedDate,
-          META.published_date || META.last_updated || "",
+          META.published_date || META.last_updated || ""
         );
 
         const b = META.banner || {};
@@ -970,7 +1131,9 @@
           const imgUrl = String(b.image_url);
           els.banner.style.display = "block";
           els.banner.innerHTML = `
-          <a href="${link ? link : "#"}" ${link ? 'target="_blank" rel="noopener noreferrer"' : ""}>
+          <a href="${link ? link : "#"}" ${
+            link ? 'target="_blank" rel="noopener noreferrer"' : ""
+          }>
             <img src="${imgUrl}" alt="Banner" loading="lazy">
           </a>`;
           if (!link) {
@@ -1008,10 +1171,10 @@
           ? UI.difficulty_values
           : Array.from(
               new Set(
-                QUESTIONS.map((q) =>
-                  String(q.difficulty || "").toLowerCase(),
-                ).filter(Boolean),
-              ),
+                QUESTIONS
+                  .map((q) => String(q.difficulty || "").toLowerCase())
+                  .filter(Boolean)
+              )
             );
 
         values.forEach((v) => {
@@ -1025,7 +1188,7 @@
 
         const tags = new Set();
         QUESTIONS.forEach((q) =>
-          (q.tags || []).forEach((t) => tags.add(String(t))),
+          (q.tags || []).forEach((t) => tags.add(String(t)))
         );
         clearEl(els.qTag);
         const t0 = document.createElement("option");
@@ -1129,29 +1292,62 @@
         );
       }
 
+      function formatRepliesBadge(count) {
+        const n = Number(count || 0);
+        const label = n === 1 ? "Reply" : "Replies";
+        return `💬 ${n} ${label}`;
+      }
+
+      function getRepliesForActive() {
+        const qid = activeId;
+        if (!qid) return [];
+        return REPLIES.filter(
+          (r) => String(r.q_id || "") === String(qid)
+        );
+      }
+
       function renderReplies() {
         const qid = activeId;
-        if (!qid) {
-          els.repliesList.textContent = UI.replies_empty || "No replies yet.";
-          return;
-        }
-
-        const list = REPLIES.filter(
-          (r) => String(r.q_id || "") === String(qid),
-        ).sort((a, b) =>
-          String(a.created_at || "").localeCompare(String(b.created_at || "")),
-        );
-
         clearEl(els.repliesList);
 
-        if (!list.length) {
+        if (!qid) {
+          safeText(els.repliesBadge, formatRepliesBadge(0));
           els.repliesList.textContent = UI.replies_empty || "No replies yet.";
           return;
         }
+
+        const raw = getRepliesForActive();
+
+        safeText(els.repliesBadge, formatRepliesBadge(raw.length));
+
+        if (!raw.length) {
+          els.repliesList.textContent = UI.replies_empty || "No replies yet.";
+          return;
+        }
+
+        // newest = max created_at (works with "YYYY-MM-DD HH:MM")
+        let newestKey = "";
+        raw.forEach((r) => {
+          const k = String(r.created_at || "");
+          if (k && k.localeCompare(newestKey) > 0) newestKey = k;
+        });
+
+        const sortMode = els.repliesSort.value || "newest";
+        const list = raw
+          .slice()
+          .sort((a, b) => {
+            const aa = String(a.created_at || "");
+            const bb = String(b.created_at || "");
+            // oldest = ascending, newest = descending
+            return sortMode === "oldest"
+              ? aa.localeCompare(bb)
+              : bb.localeCompare(aa);
+          });
 
         list.forEach((r) => {
           const box = document.createElement("div");
-          box.className = "reply";
+          const isNewest = newestKey && String(r.created_at || "") === newestKey;
+          box.className = "reply" + (isNewest ? " newest" : "");
 
           const head = document.createElement("div");
           head.className = "reply-head";
@@ -1176,13 +1372,20 @@
           codeWrap.className = "reply-code";
           const pre = document.createElement("pre");
           pre.className = "codeblock";
-          // pre.textContent = String(r.code || "").trim();
-          pre.innerHTML = `<a class=\"btn pp-active\" target=\"saturday-question\" href=\"${r.code}\">Answer</a>`;
-          // pre.innerHTML = `${r.code}`;
+
+          // Your current behavior: show answer as link button
+          const codeUrl = String(r.code || "").trim();
+          if (codeUrl) {
+            pre.innerHTML = `<a class="btn pp-active" target="saturday-question" rel="noopener noreferrer" href="${escapeHTML(
+              codeUrl
+            )}">Answer</a>`;
+          } else {
+            pre.textContent = "";
+          }
           codeWrap.appendChild(pre);
 
           const teacherOnly = !!UI.replies_code_teacher_only;
-          const hasCode = String(r.code || "").trim().length > 0;
+          const hasCode = codeUrl.length > 0;
 
           if (hasCode) {
             if (!teacherOnly) {
@@ -1210,7 +1413,9 @@
         let html = "";
         if (prompt) {
           html += `<h3>Question</h3>`;
-          html += `<p style="white-space:pre-wrap;margin-top:0;">${escapeHTML(prompt)}</p>`;
+          html += `<p style="white-space:pre-wrap;margin-top:0;">${escapeHTML(
+            prompt
+          )}</p>`;
         } else {
           html += `<div class="muted">No prompt found for this question.</div>`;
         }
@@ -1224,7 +1429,9 @@
               typeof ex === "object" &&
               ("input" in ex || "output" in ex)
             ) {
-              html += `<li><b>Input:</b> ${escapeHTML(ex.input ?? "")}<br><b>Output:</b> ${escapeHTML(ex.output ?? "")}</li>`;
+              html += `<li><b>Input:</b> ${escapeHTML(
+                ex.input ?? ""
+              )}<br><b>Output:</b> ${escapeHTML(ex.output ?? "")}</li>`;
             } else {
               html += `<li>${escapeHTML(String(ex))}</li>`;
             }
@@ -1252,9 +1459,7 @@
         safeText(els.qTitle, q.title || q.id);
         const diff = String(q.difficulty || "level").toUpperCase();
         const tags = (q.tags || []).join(", ") || "no tags";
-        const mins = q.estimated_minutes
-          ? q.estimated_minutes + " min"
-          : "time n/a";
+        const mins = q.estimated_minutes ? q.estimated_minutes + " min" : "time n/a";
         safeText(els.qMeta, `${diff} • ${tags} • ${mins}`);
 
         // ✅ Render problem statement + examples + svg
@@ -1290,6 +1495,14 @@
         toast(teacherMode ? "Teacher mode ON" : "Teacher mode OFF");
       }
 
+      function toggleRepliesCollapse() {
+        const nowCollapsed = !els.repliesBox.classList.contains("collapsed");
+        els.repliesBox.classList.toggle("collapsed", nowCollapsed);
+        localStorage.setItem(K_REPLIES_COLLAPSED, nowCollapsed ? "1" : "0");
+        safeText(els.repliesToggleText, nowCollapsed ? "Expand" : "Collapse");
+        els.btnToggleReplies.title = nowCollapsed ? "Expand replies" : "Collapse replies";
+      }
+
       async function loadReplies() {
         try {
           const rData = await fetchJSON(REPLIES_URL);
@@ -1317,6 +1530,8 @@
           populateFilters();
           renderList();
 
+          applyRepliesPrefs();
+
           await loadReplies();
 
           const fromUrl = getQueryParam("q");
@@ -1328,7 +1543,7 @@
             setQuestionButtons(null);
             safeText(
               els.brandSub,
-              UI.no_questions || "No questions found in questions.json",
+              UI.no_questions || "No questions found in questions.json"
             );
             els.problemBox.innerHTML = `<div class="muted">No questions.</div>`;
             els.svgTarget.innerHTML = "";
@@ -1336,7 +1551,7 @@
 
           safeText(
             els.editorTip,
-            UI.editor_tip || "Paste starter code into the editor.",
+            UI.editor_tip || "Paste starter code into the editor."
           );
         } catch (err) {
           console.error(err);
@@ -1344,6 +1559,7 @@
           els.problemBox.innerHTML = `<div class="muted">Load error: check questions.json path</div>`;
           els.svgTarget.innerHTML = "";
           els.repliesList.textContent = "—";
+          safeText(els.repliesBadge, formatRepliesBadge(0));
           toast("Load error: check questions.json path");
         }
       }
@@ -1385,6 +1601,13 @@
         toast("Question link copied!");
       });
 
+      els.repliesSort.addEventListener("change", () => {
+        localStorage.setItem(K_REPLIES_SORT, els.repliesSort.value || "newest");
+        renderReplies();
+      });
+
+      els.btnToggleReplies.addEventListener("click", toggleRepliesCollapse);
+
       els.btnReloadReplies.addEventListener("click", async () => {
         await loadReplies();
         toast("Replies reloaded");
@@ -1395,7 +1618,9 @@
 
         const now = new Date();
         const pad2 = (n) => String(n).padStart(2, "0");
-        const stamp = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())} ${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
+        const stamp = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(
+          now.getDate()
+        )} ${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
 
         const skel = {
           id: "r" + String(Math.random()).slice(2, 6),
