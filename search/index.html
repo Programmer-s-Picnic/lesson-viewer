@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Programmer’s Picnic — Chat Search</title>
+    <meta name="theme-color" content="#d97706" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      :root {
+        --bg: #fff7e6;
+        --panel: rgba(255, 255, 255, 0.85);
+        --ink: #1f2328;
+        --muted: #5b6570;
+        --line: rgba(31, 35, 40, 0.12);
+        --saffron: #ff9f1c;
+        --saffron2: #ffb74d;
+        --shadow: 0 14px 34px rgba(31, 35, 40, 0.12);
+        --radius: 18px;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: "DM Sans", sans-serif;
+        background:
+          radial-gradient(
+            1000px 600px at 10% 0%,
+            rgba(255, 159, 28, 0.18),
+            transparent 60%
+          ),
+          linear-gradient(180deg, #fffaf0, var(--bg));
+      }
+      .wrap {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+      }
+      .chat {
+        flex: 1;
+        overflow: auto;
+        background: var(--panel);
+        border-radius: 24px;
+        padding: 16px;
+        box-shadow: var(--shadow);
+      }
+      .row {
+        display: flex;
+        margin: 10px 0;
+      }
+      .row.user {
+        justify-content: flex-end;
+      }
+      .row.bot {
+        justify-content: flex-start;
+      }
+      .bubble {
+        max-width: 75%;
+        padding: 12px 14px;
+        border-radius: 18px;
+        background: white;
+        border: 1px solid var(--line);
+      }
+      .user .bubble {
+        background: linear-gradient(
+          180deg,
+          rgba(255, 159, 28, 0.25),
+          rgba(255, 183, 77, 0.2)
+        );
+      }
+      .meta {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 6px;
+        font-weight: 800;
+      }
+      .inputbar {
+        display: flex;
+        gap: 10px;
+        margin-top: 12px;
+      }
+      input {
+        flex: 1;
+        padding: 12px;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        font-weight: 800;
+      }
+      button {
+        padding: 10px 14px;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        font-weight: 800;
+        cursor: pointer;
+      }
+      .primary {
+        background: linear-gradient(180deg, var(--saffron), var(--saffron2));
+      }
+      .small {
+        font-size: 12px;
+      }
+      .controls {
+        display: flex;
+        gap: 10px;
+        margin-top: 8px;
+        align-items: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="chat" id="chat"></div>
+
+      <div class="controls">
+        <label><input type="checkbox" id="semToggle" /> Semantic</label>
+        <label>
+          <input type="radio" name="lang" value="en-IN" checked /> EN
+        </label>
+        <label> <input type="radio" name="lang" value="hi-IN" /> HI </label>
+        <button id="voiceBtn">🎙 Voice</button>
+      </div>
+
+      <div class="inputbar">
+        <input id="q" placeholder="Ask something..." />
+        <button id="send" class="primary">Send</button>
+      </div>
+    </div>
+
+    <script>
+      /* ===============================
+   LOAD LOCAL JSON FILES
+   =============================== */
+      let INDEX = [];
+      let EMB = [];
+      let EMB_MAP = new Map();
+
+      async function loadData() {
+        const idx = await fetch("./index.json").then((r) => r.json());
+        INDEX = idx.items || [];
+
+        const emb = await fetch("./embeddings.json").then((r) => r.json());
+        EMB = emb.vectors || [];
+        const ids = emb.ids || [];
+
+        for (let i = 0; i < ids.length; i++) {
+          EMB_MAP.set(ids[i], EMB[i]);
+        }
+
+        bot("Index loaded: " + INDEX.length + " posts.");
+      }
+
+      /* ===============================
+   CHAT UI
+   =============================== */
+      const chat = document.getElementById("chat");
+
+      function bot(html) {
+        const row = document.createElement("div");
+        row.className = "row bot";
+        row.innerHTML = `<div class="bubble">${html}</div>`;
+        chat.appendChild(row);
+        chat.scrollTop = chat.scrollHeight;
+      }
+      function user(text) {
+        const row = document.createElement("div");
+        row.className = "row user";
+        row.innerHTML = `<div class="bubble">${escape(text)}</div>`;
+        chat.appendChild(row);
+        chat.scrollTop = chat.scrollHeight;
+      }
+      function escape(s) {
+        return s.replace(
+          /[&<>"]/g,
+          (c) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+            })[c],
+        );
+      }
+
+      /* ===============================
+   KEYWORD SEARCH
+   =============================== */
+      function keywordSearch(q) {
+        const tokens = q.toLowerCase().split(/\s+/);
+        const scored = [];
+        for (const item of INDEX) {
+          const text = (
+            item.title +
+            " " +
+            item.text +
+            " " +
+            item.labels.join(" ")
+          ).toLowerCase();
+          let score = 0;
+          for (const t of tokens) {
+            if (text.includes(t)) score += 1;
+          }
+          if (score > 0) scored.push({ item, score });
+        }
+        scored.sort((a, b) => b.score - a.score);
+        return scored.map((s) => s.item).slice(0, 8);
+      }
+
+      /* ===============================
+   SEMANTIC SEARCH
+   =============================== */
+      function cosine(a, b) {
+        let s = 0;
+        for (let i = 0; i < a.length; i++) s += a[i] * b[i];
+        return s;
+      }
+
+      function semanticSearch(q) {
+        if (!EMB.length) return [];
+
+        // naive query embedding using average of matching post vectors
+        // (since embeddings.json already exists, we avoid model download)
+        // Better approach: precompute query embeddings server-side.
+        const base = keywordSearch(q);
+        if (!base.length) return [];
+
+        const queryVec = EMB_MAP.get(base[0].id);
+        if (!queryVec) return [];
+
+        const scored = [];
+        for (const item of INDEX) {
+          const vec = EMB_MAP.get(item.id);
+          if (!vec) continue;
+          const score = cosine(queryVec, vec);
+          scored.push({ item, score });
+        }
+        scored.sort((a, b) => b.score - a.score);
+        return scored.map((s) => s.item).slice(0, 8);
+      }
+
+      /* ===============================
+   RUN SEARCH
+   =============================== */
+      function run() {
+        const q = document.getElementById("q").value.trim();
+        if (!q) return;
+        user(q);
+
+        const useSem = document.getElementById("semToggle").checked;
+        const results = useSem ? semanticSearch(q) : keywordSearch(q);
+
+        if (!results.length) {
+          bot("No results found.");
+          return;
+        }
+
+        let html = "";
+        results.forEach((r) => {
+          html += `<div>
+      <b>${escape(r.title)}</b><br/>
+      <span class="small">${escape(r.snippet)}</span><br/>
+      <a href="${r.link}" target="_blank">Open ↗</a>
+      <div class="meta">${r.labels.join(", ")}</div>
+    </div><hr/>`;
+        });
+        bot(html);
+      }
+
+      /* ===============================
+   VOICE SUPPORT (EN + HI)
+   =============================== */
+      function startVoice() {
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SR) {
+          bot("Voice not supported in this browser.");
+          return;
+        }
+
+        const rec = new SR();
+        rec.lang = document.querySelector("input[name=lang]:checked").value;
+        rec.onresult = (e) => {
+          const text = e.results[0][0].transcript;
+          document.getElementById("q").value = text;
+        };
+        rec.start();
+      }
+
+      document.getElementById("send").onclick = run;
+      document.getElementById("voiceBtn").onclick = startVoice;
+      document.getElementById("q").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") run();
+      });
+
+      /* ===============================
+   INIT
+   =============================== */
+      loadData();
+      bot("Namaste 👋 Ask me anything from Programmer’s Picnic.");
+    </script>
+  </body>
+</html>
