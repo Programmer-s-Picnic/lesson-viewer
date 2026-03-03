@@ -1641,5 +1641,74 @@
 
       loadAll();
     </script>
-  </body>
+  
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+
+  function defaultBannerSVG(meta){
+    const title = meta.site_title || "Saturday Questions";
+    const subtitle = meta.subtitle || "";
+    const date = meta.today_date || meta.published_date || "";
+
+    return `
+    <svg viewBox="0 0 1200 280" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Banner">
+      <defs>
+        <linearGradient id="bgG" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#ff9f1c" stop-opacity="0.45"/>
+          <stop offset="1" stop-color="#ffb74d" stop-opacity="0.22"/>
+        </linearGradient>
+      </defs>
+      <rect x="0" y="0" width="1200" height="280" rx="28" fill="rgba(255,255,255,0.62)"/>
+      <rect x="14" y="14" width="1172" height="252" rx="24" fill="url(#bgG)" stroke="rgba(31,35,40,0.16)"/>
+      <text x="80" y="120" font-size="42" font-weight="900" fill="#1f2328" font-family="system-ui, Arial">${title}</text>
+      <text x="80" y="165" font-size="20" font-weight="700" fill="#1f2328" opacity="0.75" font-family="system-ui, Arial">${subtitle}</text>
+      <text x="80" y="210" font-size="16" font-weight="800" fill="#1f2328" opacity="0.75" font-family="system-ui, Arial">Today: ${date}</text>
+    </svg>`;
+  }
+
+  // Wait until questions.json has been loaded by existing app logic
+  setTimeout(function(){
+    try{
+      if(typeof META === "undefined") return;
+      const bannerEl = document.getElementById("banner");
+      if(!bannerEl) return;
+
+      const b = META.banner || {};
+      if(!b.enabled){
+        bannerEl.style.display = "none";
+        bannerEl.innerHTML = "";
+        return;
+      }
+
+      bannerEl.style.display = "block";
+
+      const imgUrl = (b.image_url || "").trim();
+      const svgHtml = (b.svg_html || "").trim();
+      const link = (b.link_url || "").trim();
+
+      let inner = "";
+
+      if(svgHtml){
+        inner = svgHtml;
+      } else if(imgUrl){
+        inner = `<img src="${imgUrl}" alt="Banner" loading="lazy" style="width:100%;border-radius:18px;">`;
+      } else {
+        inner = defaultBannerSVG(META);
+      }
+
+      if(link){
+        bannerEl.innerHTML = `<a href="${link}" target="_blank" rel="noopener noreferrer">${inner}</a>`;
+      } else {
+        bannerEl.innerHTML = inner;
+      }
+
+    } catch(e){
+      console.error("Banner enhancement error:", e);
+    }
+  }, 300);
+
+});
+</script>
+
+</body>
 </html>

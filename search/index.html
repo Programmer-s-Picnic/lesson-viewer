@@ -3,8 +3,9 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Programmer’s Picnic — Chat Search</title>
+    <title>Programmer’s Picnic — Search</title>
     <meta name="theme-color" content="#d97706" />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -15,14 +16,13 @@
     <style>
       :root {
         --bg: #fff7e6;
-        --panel: rgba(255, 255, 255, 0.85);
+        --panel: rgba(255, 255, 255, 0.86);
         --ink: #1f2328;
         --muted: #5b6570;
         --line: rgba(31, 35, 40, 0.12);
-        --saffron: #ff9f1c;
+        --saffron: #d97706;
         --saffron2: #ffb74d;
-        --shadow: 0 14px 34px rgba(31, 35, 40, 0.12);
-        --radius: 18px;
+        --shadow: 0 18px 50px rgba(31, 35, 40, 0.14);
       }
       * {
         box-sizing: border-box;
@@ -32,31 +32,36 @@
         font-family: "DM Sans", sans-serif;
         background:
           radial-gradient(
-            1000px 600px at 10% 0%,
-            rgba(255, 159, 28, 0.18),
+            1000px 520px at 20% 0%,
+            rgba(217, 119, 6, 0.18),
             transparent 60%
+          ),
+          radial-gradient(
+            900px 520px at 80% 10%,
+            rgba(255, 159, 28, 0.14),
+            transparent 55%
           ),
           linear-gradient(180deg, #fffaf0, var(--bg));
       }
       .wrap {
-        max-width: 900px;
+        max-width: 950px;
         margin: 0 auto;
-        padding: 16px;
+        padding: 18px;
+        height: 100vh;
         display: flex;
         flex-direction: column;
-        height: 100vh;
       }
       .chat {
         flex: 1;
         overflow: auto;
         background: var(--panel);
         border-radius: 24px;
-        padding: 16px;
+        padding: 18px;
         box-shadow: var(--shadow);
       }
       .row {
         display: flex;
-        margin: 10px 0;
+        margin: 12px 0;
       }
       .row.user {
         justify-content: flex-end;
@@ -65,8 +70,8 @@
         justify-content: flex-start;
       }
       .bubble {
-        max-width: 75%;
-        padding: 12px 14px;
+        max-width: 78%;
+        padding: 14px 16px;
         border-radius: 18px;
         background: white;
         border: 1px solid var(--line);
@@ -74,8 +79,8 @@
       .user .bubble {
         background: linear-gradient(
           180deg,
-          rgba(255, 159, 28, 0.25),
-          rgba(255, 183, 77, 0.2)
+          rgba(217, 119, 6, 0.25),
+          rgba(255, 183, 77, 0.22)
         );
       }
       .meta {
@@ -87,73 +92,78 @@
       .inputbar {
         display: flex;
         gap: 10px;
-        margin-top: 12px;
+        margin-top: 14px;
       }
       input {
         flex: 1;
-        padding: 12px;
-        border-radius: 14px;
+        padding: 14px;
+        border-radius: 16px;
         border: 1px solid var(--line);
         font-weight: 800;
+        font-size: 14px;
       }
       button {
-        padding: 10px 14px;
-        border-radius: 14px;
+        padding: 12px 16px;
+        border-radius: 16px;
         border: 1px solid var(--line);
         font-weight: 800;
         cursor: pointer;
       }
       .primary {
-        background: linear-gradient(180deg, var(--saffron), var(--saffron2));
+        background: linear-gradient(135deg, var(--saffron2), var(--saffron));
+        border: none;
+      }
+      .controls {
+        display: flex;
+        gap: 12px;
+        margin-top: 8px;
+        align-items: center;
+        font-weight: 800;
       }
       .small {
         font-size: 12px;
       }
-      .controls {
-        display: flex;
-        gap: 10px;
-        margin-top: 8px;
-        align-items: center;
-      }
     </style>
   </head>
+
   <body>
     <div class="wrap">
       <div class="chat" id="chat"></div>
 
       <div class="controls">
         <label><input type="checkbox" id="semToggle" /> Semantic</label>
-        <label>
-          <input type="radio" name="lang" value="en-IN" checked /> EN
-        </label>
-        <label> <input type="radio" name="lang" value="hi-IN" /> HI </label>
         <button id="voiceBtn">🎙 Voice</button>
       </div>
 
       <div class="inputbar">
         <input id="q" placeholder="Ask something..." />
-        <button id="send" class="primary">Send</button>
+        <button id="send" class="primary">Search</button>
       </div>
     </div>
 
-    <script>
+    <script type="module">
       /* ===============================
-   LOAD LOCAL JSON FILES
-   =============================== */
+   GLOBAL STATE
+=============================== */
+
       let INDEX = [];
-      let EMB = [];
-      let EMB_MAP = new Map();
+      let VECTORS = [];
+      let VECTOR_MAP = new Map();
+      let extractor = null;
+
+      /* ===============================
+   LOAD JSON
+=============================== */
 
       async function loadData() {
         const idx = await fetch("./index.json").then((r) => r.json());
         INDEX = idx.items || [];
 
         const emb = await fetch("./embeddings.json").then((r) => r.json());
-        EMB = emb.vectors || [];
-        const ids = emb.ids || [];
+        VECTORS = emb.vectors || [];
 
-        for (let i = 0; i < ids.length; i++) {
-          EMB_MAP.set(ids[i], EMB[i]);
+        for (const v of VECTORS) {
+          VECTOR_MAP.set(v.id, v.v);
         }
 
         bot("Index loaded: " + INDEX.length + " posts.");
@@ -161,7 +171,8 @@
 
       /* ===============================
    CHAT UI
-   =============================== */
+=============================== */
+
       const chat = document.getElementById("chat");
 
       function bot(html) {
@@ -193,7 +204,8 @@
 
       /* ===============================
    KEYWORD SEARCH
-   =============================== */
+=============================== */
+
       function keywordSearch(q) {
         const tokens = q.toLowerCase().split(/\s+/);
         const scored = [];
@@ -207,56 +219,100 @@
           ).toLowerCase();
           let score = 0;
           for (const t of tokens) {
-            if (text.includes(t)) score += 1;
+            if (text.includes(t)) score++;
           }
           if (score > 0) scored.push({ item, score });
         }
         scored.sort((a, b) => b.score - a.score);
-        return scored.map((s) => s.item).slice(0, 8);
+        return scored.slice(0, 8).map((x) => x.item);
       }
 
       /* ===============================
    SEMANTIC SEARCH
-   =============================== */
+=============================== */
+
       function cosine(a, b) {
         let s = 0;
         for (let i = 0; i < a.length; i++) s += a[i] * b[i];
         return s;
       }
 
-      function semanticSearch(q) {
-        if (!EMB.length) return [];
+      function normalize(v) {
+        let s = 0;
+        for (let i = 0; i < v.length; i++) s += v[i] * v[i];
+        const d = Math.sqrt(s) + 1e-12;
+        return v.map((x) => x / d);
+      }
 
-        // naive query embedding using average of matching post vectors
-        // (since embeddings.json already exists, we avoid model download)
-        // Better approach: precompute query embeddings server-side.
-        const base = keywordSearch(q);
-        if (!base.length) return [];
+      function meanPool(t) {
+        const arr = Array.isArray(t[0][0]) ? t[0] : t;
+        const dim = arr[0].length;
+        const out = new Array(dim).fill(0);
+        for (let i = 0; i < arr.length; i++) {
+          for (let d = 0; d < dim; d++) out[d] += arr[i][d];
+        }
+        for (let d = 0; d < dim; d++) out[d] /= arr.length;
+        return out;
+      }
 
-        const queryVec = EMB_MAP.get(base[0].id);
-        if (!queryVec) return [];
+      async function ensureModel() {
+        if (extractor) return extractor;
+
+        bot("Loading semantic model...");
+        const { pipeline, env } =
+          await import("https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2");
+
+        env.useBrowserCache = true;
+
+        extractor = await pipeline(
+          "feature-extraction",
+          "Xenova/paraphrase-multilingual-MiniLM-L12-v2",
+          { quantized: true },
+        );
+
+        bot("Model ready.");
+        return extractor;
+      }
+
+      async function semanticSearch(q) {
+        if (!VECTORS.length) return [];
+
+        const model = await ensureModel();
+
+        const out = await model(q);
+        const queryVec = normalize(meanPool(out.data));
 
         const scored = [];
+
         for (const item of INDEX) {
-          const vec = EMB_MAP.get(item.id);
+          const vec = VECTOR_MAP.get(item.id);
           if (!vec) continue;
           const score = cosine(queryVec, vec);
           scored.push({ item, score });
         }
+
         scored.sort((a, b) => b.score - a.score);
-        return scored.map((s) => s.item).slice(0, 8);
+        return scored.slice(0, 8).map((x) => x.item);
       }
 
       /* ===============================
    RUN SEARCH
-   =============================== */
-      function run() {
+=============================== */
+
+      async function run() {
         const q = document.getElementById("q").value.trim();
         if (!q) return;
+
         user(q);
 
         const useSem = document.getElementById("semToggle").checked;
-        const results = useSem ? semanticSearch(q) : keywordSearch(q);
+
+        let results;
+        if (useSem) {
+          results = await semanticSearch(q);
+        } else {
+          results = keywordSearch(q);
+        }
 
         if (!results.length) {
           bot("No results found.");
@@ -265,31 +321,33 @@
 
         let html = "";
         results.forEach((r) => {
-          html += `<div>
+          html += `
+    <div>
       <b>${escape(r.title)}</b><br/>
       <span class="small">${escape(r.snippet)}</span><br/>
       <a href="${r.link}" target="_blank">Open ↗</a>
       <div class="meta">${r.labels.join(", ")}</div>
     </div><hr/>`;
         });
+
         bot(html);
       }
 
       /* ===============================
-   VOICE SUPPORT (EN + HI)
-   =============================== */
+   VOICE
+=============================== */
+
       function startVoice() {
         const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SR) {
-          bot("Voice not supported in this browser.");
+          bot("Voice not supported.");
           return;
         }
 
         const rec = new SR();
-        rec.lang = document.querySelector("input[name=lang]:checked").value;
+        rec.lang = "en-IN";
         rec.onresult = (e) => {
-          const text = e.results[0][0].transcript;
-          document.getElementById("q").value = text;
+          document.getElementById("q").value = e.results[0][0].transcript;
         };
         rec.start();
       }
@@ -302,9 +360,10 @@
 
       /* ===============================
    INIT
-   =============================== */
+=============================== */
+
       loadData();
-      bot("Namaste 👋 Ask me anything from Programmer’s Picnic.");
+      bot("Search ready.");
     </script>
   </body>
 </html>
