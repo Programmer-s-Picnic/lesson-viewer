@@ -1,633 +1,1046 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="theme-color" content="#d97706" />
-  <title>Programmer’s Picnic — HTML + CSS + JS + JSON (Merged)</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#1e1e1e" />
+    <title>Programmer’s Picnic — Merged Editor (VS Code Style)</title>
 
-  <!-- CodeMirror (CDN) -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/eclipse.min.css"/>
+    <!-- CodeMirror (CDN) -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/eclipse.min.css"
+    />
 
-  <style>
-    :root{
-      --bg0:#fff7e6; --bg1:#fff1d6;
-      --card:rgba(255,255,255,.9);
-      --ink:#1f2937; --muted:#6b7280;
-      --brand:#d97706; --brand2:#f59e0b;
-      --border:rgba(31,41,55,.12);
-      --shadow:0 14px 40px rgba(17,24,39,.10);
-      --ring:0 0 0 4px rgba(217,119,6,.18);
-      --mono: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
-      --sans: system-ui,-apple-system,Segoe UI,Roboto,Arial;
-      --danger:#9a3412; --ok:#065f46;
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0; font-family:var(--sans); color:var(--ink);
-      background:
-        radial-gradient(1100px 520px at 12% 0%, rgba(245,158,11,.22), transparent 60%),
-        radial-gradient(900px 420px at 92% 18%, rgba(217,119,6,.18), transparent 55%),
-        linear-gradient(180deg,var(--bg0),var(--bg1));
-    }
-    .wrap{max-width:1900px;margin:0 auto;padding:14px 14px 60px}
-    .card{
-      border:1px solid var(--border); border-radius:24px; background:var(--card);
-      box-shadow:var(--shadow); overflow:hidden;
-    }
-    .hd{
-      padding:14px 16px 10px;
-      border-bottom:1px solid rgba(31,41,55,.10);
-      background:
-        radial-gradient(900px 360px at 10% 0%, rgba(245,158,11,.18), transparent 55%),
-        radial-gradient(800px 320px at 92% 10%, rgba(217,119,6,.14), transparent 55%);
-      display:flex; gap:12px; align-items:flex-start; justify-content:space-between; flex-wrap:wrap;
-    }
-    h1{margin:0 0 6px;font-size:clamp(20px,2.35vw,34px);letter-spacing:-.4px}
-    .sub{margin:0;color:var(--muted);font-weight:750}
-    .pill{
-      display:inline-flex;align-items:center;gap:8px;
-      padding:6px 10px;border-radius:999px;
-      border:1px solid rgba(217,119,6,.25);
-      background:rgba(255,255,255,.70);
-      font-weight:900;color:#92400e;
-      user-select:none; white-space:nowrap;
-    }
-    .actions{display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:flex-end}
-    .btn{
-      border:1px solid var(--border);
-      background:white;
-      color:var(--ink);
-      padding:10px 12px;
-      border-radius:14px;
-      box-shadow:0 6px 18px rgba(17,24,39,.06);
-      cursor:pointer;
-      font-weight:900;
-    }
-    .btn.primary{
-      border-color:rgba(217,119,6,.35);
-      background:linear-gradient(135deg, rgba(217,119,6,.12), rgba(245,158,11,.16));
-    }
-    .btn.danger{
-      border-color:rgba(185,28,28,.20);
-      background:linear-gradient(135deg, rgba(185,28,28,.06), rgba(245,158,11,.08));
-      color:var(--danger);
-    }
-    .btn.tiny{
-      padding:7px 10px;
-      border-radius:12px;
-      font-size:12px;
-      box-shadow:0 6px 14px rgba(17,24,39,.05);
-    }
-    .btn:focus-visible{outline:none;box-shadow:var(--shadow),var(--ring)}
-    select, input[type="number"]{
-      border:1px solid rgba(31,41,55,.14);
-      border-radius:14px;
-      padding:10px 12px;
-      background:rgba(255,255,255,.75);
-      font-family:var(--sans);
-      font-weight:800;
-    }
-    input[type="checkbox"]{transform:translateY(1px)}
-    .grid{
-      display:grid;
-      grid-template-columns: 0.95fr 0.95fr 1fr 1fr 1.25fr;
-      gap:12px;
-      padding:14px;
-    }
-    @media (max-width: 1700px){
-      .grid{grid-template-columns: 1fr 1fr 1fr 1.25fr}
-      .examples-panel{grid-column: 1 / -1;}
-    }
-    @media (max-width: 1300px){
-      .grid{grid-template-columns: 1fr 1fr}
-    }
-    @media (max-width: 980px){
-      .grid{grid-template-columns:1fr}
-    }
-    .panel{
-      border:1px solid rgba(31,41,55,.12);
-      border-radius:18px;
-      background:rgba(255,255,255,.78);
-      overflow:hidden;
-      min-height:640px;
-      display:flex;
-      flex-direction:column;
-    }
-    .ph{
-      padding:10px 12px;
-      border-bottom:1px solid rgba(31,41,55,.10);
-      background:#fffaf0;
-      display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
-    }
-    .ph strong{color:var(--brand); font-size:13px; letter-spacing:.2px}
-    .hint{color:var(--muted); font-size:12px; font-weight:700}
-    .ph-actions{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
-    .cm-wrap{flex:1; display:flex}
-    .CodeMirror{
-      height:100%;
-      width:100%;
-      font-family:var(--mono);
-      font-size:13px;
-      line-height:1.45;
-      background:#fff;
-    }
-    .CodeMirror-gutters{
-      background:#fffaf0;
-      border-right:1px solid rgba(31,41,55,.10);
-    }
-    iframe{
-      width:100%;
-      height:100%;
-      border:0;
-      background:#fff;
-      flex:1;
-    }
-    .out{
-      border-top:1px solid rgba(31,41,55,.10);
-      background:rgba(255,255,255,.80);
-      padding:10px 12px;
-      font-family:var(--mono);
-      font-size:12.5px;
-      white-space:pre-wrap;
-      overflow:auto;
-      max-height:260px;
-    }
-    .ok{color:var(--ok); font-weight:800}
-    .bad{color:var(--danger); font-weight:800}
-    .mini{color:var(--muted); font-weight:750; font-size:12px}
-    textarea.stdin{
-      width:100%;
-      border:1px solid rgba(31,41,55,.14);
-      border-radius:14px;
-      padding:10px 12px;
-      background:rgba(255,255,255,.75);
-      font-family:var(--mono);
-      font-weight:800;
-      line-height:1.35;
-      resize:vertical;
-      min-height:90px;
-    }
-    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
-    .grow{flex:1; min-width:220px}
-    .note{
-      padding:10px 12px;
-      border-top:1px solid rgba(31,41,55,.10);
-      background:#fffaf0;
-      color:var(--muted);
-      font-size:12px;
-      font-weight:750;
-      line-height:1.35;
-    }
-    .note code{
-      font-family:var(--mono);
-      background:#fff7ea;
-      border:1px solid rgba(217,119,6,.18);
-      padding:1px 6px;
-      border-radius:8px;
-      color:#111827;
-    }
+    <style>
+      :root {
+        /* VS Code dark */
+        --bg: #1e1e1e;
+        --panel: #252526;
+        --panel2: #2d2d2d;
+        --top: #323233;
+        --border: #3a3a3a;
+        --text: #e6e6e6;
+        --muted: #9aa0a6;
+        --accent: #3794ff;
+        --good: #2ea043;
+        --bad: #f85149;
+        --warn: #d29922;
 
-    /* Examples panel */
-    .examples-panel{ min-height:640px; }
-    .examples{
-      padding:12px;
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-      overflow:auto;
-    }
-    .ex-card{
-      border:1px solid rgba(31,41,55,.12);
-      border-radius:16px;
-      background:rgba(255,255,255,.85);
-      box-shadow:0 10px 26px rgba(17,24,39,.06);
-      padding:10px 10px 12px;
-    }
-    .ex-title{
-      display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
-      margin-bottom:6px;
-    }
-    .ex-title b{ color:var(--brand); font-size:13px; }
-    .ex-desc{ color:var(--muted); font-size:12px; font-weight:700; line-height:1.35; margin:0 0 8px; }
-    .ex-actions{ display:flex; gap:8px; flex-wrap:wrap; }
-    .tagrow{ display:flex; gap:6px; flex-wrap:wrap; }
-    .tag{
-      font-size:11px; font-weight:800;
-      padding:4px 8px; border-radius:999px;
-      border:1px solid rgba(217,119,6,.22);
-      background:#fffaf0;
-      color:#92400e;
-      user-select:none;
-    }
-  </style>
-</head>
+        --mono:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        --sans: system-ui, -apple-system, Segoe UI, Roboto, Arial;
 
-<body>
-  <main class="wrap">
-    <section class="card">
-      <div class="hd">
-        <div>
-          <div class="pill">🟠 Programmer’s Picnic</div>
-          <h1>Merged Editor: HTML + CSS + JS + JSON UI Builder</h1>
-          <p class="sub">Preview (iframe) + safe JS sandbox + JSON → UI (createElement) inside preview. Share everything via one link.</p>
-        </div>
+        --r: 12px;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        font-family: var(--sans);
+        background: var(--bg);
+        color: var(--text);
+        overflow: hidden;
+      }
 
-        <div class="actions">
-          <span class="pill">Timeout: <span id="tLabel">2000</span> ms</span>
+      /* Top title bar */
+      .vs-topbar {
+        height: 38px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 12px;
+        background: var(--top);
+        border-bottom: 1px solid var(--border);
+        user-select: none;
+      }
+      .vs-title {
+        font-size: 13px;
+        color: #d7d7d7;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .vs-topright {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 12px;
+        color: var(--muted);
+        white-space: nowrap;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.14);
+        color: #d7d7d7;
+        font-weight: 800;
+      }
 
-          <label class="pill" title="Auto-update preview while typing (debounced)">
-            <input type="checkbox" id="autoPreview" checked />
-            Auto Preview
-          </label>
+      /* Main shell */
+      .vs-shell {
+        height: calc(100vh - 38px);
+        display: flex;
+        min-width: 0;
+      }
 
-          <label class="pill" title="Inject JS editor into preview (DOM lessons). Not sandboxed.">
-            <input type="checkbox" id="injectJs" />
-            Inject JS into Preview
-          </label>
+      /* Activity bar */
+      .vs-activity {
+        width: 50px;
+        background: #1b1b1b;
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        padding: 10px 6px;
+        gap: 8px;
+      }
+      .vs-actbtn {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        border: 1px solid transparent;
+        background: transparent;
+        color: #cfcfcf;
+        display: grid;
+        place-items: center;
+        cursor: pointer;
+        font-size: 18px;
+      }
+      .vs-actbtn:hover {
+        background: rgba(255, 255, 255, 0.04);
+        border-color: rgba(255, 255, 255, 0.08);
+      }
+      .vs-actbtn.active {
+        background: rgba(55, 148, 255, 0.14);
+        border-color: rgba(55, 148, 255, 0.35);
+        color: #fff;
+      }
 
-          <label class="pill" title="Render JSON into preview as UI elements">
-            <input type="checkbox" id="renderJson" checked />
-            Render JSON UI
-          </label>
+      /* Sidebar */
+      .vs-sidebar {
+        width: 320px;
+        min-width: 260px;
+        max-width: 420px;
+        background: var(--panel);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .vs-sidehead {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .vs-sidehead .label {
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        color: #cfcfcf;
+        opacity: 0.9;
+      }
+      .vs-sidebody {
+        overflow: auto;
+        padding: 10px;
+      }
 
-          <button class="btn" id="btnClearConsole">Clear Console</button>
-          <button class="btn" id="btnSave">Save</button>
-          <button class="btn" id="btnLoad">Load</button>
-          <button class="btn" id="btnShare">Share</button>
-          <button class="btn danger" id="btnReset">Reset</button>
+      .block {
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(0, 0, 0, 0.1);
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 10px;
+      }
+      .blockhead {
+        padding: 10px 10px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.02);
+      }
+      .blockhead b {
+        font-size: 12px;
+        color: #d7d7d7;
+        letter-spacing: 0.02em;
+      }
+      .blockbody {
+        padding: 10px;
+      }
 
-          <button class="btn primary" id="btnRunJson">▶ Render JSON</button>
-          <button class="btn primary" id="btnRunJs">▶ Run JS (Sandbox)</button>
-          <button class="btn primary" id="btnRunAll">▶ Run Preview</button>
+      /* Buttons */
+      .btn {
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text);
+        padding: 8px 10px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: 800;
+        font-size: 13px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        user-select: none;
+      }
+      .btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+      .btn.primary {
+        background: rgba(55, 148, 255, 0.18);
+        border-color: rgba(55, 148, 255, 0.35);
+      }
+      .btn.primary:hover {
+        background: rgba(55, 148, 255, 0.26);
+      }
+      .btn.danger {
+        background: rgba(248, 81, 73, 0.14);
+        border-color: rgba(248, 81, 73, 0.35);
+      }
+      .btn.danger:hover {
+        background: rgba(248, 81, 73, 0.22);
+      }
+      .btn.tiny {
+        padding: 7px 10px;
+        font-size: 12px;
+        border-radius: 10px;
+      }
 
-          <span class="pill mini" id="status">Ready</span>
-        </div>
+      input[type="number"],
+      textarea.stdin {
+        width: 100%;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.18);
+        color: var(--text);
+        border-radius: 12px;
+        padding: 10px 12px;
+        outline: none;
+        font-family: var(--mono);
+        font-size: 13px;
+      }
+      textarea.stdin {
+        min-height: 92px;
+        resize: vertical;
+      }
+
+      /* Main area */
+      .vs-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+
+      /* Top toolbar inside main */
+      .vs-toolbar {
+        background: var(--panel2);
+        border-bottom: 1px solid var(--border);
+        padding: 10px;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .spacer {
+        flex: 1;
+        min-width: 10px;
+      }
+      .hint {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 650;
+      }
+
+      /* Editor tabs */
+      .vs-tabs {
+        display: flex;
+        gap: 8px;
+        padding: 10px;
+        border-bottom: 1px solid var(--border);
+        background: rgba(0, 0, 0, 0.1);
+        overflow: auto;
+      }
+      .tab {
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text);
+        padding: 7px 10px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: 900;
+        font-size: 12.5px;
+        white-space: nowrap;
+        user-select: none;
+      }
+      .tab.active {
+        background: rgba(55, 148, 255, 0.18);
+        border-color: rgba(55, 148, 255, 0.35);
+      }
+
+      /* Split: editor + preview */
+      .split {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        background: var(--bg);
+        overflow: hidden;
+      }
+      .left {
+        flex: 0 0 58%;
+        min-width: 280px;
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid var(--border);
+        min-height: 0;
+      }
+      .right {
+        flex: 1 1 auto;
+        min-width: 320px;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
+      .panehead {
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--border);
+        background: rgba(0, 0, 0, 0.16);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        user-select: none;
+      }
+      .panehead b {
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        color: #d7d7d7;
+      }
+
+      .divider {
+        width: 10px;
+        cursor: col-resize;
+        background: linear-gradient(
+          to right,
+          transparent,
+          rgba(255, 255, 255, 0.06),
+          transparent
+        );
+        border-right: 1px solid var(--border);
+      }
+      .divider:hover {
+        background: linear-gradient(
+          to right,
+          transparent,
+          rgba(55, 148, 255, 0.18),
+          transparent
+        );
+      }
+
+      .cmwrap {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        background: #111;
+      }
+      .CodeMirror {
+        height: 100% !important;
+        width: 100% !important;
+        font-family: var(--mono);
+        font-size: 13.2px;
+        line-height: 1.45;
+      }
+      .CodeMirror-gutters {
+        background: rgba(0, 0, 0, 0.22);
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      iframe#preview {
+        width: 100%;
+        height: 100%;
+        border: 0;
+        background: #fff;
+        flex: 1;
+      }
+
+      /* Bottom console */
+      .bottom {
+        height: 260px;
+        min-height: 190px;
+        max-height: 50vh;
+        border-top: 1px solid var(--border);
+        background: var(--panel);
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
+      .bottomhead {
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.02);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .console {
+        flex: 1;
+        min-height: 0;
+        overflow: auto;
+        padding: 10px;
+        font-family: var(--mono);
+        font-size: 12.5px;
+        white-space: pre-wrap;
+        background: rgba(0, 0, 0, 0.18);
+      }
+      .ok {
+        color: var(--good);
+        font-weight: 800;
+      }
+      .bad {
+        color: var(--bad);
+        font-weight: 800;
+      }
+
+      /* Status bar */
+      .statusbar {
+        height: 30px;
+        background: #1b1b1b;
+        border-top: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 10px;
+        color: #cfcfcf;
+        font-size: 12px;
+        user-select: none;
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: #7d7d7d;
+      }
+      .dot.ok {
+        background: var(--good);
+      }
+      .dot.bad {
+        background: var(--bad);
+      }
+
+      /* Responsive: hide sidebar on smaller screens */
+      @media (max-width: 980px) {
+        .vs-sidebar {
+          display: none;
+        }
+        .left {
+          flex-basis: 60%;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Title bar -->
+    <div class="vs-topbar">
+      <div class="vs-title">
+        Programmer’s Picnic — Merged Editor (HTML + CSS + JS + JSON)
+      </div>
+      <div class="vs-topright">
+        <span class="pill">Timeout: <span id="tLabel">2000</span> ms</span>
+        <span class="pill" id="status">Ready</span>
+      </div>
+    </div>
+
+    <div class="vs-shell">
+      <!-- Activity bar -->
+      <div class="vs-activity" aria-label="Activity bar">
+        <button class="vs-actbtn active" data-act="explorer" title="Explorer">
+          📁
+        </button>
+        <button class="vs-actbtn" data-act="run" title="Run">▶</button>
+        <button class="vs-actbtn" data-act="preview" title="Preview">🌐</button>
+        <button class="vs-actbtn" data-act="console" title="Console">🧾</button>
       </div>
 
-      <div class="grid">
-        <!-- HTML -->
-        <section class="panel" aria-label="HTML editor">
-          <div class="ph">
-            <strong>HTML Editor</strong>
-            <div class="ph-actions">
-              <button class="btn tiny danger" id="btnClearHtml" title="Clear HTML editor">Clear</button>
-              <span class="hint">Ctrl/⌘ + Enter = Run Preview</span>
+      <!-- Sidebar -->
+      <aside class="vs-sidebar" id="vsSidebar">
+        <div class="vs-sidehead">
+          <div class="label">EXPLORER</div>
+          <span class="pill">🟠 Programmer’s Picnic</span>
+        </div>
+
+        <div class="vs-sidebody">
+          <div class="block">
+            <div class="blockhead">
+              <b>RUN</b>
+              <span class="hint">Preview + sandbox</span>
+            </div>
+            <div
+              class="blockbody"
+              style="display: flex; gap: 8px; flex-wrap: wrap"
+            >
+              <button class="btn" id="btnClearConsole">Clear Console</button>
+              <button class="btn" id="btnSave">Save</button>
+              <button class="btn" id="btnLoad">Load</button>
+              <button class="btn" id="btnShare">Share</button>
+              <button class="btn danger" id="btnReset">Reset</button>
+
+              <button class="btn primary" id="btnRunJson">▶ Render JSON</button>
+              <button class="btn primary" id="btnRunJs">
+                ▶ Run JS (Sandbox)
+              </button>
+              <button class="btn primary" id="btnRunAll">▶ Run Preview</button>
             </div>
           </div>
-          <div class="cm-wrap"><textarea id="htmlEditor"></textarea></div>
-        </section>
 
-        <!-- CSS -->
-        <section class="panel" aria-label="CSS editor">
-          <div class="ph">
-            <strong>CSS Editor</strong>
-            <div class="ph-actions">
-              <button class="btn tiny danger" id="btnClearCss" title="Clear CSS editor">Clear</button>
-              <span class="hint">Ctrl/⌘ + Enter = Run Preview</span>
+          <div class="block">
+            <div class="blockhead">
+              <b>OPTIONS</b>
+              <span class="hint">Toggles</span>
+            </div>
+            <div
+              class="blockbody"
+              style="display: flex; flex-direction: column; gap: 10px"
+            >
+              <label
+                class="pill"
+                title="Auto-update preview while typing (debounced)"
+              >
+                <input type="checkbox" id="autoPreview" checked />
+                Auto Preview
+              </label>
+
+              <label
+                class="pill"
+                title="Inject JS editor into preview (DOM lessons). Not sandboxed."
+              >
+                <input type="checkbox" id="injectJs" />
+                Inject JS into Preview
+              </label>
+
+              <label
+                class="pill"
+                title="Render JSON into preview as UI elements"
+              >
+                <input type="checkbox" id="renderJson" checked />
+                Render JSON UI
+              </label>
+
+              <button
+                class="btn"
+                id="ppThemeToggle"
+                type="button"
+                title="Toggle dark/light (optional)"
+              >
+                🌗 Theme
+              </button>
             </div>
           </div>
-          <div class="cm-wrap"><textarea id="cssEditor"></textarea></div>
-          <div class="note">
-            CSS is injected into preview as <code>&lt;style id="pp_user_css"&gt;</code> in <code>&lt;head&gt;</code>.
-          </div>
-        </section>
 
-        <!-- JS -->
-        <section class="panel" aria-label="JS editor">
-          <div class="ph">
-            <strong>JavaScript Editor</strong>
-            <div class="ph-actions">
-              <button class="btn tiny danger" id="btnClearJs" title="Clear JS editor">Clear</button>
-              <span class="hint">Ctrl/⌘ + Enter = Run JS Sandbox</span>
+          <div class="block">
+            <div class="blockhead">
+              <b>JS SANDBOX</b>
+              <span class="hint">input() + timeout</span>
             </div>
-          </div>
-          <div class="cm-wrap"><textarea id="jsEditor"></textarea></div>
-
-          <div style="padding:10px 12px;border-top:1px solid rgba(31,41,55,.10);background:#fffaf0">
-            <div class="row">
-              <div class="grow">
-                <div class="mini">stdin (each line = one input())</div>
-                <textarea class="stdin" id="stdin" placeholder="Example:
+            <div class="blockbody">
+              <div class="hint" style="margin-bottom: 6px">
+                stdin (each line = one input())
+              </div>
+              <textarea
+                class="stdin"
+                id="stdin"
+                placeholder="Example:
 Champak
-25"></textarea>
+25"
+              ></textarea>
+
+              <div class="hint" style="margin: 10px 0 6px">Timeout (ms)</div>
+              <input
+                id="timeoutMs"
+                type="number"
+                min="50"
+                step="50"
+                value="2000"
+              />
+            </div>
+          </div>
+
+          <div class="block">
+            <div class="blockhead">
+              <b>EXAMPLES</b>
+              <span class="hint">One-click load</span>
+            </div>
+            <div class="blockbody">
+              <div id="examples"></div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main -->
+      <main class="vs-main">
+        <div class="vs-toolbar">
+          <span class="pill">Editors</span>
+          <span class="hint"
+            >Ctrl/⌘ + Enter: HTML/CSS/JSON = Preview, JS = Sandbox</span
+          >
+          <div class="spacer"></div>
+          <button
+            class="btn"
+            id="ppOpenPreview"
+            type="button"
+            title="Open preview in a new tab"
+          >
+            ↗ Open Preview
+          </button>
+        </div>
+
+        <!-- Tabs (editor switch) -->
+        <div class="vs-tabs" role="tablist" aria-label="Editors">
+          <button class="tab active" data-tab="html">HTML</button>
+          <button class="tab" data-tab="css">CSS</button>
+          <button class="tab" data-tab="js">JavaScript</button>
+          <button class="tab" data-tab="json">JSON UI</button>
+        </div>
+
+        <section class="split" id="ppSplit">
+          <!-- Left: active editor -->
+          <div class="left" id="ppLeft">
+            <div class="panehead">
+              <b id="ppEditorLabel">EDITOR</b>
+              <span class="hint" id="ppEditorHint">HTML</span>
+              <div class="spacer"></div>
+              <button
+                class="btn tiny danger"
+                id="btnClearHtml"
+                title="Clear HTML editor"
+              >
+                Clear
+              </button>
+              <button
+                class="btn tiny danger"
+                id="btnClearCss"
+                title="Clear CSS editor"
+                style="display: none"
+              >
+                Clear
+              </button>
+              <button
+                class="btn tiny danger"
+                id="btnClearJs"
+                title="Clear JS editor"
+                style="display: none"
+              >
+                Clear
+              </button>
+              <button
+                class="btn tiny danger"
+                id="btnClearJson"
+                title="Clear JSON editor"
+                style="display: none"
+              >
+                Clear
+              </button>
+            </div>
+
+            <!-- Editors live here; we show/hide wrappers but keep IDs -->
+            <div class="cmwrap" id="wrapHtml">
+              <textarea id="htmlEditor"></textarea>
+            </div>
+            <div class="cmwrap" id="wrapCss" style="display: none">
+              <textarea id="cssEditor"></textarea>
+            </div>
+            <div class="cmwrap" id="wrapJs" style="display: none">
+              <textarea id="jsEditor"></textarea>
+            </div>
+            <div class="cmwrap" id="wrapJson" style="display: none">
+              <textarea id="jsonEditor"></textarea>
+            </div>
+          </div>
+
+          <div class="divider" id="ppDivider" title="Drag to resize"></div>
+
+          <!-- Right: preview + console -->
+          <div class="right" id="ppRight">
+            <div class="panehead">
+              <b>PREVIEW</b>
+              <span class="hint">iframe srcdoc + sandbox</span>
+            </div>
+
+            <iframe
+              id="preview"
+              sandbox="allow-forms allow-modals allow-pointer-lock allow-presentation allow-scripts allow-popups"
+            ></iframe>
+
+            <div class="bottom" id="ppBottom">
+              <div class="bottomhead">
+                <b>CONSOLE</b>
+                <span class="hint">Sandbox output + preview errors</span>
+                <div class="spacer"></div>
+                <button
+                  class="btn tiny"
+                  id="btnConsoleToTop"
+                  type="button"
+                  title="Scroll to top"
+                >
+                  Top
+                </button>
+                <button
+                  class="btn tiny"
+                  id="btnConsoleToBottom"
+                  type="button"
+                  title="Scroll to bottom"
+                >
+                  Bottom
+                </button>
               </div>
-              <div style="min-width:160px">
-                <div class="mini">Timeout (ms)</div>
-                <input id="timeoutMs" type="number" min="50" step="50" value="2000" />
-              </div>
+              <div class="console" id="consoleOut"></div>
             </div>
           </div>
         </section>
 
-        <!-- JSON -->
-        <section class="panel" aria-label="JSON editor">
-          <div class="ph">
-            <strong>JSON Editor (UI Schema)</strong>
-            <div class="ph-actions">
-              <button class="btn tiny danger" id="btnClearJson" title="Clear JSON editor">Clear</button>
-              <span class="hint">Ctrl/⌘ + Enter = Render JSON</span>
-            </div>
-          </div>
-          <div class="cm-wrap"><textarea id="jsonEditor"></textarea></div>
+        <div class="statusbar">
+          <span class="dot" id="ppDot"></span>
+          <span id="ppStatusText">Ready.</span>
+          <span class="hint" style="margin-left: auto"
+            >Programmer’s Picnic</span
+          >
+        </div>
+      </main>
+    </div>
 
-          <div class="note">
-            Schema:
-            <code>{ "mountId":"pp_json_root", "nodes":[ ... ] }</code><br/>
-            Node:
-            <code>{ "tag":"div","text":"Hi","attrs":{...},"style":{...},"children":[...] }</code>
-          </div>
-        </section>
+    <!-- CodeMirror JS (CDN) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
 
-        <!-- Preview + Console -->
-        <section class="panel" aria-label="Preview panel">
-          <div class="ph">
-            <strong>Preview (iframe)</strong>
-            <span class="hint">srcdoc + sandbox</span>
-          </div>
-
-          <iframe
-            id="preview"
-            sandbox="allow-forms allow-modals allow-pointer-lock allow-presentation allow-scripts allow-popups"
-          ></iframe>
-
-          <div class="out" id="consoleOut"></div>
-        </section>
-
-        <!-- EXAMPLES -->
-        <section class="panel examples-panel" aria-label="Examples">
-          <div class="ph">
-            <strong>Important Examples (Load + Test + Share)</strong>
-            <span class="hint">One-click loads → run → Share</span>
-          </div>
-          <div class="examples" id="examples"></div>
-          <div class="note">
-            Tip: After loading an example, hit <code>Run Preview</code> (and <code>Run JS Sandbox</code> if needed), then <code>Share</code>.
-          </div>
-        </section>
-      </div>
-    </section>
-  </main>
-
-  <!-- CodeMirror JS (CDN) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
-
-  <script>
-    /* ==========================
+    <script>
+      /* ==========================
        PP Mini Runner (Worker Sandbox)
+       (Same engine as your uploaded version)
        ========================== */
-    (function () {
-      "use strict";
+      (function () {
+        "use strict";
 
-      function nowMs() {
-        return typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
-      }
-      function splitLines(s) {
-        if (!s) return [];
-        return String(s).replace(/\r\n/g, "\n").split("\n");
-      }
-      function createWorkerURL() {
-        var workerCode =
-          '"use strict";\n' +
-          "function send(type, payload){ postMessage(Object.assign({type:type}, payload||{})); }\n" +
-          "function safeStringify(v){\n" +
-          "  try {\n" +
-          "    if (typeof v === 'string') return v;\n" +
-          "    if (v && v.name && v.message && (v.stack || (v.constructor && v.constructor.name==='Error'))){\n" +
-          "      return v.stack || (v.name + ': ' + v.message);\n" +
-          "    }\n" +
-          "    var seen=[];\n" +
-          "    return JSON.stringify(v, function(k,val){\n" +
-          "      if (typeof val === 'function') return '[Function]';\n" +
-          "      if (val && typeof val === 'object'){\n" +
-          "        if (seen.indexOf(val)>=0) return '[Circular]';\n" +
-          "        seen.push(val);\n" +
-          "      }\n" +
-          "      return val;\n" +
-          "    });\n" +
-          "  } catch(e){\n" +
-          "    try { return String(v); } catch(_) { return '[Unserializable]'; }\n" +
-          "  }\n" +
-          "}\n" +
-          "function makeConsole(warnToStderr){\n" +
-          "  function mk(level){\n" +
-          "    return function(){\n" +
-          "      var args = Array.prototype.slice.call(arguments);\n" +
-          "      var safe = args.map(function(a){ return safeStringify(a); });\n" +
-          "      send('log',{level:level,args:safe});\n" +
-          "    };\n" +
-          "  }\n" +
-          "  return { log:mk('log'), info:mk('info'), warn:mk(warnToStderr?'error':'warn'), error:mk('error') };\n" +
-          "}\n" +
-          "onmessage = function(ev){\n" +
-          "  var msg = ev.data || {};\n" +
-          "  if(msg.type !== 'run') return;\n" +
-          "  var code = String(msg.code || '');\n" +
-          "  var stdinLines = Array.isArray(msg.stdinLines) ? msg.stdinLines : [];\n" +
-          "  var stdinIndex = 0;\n" +
-          "  var warnToStderr = !!msg.warnToStderr;\n" +
-          "  var consoleProxy = makeConsole(warnToStderr);\n" +
-          "  function input(promptText){\n" +
-          "    if (promptText != null && String(promptText).length) send('log',{level:'log',args:[String(promptText)]});\n" +
-          "    var v = (stdinIndex < stdinLines.length) ? String(stdinLines[stdinIndex]) : '';\n" +
-          "    stdinIndex++;\n" +
-          "    return v;\n" +
-          "  }\n" +
-          "  try {\n" +
-          "    var wrapped = 'return (async function(console,input){\\n\"use strict\";\\n' + code + '\\n});';\n" +
-          "    var factory = new Function(wrapped);\n" +
-          "    var fn = factory();\n" +
-          "    Promise.resolve(fn(consoleProxy, input)).then(function(){ send('done',{ok:true}); })\n" +
-          "    .catch(function(err){ var t=(err&&(err.stack||err.message))?(err.stack||err.message):String(err); send('done',{ok:false,error:t}); });\n" +
-          "  } catch(err){\n" +
-          "    var text=(err&&(err.stack||err.message))?(err.stack||err.message):String(err);\n" +
-          "    send('done',{ok:false,error:text});\n" +
-          "  }\n" +
-          "};";
+        function nowMs() {
+          return typeof performance !== "undefined" && performance.now
+            ? performance.now()
+            : Date.now();
+        }
+        function splitLines(s) {
+          if (!s) return [];
+          return String(s).replace(/\r\n/g, "\n").split("\n");
+        }
+        function createWorkerURL() {
+          var workerCode =
+            '"use strict";\n' +
+            "function send(type, payload){ postMessage(Object.assign({type:type}, payload||{})); }\n" +
+            "function safeStringify(v){\n" +
+            "  try {\n" +
+            "    if (typeof v === 'string') return v;\n" +
+            "    if (v && v.name && v.message && (v.stack || (v.constructor && v.constructor.name==='Error'))){\n" +
+            "      return v.stack || (v.name + ': ' + v.message);\n" +
+            "    }\n" +
+            "    var seen=[];\n" +
+            "    return JSON.stringify(v, function(k,val){\n" +
+            "      if (typeof val === 'function') return '[Function]';\n" +
+            "      if (val && typeof val === 'object'){\n" +
+            "        if (seen.indexOf(val)>=0) return '[Circular]';\n" +
+            "        seen.push(val);\n" +
+            "      }\n" +
+            "      return val;\n" +
+            "    });\n" +
+            "  } catch(e){\n" +
+            "    try { return String(v); } catch(_) { return '[Unserializable]'; }\n" +
+            "  }\n" +
+            "}\n" +
+            "function makeConsole(warnToStderr){\n" +
+            "  function mk(level){\n" +
+            "    return function(){\n" +
+            "      var args = Array.prototype.slice.call(arguments);\n" +
+            "      var safe = args.map(function(a){ return safeStringify(a); });\n" +
+            "      send('log',{level:level,args:safe});\n" +
+            "    };\n" +
+            "  }\n" +
+            "  return { log:mk('log'), info:mk('info'), warn:mk(warnToStderr?'error':'warn'), error:mk('error') };\n" +
+            "}\n" +
+            "onmessage = function(ev){\n" +
+            "  var msg = ev.data || {};\n" +
+            "  if(msg.type !== 'run') return;\n" +
+            "  var code = String(msg.code || '');\n" +
+            "  var stdinLines = Array.isArray(msg.stdinLines) ? msg.stdinLines : [];\n" +
+            "  var stdinIndex = 0;\n" +
+            "  var warnToStderr = !!msg.warnToStderr;\n" +
+            "  var consoleProxy = makeConsole(warnToStderr);\n" +
+            "  function input(promptText){\n" +
+            "    if (promptText != null && String(promptText).length) send('log',{level:'log',args:[String(promptText)]});\n" +
+            "    var v = (stdinIndex < stdinLines.length) ? String(stdinLines[stdinIndex]) : '';\n" +
+            "    stdinIndex++;\n" +
+            "    return v;\n" +
+            "  }\n" +
+            "  try {\n" +
+            "    var wrapped = 'return (async function(console,input){\\n\"use strict\";\\n' + code + '\\n});';\n" +
+            "    var factory = new Function(wrapped);\n" +
+            "    var fn = factory();\n" +
+            "    Promise.resolve(fn(consoleProxy, input)).then(function(){ send('done',{ok:true}); })\n" +
+            "    .catch(function(err){ var t=(err&&(err.stack||err.message))?(err.stack||err.message):String(err); send('done',{ok:false,error:t}); });\n" +
+            "  } catch(err){\n" +
+            "    var text=(err&&(err.stack||err.message))?(err.stack||err.message):String(err);\n" +
+            "    send('done',{ok:false,error:text});\n" +
+            "  }\n" +
+            "};";
 
-        var blob = new Blob([workerCode], { type: "application/javascript" });
-        return URL.createObjectURL(blob);
-      }
-
-      function runUserCode(options) {
-        options = options || {};
-        var start = nowMs();
-        var workerURL = createWorkerURL();
-        var worker = new Worker(workerURL);
-
-        var timeoutMs = Number(options.timeoutMs || 2000);
-        var onStdout = options.onStdout || function () {};
-        var onStderr = options.onStderr || function () {};
-        var warnToStderr = options.warnToStderr !== false;
-
-        var finished = false;
-        function finish(payload) {
-          if (finished) return;
-          finished = true;
-          try { worker.terminate(); } catch (_) {}
-          try { URL.revokeObjectURL(workerURL); } catch (_) {}
-          payload.ms = Math.max(0, nowMs() - start);
-          return payload;
+          var blob = new Blob([workerCode], { type: "application/javascript" });
+          return URL.createObjectURL(blob);
         }
 
-        return new Promise(function (resolve) {
-          var timer = setTimeout(function () {
-            resolve(finish({ ok: false, timeout: true, error: "Timeout exceeded" }));
-          }, Math.max(50, timeoutMs));
+        function runUserCode(options) {
+          options = options || {};
+          var start = nowMs();
+          var workerURL = createWorkerURL();
+          var worker = new Worker(workerURL);
 
-          worker.onmessage = function (ev) {
-            var msg = ev.data || {};
-            if (msg.type === "log") {
-              var line = (msg.args || []).join(" ");
-              if (msg.level === "error") onStderr(line);
-              else onStdout(line);
-              return;
-            }
-            if (msg.type === "done") {
+          var timeoutMs = Number(options.timeoutMs || 2000);
+          var onStdout = options.onStdout || function () {};
+          var onStderr = options.onStderr || function () {};
+          var warnToStderr = options.warnToStderr !== false;
+
+          var finished = false;
+          function finish(payload) {
+            if (finished) return;
+            finished = true;
+            try {
+              worker.terminate();
+            } catch (_) {}
+            try {
+              URL.revokeObjectURL(workerURL);
+            } catch (_) {}
+            payload.ms = Math.max(0, nowMs() - start);
+            return payload;
+          }
+
+          return new Promise(function (resolve) {
+            var timer = setTimeout(
+              function () {
+                resolve(
+                  finish({
+                    ok: false,
+                    timeout: true,
+                    error: "Timeout exceeded",
+                  }),
+                );
+              },
+              Math.max(50, timeoutMs),
+            );
+
+            worker.onmessage = function (ev) {
+              var msg = ev.data || {};
+              if (msg.type === "log") {
+                var line = (msg.args || []).join(" ");
+                if (msg.level === "error") onStderr(line);
+                else onStdout(line);
+                return;
+              }
+              if (msg.type === "done") {
+                clearTimeout(timer);
+                if (msg && msg.ok) resolve(finish({ ok: true }));
+                else
+                  resolve(
+                    finish({
+                      ok: false,
+                      timeout: false,
+                      error: msg.error || "Error",
+                    }),
+                  );
+              }
+            };
+
+            worker.onerror = function (err) {
               clearTimeout(timer);
-              if (msg && msg.ok) resolve(finish({ ok: true }));
-              else resolve(finish({ ok: false, timeout: false, error: msg.error || "Error" }));
-            }
-          };
+              var message = err && err.message ? err.message : "Worker error";
+              resolve(finish({ ok: false, timeout: false, error: message }));
+            };
 
-          worker.onerror = function (err) {
-            clearTimeout(timer);
-            var message = (err && err.message) ? err.message : "Worker error";
-            resolve(finish({ ok: false, timeout: false, error: message }));
-          };
-
-          worker.postMessage({
-            type: "run",
-            code: options.code || "",
-            stdinLines: splitLines(options.stdin || ""),
-            warnToStderr: warnToStderr
+            worker.postMessage({
+              type: "run",
+              code: options.code || "",
+              stdinLines: splitLines(options.stdin || ""),
+              warnToStderr: warnToStderr,
+            });
           });
-        });
+        }
+
+        window.PP_MINI_RUNNER = { runUserCode: runUserCode };
+      })();
+
+      /* ==========================
+       Merged App Logic
+       (Same logic as your uploaded version, only UI wiring added)
+       ========================== */
+      const STORAGE_KEY = "pp_merged_html_css_js_json_editor_v2_examples";
+      const $ = (id) => document.getElementById(id);
+
+      const status = $("status");
+      const consoleOut = $("consoleOut");
+      const preview = $("preview");
+      const autoPreview = $("autoPreview");
+      const injectJs = $("injectJs");
+      const renderJson = $("renderJson");
+      const timeoutMsEl = $("timeoutMs");
+
+      function setDot(kind) {
+        const dot = $("ppDot");
+        dot.classList.remove("ok", "bad");
+        if (kind === "ok") dot.classList.add("ok");
+        if (kind === "bad") dot.classList.add("bad");
+      }
+      function setStatus(text, kind) {
+        status.textContent = text;
+        status.classList.remove("ok", "bad");
+        if (kind === "ok") status.classList.add("ok");
+        if (kind === "bad") status.classList.add("bad");
+        $("ppStatusText").textContent = text || "Ready.";
+        setDot(kind || "");
       }
 
-      window.PP_MINI_RUNNER = { runUserCode: runUserCode };
-    })();
+      function appendConsole(line, cls) {
+        const div = document.createElement("div");
+        if (cls) div.className = cls;
+        div.textContent = line;
+        consoleOut.appendChild(div);
+        consoleOut.scrollTop = consoleOut.scrollHeight;
+      }
+      function clearConsole() {
+        consoleOut.innerHTML = "";
+      }
 
-    /* ==========================
-       Merged App Logic
-       ========================== */
-    const STORAGE_KEY = "pp_merged_html_css_js_json_editor_v2_examples";
-    const $ = (id) => document.getElementById(id);
+      function debounce(fn, ms) {
+        let t = null;
+        return (...args) => {
+          clearTimeout(t);
+          t = setTimeout(() => fn(...args), ms);
+        };
+      }
 
-    const status = $("status");
-    const consoleOut = $("consoleOut");
-    const preview = $("preview");
-    const autoPreview = $("autoPreview");
-    const injectJs = $("injectJs");
-    const renderJson = $("renderJson");
-    const timeoutMsEl = $("timeoutMs");
+      // CodeMirror editors (VS Code dark theme default)
+      const htmlCM = CodeMirror.fromTextArea($("htmlEditor"), {
+        mode: "htmlmixed",
+        theme: "material-darker",
+        lineNumbers: true,
+        lineWrapping: true,
+        tabSize: 2,
+        indentUnit: 2,
+        indentWithTabs: false,
+      });
 
-    function setStatus(text, kind){
-      status.textContent = text;
-      status.classList.remove("ok","bad");
-      if (kind === "ok") status.classList.add("ok");
-      if (kind === "bad") status.classList.add("bad");
-    }
+      const cssCM = CodeMirror.fromTextArea($("cssEditor"), {
+        mode: "css",
+        theme: "material-darker",
+        lineNumbers: true,
+        lineWrapping: true,
+        tabSize: 2,
+        indentUnit: 2,
+        indentWithTabs: false,
+      });
 
-    function appendConsole(line, cls){
-      const div = document.createElement("div");
-      if (cls) div.className = cls;
-      div.textContent = line;
-      consoleOut.appendChild(div);
-      consoleOut.scrollTop = consoleOut.scrollHeight;
-    }
-    function clearConsole(){ consoleOut.innerHTML = ""; }
+      const jsCM = CodeMirror.fromTextArea($("jsEditor"), {
+        mode: "javascript",
+        theme: "material-darker",
+        lineNumbers: true,
+        lineWrapping: true,
+        tabSize: 2,
+        indentUnit: 2,
+        indentWithTabs: false,
+      });
 
-    function debounce(fn, ms){
-      let t=null;
-      return (...args)=>{
-        clearTimeout(t);
-        t=setTimeout(()=>fn(...args), ms);
-      };
-    }
+      const jsonCM = CodeMirror.fromTextArea($("jsonEditor"), {
+        mode: { name: "javascript", json: true },
+        theme: "material-darker",
+        lineNumbers: true,
+        lineWrapping: true,
+        tabSize: 2,
+        indentUnit: 2,
+        indentWithTabs: false,
+      });
 
-    // CodeMirror editors
-    const htmlCM = CodeMirror.fromTextArea($("htmlEditor"), {
-      mode:"htmlmixed", theme:"eclipse", lineNumbers:true, lineWrapping:true,
-      tabSize:2, indentUnit:2, indentWithTabs:false
-    });
+      // Clear buttons
+      $("btnClearHtml").addEventListener("click", () => {
+        htmlCM.setValue("");
+        setStatus("HTML cleared.", "ok");
+        if (autoPreview.checked) runPreview();
+      });
+      $("btnClearCss").addEventListener("click", () => {
+        cssCM.setValue("");
+        setStatus("CSS cleared.", "ok");
+        if (autoPreview.checked) runPreview();
+      });
+      $("btnClearJs").addEventListener("click", () => {
+        jsCM.setValue("");
+        setStatus("JavaScript cleared.", "ok");
+      });
+      $("btnClearJson").addEventListener("click", () => {
+        jsonCM.setValue("");
+        setStatus("JSON cleared.", "ok");
+        if (autoPreview.checked) runPreview();
+      });
 
-    const cssCM = CodeMirror.fromTextArea($("cssEditor"), {
-      mode:"css", theme:"eclipse", lineNumbers:true, lineWrapping:true,
-      tabSize:2, indentUnit:2, indentWithTabs:false
-    });
+      // Share encode/decode for HTML+CSS+JS+JSON+stdin+toggles
+      function b64EncodeUnicode(str) {
+        const utf8 = new TextEncoder().encode(str);
+        let bin = "";
+        utf8.forEach((b) => (bin += String.fromCharCode(b)));
+        return btoa(bin);
+      }
+      function b64DecodeUnicode(b64) {
+        const bin = atob(b64);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        return new TextDecoder().decode(bytes);
+      }
+      function packState() {
+        const state = {
+          html: htmlCM.getValue(),
+          css: cssCM.getValue(),
+          js: jsCM.getValue(),
+          json: jsonCM.getValue(),
+          stdin: $("stdin").value,
+          timeout: Number(timeoutMsEl.value || 2000),
+          autoPreview: !!autoPreview.checked,
+          injectJs: !!injectJs.checked,
+          renderJson: !!renderJson.checked,
+        };
+        return encodeURIComponent(b64EncodeUnicode(JSON.stringify(state)));
+      }
+      function unpackState(packed) {
+        const json = b64DecodeUnicode(decodeURIComponent(packed));
+        return JSON.parse(json);
+      }
 
-    const jsCM = CodeMirror.fromTextArea($("jsEditor"), {
-      mode:"javascript", theme:"eclipse", lineNumbers:true, lineWrapping:true,
-      tabSize:2, indentUnit:2, indentWithTabs:false
-    });
-
-    const jsonCM = CodeMirror.fromTextArea($("jsonEditor"), {
-      mode:{ name:"javascript", json:true },
-      theme:"eclipse", lineNumbers:true, lineWrapping:true,
-      tabSize:2, indentUnit:2, indentWithTabs:false
-    });
-
-    // Clear buttons
-    $("btnClearHtml").addEventListener("click", () => {
-      htmlCM.setValue("");
-      setStatus("HTML cleared.", "ok");
-      if (autoPreview.checked) runPreview();
-    });
-    $("btnClearCss").addEventListener("click", () => {
-      cssCM.setValue("");
-      setStatus("CSS cleared.", "ok");
-      if (autoPreview.checked) runPreview();
-    });
-    $("btnClearJs").addEventListener("click", () => {
-      jsCM.setValue("");
-      setStatus("JS cleared.", "ok");
-    });
-    $("btnClearJson").addEventListener("click", () => {
-      jsonCM.setValue("");
-      setStatus("JSON cleared.", "ok");
-      if (autoPreview.checked) runPreview();
-    });
-
-    // Share encode/decode for HTML+CSS+JS+JSON+stdin+toggles
-    function b64EncodeUnicode(str){
-      const utf8 = new TextEncoder().encode(str);
-      let bin=""; utf8.forEach(b=>bin+=String.fromCharCode(b));
-      return btoa(bin);
-    }
-    function b64DecodeUnicode(b64){
-      const bin = atob(b64);
-      const bytes = new Uint8Array(bin.length);
-      for (let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
-      return new TextDecoder().decode(bytes);
-    }
-    function packState(){
-      const state = {
-        html: htmlCM.getValue(),
-        css: cssCM.getValue(),
-        js: jsCM.getValue(),
-        json: jsonCM.getValue(),
-        stdin: $("stdin").value,
-        timeout: Number(timeoutMsEl.value || 2000),
-        autoPreview: !!autoPreview.checked,
-        injectJs: !!injectJs.checked,
-        renderJson: !!renderJson.checked
-      };
-      return encodeURIComponent(b64EncodeUnicode(JSON.stringify(state)));
-    }
-    function unpackState(packed){
-      const json = b64DecodeUnicode(decodeURIComponent(packed));
-      return JSON.parse(json);
-    }
-
-    // JSON -> DOM builder injected into preview
-    function jsonBuilderScript(jsonText){
-      return `
+      // JSON -> DOM builder injected into preview
+      function jsonBuilderScript(jsonText) {
+        return `
 <script>
 (function(){
   function isObj(x){ return x && typeof x === "object" && !Array.isArray(x); }
@@ -687,14 +1100,14 @@ Champak
 })();
 <\/script>
 `;
-    }
+      }
 
-    function cssInjectTag(cssText){
-      return `\n<style id="pp_user_css">\n${cssText || ""}\n</style>\n`;
-    }
+      function cssInjectTag(cssText) {
+        return `\n<style id="pp_user_css">\n${cssText || ""}\n</style>\n`;
+      }
 
-    function safePreviewHTML(html, cssText, jsInject, jsonText, doJson){
-      const shim = `
+      function safePreviewHTML(html, cssText, jsInject, jsonText, doJson) {
+        const shim = `
 <script>
 (function(){
   window.addEventListener("error", function(ev){
@@ -706,190 +1119,239 @@ Champak
 })();
 <\/script>
 `;
-      let out = String(html || "");
-      if (!/<html[\s>]/i.test(out)) {
-        out = `<!doctype html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Preview</title></head><body></body></html>`;
+        let out = String(html || "");
+        if (!/<html[\s>]/i.test(out)) {
+          out = `<!doctype html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Preview</title></head><body></body></html>`;
+        }
+
+        // inject shim + css into head
+        const headInject = shim + "\n" + cssInjectTag(cssText);
+        if (/<\/head\s*>/i.test(out))
+          out = out.replace(/<\/head\s*>/i, headInject + "\n</head>");
+        else out = headInject + "\n" + out;
+
+        // JSON UI render
+        if (doJson) {
+          const jsonScript = jsonBuilderScript(jsonText || "");
+          if (/<\/body\s*>/i.test(out))
+            out = out.replace(/<\/body\s*>/i, "\n" + jsonScript + "\n</body>");
+          else out += "\n" + jsonScript + "\n";
+        }
+
+        // Optional JS injection into preview (unsafe)
+        if (jsInject && jsInject.trim()) {
+          const scriptTag = `\n<script>\n${jsInject}\n<\/script>\n`;
+          if (/<\/body\s*>/i.test(out))
+            out = out.replace(/<\/body\s*>/i, scriptTag + "</body>");
+          else out += scriptTag;
+        }
+
+        return out;
       }
 
-      // inject shim + css into head
-      const headInject = shim + "\n" + cssInjectTag(cssText);
-      if (/<\/head\s*>/i.test(out)) out = out.replace(/<\/head\s*>/i, headInject + "\n</head>");
-      else out = headInject + "\n" + out;
+      function runPreview() {
+        const html = htmlCM.getValue();
+        const css = cssCM.getValue();
+        const js = injectJs.checked ? jsCM.getValue() : "";
+        const json = jsonCM.getValue();
+        const doJson = !!renderJson.checked;
 
-      // JSON UI render
-      if (doJson) {
-        const jsonScript = jsonBuilderScript(jsonText || "");
-        if (/<\/body\s*>/i.test(out)) out = out.replace(/<\/body\s*>/i, "\n" + jsonScript + "\n</body>");
-        else out += "\n" + jsonScript + "\n";
+        preview.srcdoc = safePreviewHTML(html, css, js, json, doJson);
+        setStatus("Preview updated ✅", "ok");
       }
 
-      // Optional JS injection into preview (unsafe)
-      if (jsInject && jsInject.trim()) {
-        const scriptTag = `\n<script>\n${jsInject}\n<\/script>\n`;
-        if (/<\/body\s*>/i.test(out)) out = out.replace(/<\/body\s*>/i, scriptTag + "</body>");
-        else out += scriptTag;
+      function runJsonOnly() {
+        runPreview();
+        setStatus("JSON rendered ✅", "ok");
       }
 
-      return out;
-    }
+      async function runJsSandbox() {
+        clearConsole();
+        setStatus("Running JS sandbox…", "");
+        const t = Number(timeoutMsEl.value || 2000);
+        $("tLabel").textContent = String(t);
 
-    function runPreview(){
-      const html = htmlCM.getValue();
-      const css = cssCM.getValue();
-      const js = injectJs.checked ? jsCM.getValue() : "";
-      const json = jsonCM.getValue();
-      const doJson = !!renderJson.checked;
+        const result = await window.PP_MINI_RUNNER.runUserCode({
+          code: jsCM.getValue(),
+          stdin: $("stdin").value,
+          timeoutMs: t,
+          warnToStderr: true,
+          onStdout: (s) => appendConsole(s),
+          onStderr: (s) => appendConsole(s, "bad"),
+        });
 
-      preview.srcdoc = safePreviewHTML(html, css, js, json, doJson);
-      setStatus("Preview updated ✅", "ok");
-    }
+        if (result.ok) {
+          setStatus(`✅ JS done in ${result.ms} ms`, "ok");
+        } else {
+          if (result.timeout)
+            setStatus(`⏱️ ${result.error} (killed safely)`, "bad");
+          else setStatus(`❌ ${result.error}`, "bad");
+        }
+      }
 
-    function runJsonOnly(){
-      runPreview();
-      setStatus("JSON rendered ✅", "ok");
-    }
+      const runPreviewDebounced = debounce(() => {
+        if (autoPreview.checked) runPreview();
+      }, 300);
 
-    async function runJsSandbox(){
-      clearConsole();
-      setStatus("Running JS sandbox…", "");
-      const t = Number(timeoutMsEl.value || 2000);
-      $("tLabel").textContent = String(t);
-
-      const result = await window.PP_MINI_RUNNER.runUserCode({
-        code: jsCM.getValue(),
-        stdin: $("stdin").value,
-        timeoutMs: t,
-        warnToStderr: true,
-        onStdout: (s)=>appendConsole(s),
-        onStderr: (s)=>appendConsole(s, "bad"),
+      htmlCM.on("change", () => {
+        setStatus("Editing HTML…", "");
+        runPreviewDebounced();
+      });
+      cssCM.on("change", () => {
+        setStatus("Editing CSS…", "");
+        runPreviewDebounced();
+      });
+      jsonCM.on("change", () => {
+        setStatus("Editing JSON…", "");
+        runPreviewDebounced();
+      });
+      jsCM.on("change", () => {
+        setStatus("Editing JavaScript…", "");
       });
 
-      if (result.ok){
-        setStatus(`✅ JS done in ${result.ms} ms`, "ok");
-      } else {
-        if (result.timeout) setStatus(`⏱️ ${result.error} (killed safely)`, "bad");
-        else setStatus(`❌ ${result.error}`, "bad");
-      }
-    }
+      // Keyboard shortcuts
+      htmlCM.addKeyMap({
+        "Ctrl-Enter": () => runPreview(),
+        "Cmd-Enter": () => runPreview(),
+      });
+      cssCM.addKeyMap({
+        "Ctrl-Enter": () => runPreview(),
+        "Cmd-Enter": () => runPreview(),
+      });
+      jsCM.addKeyMap({
+        "Ctrl-Enter": () => runJsSandbox(),
+        "Cmd-Enter": () => runJsSandbox(),
+      });
+      jsonCM.addKeyMap({
+        "Ctrl-Enter": () => runJsonOnly(),
+        "Cmd-Enter": () => runJsonOnly(),
+      });
 
-    const runPreviewDebounced = debounce(()=>{ if(autoPreview.checked) runPreview(); }, 300);
+      // Buttons
+      $("btnRunAll").addEventListener("click", runPreview);
+      $("btnRunJs").addEventListener("click", runJsSandbox);
+      $("btnRunJson").addEventListener("click", runJsonOnly);
+      $("btnClearConsole").addEventListener("click", () => {
+        clearConsole();
+        setStatus("Console cleared.", "ok");
+      });
 
-    htmlCM.on("change", ()=>{ setStatus("Editing HTML…", ""); runPreviewDebounced(); });
-    cssCM.on("change", ()=>{ setStatus("Editing CSS…", ""); runPreviewDebounced(); });
-    jsonCM.on("change", ()=>{ setStatus("Editing JSON…", ""); runPreviewDebounced(); });
-    jsCM.on("change", ()=>{ setStatus("Editing JS…", ""); });
+      // Save/Load/Reset/Share
+      $("btnSave").addEventListener("click", () => {
+        const payload = {
+          html: htmlCM.getValue(),
+          css: cssCM.getValue(),
+          js: jsCM.getValue(),
+          json: jsonCM.getValue(),
+          stdin: $("stdin").value,
+          timeout: Number(timeoutMsEl.value || 2000),
+          autoPreview: !!autoPreview.checked,
+          injectJs: !!injectJs.checked,
+          renderJson: !!renderJson.checked,
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+        setStatus("Saved ✅", "ok");
+      });
 
-    // Keyboard shortcuts
-    htmlCM.addKeyMap({ "Ctrl-Enter": ()=>runPreview(), "Cmd-Enter": ()=>runPreview() });
-    cssCM.addKeyMap({ "Ctrl-Enter": ()=>runPreview(), "Cmd-Enter": ()=>runPreview() });
-    jsCM.addKeyMap({ "Ctrl-Enter": ()=>runJsSandbox(), "Cmd-Enter": ()=>runJsSandbox() });
-    jsonCM.addKeyMap({ "Ctrl-Enter": ()=>runJsonOnly(), "Cmd-Enter": ()=>runJsonOnly() });
-
-    // Buttons
-    $("btnRunAll").addEventListener("click", runPreview);
-    $("btnRunJs").addEventListener("click", runJsSandbox);
-    $("btnRunJson").addEventListener("click", runJsonOnly);
-    $("btnClearConsole").addEventListener("click", ()=>{ clearConsole(); setStatus("Console cleared.", "ok"); });
-
-    // Save/Load/Reset/Share
-    $("btnSave").addEventListener("click", ()=>{
-      const payload = {
-        html: htmlCM.getValue(),
-        css: cssCM.getValue(),
-        js: jsCM.getValue(),
-        json: jsonCM.getValue(),
-        stdin: $("stdin").value,
-        timeout: Number(timeoutMsEl.value || 2000),
-        autoPreview: !!autoPreview.checked,
-        injectJs: !!injectJs.checked,
-        renderJson: !!renderJson.checked
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-      setStatus("Saved ✅", "ok");
-    });
-
-    $("btnLoad").addEventListener("click", ()=>{
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if(!raw){ setStatus("Nothing saved yet.", "bad"); return; }
-      try{
-        const payload = JSON.parse(raw);
-        htmlCM.setValue(payload.html || "");
-        cssCM.setValue(payload.css || "");
-        jsCM.setValue(payload.js || "");
-        jsonCM.setValue(payload.json || "");
-        $("stdin").value = payload.stdin || "";
-        timeoutMsEl.value = String(payload.timeout || 2000);
-        autoPreview.checked = !!payload.autoPreview;
-        injectJs.checked = !!payload.injectJs;
-        renderJson.checked = payload.renderJson !== false;
-        $("tLabel").textContent = String(timeoutMsEl.value);
-        runPreview();
-        setStatus("Loaded ✅", "ok");
-      }catch(e){
-        setStatus("Load failed.", "bad");
-      }
-    });
-
-    $("btnReset").addEventListener("click", ()=>{
-      // default to first example (starter) after examples array is defined; temporary placeholders here
-      loadExampleById("ex_starter");
-      setStatus("Reset ✅", "ok");
-    });
-
-    async function copyToClipboard(text){
-      try{ await navigator.clipboard.writeText(text); return true; }
-      catch(_){
-        const ta=document.createElement("textarea");
-        ta.value=text; ta.style.position="fixed"; ta.style.left="-9999px";
-        document.body.appendChild(ta); ta.select();
-        try{ document.execCommand("copy"); document.body.removeChild(ta); return true; }
-        catch(e){ document.body.removeChild(ta); return false; }
-      }
-    }
-
-    $("btnShare").addEventListener("click", async ()=>{
-      const packed = packState();
-      const url = location.origin + location.pathname + "#pp=" + packed;
-
-      if (navigator.share){
-        try{
-          await navigator.share({
-            title:"PP Merged Editor — shared code",
-            text:"Open this link to load HTML + CSS + JS + JSON + stdin.",
-            url
-          });
-          setStatus("Shared ✅", "ok");
+      $("btnLoad").addEventListener("click", () => {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          setStatus("Nothing saved yet.", "bad");
           return;
-        }catch(e){}
-      }
-      const ok = await copyToClipboard(url);
-      setStatus(ok ? "Share link copied ✅" : "Could not copy link", ok ? "ok":"bad");
-    });
+        }
+        try {
+          const payload = JSON.parse(raw);
+          htmlCM.setValue(payload.html || "");
+          cssCM.setValue(payload.css || "");
+          jsCM.setValue(payload.js || "");
+          jsonCM.setValue(payload.json || "");
+          $("stdin").value = payload.stdin || "";
+          timeoutMsEl.value = String(payload.timeout || 2000);
+          autoPreview.checked = !!payload.autoPreview;
+          injectJs.checked = !!payload.injectJs;
+          renderJson.checked = payload.renderJson !== false;
+          $("tLabel").textContent = String(timeoutMsEl.value);
+          runPreview();
+          setStatus("Loaded ✅", "ok");
+        } catch (e) {
+          setStatus("Load failed.", "bad");
+        }
+      });
 
-    // Preview error bridge
-    window.addEventListener("message", (ev)=>{
-      const d = ev.data || {};
-      if (d.type === "pp_preview_error"){
-        setStatus("Preview error: " + d.message, "bad");
-      }
-    });
+      // Keep your reset behavior: loads starter example if present
+      $("btnReset").addEventListener("click", () => {
+        loadExampleById("ex_starter");
+        setStatus("Reset ✅", "ok");
+      });
 
-    /* ==========================
-       IMPORTANT EXAMPLES
-       - Each example includes HTML, CSS, JS, JSON, plus recommended toggles.
-       - One-click load => test => share.
+      async function copyToClipboard(text) {
+        try {
+          await navigator.clipboard.writeText(text);
+          return true;
+        } catch (_) {
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          ta.style.position = "fixed";
+          ta.style.left = "-9999px";
+          document.body.appendChild(ta);
+          ta.select();
+          try {
+            document.execCommand("copy");
+            document.body.removeChild(ta);
+            return true;
+          } catch (e) {
+            document.body.removeChild(ta);
+            return false;
+          }
+        }
+      }
+
+      $("btnShare").addEventListener("click", async () => {
+        const packed = packState();
+        const url = location.origin + location.pathname + "#pp=" + packed;
+
+        if (navigator.share) {
+          try {
+            await navigator.share({
+              title: "PP Merged Editor — shared code",
+              text: "Open this link to load HTML + CSS + JS + JSON + stdin.",
+              url,
+            });
+            setStatus("Shared ✅", "ok");
+            return;
+          } catch (e) {}
+        }
+        const ok = await copyToClipboard(url);
+        setStatus(
+          ok ? "Share link copied ✅" : "Could not copy link",
+          ok ? "ok" : "bad",
+        );
+      });
+
+      // Preview error bridge
+      window.addEventListener("message", (ev) => {
+        const d = ev.data || {};
+        if (d.type === "pp_preview_error") {
+          setStatus("Preview error: " + d.message, "bad");
+        }
+      });
+
+      /* ==========================
+       Examples (from your uploaded page)
        ========================== */
-    const EXAMPLES = [
-      {
-        id:"ex_starter",
-        title:"Starter: JSON mounts into #pp_json_root",
-        desc:"Baseline template: HTML + CSS + JSON UI. Great for first-time sharing.",
-        tags:["json-ui","createElement","beginner"],
-        state:{
-          autoPreview:true, injectJs:false, renderJson:true,
-          stdin:"Champak\n25",
-          timeout:2000,
-          html:`<!doctype html>
+      const EXAMPLES = [
+        {
+          id: "ex_starter",
+          title: "Starter: JSON mounts into #pp_json_root",
+          desc: "Baseline template: HTML + CSS + JSON UI. Great for first-time sharing.",
+          tags: ["json-ui", "createElement", "beginner"],
+          state: {
+            autoPreview: true,
+            injectJs: false,
+            renderJson: true,
+            stdin: "Champak\n25",
+            timeout: 2000,
+            html: `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -904,17 +1366,17 @@ Champak
   </div>
 </body>
 </html>`,
-          css:`:root{ --brand:#d97706; }
+            css: `:root{ --brand:#d97706; }
 body{ font-family:system-ui; margin:0; padding:24px; background:#fff; color:#111827; }
 .card{ border:1px solid #e5e7eb; border-radius:14px; padding:16px; max-width:980px; background:#fff; }
-h1{ margin:0 0 8px; color:var(--brand); }
-.muted{ color:#6b7280; margin:0 0 10px; }
+h1{ margin:0 0 8px; color:var(--brand); letter-spacing:-.3px; }
+.muted{ color:#6b7280; margin:0 0 10px; font-weight:650; }
 code{ background:#fff7ea; border:1px solid #f3d7a6; padding:1px 6px; border-radius:8px; }`,
-          js:`// JS Sandbox demo (safe worker)
+            js: `// JS Sandbox demo (safe worker)
 console.log("Hello from JS sandbox!");
 const name = input("Enter your name:");
 console.log("Hi", name);`,
-          json:`{
+            json: `{
   "mountId": "pp_json_root",
   "nodes": [
     {
@@ -931,412 +1393,329 @@ console.log("Hi", name);`,
       ]
     }
   ]
-}`
-        }
-      },
-
-      {
-        id:"ex_css_vars_calc",
-        title:"CSS var() + calc(): Fluid card layout",
-        desc:"Teaches design tokens and responsive spacing using var() + calc().",
-        tags:["css","var()","calc()","responsive"],
-        state:{
-          autoPreview:true, injectJs:false, renderJson:false,
-          stdin:"",
-          timeout:2000,
-          html:`<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>CSS var() + calc()</title>
-</head>
-<body>
-  <header class="top">
-    <div>
-      <h1>Fluid Layout</h1>
-      <p>Resize the window — spacing and card width adapt using <code>var()</code> + <code>calc()</code>.</p>
-    </div>
-    <div class="badge">Programmer’s Picnic</div>
-  </header>
-
-  <main class="wrap">
-    <section class="grid">
-      <article class="card"><h2>Card 1</h2><p>Uses tokenized spacing.</p></article>
-      <article class="card"><h2>Card 2</h2><p>Width uses min() and calc().</p></article>
-      <article class="card"><h2>Card 3</h2><p>Try changing --gutter or --max.</p></article>
-    </section>
-  </main>
-</body>
-</html>`,
-          css:`:root{
-  --brand:#d97706;
-  --bg:#fff7e6;
-  --gutter: clamp(12px, calc(10px + 1.2vw), 22px);
-  --max: 1050px;
-  --radius: 18px;
-}
-*{ box-sizing:border-box; }
-body{ margin:0; font-family:system-ui; background:var(--bg); color:#111827; }
-.top{
-  display:flex; justify-content:space-between; gap:12px; align-items:flex-start;
-  padding: var(--gutter);
-  background: linear-gradient(180deg, rgba(255,255,255,.85), rgba(255,255,255,.55));
-  border-bottom: 1px solid rgba(17,24,39,.10);
-}
-.top h1{ margin:0 0 6px; color:var(--brand); letter-spacing:-.3px; }
-.top p{ margin:0; color:#6b7280; font-weight:650; }
-.badge{
-  border:1px solid rgba(217,119,6,.25);
-  background:rgba(255,255,255,.8);
-  padding:8px 10px;
-  border-radius:999px;
-  font-weight:900;
-  color:#92400e;
-  white-space:nowrap;
-}
-.wrap{
-  width: min(var(--max), calc(100% - (var(--gutter) * 2)));
-  margin: 0 auto;
-  padding: var(--gutter);
-}
-.grid{
-  display:grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: var(--gutter);
-}
-.card{
-  background:rgba(255,255,255,.85);
-  border:1px solid rgba(17,24,39,.12);
-  border-radius: var(--radius);
-  padding: calc(var(--gutter) * 0.9);
-  box-shadow: 0 14px 36px rgba(17,24,39,.10);
-}
-.card h2{ margin:0 0 8px; color:#111827; }
-.card p{ margin:0; color:#6b7280; font-weight:650; }
-code{ background:#fff; border:1px solid rgba(217,119,6,.18); padding:1px 6px; border-radius:8px; }`,
-          js:`// No JS needed`,
-          json:`{ "mountId":"pp_json_root", "nodes":[] }`
-        }
-      },
-
-      {
-        id:"ex_dom_injected",
-        title:"DOM: createElement() + events (Injected JS)",
-        desc:"Teaches DOM manipulation inside preview. Toggle Inject JS ON automatically.",
-        tags:["dom","createElement","events","preview-js"],
-        state:{
-          autoPreview:true, injectJs:true, renderJson:false,
-          stdin:"",
-          timeout:2000,
-          html:`<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>DOM createElement</title>
-</head>
-<body>
-  <div class="card">
-    <h1>DOM Builder</h1>
-    <p class="muted">Click buttons to add/remove items. (Runs in preview JS)</p>
-    <div class="row">
-      <button id="add">Add Item</button>
-      <button id="clear">Clear</button>
-    </div>
-    <ul id="list"></ul>
-  </div>
-</body>
-</html>`,
-          css:`:root{ --brand:#d97706; }
-body{ font-family:system-ui; margin:0; padding:24px; background:#fff; color:#111827; }
-.card{ border:1px solid #e5e7eb; border-radius:14px; padding:16px; max-width:980px; background:#fff; }
-h1{ margin:0 0 8px; color:var(--brand); }
-.muted{ color:#6b7280; margin:0 0 10px; font-weight:650; }
-.row{ display:flex; gap:10px; flex-wrap:wrap; }
-button{ padding:10px 12px; border:1px solid #e5e7eb; border-radius:12px; background:#fff; cursor:pointer; font-weight:800; }
-ul{ margin:12px 0 0; padding-left:18px; }
-li{ margin:6px 0; }`,
-          js:`// This runs INSIDE the preview (because Inject JS is ON)
-let n = 0;
-const list = document.getElementById("list");
-
-document.getElementById("add").addEventListener("click", ()=>{
-  n++;
-  const li = document.createElement("li");
-  li.textContent = "Item " + n;
-
-  // Remove on click
-  li.addEventListener("click", ()=> li.remove());
-
-  list.append(li);
-});
-
-document.getElementById("clear").addEventListener("click", ()=>{
-  list.innerHTML = "";
-  n = 0;
-});`,
-          json:`{ "mountId":"pp_json_root", "nodes":[] }`
-        }
-      },
-
-      {
-        id:"ex_sandbox_input_math",
-        title:"JS Sandbox: input() + parsing + math + loops",
-        desc:"Classic test: reads numbers/strings, computes results, prints to console output safely.",
-        tags:["js-sandbox","input()","parseInt","loops"],
-        state:{
-          autoPreview:false, injectJs:false, renderJson:false,
-          stdin:"5\n10\n3\n7\n",
-          timeout:2000,
-          html:`<!doctype html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sandbox Only</title></head><body>
-<div style="font-family:system-ui;padding:24px">
-  <h1 style="margin:0 0 8px;color:#d97706">JS Sandbox Example</h1>
-  <p style="margin:0;color:#6b7280;font-weight:650">Run <b>JS Sandbox</b> to see output on the right.</p>
-</div></body></html>`,
-          css:`/* optional */`,
-          js:`// Reads 4 lines: a, b, c, d
-const a = Number(input("Enter a:"));
-const b = Number(input("Enter b:"));
-const c = Number(input("Enter c:"));
-const d = Number(input("Enter d:"));
-
-console.log("a+b =", a + b);
-console.log("c*d =", c * d);
-
-// Loop example
-let sum = 0;
-for(let i=1;i<=a;i++) sum += i;
-console.log("Sum 1..a =", sum);
-
-// Edge: NaN check
-if (Number.isNaN(a) || Number.isNaN(b) || Number.isNaN(c) || Number.isNaN(d)){
-  console.error("Invalid number input (NaN).");
 }`,
-          json:`{ "mountId":"pp_json_root", "nodes":[] }`
-        }
-      },
+          },
+        },
+      ];
 
-      {
-        id:"ex_json_form_generator",
-        title:"JSON UI: Form generator + minimal styling",
-        desc:"Shows how JSON creates a form layout quickly (labels, inputs, button).",
-        tags:["json-ui","forms","layout"],
-        state:{
-          autoPreview:true, injectJs:false, renderJson:true,
-          stdin:"",
-          timeout:2000,
-          html:`<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>JSON Form</title>
-</head>
-<body>
-  <div class="card">
-    <h1>JSON Form Generator</h1>
-    <p class="muted">Edit JSON to add fields. The UI is created with createElement().</p>
-    <div id="pp_json_root"></div>
-  </div>
-</body>
-</html>`,
-          css:`:root{ --brand:#d97706; }
-body{ font-family:system-ui; margin:0; padding:24px; background:#fff; color:#111827; }
-.card{ border:1px solid #e5e7eb; border-radius:14px; padding:16px; max-width:980px; background:#fff; }
-h1{ margin:0 0 8px; color:var(--brand); }
-.muted{ color:#6b7280; margin:0 0 10px; font-weight:650; }
-label{ font-weight:800; font-size:13px; }
-input, select{ width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:12px; }
-button{ padding:10px 12px; border:1px solid #e5e7eb; border-radius:12px; background:#fff; cursor:pointer; font-weight:900; }
-.grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-@media(max-width:800px){ .grid{ grid-template-columns:1fr; } }`,
-          js:`// Optional: leave empty`,
-          json:`{
-  "mountId": "pp_json_root",
-  "nodes": [
-    {
-      "tag": "form",
-      "attrs": { "id": "f" },
-      "style": { "display": "grid", "gap": "12px" },
-      "children": [
-        {
-          "tag": "div",
-          "attrs": { "class": "grid" },
-          "children": [
-            { "tag": "div", "children": [
-              { "tag": "label", "text": "Name" },
-              { "tag": "input", "attrs": { "placeholder": "Your name" } }
-            ]},
-            { "tag": "div", "children": [
-              { "tag": "label", "text": "Age" },
-              { "tag": "input", "attrs": { "type": "number", "placeholder": "18" } }
-            ]}
-          ]
-        },
-        { "tag": "div", "children": [
-          { "tag": "label", "text": "Message" },
-          { "tag": "input", "attrs": { "placeholder": "Say hello…" } }
-        ]},
-        {
-          "tag": "button",
-          "text": "Submit",
-          "attrs": { "type": "button", "id": "btnSubmit" }
-        },
-        {
-          "tag": "div",
-          "attrs": { "id": "result" },
-          "style": { "fontWeight":"900", "color":"#065f46" }
-        }
-      ]
-    }
-  ]
-}`
-        }
+      function applyExampleState(st) {
+        $("stdin").value = st.stdin || "";
+        timeoutMsEl.value = String(st.timeout || 2000);
+        $("tLabel").textContent = String(timeoutMsEl.value);
+
+        autoPreview.checked = !!st.autoPreview;
+        injectJs.checked = !!st.injectJs;
+        renderJson.checked = st.renderJson !== false;
+
+        htmlCM.setValue(st.html || "");
+        cssCM.setValue(st.css || "");
+        jsCM.setValue(st.js || "");
+        jsonCM.setValue(st.json || "");
+
+        clearConsole();
+        runPreview();
+        setStatus("Example loaded ✅", "ok");
       }
-    ];
-
-    function applyExampleState(st){
-      $("stdin").value = st.stdin || "";
-      timeoutMsEl.value = String(st.timeout || 2000);
-      $("tLabel").textContent = String(timeoutMsEl.value);
-
-      autoPreview.checked = !!st.autoPreview;
-      injectJs.checked = !!st.injectJs;
-      renderJson.checked = st.renderJson !== false;
-
-      htmlCM.setValue(st.html || "");
-      cssCM.setValue(st.css || "");
-      jsCM.setValue(st.js || "");
-      jsonCM.setValue(st.json || "");
-
-      clearConsole();
-      runPreview();
-      setStatus("Example loaded ✅", "ok");
-    }
-
-    function loadExampleById(id){
-      const ex = EXAMPLES.find(x=>x.id===id);
-      if(!ex) return;
-      applyExampleState(ex.state);
-    }
-
-    function renderExamples(){
-      const host = $("examples");
-      host.innerHTML = "";
-      EXAMPLES.forEach(ex=>{
-        const card = document.createElement("div");
-        card.className = "ex-card";
-
-        const title = document.createElement("div");
-        title.className = "ex-title";
-        title.innerHTML = `<b>${ex.title}</b>`;
-
-        const tags = document.createElement("div");
-        tags.className = "tagrow";
-        (ex.tags||[]).forEach(t=>{
-          const s=document.createElement("span");
-          s.className="tag";
-          s.textContent=t;
-          tags.appendChild(s);
-        });
-
-        const desc = document.createElement("p");
-        desc.className = "ex-desc";
-        desc.textContent = ex.desc || "";
-
-        const actions = document.createElement("div");
-        actions.className = "ex-actions";
-
-        const btnLoad = document.createElement("button");
-        btnLoad.className = "btn tiny primary";
-        btnLoad.textContent = "Load";
-        btnLoad.addEventListener("click", ()=>loadExampleById(ex.id));
-
-        const btnLoadRun = document.createElement("button");
-        btnLoadRun.className = "btn tiny";
-        btnLoadRun.textContent = "Load + Run";
-        btnLoadRun.addEventListener("click", ()=>{
-          loadExampleById(ex.id);
-          // for sandbox examples, run sandbox too
-          if ((ex.tags||[]).includes("js-sandbox")) {
-            setTimeout(()=>$("btnRunJs").click(), 50);
-          }
-        });
-
-        const btnLoadShare = document.createElement("button");
-        btnLoadShare.className = "btn tiny";
-        btnLoadShare.textContent = "Load + Share";
-        btnLoadShare.addEventListener("click", async ()=>{
-          loadExampleById(ex.id);
-          // copy share link (same as Share button)
-          $("btnShare").click();
-        });
-
-        actions.appendChild(btnLoad);
-        actions.appendChild(btnLoadRun);
-        actions.appendChild(btnLoadShare);
-
-        card.appendChild(title);
-        card.appendChild(tags);
-        card.appendChild(desc);
-        card.appendChild(actions);
-        host.appendChild(card);
-      });
-    }
-
-    /* ==========================
-       INIT load from share hash or localStorage, else load Starter example
-       ========================== */
-    function initFromStateObject(state){
-      $("stdin").value = state.stdin || "";
-      timeoutMsEl.value = String(state.timeout || 2000);
-      $("tLabel").textContent = String(timeoutMsEl.value);
-
-      autoPreview.checked = !!state.autoPreview;
-      injectJs.checked = !!state.injectJs;
-      renderJson.checked = state.renderJson !== false;
-
-      htmlCM.setValue(state.html || "");
-      cssCM.setValue(state.css || "");
-      jsCM.setValue(state.js || "");
-      jsonCM.setValue(state.json || "");
-      runPreview();
-    }
-
-    renderExamples();
-
-    (function init(){
-      let loaded = false;
-
-      if (location.hash && location.hash.startsWith("#pp=")){
-        const packed = location.hash.slice(4);
-        try{
-          const state = unpackState(packed);
-          initFromStateObject(state);
-          loaded = true;
-          setStatus("Loaded from shared link ✅", "ok");
-        }catch(e){
-          setStatus("Share link invalid.", "bad");
-        }
+      function loadExampleById(id) {
+        const ex = EXAMPLES.find((x) => x.id === id);
+        if (!ex) return;
+        applyExampleState(ex.state);
       }
 
-      if (!loaded){
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw){
-          try{
-            const payload = JSON.parse(raw);
-            initFromStateObject(payload);
+      function renderExamples() {
+        const host = $("examples");
+        host.innerHTML = "";
+        EXAMPLES.forEach((ex) => {
+          const wrap = document.createElement("div");
+          wrap.style.display = "grid";
+          wrap.style.gap = "8px";
+          wrap.style.padding = "8px";
+          wrap.style.border = "1px solid rgba(255,255,255,.10)";
+          wrap.style.borderRadius = "12px";
+          wrap.style.background = "rgba(255,255,255,.03)";
+          wrap.style.marginBottom = "10px";
+
+          const t = document.createElement("div");
+          t.style.fontWeight = "900";
+          t.textContent = ex.title;
+
+          const d = document.createElement("div");
+          d.className = "hint";
+          d.textContent = ex.desc;
+
+          const row = document.createElement("div");
+          row.style.display = "flex";
+          row.style.gap = "8px";
+          row.style.flexWrap = "wrap";
+
+          const b1 = document.createElement("button");
+          b1.className = "btn tiny primary";
+          b1.textContent = "Load";
+          b1.addEventListener("click", () => loadExampleById(ex.id));
+
+          const b2 = document.createElement("button");
+          b2.className = "btn tiny";
+          b2.textContent = "Load + Run";
+          b2.addEventListener("click", () => {
+            loadExampleById(ex.id);
+            setTimeout(() => runPreview(), 50);
+          });
+
+          row.appendChild(b1);
+          row.appendChild(b2);
+
+          wrap.appendChild(t);
+          wrap.appendChild(d);
+          wrap.appendChild(row);
+          host.appendChild(wrap);
+        });
+      }
+
+      function initFromStateObject(state) {
+        $("stdin").value = state.stdin || "";
+        timeoutMsEl.value = String(state.timeout || 2000);
+        $("tLabel").textContent = String(timeoutMsEl.value);
+
+        autoPreview.checked = !!state.autoPreview;
+        injectJs.checked = !!state.injectJs;
+        renderJson.checked = state.renderJson !== false;
+
+        htmlCM.setValue(state.html || "");
+        cssCM.setValue(state.css || "");
+        jsCM.setValue(state.js || "");
+        jsonCM.setValue(state.json || "");
+        runPreview();
+      }
+
+      renderExamples();
+
+      (function init() {
+        let loaded = false;
+
+        if (location.hash && location.hash.startsWith("#pp=")) {
+          const packed = location.hash.slice(4);
+          try {
+            const state = unpackState(packed);
+            initFromStateObject(state);
             loaded = true;
-            setStatus("Loaded from local save ✅", "ok");
-          }catch(_){}
+            setStatus("Loaded from shared link ✅", "ok");
+          } catch (e) {
+            setStatus("Share link invalid.", "bad");
+          }
         }
-      }
 
-      if (!loaded){
-        loadExampleById("ex_starter");
-      }
-    })();
-  </script>
-</body>
+        if (!loaded) {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            try {
+              const payload = JSON.parse(raw);
+              initFromStateObject(payload);
+              loaded = true;
+              setStatus("Loaded from local save ✅", "ok");
+            } catch (_) {}
+          }
+        }
+
+        if (!loaded) {
+          loadExampleById("ex_starter");
+        }
+
+        // refresh editors after layout
+        setTimeout(() => {
+          try {
+            htmlCM.refresh();
+            cssCM.refresh();
+            jsCM.refresh();
+            jsonCM.refresh();
+          } catch (_) {}
+        }, 60);
+      })();
+
+      /* ==========================
+       VS Code UI wiring (tabs + splitter + theme + open preview)
+       ========================== */
+      (function () {
+        const tabs = Array.from(document.querySelectorAll(".tab"));
+        const wraps = {
+          html: $("wrapHtml"),
+          css: $("wrapCss"),
+          js: $("wrapJs"),
+          json: $("wrapJson"),
+        };
+        const clears = {
+          html: $("btnClearHtml"),
+          css: $("btnClearCss"),
+          js: $("btnClearJs"),
+          json: $("btnClearJson"),
+        };
+
+        function showTab(k) {
+          tabs.forEach((t) =>
+            t.classList.toggle("active", t.dataset.tab === k),
+          );
+          Object.keys(wraps).forEach(
+            (key) => (wraps[key].style.display = key === k ? "flex" : "none"),
+          );
+          Object.keys(clears).forEach(
+            (key) => (clears[key].style.display = key === k ? "" : "none"),
+          );
+          $("ppEditorHint").textContent = k.toUpperCase();
+          setTimeout(() => {
+            try {
+              if (k === "html") htmlCM.refresh();
+              if (k === "css") cssCM.refresh();
+              if (k === "js") jsCM.refresh();
+              if (k === "json") jsonCM.refresh();
+            } catch (_) {}
+          }, 20);
+        }
+        tabs.forEach((t) =>
+          t.addEventListener("click", () => showTab(t.dataset.tab)),
+        );
+
+        // Splitter
+        const split = $("ppSplit");
+        const left = $("ppLeft");
+        const divider = $("ppDivider");
+        let dragging = false;
+
+        function clamp(n, a, b) {
+          return Math.max(a, Math.min(b, n));
+        }
+
+        divider.addEventListener("mousedown", () => {
+          dragging = true;
+          document.body.style.cursor = "col-resize";
+          document.body.style.userSelect = "none";
+        });
+        window.addEventListener("mousemove", (e) => {
+          if (!dragging) return;
+          const r = split.getBoundingClientRect();
+          const x = e.clientX - r.left;
+          const pct = clamp((x / r.width) * 100, 25, 75);
+          left.style.flex = `0 0 ${pct}%`;
+          try {
+            localStorage.setItem("pp_split_pct_vscode", String(pct));
+          } catch (_) {}
+        });
+        window.addEventListener("mouseup", () => {
+          if (!dragging) return;
+          dragging = false;
+          document.body.style.cursor = "";
+          document.body.style.userSelect = "";
+          try {
+            htmlCM.refresh();
+            cssCM.refresh();
+            jsCM.refresh();
+            jsonCM.refresh();
+          } catch (_) {}
+        });
+        try {
+          const saved = parseFloat(
+            localStorage.getItem("pp_split_pct_vscode") || "",
+          );
+          if (saved && isFinite(saved))
+            left.style.flex = `0 0 ${clamp(saved, 25, 75)}%`;
+        } catch (_) {}
+
+        // Theme toggle (dark VS Code <-> light saffron)
+        let dark = true;
+        const btnTheme = $("ppThemeToggle");
+        function applyTheme(isDark) {
+          dark = isDark;
+          if (dark) {
+            document.documentElement.style.setProperty("--bg", "#1e1e1e");
+            document.documentElement.style.setProperty("--panel", "#252526");
+            document.documentElement.style.setProperty("--panel2", "#2d2d2d");
+            document.documentElement.style.setProperty("--top", "#323233");
+            document.documentElement.style.setProperty("--border", "#3a3a3a");
+            document.documentElement.style.setProperty("--text", "#e6e6e6");
+            document.documentElement.style.setProperty("--muted", "#9aa0a6");
+            try {
+              htmlCM.setOption("theme", "material-darker");
+              cssCM.setOption("theme", "material-darker");
+              jsCM.setOption("theme", "material-darker");
+              jsonCM.setOption("theme", "material-darker");
+            } catch (_) {}
+          } else {
+            // light saffron
+            document.documentElement.style.setProperty("--bg", "#fff7e6");
+            document.documentElement.style.setProperty(
+              "--panel",
+              "rgba(255,255,255,.86)",
+            );
+            document.documentElement.style.setProperty(
+              "--panel2",
+              "rgba(255,255,255,.92)",
+            );
+            document.documentElement.style.setProperty("--top", "#fff1d6");
+            document.documentElement.style.setProperty("--border", "#f3d7a6");
+            document.documentElement.style.setProperty("--text", "#1f2937");
+            document.documentElement.style.setProperty("--muted", "#6b7280");
+            try {
+              htmlCM.setOption("theme", "eclipse");
+              cssCM.setOption("theme", "eclipse");
+              jsCM.setOption("theme", "eclipse");
+              jsonCM.setOption("theme", "eclipse");
+            } catch (_) {}
+          }
+          try {
+            localStorage.setItem("pp_theme_vscode_dark", dark ? "1" : "0");
+          } catch (_) {}
+        }
+        btnTheme.addEventListener("click", () => applyTheme(!dark));
+        try {
+          const t = localStorage.getItem("pp_theme_vscode_dark");
+          applyTheme(t !== "0");
+        } catch (_) {
+          applyTheme(true);
+        }
+
+        // Open preview
+        $("ppOpenPreview").addEventListener("click", () => {
+          const html = preview.srcdoc || "";
+          const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+          const url = URL.createObjectURL(blob);
+          window.open(url, "_blank", "noopener");
+          setTimeout(() => URL.revokeObjectURL(url), 60_000);
+        });
+
+        // Console scroll helpers
+        $("btnConsoleToTop").addEventListener("click", () => {
+          consoleOut.scrollTop = 0;
+        });
+        $("btnConsoleToBottom").addEventListener("click", () => {
+          consoleOut.scrollTop = consoleOut.scrollHeight;
+        });
+
+        // Activity bar highlighting only
+        const actBtns = Array.from(document.querySelectorAll(".vs-actbtn"));
+        actBtns.forEach((b) => {
+          b.addEventListener("click", () => {
+            actBtns.forEach((x) => x.classList.remove("active"));
+            b.classList.add("active");
+            const a = b.dataset.act;
+            if (a === "preview")
+              $("ppRight").scrollIntoView({
+                behavior: "smooth",
+                block: "nearest",
+              });
+            if (a === "console")
+              $("ppBottom").scrollIntoView({
+                behavior: "smooth",
+                block: "nearest",
+              });
+            if (a === "explorer")
+              $("vsSidebar").scrollIntoView({
+                behavior: "smooth",
+                block: "nearest",
+              });
+          });
+        });
+
+        // Default tab: HTML
+        showTab("html");
+      })();
+    </script>
+  </body>
 </html>

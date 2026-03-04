@@ -6,406 +6,844 @@
     <title>Programmer's Picnic — Python Editor</title>
     <meta name="description" content="Programmer's Picnic editor." />
 
-    <!-- Your existing stylesheet -->
-    <link rel="stylesheet" href="./style.css" />
+    <style>
+      :root{
+        --bg:#1e1e1e;
+        --panel:#252526;
+        --panel2:#2d2d2d;
+        --top:#323233;
+        --border:#3a3a3a;
+        --muted:#9aa0a6;
+        --text:#e6e6e6;
+        --accent:#3794ff; /* VS Code blue */
+        --good:#2ea043;
+        --bad:#f85149;
+        --warn:#d29922;
+
+        --r:12px;
+        --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        --sans: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      }
+
+      *{ box-sizing:border-box; }
+      html,body{ height:100%; }
+      body{
+        margin:0;
+        font-family:var(--sans);
+        background:var(--bg);
+        color:var(--text);
+        overflow:hidden;
+      }
+
+      /* ----- VS Code chrome ----- */
+      .vs-topbar{
+        height:38px;
+        display:flex;
+        align-items:center;
+        gap:10px;
+        padding:0 12px;
+        background:var(--top);
+        border-bottom:1px solid var(--border);
+        user-select:none;
+      }
+      .vs-topbar .title{
+        font-size:13px;
+        color:#d7d7d7;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+      }
+      .vs-topbar .pill{
+        margin-left:auto;
+        display:flex;
+        gap:8px;
+        align-items:center;
+        font-size:12px;
+        color:var(--muted);
+      }
+
+      .vs-shell{
+        height:calc(100vh - 38px);
+        display:flex;
+      }
+
+      /* Activity bar */
+      .vs-activity{
+        width:50px;
+        background:#1b1b1b;
+        border-right:1px solid var(--border);
+        display:flex;
+        flex-direction:column;
+        padding:10px 6px;
+        gap:8px;
+      }
+      .vs-actbtn{
+        width:38px;
+        height:38px;
+        border-radius:10px;
+        border:1px solid transparent;
+        background:transparent;
+        color:#cfcfcf;
+        display:grid;
+        place-items:center;
+        cursor:pointer;
+        font-size:18px;
+      }
+      .vs-actbtn:hover{
+        background:rgba(255,255,255,.04);
+        border-color:rgba(255,255,255,.08);
+      }
+      .vs-actbtn.active{
+        background:rgba(55,148,255,.14);
+        border-color:rgba(55,148,255,.35);
+        color:#ffffff;
+      }
+
+      /* Sidebar */
+      .vs-sidebar{
+        width:280px;
+        min-width:240px;
+        max-width:360px;
+        background:var(--panel);
+        border-right:1px solid var(--border);
+        display:flex;
+        flex-direction:column;
+        overflow:hidden;
+      }
+      .vs-sidehead{
+        padding:10px 12px;
+        border-bottom:1px solid var(--border);
+        display:flex;
+        align-items:center;
+        gap:8px;
+      }
+      .vs-sidehead .label{
+        font-size:12px;
+        letter-spacing:.08em;
+        color:#cfcfcf;
+        opacity:.9;
+      }
+      .vs-sidebody{
+        overflow:auto;
+        padding:10px 10px 18px;
+      }
+      .vs-block{
+        border:1px solid rgba(255,255,255,.06);
+        background:rgba(0,0,0,.10);
+        border-radius:12px;
+        overflow:hidden;
+        margin-bottom:10px;
+      }
+      .vs-blockhead{
+        padding:10px 10px;
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:10px;
+        border-bottom:1px solid rgba(255,255,255,.06);
+        background:rgba(255,255,255,.02);
+      }
+      .vs-blockhead b{
+        font-size:12px;
+        color:#d7d7d7;
+        letter-spacing:.02em;
+      }
+      .vs-blockbody{ padding:10px; }
+
+      /* Main */
+      .vs-main{
+        flex:1;
+        display:flex;
+        flex-direction:column;
+        min-width:0;
+      }
+
+      /* Editor header (toolbar) */
+      .vs-editorbar{
+        background:var(--panel2);
+        border-bottom:1px solid var(--border);
+        padding:10px 10px;
+        display:flex;
+        gap:8px;
+        flex-wrap:wrap;
+        align-items:center;
+      }
+      .vs-btn{
+        border:1px solid rgba(255,255,255,.10);
+        background:rgba(255,255,255,.06);
+        color:var(--text);
+        padding:8px 10px;
+        border-radius:10px;
+        cursor:pointer;
+        font-weight:700;
+        font-size:13px;
+        display:inline-flex;
+        align-items:center;
+        gap:8px;
+      }
+      .vs-btn:hover{ background:rgba(255,255,255,.10); }
+      .vs-btn.primary{
+        background:rgba(55,148,255,.18);
+        border-color:rgba(55,148,255,.35);
+      }
+      .vs-btn.primary:hover{ background:rgba(55,148,255,.26); }
+      .vs-btn.danger{
+        background:rgba(248,81,73,.14);
+        border-color:rgba(248,81,73,.35);
+      }
+      .vs-btn.ghost{
+        background:transparent;
+        border-color:rgba(255,255,255,.08);
+      }
+
+      .vs-select, .vs-input{
+        border:1px solid rgba(255,255,255,.10);
+        background:rgba(0,0,0,.15);
+        color:var(--text);
+        padding:8px 10px;
+        border-radius:10px;
+        font-size:13px;
+        outline:none;
+      }
+      .vs-select{ cursor:pointer; }
+      .vs-spacer{ flex:1; min-width:12px; }
+      .vs-mini{
+        font-size:12px;
+        color:var(--muted);
+        display:flex;
+        align-items:center;
+        gap:10px;
+        flex-wrap:wrap;
+      }
+      .vs-toggle{
+        display:inline-flex;
+        align-items:center;
+        gap:8px;
+        padding:6px 10px;
+        border:1px solid rgba(255,255,255,.10);
+        border-radius:999px;
+        background:rgba(0,0,0,.12);
+      }
+      .vs-toggle input{ accent-color: var(--accent); }
+
+      /* Tabs row (ppTabs) */
+      #ppTabs{
+        display:flex;
+        gap:8px;
+        padding:10px 10px;
+        border-bottom:1px solid var(--border);
+        background:rgba(0,0,0,.08);
+        overflow:auto;
+      }
+      /* app.js creates buttons with classes pp-tab/pp-active; style them */
+      .pp-tab{
+        border:1px solid rgba(255,255,255,.10);
+        background:rgba(255,255,255,.06);
+        color:var(--text);
+        padding:6px 10px;
+        border-radius:10px;
+        cursor:pointer;
+        font-size:13px;
+        white-space:nowrap;
+      }
+      .pp-tab:hover{ background:rgba(255,255,255,.10); }
+      .pp-tab.pp-active{
+        background:rgba(55,148,255,.18);
+        border-color:rgba(55,148,255,.35);
+      }
+
+      /* Editor area */
+      .vs-editorwrap{
+        flex:1;
+        min-height:0;
+        display:flex;
+        flex-direction:column;
+      }
+      .vs-editor{
+        flex:1;
+        min-height:0;
+        display:flex;
+        background:var(--bg);
+      }
+      #ppGutter{
+        width:56px;
+        padding:14px 10px;
+        border-right:1px solid var(--border);
+        color:#7d7d7d;
+        font-family:var(--mono);
+        font-size:13px;
+        line-height:1.45;
+        user-select:none;
+        overflow:hidden;
+        white-space:pre;
+      }
+      #ppCode{
+        flex:1;
+        min-width:0;
+        border:none;
+        outline:none;
+        resize:none;
+        padding:14px 14px;
+        color:var(--text);
+        background:transparent;
+        font-family:var(--mono);
+        font-size:13.5px;
+        line-height:1.45;
+      }
+      #ppCode::-webkit-scrollbar,
+      .vs-sidebody::-webkit-scrollbar,
+      .vs-panelbody::-webkit-scrollbar{
+        width:10px;
+        height:10px;
+      }
+      #ppCode::-webkit-scrollbar-thumb,
+      .vs-sidebody::-webkit-scrollbar-thumb,
+      .vs-panelbody::-webkit-scrollbar-thumb{
+        background:rgba(255,255,255,.12);
+        border-radius:999px;
+      }
+
+      /* Status bar */
+      .vs-statusbar{
+        height:34px;
+        display:flex;
+        align-items:center;
+        gap:10px;
+        padding:0 10px;
+        border-top:1px solid var(--border);
+        background:#1b1b1b;
+        color:#cfcfcf;
+        font-size:12px;
+      }
+      .pp-dot{
+        width:10px;height:10px;border-radius:999px;
+        background:#7d7d7d;
+        display:inline-block;
+      }
+      .pp-dot.ok{ background:var(--good); }
+      .pp-dot.bad{ background:var(--bad); }
+      .pp-dot.warn{ background:var(--warn); }
+
+      .vs-progress{
+        width:180px;
+        height:6px;
+        border-radius:999px;
+        background:rgba(255,255,255,.08);
+        overflow:hidden;
+      }
+      #ppBar{
+        height:100%;
+        width:0%;
+        background:var(--accent);
+      }
+
+      /* Bottom panel */
+      .vs-panel{
+        height:320px;
+        min-height:220px;
+        max-height:55vh;
+        border-top:1px solid var(--border);
+        background:var(--panel);
+        display:flex;
+        flex-direction:column;
+      }
+      .vs-paneltabs{
+        display:flex;
+        gap:8px;
+        padding:8px 10px;
+        border-bottom:1px solid var(--border);
+        background:rgba(255,255,255,.02);
+        flex-wrap:wrap;
+      }
+      .vs-ptab{
+        padding:7px 10px;
+        border-radius:10px;
+        border:1px solid rgba(255,255,255,.10);
+        background:rgba(255,255,255,.06);
+        color:var(--text);
+        cursor:pointer;
+        font-weight:800;
+        font-size:12.5px;
+      }
+      .vs-ptab.active{
+        background:rgba(55,148,255,.18);
+        border-color:rgba(55,148,255,.35);
+      }
+      .vs-panelbody{
+        flex:1;
+        min-height:0;
+        overflow:auto;
+        padding:10px;
+      }
+      .vs-pane{ display:none; }
+      .vs-pane.active{ display:block; }
+
+      /* Inputs / textareas in panels */
+      #ppStdin{
+        width:100%;
+        min-height:140px;
+        border:1px solid rgba(255,255,255,.10);
+        background:rgba(0,0,0,.18);
+        color:var(--text);
+        border-radius:12px;
+        padding:12px;
+        font-family:var(--mono);
+        font-size:13px;
+        outline:none;
+        resize:vertical;
+      }
+
+      #ppOut, #ppErr{
+        border:1px solid rgba(255,255,255,.10);
+        background:rgba(0,0,0,.18);
+        border-radius:12px;
+        padding:12px;
+        font-family:var(--mono);
+        font-size:13px;
+        min-height:120px;
+        overflow:auto;
+      }
+      #ppErr{ margin-top:10px; }
+
+      .vs-row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+      .vs-row > *{ flex:0 0 auto; }
+
+      /* Problem mode bits */
+      #ppPExamples{
+        white-space:pre-wrap;
+        border:1px solid rgba(255,255,255,.10);
+        background:rgba(0,0,0,.14);
+        padding:10px;
+        border-radius:12px;
+        font-family:var(--mono);
+        color:#d7d7d7;
+      }
+      #ppJudgeTableWrap table{
+        width:100%;
+        border-collapse:collapse;
+        margin-top:10px;
+        font-family:var(--sans);
+        font-size:13px;
+      }
+      #ppJudgeTableWrap th,#ppJudgeTableWrap td{
+        border:1px solid rgba(255,255,255,.08);
+        padding:8px;
+        vertical-align:top;
+      }
+
+      /* Toast + modal (keep IDs used by app.js) */
+      #ppToast{
+        position:fixed;
+        left:50%;
+        bottom:18px;
+        transform:translateX(-50%);
+        background:rgba(0,0,0,.78);
+        border:1px solid rgba(255,255,255,.12);
+        padding:10px 12px;
+        border-radius:999px;
+        color:#fff;
+        font-size:13px;
+        opacity:0;
+        pointer-events:none;
+        transition:opacity .18s ease;
+        z-index:50;
+      }
+      #ppToast.show{ opacity:1; }
+
+      #ppShareModal{
+        position:fixed;
+        inset:0;
+        z-index:60;
+      }
+      .pp-modal-backdrop{
+        position:absolute;
+        inset:0;
+        background:rgba(0,0,0,.55);
+      }
+      .pp-modal-card{
+        position:relative;
+        width:min(620px, calc(100vw - 24px));
+        margin:7vh auto 0;
+        background:var(--panel);
+        border:1px solid rgba(255,255,255,.10);
+        border-radius:16px;
+        overflow:hidden;
+      }
+      .pp-modal-head{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        padding:12px 12px;
+        background:rgba(255,255,255,.03);
+        border-bottom:1px solid rgba(255,255,255,.08);
+      }
+      .pp-modal-body{ padding:12px; }
+      #ppShareInput{
+        width:100%;
+        border:1px solid rgba(255,255,255,.10);
+        background:rgba(0,0,0,.18);
+        color:var(--text);
+        border-radius:12px;
+        padding:10px;
+        outline:none;
+      }
+
+      /* Sidebar “student” fields */
+      #ppStuName,#ppStuRoll,#ppPkgs,#ppAttemptLimit{
+        width:100%;
+        border:1px solid rgba(255,255,255,.10);
+        background:rgba(0,0,0,.18);
+        color:var(--text);
+        border-radius:12px;
+        padding:10px;
+        outline:none;
+      }
+      #ppInstalledPkgs{
+        margin-top:8px;
+        color:#d7d7d7;
+        font-size:12px;
+        line-height:1.6;
+        word-break:break-word;
+      }
+
+      .vs-small{ color:var(--muted); font-size:12px; }
+      .vs-badge{
+        display:inline-flex;
+        align-items:center;
+        gap:8px;
+        padding:6px 10px;
+        border-radius:999px;
+        border:1px solid rgba(255,255,255,.10);
+        background:rgba(0,0,0,.12);
+        font-size:12px;
+        color:#d7d7d7;
+        white-space:nowrap;
+      }
+
+      /* Responsive */
+      @media (max-width: 980px){
+        .vs-sidebar{ display:none; }
+      }
+      @media (max-width: 720px){
+        .vs-panel{ height:360px; }
+        .vs-progress{ display:none; }
+      }
+    </style>
   </head>
 
   <body>
-    <div class="pp-app">
-      <div class="pp-wrap">
-        <header class="pp-topbar">
-          <div class="pp-brand">
-            <div class="pp-logo" aria-hidden="true">
-              <img
-                class="pp-logo"
-                src="https://blogger.googleusercontent.com/img/a/AVvXsEhlfwIqq3YYxj6LMFr4E7IKN2bYIor-bFpbUXBT3Jthp8PKmRdWozV3hEk2xcj3kPrJ9WBIkXCr4lw5MTAz0AE5b0lPhQ2ReNbCmMOumP4zLTEOb7GY6s4YWcgcCfzltJVmQcgCObeQNRvn_SWPa_2c6cROZUOBHhRJB20PaV-peuA3GTSafM8JxgaYu5M=s257"
-                alt="Programmer's Picnic"
-              />
+    <!-- Top Bar -->
+    <div class="vs-topbar">
+      <div class="title">Programmer's Picnic — Python Editor</div>
+      <div class="pill">
+        <span class="vs-badge">Mode: <b id="ppModeText">—</b></span>
+        <button class="vs-btn ghost" id="ppTeacherBtn" style="display:none" title="Teacher Panel (tmode=1)">🎓 Teacher</button>
+      </div>
+    </div>
+
+    <div class="vs-shell">
+      <!-- Activity Bar -->
+      <div class="vs-activity" aria-label="Activity bar">
+        <button class="vs-actbtn active" id="vsActExplorer" title="Explorer">📁</button>
+        <button class="vs-actbtn" id="vsActRun" title="Run">▶</button>
+        <button class="vs-actbtn" id="vsActProblems" title="Problems">🧩</button>
+        <button class="vs-actbtn" id="vsActPackages" title="Packages">📦</button>
+      </div>
+
+      <!-- Sidebar -->
+      <aside class="vs-sidebar" id="vsSidebar">
+        <div class="vs-sidehead">
+          <div class="label">EXPLORER</div>
+        </div>
+
+        <div class="vs-sidebody">
+          <div class="vs-block">
+            <div class="vs-blockhead">
+              <b>FILES</b>
+              <div class="vs-small">
+                <button class="vs-btn ghost" id="ppNewTab" title="New tab">➕</button>
+                <button class="vs-btn ghost" id="ppDelTab" title="Delete tab">🗑️</button>
+              </div>
             </div>
-            <div>
-              <h1 class="pp-title">Programmer's Picnic Python Editor</h1>
-              <div class="pp-sub">Programmer's Picnic --- Python Editor</div>
+            <div class="vs-blockbody">
+              <!-- Tabs rendered by app.js -->
+              <div id="ppTabs"></div>
+              <div class="vs-small" style="margin-top:8px">
+                Tip: click a tab to switch files.
+              </div>
             </div>
           </div>
 
-          <div class="pp-actions">
-            <button
-              style="visibility: hidden"
-              class="pp-btn"
-              id="ppTeacherBtn"
-              title="Teacher Panel (tmode=1)"
-            >
-              🎓 Teacher
-            </button>
-
-            <button class="pp-btn" id="ppFormat">⎘ Format</button>
-            <button class="pp-btn" id="ppSave">💾 Save</button>
-            <button class="pp-btn" id="ppShare">🔗 Share</button>
+          <div class="vs-block">
+            <div class="vs-blockhead">
+              <b>STUDENT</b>
+              <span class="vs-small">Saved locally</span>
+            </div>
+            <div class="vs-blockbody">
+              <div class="vs-small" style="margin-bottom:6px">Name</div>
+              <input id="ppStuName" placeholder="Name" />
+              <div class="vs-small" style="margin:10px 0 6px">Roll / ID</div>
+              <input id="ppStuRoll" placeholder="Roll / ID" />
+            </div>
           </div>
-        </header>
 
-        <main class="pp-grid">
-          <!-- Editor -->
-          <section class="pp-card pp-editorwrap">
-            <div class="pp-cardhead">
-              <div>
-                <h2>Editor</h2>
-                <div class="pp-small">
-                  Ctrl+Enter to run. Use Problem Mode for tests.
-                </div>
-              </div>
-
-              <div class="pp-toolbar">
-                <button class="pp-btn pp-btn-primary" id="ppRun">
-                  ▶ Run <span class="pp-kbd">Ctrl</span
-                  ><span class="pp-kbd">Enter</span>
-                </button>
-                <button class="pp-btn pp-btn-danger" id="ppStop">⛔ Stop</button>
-
-                <select id="ppExample" class="pp-select" title="Load example">
-                  <option value="">Examples…</option>
-                </select>
-
-                <span class="pp-pill"
-                  ><b>Pyodide:</b> <span id="ppPyText">worker</span></span
-                >
-
-                <label class="pp-toggle"
-                  ><input type="checkbox" id="ppTimer" checked /> Timer</label
-                >
+          <div class="vs-block" id="ppPackagesCard">
+            <div class="vs-blockhead">
+              <b>PACKAGES</b>
+              <div class="vs-row">
+                <button class="vs-btn" id="ppInstall">Install</button>
+                <button class="vs-btn ghost" id="ppList">List</button>
               </div>
             </div>
+            <div class="vs-blockbody">
+              <input id="ppPkgs" placeholder="numpy, pandas, matplotlib" />
+              <div class="vs-small" style="margin-top:8px">Installed:</div>
+              <div id="ppInstalledPkgs">—</div>
+            </div>
+          </div>
 
-            <div class="pp-tabs" id="ppTabs"></div>
-
-            <div class="pp-editorarea">
-              <div class="pp-editor">
-                <pre class="pp-gutter" id="ppGutter">1</pre>
-                <textarea
-                  class="pp-code"
-                  id="ppCode"
-                  spellcheck="false"
-                ></textarea>
+          <div class="vs-block">
+            <div class="vs-blockhead">
+              <b>SHARE</b>
+              <span class="vs-small">Link-based</span>
+            </div>
+            <div class="vs-blockbody">
+              <div class="vs-row">
+                <button class="vs-btn ghost" id="ppFormat">Format</button>
+                <button class="vs-btn ghost" id="ppSave">Save</button>
+                <button class="vs-btn primary" id="ppShare">Share</button>
+              </div>
+              <div class="vs-small" style="margin-top:8px">
+                Share creates a URL hash with your code and settings.
               </div>
             </div>
+          </div>
 
-            <div class="pp-footerbar">
-              <div class="pp-status">
-                <span class="pp-dot" id="ppDot"></span>
-                <span class="pp-small" id="ppStatus">Ready.</span>
-                <div class="pp-progress">
-                  <div class="pp-bar" id="ppBar"></div>
-                </div>
+          <!-- Teacher panel stays here (app.js toggles display) -->
+          <div class="vs-block" id="ppTeacherPanel" style="display:none">
+            <div class="vs-blockhead">
+              <b>TEACHER PANEL</b>
+              <span class="vs-small">Submissions: <b id="ppSubCount">0</b></span>
+            </div>
+            <div class="vs-blockbody">
+              <div class="vs-row" style="margin-bottom:10px">
+                <label class="vs-toggle"><input type="checkbox" id="ppForceClass" /> Classroom</label>
+                <label class="vs-toggle"><input type="checkbox" id="ppExamMode" /> Exam</label>
+                <label class="vs-toggle"><input type="checkbox" id="ppLockProblem" /> Lock</label>
               </div>
 
-              <div class="pp-footerRight">
-                <span class="pp-small">Indent:</span>
-                <select
-                  id="ppIndent"
-                  class="pp-select"
-                  style="max-width: 140px"
-                >
-                  <option value="2">2 spaces</option>
-                  <option value="4">4 spaces</option>
-                  <option selected value="tab">Tab</option>
-                </select>
+              <div class="vs-row" style="margin-bottom:10px">
+                <label class="vs-toggle"><input type="checkbox" id="ppLimitAttemptsOn" /> Attempts</label>
+                <label class="vs-toggle"><input type="checkbox" id="ppAllowPkgs" /> Packages</label>
+              </div>
 
-                <button class="pp-btn pp-btn-ghost" id="ppNewTab">➕ Tab</button>
-                <button class="pp-btn pp-btn-ghost" id="ppDelTab">🗑️</button>
+              <div class="vs-small" style="margin:6px 0">Attempt limit</div>
+              <input id="ppAttemptLimit" type="number" min="1" max="50" value="5" />
+
+              <div class="vs-row" style="margin-top:10px">
+                <button class="vs-btn" id="ppExportSubs">Export</button>
+                <button class="vs-btn danger" id="ppClearSubs">Clear</button>
+              </div>
+
+              <div class="vs-small" style="margin-top:10px">
+                Student link: <span id="ppStudentLink"></span>
               </div>
             </div>
-          </section>
+          </div>
+        </div>
+      </aside>
 
-          <!-- Right Column -->
-          <aside class="pp-split">
-            <!-- Student details -->
-            <section class="pp-card" id="ppStudentCard">
-              <div class="pp-cardhead">
-                <div>
-                  <h2>Your Details</h2>
-                  <div class="pp-small">Used in submissions export.</div>
-                </div>
-                <div class="pp-toolbar" style="visibility: hidden">
-                  <span class="pp-pill">Mode: <b id="ppModeText">—</b></span>
-                </div>
-              </div>
-              <div class="pp-pad">
-                <div class="pp-row">
-                  <input
-                    id="ppStuName"
-                    class="pp-input"
-                    placeholder="Name e.g., Champak Roy"
-                    style="flex: 1; min-width: 200px"
-                  />
-                  <input
-                    id="ppStuRoll"
-                    class="pp-input"
-                    placeholder="Roll / ID (e.g., CS21)"
-                    style="flex: 1; min-width: 160px"
-                  />
-                </div>
-                <div class="pp-small" style="margin-top: 8px">
-                  Tip: fill once; saved in this browser.
-                </div>
-              </div>
-            </section>
+      <!-- Main editor -->
+      <main class="vs-main">
+        <div class="vs-editorbar">
+          <button class="vs-btn primary" id="ppRun">▶ Run</button>
+          <button class="vs-btn danger" id="ppStop">⛔ Stop</button>
 
-            <!-- Output -->
-            <section class="pp-card">
-              <div class="pp-cardhead">
-                <div>
-                  <h2>Output</h2>
-                  <div class="pp-small">
-                    stdout shown. stderr shown separately. Matplotlib plots appear
-                    below stdout.
-                  </div>
-                </div>
-                <div class="pp-toolbar">
-                  <button class="pp-btn pp-btn-ghost" id="ppCopyOut">
-                    📋 Copy
-                  </button>
-                  <button class="pp-btn pp-btn-ghost" id="ppClearOut">
-                    🧹 Clear
-                  </button>
-                </div>
-              </div>
+          <select id="ppExample" class="vs-select" title="Load example">
+            <option value="">Examples…</option>
+          </select>
 
-              <div class="pp-pad">
-                <!-- IMPORTANT: this is a DIV so app.js can render HTML + images -->
-                <div class="pp-out" id="ppOut"></div>
+          <div class="vs-mini">
+            <label class="vs-toggle"><input type="checkbox" id="ppTimer" checked /> Timer</label>
 
-                <div
-                  class="pp-out pp-out-stderr"
-                  id="ppErr"
-                  style="margin-top: 10px"
-                ></div>
-              </div>
-            </section>
+            <span class="vs-small">Indent</span>
+            <select id="ppIndent" class="vs-select" style="min-width:120px">
+              <option value="2">2 spaces</option>
+              <option value="4">4 spaces</option>
+              <option selected value="tab">Tab</option>
+            </select>
+          </div>
 
-            <!-- stdin -->
-            <section class="pp-card">
-              <div class="pp-cardhead">
-                <div>
-                  <h2>stdin (input)</h2>
-                  <div class="pp-small">One value per line.</div>
-                </div>
-                <div class="pp-toolbar">
-                  <button class="pp-btn pp-btn-ghost" id="ppStdinSample">
-                    🎯 Sample
-                  </button>
-                  <button class="pp-btn pp-btn-ghost" id="ppStdinClear">
-                    🧽 Clear
-                  </button>
-                </div>
-              </div>
-              <div class="pp-pad">
-                <textarea
-                  class="pp-textarea pp-io"
-                  id="ppStdin"
-                  spellcheck="false"
-                  placeholder="5&#10;10&#10;hello"
-                ></textarea>
-              </div>
-            </section>
+          <div class="vs-spacer"></div>
 
-            <!-- Packages -->
-            <section class="pp-card" id="ppPackagesCard">
-              <div class="pp-cardhead">
-                <div>
-                  <h2>Packages</h2>
-                  <div class="pp-small">Install below (matplotlib lessons use this).</div>
-                </div>
-                <div class="pp-toolbar">
-                  <button class="pp-btn" id="ppInstall">📦 Install</button>
-                  <button class="pp-btn pp-btn-ghost" id="ppList">🧾 List</button>
-                </div>
-              </div>
-              <div class="pp-pad">
-                <input
-                  id="ppPkgs"
-                  class="pp-input"
-                  style="width: 100%"
-                  placeholder="numpy, pandas, matplotlib"
-                />
-                <div class="pp-small" style="margin-top: 8px">Installed:</div>
-                <div
-                  class="pp-pill"
-                  style="
-                    width: 100%;
-                    justify-content: flex-start;
-                    flex-wrap: wrap;
-                    gap: 6px;
-                  "
-                  id="ppInstalledPkgs"
-                ></div>
-              </div>
-            </section>
+          <div class="vs-row">
+            <button class="vs-btn ghost" id="ppCopyOut">Copy output</button>
+            <button class="vs-btn ghost" id="ppClearOut">Clear output</button>
+            <button class="vs-btn ghost" id="ppStdinSample">stdin sample</button>
+            <button class="vs-btn ghost" id="ppStdinClear">stdin clear</button>
+          </div>
+        </div>
 
-            <!-- Problem mode -->
-            <section class="pp-card">
-              <div class="pp-cardhead">
-                <div>
-                  <h2>Problem Mode</h2>
-                  <div class="pp-small">Starter • Samples • Hidden tests • Score</div>
-                </div>
-                <div class="pp-toolbar">
-                  <span class="pp-badge"
-                    >🪙 XP: <b id="ppXP">0</b> &nbsp; 🔥 Streak:
-                    <b id="ppStreak">0</b></span
-                  >
-                </div>
+        <section class="vs-editorwrap">
+          <div class="vs-editor">
+            <pre id="ppGutter">1</pre>
+            <textarea id="ppCode" spellcheck="false"></textarea>
+          </div>
+
+          <!-- Bottom Panel -->
+          <div class="vs-panel">
+            <div class="vs-paneltabs">
+              <button class="vs-ptab active" data-pane="out">Output</button>
+              <button class="vs-ptab" data-pane="stdin">stdin</button>
+              <button class="vs-ptab" data-pane="problems">Problems</button>
+              <button class="vs-ptab" data-pane="packages">Packages</button>
+              <button class="vs-ptab" data-pane="teacher">Teacher</button>
+
+              <span class="vs-badge" style="margin-left:auto">
+                🪙 XP: <b id="ppXP">0</b> &nbsp; 🔥 Streak: <b id="ppStreak">0</b> &nbsp; ⏱ <b><span id="ppTimeout">2.5</span>s</b>
+              </span>
+            </div>
+
+            <div class="vs-panelbody">
+              <!-- Output -->
+              <div class="vs-pane active" data-pane="out">
+                <div id="ppOut"></div>
+                <div id="ppErr"></div>
               </div>
 
-              <div class="pp-pad">
-                <div class="pp-row">
-                  <select
-                    id="ppProblem"
-                    class="pp-select"
-                    style="flex: 1; min-width: 260px"
-                  ></select>
-                  <button class="pp-btn" id="ppToday">📅 Today</button>
+              <!-- stdin -->
+              <div class="vs-pane" data-pane="stdin">
+                <textarea id="ppStdin" spellcheck="false" placeholder="One value per line"></textarea>
+              </div>
+
+              <!-- Problems -->
+              <div class="vs-pane" data-pane="problems">
+                <div class="vs-row" style="margin-bottom:10px">
+                  <select id="ppProblem" class="vs-select" style="min-width:260px"></select>
+                  <button class="vs-btn" id="ppToday">Today</button>
+
+                  <button class="vs-btn primary" id="ppLoadStarter">Load starter</button>
+                  <button class="vs-btn" id="ppResetStarter">Reset</button>
+                  <button class="vs-btn" id="ppHint">Hint</button>
                 </div>
 
-                <div class="pp-judge" style="margin-top: 10px">
-                  <h3 id="ppPTitle">—</h3>
-                  <p id="ppPDesc">Pick a problem.</p>
-                  <pre id="ppPExamples" style="display: none"></pre>
-
-                  <div class="pp-row" style="margin-top: 10px">
-                    <button class="pp-btn pp-btn-primary" id="ppLoadStarter">
-                      ⚡ Load Starter
-                    </button>
-                    <button class="pp-btn" id="ppResetStarter">↩ Reset</button>
-                    <button class="pp-btn" id="ppHint">💡 Hint</button>
-                  </div>
+                <div style="margin-bottom:10px">
+                  <h3 id="ppPTitle" style="margin:0 0 6px;font-size:14px;color:#d7d7d7">—</h3>
+                  <div id="ppPDesc" class="vs-small">Pick a problem.</div>
                 </div>
 
-                <div class="pp-row" style="margin-top: 10px">
-                  <button class="pp-btn" id="ppRunSamples">🧪 Run Samples</button>
-                  <button class="pp-btn pp-btn-primary" id="ppRunAll">
-                    🏁 Run All Tests
-                  </button>
-                  <span class="pp-pill"
-                    >⏱ Timeout: <b><span id="ppTimeout">2.5</span>s</b></span
-                  >
+                <pre id="ppPExamples" style="display:none"></pre>
+
+                <div class="vs-row" style="margin:10px 0">
+                  <button class="vs-btn" id="ppRunSamples">Run samples</button>
+                  <button class="vs-btn primary" id="ppRunAll">Run all tests</button>
                 </div>
 
-                <div
-                  id="ppJudgeSummary"
-                  class="pp-small"
-                  style="margin-top: 10px"
-                ></div>
+                <div id="ppJudgeSummary" class="vs-small"></div>
                 <div id="ppJudgeTableWrap"></div>
               </div>
-            </section>
 
-            <!-- Teacher panel -->
-            <section class="pp-card" id="ppTeacherPanel" style="display: none">
-              <div class="pp-cardhead">
-                <div style="visibility: hidden">
-                  <h2>Teacher Panel</h2>
-                  <div class="pp-small">Visible only when <b>?tmode=1</b></div>
+              <!-- Packages (panel duplicate, app.js will still work) -->
+              <div class="vs-pane" data-pane="packages">
+                <div class="vs-row" style="margin-bottom:10px">
+                  <input id="ppPkgs_panel" class="vs-input" placeholder="(Use sidebar Packages box)" style="flex:1" disabled />
+                  <button class="vs-btn" onclick="document.getElementById('ppPkgs').focus()">Focus sidebar</button>
                 </div>
-                <div class="pp-toolbar">
-                  <span class="pp-pill">Submissions: <b id="ppSubCount">0</b></span>
+                <div class="vs-small">
+                  Packages are managed from the sidebar. This panel is only a shortcut.
                 </div>
               </div>
 
-              <div class="pp-pad">
-                <div class="pp-grid2">
-                  <label class="pp-toggle pp-toggle-wide"
-                    ><input type="checkbox" id="ppForceClass" /> Force Classroom</label
-                  >
-                  <label class="pp-toggle pp-toggle-wide"
-                    ><input type="checkbox" id="ppExamMode" /> Exam Mode</label
-                  >
-                  <label class="pp-toggle pp-toggle-wide"
-                    ><input type="checkbox" id="ppLockProblem" /> Lock Problem</label
-                  >
-                  <label class="pp-toggle pp-toggle-wide"
-                    ><input type="checkbox" id="ppLimitAttemptsOn" /> Attempt Limit</label
-                  >
-                  <label class="pp-toggle pp-toggle-wide"
-                    ><input type="checkbox" id="ppAllowPkgs" /> Allow Packages</label
-                  >
+              <!-- Teacher (panel view - points to sidebar content) -->
+              <div class="vs-pane" data-pane="teacher">
+                <div class="vs-small" style="margin-bottom:10px">
+                  Teacher panel is in the sidebar (visible only with <b>?tmode=1</b>).
                 </div>
-
-                <div class="pp-row" style="margin-top: 10px">
-                  <input
-                    class="pp-input"
-                    id="ppAttemptLimit"
-                    type="number"
-                    min="1"
-                    max="50"
-                    value="5"
-                    style="width: 140px"
-                  />
-                  <span class="pp-small">Attempts allowed</span>
-                </div>
-
-                <div class="pp-row" style="margin-top: 12px">
-                  <button class="pp-btn" id="ppExportSubs">📤 Export Submissions</button>
-                  <button class="pp-btn pp-btn-danger" id="ppClearSubs">🧹 Clear</button>
-                </div>
-
-                <div class="pp-small" style="margin-top: 10px">
-                  Share student link:
-                  <span class="pp-mono" id="ppStudentLink"></span>
-                </div>
+                <button class="vs-btn" onclick="document.getElementById('vsSidebar').scrollTo({top:0,behavior:'smooth'})">Go to sidebar</button>
               </div>
-            </section>
-          </aside>
-        </main>
-      </div>
+            </div>
+          </div>
 
-      <div class="pp-toast" id="ppToast"></div>
+          <!-- Status bar -->
+          <div class="vs-statusbar">
+            <span class="pp-dot" id="ppDot"></span>
+            <span id="ppStatus">Ready.</span>
+            <div class="vs-progress"><div id="ppBar"></div></div>
+            <span class="vs-small" style="margin-left:auto">Ctrl+Enter to run</span>
+          </div>
+        </section>
+      </main>
     </div>
+
+    <!-- Toast -->
+    <div id="ppToast"></div>
 
     <!-- Share Modal -->
-    <div
-      class="pp-modal"
-      id="ppShareModal"
-      aria-hidden="true"
-      style="display: none"
-    >
+    <div id="ppShareModal" aria-hidden="true" style="display:none">
       <div class="pp-modal-backdrop" data-close="1"></div>
-
-      <div
-        class="pp-modal-card"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Share link"
-      >
+      <div class="pp-modal-card" role="dialog" aria-modal="true" aria-label="Share link">
         <div class="pp-modal-head">
-          <div style="font-weight: 900">Share link</div>
-          <button class="pp-btn pp-btn-ghost" id="ppShareClose" title="Close">
-            ✖
-          </button>
+          <div style="font-weight:900">Share link</div>
+          <button class="vs-btn ghost" id="ppShareClose" title="Close">✖</button>
         </div>
-
         <div class="pp-modal-body">
-          <div class="pp-small" style="margin-bottom: 8px">
-            Copy and send this link:
+          <div class="vs-small" style="margin-bottom:8px">Copy and send this link:</div>
+          <input id="ppShareInput" readonly />
+          <div style="margin-top:10px;display:flex;gap:8px;justify-content:flex-end">
+            <button class="vs-btn" id="ppShareCopy">Copy</button>
+            <a class="vs-btn primary" id="ppShareOpen" target="_blank" rel="noopener">Open</a>
           </div>
-          <input class="pp-input" id="ppShareInput" readonly />
-
-          <div style="margin-top: 10px; display: flex; gap: 8px; justify-content: flex-end">
-            <button class="pp-btn" id="ppShareCopy">📋 Copy</button>
-            <a
-              class="pp-btn pp-btn-primary"
-              id="ppShareOpen"
-              target="_blank"
-              rel="noopener"
-              >🔗 Open</a
-            >
-          </div>
-
-          <div class="pp-small" id="ppShareHint" style="margin-top: 8px"></div>
+          <div class="vs-small" id="ppShareHint" style="margin-top:8px"></div>
         </div>
       </div>
     </div>
 
-    <!-- App -->
+    <!-- Small UI JS (does not touch your app.js logic) -->
+    <script>
+      // Bottom panel tabs
+      (function(){
+        const tabs = Array.from(document.querySelectorAll(".vs-ptab"));
+        const panes = Array.from(document.querySelectorAll(".vs-pane"));
+        function setPane(name){
+          tabs.forEach(t=>t.classList.toggle("active", t.dataset.pane===name));
+          panes.forEach(p=>p.classList.toggle("active", p.dataset.pane===name));
+        }
+        tabs.forEach(t=>t.addEventListener("click", ()=>setPane(t.dataset.pane)));
+      })();
+
+      // Activity bar just highlights + shows sidebar on mobile
+      (function(){
+        const actBtns = Array.from(document.querySelectorAll(".vs-actbtn"));
+        const sidebar = document.getElementById("vsSidebar");
+        actBtns.forEach(b=>{
+          b.addEventListener("click", ()=>{
+            actBtns.forEach(x=>x.classList.remove("active"));
+            b.classList.add("active");
+            // on small screens, reveal sidebar when clicking activity items
+            if (window.matchMedia("(max-width: 980px)").matches) {
+              sidebar.style.display = "flex";
+              sidebar.style.position = "absolute";
+              sidebar.style.left = "50px";
+              sidebar.style.top = "38px";
+              sidebar.style.height = "calc(100vh - 38px)";
+              sidebar.style.zIndex = "40";
+              sidebar.style.boxShadow = "0 20px 60px rgba(0,0,0,.55)";
+            }
+          });
+        });
+
+        // click outside closes sidebar on mobile
+        document.addEventListener("click", (e)=>{
+          if (!window.matchMedia("(max-width: 980px)").matches) return;
+          if (!sidebar) return;
+          const insideSidebar = sidebar.contains(e.target);
+          const insideActivity = document.querySelector(".vs-activity")?.contains(e.target);
+          if (!insideSidebar && !insideActivity) sidebar.style.display = "none";
+        });
+      })();
+    </script>
+
+    <!-- Your app -->
     <script type="module" src="./app.js"></script>
   </body>
 </html>

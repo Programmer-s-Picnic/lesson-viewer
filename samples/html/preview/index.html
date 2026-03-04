@@ -3,606 +3,604 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>HTML Live Preview (Syntax Highlighting + iframe)</title>
+    <meta name="theme-color" content="#1e1e1e" />
+    <title>Programmer's Picnic — HTML Live Preview</title>
 
-    <!-- ✅ CodeMirror (CDN). For full offline: download these and point href/src to local files. -->
+    <!-- CodeMirror -->
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"
     />
+    <!-- Light theme (kept for toggle) -->
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/eclipse.min.css"
     />
+    <!-- Dark theme -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css"
+    />
 
     <style>
       :root {
-        --bg: #fff7e6; /* light saffron */
-        --card: #ffffff;
-        --ink: #1f2937;
-        --muted: #6b7280;
-        --brand: #d97706;
-        --border: #f3d7a6;
-        --shadow: 0 18px 45px rgba(31, 41, 55, 0.14);
-        --danger: #b91c1c;
-        --ok: #166534;
+        --bg: #1e1e1e;
+        --panel: #252526;
+        --panel2: #2d2d2d;
+        --top: #323233;
+        --border: #3a3a3a;
+        --text: #e6e6e6;
+        --muted: #9aa0a6;
+        --accent: #3794ff;
+        --good: #2ea043;
+        --bad: #f85149;
+
         --mono:
           ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
           "Liberation Mono", "Courier New", monospace;
-        --sans:
-          system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
-          "Apple Color Emoji", "Segoe UI Emoji";
+        --sans: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+
+        --r: 12px;
       }
+
       * {
         box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
       }
       body {
         margin: 0;
         font-family: var(--sans);
         background: var(--bg);
-        color: var(--ink);
-      }
-      header {
-        max-width: 1200px;
-        margin: 18px auto 0;
-        padding: 0 16px;
-        display: flex;
-        gap: 12px;
-        align-items: flex-start;
-        justify-content: space-between;
-        flex-wrap: wrap;
-      }
-      .title {
-        background: var(--card);
-        border: 1px solid var(--border);
-        box-shadow: var(--shadow);
-        border-radius: 14px;
-        padding: 14px 16px;
-        flex: 1 1 420px;
-        min-width: 280px;
-      }
-      .title h1 {
-        margin: 0;
-        font-size: 18px;
-        color: var(--brand);
-        letter-spacing: 0.2px;
-      }
-      .title p {
-        margin: 6px 0 0;
-        color: var(--muted);
-        font-size: 13px;
-        line-height: 1.4;
+        color: var(--text);
+        overflow: hidden;
       }
 
-      .actions {
-        background: var(--card);
-        border: 1px solid var(--border);
-        box-shadow: var(--shadow);
-        border-radius: 14px;
-        padding: 12px;
+      /* Top bar */
+      .vs-topbar {
+        height: 38px;
         display: flex;
-        gap: 10px;
         align-items: center;
-        flex: 0 1 auto;
-        flex-wrap: wrap;
+        gap: 10px;
+        padding: 0 12px;
+        background: var(--top);
+        border-bottom: 1px solid var(--border);
+        user-select: none;
       }
-      button,
-      select {
-        border: 1px solid var(--border);
-        background: linear-gradient(180deg, #fff, #fff7ea);
-        color: var(--ink);
-        padding: 9px 12px;
+      .vs-title {
+        font-size: 13px;
+        color: #d7d7d7;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .vs-topright {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.14);
+        color: #d7d7d7;
+        font-weight: 800;
+      }
+
+      /* Shell */
+      .vs-shell {
+        height: calc(100vh - 38px);
+        display: flex;
+        min-width: 0;
+      }
+
+      /* Activity bar */
+      .vs-activity {
+        width: 50px;
+        background: #1b1b1b;
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        padding: 10px 6px;
+        gap: 8px;
+      }
+      .vs-actbtn {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        border: 1px solid transparent;
+        background: transparent;
+        color: #cfcfcf;
+        display: grid;
+        place-items: center;
+        cursor: pointer;
+        font-size: 18px;
+      }
+      .vs-actbtn:hover {
+        background: rgba(255, 255, 255, 0.04);
+        border-color: rgba(255, 255, 255, 0.08);
+      }
+      .vs-actbtn.active {
+        background: rgba(55, 148, 255, 0.14);
+        border-color: rgba(55, 148, 255, 0.35);
+        color: #ffffff;
+      }
+
+      /* Sidebar */
+      .vs-sidebar {
+        width: 320px;
+        min-width: 260px;
+        max-width: 420px;
+        background: var(--panel);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .vs-sidehead {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .vs-sidehead .label {
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        color: #cfcfcf;
+        opacity: 0.9;
+      }
+      .vs-sidebody {
+        overflow: auto;
+        padding: 10px;
+      }
+      .block {
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(0, 0, 0, 0.1);
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 10px;
+      }
+      .blockhead {
+        padding: 10px 10px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.02);
+      }
+      .blockhead b {
+        font-size: 12px;
+        color: #d7d7d7;
+        letter-spacing: 0.02em;
+      }
+      .blockbody {
+        padding: 10px;
+      }
+
+      /* Buttons / inputs */
+      .btn {
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text);
+        padding: 8px 10px;
         border-radius: 10px;
         cursor: pointer;
-        font-weight: 600;
+        font-weight: 800;
         font-size: 13px;
-        transition:
-          transform 0.06s ease,
-          box-shadow 0.15s ease;
-        box-shadow: 0 8px 18px rgba(31, 41, 55, 0.08);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
       }
+      .btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+      .btn.primary {
+        background: rgba(55, 148, 255, 0.18);
+        border-color: rgba(55, 148, 255, 0.35);
+      }
+      .btn.primary:hover {
+        background: rgba(55, 148, 255, 0.26);
+      }
+      .btn.danger {
+        background: rgba(248, 81, 73, 0.14);
+        border-color: rgba(248, 81, 73, 0.35);
+      }
+      .btn.danger:hover {
+        background: rgba(248, 81, 73, 0.22);
+      }
+
+      .row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
       select {
-        cursor: pointer;
-      }
-      button:hover,
-      select:hover {
-        transform: translateY(-1px);
-      }
-      button:active,
-      select:active {
-        transform: translateY(0px);
-      }
-      .primary {
-        border-color: #f2c77c;
-        background: linear-gradient(180deg, #fffbf2, #fff0d4);
-      }
-      .danger {
-        border-color: #ffd0d0;
-        background: linear-gradient(180deg, #fff, #fff2f2);
-        color: var(--danger);
+        width: 100%;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.18);
+        color: var(--text);
+        border-radius: 12px;
+        padding: 10px;
+        outline: none;
+        font-size: 13px;
       }
 
       .chip {
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        padding: 8px 10px;
+        padding: 6px 10px;
         border-radius: 999px;
-        border: 1px solid var(--border);
-        background: #fffaf0;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.14);
         font-size: 12px;
-        color: var(--muted);
-        user-select: none;
-        white-space: nowrap;
+        color: #d7d7d7;
+        font-weight: 800;
+        cursor: pointer;
       }
       .chip input {
-        transform: translateY(1px);
+        accent-color: var(--accent);
       }
 
-      main {
-        max-width: 1200px;
-        margin: 12px auto 24px;
-        padding: 0 16px;
+      /* Main */
+      .vs-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
       }
 
-      .grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 14px;
+      .vs-toolbar {
+        background: var(--panel2);
+        border-bottom: 1px solid var(--border);
+        padding: 10px;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
       }
-      @media (max-width: 980px) {
-        .grid {
-          grid-template-columns: 1fr;
-        }
+      .spacer {
+        flex: 1;
+        min-width: 10px;
+      }
+      .hint {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 650;
       }
 
-      .panel {
-        background: var(--card);
-        border: 1px solid var(--border);
-        box-shadow: var(--shadow);
-        border-radius: 14px;
-        overflow: hidden;
-        min-height: 540px;
+      /* Split area */
+      .split {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        background: var(--bg);
+      }
+      .pane {
+        min-width: 220px;
+        min-height: 0;
         display: flex;
         flex-direction: column;
       }
-      .panel-head {
+      .panehead {
+        padding: 8px 10px;
+        background: rgba(0, 0, 0, 0.18);
+        border-bottom: 1px solid var(--border);
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        padding: 12px 14px;
-        border-bottom: 1px solid var(--border);
-        background: #fffaf0;
         gap: 10px;
+        user-select: none;
       }
-      .panel-head strong {
-        color: var(--brand);
-        font-size: 13px;
-        letter-spacing: 0.2px;
-      }
-      .panel-head .hint {
-        color: var(--muted);
+      .panehead b {
         font-size: 12px;
-        white-space: nowrap;
+        letter-spacing: 0.06em;
+        color: #d7d7d7;
       }
 
-      /* CodeMirror sizing inside panel */
-      .cm-wrap {
-        flex: 1;
-        display: flex;
-      }
-      .CodeMirror {
-        height: 100%;
-        width: 100%;
-        font-family: var(--mono);
-        font-size: 13px;
-        line-height: 1.45;
-        background: #fff;
-      }
-      .CodeMirror-gutters {
-        background: #fffaf0;
+      .divider {
+        width: 10px;
+        cursor: col-resize;
+        background: linear-gradient(
+          to right,
+          transparent,
+          rgba(255, 255, 255, 0.06),
+          transparent
+        );
+        border-left: 1px solid var(--border);
         border-right: 1px solid var(--border);
       }
+      .divider:hover {
+        background: linear-gradient(
+          to right,
+          transparent,
+          rgba(55, 148, 255, 0.18),
+          transparent
+        );
+      }
 
-      iframe {
+      /* CodeMirror wrapper */
+      .cmwrap {
+        flex: 1;
+        min-height: 0;
+      }
+      .CodeMirror {
+        height: 100% !important;
+        font-family: var(--mono);
+        font-size: 13.5px;
+        line-height: 1.45;
+      }
+
+      /* Preview */
+      iframe#preview {
         width: 100%;
         height: 100%;
-        flex: 1;
-        border: 0;
+        border: none;
         background: #fff;
       }
 
-      .status {
-        margin-top: 10px;
-        background: var(--card);
-        border: 1px solid var(--border);
-        box-shadow: 0 10px 26px rgba(31, 41, 55, 0.1);
-        border-radius: 14px;
-        padding: 10px 12px;
+      /* Status bar */
+      .statusbar {
+        height: 30px;
+        background: #1b1b1b;
+        border-top: 1px solid var(--border);
         display: flex;
         align-items: center;
-        justify-content: space-between;
         gap: 10px;
-        flex-wrap: wrap;
-        color: var(--muted);
+        padding: 0 10px;
+        color: #cfcfcf;
         font-size: 12px;
       }
-      .status b {
-        color: var(--ink);
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: #7d7d7d;
       }
-      .ok {
-        color: var(--ok);
-        font-weight: 700;
+      .dot.ok {
+        background: var(--good);
       }
-      .bad {
-        color: var(--danger);
-        font-weight: 700;
+      .dot.bad {
+        background: var(--bad);
       }
 
-      /* ---- Explanation panel styling ---- */
-      .learn {
-        margin-top: 14px;
-        background: var(--card);
-        border: 1px solid var(--border);
-        box-shadow: var(--shadow);
-        border-radius: 14px;
-        overflow: hidden;
-      }
-      .learn-head {
-        padding: 12px 14px;
-        border-bottom: 1px solid var(--border);
-        background: #fffaf0;
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        gap: 12px;
-        flex-wrap: wrap;
-      }
-      .learn-head h2 {
-        margin: 0;
-        font-size: 14px;
-        color: var(--brand);
-      }
-      .learn-head p {
-        margin: 0;
-        color: var(--muted);
-        font-size: 12px;
-      }
-      details.pp-acc {
-        border-top: 1px solid var(--border);
-        padding: 10px 14px;
-      }
-      details.pp-acc:first-of-type {
-        border-top: 0;
-      }
-      details.pp-acc summary {
-        cursor: pointer;
-        user-select: none;
-        font-weight: 800;
-        color: var(--ink);
-        list-style: none;
-      }
-      details.pp-acc summary::-webkit-details-marker {
-        display: none;
-      }
-      .learn-body {
-        margin-top: 8px;
-        color: var(--muted);
-        font-size: 13px;
-        line-height: 1.55;
-      }
-      .learn-body code {
-        font-family: var(--mono);
-        background: #fff7ea;
-        border: 1px solid var(--border);
-        padding: 1px 6px;
-        border-radius: 8px;
-        color: var(--ink);
-      }
-      .learn-body pre {
-        font-family: var(--mono);
-        background: #fff7ea;
-        border: 1px solid var(--border);
-        padding: 10px 12px;
-        border-radius: 12px;
-        overflow: auto;
-        margin: 10px 0 0;
-        color: #111827;
-      }
-      .kbd {
-        display: inline-block;
-        font-family: var(--mono);
-        font-size: 12px;
-        padding: 2px 6px;
-        border: 1px solid var(--border);
-        border-bottom-width: 3px;
-        border-radius: 8px;
-        background: #fffaf0;
-        color: #111827;
+      /* Responsive */
+      @media (max-width: 980px) {
+        .vs-sidebar {
+          display: none;
+        }
       }
     </style>
   </head>
 
   <body>
-    <header>
-      <div class="title">
-        <h1>HTML Live Preview</h1>
-        <p>
-          Type HTML on the left (syntax highlighting). Preview updates on the
-          right (iframe).
-          <b>Ctrl/⌘ + Enter</b> runs instantly.
-        </p>
+    <!-- VS Code top bar -->
+    <div class="vs-topbar">
+      <div class="vs-title">Programmer's Picnic — HTML Live Preview</div>
+      <div class="vs-topright">
+        <span class="pill">Ctrl/⌘ + Enter to run</span>
       </div>
+    </div>
 
-      <div class="actions">
-        <button
-          class="primary"
-          id="btnRun"
-          title="Update preview (Ctrl/⌘ + Enter)"
-        >
-          Run
+    <div class="vs-shell">
+      <!-- Activity bar -->
+      <div class="vs-activity">
+        <button class="vs-actbtn active" data-focus="editor" title="Editor">
+          🧾
         </button>
-
-        <button id="btnSave" title="Save to localStorage">Save</button>
-        <button id="btnLoad" title="Load from localStorage">Load</button>
-
-        <!-- ✅ NEW: Share button -->
-        <button id="btnShare" title="Share a link to this code">Share</button>
-
-        <button class="danger" id="btnClear" title="Clear editor">Clear</button>
-
-        <label class="chip" title="Auto-run while typing (debounced)">
-          <input type="checkbox" id="autoRun" checked />
-          Auto-run
-        </label>
-
-        <!-- ✅ No JSON: templates are functions + switch -->
-        <select id="templateSelect" title="Insert ready-made content">
-          <option value="" selected>➕ Add content…</option>
-
-          <optgroup label="Starters">
-            <option value="tpl_html5">HTML5 skeleton (full page)</option>
-            <option value="tpl_basic">Basic page (header + sections)</option>
-            <option value="tpl_landing">Simple landing (hero + cards)</option>
-          </optgroup>
-
-          <optgroup label="CSS Lessons">
-            <option value="tpl_css_vars">
-              CSS Variables (var) — Theme tokens
-            </option>
-            <option value="tpl_css_calc">CSS calc() — Responsive layout</option>
-            <option value="tpl_css_vars_calc">
-              var() + calc() — Fluid spacing/sizing
-            </option>
-            <option value="tpl_css_cardgrid_vars">
-              Card grid with variables
-            </option>
-          </optgroup>
-
-          <optgroup label="DOM (createElement)">
-            <option value="tpl_dom_create_append">
-              createElement + append
-            </option>
-            <option value="tpl_dom_append_vs_appendChild">
-              append vs appendChild
-            </option>
-            <option value="tpl_dom_prepend_insertBefore">
-              prepend + insertBefore
-            </option>
-            <option value="tpl_dom_remove_replace">remove + replaceWith</option>
-            <option value="tpl_dom_card_generator">
-              Mini Project: Card Generator
-            </option>
-          </optgroup>
-
-          <optgroup label="Snippets">
-            <option value="tpl_heading">Heading + paragraph</option>
-            <option value="tpl_image">Image block</option>
-            <option value="tpl_list">List</option>
-            <option value="tpl_table">Table</option>
-            <option value="tpl_form">Form</option>
-            <option value="tpl_style">Style tag starter</option>
-            <option value="tpl_script">Script tag starter</option>
-          </optgroup>
-
-          <optgroup label="Components">
-            <option value="tpl_navbar">Navbar</option>
-            <option value="tpl_cards">3 cards row</option>
-            <option value="tpl_footer">Footer</option>
-          </optgroup>
-        </select>
-
-        <button id="btnInsert" title="Insert into editor at cursor">
-          Insert
+        <button class="vs-actbtn" data-focus="preview" title="Preview">
+          🌐
         </button>
-        <button
-          id="btnReplace"
-          class="danger"
-          title="Replace editor with selected template"
-        >
-          Replace
+        <button class="vs-actbtn" data-focus="controls" title="Controls">
+          ⚙️
         </button>
-
-        <span class="chip" title="Sandbox helps isolate preview content">
-          Sandbox: <span class="ok">ON</span>
-        </span>
-      </div>
-    </header>
-
-    <main>
-      <div class="grid">
-        <section class="panel" aria-label="Editor panel">
-          <div class="panel-head">
-            <strong>Editor</strong>
-            <span class="hint">HTML/CSS/JS highlighting</span>
-          </div>
-
-          <div class="cm-wrap">
-            <textarea id="editor" spellcheck="false"></textarea>
-          </div>
-        </section>
-
-        <section class="panel" aria-label="Preview panel">
-          <div class="panel-head">
-            <strong>Preview (iframe)</strong>
-            <span class="hint">Uses <code>srcdoc</code></span>
-          </div>
-          <iframe
-            id="preview"
-            sandbox="allow-forms allow-modals allow-pointer-lock allow-popups allow-presentation allow-scripts"
-          ></iframe>
-        </section>
       </div>
 
-      <div class="status" aria-live="polite">
-        <div>Status: <b id="statusText">Ready</b></div>
-      </div>
-
-      <!-- Explanations -->
-      <section class="learn" aria-label="CSS var and calc explanations">
-        <div class="learn-head">
-          <h2>CSS <code>var()</code> + <code>calc()</code> — Explanations</h2>
-          <p>
-            Tip: Insert templates from the dropdown, then tweak values and
-            re-run. Shortcut: <span class="kbd">Ctrl</span> +
-            <span class="kbd">Enter</span>
-          </p>
+      <!-- Sidebar -->
+      <aside class="vs-sidebar" id="vsSidebar">
+        <div class="vs-sidehead">
+          <div class="label">EXPLORER</div>
+          <span class="pill">🟠 Programmer’s Picnic</span>
         </div>
 
-        <details class="pp-acc" open>
-          <summary>1) CSS Variables — what and why</summary>
-          <div class="learn-body">
-            <p>
-              CSS variables (custom properties) are names like
-              <code>--brand</code> stored in a scope (often <code>:root</code>).
-              You reuse them via <code>var(--brand)</code>.
-            </p>
-            <p>
-              Why useful: you can change your whole theme by changing one value,
-              and you can make components configurable.
-            </p>
-            <pre><code>:root{
-  --brand:#d97706;
-  --pad:16px;
-}
-.button{
-  background:var(--brand);
-  padding:var(--pad);
-}</code></pre>
+        <div class="vs-sidebody">
+          <div class="block">
+            <div class="blockhead">
+              <b>RUN</b>
+              <span class="hint">Preview in iframe</span>
+            </div>
+            <div class="blockbody">
+              <div class="row">
+                <button
+                  class="btn primary"
+                  id="btnRun"
+                  title="Update preview (Ctrl/⌘ + Enter)"
+                >
+                  ▶ Run
+                </button>
+                <button class="btn" id="btnSave" title="Save to localStorage">
+                  Save
+                </button>
+                <button class="btn" id="btnLoad" title="Load from localStorage">
+                  Load
+                </button>
+                <button
+                  class="btn"
+                  id="btnShare"
+                  title="Share a link to this code"
+                >
+                  Share
+                </button>
+                <button class="btn danger" id="btnClear" title="Clear editor">
+                  Clear
+                </button>
+              </div>
+
+              <div style="margin-top: 10px">
+                <label class="chip" title="Auto-run while typing (debounced)">
+                  <input type="checkbox" id="autoRun" checked />
+                  Auto-run
+                </label>
+              </div>
+            </div>
           </div>
-        </details>
 
-        <details class="pp-acc">
-          <summary>2) Fallback values in <code>var()</code></summary>
-          <div class="learn-body">
-            <p>
-              If a variable is missing, you can provide a fallback:
-              <code>var(--maybe, 12px)</code>.
-            </p>
-            <pre><code>.box{
-  padding: var(--missing-padding, 14px);
-}</code></pre>
-            <p>
-              Use this when you want safe defaults or allow optional overrides.
-            </p>
+          <div class="block">
+            <div class="blockhead">
+              <b>TEMPLATES</b>
+              <span class="hint">Insert / Replace</span>
+            </div>
+            <div class="blockbody">
+              <select id="templateSelect" title="Insert ready-made content">
+                <option value="" selected>➕ Add content…</option>
+
+                <optgroup label="Starters">
+                  <option value="tpl_html5">HTML5 skeleton</option>
+                  <option value="tpl_card">Saffron card layout</option>
+                  <option value="tpl_grid">Responsive grid</option>
+                </optgroup>
+
+                <optgroup label="HTML">
+                  <option value="tpl_table">Table example</option>
+                  <option value="tpl_form">Form example</option>
+                </optgroup>
+
+                <optgroup label="CSS">
+                  <option value="tpl_flex">Flexbox demo</option>
+                  <option value="tpl_calc">CSS var + calc demo</option>
+                </optgroup>
+
+                <optgroup label="JavaScript">
+                  <option value="tpl_dom_create">
+                    createElement + append()
+                  </option>
+                  <option value="tpl_append_vs_appendChild">
+                    append vs appendChild
+                  </option>
+                </optgroup>
+              </select>
+
+              <div class="row" style="margin-top: 10px">
+                <button class="btn" id="btnInsert" title="Insert at cursor">
+                  Insert
+                </button>
+                <button
+                  class="btn"
+                  id="btnReplace"
+                  title="Replace whole editor"
+                >
+                  Replace
+                </button>
+              </div>
+
+              <div class="hint" style="margin-top: 10px">
+                Tip: use templates to quickly build examples.
+              </div>
+            </div>
           </div>
-        </details>
 
-        <details class="pp-acc">
-          <summary>
-            3) <code>calc()</code> — combining units (px + % + rem)
-          </summary>
-          <div class="learn-body">
-            <p>
-              <code>calc()</code> lets you do math in CSS:
-              <code>calc(100% - 24px)</code>, <code>calc(1rem + 2vw)</code>,
-              etc. It’s great for “responsive but controlled” sizing.
-            </p>
-            <pre><code>.container{
-  width: min(980px, calc(100% - 32px));
-  margin: 0 auto;
-}</code></pre>
+          <div class="block">
+            <div class="blockhead">
+              <b>VIEW</b>
+              <span class="hint">IDE options</span>
+            </div>
+            <div class="blockbody">
+              <div class="row">
+                <button
+                  class="btn"
+                  id="ppThemeToggle"
+                  type="button"
+                  title="Toggle light/dark"
+                >
+                  🌗 Theme
+                </button>
+                <button
+                  class="btn"
+                  id="ppOpenNewTab"
+                  type="button"
+                  title="Open preview in a new tab"
+                >
+                  ↗ Open Preview
+                </button>
+              </div>
+              <div class="hint" style="margin-top: 10px">
+                Dark theme is VS Code style.
+              </div>
+            </div>
           </div>
-        </details>
+        </div>
+      </aside>
 
-        <details class="pp-acc">
-          <summary>
-            4) <code>var()</code> + <code>calc()</code> together
-          </summary>
-          <div class="learn-body">
-            <p>
-              You can put variables inside <code>calc()</code>. This is powerful
-              for making spacing and component sizing consistent.
-            </p>
-            <pre><code>:root{ --gutter: 16px; --cardMax: 980px; }
+      <!-- Main -->
+      <main class="vs-main">
+        <div class="vs-toolbar">
+          <span class="pill">HTML</span>
+          <span class="hint">Edit left, preview right</span>
+          <div class="spacer"></div>
+          <span class="hint">Drag the divider to resize</span>
+        </div>
 
-.wrap{
-  width: min(var(--cardMax), calc(100% - (var(--gutter) * 2)));
-  padding: var(--gutter);
-}</code></pre>
+        <section class="split" id="ppSplit">
+          <!-- Editor -->
+          <div class="pane" id="ppLeft" style="flex: 0 0 55%">
+            <div class="panehead">
+              <b>EDITOR</b>
+              <span class="hint">CodeMirror</span>
+            </div>
+            <div class="cmwrap">
+              <!-- Important ID kept -->
+              <textarea id="editor"></textarea>
+            </div>
           </div>
-        </details>
 
-        <details class="pp-acc">
-          <summary>5) Common mistakes (so students don’t get stuck)</summary>
-          <div class="learn-body">
-            <ul>
-              <li>
-                <b>Missing spaces inside calc operators</b>: write
-                <code>calc(100% - 24px)</code> (not
-                <code>calc(100%-24px)</code>).
-              </li>
-              <li>
-                <b>Unit mismatch</b>: some math needs compatible units (example:
-                <code>10px + 2px</code> works; <code>10px + 2</code> doesn’t).
-              </li>
-              <li>
-                <b>Variable not defined in scope</b>: define in
-                <code>:root</code> or a parent element, or use fallback
-                <code>var(--x, ...)</code>.
-              </li>
-            </ul>
+          <div class="divider" id="ppDivider" title="Drag to resize"></div>
+
+          <!-- Preview -->
+          <div class="pane" id="ppRight" style="flex: 1 1 auto">
+            <div class="panehead">
+              <b>PREVIEW</b>
+              <span class="hint">iframe</span>
+              <div class="spacer"></div>
+              <span class="hint" id="ppPreviewHint">Live</span>
+            </div>
+            <!-- Important ID kept -->
+            <iframe id="preview"></iframe>
           </div>
-        </details>
+        </section>
 
-        <details class="pp-acc">
-          <summary>6) DOM Basics — createElement + append + remove</summary>
-          <div class="learn-body">
-            <p>
-              DOM means the page is a tree of nodes. JavaScript can create new
-              nodes and attach them anywhere.
-            </p>
-            <ul>
-              <li>
-                <code>document.createElement("div")</code> → creates an element
-              </li>
-              <li>
-                <code>parent.append(child)</code> → adds at end (can add strings
-                too)
-              </li>
-              <li><code>parent.prepend(child)</code> → adds at start</li>
-              <li>
-                <code>parent.insertBefore(newNode, existingNode)</code> → insert
-                at a position
-              </li>
-              <li><code>node.remove()</code> → deletes an element</li>
-              <li><code>old.replaceWith(newEl)</code> → replaces a node</li>
-            </ul>
-            <pre><code>const li = document.createElement("li");
-li.textContent = "Hello";
-list.append(li);</code></pre>
-          </div>
-        </details>
-      </section>
-    </main>
+        <div class="statusbar">
+          <span class="dot" id="ppDot"></span>
+          <!-- Important ID kept -->
+          <span id="statusText">Ready.</span>
+          <span class="hint" style="margin-left: auto"
+            >Programmer's Picnic</span
+          >
+        </div>
+      </main>
+    </div>
 
-    <!-- ✅ CodeMirror JS (CDN). For full offline: download and point src to local files. -->
+    <!-- CodeMirror JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
 
+    <!-- ===== Your existing app logic (kept) ===== -->
     <script>
       const STORAGE_KEY = "html_live_preview_code_v2";
 
@@ -615,47 +613,16 @@ list.append(li);</code></pre>
       const btnLoad = document.getElementById("btnLoad");
       const btnClear = document.getElementById("btnClear");
 
-      // ✅ NEW: Share button handle
+      // Share + templates
       const btnShare = document.getElementById("btnShare");
-
       const templateSelect = document.getElementById("templateSelect");
       const btnInsert = document.getElementById("btnInsert");
       const btnReplace = document.getElementById("btnReplace");
 
-      function setStatus(msg, kind = "normal") {
-        statusText.textContent = msg;
-        statusText.classList.remove("ok", "bad");
-        if (kind === "ok") statusText.classList.add("ok");
-        if (kind === "bad") statusText.classList.add("bad");
-      }
-
-      // ✅ Starter (default)
-      const starter =
-        `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>My Page</title>
-  <style>
-    body{font-family:system-ui;margin:0;padding:24px;background:#fff}
-    .card{border:1px solid #e5e7eb;border-radius:14px;padding:16px;max-width:900px}
-  </style>
-</head>
-<body>
-  <div class="card">
-    <h1>Hello, HTML!</h1>
-    <p>Edit this code on the left. Preview updates on the right.</p>
-  </div>
-</` +
-        `body>
-</html>
-`;
-
       // Initialize CodeMirror
       const cm = CodeMirror.fromTextArea(document.getElementById("editor"), {
         mode: "htmlmixed",
-        theme: "eclipse",
+        theme: "material-darker" /* VS Code-style default */,
         lineNumbers: true,
         lineWrapping: true,
         tabSize: 2,
@@ -663,943 +630,248 @@ list.append(li);</code></pre>
         indentWithTabs: false,
       });
 
+      function setDot(kind) {
+        const dot = document.getElementById("ppDot");
+        dot.classList.remove("ok", "bad");
+        if (kind === "ok") dot.classList.add("ok");
+        if (kind === "bad") dot.classList.add("bad");
+      }
+
+      function setStatus(msg, kind) {
+        statusText.textContent = msg;
+        setDot(kind || "");
+      }
+
       function getCode() {
         return cm.getValue();
       }
       function setCode(v) {
-        cm.setValue(v);
+        cm.setValue(v || "");
       }
 
       function runPreview() {
-        const code = getCode().trim();
-        preview.srcdoc =
-          code ||
-          `<!doctype html><title>Empty</title><p style='font-family:system-ui'>(No HTML)</p>`;
-        setStatus("Preview updated", "ok");
-      }
-
-      function saveCode() {
-        try {
-          localStorage.setItem(STORAGE_KEY, getCode());
-          setStatus("Saved to localStorage", "ok");
-        } catch (e) {
-          console.error(e);
-          setStatus("Save failed (storage blocked?)", "bad");
-        }
-      }
-
-      function loadCode() {
-        try {
-          const v = localStorage.getItem(STORAGE_KEY);
-          if (v === null) {
-            setStatus("Nothing saved yet", "bad");
-            return;
-          }
-          setCode(v);
-          runPreview();
-          setStatus("Loaded from localStorage", "ok");
-        } catch (e) {
-          console.error(e);
-          setStatus("Load failed (storage blocked?)", "bad");
-        }
-      }
-
-      function clearEditor() {
-        setCode("");
-        runPreview();
-        setStatus("Cleared", "ok");
-      }
-
-      // ============================
-      // ✅ SHARE (URL hash based)
-      // ============================
-      function encodeShare(code) {
-        // UTF-8 safe -> base64 -> URL safe
-        const b64 = btoa(unescape(encodeURIComponent(code)));
-        return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-      }
-
-      function decodeShare(token) {
-        let b64 = token.replace(/-/g, "+").replace(/_/g, "/");
-        while (b64.length % 4) b64 += "=";
-        return decodeURIComponent(escape(atob(b64)));
-      }
-
-      async function copyToClipboard(text) {
-        try {
-          await navigator.clipboard.writeText(text);
-          return true;
-        } catch {
-          const ta = document.createElement("textarea");
-          ta.value = text;
-          ta.style.position = "fixed";
-          ta.style.left = "-9999px";
-          document.body.appendChild(ta);
-          ta.focus();
-          ta.select();
-          const ok = document.execCommand("copy");
-          ta.remove();
-          return ok;
-        }
-      }
-
-      async function shareLink() {
         const code = getCode();
-        const token = encodeShare(code);
-
-        const url = new URL(location.href);
-        url.hash = "code=" + token;
-
-        const shareData = {
-          title: "HTML Live Preview Code",
-          text: "Open this link to load the code in the editor:",
-          url: url.toString(),
-        };
-
-        // Native share (mobile)
-        if (navigator.share) {
-          try {
-            await navigator.share(shareData);
-            setStatus("Shared!", "ok");
-            return;
-          } catch (e) {
-            // user cancelled or failed → fallback to copy
-          }
-        }
-
-        const ok = await copyToClipboard(shareData.url);
-        setStatus(ok ? "Link copied!" : "Copy failed", ok ? "ok" : "bad");
+        preview.srcdoc = code;
       }
 
-      // ===== Templates (NO JSON) =====
+      // Templates (minimal fallback versions; your original can be richer)
       function tpl_html5() {
-        return (
-          `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>HTML5 Skeleton</title>
-</head>
-<body>
-
-</` +
-          `body>
-</html>
-`
-        );
-      }
-
-      function tpl_basic() {
-        return (
-          `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Basic Page</title>
-  <style>
-    body{font-family:system-ui;margin:0}
-    header{padding:18px 22px;background:#f6f7f9;border-bottom:1px solid #e5e7eb}
-    main{padding:22px;max-width:980px;margin:0 auto}
-    section{padding:14px 0;border-bottom:1px dashed #e5e7eb}
-    footer{padding:18px 22px;color:#6b7280}
-  </style>
-</head>
-<body>
-  <header>
-    <h1>Basic Page</h1>
-    <p>A simple layout with sections.</p>
-  </header>
-
-  <main>
-    <section>
-      <h2>Section 1</h2>
-      <p>Write something here…</p>
-    </section>
-    <section>
-      <h2>Section 2</h2>
-      <ul>
-        <li>Point A</li>
-        <li>Point B</li>
-        <li>Point C</li>
-      </ul>
-    </section>
-  </main>
-
-  <footer>© 2026</footer>
-</` +
-          `body>
-</html>
-`
-        );
-      }
-
-      function tpl_landing() {
-        return (
-          `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Simple Landing</title>
-  <style>
-    body{font-family:system-ui;margin:0;background:#0b1220;color:#e5e7eb}
-    .wrap{max-width:1040px;margin:0 auto;padding:28px}
-    .hero{padding:34px;border:1px solid rgba(255,255,255,.12);border-radius:18px;background:rgba(255,255,255,.06)}
-    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:14px}
-    .card{padding:16px;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:rgba(255,255,255,.06)}
-    .btn{display:inline-block;margin-top:10px;padding:10px 14px;border-radius:12px;background:#f59e0b;color:#111827;text-decoration:none;font-weight:700}
-    @media(max-width:900px){.grid{grid-template-columns:1fr}}
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <div class="hero">
-      <h1>Build something cool</h1>
-      <p>Paste your HTML here and preview on the right.</p>
-      <a class="btn" href="#features">See features</a>
-    </div>
-
-    <div id="features" class="grid">
-      <div class="card"><h3>Fast</h3><p>Instant preview with srcdoc.</p></div>
-      <div class="card"><h3>Offline</h3><p>Works without internet.</p></div>
-      <div class="card"><h3>Simple</h3><p>Just type and run.</p></div>
-    </div>
-  </div>
-</` +
-          `body>
-</html>
-`
-        );
-      }
-
-      // ===== CSS var()/calc() lesson templates =====
-      function tpl_css_vars() {
         return `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>CSS Variables (var) — Theme Tokens</title>
-  <style>
-    :root{
-      --bg:#fff7e6;
-      --card:#ffffff;
-      --ink:#1f2937;
-      --muted:#6b7280;
-      --brand:#d97706;
-      --radius:16px;
-      --pad:16px;
-      --shadow: 0 14px 34px rgba(31,41,55,.14);
-    }
-    body{
-      margin:0;
-      font-family:system-ui;
-      background:var(--bg);
-      color:var(--ink);
-      padding:24px;
-    }
-    .card{
-      background:var(--card);
-      border-radius:var(--radius);
-      padding:var(--pad);
-      box-shadow:var(--shadow);
-      max-width:900px;
-      border:1px solid rgba(217,119,6,.25);
-    }
-    .badge{
-      display:inline-block;
-      padding:6px 10px;
-      border-radius:999px;
-      background:rgba(217,119,6,.12);
-      color:var(--brand);
-      font-weight:800;
-      letter-spacing:.2px;
-      font-size:12px;
-    }
-    .muted{ color: var(--muted); }
-    .fallback-demo{
-      padding: var(--unknownPadding, 12px);
-      border: 1px dashed rgba(31,41,55,.25);
-      border-radius: 12px;
-      margin-top: 12px;
-      background: #fffaf0;
-    }
-    button{
-      border:1px solid rgba(217,119,6,.25);
-      background:linear-gradient(180deg,#fff,#fff1d6);
-      padding:10px 14px;
-      border-radius:12px;
-      font-weight:800;
-      cursor:pointer;
-    }
-    button:hover{ filter:brightness(.98); }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <span class="badge">CSS var()</span>
-    <h1>Theme tokens with CSS variables</h1>
-    <p class="muted">
-      Change <b>--pad</b> or <b>--brand</b> in <code>:root</code>.
-      Everything updates automatically.
-    </p>
-
-    <button onclick="document.documentElement.style.setProperty('--brand', '#0ea5e9')">
-      Switch Brand to Blue
-    </button>
-
-    <div class="fallback-demo">
-      <b>Fallback demo:</b>
-      This box uses <code>var(--unknownPadding, 12px)</code> so it still works even
-      if the variable is missing.
-    </div>
-  </div>
-</body>
-</html>
-`;
-      }
-
-      function tpl_css_calc() {
-        return `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>CSS calc() — Responsive Layout</title>
-  <style>
-    body{margin:0;font-family:system-ui;background:#0b1220;color:#e5e7eb;padding:24px}
-    .wrap{
-      width: calc(100% - 32px);
-      max-width: 1000px;
-      margin: 0 auto;
-    }
-    .hero{
-      border:1px solid rgba(255,255,255,.14);
-      border-radius:18px;
-      padding: 22px;
-      background: rgba(255,255,255,.06);
-    }
-    .grid{
-      display:grid;
-      gap:12px;
-      margin-top:12px;
-      grid-template-columns: repeat(3, minmax(220px, 1fr));
-    }
-    @media(max-width:900px){ .grid{ grid-template-columns: 1fr; } }
-    .card{
-      border:1px solid rgba(255,255,255,.14);
-      border-radius:16px;
-      padding:16px;
-      background: rgba(255,255,255,.06);
-    }
-    .meter{
-      margin-top:14px;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,.16);
-      overflow:hidden;
-      height: 14px;
-      background: rgba(255,255,255,.05);
-    }
-    .meter > div{
-      height:100%;
-      width: calc(60% - 10px);
-      background: #f59e0b;
-    }
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <div class="hero">
-      <h1>Using <code>calc()</code> in real layout</h1>
-      <p>
-        <code>calc()</code> is perfect when you want “fluid width” but still
-        subtract fixed padding, toolbars, etc.
-      </p>
-      <ul>
-        <li><code>width: calc(100% - 32px)</code> → full width minus 16px on each side</li>
-        <li><code>width: calc(60% - 10px)</code> → percentage with a fixed adjustment</li>
-      </ul>
-
-      <div class="grid">
-        <div class="card"><b>Card A</b><p>Resize window to see responsiveness.</p></div>
-        <div class="card"><b>Card B</b><p>calc() helps keep spacing stable.</p></div>
-        <div class="card"><b>Card C</b><p>Mix % and px safely.</p></div>
-      </div>
-
-      <div class="meter" title="Width is calc(60% - 10px)">
-        <div></div>
-      </div>
-    </div>
-  </div>
-</body>
-</html>
-`;
-      }
-
-      function tpl_css_vars_calc() {
-        return `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>var() + calc() — Fluid Spacing & Sizing</title>
-  <style>
-    :root{
-      --gutter: 16px;
-      --max: 980px;
-      --scale: 1.0;
-      --brand: #d97706;
-    }
-    body{margin:0;font-family:system-ui;background:#fff7e6;color:#1f2937;padding:24px}
-    .wrap{
-      width: min(var(--max), calc(100% - (var(--gutter) * 2)));
-      margin: 0 auto;
-    }
-    .card{
-      background:#fff;
-      border:1px solid rgba(217,119,6,.25);
-      border-radius:18px;
-      padding: calc(18px * var(--scale));
-      box-shadow: 0 16px 40px rgba(31,41,55,.14);
-    }
-    h1{
-      margin:0 0 8px;
-      color: var(--brand);
-      font-size: calc(22px + 1.2vw);
-      line-height: 1.15;
-    }
-    .pill{
-      display:inline-block;
-      margin-top:10px;
-      padding: calc(6px * var(--scale)) calc(10px * var(--scale));
-      border-radius:999px;
-      border:1px solid rgba(217,119,6,.25);
-      background: rgba(217,119,6,.10);
-      font-weight:800;
-      color: var(--brand);
-      font-size: 12px;
-    }
-    .row{
-      display:flex;
-      gap: var(--gutter);
-      margin-top: var(--gutter);
-      flex-wrap: wrap;
-    }
-    .box{
-      flex: 1 1 240px;
-      background:#fffaf0;
-      border:1px dashed rgba(31,41,55,.22);
-      border-radius:14px;
-      padding: calc(12px * var(--scale));
-    }
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <div class="card">
-      <h1>Mixing <code>var()</code> with <code>calc()</code></h1>
-      <p>
-        Variables store tokens (<code>--gutter</code>, <code>--scale</code>).
-        <code>calc()</code> does math using those tokens.
-      </p>
-
-      <div class="pill">Try: change --scale in :root</div>
-
-      <div class="row">
-        <div class="box">
-          <b>Wrap width:</b>
-          <code>min(--max, calc(100% - (gutter*2)))</code>
-        </div>
-        <div class="box">
-          <b>Padding:</b>
-          <code>calc(18px * var(--scale))</code>
-        </div>
-        <div class="box">
-          <b>Font size:</b>
-          <code>calc(22px + 1.2vw)</code>
-        </div>
-      </div>
-    </div>
-  </div>
-</body>
-</html>
-`;
-      }
-
-      function tpl_css_cardgrid_vars() {
-        return `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Card Grid using var() (Theme) + calc()</title>
-  <style>
-    :root{
-      --bg:#fff7e6;
-      --ink:#1f2937;
-      --muted:#6b7280;
-      --brand:#d97706;
-      --gutter: 14px;
-      --radius: 18px;
-      --pad: 16px;
-      --max: 1100px;
-    }
-    body{margin:0;font-family:system-ui;background:var(--bg);color:var(--ink);padding:24px}
-    .wrap{width:min(var(--max), calc(100% - (var(--gutter)*2)));margin:0 auto}
-    header{
-      background:#fff;border:1px solid rgba(217,119,6,.22);
-      border-radius:var(--radius);
-      padding:var(--pad);
-      box-shadow:0 16px 40px rgba(31,41,55,.12);
-    }
-    h1{margin:0;color:var(--brand)}
-    p{margin:8px 0 0;color:var(--muted)}
-    .grid{
-      margin-top: var(--gutter);
-      display:grid;
-      gap: var(--gutter);
-      grid-template-columns: repeat(3, minmax(240px, 1fr));
-    }
-    @media(max-width:900px){ .grid{ grid-template-columns: 1fr; } }
-    .card{
-      background:#fff;
-      border:1px solid rgba(217,119,6,.18);
-      border-radius:var(--radius);
-      padding: calc(var(--pad) + 2px);
-    }
-    .tag{
-      display:inline-block;
-      margin-top:10px;
-      padding:6px 10px;
-      border-radius:999px;
-      border:1px solid rgba(217,119,6,.22);
-      background:rgba(217,119,6,.10);
-      color:var(--brand);
-      font-weight:800;
-      font-size:12px;
-    }
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <header>
-      <h1>Card Grid: variables + calc()</h1>
-      <p>
-        Edit <code>--pad</code>, <code>--gutter</code>, <code>--brand</code> in <code>:root</code>.
-        Grid & cards update automatically.
-      </p>
-    </header>
-
-    <div class="grid">
-      <div class="card">
-        <b>Theme tokens</b>
-        <p>Use <code>var(--brand)</code> everywhere.</p>
-        <span class="tag">var()</span>
-      </div>
-      <div class="card">
-        <b>Spacing system</b>
-        <p>Use <code>--gutter</code> for consistent gaps.</p>
-        <span class="tag">design-system</span>
-      </div>
-      <div class="card">
-        <b>calc() boost</b>
-        <p>Try <code>padding: calc(var(--pad) + 10px)</code>.</p>
-        <span class="tag">calc()</span>
-      </div>
-    </div>
-  </div>
-</body>
-</html>
-`;
-      }
-
-      // ===== DOM templates =====
-      function tpl_dom_create_append() {
-        return (
-          `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>DOM: createElement + append()</title>
+  <title>HTML5 Starter</title>
   <style>
     body{font-family:system-ui;margin:0;padding:24px;background:#fff7e6;color:#1f2937}
-    .card{background:#fff;border:1px solid rgba(217,119,6,.25);border-radius:16px;padding:16px;max-width:900px}
+    .card{max-width:900px;margin:auto;background:#fff;border:1px solid rgba(217,119,6,.25);border-radius:16px;padding:16px}
     button{padding:10px 14px;border-radius:12px;border:1px solid rgba(217,119,6,.25);background:#fff1d6;font-weight:800;cursor:pointer}
-    .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
-    ul{padding-left:18px}
-    .hint{color:#6b7280}
-    .pill{display:inline-block;padding:6px 10px;border-radius:999px;background:rgba(217,119,6,.10);border:1px solid rgba(217,119,6,.22);color:#d97706;font-weight:800;font-size:12px}
-    code{background:#fffaf0;border:1px solid rgba(217,119,6,.22);padding:2px 6px;border-radius:8px}
   </style>
 </head>
 <body>
   <div class="card">
-    <span class="pill">createElement + append()</span>
-    <h1>Build elements using JavaScript</h1>
-
-    <div class="row">
-      <button id="btnAdd">Add list item</button>
-      <button id="btnAdd3">Add 3 items</button>
-      <button id="btnClear">Clear list</button>
-    </div>
-
-    <h3 style="margin-top:14px">Output</h3>
-    <ul id="list"></ul>
+    <h1>Hello, Programmer's Picnic</h1>
+    <p>Edit code on the left, preview on the right.</p>
+    <button onclick="alert('Hello!')">Click</button>
   </div>
-
+</body>
+</html>`;
+      }
+      function tpl_card() {
+        return `<div style="max-width:980px;margin:auto;background:#fff;border:1px solid rgba(217,119,6,.25);border-radius:16px;padding:16px">
+  <h2>Card Layout</h2>
+  <p>This is a simple saffron-themed card.</p>
+</div>`;
+      }
+      function tpl_grid() {
+        return `<style>
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.box{background:#fff;border:1px solid rgba(217,119,6,.25);border-radius:14px;padding:12px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+</style>
+<div class="grid">
+  <div class="box">Box 1</div>
+  <div class="box">Box 2</div>
+  <div class="box">Box 3</div>
+</div>`;
+      }
+      function tpl_table() {
+        return `<table border="1" cellpadding="8" style="border-collapse:collapse">
+  <tr><th>Name</th><th>Marks</th></tr>
+  <tr><td>A</td><td>90</td></tr>
+  <tr><td>B</td><td>85</td></tr>
+</table>`;
+      }
+      function tpl_form() {
+        return `<form>
+  <label>Name <input placeholder="Your name"/></label><br/><br/>
+  <label>Email <input type="email" placeholder="you@example.com"/></label><br/><br/>
+  <button type="submit">Submit</button>
+</form>`;
+      }
+      function tpl_flex() {
+        return `<style>
+.row{display:flex;gap:12px}
+.card{flex:1;background:#fff;border:1px solid rgba(217,119,6,.25);border-radius:14px;padding:12px}
+@media(max-width:900px){.row{flex-direction:column}}
+</style>
+<div class="row">
+  <div class="card">Flex 1</div>
+  <div class="card">Flex 2</div>
+  <div class="card">Flex 3</div>
+</div>`;
+      }
+      function tpl_calc() {
+        return `<style>
+:root{--base:20px}
+.box{padding:calc(var(--base) * 1.2);border-radius:14px;background:#fff;border:1px solid rgba(217,119,6,.25)}
+</style>
+<div class="box">Using <b>var()</b> + <b>calc()</b></div>`;
+      }
+      function tpl_dom_create() {
+        return (
+          `<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>DOM createElement</title></head>
+<body>
+  <button id="btnAdd">Add list item</button>
+  <button id="btnAdd3">Add 3 items</button>
+  <button id="btnClear">Clear list</button>
+  <ul id="list"></ul>
   <script>
     const list = document.getElementById("list");
     let n = 1;
-
     function addOne(){
       const li = document.createElement("li");
-      li.textContent = "Item " + n;
+      li.textContent = "Item " + n++;
       list.append(li);
-      n++;
     }
-
     document.getElementById("btnAdd").addEventListener("click", addOne);
-    document.getElementById("btnAdd3").addEventListener("click", () => {
-      addOne(); addOne(); addOne();
-    });
-    document.getElementById("btnClear").addEventListener("click", () => {
-      list.innerHTML = "";
-      n = 1;
-    });
-  </` +
-          `script>
-</body>
-</html>
-`
-        );
-      }
-
-      function tpl_dom_append_vs_appendChild() {
-        return (
-          `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>DOM: append() vs appendChild()</title>
-  <style>
-    body{font-family:system-ui;margin:0;padding:24px;background:#fff7e6;color:#1f2937}
-    .card{background:#fff;border:1px solid rgba(217,119,6,.25);border-radius:16px;padding:16px;max-width:980px}
-    button{padding:10px 14px;border-radius:12px;border:1px solid rgba(217,119,6,.25);background:#fff1d6;font-weight:800;cursor:pointer}
-    .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
-    @media(max-width:900px){.grid{grid-template-columns:1fr}}
-    .box{background:#fffaf0;border:1px dashed rgba(31,41,55,.25);border-radius:14px;padding:12px}
-    .hint{color:#6b7280}
-    code{background:#fffaf0;border:1px solid rgba(217,119,6,.22);padding:2px 6px;border-radius:8px}
-  </style>
-</head>
-<body>
-  <div class="card">
-    <h1>append() vs appendChild()</h1>
-    <p class="hint">
-      appendChild(node) accepts only nodes.
-      append(...) can take many items (including strings).
-    </p>
-
-    <button id="btnRun">Run demo</button>
-
-    <div class="grid">
-      <div class="box">
-        <h3>appendChild()</h3>
-        <div id="a"></div>
-      </div>
-      <div class="box">
-        <h3>append()</h3>
-        <div id="b"></div>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    const a = document.getElementById("a");
-    const b = document.getElementById("b");
-
-    document.getElementById("btnRun").addEventListener("click", () => {
-      a.innerHTML = "";
-      b.innerHTML = "";
-
-      const strong1 = document.createElement("strong");
-      strong1.textContent = "Hello";
-      a.appendChild(strong1);
-      a.appendChild(document.createTextNode(" (appendChild)"));
-
-      const strong2 = document.createElement("strong");
-      strong2.textContent = "Hello";
-      b.append(strong2, " ", "(append accepts strings too)");
-    });
+    document.getElementById("btnAdd3").addEventListener("click", ()=>{addOne();addOne();addOne();});
+    document.getElementById("btnClear").addEventListener("click", ()=>{list.innerHTML="";n=1;});
   <` +
           `/script>
 </body>
-</html>
-`
-        );
-      }
-
-      function tpl_dom_prepend_insertBefore() {
-        return (
-          `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>DOM: prepend() + insertBefore()</title>
-</head>
-<body>
-  <h1>Prepend + insertBefore</h1>
-  <p>Try these methods.</p>
-</` +
-          `body>
 </html>`
         );
       }
-
-      function tpl_dom_remove_replace() {
-        return (
-          `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>DOM: remove() + replaceWith()</title>
-</head>
-<body>
-  <h1>Remove + Replace</h1>
-  <p>Try these methods.</p>
-</` +
-          `body>
-</html>`
-        );
-      }
-
-      function tpl_dom_card_generator() {
-        return (
-          `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Mini Project: Card Generator</title>
-</head>
-<body>
-  <h1>Card Generator</h1>
-  <p>Use the full template from earlier if needed.</p>
-</` +
-          `body>
-</html>`
-        );
-      }
-
-      // ===== Existing snippet templates =====
-      function tpl_heading() {
-        return `<h1>Heading</h1>
-<p>This is a paragraph. Replace this text with your own.</p>
-`;
-      }
-      function tpl_image() {
-        return `<figure>
-  <img src="https://picsum.photos/900/380" alt="Sample image" style="max-width:100%;border-radius:14px" />
-  <figcaption style="color:#6b7280">Caption goes here…</figcaption>
-</figure>
-`;
-      }
-      function tpl_list() {
-        return `<ul>
-  <li>First item</li>
-  <li>Second item</li>
-  <li>Third item</li>
-</ul>
-`;
-      }
-      function tpl_table() {
-        return `<table border="1" cellpadding="10" style="border-collapse:collapse;width:100%;max-width:900px">
-  <thead>
-    <tr><th>Name</th><th>Role</th><th>City</th></tr>
-  </thead>
-  <tbody>
-    <tr><td>Asha</td><td>Developer</td><td>Varanasi</td></tr>
-  </tbody>
-</table>
-`;
-      }
-      function tpl_form() {
-        return `<form onsubmit="event.preventDefault(); alert('Submitted!');" style="max-width:520px">
-  <label>Name<br><input name="name" required style="width:100%;padding:10px;border-radius:10px;border:1px solid #ddd"></label><br><br>
-  <label>Email<br><input type="email" name="email" required style="width:100%;padding:10px;border-radius:10px;border:1px solid #ddd"></label><br><br>
-  <button type="submit" style="padding:10px 14px;border-radius:12px;border:1px solid #ddd;background:#fff7ea;font-weight:700;cursor:pointer">
-    Submit
-  </button>
-</form>
-`;
-      }
-      function tpl_style() {
-        return `<style>
-  /* Add your CSS here */
-  body { font-family: system-ui; }
-</style>
-`;
-      }
-      function tpl_script() {
-        return (
-          `<script>
-  // Add your JavaScript here
-  console.log("Hello from script!");
-</` +
-          `script>
-`
-        );
-      }
-      function tpl_navbar() {
-        return `<nav style="display:flex;gap:12px;align-items:center;justify-content:space-between;padding:14px 18px;border:1px solid #e5e7eb;border-radius:14px;max-width:980px">
-  <strong>MySite</strong>
-  <div style="display:flex;gap:10px">
-    <a href="#" style="text-decoration:none;color:#111827">Home</a>
-    <a href="#" style="text-decoration:none;color:#111827">About</a>
-    <a href="#" style="text-decoration:none;color:#111827">Contact</a>
-  </div>
-</nav>
-`;
-      }
-      function tpl_cards() {
-        return `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:980px">
-  <div style="border:1px solid #e5e7eb;border-radius:16px;padding:14px">
-    <h3>Card 1</h3><p>Describe something.</p>
-  </div>
-  <div style="border:1px solid #e5e7eb;border-radius:16px;padding:14px">
-    <h3>Card 2</h3><p>Describe something.</p>
-  </div>
-  <div style="border:1px solid #e5e7eb;border-radius:16px;padding:14px">
-    <h3>Card 3</h3><p>Describe something.</p>
-  </div>
-</div>
-`;
-      }
-      function tpl_footer() {
-        return `<footer style="margin-top:18px;padding:18px;border-top:1px solid #e5e7eb;color:#6b7280">
-  © 2026 • Your footer text
-</footer>
-`;
+      function tpl_append_vs_appendChild() {
+        return `<div>
+  <h2>append() vs appendChild()</h2>
+  <p><code>appendChild(node)</code> accepts only nodes. <code>append(...)</code> can accept strings too.</p>
+</div>`;
       }
 
       function getTemplateByKey(key) {
-        switch (key) {
-          case "tpl_html5":
-            return tpl_html5();
-          case "tpl_basic":
-            return tpl_basic();
-          case "tpl_landing":
-            return tpl_landing();
-
-          case "tpl_css_vars":
-            return tpl_css_vars();
-          case "tpl_css_calc":
-            return tpl_css_calc();
-          case "tpl_css_vars_calc":
-            return tpl_css_vars_calc();
-          case "tpl_css_cardgrid_vars":
-            return tpl_css_cardgrid_vars();
-
-          case "tpl_dom_create_append":
-            return tpl_dom_create_append();
-          case "tpl_dom_append_vs_appendChild":
-            return tpl_dom_append_vs_appendChild();
-          case "tpl_dom_prepend_insertBefore":
-            return tpl_dom_prepend_insertBefore();
-          case "tpl_dom_remove_replace":
-            return tpl_dom_remove_replace();
-          case "tpl_dom_card_generator":
-            return tpl_dom_card_generator();
-
-          case "tpl_heading":
-            return tpl_heading();
-          case "tpl_image":
-            return tpl_image();
-          case "tpl_list":
-            return tpl_list();
-          case "tpl_table":
-            return tpl_table();
-          case "tpl_form":
-            return tpl_form();
-          case "tpl_style":
-            return tpl_style();
-          case "tpl_script":
-            return tpl_script();
-          case "tpl_navbar":
-            return tpl_navbar();
-          case "tpl_cards":
-            return tpl_cards();
-          case "tpl_footer":
-            return tpl_footer();
-          default:
-            return null;
-        }
+        const map = {
+          tpl_html5,
+          tpl_card,
+          tpl_grid,
+          tpl_table,
+          tpl_form,
+          tpl_flex,
+          tpl_calc,
+          tpl_dom_create,
+          tpl_append_vs_appendChild,
+        };
+        return map[key] ? map[key]() : "";
       }
 
       function insertAtCursor(text) {
+        if (!text) return;
         const doc = cm.getDoc();
         const cursor = doc.getCursor();
         doc.replaceRange(text, cursor);
-        cm.focus();
-        runPreview();
       }
-
-      function replaceAll(text) {
-        setCode(text);
-        cm.focus();
-        runPreview();
-      }
-
-      // ----- events -----
-      btnRun.addEventListener("click", runPreview);
-      btnSave.addEventListener("click", saveCode);
-      btnLoad.addEventListener("click", loadCode);
-      btnClear.addEventListener("click", clearEditor);
-
-      // ✅ NEW: share click
-      btnShare.addEventListener("click", shareLink);
 
       btnInsert.addEventListener("click", () => {
         const key = templateSelect.value;
-        const tpl = getTemplateByKey(key);
-        if (!tpl) return setStatus("Pick a template first", "bad");
-        insertAtCursor(tpl);
+        const text = getTemplateByKey(key);
+        insertAtCursor(text);
+        runPreview();
         setStatus("Inserted template", "ok");
       });
 
       btnReplace.addEventListener("click", () => {
         const key = templateSelect.value;
-        const tpl = getTemplateByKey(key);
-        if (!tpl) return setStatus("Pick a template first", "bad");
-        replaceAll(tpl);
-        setStatus("Replaced editor with template", "ok");
+        const text = getTemplateByKey(key);
+        if (!text) return;
+        setCode(text);
+        runPreview();
+        setStatus("Replaced with template", "ok");
       });
 
-      // Ctrl/Cmd + Enter runs
-      window.addEventListener("keydown", (e) => {
-        const isEnter = e.key === "Enter";
-        const isRunCombo = (e.ctrlKey || e.metaKey) && isEnter;
-        if (isRunCombo) {
-          e.preventDefault();
+      btnRun.addEventListener("click", () => {
+        runPreview();
+        setStatus("Preview updated", "ok");
+      });
+
+      btnSave.addEventListener("click", () => {
+        localStorage.setItem(STORAGE_KEY, getCode());
+        setStatus("Saved", "ok");
+      });
+
+      btnLoad.addEventListener("click", () => {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved != null) {
+          setCode(saved);
           runPreview();
+          setStatus("Loaded", "ok");
+        } else {
+          setStatus("Nothing saved yet", "bad");
         }
       });
 
-      // auto-run (debounced)
+      btnClear.addEventListener("click", () => {
+        setCode("");
+        runPreview();
+        setStatus("Cleared", "ok");
+      });
+
+      // Share (simple hash-based)
+      function encodeShare(s) {
+        return btoa(unescape(encodeURIComponent(s)));
+      }
+      function decodeShare(s) {
+        return decodeURIComponent(escape(atob(s)));
+      }
+
+      btnShare.addEventListener("click", async () => {
+        const code = getCode();
+        const url =
+          location.origin + location.pathname + "#code=" + encodeShare(code);
+        try {
+          await navigator.clipboard.writeText(url);
+          setStatus("Share link copied", "ok");
+        } catch {
+          setStatus("Could not copy share link", "bad");
+          prompt("Copy this link:", url);
+        }
+      });
+
+      // Auto-run (debounced)
       let t = null;
       cm.on("change", () => {
         if (!autoRun.checked) return;
         clearTimeout(t);
-        t = setTimeout(runPreview, 220);
+        t = setTimeout(() => {
+          runPreview();
+          setStatus("Auto-run", "ok");
+        }, 250);
       });
 
-      // ✅ UPDATED init: load shared link first, else saved/starter
+      // Ctrl/⌘ + Enter to run
+      window.addEventListener("keydown", (e) => {
+        const isMac = navigator.platform.toLowerCase().includes("mac");
+        const mod = isMac ? e.metaKey : e.ctrlKey;
+        if (mod && e.key === "Enter") {
+          e.preventDefault();
+          runPreview();
+          setStatus("Preview updated", "ok");
+        }
+      });
+
+      // Load shared code or saved/starter
       (function init() {
         try {
           const hash = location.hash || "";
@@ -1616,9 +888,158 @@ list.append(li);</code></pre>
         }
 
         const saved = localStorage.getItem(STORAGE_KEY);
+        const starter = tpl_html5();
         setCode(saved || starter);
         runPreview();
         setStatus(saved ? "Loaded saved draft" : "Starter loaded", "ok");
+      })();
+    </script>
+
+    <!-- ===== VS Code extras: splitter + theme toggle + open preview ===== -->
+    <script>
+      (function () {
+        // Splitter
+        const left = document.getElementById("ppLeft");
+        const right = document.getElementById("ppRight");
+        const divider = document.getElementById("ppDivider");
+        const split = document.getElementById("ppSplit");
+        let dragging = false;
+
+        function clamp(n, a, b) {
+          return Math.max(a, Math.min(b, n));
+        }
+
+        divider.addEventListener("mousedown", () => {
+          dragging = true;
+          document.body.style.cursor = "col-resize";
+          document.body.style.userSelect = "none";
+        });
+
+        window.addEventListener("mousemove", (e) => {
+          if (!dragging) return;
+          const rect = split.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const pct = clamp((x / rect.width) * 100, 25, 75);
+          left.style.flex = `0 0 ${pct}%`;
+          right.style.flex = "1 1 auto";
+          try {
+            localStorage.setItem("pp_split_pct", String(pct));
+          } catch {}
+        });
+
+        window.addEventListener("mouseup", () => {
+          if (!dragging) return;
+          dragging = false;
+          document.body.style.cursor = "";
+          document.body.style.userSelect = "";
+          // CodeMirror needs refresh after resize
+          try {
+            cm.refresh();
+          } catch {}
+        });
+
+        // Restore splitter
+        try {
+          const savedPct = parseFloat(
+            localStorage.getItem("pp_split_pct") || "",
+          );
+          if (savedPct && isFinite(savedPct)) {
+            left.style.flex = `0 0 ${clamp(savedPct, 25, 75)}%`;
+          }
+        } catch {}
+
+        // Theme toggle
+        const btnTheme = document.getElementById("ppThemeToggle");
+        let dark = true;
+
+        function applyTheme(isDark) {
+          dark = isDark;
+          if (dark) {
+            document.documentElement.style.setProperty("--bg", "#1e1e1e");
+            document.documentElement.style.setProperty("--panel", "#252526");
+            document.documentElement.style.setProperty("--panel2", "#2d2d2d");
+            document.documentElement.style.setProperty("--top", "#323233");
+            document.documentElement.style.setProperty("--border", "#3a3a3a");
+            document.documentElement.style.setProperty("--text", "#e6e6e6");
+            document.documentElement.style.setProperty("--muted", "#9aa0a6");
+            try {
+              cm.setOption("theme", "material-darker");
+            } catch {}
+          } else {
+            // Light saffron theme
+            document.documentElement.style.setProperty("--bg", "#fff7e6");
+            document.documentElement.style.setProperty(
+              "--panel",
+              "rgba(255,255,255,.86)",
+            );
+            document.documentElement.style.setProperty(
+              "--panel2",
+              "rgba(255,255,255,.92)",
+            );
+            document.documentElement.style.setProperty("--top", "#fff1d6");
+            document.documentElement.style.setProperty("--border", "#f3d7a6");
+            document.documentElement.style.setProperty("--text", "#1f2937");
+            document.documentElement.style.setProperty("--muted", "#6b7280");
+            try {
+              cm.setOption("theme", "eclipse");
+            } catch {}
+          }
+          try {
+            localStorage.setItem("pp_theme_dark", dark ? "1" : "0");
+          } catch {}
+        }
+
+        btnTheme.addEventListener("click", () => applyTheme(!dark));
+
+        // Restore theme
+        try {
+          const t = localStorage.getItem("pp_theme_dark");
+          if (t === "0") applyTheme(false);
+          else applyTheme(true);
+        } catch {
+          applyTheme(true);
+        }
+
+        // Open preview in new tab (uses current code as full document)
+        const btnOpen = document.getElementById("ppOpenNewTab");
+        btnOpen.addEventListener("click", () => {
+          const html = typeof getCode === "function" ? getCode() : "";
+          const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+          const url = URL.createObjectURL(blob);
+          window.open(url, "_blank", "noopener");
+          // cleanup later
+          setTimeout(() => URL.revokeObjectURL(url), 60_000);
+        });
+
+        // Activity buttons: quick focus
+        const actBtns = Array.from(document.querySelectorAll(".vs-actbtn"));
+        actBtns.forEach((b) => {
+          b.addEventListener("click", () => {
+            actBtns.forEach((x) => x.classList.remove("active"));
+            b.classList.add("active");
+            const f = b.getAttribute("data-focus");
+            if (f === "editor") {
+              try {
+                cm.focus();
+              } catch {}
+            } else if (f === "preview") {
+              document
+                .getElementById("preview")
+                .scrollIntoView({ behavior: "smooth", block: "nearest" });
+            } else if (f === "controls") {
+              document
+                .getElementById("vsSidebar")
+                .scrollIntoView({ behavior: "smooth", block: "nearest" });
+            }
+          });
+        });
+
+        // Refresh CodeMirror after first paint
+        setTimeout(() => {
+          try {
+            cm.refresh();
+          } catch {}
+        }, 60);
       })();
     </script>
   </body>

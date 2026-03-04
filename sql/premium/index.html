@@ -2,114 +2,92 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>SQL in Browser — SQLite Demo (Improved)</title>
+    <title>SQL in Browser — SQLite Demo (VS Code Style)</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
     <!-- tiny inline favicon to avoid 404 -->
     <link
       rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='24' fill='%23d97706'/%3E%3Ctext x='64' y='82' font-size='64' text-anchor='middle'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='24' fill='%232d2d2d'/%3E%3Ctext x='64' y='82' font-size='64' text-anchor='middle'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E"
     />
 
     <style>
       :root {
-        --bg: #fff7e6;
-        --card: #ffffff;
-        --ink: #1f2937;
-        --brand: #d97706;
-        --brand2: #b45309;
-        --border: #f3d7a6;
-        --muted: #6b7280;
-        --danger: #b91c1c;
-        --ok: #166534;
+        /* VS Code-ish palette */
+        --bg: #1e1e1e;
+        --panel: #252526;
+        --panel2: #2d2d2d;
+        --top: #323233;
+        --border: #3a3a3a;
+        --text: #e6e6e6;
+        --muted: #9aa0a6;
+        --accent: #3794ff;
+        --good: #22c55e;
+        --bad: #f85149;
+        --warn: #d29922;
+
+        --mono:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        --sans: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+
+        --r: 12px;
       }
+
       * {
         box-sizing: border-box;
       }
+      html,
+      body {
+        height: 100%;
+      }
       body {
         margin: 0;
-        font-family:
-          Inter,
-          system-ui,
-          -apple-system,
-          Segoe UI,
-          Roboto,
-          Arial,
-          sans-serif;
-        background: linear-gradient(180deg, var(--bg), #fff1d6);
-        color: var(--ink);
+        font-family: var(--sans);
+        background: var(--bg);
+        color: var(--text);
+        overflow: hidden;
       }
       a {
         color: inherit;
       }
 
-      .wrap {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 18px 16px 26px;
-      }
-
-      .topbar {
-        position: sticky;
-        top: 0;
-        z-index: 30;
+      /* ===== VS CODE CHROME ===== */
+      .vs-titlebar {
+        height: 38px;
         display: flex;
         align-items: center;
-        gap: 12px;
-        padding: 12px 12px;
-        margin: 0 -16px 14px;
-        background: rgba(255, 255, 255, 0.82);
-        backdrop-filter: blur(10px);
-        border-bottom: 1px solid rgba(31, 41, 55, 0.1);
+        gap: 10px;
+        padding: 0 12px;
+        background: var(--top);
+        border-bottom: 1px solid var(--border);
+        user-select: none;
       }
-
-      .brand {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        min-width: 0;
-        flex: 1;
-      }
-      .brand .logo {
-        width: 44px;
-        height: 44px;
-        border-radius: 12px;
-        background: radial-gradient(circle at 30% 30%, #f59e0b, #b45309);
-        box-shadow: 0 12px 26px rgba(217, 119, 6, 0.18);
-      }
-      .brand h1 {
-        font-size: 16px;
-        margin: 0;
+      .vs-titlebar .title {
+        font-size: 13px;
         font-weight: 900;
-        letter-spacing: 0.2px;
+        color: #d7d7d7;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
       }
-      .brand p {
-        margin: 2px 0 0;
-        font-size: 12px;
-        color: var(--muted);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-
-      .status {
+      .vs-titlebar .right {
+        margin-left: auto;
         display: flex;
         align-items: center;
         gap: 10px;
         flex-wrap: wrap;
         justify-content: flex-end;
       }
+
       .pill {
-        border: 1px solid rgba(31, 41, 55, 0.1);
-        background: rgba(255, 255, 255, 0.9);
-        padding: 8px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.14);
+        padding: 7px 10px;
         border-radius: 999px;
-        font-weight: 800;
+        font-weight: 900;
         font-size: 12px;
-        color: var(--ink);
+        color: var(--text);
         display: inline-flex;
         align-items: center;
         gap: 8px;
@@ -122,75 +100,263 @@
         box-shadow: 0 0 0 4px rgba(148, 163, 184, 0.12);
       }
       .dot.ok {
-        background: #22c55e;
+        background: var(--good);
         box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.12);
       }
 
-      .grid {
-        display: grid;
-        gap: 14px;
-      }
-      @media (min-width: 960px) {
-        .grid {
-          grid-template-columns: 1.1fr 0.9fr;
-        }
+      .vs-shell {
+        height: calc(100vh - 38px);
+        display: flex;
+        min-width: 0;
       }
 
-      .card {
-        background: rgba(255, 255, 255, 0.88);
-        border: 1px solid rgba(31, 41, 55, 0.1);
-        border-radius: 18px;
-        box-shadow: 0 14px 38px rgba(8, 36, 64, 0.06);
-        padding: 14px;
+      /* Activity bar */
+      .vs-activity {
+        width: 50px;
+        background: #1b1b1b;
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        padding: 10px 6px;
+        gap: 8px;
+      }
+      .vs-actbtn {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        border: 1px solid transparent;
+        background: transparent;
+        color: #cfcfcf;
+        display: grid;
+        place-items: center;
+        cursor: pointer;
+        font-size: 18px;
+      }
+      .vs-actbtn:hover {
+        background: rgba(255, 255, 255, 0.04);
+        border-color: rgba(255, 255, 255, 0.08);
+      }
+      .vs-actbtn.active {
+        background: rgba(55, 148, 255, 0.14);
+        border-color: rgba(55, 148, 255, 0.35);
+        color: #ffffff;
+      }
+
+      /* Sidebar */
+      .vs-sidebar {
+        width: 320px;
+        min-width: 260px;
+        max-width: 420px;
+        background: var(--panel);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
         overflow: hidden;
       }
-      .panel-title {
+      .vs-sidehead {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 10px;
+      }
+      .vs-sidehead .label {
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        color: #cfcfcf;
+        opacity: 0.9;
+        font-weight: 900;
+      }
+      .vs-sidebody {
+        overflow: auto;
+        padding: 10px;
+      }
+      .block {
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(0, 0, 0, 0.14);
+        border-radius: 12px;
+        overflow: hidden;
         margin-bottom: 10px;
       }
-      .panel-title h2 {
-        font-size: 14px;
-        margin: 0;
+      .blockhead {
+        padding: 10px 10px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.02);
+      }
+      .blockhead b {
+        font-size: 12px;
+        color: #d7d7d7;
+        letter-spacing: 0.02em;
         font-weight: 1000;
       }
-      .muted {
+      .blockbody {
+        padding: 10px;
+      }
+
+      /* Main */
+      .vs-main {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .vs-toolbar {
+        background: var(--panel2);
+        border-bottom: 1px solid var(--border);
+        padding: 10px;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .spacer {
+        flex: 1;
+        min-width: 10px;
+      }
+      .hint {
         color: var(--muted);
-      }
-      .small {
         font-size: 12px;
+        font-weight: 700;
       }
+
+      /* Split area */
+      .split {
+        flex: 1;
+        min-height: 0;
+        display: grid;
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: 12px;
+        padding: 12px;
+        overflow: hidden;
+      }
+      @media (max-width: 980px) {
+        .vs-sidebar {
+          display: none;
+        }
+        .split {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* VS code-like cards (panes) */
+      .pane {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        box-shadow: 0 14px 38px rgba(0, 0, 0, 0.22);
+        overflow: hidden;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .panehead {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.02);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .panehead h2 {
+        margin: 0;
+        font-size: 13px;
+        font-weight: 1000;
+        letter-spacing: 0.06em;
+        color: #d7d7d7;
+      }
+
+      /* Controls & inputs */
+      button {
+        border: none;
+        cursor: pointer;
+        font-weight: 950;
+        user-select: none;
+      }
+      button:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+      .btn {
+        padding: 10px 12px;
+        border-radius: 12px;
+        background: rgba(55, 148, 255, 0.18);
+        border: 1px solid rgba(55, 148, 255, 0.35);
+        color: #fff;
+      }
+      .btn:hover {
+        background: rgba(55, 148, 255, 0.26);
+      }
+      .btn-outline {
+        padding: 10px 12px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: var(--text);
+      }
+      .btn-outline:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+      .btn-ghost {
+        padding: 10px 12px;
+        border-radius: 12px;
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: var(--text);
+      }
+      .btn-ghost:hover {
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      input[type="text"],
+      input[type="file"] {
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: rgba(0, 0, 0, 0.18);
+        color: var(--text);
+        outline: none;
+        font-weight: 800;
+      }
+      input[type="text"]:focus,
+      input[type="file"]:focus {
+        border-color: rgba(55, 148, 255, 0.45);
+        box-shadow: 0 0 0 4px rgba(55, 148, 255, 0.18);
+      }
+
       code.inline {
-        background: rgba(245, 158, 11, 0.1);
-        border: 1px solid rgba(245, 158, 11, 0.15);
+        background: rgba(55, 148, 255, 0.12);
+        border: 1px solid rgba(55, 148, 255, 0.18);
         padding: 2px 6px;
         border-radius: 8px;
-        font-family:
-          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Roboto Mono",
-          monospace;
+        font-family: var(--mono);
         font-size: 12px;
       }
 
+      /* Editor area */
       textarea#sqlInput {
         width: 100%;
-        min-height: 190px;
+        min-height: 210px;
         resize: vertical;
         padding: 12px;
-        border-radius: 14px;
-        border: 1px solid rgba(31, 41, 55, 0.12);
-        background: rgba(255, 255, 255, 0.95);
-        font-family:
-          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Roboto Mono",
-          monospace;
-        font-size: 14px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: rgba(0, 0, 0, 0.18);
+        color: var(--text);
+        font-family: var(--mono);
+        font-size: 13.5px;
         outline: none;
-        box-shadow: inset 0 10px 22px rgba(2, 6, 23, 0.03);
+        box-shadow: inset 0 10px 22px rgba(0, 0, 0, 0.25);
       }
       textarea#sqlInput:focus {
-        border-color: rgba(217, 119, 6, 0.35);
-        box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.18);
+        border-color: rgba(55, 148, 255, 0.45);
+        box-shadow: 0 0 0 4px rgba(55, 148, 255, 0.18);
       }
 
       .row {
@@ -200,70 +366,42 @@
         flex-wrap: wrap;
       }
 
-      button {
-        border: none;
-        cursor: pointer;
-        font-weight: 900;
-      }
-      button:disabled {
-        opacity: 0.55;
-        cursor: not-allowed;
-      }
-      .btn {
-        padding: 10px 12px;
-        border-radius: 14px;
-        background: linear-gradient(135deg, #f59e0b, #d97706);
-        color: #fff;
-        box-shadow: 0 12px 26px rgba(217, 119, 6, 0.16);
-      }
-      .btn-outline {
-        padding: 10px 12px;
-        border-radius: 14px;
-        background: rgba(255, 255, 255, 0.92);
-        border: 1px solid rgba(31, 41, 55, 0.12);
-        color: var(--ink);
-      }
-      .btn-ghost {
-        padding: 10px 12px;
-        border-radius: 14px;
-        background: transparent;
-        border: 1px solid rgba(31, 41, 55, 0.1);
-        color: var(--ink);
-      }
-
+      /* Chips */
       .samples {
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
-        margin-top: 8px;
+        margin-top: 10px;
       }
       .chip {
         padding: 8px 10px;
         border-radius: 999px;
-        background: rgba(255, 255, 255, 0.92);
-        border: 1px solid rgba(31, 41, 55, 0.12);
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.12);
         font-weight: 950;
         font-size: 12px;
+        color: var(--text);
       }
       .chip:hover {
-        background: rgba(245, 158, 11, 0.12);
-        border-color: rgba(245, 158, 11, 0.2);
+        background: rgba(55, 148, 255, 0.12);
+        border-color: rgba(55, 148, 255, 0.2);
       }
       .chip.h {
-        background: rgba(217, 119, 6, 0.1);
-        border-color: rgba(217, 119, 6, 0.18);
+        background: rgba(210, 153, 34, 0.12);
+        border-color: rgba(210, 153, 34, 0.22);
       }
 
+      /* Result table */
       .result {
-        margin-top: 10px;
-        border-radius: 16px;
-        border: 1px solid rgba(31, 41, 55, 0.1);
+        margin-top: 12px;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
         overflow: hidden;
-        background: rgba(255, 255, 255, 0.95);
+        background: rgba(0, 0, 0, 0.14);
       }
       .result .meta {
         padding: 10px 12px;
-        border-bottom: 1px solid rgba(31, 41, 55, 0.08);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         display: flex;
         gap: 10px;
         flex-wrap: wrap;
@@ -276,18 +414,26 @@
         flex-wrap: wrap;
         align-items: center;
       }
+
       .ok {
-        color: var(--ok);
+        color: var(--good);
         font-weight: 1000;
       }
       .danger {
-        color: var(--danger);
+        color: var(--bad);
         font-weight: 1000;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .small {
+        font-size: 12px;
       }
 
       .tablewrap {
         width: 100%;
         overflow: auto;
+        max-height: 48vh;
       }
       table {
         width: 100%;
@@ -297,32 +443,36 @@
       th,
       td {
         padding: 10px 10px;
-        border-bottom: 1px solid rgba(31, 41, 55, 0.08);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         vertical-align: top;
         text-align: left;
       }
       th {
         position: sticky;
         top: 0;
-        background: rgba(255, 255, 255, 0.98);
+        background: rgba(37, 37, 38, 0.98);
         font-weight: 1000;
+        color: #e5e7eb;
+      }
+      td {
+        color: #e5e7eb;
       }
 
+      /* Error box */
       .errorbox {
         margin-top: 10px;
         padding: 10px 12px;
-        border-radius: 14px;
-        border: 1px solid rgba(185, 28, 28, 0.18);
-        background: rgba(185, 28, 28, 0.06);
-        color: #7f1d1d;
+        border-radius: 12px;
+        border: 1px solid rgba(248, 81, 73, 0.28);
+        background: rgba(248, 81, 73, 0.1);
+        color: #fecaca;
         white-space: pre-wrap;
-        font-family:
-          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Roboto Mono",
-          monospace;
+        font-family: var(--mono);
         font-size: 13px;
         display: none;
       }
 
+      /* History list */
       .history {
         display: flex;
         gap: 10px;
@@ -338,25 +488,27 @@
       .tab {
         padding: 8px 10px;
         border-radius: 999px;
-        border: 1px solid rgba(31, 41, 55, 0.12);
-        background: rgba(255, 255, 255, 0.92);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.06);
         font-size: 12px;
         font-weight: 950;
+        color: var(--text);
       }
       .tab.on {
-        border-color: rgba(217, 119, 6, 0.35);
-        background: rgba(217, 119, 6, 0.12);
+        border-color: rgba(55, 148, 255, 0.45);
+        background: rgba(55, 148, 255, 0.14);
       }
       .histlist {
-        max-height: 520px;
+        flex: 1;
+        min-height: 0;
         overflow: auto;
-        border-radius: 16px;
-        border: 1px solid rgba(31, 41, 55, 0.1);
-        background: rgba(255, 255, 255, 0.95);
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(0, 0, 0, 0.14);
       }
       .histitem {
         padding: 10px 12px;
-        border-bottom: 1px solid rgba(31, 41, 55, 0.08);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
       }
       .histitem:last-child {
         border-bottom: none;
@@ -373,11 +525,9 @@
         margin: 8px 0 0;
         white-space: pre-wrap;
         word-break: break-word;
-        font-family:
-          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Roboto Mono",
-          monospace;
+        font-family: var(--mono);
         font-size: 13px;
-        color: var(--ink);
+        color: var(--text);
       }
       .histitem .actions {
         display: flex;
@@ -388,21 +538,23 @@
       .histitem .actions button {
         padding: 8px 10px;
         border-radius: 999px;
-        border: 1px solid rgba(31, 41, 55, 0.12);
-        background: rgba(255, 255, 255, 0.92);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.06);
         font-size: 12px;
         font-weight: 950;
+        color: var(--text);
       }
       .histitem .actions button:hover {
-        background: rgba(245, 158, 11, 0.12);
-        border-color: rgba(245, 158, 11, 0.18);
+        background: rgba(55, 148, 255, 0.12);
+        border-color: rgba(55, 148, 255, 0.18);
       }
 
+      /* Help */
       .helpbox {
         margin-top: 12px;
-        border-radius: 16px;
-        border: 1px dashed rgba(31, 41, 55, 0.15);
-        background: rgba(255, 255, 255, 0.65);
+        border-radius: 14px;
+        border: 1px dashed rgba(255, 255, 255, 0.18);
+        background: rgba(0, 0, 0, 0.12);
         padding: 12px;
       }
       .helpresults {
@@ -411,463 +563,513 @@
         gap: 10px;
       }
       .helpitem {
-        border: 1px solid rgba(31, 41, 55, 0.1);
-        background: rgba(255, 255, 255, 0.92);
-        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.12);
+        border-radius: 12px;
         padding: 10px 12px;
       }
       .helpitem b {
         font-weight: 1000;
       }
 
-      input[type="text"],
-      input[type="file"] {
-        padding: 10px 12px;
-        border-radius: 14px;
-        border: 1px solid rgba(31, 41, 55, 0.12);
-        background: rgba(255, 255, 255, 0.95);
-        outline: none;
-        font-weight: 800;
-      }
-      input[type="text"]:focus,
-      input[type="file"]:focus {
-        border-color: rgba(217, 119, 6, 0.35);
-        box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.16);
-      }
-
-      .footerNote {
-        margin-top: 14px;
-        color: var(--muted);
+      /* Bottom status bar */
+      .vs-statusbar {
+        height: 30px;
+        background: #1b1b1b;
+        border-top: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 10px;
+        color: #cfcfcf;
         font-size: 12px;
+        user-select: none;
+      }
+      .vs-statusbar .right {
+        margin-left: auto;
+        color: var(--muted);
         font-weight: 800;
       }
     </style>
   </head>
 
   <body>
-    <div class="wrap">
-      <div class="topbar">
-        <div class="brand">
-          <div class="logo" aria-hidden="true"></div>
-          <div style="min-width: 0">
-            <h1>SQL in Browser — SQLite Demo</h1>
-            <p>
-              Runs entirely on your device using
-              <code class="inline">sql.js</code> (no server).
-            </p>
-          </div>
+    <!-- VS Code title bar (keeps your existing IDs for status) -->
+    <div class="vs-titlebar">
+      <div class="title">Programmer’s Picnic — SQL in Browser (SQLite)</div>
+      <div class="right">
+        <div class="pill" title="SQLite readiness">
+          <span class="dot" id="statusDot"></span>
+          <span id="statusText">Loading SQLite…</span>
         </div>
-
-        <div class="status">
-          <div class="pill" title="SQLite readiness">
-            <span class="dot" id="statusDot"></span>
-            <span id="statusText">Loading SQLite…</span>
-          </div>
-          <div class="pill" title="CSV tools work after a SELECT">
-            📄 CSV: <span id="csvHint">Run a SELECT</span>
-          </div>
+        <div class="pill" title="CSV tools work after a SELECT">
+          📄 CSV: <span id="csvHint">Run a SELECT</span>
         </div>
       </div>
+    </div>
 
-      <div class="grid">
-        <!-- LEFT -->
-        <div class="card">
-          <div class="panel-title">
-            <h2>SQL Editor</h2>
-            <div class="row">
-              <button id="runBtn" class="btn" disabled>Run SQL</button>
-              <button id="resetBtn" class="btn-outline" disabled>
-                Reset DB
-              </button>
-              <button id="copySqlBtn" class="btn-ghost" disabled>
-                Copy SQL
-              </button>
+    <div class="vs-shell">
+      <!-- Activity bar (visual only; no JS dependency) -->
+      <div class="vs-activity">
+        <button class="vs-actbtn active" title="Explorer">📁</button>
+        <button class="vs-actbtn" title="Run">▶</button>
+        <button class="vs-actbtn" title="History">🕘</button>
+        <button class="vs-actbtn" title="Help">❓</button>
+      </div>
+
+      <!-- Sidebar: quick actions + file loading + help search -->
+      <aside class="vs-sidebar">
+        <div class="vs-sidehead">
+          <div class="label">EXPLORER</div>
+          <span class="pill">🟠 Programmer’s Picnic</span>
+        </div>
+
+        <div class="vs-sidebody">
+          <div class="block">
+            <div class="blockhead">
+              <b>RUN</b>
+              <span class="hint">Ctrl/⌘ + Enter</span>
             </div>
-          </div>
-
-          <div class="muted small">
-            Tip: Use <code class="inline">Show tables</code> then explore
-            schemas with <code class="inline">PRAGMA table_info(table)</code>.
-            <span class="muted small"
-              >Note: SQLite uses <code class="inline">EXCEPT</code> instead of
-              Oracle <code class="inline">MINUS</code>; SQLite has no native
-              RIGHT/FULL JOIN (we include emulations).</span
-            >
-          </div>
-
-          <div class="samples" aria-label="Sample queries">
-            <!-- core -->
-            <button
-              class="chip"
-              data-sql="SELECT name, type FROM sqlite_master WHERE type IN ('table','view') ORDER BY type, name;"
-            >
-              Show tables
-            </button>
-            <button class="chip" data-sql="PRAGMA table_info(birthdays);">
-              Describe birthdays
-            </button>
-            <button class="chip" data-sql="PRAGMA foreign_keys;">
-              FK status
-            </button>
-            <button class="chip" data-sql="SELECT * FROM employees;">
-              Employees (FK)
-            </button>
-            <button class="chip" data-sql="SELECT * FROM birthdays;">
-              Birthdays
-            </button>
-            <button
-              class="chip"
-              data-sql="INSERT INTO birthdays (name, birthday) VALUES ('New Friend', '2000-01-01'); SELECT * FROM birthdays;"
-            >
-              Insert sample row
-            </button>
-            <button
-              class="chip"
-              data-sql="UPDATE birthdays SET name='Updated Friend' WHERE name='New Friend'; SELECT * FROM birthdays;"
-            >
-              Update sample row
-            </button>
-            <button
-              class="chip"
-              data-sql="DELETE FROM birthdays WHERE name='Updated Friend'; SELECT * FROM birthdays;"
-            >
-              Delete sample row
-            </button>
-
-            <!-- section: keys -->
-            <button
-              class="chip h"
-              data-sql="-- KEYS: Composite Primary Key\nSELECT * FROM Student ORDER BY Course, RollNo;"
-            >
-              🔑 Student (Composite PK)
-            </button>
-            <button class="chip" data-sql="PRAGMA table_info(Student);">
-              Describe Student
-            </button>
-            <button
-              class="chip"
-              data-sql="-- Try PK violation: (RollNo,Course) must be unique\nINSERT INTO Student VALUES (1,'Test',20,'MBBS');"
-            >
-              Try PK violation
-            </button>
-
-            <button
-              class="chip h"
-              data-sql="-- Candidate keys: PK + UNIQUE + composite UNIQUE\nSELECT * FROM Ticket;"
-            >
-              🎫 Ticket (PK + UNIQUE)
-            </button>
-            <button class="chip" data-sql="PRAGMA table_info(Ticket);">
-              Describe Ticket
-            </button>
-            <button
-              class="chip"
-              data-sql="-- Violate UNIQUE PNRNo\nINSERT INTO Ticket VALUES('T2','P1','New Ashish','2023-01-01','123','S2',2);"
-            >
-              Violate UNIQUE (PNR)
-            </button>
-            <button
-              class="chip"
-              data-sql="-- Violate composite UNIQUE(DateOfJourney,TrainNo,CoachNo,BerthNo)\nINSERT INTO Ticket VALUES('T3','P3','Someone','2023-01-01','123','S1',1);"
-            >
-              Violate UNIQUE (Composite)
-            </button>
-
-            <!-- section: foreign key -->
-            <button
-              class="chip h"
-              data-sql="-- FOREIGN KEY demo\nSELECT * FROM Publications;"
-            >
-              🧾 Publications
-            </button>
-            <button class="chip" data-sql="SELECT * FROM Subscribers;">
-              Subscribers
-            </button>
-            <button
-              class="chip"
-              data-sql="-- This should FAIL (FK): non-existent publication\nINSERT INTO Subscribers VALUES('NonExistent Patrika','Mahesh');"
-            >
-              Try FK fail
-            </button>
-
-            <!-- section: set operators -->
-            <button
-              class="chip h"
-              data-sql="-- SETS: UNION\nSELECT name FROM Cricketers UNION SELECT name FROM Footballers ORDER BY name;"
-            >
-              🧩 UNION
-            </button>
-            <button
-              class="chip"
-              data-sql="-- SETS: UNION ALL\nSELECT name FROM Cricketers UNION ALL SELECT name FROM Footballers ORDER BY name;"
-            >
-              UNION ALL
-            </button>
-            <button
-              class="chip"
-              data-sql="-- SETS: INTERSECT\nSELECT name FROM Cricketers INTERSECT SELECT name FROM Footballers ORDER BY name;"
-            >
-              INTERSECT
-            </button>
-            <button
-              class="chip"
-              data-sql="-- SETS: EXCEPT (Oracle MINUS)\nSELECT name FROM Cricketers EXCEPT SELECT name FROM Footballers ORDER BY name;"
-            >
-              EXCEPT (MINUS)
-            </button>
-
-            <button
-              class="chip"
-              data-sql="-- Players who play only one game:\n-- (Cricketers ∪ Footballers) − (Cricketers ∩ Footballers)\nSELECT name FROM (\n  SELECT name FROM Cricketers\n  UNION\n  SELECT name FROM Footballers\n)\nEXCEPT\nSELECT name FROM (\n  SELECT name FROM Cricketers\n  INTERSECT\n  SELECT name FROM Footballers\n)\nORDER BY name;"
-            >
-              Only one game
-            </button>
-
-            <!-- section: joins -->
-            <button
-              class="chip h"
-              data-sql="-- INNER JOIN\nSELECT * FROM Cricketers C INNER JOIN Footballers F ON C.name=F.name;"
-            >
-              🔗 INNER JOIN
-            </button>
-            <button
-              class="chip"
-              data-sql="-- LEFT JOIN\nSELECT * FROM Cricketers C LEFT JOIN Footballers F ON C.name=F.name ORDER BY C.name;"
-            >
-              LEFT JOIN
-            </button>
-            <button
-              class="chip"
-              data-sql="-- RIGHT JOIN emulation in SQLite:\n-- swap tables in LEFT JOIN\nSELECT * FROM Footballers F LEFT JOIN Cricketers C ON C.name=F.name ORDER BY F.name;"
-            >
-              RIGHT JOIN (emulated)
-            </button>
-            <button
-              class="chip"
-              data-sql="-- FULL OUTER JOIN emulation in SQLite:\nSELECT C.name AS name, C.runs, F.goals\nFROM Cricketers C LEFT JOIN Footballers F ON C.name=F.name\nUNION\nSELECT F.name AS name, C.runs, F.goals\nFROM Footballers F LEFT JOIN Cricketers C ON C.name=F.name\nORDER BY name;"
-            >
-              FULL JOIN (emulated)
-            </button>
-
-            <!-- section: aggregates -->
-            <button
-              class="chip h"
-              data-sql="-- Aggregates\nSELECT * FROM Cricket_Scores;"
-            >
-              📊 Cricket_Scores
-            </button>
-            <button
-              class="chip"
-              data-sql="SELECT MAX(score) AS max_score FROM Cricket_Scores;"
-            >
-              MAX
-            </button>
-            <button
-              class="chip"
-              data-sql="SELECT MIN(score) AS min_score FROM Cricket_Scores;"
-            >
-              MIN
-            </button>
-            <button
-              class="chip"
-              data-sql="SELECT SUM(score) AS total FROM Cricket_Scores;"
-            >
-              SUM
-            </button>
-            <button
-              class="chip"
-              data-sql="SELECT AVG(score) AS average FROM Cricket_Scores;"
-            >
-              AVG
-            </button>
-            <button
-              class="chip"
-              data-sql="SELECT COUNT(score) AS count_score FROM Cricket_Scores;"
-            >
-              COUNT
-            </button>
-
-            <button
-              class="chip"
-              data-sql="-- Need GROUP BY when mixing normal columns + aggregates\nSELECT batsman, MAX(score) AS max_score\nFROM Cricket_Scores\nGROUP BY batsman\nORDER BY max_score DESC;"
-            >
-              GROUP BY
-            </button>
-
-            <button
-              class="chip"
-              data-sql="-- Multiple aggregates per group\nSELECT batsman,\n       MAX(score) AS max_score,\n       MIN(score) AS min_score,\n       AVG(score) AS avg_score,\n       SUM(score) AS sum_score,\n       COUNT(score) AS count_score\nFROM Cricket_Scores\nGROUP BY batsman\nORDER BY batsman;"
-            >
-              Multi-aggregates
-            </button>
-
-            <button
-              class="chip"
-              data-sql="-- HAVING filters groups (aggregate conditions)\nSELECT batsman, MAX(score) AS max_score\nFROM Cricket_Scores\nGROUP BY batsman\nHAVING MAX(score) >= 110\nORDER BY max_score DESC;"
-            >
-              HAVING
-            </button>
-
-            <button
-              class="chip"
-              data-sql="-- Highest scores by MatchType\nSELECT MatchType, MAX(score) AS best\nFROM Cricket_Scores\nGROUP BY MatchType\nORDER BY best DESC;"
-            >
-              Max by MatchType
-            </button>
-
-            <!-- section: trains self-join -->
-            <button
-              class="chip h"
-              data-sql="-- Trains + Stops\nSELECT * FROM trains;"
-            >
-              🚆 Trains
-            </button>
-            <button
-              class="chip"
-              data-sql="SELECT * FROM stops ORDER BY trainno, stopno;"
-            >
-              Stops
-            </button>
-            <button
-              class="chip"
-              data-sql="-- Find trains that go from Itarsi to Jalgaon (source stop before dest stop)\nSELECT Train.TrainNo, Train.TrainName, Source.station AS FromStation, Dest.station AS ToStation\nFROM stops AS Source\nINNER JOIN stops AS Dest\n  ON Source.trainno = Dest.trainno\nINNER JOIN trains AS Train\n  ON Train.TrainNo = Source.trainno\nWHERE Source.station='Itarsi'\n  AND Dest.station='Jalgaon'\n  AND Source.stopno < Dest.stopno\nORDER BY Train.TrainNo;"
-            >
-              Find trains: Itarsi → Jalgaon
-            </button>
-          </div>
-
-          <!-- LOAD SQLITE FILE (.db/.sqlite) -->
-          <div class="row" style="margin-top: 10px">
-            <input
-              id="sqliteFile"
-              type="file"
-              accept=".db,.sqlite,.sqlite3,application/x-sqlite3"
-            />
-            <button id="loadDbBtn" class="btn-outline" disabled>
-              Load DB file
-            </button>
-            <button id="useSampleBtn" class="btn-ghost" disabled>
-              Use Sample DB
-            </button>
-          </div>
-          <div class="muted small" style="margin-top: 6px">
-            Choose a <code class="inline">.db</code>/<code class="inline"
-              >.sqlite</code
-            >
-            file. It loads only on this device (in-browser).
-          </div>
-
-          <textarea id="sqlInput" aria-label="SQL editor">
-SELECT * FROM birthdays;</textarea
-          >
-
-          <div class="row" style="margin-top: 10px">
-            <button id="downloadCsvBtn" class="btn-outline" disabled>
-              Download CSV
-            </button>
-            <button id="copyCsvBtn" class="btn-ghost" disabled>Copy CSV</button>
-          </div>
-
-          <div class="result" aria-live="polite" style="margin-top: 12px">
-            <div class="meta">
-              <div class="left">
-                <span id="metaMsg" class="muted small"
-                  >Ready when SQLite loads.</span
-                >
-                <span id="metaRows" class="muted small"></span>
-              </div>
+            <div class="blockbody">
               <div class="row">
-                <button id="toggleHelpBtn" class="btn-ghost">Help</button>
+                <button id="runBtn" class="btn" disabled>Run SQL</button>
+                <button id="resetBtn" class="btn-outline" disabled>
+                  Reset DB
+                </button>
+                <button id="copySqlBtn" class="btn-ghost" disabled>
+                  Copy SQL
+                </button>
+              </div>
+              <div class="row" style="margin-top: 10px">
+                <button id="downloadCsvBtn" class="btn-outline" disabled>
+                  Download CSV
+                </button>
+                <button id="copyCsvBtn" class="btn-ghost" disabled>
+                  Copy CSV
+                </button>
               </div>
             </div>
-            <div class="tablewrap" id="result"></div>
           </div>
 
-          <div class="errorbox" id="error"></div>
-
-          <div class="helpbox" id="helpBox" style="display: none">
-            <div class="muted small">
-              Quick help: <code class="inline">select</code>,
-              <code class="inline">join</code>,
-              <code class="inline">where</code>,
-              <code class="inline">group by</code>,
-              <code class="inline">having</code>,
-              <code class="inline">order by</code>,
-              <code class="inline">limit</code>,
-              <code class="inline">pragma</code>,
-              <code class="inline">union</code>,
-              <code class="inline">intersect</code>,
-              <code class="inline">except</code>.
+          <div class="block">
+            <div class="blockhead">
+              <b>LOAD DB FILE</b>
+              <span class="hint">.db / .sqlite</span>
             </div>
-
-            <div style="margin-top: 10px">
+            <div class="blockbody">
               <input
-                id="helpSearch"
-                type="text"
-                placeholder="Search SQL help… (e.g., primary key, except, having)"
-                autocomplete="off"
-              />
-            </div>
-
-            <div class="helpresults" id="helpResults"></div>
-          </div>
-
-          <div class="footerNote">
-            ✅ Works offline once loaded. Query history is saved in localStorage
-            on this device.
-          </div>
-        </div>
-
-        <!-- RIGHT -->
-        <div class="card">
-          <div class="panel-title">
-            <h2>Query History</h2>
-            <div class="row">
-              <button id="exportHistoryBtn" class="btn-outline" disabled>
-                Export
-              </button>
-              <button id="importHistoryBtn" class="btn-outline" disabled>
-                Import
-              </button>
-              <button id="clearHistoryBtn" class="btn-ghost" disabled>
-                Clear
-              </button>
-              <input
-                id="importFile"
+                id="sqliteFile"
                 type="file"
-                accept="application/json,.json"
-                style="display: none"
+                accept=".db,.sqlite,.sqlite3,application/x-sqlite3"
               />
+              <div class="row" style="margin-top: 10px">
+                <button id="loadDbBtn" class="btn-outline" disabled>
+                  Load DB file
+                </button>
+                <button id="useSampleBtn" class="btn-ghost" disabled>
+                  Use Sample DB
+                </button>
+              </div>
+              <div class="hint" style="margin-top: 8px">
+                Loads only on this device (in-browser).
+              </div>
             </div>
           </div>
 
-          <div class="history">
-            <div class="tabs" role="tablist" aria-label="History tabs">
-              <button
-                class="tab on"
-                id="tabSuccess"
-                type="button"
-                role="tab"
-                aria-selected="true"
-              >
-                Success
-              </button>
-              <button
-                class="tab"
-                id="tabFail"
-                type="button"
-                role="tab"
-                aria-selected="false"
-              >
-                Failed
-              </button>
+          <div class="block">
+            <div class="blockhead">
+              <b>HELP</b>
+              <span class="hint">Search</span>
             </div>
-            <div class="muted small" id="histCount"></div>
+            <div class="blockbody">
+              <button id="toggleHelpBtn" class="btn-ghost">Help</button>
+              <div style="margin-top: 10px">
+                <input
+                  id="helpSearch"
+                  type="text"
+                  placeholder="Search SQL help… (e.g., having, except)"
+                  autocomplete="off"
+                />
+              </div>
+              <div
+                class="helpresults"
+                id="helpResults"
+                style="margin-top: 10px"
+              ></div>
+              <div class="helpbox" id="helpBox" style="display: none"></div>
+            </div>
           </div>
 
-          <div class="histlist" id="historyList"></div>
+          <div class="block">
+            <div class="blockhead">
+              <b>HISTORY</b>
+              <span class="hint">Export / Import</span>
+            </div>
+            <div class="blockbody">
+              <div class="row">
+                <button id="exportHistoryBtn" class="btn-outline" disabled>
+                  Export
+                </button>
+                <button id="importHistoryBtn" class="btn-outline" disabled>
+                  Import
+                </button>
+                <button id="clearHistoryBtn" class="btn-ghost" disabled>
+                  Clear
+                </button>
+                <input
+                  id="importFile"
+                  type="file"
+                  accept="application/json,.json"
+                  style="display: none"
+                />
+              </div>
+              <div class="hint" style="margin-top: 8px">
+                Stored in localStorage on this device.
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      </aside>
+
+      <!-- Main editor panes -->
+      <main class="vs-main">
+        <div class="vs-toolbar">
+          <span class="pill">SQL Editor</span>
+          <span class="hint"
+            >Tip: <code class="inline">PRAGMA table_info(table)</code>,
+            <code class="inline">EXCEPT</code> (Oracle MINUS), RIGHT/FULL JOIN
+            are emulated.</span
+          >
+          <div class="spacer"></div>
+          <span class="hint" id="metaMsg">Ready when SQLite loads.</span>
+          <span class="hint" id="metaRows"></span>
+        </div>
+
+        <section class="split">
+          <!-- LEFT PANE: editor + results -->
+          <div class="pane">
+            <div class="panehead">
+              <h2>EDITOR</h2>
+              <div class="row">
+                <!-- sample chips keep working -->
+              </div>
+            </div>
+
+            <div style="padding: 12px; overflow: auto; min-height: 0">
+              <div class="samples" aria-label="Sample queries">
+                <!-- core -->
+                <button
+                  class="chip"
+                  data-sql="SELECT name, type FROM sqlite_master WHERE type IN ('table','view') ORDER BY type, name;"
+                >
+                  Show tables
+                </button>
+                <button class="chip" data-sql="PRAGMA table_info(birthdays);">
+                  Describe birthdays
+                </button>
+                <button class="chip" data-sql="PRAGMA foreign_keys;">
+                  FK status
+                </button>
+                <button class="chip" data-sql="SELECT * FROM employees;">
+                  Employees (FK)
+                </button>
+                <button class="chip" data-sql="SELECT * FROM birthdays;">
+                  Birthdays
+                </button>
+                <button
+                  class="chip"
+                  data-sql="INSERT INTO birthdays (name, birthday) VALUES ('New Friend', '2000-01-01'); SELECT * FROM birthdays;"
+                >
+                  Insert sample row
+                </button>
+                <button
+                  class="chip"
+                  data-sql="UPDATE birthdays SET name='Updated Friend' WHERE name='New Friend'; SELECT * FROM birthdays;"
+                >
+                  Update sample row
+                </button>
+                <button
+                  class="chip"
+                  data-sql="DELETE FROM birthdays WHERE name='Updated Friend'; SELECT * FROM birthdays;"
+                >
+                  Delete sample row
+                </button>
+
+                <!-- section: keys -->
+                <button
+                  class="chip h"
+                  data-sql="-- KEYS: Composite Primary Key\nSELECT * FROM Student ORDER BY Course, RollNo;"
+                >
+                  🔑 Student (Composite PK)
+                </button>
+                <button class="chip" data-sql="PRAGMA table_info(Student);">
+                  Describe Student
+                </button>
+                <button
+                  class="chip"
+                  data-sql="-- Try PK violation: (RollNo,Course) must be unique\nINSERT INTO Student VALUES (1,'Test',20,'MBBS');"
+                >
+                  Try PK violation
+                </button>
+
+                <button
+                  class="chip h"
+                  data-sql="-- Candidate keys: PK + UNIQUE + composite UNIQUE\nSELECT * FROM Ticket;"
+                >
+                  🎫 Ticket (PK + UNIQUE)
+                </button>
+                <button class="chip" data-sql="PRAGMA table_info(Ticket);">
+                  Describe Ticket
+                </button>
+                <button
+                  class="chip"
+                  data-sql="-- Violate UNIQUE PNRNo\nINSERT INTO Ticket VALUES('T2','P1','New Ashish','2023-01-01','123','S2',2);"
+                >
+                  Violate UNIQUE (PNR)
+                </button>
+                <button
+                  class="chip"
+                  data-sql="-- Violate composite UNIQUE(DateOfJourney,TrainNo,CoachNo,BerthNo)\nINSERT INTO Ticket VALUES('T3','P3','Someone','2023-01-01','123','S1',1);"
+                >
+                  Violate UNIQUE (Composite)
+                </button>
+
+                <!-- section: foreign key -->
+                <button
+                  class="chip h"
+                  data-sql="-- FOREIGN KEY demo\nSELECT * FROM Publications;"
+                >
+                  🧾 Publications
+                </button>
+                <button class="chip" data-sql="SELECT * FROM Subscribers;">
+                  Subscribers
+                </button>
+                <button
+                  class="chip"
+                  data-sql="-- This should FAIL (FK): non-existent publication\nINSERT INTO Subscribers VALUES('NonExistent Patrika','Mahesh');"
+                >
+                  Try FK fail
+                </button>
+
+                <!-- section: set operators -->
+                <button
+                  class="chip h"
+                  data-sql="-- SETS: UNION\nSELECT name FROM Cricketers UNION SELECT name FROM Footballers ORDER BY name;"
+                >
+                  🧩 UNION
+                </button>
+                <button
+                  class="chip"
+                  data-sql="-- SETS: UNION ALL\nSELECT name FROM Cricketers UNION ALL SELECT name FROM Footballers ORDER BY name;"
+                >
+                  UNION ALL
+                </button>
+                <button
+                  class="chip"
+                  data-sql="-- SETS: INTERSECT\nSELECT name FROM Cricketers INTERSECT SELECT name FROM Footballers ORDER BY name;"
+                >
+                  INTERSECT
+                </button>
+                <button
+                  class="chip"
+                  data-sql="-- SETS: EXCEPT (Oracle MINUS)\nSELECT name FROM Cricketers EXCEPT SELECT name FROM Footballers ORDER BY name;"
+                >
+                  EXCEPT (MINUS)
+                </button>
+
+                <button
+                  class="chip"
+                  data-sql="-- Players who play only one game:\n-- (Cricketers ∪ Footballers) − (Cricketers ∩ Footballers)\nSELECT name FROM (\n  SELECT name FROM Cricketers\n  UNION\n  SELECT name FROM Footballers\n)\nEXCEPT\nSELECT name FROM (\n  SELECT name FROM Cricketers\n  INTERSECT\n  SELECT name FROM Footballers\n)\nORDER BY name;"
+                >
+                  Only one game
+                </button>
+
+                <!-- section: joins -->
+                <button
+                  class="chip h"
+                  data-sql="-- INNER JOIN\nSELECT * FROM Cricketers C INNER JOIN Footballers F ON C.name=F.name;"
+                >
+                  🔗 INNER JOIN
+                </button>
+                <button
+                  class="chip"
+                  data-sql="-- LEFT JOIN\nSELECT * FROM Cricketers C LEFT JOIN Footballers F ON C.name=F.name ORDER BY C.name;"
+                >
+                  LEFT JOIN
+                </button>
+                <button
+                  class="chip"
+                  data-sql="-- RIGHT JOIN emulation in SQLite:\n-- swap tables in LEFT JOIN\nSELECT * FROM Footballers F LEFT JOIN Cricketers C ON C.name=F.name ORDER BY F.name;"
+                >
+                  RIGHT JOIN (emulated)
+                </button>
+                <button
+                  class="chip"
+                  data-sql="-- FULL OUTER JOIN emulation in SQLite:\nSELECT C.name AS name, C.runs, F.goals\nFROM Cricketers C LEFT JOIN Footballers F ON C.name=F.name\nUNION\nSELECT F.name AS name, C.runs, F.goals\nFROM Footballers F LEFT JOIN Cricketers C ON C.name=F.name\nORDER BY name;"
+                >
+                  FULL JOIN (emulated)
+                </button>
+
+                <!-- section: aggregates -->
+                <button
+                  class="chip h"
+                  data-sql="-- Aggregates\nSELECT * FROM Cricket_Scores;"
+                >
+                  📊 Cricket_Scores
+                </button>
+                <button
+                  class="chip"
+                  data-sql="SELECT MAX(score) AS max_score FROM Cricket_Scores;"
+                >
+                  MAX
+                </button>
+                <button
+                  class="chip"
+                  data-sql="SELECT MIN(score) AS min_score FROM Cricket_Scores;"
+                >
+                  MIN
+                </button>
+                <button
+                  class="chip"
+                  data-sql="SELECT SUM(score) AS total FROM Cricket_Scores;"
+                >
+                  SUM
+                </button>
+                <button
+                  class="chip"
+                  data-sql="SELECT AVG(score) AS average FROM Cricket_Scores;"
+                >
+                  AVG
+                </button>
+                <button
+                  class="chip"
+                  data-sql="SELECT COUNT(score) AS count_score FROM Cricket_Scores;"
+                >
+                  COUNT
+                </button>
+
+                <button
+                  class="chip"
+                  data-sql="-- Need GROUP BY when mixing normal columns + aggregates\nSELECT batsman, MAX(score) AS max_score\nFROM Cricket_Scores\nGROUP BY batsman\nORDER BY max_score DESC;"
+                >
+                  GROUP BY
+                </button>
+
+                <button
+                  class="chip"
+                  data-sql="-- Multiple aggregates per group\nSELECT batsman,\n       MAX(score) AS max_score,\n       MIN(score) AS min_score,\n       AVG(score) AS avg_score,\n       SUM(score) AS sum_score,\n       COUNT(score) AS count_score\nFROM Cricket_Scores\nGROUP BY batsman\nORDER BY batsman;"
+                >
+                  Multi-aggregates
+                </button>
+
+                <button
+                  class="chip"
+                  data-sql="-- HAVING filters groups (aggregate conditions)\nSELECT batsman, MAX(score) AS max_score\nFROM Cricket_Scores\nGROUP BY batsman\nHAVING MAX(score) >= 110\nORDER BY max_score DESC;"
+                >
+                  HAVING
+                </button>
+
+                <button
+                  class="chip"
+                  data-sql="-- Highest scores by MatchType\nSELECT MatchType, MAX(score) AS best\nFROM Cricket_Scores\nGROUP BY MatchType\nORDER BY best DESC;"
+                >
+                  Max by MatchType
+                </button>
+
+                <!-- section: trains self-join -->
+                <button
+                  class="chip h"
+                  data-sql="-- Trains + Stops\nSELECT * FROM trains;"
+                >
+                  🚆 Trains
+                </button>
+                <button
+                  class="chip"
+                  data-sql="SELECT * FROM stops ORDER BY trainno, stopno;"
+                >
+                  Stops
+                </button>
+                <button
+                  class="chip"
+                  data-sql="-- Find trains that go from Itarsi to Jalgaon (source stop before dest stop)\nSELECT Train.TrainNo, Train.TrainName, Source.station AS FromStation, Dest.station AS ToStation\nFROM stops AS Source\nINNER JOIN stops AS Dest\n  ON Source.trainno = Dest.trainno\nINNER JOIN trains AS Train\n  ON Train.TrainNo = Source.trainno\nWHERE Source.station='Itarsi'\n  AND Dest.station='Jalgaon'\n  AND Source.stopno < Dest.stopno\nORDER BY Train.TrainNo;"
+                >
+                  Find trains: Itarsi → Jalgaon
+                </button>
+              </div>
+
+              <textarea id="sqlInput" aria-label="SQL editor">
+SELECT * FROM birthdays;</textarea
+              >
+
+              <div class="result" aria-live="polite">
+                <div class="meta">
+                  <div class="left">
+                    <span class="muted small">Results:</span>
+                    <span class="muted small" id="metaRowsInline"></span>
+                  </div>
+                </div>
+                <div class="tablewrap" id="result"></div>
+              </div>
+
+              <div class="errorbox" id="error"></div>
+
+              <div class="hint" style="margin-top: 10px">
+                ✅ Works offline once loaded. Query history is saved in
+                localStorage on this device.
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT PANE: history (keeps same IDs) -->
+          <div class="pane">
+            <div class="panehead">
+              <h2>QUERY HISTORY</h2>
+              <div class="hint" id="histCount"></div>
+            </div>
+
+            <div
+              style="
+                padding: 12px;
+                min-height: 0;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+              "
+            >
+              <div class="history">
+                <div class="tabs" role="tablist" aria-label="History tabs">
+                  <button
+                    class="tab on"
+                    id="tabSuccess"
+                    type="button"
+                    role="tab"
+                    aria-selected="true"
+                  >
+                    Success
+                  </button>
+                  <button
+                    class="tab"
+                    id="tabFail"
+                    type="button"
+                    role="tab"
+                    aria-selected="false"
+                  >
+                    Failed
+                  </button>
+                </div>
+              </div>
+
+              <div class="histlist" id="historyList"></div>
+            </div>
+          </div>
+        </section>
+
+        <div class="vs-statusbar">
+          <span class="dot" id="ppDotMirror"></span>
+          <span id="ppStatusMirror">Ready.</span>
+          <span class="right">Programmer’s Picnic</span>
+        </div>
+      </main>
     </div>
 
     <!-- IMPORTANT FIX: removed integrity attribute so the browser won't block -->
@@ -903,6 +1105,7 @@ SELECT * FROM birthdays;</textarea
 
         var metaMsg = document.getElementById("metaMsg");
         var metaRows = document.getElementById("metaRows");
+        var metaRowsInline = document.getElementById("metaRowsInline");
         var resultDiv = document.getElementById("result");
         var errorDiv = document.getElementById("error");
 
@@ -924,6 +1127,14 @@ SELECT * FROM birthdays;</textarea
         var helpSearch = document.getElementById("helpSearch");
         var helpBox = document.getElementById("helpBox");
         var helpResults = document.getElementById("helpResults");
+
+        // ===== Status mirror (bottom bar)
+        var ppDotMirror = document.getElementById("ppDotMirror");
+        var ppStatusMirror = document.getElementById("ppStatusMirror");
+        function mirrorStatus(text, ok) {
+          ppStatusMirror.textContent = text || "Ready.";
+          ppDotMirror.className = "dot" + (ok ? " ok" : "");
+        }
 
         // ===== Utils
         function nowISO() {
@@ -966,6 +1177,7 @@ SELECT * FROM birthdays;</textarea
             downloadCsvBtn.disabled = !lastSelectResult;
             copyCsvBtn.disabled = !lastSelectResult;
             enableDbLoadUI(true);
+            mirrorStatus("SQLite ready", true);
           } else {
             statusDot.className = "dot";
             statusText.textContent = "Loading SQLite…";
@@ -978,6 +1190,7 @@ SELECT * FROM birthdays;</textarea
             downloadCsvBtn.disabled = true;
             copyCsvBtn.disabled = true;
             enableDbLoadUI(false);
+            mirrorStatus("Loading SQLite…", false);
           }
         }
 
@@ -986,22 +1199,26 @@ SELECT * FROM birthdays;</textarea
           errorDiv.textContent = "";
           errorDiv.style.display = "none";
           metaRows.textContent = "";
+          if (metaRowsInline) metaRowsInline.textContent = "";
         }
 
         function showInfo(msg) {
           metaMsg.innerHTML =
             '<span class="muted small">' + escapeHtml(msg) + "</span>";
+          mirrorStatus(msg, true);
         }
 
         function showOk(msg) {
           metaMsg.innerHTML =
             '<span class="ok">✅ ' + escapeHtml(msg) + "</span>";
+          mirrorStatus(msg, true);
         }
 
         function showErr(msg) {
           errorDiv.style.display = "block";
           errorDiv.textContent = msg;
           metaMsg.innerHTML = '<span class="danger">❌ Error</span>';
+          mirrorStatus("Error: " + String(msg || ""), false);
         }
 
         // ===== Load external SQLite file into sql.js
@@ -1221,7 +1438,6 @@ SELECT * FROM birthdays;</textarea
               ('3','Ratnagiri','Varanasi','Mumbai');
           `);
 
-          // sample route for train 1
           db.run(`
             INSERT INTO stops VALUES
               (1,'1','Varanasi'),
@@ -1231,7 +1447,6 @@ SELECT * FROM birthdays;</textarea
               (5,'1','Mumbai');
           `);
 
-          // a few stops for train 3 (so results can differ)
           db.run(`
             INSERT INTO stops VALUES
               (1,'3','Varanasi'),
@@ -1243,8 +1458,6 @@ SELECT * FROM birthdays;</textarea
 
         // ===== SQL execution
         function isSelectLike(sql) {
-          // Keep your original logic; this tool is educational and simple.
-          // (Note: some mixed statements like INSERT; SELECT; will be treated as non-select.)
           var s = (sql || "").trim().toLowerCase();
           return (
             s.startsWith("select") ||
@@ -1297,14 +1510,16 @@ SELECT * FROM birthdays;</textarea
                 renderTable(lastSelectResult.columns, lastSelectResult.values);
                 showOk("Query executed.");
                 metaRows.textContent = "";
+                if (metaRowsInline) metaRowsInline.textContent = "";
               } else {
-                // Render first result set (simple UX). (If you want: we can render multiple.)
                 var columns = res[0].columns || [];
                 var values = res[0].values || [];
                 lastSelectResult = { columns: columns, values: values };
                 renderTable(columns, values);
                 showOk("SELECT executed.");
                 metaRows.textContent = values.length + " row(s)";
+                if (metaRowsInline)
+                  metaRowsInline.textContent = values.length + " row(s)";
               }
               downloadCsvBtn.disabled = !lastSelectResult;
               copyCsvBtn.disabled = !lastSelectResult;
@@ -1317,6 +1532,7 @@ SELECT * FROM birthdays;</textarea
               csvHint.textContent = "Run a SELECT";
               showOk("Statement executed.");
               metaRows.textContent = "";
+              if (metaRowsInline) metaRowsInline.textContent = "";
             }
 
             var ms = Math.round(performance.now() - start);
