@@ -2,161 +2,279 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>
-      MongoDB in Browser — Complete Beginner Playground (Collections + Insert +
-      Delete + Aggregate + Joins)
-    </title>
+    <title>MongoDB in Browser — VS Code Style Playground</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
     <!-- tiny inline favicon to avoid 404 -->
     <link
       rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='24' fill='%23d97706'/%3E%3Ctext x='64' y='82' font-size='64' text-anchor='middle'%3E%F0%9F%93%9A%3C/text%3E%3C/svg%3E"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='24' fill='%23007acc'/%3E%3Ctext x='64' y='84' font-size='64' text-anchor='middle'%3E%F0%9F%93%9A%3C/text%3E%3C/svg%3E"
     />
 
     <style>
       :root {
-        --bg: #fff7e6;
-        --card: #ffffff;
-        --ink: #1f2937;
-        --brand: #d97706;
-        --brand2: #b45309;
-        --border: #f3d7a6;
-        --muted: #6b7280;
-        --danger: #b91c1c;
-        --ok: #166534;
+        /* VS Code-ish dark palette */
+        --bg: #1e1e1e;
+        --panel: #252526;
+        --panel2: #2d2d2d;
+        --border: #3c3c3c;
+        --ink: #d4d4d4;
+        --muted: #9aa0a6;
+
+        --accent: #007acc;
+        --accent2: #0e639c;
+
+        --danger: #f14c4c;
+        --ok: #4ec9b0;
+
+        --mono:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Roboto Mono",
+          "Courier New", monospace;
+        --sans:
+          Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       }
+
       * {
         box-sizing: border-box;
       }
+      html,
+      body {
+        height: 100%;
+      }
       body {
         margin: 0;
-        font-family:
-          Inter,
-          system-ui,
-          -apple-system,
-          Segoe UI,
-          Roboto,
-          Arial,
-          sans-serif;
-        background: linear-gradient(180deg, var(--bg), #fff1d6);
+        font-family: var(--sans);
+        background: var(--bg);
         color: var(--ink);
+        overflow: hidden;
       }
       a {
         color: inherit;
       }
 
-      .wrap {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 18px 16px 26px;
+      /* ===== VS Code shell ===== */
+      .vs {
+        height: 100%;
+        display: grid;
+        grid-template-rows: 42px 1fr 26px;
       }
 
-      .topbar {
-        position: sticky;
-        top: 0;
-        z-index: 30;
+      /* top title bar */
+      .titlebar {
         display: flex;
         align-items: center;
         gap: 12px;
-        padding: 12px 12px;
-        margin: 0 -16px 14px;
-        background: rgba(255, 255, 255, 0.82);
-        backdrop-filter: blur(10px);
-        border-bottom: 1px solid rgba(31, 41, 55, 0.1);
+        padding: 0 12px;
+        background: #323233;
+        border-bottom: 1px solid var(--border);
+        user-select: none;
       }
-
-      .brand {
+      .tb-left {
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 10px;
         min-width: 0;
         flex: 1;
       }
-      .brand .logo {
-        width: 44px;
-        height: 44px;
-        border-radius: 12px;
-        background: radial-gradient(circle at 30% 30%, #f59e0b, #b45309);
-        box-shadow: 0 12px 26px rgba(217, 119, 6, 0.18);
+      .tb-badge {
+        width: 18px;
+        height: 18px;
+        border-radius: 4px;
+        background: linear-gradient(135deg, var(--accent), var(--accent2));
+        box-shadow: 0 8px 18px rgba(0, 122, 204, 0.2);
       }
-      .brand h1 {
-        font-size: 16px;
-        margin: 0;
-        font-weight: 900;
-        letter-spacing: 0.2px;
+      .tb-title {
+        font-size: 12.5px;
+        font-weight: 800;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
       }
-      .brand p {
-        margin: 2px 0 0;
-        font-size: 12px;
+      .tb-sub {
+        font-size: 11px;
         color: var(--muted);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
       }
-
-      .status {
+      .tb-right {
         display: flex;
         align-items: center;
         gap: 10px;
         flex-wrap: wrap;
         justify-content: flex-end;
       }
+
       .pill {
-        border: 1px solid rgba(31, 41, 55, 0.1);
-        background: rgba(255, 255, 255, 0.9);
-        padding: 8px 10px;
-        border-radius: 999px;
-        font-weight: 800;
-        font-size: 12px;
-        color: var(--ink);
         display: inline-flex;
         align-items: center;
         gap: 8px;
+        padding: 7px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: rgba(0, 0, 0, 0.15);
+        font-weight: 800;
+        font-size: 11px;
+        color: var(--ink);
       }
       .dot {
-        width: 10px;
-        height: 10px;
+        width: 9px;
+        height: 9px;
         border-radius: 999px;
-        background: #94a3b8;
-        box-shadow: 0 0 0 4px rgba(148, 163, 184, 0.12);
+        background: #6b7280;
+        box-shadow: 0 0 0 4px rgba(107, 114, 128, 0.14);
       }
       .dot.ok {
         background: #22c55e;
-        box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.12);
+        box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.14);
       }
 
-      .grid {
+      /* main area: activity bar + sidebar + editor */
+      .main {
         display: grid;
-        gap: 14px;
+        grid-template-columns: 52px 340px 1fr;
+        min-height: 0;
       }
-      @media (min-width: 960px) {
-        .grid {
-          grid-template-columns: 1.2fr 0.8fr;
+
+      /* activity bar */
+      .activity {
+        background: #333333;
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 10px 0;
+        gap: 10px;
+      }
+      .actbtn {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(0, 0, 0, 0.12);
+        color: var(--ink);
+        display: grid;
+        place-items: center;
+        font-size: 16px;
+        cursor: pointer;
+      }
+      .actbtn.on {
+        border-color: rgba(0, 122, 204, 0.5);
+        box-shadow: inset 3px 0 0 var(--accent);
+        background: rgba(0, 122, 204, 0.12);
+      }
+
+      /* sidebar */
+      .sidebar {
+        background: var(--panel);
+        border-right: 1px solid var(--border);
+        min-height: 0;
+        display: grid;
+        grid-template-rows: auto auto 1fr;
+      }
+      .sb-head {
+        padding: 12px 12px 10px;
+        border-bottom: 1px solid var(--border);
+      }
+      .sb-head h2 {
+        margin: 0;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.2px;
+        color: #c8c8c8;
+        text-transform: uppercase;
+      }
+      .sb-actions {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      /* editor area */
+      .editor {
+        min-width: 0;
+        min-height: 0;
+        display: grid;
+        grid-template-rows: 40px 1fr;
+        background: var(--bg);
+      }
+
+      /* file tab bar */
+      .tabsbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 10px;
+        background: #252526;
+        border-bottom: 1px solid var(--border);
+        min-width: 0;
+      }
+      .filetab {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 10px;
+        border-radius: 10px 10px 0 0;
+        border: 1px solid transparent;
+        background: transparent;
+        color: var(--muted);
+        font-weight: 900;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      .filetab.on {
+        color: var(--ink);
+        background: #1f1f1f;
+        border-color: var(--border);
+        border-bottom-color: #1f1f1f;
+      }
+
+      .work {
+        min-height: 0;
+        display: grid;
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: 0;
+      }
+
+      @media (max-width: 1100px) {
+        .main {
+          grid-template-columns: 52px 320px 1fr;
+        }
+        .work {
+          grid-template-columns: 1fr;
         }
       }
 
-      .card {
-        background: rgba(255, 255, 255, 0.88);
-        border: 1px solid rgba(31, 41, 55, 0.1);
-        border-radius: 18px;
-        box-shadow: 0 14px 38px rgba(8, 36, 64, 0.06);
-        padding: 14px;
-        overflow: hidden;
+      /* panels in editor */
+      .panel {
+        min-height: 0;
+        border-right: 1px solid var(--border);
+        background: #1f1f1f;
       }
-      .panel-title {
+      .panel:last-child {
+        border-right: none;
+        background: #1e1e1e;
+      }
+      .panelInner {
+        min-height: 0;
+        height: 100%;
+        display: grid;
+        grid-template-rows: auto auto 1fr;
+      }
+      .panelTop {
+        padding: 12px 12px 10px;
+        border-bottom: 1px solid var(--border);
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 10px;
-        margin-bottom: 10px;
+        flex-wrap: wrap;
       }
-      .panel-title h2 {
-        font-size: 14px;
+      .panelTop h3 {
         margin: 0;
+        font-size: 13px;
         font-weight: 1000;
       }
       .muted {
@@ -166,44 +284,80 @@
         font-size: 12px;
       }
       code.inline {
-        background: rgba(245, 158, 11, 0.1);
-        border: 1px solid rgba(245, 158, 11, 0.15);
+        background: rgba(0, 122, 204, 0.12);
+        border: 1px solid rgba(0, 122, 204, 0.18);
         padding: 2px 6px;
         border-radius: 8px;
-        font-family:
-          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Roboto Mono",
-          monospace;
+        font-family: var(--mono);
         font-size: 12px;
       }
 
+      /* inputs */
       textarea,
       select,
       input[type="text"],
       input[type="file"] {
         width: 100%;
         padding: 10px 12px;
-        border-radius: 14px;
-        border: 1px solid rgba(31, 41, 55, 0.12);
-        background: rgba(255, 255, 255, 0.95);
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: #1b1b1b;
+        color: var(--ink);
         outline: none;
         font-weight: 800;
       }
       textarea {
         min-height: 120px;
         resize: vertical;
-        font-family:
-          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Roboto Mono",
-          monospace;
-        font-size: 13px;
+        font-family: var(--mono);
+        font-size: 12.5px;
         font-weight: 700;
-        box-shadow: inset 0 10px 22px rgba(2, 6, 23, 0.03);
+        line-height: 1.45;
       }
       textarea:focus,
       select:focus,
       input[type="text"]:focus,
       input[type="file"]:focus {
-        border-color: rgba(217, 119, 6, 0.35);
-        box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.16);
+        border-color: rgba(0, 122, 204, 0.65);
+        box-shadow: 0 0 0 4px rgba(0, 122, 204, 0.18);
+      }
+
+      /* buttons */
+      button {
+        border: none;
+        cursor: pointer;
+        font-weight: 900;
+        color: var(--ink);
+      }
+      button:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+      .btn {
+        padding: 9px 11px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--accent), var(--accent2));
+        color: #fff;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+      }
+      .btn-outline {
+        padding: 9px 11px;
+        border-radius: 12px;
+        background: rgba(0, 0, 0, 0.12);
+        border: 1px solid var(--border);
+        color: var(--ink);
+      }
+      .btn-ghost {
+        padding: 9px 11px;
+        border-radius: 12px;
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        color: var(--ink);
+      }
+      .btn:hover,
+      .btn-outline:hover,
+      .btn-ghost:hover {
+        filter: brightness(1.05);
       }
 
       .row {
@@ -221,38 +375,7 @@
         min-width: auto;
       }
 
-      button {
-        border: none;
-        cursor: pointer;
-        font-weight: 900;
-      }
-      button:disabled {
-        opacity: 0.55;
-        cursor: not-allowed;
-      }
-
-      .btn {
-        padding: 10px 12px;
-        border-radius: 14px;
-        background: linear-gradient(135deg, #f59e0b, #d97706);
-        color: #fff;
-        box-shadow: 0 12px 26px rgba(217, 119, 6, 0.16);
-      }
-      .btn-outline {
-        padding: 10px 12px;
-        border-radius: 14px;
-        background: rgba(255, 255, 255, 0.92);
-        border: 1px solid rgba(31, 41, 55, 0.12);
-        color: var(--ink);
-      }
-      .btn-ghost {
-        padding: 10px 12px;
-        border-radius: 14px;
-        background: transparent;
-        border: 1px solid rgba(31, 41, 55, 0.1);
-        color: var(--ink);
-      }
-
+      /* quick demo chips */
       .samples {
         display: flex;
         flex-wrap: wrap;
@@ -262,26 +385,27 @@
       .chip {
         padding: 8px 10px;
         border-radius: 999px;
-        background: rgba(255, 255, 255, 0.92);
-        border: 1px solid rgba(31, 41, 55, 0.12);
+        background: rgba(0, 0, 0, 0.12);
+        border: 1px solid var(--border);
         font-weight: 950;
         font-size: 12px;
       }
       .chip:hover {
-        background: rgba(245, 158, 11, 0.12);
-        border-color: rgba(245, 158, 11, 0.2);
+        background: rgba(0, 122, 204, 0.14);
+        border-color: rgba(0, 122, 204, 0.3);
       }
 
+      /* result table */
       .result {
-        margin-top: 10px;
-        border-radius: 16px;
-        border: 1px solid rgba(31, 41, 55, 0.1);
+        margin-top: 12px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
         overflow: hidden;
-        background: rgba(255, 255, 255, 0.95);
+        background: #1b1b1b;
       }
       .result .meta {
         padding: 10px 12px;
-        border-bottom: 1px solid rgba(31, 41, 55, 0.08);
+        border-bottom: 1px solid var(--border);
         display: flex;
         gap: 10px;
         flex-wrap: wrap;
@@ -294,6 +418,7 @@
         flex-wrap: wrap;
         align-items: center;
       }
+
       .ok {
         color: var(--ok);
         font-weight: 1000;
@@ -306,80 +431,51 @@
       .tablewrap {
         width: 100%;
         overflow: auto;
+        max-height: 45vh;
       }
       table {
         width: 100%;
         border-collapse: collapse;
-        font-size: 13px;
+        font-size: 12px;
+        font-family: var(--mono);
       }
       th,
       td {
         padding: 10px 10px;
-        border-bottom: 1px solid rgba(31, 41, 55, 0.08);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
         vertical-align: top;
         text-align: left;
-        font-family:
-          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Roboto Mono",
-          monospace;
-        font-size: 12px;
+        color: var(--ink);
       }
       th {
         position: sticky;
         top: 0;
-        background: rgba(255, 255, 255, 0.98);
+        background: #202020;
         font-weight: 1000;
+        z-index: 2;
       }
 
       .errorbox {
         margin-top: 10px;
         padding: 10px 12px;
-        border-radius: 14px;
-        border: 1px solid rgba(185, 28, 28, 0.18);
-        background: rgba(185, 28, 28, 0.06);
-        color: #7f1d1d;
+        border-radius: 12px;
+        border: 1px solid rgba(241, 76, 76, 0.35);
+        background: rgba(241, 76, 76, 0.08);
+        color: #ffd6d6;
         white-space: pre-wrap;
-        font-family:
-          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Roboto Mono",
-          monospace;
-        font-size: 13px;
+        font-family: var(--mono);
+        font-size: 12.5px;
         display: none;
       }
 
-      .history {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-        margin: 10px 0;
-        flex-wrap: wrap;
-      }
-      .tabs {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-      }
-      .tab {
-        padding: 8px 10px;
-        border-radius: 999px;
-        border: 1px solid rgba(31, 41, 55, 0.12);
-        background: rgba(255, 255, 255, 0.92);
-        font-size: 12px;
-        font-weight: 950;
-      }
-      .tab.on {
-        border-color: rgba(217, 119, 6, 0.35);
-        background: rgba(217, 119, 6, 0.12);
-      }
-
+      /* sidebar history list */
       .histlist {
-        max-height: 520px;
+        min-height: 0;
         overflow: auto;
-        border-radius: 16px;
-        border: 1px solid rgba(31, 41, 55, 0.1);
-        background: rgba(255, 255, 255, 0.95);
       }
       .histitem {
         padding: 10px 12px;
-        border-bottom: 1px solid rgba(31, 41, 55, 0.08);
+        border-bottom: 1px solid var(--border);
       }
       .histitem:last-child {
         border-bottom: none;
@@ -388,17 +484,15 @@
         display: flex;
         justify-content: space-between;
         gap: 10px;
-        font-size: 12px;
+        font-size: 11px;
         color: var(--muted);
-        font-weight: 800;
+        font-weight: 900;
       }
       .histitem pre {
         margin: 8px 0 0;
         white-space: pre-wrap;
         word-break: break-word;
-        font-family:
-          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Roboto Mono",
-          monospace;
+        font-family: var(--mono);
         font-size: 12px;
         color: var(--ink);
       }
@@ -411,21 +505,22 @@
       .histitem .actions button {
         padding: 8px 10px;
         border-radius: 999px;
-        border: 1px solid rgba(31, 41, 55, 0.12);
-        background: rgba(255, 255, 255, 0.92);
+        border: 1px solid var(--border);
+        background: rgba(0, 0, 0, 0.12);
         font-size: 12px;
         font-weight: 950;
       }
       .histitem .actions button:hover {
-        background: rgba(245, 158, 11, 0.12);
-        border-color: rgba(245, 158, 11, 0.18);
+        background: rgba(0, 122, 204, 0.14);
+        border-color: rgba(0, 122, 204, 0.3);
       }
 
+      /* help */
       .helpbox {
         margin-top: 12px;
-        border-radius: 16px;
-        border: 1px dashed rgba(31, 41, 55, 0.15);
-        background: rgba(255, 255, 255, 0.65);
+        border-radius: 14px;
+        border: 1px dashed rgba(255, 255, 255, 0.18);
+        background: rgba(0, 0, 0, 0.08);
         padding: 12px;
       }
       .helpTop {
@@ -438,7 +533,6 @@
         flex: 1;
         min-width: 180px;
       }
-
       .helpTabsWrap {
         margin-top: 10px;
         display: flex;
@@ -448,30 +542,29 @@
       .helpTab {
         padding: 8px 10px;
         border-radius: 999px;
-        border: 1px solid rgba(31, 41, 55, 0.12);
-        background: rgba(255, 255, 255, 0.92);
+        border: 1px solid var(--border);
+        background: rgba(0, 0, 0, 0.12);
         font-size: 12px;
         font-weight: 950;
       }
       .helpTab.on {
-        border-color: rgba(217, 119, 6, 0.35);
-        background: rgba(217, 119, 6, 0.12);
+        border-color: rgba(0, 122, 204, 0.45);
+        background: rgba(0, 122, 204, 0.14);
       }
-
       .helpBody {
         margin-top: 12px;
         display: grid;
         gap: 12px;
       }
       .helpCard {
-        border: 1px solid rgba(31, 41, 55, 0.1);
-        background: rgba(255, 255, 255, 0.92);
-        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: rgba(0, 0, 0, 0.12);
+        border-radius: 12px;
         padding: 10px 12px;
       }
       .helpCard h3 {
         margin: 0 0 6px;
-        font-size: 13px;
+        font-size: 12.5px;
         font-weight: 1000;
       }
       .helpCard p {
@@ -483,13 +576,11 @@
       }
       .helpCard .mono {
         margin-top: 10px;
-        background: rgba(245, 158, 11, 0.08);
-        border: 1px solid rgba(245, 158, 11, 0.15);
+        background: rgba(0, 122, 204, 0.1);
+        border: 1px solid rgba(0, 122, 204, 0.18);
         border-radius: 12px;
         padding: 10px;
-        font-family:
-          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Roboto Mono",
-          monospace;
+        font-family: var(--mono);
         font-size: 12px;
         white-space: pre-wrap;
         word-break: break-word;
@@ -499,10 +590,10 @@
       .miniAlert {
         margin-top: 10px;
         padding: 10px 12px;
-        border-radius: 14px;
-        border: 1px solid rgba(217, 119, 6, 0.18);
-        background: rgba(245, 158, 11, 0.1);
-        color: rgba(31, 41, 55, 0.92);
+        border-radius: 12px;
+        border: 1px solid rgba(0, 122, 204, 0.25);
+        background: rgba(0, 122, 204, 0.1);
+        color: var(--ink);
         font-size: 12px;
         font-weight: 900;
       }
@@ -512,37 +603,77 @@
         gap: 8px;
         flex-wrap: wrap;
         align-items: center;
-        margin-top: 8px;
+        margin-top: 10px;
       }
-      .kpi .pill {
-        font-weight: 900;
-      }
-
       .footerNote {
-        margin-top: 14px;
+        margin-top: 12px;
         color: var(--muted);
         font-size: 12px;
         font-weight: 800;
+      }
+
+      /* tabs in sidebar */
+      .tabs {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .tab {
+        padding: 8px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: rgba(0, 0, 0, 0.12);
+        font-size: 12px;
+        font-weight: 950;
+      }
+      .tab.on {
+        border-color: rgba(0, 122, 204, 0.45);
+        background: rgba(0, 122, 204, 0.14);
+      }
+
+      /* bottom status bar */
+      .statusbar {
+        background: #007acc;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 0 10px;
+        font-size: 12px;
+        font-weight: 900;
+        user-select: none;
+      }
+      .sb {
+        opacity: 0.95;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .sb.grow {
+        flex: 1;
+        min-width: 0;
       }
     </style>
   </head>
 
   <body>
-    <div class="wrap">
-      <div class="topbar">
-        <div class="brand">
-          <div class="logo" aria-hidden="true"></div>
+    <div class="vs">
+      <!-- TITLE BAR -->
+      <div class="titlebar">
+        <div class="tb-left">
+          <div class="tb-badge" aria-hidden="true"></div>
           <div style="min-width: 0">
-            <h1>MongoDB for Beginners — Complete Playground</h1>
-            <p>
-              Works offline • JSON collections • Find/Insert/Update/Delete •
-              Aggregate • Joins via
-              <code class="inline">$lookup</code> (simulated)
-            </p>
+            <div class="tb-title">
+              MongoDB Playground (In-Browser) — Collections, CRUD, Aggregate,
+              $lookup
+            </div>
+            <div class="tb-sub">
+              Offline • localStorage • JSON-only • Beginner friendly
+            </div>
           </div>
         </div>
 
-        <div class="status">
+        <div class="tb-right">
           <div class="pill" title="Playground readiness">
             <span class="dot ok" id="statusDot"></span>
             <span id="statusText">Ready ✅</span>
@@ -553,271 +684,360 @@
         </div>
       </div>
 
-      <div class="grid">
-        <!-- LEFT -->
-        <div class="card">
-          <div class="panel-title">
-            <h2>Query Playground</h2>
-            <div class="row compact">
-              <button id="runBtn" class="btn">Run</button>
-              <button
-                id="showCollBtn"
-                class="btn-outline"
-                title="Show first 50 docs from selected collection"
-              >
-                Show Collection
-              </button>
-              <button id="resetBtn" class="btn-outline">Reset Sample DB</button>
-              <button id="copyBtn" class="btn-ghost">Copy Inputs</button>
-            </div>
+      <!-- MAIN -->
+      <div class="main">
+        <!-- ACTIVITY BAR -->
+        <div class="activity" aria-label="Activity bar">
+          <button class="actbtn on" type="button" title="Playground">🧪</button>
+          <button class="actbtn" type="button" title="History (sidebar)">
+            🕘
+          </button>
+          <button class="actbtn" type="button" title="Help">❓</button>
+        </div>
+
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+          <div class="sb-head">
+            <h2>Explorer</h2>
           </div>
 
-          <div class="muted small">
-            Beginner tip: Think in <b>Collections</b> (like tables) and
-            <b>Documents</b> (rows), written as JSON. Choose a collection, pick
-            an operation, then fill JSON boxes.
-          </div>
-
-          <div class="samples" aria-label="Quick demos">
-            <!-- Books -->
-            <button class="chip" data-demo="books_all">Books: show all</button>
-            <button class="chip" data-demo="books_subject_rec">
-              Books: Subject=Recursion
+          <div class="sb-actions">
+            <button id="exportHistoryBtn" class="btn-outline">
+              Export History
             </button>
-            <button class="chip" data-demo="books_insert">
-              Books: insert a new book
+            <button id="importHistoryBtn" class="btn-outline">
+              Import History
             </button>
-            <button class="chip" data-demo="books_delete">
-              Books: delete BookId=3
-            </button>
-
-            <!-- Users -->
-            <button class="chip" data-demo="users_active">
-              Users: active users
-            </button>
-            <button class="chip" data-demo="users_delhi_gt25">
-              Users: Delhi & age&gt;25
-            </button>
-
-            <!-- Aggregate -->
-            <button class="chip" data-demo="agg_city_count">
-              Agg: count users by city
-            </button>
-            <button class="chip" data-demo="agg_revenue_city">
-              Agg: revenue by city
-            </button>
-
-            <!-- Join -->
-            <button class="chip" data-demo="join_orders_users">
-              Join: orders + user details
-            </button>
-
-            <!-- SQL-style examples -->
-            <button class="chip" data-demo="agg_cricket_maxminsumavg">
-              Oracle Agg: batsman stats
-            </button>
-            <button class="chip" data-demo="agg_matchtype_max">
-              Oracle Agg: max score by match type
-            </button>
-            <button class="chip" data-demo="having_max_ge_100">
-              Oracle Agg: HAVING max≥100
-            </button>
-            <button class="chip" data-demo="join_cricketers_footballers">
-              SQL Join: cricketers ⟕ footballers
-            </button>
-            <button class="chip" data-demo="join_trains_stops_between">
-              Join: trains between stations
-            </button>
-            <button class="chip" data-demo="keys_check_duplicate_rollno">
-              Keys: find duplicate RollNo
-            </button>
-            <button class="chip" data-demo="keys_check_duplicate_ticket">
-              Keys: composite key duplicates
-            </button>
-          </div>
-
-          <div class="row" style="margin-top: 10px">
-            <div>
-              <div class="muted small" style="margin-bottom: 6px">
-                Collection (table)
-              </div>
-              <select id="collectionSel"></select>
-            </div>
-            <div>
-              <div class="muted small" style="margin-bottom: 6px">
-                Operation
-              </div>
-              <select id="opSel">
-                <option value="find">find (search)</option>
-                <option value="insertOne">insertOne (add 1)</option>
-                <option value="insertMany">insertMany (add many)</option>
-                <option value="updateMany">updateMany (modify)</option>
-                <option value="deleteMany">deleteMany (remove)</option>
-                <option value="aggregate">aggregate (pipeline)</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="row" style="margin-top: 10px">
-            <div>
-              <div class="muted small" style="margin-bottom: 6px">
-                Filter (JSON): “Which documents?”
-              </div>
-              <textarea id="filterInput">{}</textarea>
-            </div>
-            <div>
-              <div class="muted small" style="margin-bottom: 6px">
-                Payload (JSON): projection / update / docs
-              </div>
-              <textarea id="payloadInput">{}</textarea>
-            </div>
-          </div>
-
-          <div style="margin-top: 10px">
-            <div class="muted small" style="margin-bottom: 6px">
-              Aggregate Pipeline (JSON array) — used only by
-              <code class="inline">aggregate</code>
-            </div>
-            <textarea id="pipeInput">
-[
-  { "$match": { } },
-  { "$limit": 10 }
-]</textarea
-            >
-          </div>
-
-          <div class="row compact" style="margin-top: 10px">
-            <button id="downloadCsvBtn" class="btn-outline" disabled>
-              Download CSV
-            </button>
-            <button id="copyCsvBtn" class="btn-ghost" disabled>Copy CSV</button>
-            <button id="exportDbBtn" class="btn-outline">Export DB JSON</button>
-            <button id="importDbBtn" class="btn-outline">Import DB JSON</button>
+            <button id="clearHistoryBtn" class="btn-ghost">Clear</button>
             <input
-              id="importDbFile"
+              id="importHistFile"
               type="file"
               accept="application/json,.json"
               style="display: none"
             />
           </div>
 
-          <div class="kpi">
-            <div class="pill">Docs: <span id="kpiDocs">0</span></div>
-            <div class="pill">Collections: <span id="kpiCols">0</span></div>
-            <div class="pill">Last ms: <span id="kpiMs">0</span></div>
-          </div>
+          <div style="padding: 10px 12px">
+            <div class="miniAlert" id="collectionsBox">
+              Loading collections…
+            </div>
 
-          <div class="result" aria-live="polite" style="margin-top: 12px">
-            <div class="meta">
-              <div class="left">
-                <span id="metaMsg" class="muted small">Ready.</span>
-                <span id="metaRows" class="muted small"></span>
-              </div>
-              <div class="row compact">
-                <button id="toggleHelpBtn" class="btn-ghost">
-                  Beginner Help
+            <div class="row" style="margin-top: 10px">
+              <div class="tabs" role="tablist" aria-label="History tabs">
+                <button
+                  class="tab on"
+                  id="tabSuccess"
+                  type="button"
+                  role="tab"
+                  aria-selected="true"
+                >
+                  Success
+                </button>
+                <button
+                  class="tab"
+                  id="tabFail"
+                  type="button"
+                  role="tab"
+                  aria-selected="false"
+                >
+                  Failed
                 </button>
               </div>
+              <div
+                class="muted small"
+                id="histCount"
+                style="margin-left: auto"
+              ></div>
             </div>
-            <div class="tablewrap" id="result"></div>
-          </div>
-
-          <div class="errorbox" id="error"></div>
-
-          <!-- HELP -->
-          <div class="helpbox" id="helpBox" style="display: none">
-            <div class="helpTop">
-              <div>
-                <div class="muted small" style="margin-bottom: 6px">
-                  Search help (type: find, insert, delete, aggregate, join,
-                  $lookup)
-                </div>
-                <input
-                  id="helpSearch"
-                  type="text"
-                  placeholder="Try: find, projection, insert, delete, aggregate, join, $lookup..."
-                  autocomplete="off"
-                />
-              </div>
-              <div class="row compact" style="justify-content: flex-end">
-                <button class="btn-outline" id="helpLoadSampleBtn">
-                  Load Sample DB
-                </button>
-                <button class="btn-ghost" id="helpCloseBtn">Close</button>
-              </div>
-            </div>
-
-            <div
-              class="helpTabsWrap"
-              id="helpTabsWrap"
-              role="tablist"
-              aria-label="Help tabs"
-            ></div>
-
-            <div class="miniAlert">
-              🧑‍🎓 <b>How to learn here:</b> Click an example tab → press
-              <b>Load</b> → press <b>Run</b> → read the result table.
-              <br />Collections = tables, Documents = rows, JSON = the language.
-            </div>
-
-            <div class="helpBody" id="helpBody"></div>
-          </div>
-
-          <div class="footerNote">
-            ✅ Works offline. DB + history saved in
-            <code class="inline">localStorage</code> on this device.
-          </div>
-        </div>
-
-        <!-- RIGHT -->
-        <div class="card">
-          <div class="panel-title">
-            <h2>Collections + History</h2>
-            <div class="row compact">
-              <button id="exportHistoryBtn" class="btn-outline">
-                Export History
-              </button>
-              <button id="importHistoryBtn" class="btn-outline">
-                Import History
-              </button>
-              <button id="clearHistoryBtn" class="btn-ghost">Clear</button>
-              <input
-                id="importHistFile"
-                type="file"
-                accept="application/json,.json"
-                style="display: none"
-              />
-            </div>
-          </div>
-
-          <div class="miniAlert" id="collectionsBox">Loading collections…</div>
-
-          <div class="history">
-            <div class="tabs" role="tablist" aria-label="History tabs">
-              <button
-                class="tab on"
-                id="tabSuccess"
-                type="button"
-                role="tab"
-                aria-selected="true"
-              >
-                Success
-              </button>
-              <button
-                class="tab"
-                id="tabFail"
-                type="button"
-                role="tab"
-                aria-selected="false"
-              >
-                Failed
-              </button>
-            </div>
-            <div class="muted small" id="histCount"></div>
           </div>
 
           <div class="histlist" id="historyList"></div>
-        </div>
+        </aside>
+
+        <!-- EDITOR -->
+        <section class="editor">
+          <div class="tabsbar">
+            <button class="filetab on" type="button">playground.json</button>
+            <button class="filetab" type="button">help.md</button>
+            <div style="flex: 1"></div>
+            <button id="copyBtn" class="btn-ghost" title="Copy Inputs">
+              Copy
+            </button>
+          </div>
+
+          <div class="work">
+            <!-- LEFT: Playground -->
+            <div class="panel">
+              <div class="panelInner">
+                <div class="panelTop">
+                  <h3>Query Playground</h3>
+                  <div class="row compact">
+                    <button id="runBtn" class="btn">Run</button>
+                    <button
+                      id="showCollBtn"
+                      class="btn-outline"
+                      title="Show first 50 docs from selected collection"
+                    >
+                      Show Collection
+                    </button>
+                    <button id="resetBtn" class="btn-outline">
+                      Reset Sample DB
+                    </button>
+                    <button id="toggleHelpBtn" class="btn-ghost">
+                      Beginner Help
+                    </button>
+                  </div>
+                </div>
+
+                <div
+                  style="padding: 12px; border-bottom: 1px solid var(--border)"
+                >
+                  <div class="muted small">
+                    Tip: Pick a <b>collection</b> + <b>operation</b>, then edit
+                    JSON. Use <code class="inline">aggregate</code> for
+                    pipelines and <code class="inline">$lookup</code> for joins.
+                  </div>
+
+                  <div class="samples" aria-label="Quick demos">
+                    <button class="chip" data-demo="books_all">
+                      Books: show all
+                    </button>
+                    <button class="chip" data-demo="books_subject_rec">
+                      Books: Subject=Recursion
+                    </button>
+                    <button class="chip" data-demo="books_insert">
+                      Books: insert a new book
+                    </button>
+                    <button class="chip" data-demo="books_delete">
+                      Books: delete BookId=3
+                    </button>
+                    <button class="chip" data-demo="users_active">
+                      Users: active users
+                    </button>
+                    <button class="chip" data-demo="users_delhi_gt25">
+                      Users: Delhi & age&gt;25
+                    </button>
+                    <button class="chip" data-demo="agg_city_count">
+                      Agg: count users by city
+                    </button>
+                    <button class="chip" data-demo="agg_revenue_city">
+                      Agg: revenue by city
+                    </button>
+                    <button class="chip" data-demo="join_orders_users">
+                      Join: orders + user details
+                    </button>
+                    <button class="chip" data-demo="agg_cricket_maxminsumavg">
+                      Oracle Agg: batsman stats
+                    </button>
+                    <button class="chip" data-demo="agg_matchtype_max">
+                      Oracle Agg: max score by match type
+                    </button>
+                    <button class="chip" data-demo="having_max_ge_100">
+                      Oracle Agg: HAVING max≥100
+                    </button>
+                    <button
+                      class="chip"
+                      data-demo="join_cricketers_footballers"
+                    >
+                      SQL Join: cricketers ⟕ footballers
+                    </button>
+                    <button class="chip" data-demo="join_trains_stops_between">
+                      Join: trains between stations
+                    </button>
+                    <button
+                      class="chip"
+                      data-demo="keys_check_duplicate_rollno"
+                    >
+                      Keys: find duplicate RollNo
+                    </button>
+                    <button
+                      class="chip"
+                      data-demo="keys_check_duplicate_ticket"
+                    >
+                      Keys: composite key duplicates
+                    </button>
+                  </div>
+
+                  <div class="row" style="margin-top: 12px">
+                    <div>
+                      <div class="muted small" style="margin-bottom: 6px">
+                        Collection
+                      </div>
+                      <select id="collectionSel"></select>
+                    </div>
+                    <div>
+                      <div class="muted small" style="margin-bottom: 6px">
+                        Operation
+                      </div>
+                      <select id="opSel">
+                        <option value="find">find (search)</option>
+                        <option value="insertOne">insertOne (add 1)</option>
+                        <option value="insertMany">
+                          insertMany (add many)
+                        </option>
+                        <option value="updateMany">updateMany (modify)</option>
+                        <option value="deleteMany">deleteMany (remove)</option>
+                        <option value="aggregate">aggregate (pipeline)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="row" style="margin-top: 12px">
+                    <div>
+                      <div class="muted small" style="margin-bottom: 6px">
+                        Filter (JSON)
+                      </div>
+                      <textarea id="filterInput">{}</textarea>
+                    </div>
+                    <div>
+                      <div class="muted small" style="margin-bottom: 6px">
+                        Payload (JSON)
+                      </div>
+                      <textarea id="payloadInput">{}</textarea>
+                    </div>
+                  </div>
+
+                  <div style="margin-top: 12px">
+                    <div class="muted small" style="margin-bottom: 6px">
+                      Aggregate Pipeline (JSON array) — used only by
+                      <code class="inline">aggregate</code>
+                    </div>
+                    <textarea id="pipeInput">
+[
+  { "$match": { } },
+  { "$limit": 10 }
+]</textarea
+                    >
+                  </div>
+
+                  <div class="row compact" style="margin-top: 12px">
+                    <button id="downloadCsvBtn" class="btn-outline" disabled>
+                      Download CSV
+                    </button>
+                    <button id="copyCsvBtn" class="btn-ghost" disabled>
+                      Copy CSV
+                    </button>
+                    <button id="exportDbBtn" class="btn-outline">
+                      Export DB JSON
+                    </button>
+                    <button id="importDbBtn" class="btn-outline">
+                      Import DB JSON
+                    </button>
+                    <input
+                      id="importDbFile"
+                      type="file"
+                      accept="application/json,.json"
+                      style="display: none"
+                    />
+                  </div>
+
+                  <div class="kpi">
+                    <div class="pill">Docs: <span id="kpiDocs">0</span></div>
+                    <div class="pill">
+                      Collections: <span id="kpiCols">0</span>
+                    </div>
+                    <div class="pill">Last ms: <span id="kpiMs">0</span></div>
+                  </div>
+                </div>
+
+                <div style="padding: 12px; min-height: 0; overflow: auto">
+                  <div class="result" aria-live="polite">
+                    <div class="meta">
+                      <div class="left">
+                        <span id="metaMsg" class="muted small">Ready.</span>
+                        <span id="metaRows" class="muted small"></span>
+                      </div>
+                    </div>
+                    <div class="tablewrap" id="result"></div>
+                  </div>
+
+                  <div class="errorbox" id="error"></div>
+
+                  <!-- HELP -->
+                  <div class="helpbox" id="helpBox" style="display: none">
+                    <div class="helpTop">
+                      <div>
+                        <div class="muted small" style="margin-bottom: 6px">
+                          Search help (find, insert, delete, aggregate, join,
+                          $lookup)
+                        </div>
+                        <input
+                          id="helpSearch"
+                          type="text"
+                          placeholder="Try: find, projection, insert, delete, aggregate, join, $lookup..."
+                          autocomplete="off"
+                        />
+                      </div>
+                      <div
+                        class="row compact"
+                        style="justify-content: flex-end"
+                      >
+                        <button class="btn-outline" id="helpLoadSampleBtn">
+                          Load Sample DB
+                        </button>
+                        <button class="btn-ghost" id="helpCloseBtn">
+                          Close
+                        </button>
+                      </div>
+                    </div>
+
+                    <div
+                      class="helpTabsWrap"
+                      id="helpTabsWrap"
+                      role="tablist"
+                      aria-label="Help tabs"
+                    ></div>
+
+                    <div class="miniAlert">
+                      Click an example tab → press <b>Load</b> → press
+                      <b>Run</b> → read the table.
+                    </div>
+
+                    <div class="helpBody" id="helpBody"></div>
+                  </div>
+
+                  <div class="footerNote">
+                    Saved in <code class="inline">localStorage</code> on this
+                    device.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- RIGHT: empty but kept for future split / logs (optional) -->
+            <div class="panel">
+              <div class="panelInner">
+                <div class="panelTop">
+                  <h3>Notes</h3>
+                  <div class="muted small">Reserved (optional)</div>
+                </div>
+                <div style="padding: 12px; min-height: 0; overflow: auto">
+                  <div class="miniAlert">
+                    This panel is intentionally kept minimal in VS Code style.
+                    Your main explorer + history is on the left sidebar.
+                  </div>
+                  <div class="muted small" style="margin-top: 10px">
+                    Recommended flow:
+                    <ol style="margin: 8px 0 0 18px; color: var(--muted)">
+                      <li>Pick a demo chip</li>
+                      <li>Run</li>
+                      <li>Export DB JSON if you want to save/share</li>
+                    </ol>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- STATUS BAR -->
+      <div class="statusbar">
+        <span class="sb">Mongo Playground</span>
+        <span class="sb">UTF-8</span>
+        <span class="sb">JSON</span>
+        <span class="sb grow" id="ppStatusBarMsg">Ready</span>
+        <span class="sb">localStorage</span>
       </div>
     </div>
 
@@ -887,6 +1107,8 @@
         var helpTabsWrap = document.getElementById("helpTabsWrap");
         var helpBody = document.getElementById("helpBody");
 
+        var ppStatusBarMsg = document.getElementById("ppStatusBarMsg");
+
         // ===== Utils
         function nowISO() {
           return new Date().toISOString().replace("T", " ").slice(0, 19);
@@ -912,15 +1134,18 @@
         function showInfo(msg) {
           metaMsg.innerHTML =
             '<span class="muted small">' + escapeHtml(msg) + "</span>";
+          if (ppStatusBarMsg) ppStatusBarMsg.textContent = msg;
         }
         function showOk(msg) {
           metaMsg.innerHTML =
             '<span class="ok">✅ ' + escapeHtml(msg) + "</span>";
+          if (ppStatusBarMsg) ppStatusBarMsg.textContent = msg;
         }
         function showErr(msg) {
           errorDiv.style.display = "block";
           errorDiv.textContent = msg;
           metaMsg.innerHTML = '<span class="danger">❌ Error</span>';
+          if (ppStatusBarMsg) ppStatusBarMsg.textContent = "Error: " + msg;
         }
         function clearOutput() {
           resultDiv.innerHTML = "";
@@ -959,7 +1184,7 @@
           return x;
         }
 
-        // ===== Sample DB (includes books + relationships for join demo)
+        // ===== Sample DB
         function sampleDB() {
           return {
             books: [
@@ -1145,7 +1370,6 @@
                 ts: "2026-02-12",
               },
             ],
-            // --- SQL-style demo collections (from your PDFs) ---
             students: [
               { RollNo: 1, Name: "Himanshu", Age: 35, Course: "MBBS" },
               { RollNo: 2, Name: "Himanshu", Age: 35, Course: "MBBS" },
@@ -1565,7 +1789,7 @@
           return { acknowledged: true, deletedCount: before - kept.length };
         }
 
-        // ===== Aggregate (includes $lookup join stage)
+        // ===== Aggregate (+ $lookup)
         function evalExpr(doc, expr) {
           if (typeof expr === "string" && expr.startsWith("$"))
             return getValue(doc, expr);
@@ -1709,9 +1933,6 @@
           return out;
         }
 
-        // JOIN: $lookup (very common in MongoDB to join collections)
-        // Syntax:
-        // { $lookup: { from: "users", localField: "userId", foreignField: "_id", as: "user" } }
         function stageLookup(input, spec) {
           if (!spec || typeof spec !== "object")
             throw new Error("$lookup spec must be an object.");
@@ -1726,7 +1947,6 @@
             throw new Error("$lookup needs localField + foreignField.");
 
           var foreign = db[from];
-          // build index for speed
           var index = new Map();
           for (var i = 0; i < foreign.length; i++) {
             var fv = getValue(foreign[i], foreignField);
@@ -2060,7 +2280,7 @@
           }
 
           var parts = [];
-          parts.push("<b>Collections (tables)</b> in this in-browser DB:");
+          parts.push("<b>Collections</b>:");
           parts.push(
             "<div style='margin-top:8px; display:flex; gap:8px; flex-wrap:wrap'>",
           );
@@ -2076,7 +2296,7 @@
           });
           parts.push("</div>");
           parts.push(
-            "<div class='muted small' style='margin-top:10px'>Tip: Select a collection → click <b>Show Collection</b> to view documents.</div>",
+            "<div class='muted small' style='margin-top:10px'>Select a collection → click <b>Show Collection</b>.</div>",
           );
           collectionsBox.innerHTML = parts.join("");
         }
@@ -2101,9 +2321,8 @@
           };
         }
 
-        // ===== Demos
+        // ===== Demos (unchanged)
         var DEMOS = {
-          // BOOKS
           books_all: {
             title: "Books: show all",
             collection: "books",
@@ -2145,8 +2364,6 @@
             pipeline: [],
             note: "deleteMany removes all documents matching the filter.",
           },
-
-          // USERS
           users_active: {
             title: "Users: active users",
             collection: "users",
@@ -2165,8 +2382,6 @@
             pipeline: [],
             note: "Uses an operator: { age: { $gt: 25 } }.",
           },
-
-          // AGGREGATE
           agg_city_count: {
             title: "Aggregate: count users by city",
             collection: "users",
@@ -2199,8 +2414,6 @@
             ],
             note: "Sums totals and counts orders by city.",
           },
-
-          // JOIN
           join_orders_users: {
             title: "Join: orders + user details",
             collection: "orders",
@@ -2229,9 +2442,8 @@
               },
               { $limit: 20 },
             ],
-            note: "Join with $lookup: each order gets a 'user' array containing matching user docs.",
+            note: "Join with $lookup: each order gets a 'user' array.",
           },
-          // ===== SQL / Oracle inspired demos (from PDFs)
           agg_cricket_maxminsumavg: {
             title: "Oracle-style aggregate: batsman stats",
             collection: "cricket_scores",
@@ -2251,7 +2463,7 @@
               },
               { $sort: { maxScore: -1 } },
             ],
-            note: "Like Oracle GROUP BY batsman with MAX/MIN/AVG/SUM/COUNT.",
+            note: "GROUP BY batsman with MAX/MIN/AVG/SUM/COUNT.",
           },
           agg_matchtype_max: {
             title: "Oracle-style: highest score by MatchType",
@@ -2263,7 +2475,7 @@
               { $group: { _id: "$MatchType", maxScore: { $max: "$score" } } },
               { $sort: { maxScore: -1 } },
             ],
-            note: "Equivalent to: SELECT MatchType, MAX(score) FROM cricket_scores GROUP BY MatchType.",
+            note: "Equivalent to GROUP BY MatchType and MAX(score).",
           },
           having_max_ge_100: {
             title: "Oracle HAVING: max score ≥ 100",
@@ -2295,7 +2507,7 @@
               { $project: { _id: 0, name: 1, runs: 1, football: 1 } },
               { $sort: { name: 1 } },
             ],
-            note: "This behaves like a LEFT JOIN from cricketers to footballers (matches appear in football[]).",
+            note: "Behaves like a LEFT JOIN (matches appear in football[]).",
           },
           join_trains_stops_between: {
             title: "Join example: trains between Itarsi → Jalgaon",
@@ -2305,12 +2517,7 @@
             payload: {},
             pipeline: [
               { $match: { station: { $in: ["Itarsi", "Jalgaon"] } } },
-              {
-                $group: {
-                  _id: "$trainno",
-                  stations: { $sum: 1 },
-                },
-              },
+              { $group: { _id: "$trainno", stations: { $sum: 1 } } },
               { $match: { stations: { $gte: 2 } } },
               {
                 $lookup: {
@@ -2322,7 +2529,7 @@
               },
               { $project: { _id: 0, TrainNo: "$_id", train: 1 } },
             ],
-            note: "Simplified from the PDF: find trains whose stops include BOTH stations, then lookup train details.",
+            note: "Find trains whose stops include both stations, then lookup train details.",
           },
           keys_check_duplicate_rollno: {
             title: "Keys: find duplicate RollNo (primary key concept)",
@@ -2340,7 +2547,7 @@
               },
               { $match: { count: { $gt: 1 } } },
             ],
-            note: "In SQL, RollNo would be PRIMARY KEY. Here we just DETECT duplicates with $group.",
+            note: "Detect duplicates with $group.",
           },
           keys_check_duplicate_ticket: {
             title: "Keys: composite key duplicates (PNRNo + BerthNo)",
@@ -2357,19 +2564,19 @@
               },
               { $match: { count: { $gt: 1 } } },
             ],
-            note: "Composite primary key check using a grouped _id object.",
+            note: "Composite key check using grouped _id object.",
           },
         };
 
-        // ===== Beginner Help (tabs)
+        // ===== Beginner Help (same structure)
         var HELP_SECTIONS = [
           {
             id: "basics",
             title: "Basics",
             cards: [
               {
-                h: "Collections vs Documents (tables vs rows)",
-                p: "A Collection is like a table. A Document is like one row, written in JSON. Example: collection 'books' has documents with BookId, BookName, Author, Subject.",
+                h: "Collections vs Documents",
+                p: "A Collection is like a table. A Document is like one row, written in JSON.",
                 mono: `Example document:
 {
   "BookId": 1,
@@ -2379,8 +2586,8 @@
 }`,
               },
               {
-                h: "Three input boxes (Filter / Payload / Pipeline)",
-                p: "Filter chooses WHICH documents. Payload changes WHAT to show (projection), or WHAT to change (update), or WHAT to insert. Pipeline is used only for aggregate.",
+                h: "Inputs (Filter / Payload / Pipeline)",
+                p: "Filter chooses which docs. Payload is projection/update/insert. Pipeline is only for aggregate.",
                 mono: `Find:
   Filter  = { "Author": "Champak Roy" }
   Payload = { "BookName": 1, "Subject": 1, "_id": 0 }
@@ -2404,21 +2611,19 @@ Aggregate:
             cards: [
               {
                 h: "find = search",
-                p: "find returns all documents matching the Filter. Start simple: { } means match everything.",
-                mono: `Show all books:
-Collection: books
+                p: "find returns all documents matching the Filter. { } means match everything.",
+                mono: `Collection: books
 Operation:  find
 Filter:     {}
 Payload:    {}`,
               },
               {
-                h: "Projection (show only some fields)",
+                h: "Projection",
                 p: "In Payload, put 1 for fields you want. Put _id:0 to hide _id if present.",
-                mono: `Show only BookName + Subject:
-Payload: { "BookName": 1, "Subject": 1, "_id": 0 }`,
+                mono: `Payload: { "BookName": 1, "Subject": 1, "_id": 0 }`,
               },
               {
-                h: "Operators ($gt, $in, $regex)",
+                h: "Operators",
                 p: "Use operators inside a field for smarter filtering.",
                 mono: `Age > 25:
 { "age": { "$gt": 25 } }
@@ -2437,15 +2642,14 @@ Name starts with A:
             title: "Insert",
             cards: [
               {
-                h: "insertOne = add one document",
-                p: "To insert, choose insertOne and write the new document in Payload. Filter is ignored.",
-                mono: `Collection: books
-Operation:  insertOne
+                h: "insertOne",
+                p: "Write the new document in Payload. Filter is ignored.",
+                mono: `Operation: insertOne
 Payload:
 { "BookId": 4, "BookName": "New Book", "Author": "Champak Roy", "Subject": "JavaScript" }`,
               },
               {
-                h: "insertMany = add many documents",
+                h: "insertMany",
                 p: "Payload must be a JSON array [ ... ] of documents.",
                 mono: `Operation: insertMany
 Payload:
@@ -2462,16 +2666,15 @@ Payload:
             title: "Delete",
             cards: [
               {
-                h: "deleteMany = remove matching documents",
-                p: "Delete is powerful. Filter chooses what to remove. Example: remove BookId=3.",
-                mono: `Collection: books
-Operation:  deleteMany
-Filter:     { "BookId": 3 }`,
+                h: "deleteMany",
+                p: "Filter chooses what to remove. Example: remove BookId=3.",
+                mono: `Operation: deleteMany
+Filter: { "BookId": 3 }`,
               },
               {
-                h: "Safety tip",
+                h: "Safety",
                 p: "If your Filter is { } then deleteMany will remove everything in that collection.",
-                mono: `⚠️ DANGEROUS:
+                mono: `DANGEROUS:
 Filter: {}`,
               },
             ],
@@ -2482,17 +2685,17 @@ Filter: {}`,
             title: "Aggregate",
             cards: [
               {
-                h: "aggregate = step-by-step pipeline",
-                p: "Aggregate uses a Pipeline array. Each stage transforms the results.",
-                mono: `Pipeline stages are like:
+                h: "aggregate = pipeline",
+                p: "Each stage transforms the results: $match → $group → $sort → $limit.",
+                mono: `Pipeline stages:
 1) $match  = filter
 2) $group  = group + calculate
 3) $sort   = order results
 4) $limit  = keep first N`,
               },
               {
-                h: "Count by city (example)",
-                p: "This groups users by city and counts them.",
+                h: "Count by city",
+                p: "Groups users by city and counts them.",
                 mono: `[
   { "$match": { "active": true } },
   { "$group": { "_id": "$city", "count": { "$sum": 1 } } },
@@ -2504,179 +2707,43 @@ Filter: {}`,
           },
           {
             id: "joins",
-            title: "Joins (Lookup)",
+            title: "Joins ($lookup)",
             cards: [
               {
-                h: "MongoDB joins use $lookup",
-                p: "MongoDB is document-based, but you can 'join' by using $lookup in an aggregate pipeline.",
-                mono: `$lookup meaning:
-- from: which collection to join
-- localField: field in current collection
-- foreignField: field in other collection
-- as: output field name (array)`,
+                h: "$lookup meaning",
+                p: "Join collections: from, localField, foreignField, as.",
+                mono: `$lookup:
+- from: other collection
+- localField: current field
+- foreignField: other field
+- as: output field (array)`,
               },
               {
-                h: "Orders joined with Users",
-                p: "orders.userId matches users._id. After $lookup, each order has a 'user' array.",
+                h: "Orders + Users",
+                p: "orders.userId matches users._id.",
                 mono: `[
   { "$match": { "status": "PAID" } },
   { "$lookup": { "from": "users", "localField": "userId", "foreignField": "_id", "as": "user" } },
   { "$project": { "_id": 1, "userId": 1, "total": 1, "city": 1, "ts": 1, "user": 1 } }
 ]`,
               },
-              {
-                h: "Important beginner note",
-                p: "In real MongoDB, you might also use $unwind to turn the 'user' array into a single object. This playground keeps it as an array to stay simple.",
-                mono: `Result shape:
-{ _id:"o1", userId:2, total:499, user:[ { _id:2, name:"Ravi", ... } ] }`,
-              },
             ],
             examples: ["join_orders_users"],
-          },
-
-          {
-            id: "keys",
-            title: "Keys (Primary / Composite / Foreign)",
-            cards: [
-              {
-                h: "Primary Key = unique identifier",
-                p: "In SQL, PRIMARY KEY means no duplicates and no NULL. In this playground we do not enforce uniqueness, but we can DETECT duplicates using aggregation.",
-                mono: `Detect duplicate RollNo (like PRIMARY KEY check):
-Pipeline:
-[
-  { "$group": { "_id": "$RollNo", "count": { "$sum": 1 } } },
-  { "$match": { "count": { "$gt": 1 } } }
-]`,
-              },
-              {
-                h: "Composite Key = uniqueness using multiple fields",
-                p: "A composite key uses more than one column (e.g., PNRNo + BerthNo). Here we store a precomputed field compositeKey like 'P1#1' to demonstrate uniqueness checks.",
-                mono: `Detect duplicate compositeKey:
-[
-  { "$group": { "_id": "$compositeKey", "count": { "$sum": 1 } } },
-  { "$match": { "count": { "$gt": 1 } } }
-]`,
-              },
-              {
-                h: "Foreign Key = reference to another table",
-                p: "Foreign keys connect tables. MongoDB often stores the referenced id (like orders.userId → users._id). In Mongo, the join is done via $lookup.",
-                mono: `Join orders with users:
-[
-  { "$lookup": { "from": "users", "localField": "userId", "foreignField": "_id", "as": "user" } }
-]`,
-              },
-            ],
-            examples: [
-              "keys_check_duplicate_rollno",
-              "keys_check_duplicate_ticket",
-              "join_orders_users",
-            ],
-          },
-          {
-            id: "oracleAgg",
-            title: "Oracle Aggregate Examples",
-            cards: [
-              {
-                h: "MAX / MIN / SUM / AVG / COUNT",
-                p: "Aggregate functions summarize many rows. In Mongo, use $group with $max/$min/$sum/$avg. COUNT is usually $sum: 1.",
-                mono: `Batsman wise stats:
-[
-  { "$group": {
-      "_id": "$batsman",
-      "maxScore": { "$max": "$score" },
-      "minScore": { "$min": "$score" },
-      "avgScore": { "$avg": "$score" },
-      "sumScore": { "$sum": "$score" },
-      "countRows": { "$sum": 1 }
-  } }
-]`,
-              },
-              {
-                h: "GROUP BY and HAVING",
-                p: "GROUP BY in SQL becomes $group. HAVING becomes a $match after $group.",
-                mono: `HAVING max(score) >= 100:
-[
-  { "$group": { "_id": "$batsman", "maxScore": { "$max": "$score" } } },
-  { "$match": { "maxScore": { "$gte": 100 } } }
-]`,
-              },
-            ],
-            examples: [
-              "agg_cricket_maxminsumavg",
-              "agg_matchtype_max",
-              "having_max_ge_100",
-            ],
-          },
-          {
-            id: "sqlJoins",
-            title: "SQL Joins & Set Operations",
-            cards: [
-              {
-                h: "Inner / Left / Right / Full joins",
-                p: "In SQL you can join tables in multiple ways. Here, $lookup behaves most like a LEFT JOIN (keeps left side, attaches matches in an array).",
-                mono: `LEFT JOIN idea (cricketers -> footballers):
-[
-  { "$lookup": { "from": "footballers", "localField": "name", "foreignField": "name", "as": "football" } }
-]`,
-              },
-              {
-                h: "UNION / INTERSECT / MINUS",
-                p: "These are SQL set operators. This playground does not implement UNION/INTERSECT/MINUS as operations, but the SQL examples are included below for learning.",
-                mono: `SQL examples:
--- UNION
-select name from Cricketers
-union
-select name from Footballers;
-
--- UNION ALL
-select name from Cricketers
-union all
-select name from Footballers;
-
--- INTERSECT
-select name from Cricketers
-intersect
-select name from Footballers;
-
--- MINUS
-select name from Cricketers
-minus
-select name from Footballers;`,
-              },
-              {
-                h: "Train route join example (same-table join in SQL)",
-                p: "The PDF shows joining stops table to itself (source/dest) and then joining trains. Here we provide a simplified version using $group + $lookup.",
-                mono: `Simplified in this playground:
-1) Find trainno that has BOTH stations.
-2) Lookup train details from trains.`,
-              },
-            ],
-            examples: [
-              "join_cricketers_footballers",
-              "join_trains_stops_between",
-            ],
           },
           {
             id: "troubleshoot",
             title: "Troubleshoot",
             cards: [
               {
-                h: "JSON rules (most common beginner error)",
+                h: "JSON rules",
                 p: "JSON needs double quotes. No trailing commas. true/false are lowercase.",
                 mono: `✅ { "active": true }
 ❌ { active: true }
 ❌ { "a": 1, }`,
               },
               {
-                h: "Projection mix error",
-                p: "Don’t mix include and exclude in projection, except _id.",
-                mono: `✅ { "name": 1, "city": 1, "_id": 0 }
-✅ { "tags": 0, "joined": 0 }
-❌ { "name": 1, "tags": 0 }`,
-              },
-              {
                 h: "Pipeline must be an array",
-                p: "Aggregate pipeline must be [ ... ]. Each stage is an object with one key.",
+                p: "Aggregate pipeline must be [ ... ]. Each stage is an object.",
                 mono: `✅ [ { "$match": {...} }, { "$group": {...} } ]
 ❌ { "$match": {...} }`,
               },
@@ -2773,12 +2840,10 @@ select name from Footballers;`,
             helpBody.appendChild(card);
           });
 
-          // examples block
           var exCard = document.createElement("div");
           exCard.className = "helpCard";
           exCard.innerHTML =
-            "<h3>Examples</h3>" +
-            "<p>Click <b>Load</b> to fill the editor, then press <b>Run</b>.</p>";
+            "<h3>Examples</h3><p>Click <b>Load</b> to fill the editor, then press <b>Run</b>.</p>";
 
           var exWrap = document.createElement("div");
           exWrap.style.marginTop = "10px";
@@ -2791,7 +2856,6 @@ select name from Footballers;`,
 
             var box = document.createElement("div");
             box.className = "helpCard";
-            box.style.background = "rgba(255,255,255,0.97)";
             box.innerHTML =
               "<h3 style='margin-bottom:4px'>" +
               escapeHtml(d.title || key) +
@@ -3122,6 +3186,7 @@ select name from Footballers;`,
         setCSVEnabled(false);
         renderHistory();
         renderHelp("");
+        showInfo("Ready — " + nowISO());
       })();
     </script>
   </body>
