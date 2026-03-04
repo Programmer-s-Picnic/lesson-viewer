@@ -1,0 +1,2459 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>
+      Holi Colors on the Web — Full Theory + Upgraded Interactive Lab
+      (Programmer’s Picnic)
+    </title>
+    <meta
+      name="description"
+      content="A fully upgraded, interactive post on colors in web pages: HEX/RGB/HSL, alpha, gradients, CSS variables, calc(), contrast, palettes, converters, and an embedded practice editor with open-in-new-tab tools."
+    />
+    <meta name="theme-color" content="#d97706" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      :root {
+        --bg: #fff7e6;
+        --panel: rgba(255, 255, 255, 0.86);
+        --panel2: rgba(255, 255, 255, 0.78);
+        --ink: #1f2328;
+        --muted: #5b6570;
+        --line: rgba(31, 35, 40, 0.12);
+
+        /* Theme knobs */
+        --hue: 28;
+        --sat: 90%;
+        --lit: 55%;
+
+        /* Derived palette (var + calc) */
+        --accent: hsl(var(--hue) var(--sat) var(--lit));
+        --accent2: hsl(calc(var(--hue) + 24) var(--sat) calc(var(--lit) + 10%));
+        --accent3: hsl(calc(var(--hue) - 24) var(--sat) calc(var(--lit) - 8%));
+
+        --glow: hsla(var(--hue) var(--sat) var(--lit) / 0.22);
+        --ring: hsla(var(--hue) var(--sat) 45% / 0.45);
+
+        --radius: 18px;
+        --shadow: 0 18px 50px rgba(17, 24, 39, 0.1);
+
+        --titleSize: calc(22px + 1.6vw);
+        --h2: calc(16px + 0.35vw);
+        --text: calc(13px + 0.18vw);
+
+        --mono:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+
+        /* RGB demo vars (for calc inverse) */
+        --r: 255;
+        --g: 120;
+        --b: 0;
+        --inv-r: calc(255 - var(--r));
+        --inv-g: calc(255 - var(--g));
+        --inv-b: calc(255 - var(--b));
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        font-family:
+          "DM Sans",
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial,
+          sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(
+            1000px 700px at 20% 10%,
+            var(--glow),
+            transparent 55%
+          ),
+          radial-gradient(
+            900px 650px at 80% 20%,
+            hsla(calc(var(--hue) + 40) var(--sat) var(--lit) / 0.18),
+            transparent 58%
+          ),
+          radial-gradient(
+            900px 700px at 50% 90%,
+            hsla(calc(var(--hue) - 50) var(--sat) var(--lit) / 0.16),
+            transparent 58%
+          ),
+          linear-gradient(180deg, #fff2d6, var(--bg));
+        overflow-x: hidden;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .wrap {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 24px 16px 60px;
+      }
+
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(10px);
+      }
+
+      header.hero {
+        padding: 18px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .badgeRow {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.72);
+        font-size: 13px;
+        color: var(--muted);
+        font-family:
+          Inter,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial,
+          sans-serif;
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 0 4px var(--glow);
+      }
+      .tag {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: #111827;
+        background: rgba(0, 0, 0, 0.04);
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        padding: 2px 6px;
+        border-radius: 999px;
+        white-space: nowrap;
+      }
+
+      h1 {
+        margin: 6px 0 8px;
+        font-size: var(--titleSize);
+        line-height: 1.08;
+        letter-spacing: -0.02em;
+      }
+      .sub {
+        margin: 0 0 14px;
+        color: var(--muted);
+        font-family:
+          Inter,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial,
+          sans-serif;
+        font-size: var(--text);
+        line-height: 1.6;
+        max-width: 90ch;
+      }
+
+      .heroGrid {
+        display: grid;
+        grid-template-columns: 1fr 380px;
+        gap: 14px;
+        align-items: start;
+      }
+      @media (max-width: 980px) {
+        .heroGrid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .controls {
+        display: grid;
+        gap: 10px;
+      }
+      .ctrl {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.76);
+        padding: 10px 10px 12px;
+      }
+      .ctrlTop {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 10px;
+        margin-bottom: 8px;
+      }
+      .ctrl label {
+        font-size: 12px;
+        color: var(--muted);
+        font-family:
+          Inter,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial,
+          sans-serif;
+      }
+      .ctrl code {
+        font-family: var(--mono);
+        font-size: 12px;
+        color: #111827;
+        background: rgba(0, 0, 0, 0.04);
+        padding: 3px 6px;
+        border-radius: 8px;
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        white-space: nowrap;
+      }
+      input[type="range"] {
+        width: 100%;
+        accent-color: hsl(var(--hue) var(--sat) 45%);
+      }
+
+      .btnRow {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      button {
+        appearance: none;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.82);
+        padding: 10px 12px;
+        border-radius: 12px;
+        cursor: pointer;
+        font-weight: 800;
+        font-family:
+          Inter,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial,
+          sans-serif;
+        transition:
+          transform 0.12s ease,
+          box-shadow 0.12s ease,
+          border-color 0.12s ease;
+        user-select: none;
+      }
+      button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 20px rgba(17, 24, 39, 0.08);
+        border-color: var(--ring);
+      }
+      .primary {
+        background: linear-gradient(135deg, var(--accent), var(--accent2));
+        border-color: transparent;
+        color: #111827;
+      }
+      .danger {
+        background: rgba(255, 255, 255, 0.86);
+        border-color: rgba(239, 68, 68, 0.35);
+      }
+
+      main {
+        margin-top: 16px;
+        display: grid;
+        gap: 16px;
+      }
+
+      .section {
+        padding: 16px;
+      }
+      .section h2 {
+        margin: 0 0 10px;
+        font-size: var(--h2);
+        letter-spacing: -0.01em;
+      }
+      .section p,
+      .section li {
+        margin: 0 0 10px;
+        color: var(--muted);
+        font-family:
+          Inter,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial,
+          sans-serif;
+        font-size: var(--text);
+        line-height: 1.7;
+      }
+      .section ul {
+        margin: 0 0 10px 18px;
+      }
+
+      .callout {
+        border-radius: 16px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.76);
+        padding: 12px;
+      }
+      .callout b {
+        color: var(--ink);
+      }
+
+      .grid2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        align-items: start;
+      }
+      @media (max-width: 980px) {
+        .grid2 {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .codebox {
+        border-radius: 18px;
+        border: 1px solid var(--line);
+        background: var(--panel2);
+        overflow: hidden;
+      }
+      .codehead {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.86);
+        flex-wrap: wrap;
+      }
+      .codehead .left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        font-weight: 900;
+        font-family:
+          Inter,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial,
+          sans-serif;
+      }
+      pre {
+        margin: 0;
+        padding: 12px;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-family: var(--mono);
+        font-size: 12px;
+        line-height: 1.55;
+        color: #0f172a;
+      }
+
+      /* Lab blocks */
+      .labGrid {
+        display: grid;
+        grid-template-columns: 440px 1fr;
+        gap: 12px;
+        align-items: start;
+      }
+      @media (max-width: 1060px) {
+        .labGrid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .miniCard {
+        border-radius: 18px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.8);
+        overflow: hidden;
+      }
+      .miniTop {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.88);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+        font-weight: 900;
+        font-family:
+          Inter,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial,
+          sans-serif;
+      }
+      .miniBody {
+        padding: 12px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .swatches {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 10px;
+      }
+      @media (max-width: 760px) {
+        .swatches {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+
+      .sw {
+        border-radius: 16px;
+        border: 1px solid var(--line);
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.82);
+        min-height: 92px;
+        display: flex;
+        flex-direction: column;
+      }
+      .swTop {
+        height: 44px;
+        background: var(--c, var(--accent));
+      }
+      .swBody {
+        padding: 10px;
+        display: grid;
+        gap: 6px;
+      }
+      .swName {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: 12px;
+        font-weight: 900;
+        font-family:
+          Inter,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial,
+          sans-serif;
+      }
+      .swMeta {
+        color: var(--muted);
+        font-size: 12px;
+        font-family:
+          Inter,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial,
+          sans-serif;
+        line-height: 1.35;
+      }
+
+      .preview {
+        border-radius: 18px;
+        border: 1px solid var(--line);
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.84);
+      }
+      .previewTop {
+        padding: 12px;
+        background: linear-gradient(135deg, var(--accent), var(--accent2));
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+        font-weight: 900;
+        letter-spacing: 0.01em;
+      }
+      .previewTop .mini {
+        font-family: var(--mono);
+        font-weight: 700;
+        font-size: 11px;
+        background: rgba(255, 255, 255, 0.35);
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        padding: 4px 8px;
+        border-radius: 999px;
+      }
+      .previewBody {
+        padding: 12px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .chipRow {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.86);
+        font-size: 12px;
+        font-family:
+          Inter,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial,
+          sans-serif;
+      }
+      .miniDot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--accent3);
+        box-shadow: 0 0 0 4px
+          hsla(calc(var(--hue) - 20) var(--sat) var(--lit) / 0.14);
+      }
+
+      .contrastGrid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      @media (max-width: 700px) {
+        .contrastGrid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .contrastBox {
+        border-radius: 16px;
+        border: 1px solid var(--line);
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.86);
+      }
+      .contrastBar {
+        height: 10px;
+        background: var(--accent);
+      }
+      .contrastInner {
+        padding: 10px;
+        display: grid;
+        gap: 8px;
+      }
+      .sample {
+        border-radius: 12px;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        padding: 10px;
+        background: var(--bg2, #ffffff);
+        color: var(--fg2, #111827);
+        font-family:
+          Inter,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial,
+          sans-serif;
+        line-height: 1.45;
+      }
+      .sample strong {
+        font-weight: 900;
+      }
+
+      /* Converter UI */
+      .row2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      @media (max-width: 760px) {
+        .row2 {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .field {
+        display: grid;
+        gap: 6px;
+      }
+      .field label {
+        font-size: 12px;
+        color: var(--muted);
+        font-family:
+          Inter,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial,
+          sans-serif;
+      }
+      input[type="text"],
+      input[type="number"] {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid rgba(31, 35, 40, 0.16);
+        background: rgba(255, 255, 255, 0.92);
+        font-family: var(--mono);
+        font-size: 13px;
+        color: #0f172a;
+        outline: none;
+      }
+      input[type="text"]:focus,
+      input[type="number"]:focus {
+        border-color: var(--ring);
+        box-shadow: 0 0 0 4px var(--glow);
+      }
+
+      /* RGB inverse demo box (calc) */
+      .invDemo {
+        border-radius: 18px;
+        border: 1px solid var(--line);
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.84);
+      }
+      .invTop {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.88);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+        font-weight: 900;
+        font-family:
+          Inter,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial,
+          sans-serif;
+      }
+      .invSwatch {
+        padding: 12px;
+        background: rgb(var(--r), var(--g), var(--b));
+        color: rgb(var(--inv-r), var(--inv-g), var(--inv-b));
+        display: grid;
+        gap: 6px;
+      }
+      .invSwatch .small {
+        font-family: var(--mono);
+        font-size: 12px;
+        opacity: 0.95;
+      }
+
+      /* Practice editor */
+      .practiceGrid {
+        display: grid;
+        grid-template-columns: 420px 1fr;
+        gap: 12px;
+        align-items: start;
+      }
+      @media (max-width: 980px) {
+        .practiceGrid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .examples {
+        display: grid;
+        gap: 10px;
+      }
+      .exampleBtn {
+        text-align: left;
+        width: 100%;
+      }
+      .exampleBtn small {
+        display: block;
+        margin-top: 4px;
+        color: var(--muted);
+        font-weight: 600;
+        font-family:
+          Inter,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial,
+          sans-serif;
+      }
+
+      .frameWrap {
+        border-radius: 18px;
+        border: 1px solid var(--line);
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.8);
+      }
+      .frameTop {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.88);
+        flex-wrap: wrap;
+      }
+      .frameTop .title {
+        font-weight: 900;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-family:
+          Inter,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial,
+          sans-serif;
+      }
+      iframe.editor {
+        width: 100%;
+        height: 700px;
+        border: 0;
+        display: block;
+        background: #fff;
+      }
+
+      /* Sticky quick nav */
+      .nav {
+        position: sticky;
+        top: 10px;
+        z-index: 5;
+        margin-top: 14px;
+        padding: 10px 12px;
+        border-radius: 16px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.78);
+        backdrop-filter: blur(10px);
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .nav a {
+        text-decoration: none;
+        padding: 8px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.82);
+        font-family:
+          Inter,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial,
+          sans-serif;
+        font-size: 12px;
+        font-weight: 800;
+        color: #111827;
+      }
+      .nav a:hover {
+        border-color: var(--ring);
+        box-shadow: 0 10px 20px rgba(17, 24, 39, 0.08);
+      }
+
+      footer {
+        margin-top: 18px;
+        padding: 14px 4px 0;
+        color: var(--muted);
+        font-family:
+          Inter,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial,
+          sans-serif;
+        font-size: 13px;
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .logo {
+        width: 28px;
+        height: 28px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, var(--accent), var(--accent2));
+        box-shadow: 0 0 0 4px var(--glow);
+        border: 1px solid rgba(0, 0, 0, 0.06);
+      }
+
+      .toast {
+        position: fixed;
+        left: 50%;
+        bottom: 18px;
+        transform: translateX(-50%);
+        background: rgba(17, 24, 39, 0.92);
+        color: #fff;
+        padding: 10px 12px;
+        border-radius: 12px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+        font-family:
+          Inter,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial,
+          sans-serif;
+        font-size: 13px;
+        opacity: 0;
+        pointer-events: none;
+        transition:
+          opacity 0.2s ease,
+          transform 0.2s ease;
+        max-width: min(760px, 92vw);
+        text-align: center;
+      }
+      .toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(-3px);
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="wrap">
+      <header class="card hero">
+        <div class="badgeRow">
+          <span class="pill"
+            ><span class="dot"></span> Holi Edition • Colors in Web Pages</span
+          >
+          <span class="pill"
+            >Theme tokens: <span class="tag">var()</span> +
+            <span class="tag">calc()</span></span
+          >
+          <span class="pill">Converters • Palettes • Gradients • Contrast</span>
+          <span class="pill">Practice: Embedded HTML Editor</span>
+        </div>
+
+        <div class="heroGrid">
+          <div>
+            <h1>
+              Colors in Web Pages — Full Theory + Upgraded Interactive Lab
+            </h1>
+            <p class="sub">
+              Every color you write in CSS becomes numbers that the screen can
+              display. This page teaches the full theory (HEX, RGB, HSL, alpha,
+              gradients), and then lets you <b>practice immediately</b> using a
+              built-in lab and an embedded HTML editor.
+            </p>
+            <div class="callout">
+              <p style="margin: 0">
+                <b>Workflow:</b> adjust the theme sliders → explore
+                palette/converters/gradients → select an example → click
+                <span class="tag">Open Example in Editor</span> to practice in a
+                new tab.
+              </p>
+            </div>
+          </div>
+
+          <aside>
+            <div class="controls">
+              <div class="ctrl">
+                <div class="ctrlTop">
+                  <label for="hue">Hue (0–360): color family</label>
+                  <code id="hueOut">--hue: 28</code>
+                </div>
+                <input id="hue" type="range" min="0" max="360" value="28" />
+              </div>
+
+              <div class="ctrl">
+                <div class="ctrlTop">
+                  <label for="sat">Saturation (0–100%): intensity</label>
+                  <code id="satOut">--sat: 90%</code>
+                </div>
+                <input id="sat" type="range" min="0" max="100" value="90" />
+              </div>
+
+              <div class="ctrl">
+                <div class="ctrlTop">
+                  <label for="lit">Lightness (0–100%): brightness</label>
+                  <code id="litOut">--lit: 55%</code>
+                </div>
+                <input id="lit" type="range" min="0" max="100" value="55" />
+              </div>
+
+              <div class="btnRow">
+                <button class="primary" id="btnRandom">
+                  Random Holi Theme
+                </button>
+                <button id="btnCopyVarsTop">Copy Theme Variables</button>
+                <button id="btnReset">Reset</button>
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        <nav class="nav" aria-label="Quick navigation">
+          <a href="#theory">Theory</a>
+          <a href="#palette">Palette</a>
+          <a href="#converter">Converter</a>
+          <a href="#gradients">Gradients</a>
+          <a href="#contrast">Contrast</a>
+          <a href="#practice">Practice Editor</a>
+        </nav>
+      </header>
+
+      <main>
+        <!-- THEORY -->
+        <section class="card section" id="theory">
+          <h2>Theory: How Web Color Works (In Full)</h2>
+
+          <div class="grid2">
+            <div class="callout">
+              <p><b>1) The screen is RGB light.</b></p>
+              <p>
+                Every pixel is a tiny lamp mixing <b>Red</b>, <b>Green</b>, and
+                <b>Blue</b>. So browsers ultimately render everything as RGB
+                values.
+              </p>
+              <ul>
+                <li><span class="tag">rgb(255,0,0)</span> is full red</li>
+                <li><span class="tag">rgb(0,255,0)</span> is full green</li>
+                <li><span class="tag">rgb(0,0,255)</span> is full blue</li>
+              </ul>
+            </div>
+
+            <div class="callout">
+              <p><b>2) Why multiple formats exist.</b></p>
+              <ul>
+                <li><b>HEX</b> is compact and common in design systems.</li>
+                <li>
+                  <b>RGB(A)</b> matches the screen, good for alpha overlays.
+                </li>
+                <li>
+                  <b>HSL(A)</b> is easiest for theming: rotate hue, keep
+                  saturation/lightness.
+                </li>
+              </ul>
+              <p style="margin: 0">
+                Professional theming often uses <b>HSL tokens</b> + derived
+                colors.
+              </p>
+            </div>
+          </div>
+
+          <div class="grid2" style="margin-top: 12px">
+            <div class="codebox">
+              <div class="codehead">
+                <div class="left">HEX basics</div>
+                <span class="tag">#RRGGBB</span>
+              </div>
+              <pre>
+#ff0000  red
+#00ff00  green
+#0000ff  blue
+#ffffff  white
+#000000  black
+
+Shorthand:
+#f00 == #ff0000
+#0f0 == #00ff00
+#00f == #0000ff</pre
+              >
+            </div>
+
+            <div class="codebox">
+              <div class="codehead">
+                <div class="left">HSL basics</div>
+                <span class="tag">hsl(h s% l%)</span>
+              </div>
+              <pre>
+Hue        0..360   (color wheel)
+Saturation 0..100%  (vividness)
+Lightness  0..100%  (brightness)
+
+Example:
+hsl(28 90% 55%)  (a saffron-like accent)</pre
+              >
+            </div>
+          </div>
+
+          <div class="callout" style="margin-top: 12px">
+            <p style="margin: 0">
+              <b>Alpha (transparency):</b> use
+              <span class="tag">rgba(r,g,b,a)</span> or
+              <span class="tag">hsl(h s l / a)</span>. Low alpha is how you get
+              “glow”, glass panels, and soft backgrounds without destroying
+              readability.
+            </p>
+          </div>
+        </section>
+
+        <!-- PALETTE -->
+        <section class="card section" id="palette">
+          <h2>Palette Generator: One Hue → Full UI Palette</h2>
+          <p>
+            This is the most useful real-world trick: keep a few variables and
+            derive the entire palette using
+            <span class="tag">var()</span> + <span class="tag">calc()</span>.
+            The swatches update live.
+          </p>
+
+          <div class="labGrid">
+            <div class="miniCard">
+              <div class="miniTop">
+                <span>Live swatches</span>
+                <button id="btnCopyVarsMid">Copy Theme Vars</button>
+              </div>
+              <div class="miniBody">
+                <div class="swatches" id="swatches"></div>
+                <div class="codebox">
+                  <div class="codehead">
+                    <div class="left">Paste into your site</div>
+                    <button id="btnCopyVarsBlock">Copy</button>
+                  </div>
+                  <pre id="varsBlock"></pre>
+                </div>
+              </div>
+            </div>
+
+            <div class="preview">
+              <div class="previewTop">
+                <span>Programmer’s Picnic — Holi Theme Preview</span>
+                <span class="mini" id="hslReadout">hsl(28 90% 55%)</span>
+              </div>
+              <div class="previewBody">
+                <div class="chipRow">
+                  <span class="chip"
+                    ><span class="miniDot"></span> Accent from HSL tokens</span
+                  >
+                  <span class="chip">Derived palette via calc()</span>
+                  <span class="chip">Glow via HSLA alpha</span>
+                </div>
+
+                <div class="btnRow">
+                  <button class="primary" id="btnSplash">Splash Hue</button>
+                  <button id="btnTogglePanel">Toggle Dark Card</button>
+                </div>
+
+                <div class="callout">
+                  <p style="margin: 0">
+                    In real apps: buttons, links, badges, charts, and highlights
+                    all use the same tokens. Change hue once → entire UI stays
+                    consistent.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- CONVERTER -->
+        <section class="card section" id="converter">
+          <h2>Converters: HEX ⇄ RGB ⇄ HSL (With Live Preview)</h2>
+          <p>
+            Use these converters to understand how formats relate. Convert HEX
+            to RGB, RGB to HEX, and view HSL. Also see a pure CSS trick: inverse
+            color using <span class="tag">calc(255 - var(--r))</span>.
+          </p>
+
+          <div class="grid2">
+            <div class="miniCard">
+              <div class="miniTop">
+                <span>HEX ↔ RGB</span>
+                <span class="tag">numbers</span>
+              </div>
+              <div class="miniBody">
+                <div class="row2">
+                  <div class="field">
+                    <label for="hexIn">HEX (e.g. #ff7800)</label>
+                    <input
+                      id="hexIn"
+                      type="text"
+                      value="#ff7800"
+                      spellcheck="false"
+                    />
+                  </div>
+                  <div class="field">
+                    <label>HEX output</label>
+                    <input id="hexOut" type="text" value="#ff7800" readonly />
+                  </div>
+                </div>
+
+                <div class="row2">
+                  <div class="field">
+                    <label for="rIn">R (0..255)</label>
+                    <input
+                      id="rIn"
+                      type="number"
+                      min="0"
+                      max="255"
+                      value="255"
+                    />
+                  </div>
+                  <div class="field">
+                    <label for="gIn">G (0..255)</label>
+                    <input
+                      id="gIn"
+                      type="number"
+                      min="0"
+                      max="255"
+                      value="120"
+                    />
+                  </div>
+                </div>
+
+                <div class="row2">
+                  <div class="field">
+                    <label for="bIn">B (0..255)</label>
+                    <input id="bIn" type="number" min="0" max="255" value="0" />
+                  </div>
+                  <div class="field">
+                    <label>RGBA (alpha)</label>
+                    <input
+                      id="rgbaOut"
+                      type="text"
+                      value="rgba(255,120,0,0.25)"
+                      readonly
+                    />
+                  </div>
+                </div>
+
+                <div class="btnRow">
+                  <button class="primary" id="btnFromHex">HEX → RGB</button>
+                  <button id="btnFromRgb">RGB → HEX</button>
+                  <button id="btnCopyConv">Copy CSS Color</button>
+                </div>
+
+                <div class="callout">
+                  <p style="margin: 0">
+                    Tip: RGBA is best for overlays:
+                    <span class="tag">rgba(r,g,b,0.15)</span> makes clean
+                    glow/panel effects.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="miniCard">
+              <div class="miniTop">
+                <span>Preview + HSL</span>
+                <span class="tag">perception</span>
+              </div>
+              <div class="miniBody">
+                <div class="preview" style="border-radius: 16px">
+                  <div class="previewTop" id="convTop">
+                    <span>Live swatch</span>
+                    <span class="mini" id="hslOut">hsl(...)</span>
+                  </div>
+                  <div class="previewBody">
+                    <div class="callout">
+                      <p style="margin: 0">
+                        The same color can be described in different formats.
+                        Designers love HEX, developers love RGB, and theme
+                        systems love HSL.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="invDemo">
+                  <div class="invTop">
+                    <span>Inverse color using CSS calc()</span>
+                    <span class="tag">255 - rgb</span>
+                  </div>
+                  <div class="invSwatch" id="invSwatch">
+                    <div style="font-weight: 900">
+                      This text uses inverse RGB
+                    </div>
+                    <div class="small" id="invLine1">
+                      rgb(var(--r), var(--g), var(--b))
+                    </div>
+                    <div class="small" id="invLine2">
+                      inverse: rgb(calc(255 - var(--r)), ...)
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- GRADIENTS -->
+        <section class="card section" id="gradients">
+          <h2>Gradient Builder (Copy the CSS)</h2>
+          <p>
+            Gradients are multiple colors blended across space. Use angle +
+            stops, then copy the CSS into your site.
+          </p>
+
+          <div class="grid2">
+            <div class="miniCard">
+              <div class="miniTop">
+                <span>Controls</span>
+                <span class="tag">linear-gradient</span>
+              </div>
+              <div class="miniBody">
+                <div class="row2">
+                  <div class="field">
+                    <label for="gradAngle">Angle (deg)</label>
+                    <input
+                      id="gradAngle"
+                      type="number"
+                      min="0"
+                      max="360"
+                      value="135"
+                    />
+                  </div>
+                  <div class="field">
+                    <label for="gradAlpha">Overlay alpha (0..1)</label>
+                    <input
+                      id="gradAlpha"
+                      type="number"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      value="0.18"
+                    />
+                  </div>
+                </div>
+
+                <div class="row2">
+                  <div class="field">
+                    <label for="stop1">Stop 1</label>
+                    <input
+                      id="stop1"
+                      type="text"
+                      value="var(--accent)"
+                      spellcheck="false"
+                    />
+                  </div>
+                  <div class="field">
+                    <label for="stop2">Stop 2</label>
+                    <input
+                      id="stop2"
+                      type="text"
+                      value="var(--accent2)"
+                      spellcheck="false"
+                    />
+                  </div>
+                </div>
+
+                <div class="row2">
+                  <div class="field">
+                    <label for="stop3">Stop 3</label>
+                    <input
+                      id="stop3"
+                      type="text"
+                      value="var(--accent3)"
+                      spellcheck="false"
+                    />
+                  </div>
+                  <div class="field">
+                    <label>CSS</label>
+                    <input id="gradCss" type="text" readonly />
+                  </div>
+                </div>
+
+                <div class="btnRow">
+                  <button class="primary" id="btnCopyGrad">
+                    Copy Gradient CSS
+                  </button>
+                  <button id="btnApplyGrad">Apply to Preview</button>
+                </div>
+
+                <div class="callout">
+                  <p style="margin: 0">
+                    Pro trick: add a low-alpha glow layer above gradients for
+                    depth without hurting readability.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="miniCard">
+              <div class="miniTop">
+                <span>Gradient preview</span>
+                <span class="tag">background</span>
+              </div>
+              <div class="miniBody">
+                <div class="preview" id="gradPreview" style="min-height: 220px">
+                  <div class="previewTop">
+                    <span>Holi gradient panel</span>
+                    <span class="mini">copy-ready</span>
+                  </div>
+                  <div class="previewBody">
+                    <div
+                      class="sample"
+                      style="
+                        --bg2: rgba(255, 255, 255, 0.18);
+                        --fg2: rgba(255, 255, 255, 0.92);
+                        border-color: rgba(255, 255, 255, 0.25);
+                        background: rgba(255, 255, 255, 0.16);
+                      "
+                    >
+                      <strong>Glass panel</strong><br />
+                      Combine gradients + alpha + blur for modern UI.
+                    </div>
+                  </div>
+                </div>
+
+                <div class="codebox">
+                  <div class="codehead">
+                    <div class="left">Example</div>
+                    <button id="btnCopyGradExample">Copy Example Block</button>
+                  </div>
+                  <pre id="gradExample"></pre>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- CONTRAST -->
+        <section class="card section" id="contrast">
+          <h2>Contrast Tester (Readability)</h2>
+          <p>
+            Good-looking color is not enough. Text must be readable. This tool
+            checks contrast between your accent and black/white text.
+          </p>
+
+          <div class="contrastGrid" id="contrastGrid"></div>
+        </section>
+
+        <!-- PRACTICE -->
+        <section class="card section" id="practice">
+          <h2>Interactive Practice: Embedded Editor + Open-in-New-Tab Tools</h2>
+          <p>
+            Select an example, then either copy it, open it as a standalone
+            preview, or open it in the editor in a new tab.
+          </p>
+
+          <div class="practiceGrid">
+            <div class="examples">
+              <button class="exampleBtn" id="ex1">
+                Example 1 — Theme tokens (var + calc)
+                <small>One hue drives a palette, used across components.</small>
+              </button>
+
+              <button class="exampleBtn" id="ex2">
+                Example 2 — RGB overlays and alpha
+                <small>Build glow, panels, and overlays with RGBA.</small>
+              </button>
+
+              <button class="exampleBtn" id="ex3">
+                Example 3 — HSL theme switcher
+                <small>Rotate hue in real-time to change the vibe.</small>
+              </button>
+
+              <button class="exampleBtn" id="ex4">
+                Example 4 — Contrast toggle
+                <small
+                  >Pick the correct text color for an accent background.</small
+                >
+              </button>
+
+              <div class="btnRow">
+                <button class="primary" id="btnCopyExample">
+                  Copy Selected Example
+                </button>
+                <button id="btnOpenExamplePreview">
+                  Open Example (Preview)
+                </button>
+                <button id="btnOpenExampleEditor">
+                  Open Example in Editor
+                </button>
+              </div>
+
+              <div class="callout">
+                <p style="margin: 0">
+                  <b>Note:</b> The editor is hosted on a different page. This
+                  page can open it in a new tab and also store your example code
+                  in <span class="tag">localStorage</span> under:
+                  <span class="tag">pp_open_example_html</span>. If the editor
+                  supports auto-loading, it can read that key. Either way, you
+                  can always paste the code (you already copied it).
+                </p>
+              </div>
+            </div>
+
+            <div class="frameWrap">
+              <div class="frameTop">
+                <div class="title">
+                  <span class="miniDot"></span> Practice Editor (Embedded
+                  Preview)
+                </div>
+                <div class="btnRow">
+                  <button id="btnCopyTheme">Copy Current Theme Vars</button>
+                  <button id="btnOpenEditorTab">Open Editor in New Tab</button>
+                </div>
+              </div>
+
+              <iframe
+                class="editor"
+                title="Programmer's Picnic HTML Preview Editor"
+                src="https://programmer-s-picnic.github.io/lesson-viewer/samples/html/preview/"
+                loading="lazy"
+                allow="clipboard-write; fullscreen"
+                referrerpolicy="no-referrer"
+              ></iframe>
+            </div>
+          </div>
+
+          <div class="codebox" style="margin-top: 12px">
+            <div class="codehead">
+              <div class="left">Selected example (for reference)</div>
+              <button class="danger" id="btnClearStored">
+                Clear stored example key
+              </button>
+            </div>
+            <pre id="exampleOut"></pre>
+          </div>
+        </section>
+
+        <footer>
+          <div class="brand">
+            <span class="logo" aria-hidden="true"></span>
+            <div>
+              <div style="font-weight: 900; color: var(--ink)">
+                Programmer’s Picnic
+              </div>
+              <div style="font-size: 12px">
+                Built by Champak Roy • Holi Color Lab
+              </div>
+            </div>
+          </div>
+          <div class="pill">
+            Tip: copy tokens → reuse in all your pages for consistent branding
+          </div>
+        </footer>
+      </main>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script>
+      (function () {
+        "use strict";
+
+        /* ===== Helpers ===== */
+        function clamp(n, a, b) {
+          return Math.max(a, Math.min(b, n));
+        }
+        function randInt(a, b) {
+          return Math.floor(a + Math.random() * (b - a + 1));
+        }
+        function isFiniteNumber(x) {
+          return typeof x === "number" && isFinite(x);
+        }
+
+        function showToast(msg) {
+          toast.textContent = msg;
+          toast.classList.add("show");
+          window.clearTimeout(showToast._t);
+          showToast._t = window.setTimeout(function () {
+            toast.classList.remove("show");
+          }, 1500);
+        }
+
+        function fallbackCopy(text) {
+          var ta = document.createElement("textarea");
+          ta.value = text;
+          ta.setAttribute("readonly", "");
+          ta.style.position = "fixed";
+          ta.style.left = "-9999px";
+          document.body.appendChild(ta);
+          ta.select();
+          try {
+            document.execCommand("copy");
+          } catch (e) {}
+          document.body.removeChild(ta);
+        }
+
+        function copyText(text, msg) {
+          if (!text) return;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard
+              .writeText(text)
+              .then(function () {
+                showToast(msg || "Copied!");
+              })
+              .catch(function () {
+                fallbackCopy(text);
+                showToast(msg || "Copied!");
+              });
+          } else {
+            fallbackCopy(text);
+            showToast(msg || "Copied!");
+          }
+        }
+
+        function pad2(n) {
+          var s = String(n);
+          return s.length === 1 ? "0" + s : s;
+        }
+
+        function rgbToHex(r, g, b) {
+          r = clamp(Math.round(r), 0, 255);
+          g = clamp(Math.round(g), 0, 255);
+          b = clamp(Math.round(b), 0, 255);
+          return (
+            "#" +
+            pad2(r.toString(16)) +
+            pad2(g.toString(16)) +
+            pad2(b.toString(16))
+          );
+        }
+
+        function parseHex(hex) {
+          var s = String(hex || "").trim();
+          if (s.charAt(0) === "#") s = s.slice(1);
+          if (s.length === 3) {
+            s =
+              s.charAt(0) +
+              s.charAt(0) +
+              s.charAt(1) +
+              s.charAt(1) +
+              s.charAt(2) +
+              s.charAt(2);
+          }
+          if (s.length !== 6) return null;
+          var r = parseInt(s.slice(0, 2), 16);
+          var g = parseInt(s.slice(2, 4), 16);
+          var b = parseInt(s.slice(4, 6), 16);
+          if (!isFiniteNumber(r) || !isFiniteNumber(g) || !isFiniteNumber(b))
+            return null;
+          return { r: r, g: g, b: b };
+        }
+
+        /* RGB -> HSL (0..360, 0..100, 0..100) */
+        function rgbToHsl(r, g, b) {
+          r = clamp(r, 0, 255) / 255;
+          g = clamp(g, 0, 255) / 255;
+          b = clamp(b, 0, 255) / 255;
+
+          var max = Math.max(r, g, b),
+            min = Math.min(r, g, b);
+          var h = 0,
+            s = 0;
+          var l = (max + min) / 2;
+
+          if (max === min) {
+            h = 0;
+            s = 0;
+          } else {
+            var d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+
+            switch (max) {
+              case r:
+                h = (g - b) / d + (g < b ? 6 : 0);
+                break;
+              case g:
+                h = (b - r) / d + 2;
+                break;
+              case b:
+                h = (r - g) / d + 4;
+                break;
+            }
+            h = h * 60;
+          }
+
+          return {
+            h: Math.round(h),
+            s: Math.round(s * 100),
+            l: Math.round(l * 100),
+          };
+        }
+
+        /* Contrast */
+        function srgbToLinear(c) {
+          c = c / 255;
+          return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+        }
+        function luminance(rgb) {
+          var r = srgbToLinear(rgb.r);
+          var g = srgbToLinear(rgb.g);
+          var b = srgbToLinear(rgb.b);
+          return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        }
+        function contrastRatio(rgb1, rgb2) {
+          var L1 = luminance(rgb1);
+          var L2 = luminance(rgb2);
+          var lighter = Math.max(L1, L2);
+          var darker = Math.min(L1, L2);
+          return (lighter + 0.05) / (darker + 0.05);
+        }
+
+        function makeContrastBox(title, line1, line2, line3, colors) {
+          var wrap = document.createElement("div");
+          wrap.className = "contrastBox";
+
+          var bar = document.createElement("div");
+          bar.className = "contrastBar";
+
+          var inner = document.createElement("div");
+          inner.className = "contrastInner";
+
+          var t = document.createElement("div");
+          t.style.fontWeight = "900";
+          t.style.fontFamily =
+            "Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif";
+          t.textContent = title;
+
+          var meta = document.createElement("div");
+          meta.style.color = "var(--muted)";
+          meta.style.fontSize = "12px";
+          meta.style.fontFamily =
+            "Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif";
+          meta.style.lineHeight = "1.35";
+          meta.innerHTML =
+            escapeHtml(line1) +
+            "<br>" +
+            escapeHtml(line2) +
+            "<br>" +
+            escapeHtml(line3);
+
+          var sample = document.createElement("div");
+          sample.className = "sample";
+          sample.style.setProperty("--bg2", colors.bg);
+          sample.style.setProperty("--fg2", colors.fg);
+          sample.innerHTML =
+            "<strong>Preview:</strong> readability beats beauty when users are reading.";
+
+          inner.appendChild(t);
+          inner.appendChild(meta);
+          inner.appendChild(sample);
+
+          wrap.appendChild(bar);
+          wrap.appendChild(inner);
+          return wrap;
+        }
+
+        function escapeHtml(s) {
+          return String(s)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+        }
+
+        /* Open an HTML string in a new tab using Blob */
+        function openHtmlPreview(htmlString) {
+          try {
+            var blob = new Blob([htmlString], {
+              type: "text/html;charset=utf-8",
+            });
+            var url = URL.createObjectURL(blob);
+            window.open(url, "_blank", "noopener");
+            window.setTimeout(function () {
+              try {
+                URL.revokeObjectURL(url);
+              } catch (e) {}
+            }, 15000);
+          } catch (e) {
+            // Fallback: open blank tab and write (may be blocked)
+            var w = window.open("about:blank", "_blank");
+            if (w) {
+              w.document.open();
+              w.document.write(htmlString);
+              w.document.close();
+            }
+          }
+        }
+
+        /* ===== Elements ===== */
+        var root = document.documentElement;
+        var toast = document.getElementById("toast");
+
+        /* Theme sliders */
+        var hueEl = document.getElementById("hue");
+        var satEl = document.getElementById("sat");
+        var litEl = document.getElementById("lit");
+        var hueOut = document.getElementById("hueOut");
+        var satOut = document.getElementById("satOut");
+        var litOut = document.getElementById("litOut");
+
+        var btnRandom = document.getElementById("btnRandom");
+        var btnCopyVarsTop = document.getElementById("btnCopyVarsTop");
+        var btnCopyVarsMid = document.getElementById("btnCopyVarsMid");
+        var btnCopyVarsBlock = document.getElementById("btnCopyVarsBlock");
+        var btnReset = document.getElementById("btnReset");
+        var btnSplash = document.getElementById("btnSplash");
+        var btnTogglePanel = document.getElementById("btnTogglePanel");
+
+        var varsBlock = document.getElementById("varsBlock");
+        var hslReadout = document.getElementById("hslReadout");
+
+        var swatches = document.getElementById("swatches");
+        var contrastGrid = document.getElementById("contrastGrid");
+
+        /* Converter */
+        var hexIn = document.getElementById("hexIn");
+        var hexOut = document.getElementById("hexOut");
+        var rIn = document.getElementById("rIn");
+        var gIn = document.getElementById("gIn");
+        var bIn = document.getElementById("bIn");
+        var rgbaOut = document.getElementById("rgbaOut");
+        var btnFromHex = document.getElementById("btnFromHex");
+        var btnFromRgb = document.getElementById("btnFromRgb");
+        var btnCopyConv = document.getElementById("btnCopyConv");
+        var hslOut = document.getElementById("hslOut");
+        var convTop = document.getElementById("convTop");
+        var invLine1 = document.getElementById("invLine1");
+        var invLine2 = document.getElementById("invLine2");
+
+        /* Gradient builder */
+        var gradAngle = document.getElementById("gradAngle");
+        var gradAlpha = document.getElementById("gradAlpha");
+        var stop1 = document.getElementById("stop1");
+        var stop2 = document.getElementById("stop2");
+        var stop3 = document.getElementById("stop3");
+        var gradCss = document.getElementById("gradCss");
+        var btnCopyGrad = document.getElementById("btnCopyGrad");
+        var btnApplyGrad = document.getElementById("btnApplyGrad");
+        var gradPreview = document.getElementById("gradPreview");
+        var gradExample = document.getElementById("gradExample");
+        var btnCopyGradExample = document.getElementById("btnCopyGradExample");
+
+        /* Practice */
+        var editorURL =
+          "https://programmer-s-picnic.github.io/lesson-viewer/samples/html/preview/";
+        var exButtons = [
+          document.getElementById("ex1"),
+          document.getElementById("ex2"),
+          document.getElementById("ex3"),
+          document.getElementById("ex4"),
+        ];
+        var btnCopyExample = document.getElementById("btnCopyExample");
+        var btnOpenExamplePreview = document.getElementById(
+          "btnOpenExamplePreview",
+        );
+        var btnOpenExampleEditor = document.getElementById(
+          "btnOpenExampleEditor",
+        );
+        var btnCopyTheme = document.getElementById("btnCopyTheme");
+        var btnOpenEditorTab = document.getElementById("btnOpenEditorTab");
+        var exampleOut = document.getElementById("exampleOut");
+        var btnClearStored = document.getElementById("btnClearStored");
+
+        var isAltPanel = false;
+        var selectedExampleIndex = 0;
+
+        /* ===== Theme vars text ===== */
+        function getThemeVarsText(h, s, l) {
+          return [
+            ":root{",
+            "  --hue: " + h + ";",
+            "  --sat: " + s + "%;",
+            "  --lit: " + l + "%;",
+            "",
+            "  --accent:  hsl(var(--hue) var(--sat) var(--lit));",
+            "  --accent2: hsl(calc(var(--hue) + 24) var(--sat) calc(var(--lit) + 10%));",
+            "  --accent3: hsl(calc(var(--hue) - 24) var(--sat) calc(var(--lit) - 8%));",
+            "",
+            "  --glow: hsla(var(--hue) var(--sat) var(--lit) / .22);",
+            "  --ring: hsla(var(--hue) var(--sat) 45% / .45);",
+            "}",
+          ].join("\n");
+        }
+
+        function readTheme() {
+          return {
+            h: parseInt(hueEl.value, 10),
+            s: parseInt(satEl.value, 10),
+            l: parseInt(litEl.value, 10),
+          };
+        }
+
+        function setTheme(h, s, l) {
+          root.style.setProperty("--hue", String(h));
+          root.style.setProperty("--sat", String(s) + "%");
+          root.style.setProperty("--lit", String(l) + "%");
+
+          hueEl.value = String(h);
+          satEl.value = String(s);
+          litEl.value = String(l);
+
+          hueOut.textContent = "--hue: " + h;
+          satOut.textContent = "--sat: " + s + "%";
+          litOut.textContent = "--lit: " + l + "%";
+          hslReadout.textContent = "hsl(" + h + " " + s + "% " + l + "%)";
+
+          varsBlock.textContent = getThemeVarsText(h, s, l);
+
+          renderSwatches(h, s, l);
+          renderContrast(h, s, l);
+
+          // Update gradient defaults in the example block
+          updateGradientCss();
+        }
+
+        function renderSwatches(h, s, l) {
+          var items = [
+            { name: "Accent", css: "hsl(" + h + " " + s + "% " + l + "%)" },
+            {
+              name: "Accent 2",
+              css:
+                "hsl(" +
+                (h + 24) +
+                " " +
+                s +
+                "% " +
+                clamp(l + 10, 0, 100) +
+                "%)",
+            },
+            {
+              name: "Accent 3",
+              css:
+                "hsl(" +
+                (h - 24) +
+                " " +
+                s +
+                "% " +
+                clamp(l - 8, 0, 100) +
+                "%)",
+            },
+            {
+              name: "Glow",
+              css: "hsla(" + h + " " + s + "% " + l + "% / .22)",
+            },
+            { name: "Background", css: "#fff7e6" },
+            { name: "Ink", css: "#1f2328" },
+          ];
+
+          swatches.innerHTML = "";
+          for (var i = 0; i < items.length; i++) {
+            var it = items[i];
+            var el = document.createElement("div");
+            el.className = "sw";
+            el.style.setProperty("--c", it.css);
+
+            var top = document.createElement("div");
+            top.className = "swTop";
+
+            var body = document.createElement("div");
+            body.className = "swBody";
+
+            var name = document.createElement("div");
+            name.className = "swName";
+            name.innerHTML =
+              "<span>" +
+              escapeHtml(it.name) +
+              "</span><span class='tag'>copy</span>";
+
+            var meta = document.createElement("div");
+            meta.className = "swMeta";
+            meta.textContent = it.css;
+
+            body.appendChild(name);
+            body.appendChild(meta);
+            el.appendChild(top);
+            el.appendChild(body);
+
+            (function (value) {
+              el.addEventListener("click", function () {
+                copyText(value, "Copied: " + value);
+              });
+            })(it.css);
+
+            swatches.appendChild(el);
+          }
+        }
+
+        function renderContrast(h, s, l) {
+          // Contrast between accent and black/white
+          var accentRgb = (function () {
+            // Convert HSL -> RGB using browser via canvas? We'll compute via approximate by using CSS parsing trick.
+            // But easier: use a tiny offscreen element and get computed color.
+            var tmp = document.createElement("div");
+            tmp.style.position = "absolute";
+            tmp.style.left = "-9999px";
+            tmp.style.top = "-9999px";
+            tmp.style.color = "hsl(" + h + " " + s + "% " + l + "%)";
+            document.body.appendChild(tmp);
+            var c = getComputedStyle(tmp).color; // "rgb(r, g, b)"
+            document.body.removeChild(tmp);
+            var m = c.match(/(\d+)\D+(\d+)\D+(\d+)/);
+            if (!m) return { r: 0, g: 0, b: 0 };
+            return {
+              r: parseInt(m[1], 10),
+              g: parseInt(m[2], 10),
+              b: parseInt(m[3], 10),
+            };
+          })();
+
+          var white = { r: 255, g: 255, b: 255 };
+          var black = { r: 17, g: 24, b: 39 };
+
+          var cW = contrastRatio(accentRgb, white);
+          var cB = contrastRatio(accentRgb, black);
+
+          var bestText = cB >= cW ? black : white;
+          var bestTextName = bestText === black ? "#111827" : "#ffffff";
+          var bestRatio = contrastRatio(accentRgb, bestText);
+
+          var rating =
+            bestRatio >= 7
+              ? "Excellent (AAA-ish)"
+              : bestRatio >= 4.5
+                ? "Good (AA-ish)"
+                : bestRatio >= 3
+                  ? "Okay for large text"
+                  : "Low contrast";
+
+          contrastGrid.innerHTML = "";
+          contrastGrid.appendChild(
+            makeContrastBox(
+              "Text on Accent Background",
+              "Background: hsl(" + h + " " + s + "% " + l + "%)",
+              "Best text: " + bestTextName,
+              "Contrast: " + bestRatio.toFixed(2) + " • " + rating,
+              { bg: "hsl(" + h + " " + s + "% " + l + "%)", fg: bestTextName },
+            ),
+          );
+
+          var ratioOnWhite = contrastRatio(accentRgb, white);
+          var rating2 =
+            ratioOnWhite >= 4.5
+              ? "Good for text"
+              : ratioOnWhite >= 3
+                ? "Okay for bigger UI"
+                : "Too light — reduce lightness";
+
+          contrastGrid.appendChild(
+            makeContrastBox(
+              "Accent Text on White Card",
+              "Text: accent color",
+              "Card: #ffffff",
+              "Contrast: " + ratioOnWhite.toFixed(2) + " • " + rating2,
+              { bg: "#ffffff", fg: "hsl(" + h + " " + s + "% " + l + "%)" },
+            ),
+          );
+        }
+
+        /* ===== Converter ===== */
+        function setRgbInputs(r, g, b) {
+          rIn.value = String(clamp(r, 0, 255));
+          gIn.value = String(clamp(g, 0, 255));
+          bIn.value = String(clamp(b, 0, 255));
+        }
+
+        function updateConverterFromRgb() {
+          var r = clamp(parseInt(rIn.value, 10) || 0, 0, 255);
+          var g = clamp(parseInt(gIn.value, 10) || 0, 0, 255);
+          var b = clamp(parseInt(bIn.value, 10) || 0, 0, 255);
+
+          var hex = rgbToHex(r, g, b);
+          hexOut.value = hex;
+
+          // Keep hexIn aligned too (so user sees both directions)
+          hexIn.value = hex;
+
+          rgbaOut.value = "rgba(" + r + "," + g + "," + b + ",0.25)";
+
+          // HSL output
+          var hsl = rgbToHsl(r, g, b);
+          hslOut.textContent =
+            "hsl(" + hsl.h + " " + hsl.s + "% " + hsl.l + "%)";
+
+          // Visual
+          convTop.style.background =
+            "linear-gradient(135deg, rgb(" +
+            r +
+            "," +
+            g +
+            "," +
+            b +
+            "), rgba(255,255,255,.28))";
+
+          // CSS calc inverse demo (set CSS vars)
+          root.style.setProperty("--r", String(r));
+          root.style.setProperty("--g", String(g));
+          root.style.setProperty("--b", String(b));
+          invLine1.textContent = "base: rgb(" + r + ", " + g + ", " + b + ")";
+          invLine2.textContent =
+            "inverse (calc): rgb(" +
+            (255 - r) +
+            ", " +
+            (255 - g) +
+            ", " +
+            (255 - b) +
+            ")";
+        }
+
+        function updateConverterFromHex() {
+          var parsed = parseHex(hexIn.value);
+          if (!parsed) {
+            showToast("Invalid HEX. Use #RRGGBB or #RGB.");
+            return;
+          }
+          setRgbInputs(parsed.r, parsed.g, parsed.b);
+          updateConverterFromRgb();
+        }
+
+        /* ===== Gradient builder ===== */
+        function updateGradientCss() {
+          var angle = clamp(parseInt(gradAngle.value, 10) || 0, 0, 360);
+          var a = parseFloat(gradAlpha.value);
+          if (!isFinite(a)) a = 0.18;
+          a = clamp(a, 0, 1);
+
+          var s1 = String(stop1.value || "var(--accent)");
+          var s2 = String(stop2.value || "var(--accent2)");
+          var s3 = String(stop3.value || "var(--accent3)");
+
+          var css =
+            "background: radial-gradient(800px 520px at 20% 10%, hsla(var(--hue) var(--sat) var(--lit) / " +
+            a.toFixed(2) +
+            "), transparent 55%), linear-gradient(" +
+            angle +
+            "deg, " +
+            s1 +
+            ", " +
+            s2 +
+            ", " +
+            s3 +
+            ");";
+          gradCss.value = css;
+
+          gradExample.textContent = [".hero{", "  " + css, "}"].join("\n");
+
+          return { css: css, angle: angle, alpha: a, s1: s1, s2: s2, s3: s3 };
+        }
+
+        function applyGradientToPreview() {
+          var info = updateGradientCss();
+          // Extract the value part after "background: "
+          var bg = info.css.replace(/^background:\s*/, "").replace(/;$/, "");
+          gradPreview.style.background = bg;
+        }
+
+        /* ===== Examples ===== */
+        function getExample(i) {
+          var t = readTheme();
+          var h = t.h,
+            s = t.s,
+            l = t.l;
+
+          if (i === 0) {
+            return [
+              "<!doctype html>",
+              "<html lang='en'>",
+              "<head>",
+              "<meta charset='utf-8'/>",
+              "<meta name='viewport' content='width=device-width,initial-scale=1'/>",
+              "<title>Theme Tokens (var + calc)</title>",
+              "<style>",
+              ":root{",
+              "  --hue:" + h + ";",
+              "  --sat:" + s + "%;",
+              "  --lit:" + l + "%;",
+              "  --accent:  hsl(var(--hue) var(--sat) var(--lit));",
+              "  --accent2: hsl(calc(var(--hue) + 24) var(--sat) calc(var(--lit) + 10%));",
+              "  --accent3: hsl(calc(var(--hue) - 24) var(--sat) calc(var(--lit) - 8%));",
+              "  --glow: hsla(var(--hue) var(--sat) var(--lit) / .18);",
+              "  --bg:#fff7e6;",
+              "  --ink:#1f2328;",
+              "}",
+              "body{",
+              "  margin:0;",
+              "  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;",
+              "  background: radial-gradient(900px 650px at 20% 10%, var(--glow), transparent 55%), linear-gradient(180deg, #fff2d6, var(--bg));",
+              "  color: var(--ink);",
+              "}",
+              ".card{",
+              "  max-width: 920px; margin: 24px auto; padding: 18px;",
+              "  background: rgba(255,255,255,.86);",
+              "  border: 1px solid rgba(31,35,40,.12); border-radius: 18px;",
+              "}",
+              ".badge{ display:inline-block; padding: 6px 10px; border-radius: 999px; font-weight: 900; background: var(--accent3); }",
+              ".btnRow{ display:flex; gap:10px; flex-wrap:wrap; margin-top: 12px; }",
+              "button{ border:0; padding: 12px 14px; border-radius: 14px; font-weight: 900; cursor:pointer; }",
+              ".primary{ background: linear-gradient(135deg, var(--accent), var(--accent2)); box-shadow: 0 16px 40px rgba(0,0,0,.12); }",
+              ".ghost{ background: #fff; border: 1px solid rgba(0,0,0,.10); }",
+              "</style>",
+              "</head>",
+              "<body>",
+              "  <div class='card'>",
+              "    <span class='badge'>Holi Theme</span>",
+              "    <h1 style='margin:10px 0 8px'>One Hue → Full Palette</h1>",
+              "    <p style='margin:0;color: rgba(31,35,40,.75);line-height:1.6'>Change <b>--hue</b> and every component updates because the palette is derived using <b>calc()</b>.</p>",
+              "    <div class='btnRow'>",
+              "      <button class='primary'>Primary</button>",
+              "      <button class='ghost'>Secondary</button>",
+              "    </div>",
+              "  </div>",
+              "</body>",
+              "</html>",
+            ].join("\n");
+          }
+
+          if (i === 1) {
+            return [
+              "<!doctype html>",
+              "<html lang='en'>",
+              "<head>",
+              "<meta charset='utf-8'/>",
+              "<meta name='viewport' content='width=device-width,initial-scale=1'/>",
+              "<title>RGB Overlays and Alpha</title>",
+              "<style>",
+              "body{ margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:#fff7e6; }",
+              ".wrap{ max-width: 980px; margin: 24px auto; padding: 0 16px; }",
+              ".hero{",
+              "  border-radius: 18px;",
+              "  padding: 18px;",
+              "  background: linear-gradient(135deg, rgb(255,120,0), rgb(255,170,70));",
+              "  color: #111827;",
+              "  position: relative;",
+              "  overflow:hidden;",
+              "}",
+              ".hero:before{",
+              "  content:'';",
+              "  position:absolute; inset:-80px;",
+              "  background: radial-gradient(600px 420px at 30% 20%, rgba(255,255,255,.35), transparent 60%);",
+              "}",
+              ".card{",
+              "  margin-top: 12px;",
+              "  background: rgba(255,255,255,.70);",
+              "  border: 1px solid rgba(31,35,40,.12);",
+              "  border-radius: 18px;",
+              "  padding: 14px;",
+              "  backdrop-filter: blur(10px);",
+              "  position: relative;",
+              "}",
+              "code{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; }",
+              "</style>",
+              "</head>",
+              "<body>",
+              "  <div class='wrap'>",
+              "    <div class='hero'>",
+              "      <h1 style='margin:0 0 8px;position:relative'>RGBA overlays</h1>",
+              "      <p style='margin:0;position:relative;line-height:1.6'>Use <b>alpha</b> to create glow and glass panels: <code>rgba(r,g,b,a)</code>.</p>",
+              "      <div class='card'>",
+              "        <b>Glass panel</b><br/>",
+              "        background: <code>rgba(255,255,255,0.70)</code> + blur.",
+              "      </div>",
+              "    </div>",
+              "  </div>",
+              "</body>",
+              "</html>",
+            ].join("\n");
+          }
+
+          if (i === 2) {
+            return [
+              "<!doctype html>",
+              "<html lang='en'>",
+              "<head>",
+              "<meta charset='utf-8'/>",
+              "<meta name='viewport' content='width=device-width,initial-scale=1'/>",
+              "<title>HSL Theme Switcher</title>",
+              "<style>",
+              ":root{ --hue:" + h + "; --sat:" + s + "%; --lit:" + l + "%; }",
+              "body{ margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:#fff7e6; }",
+              ".wrap{ max-width: 980px; margin: 24px auto; padding: 0 16px; }",
+              ".card{ background: rgba(255,255,255,.86); border:1px solid rgba(31,35,40,.12); border-radius: 18px; padding: 16px; }",
+              ".bar{ height: 10px; border-radius: 999px; background: hsl(var(--hue) var(--sat) var(--lit)); }",
+              ".btn{ border:0; padding: 12px 14px; border-radius: 14px; font-weight:900; cursor:pointer; background: hsl(var(--hue) var(--sat) var(--lit)); }",
+              "</style>",
+              "</head>",
+              "<body>",
+              "  <div class='wrap'>",
+              "    <div class='card'>",
+              "      <h1 style='margin:0 0 8px'>HSL Theme Switcher</h1>",
+              "      <div class='bar'></div>",
+              "      <p style='margin:12px 0;color:rgba(31,35,40,.75);line-height:1.6'>Rotate hue: same saturation/lightness, different theme.</p>",
+              "      <div style='display:flex;gap:10px;flex-wrap:wrap'>",
+              "        <button class='btn' id='left'>Hue - 20</button>",
+              "        <button class='btn' id='right'>Hue + 20</button>",
+              "      </div>",
+              "    </div>",
+              "  </div>",
+              "<script>",
+              "(function(){",
+              "  var left = document.getElementById('left');",
+              "  var right = document.getElementById('right');",
+              "  function getHue(){ return parseInt(getComputedStyle(document.documentElement).getPropertyValue('--hue'),10) || 0; }",
+              "  function setHue(v){ document.documentElement.style.setProperty('--hue', String((v%360+360)%360)); }",
+              "  left.addEventListener('click', function(){ setHue(getHue() - 20); });",
+              "  right.addEventListener('click', function(){ setHue(getHue() + 20); });",
+              "})();",
+              "<" + "/script>",
+              "</body>",
+              "</html>",
+            ].join("\n");
+          }
+
+          // i === 3
+          return [
+            "<!doctype html>",
+            "<html lang='en'>",
+            "<head>",
+            "<meta charset='utf-8'/>",
+            "<meta name='viewport' content='width=device-width,initial-scale=1'/>",
+            "<title>Contrast Toggle</title>",
+            "<style>",
+            ":root{ --accent: hsl(" + h + " " + s + "% " + l + "%); }",
+            "body{ margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:#fff7e6; }",
+            ".wrap{ max-width: 900px; margin: 24px auto; padding: 0 16px; }",
+            ".card{ background: rgba(255,255,255,.86); border: 1px solid rgba(31,35,40,.12); border-radius: 18px; padding: 16px; }",
+            ".banner{ border-radius: 16px; padding: 16px; background: var(--accent); color: var(--txt, #111827); }",
+            "button{ border: 1px solid rgba(0,0,0,.12); background:#fff; padding:10px 12px; border-radius: 12px; cursor:pointer; font-weight:900; }",
+            "</style>",
+            "</head>",
+            "<body>",
+            "  <div class='wrap'>",
+            "    <div class='card'>",
+            "      <h1 style='margin:0 0 10px'>Contrast Tester</h1>",
+            "      <div class='banner' id='banner'><b>Accent Background</b><br/>Text must stay readable.</div>",
+            "      <div style='display:flex;gap:10px;flex-wrap:wrap;margin-top:12px'>",
+            "        <button id='dark'>Use Dark Text</button>",
+            "        <button id='light'>Use White Text</button>",
+            "      </div>",
+            "    </div>",
+            "  </div>",
+            "<script>",
+            "(function(){",
+            "  var b = document.getElementById('banner');",
+            "  document.getElementById('dark').addEventListener('click', function(){ b.style.setProperty('--txt', '#111827'); });",
+            "  document.getElementById('light').addEventListener('click', function(){ b.style.setProperty('--txt', '#ffffff'); });",
+            "})();",
+            "<" + "/script>",
+            "</body>",
+            "</html>",
+          ].join("\n");
+        }
+
+        function setSelectedExample(idx) {
+          selectedExampleIndex = idx;
+          for (var i = 0; i < exButtons.length; i++) {
+            exButtons[i].style.outline =
+              i === idx ? "3px solid var(--ring)" : "none";
+            exButtons[i].style.boxShadow =
+              i === idx ? "0 12px 26px rgba(17,24,39,.10)" : "none";
+          }
+          exampleOut.textContent = getExample(selectedExampleIndex);
+        }
+
+        /* ===== Event wiring ===== */
+
+        function onThemeSlider() {
+          var v = readTheme();
+          setTheme(v.h, v.s, v.l);
+          // Keep examples output updated when theme changes
+          exampleOut.textContent = getExample(selectedExampleIndex);
+        }
+
+        hueEl.addEventListener("input", onThemeSlider);
+        satEl.addEventListener("input", onThemeSlider);
+        litEl.addEventListener("input", onThemeSlider);
+
+        btnRandom.addEventListener("click", function () {
+          setTheme(randInt(0, 360), randInt(70, 100), randInt(45, 62));
+          showToast("Random Holi theme applied!");
+          exampleOut.textContent = getExample(selectedExampleIndex);
+        });
+
+        btnReset.addEventListener("click", function () {
+          setTheme(28, 90, 55);
+          showToast("Reset done");
+          exampleOut.textContent = getExample(selectedExampleIndex);
+        });
+
+        btnSplash.addEventListener("click", function () {
+          var v = readTheme();
+          setTheme((v.h + randInt(12, 90)) % 360, v.s, v.l);
+          showToast("Splash!");
+          exampleOut.textContent = getExample(selectedExampleIndex);
+        });
+
+        btnTogglePanel.addEventListener("click", function () {
+          isAltPanel = !isAltPanel;
+          if (isAltPanel) {
+            root.style.setProperty("--panel", "rgba(17,24,39,.62)");
+            root.style.setProperty("--panel2", "rgba(17,24,39,.52)");
+            root.style.setProperty("--ink", "#f8fafc");
+            root.style.setProperty("--muted", "rgba(248,250,252,.80)");
+            root.style.setProperty("--line", "rgba(248,250,252,.14)");
+            showToast("Dark card mode");
+          } else {
+            root.style.setProperty("--panel", "rgba(255,255,255,.86)");
+            root.style.setProperty("--panel2", "rgba(255,255,255,.78)");
+            root.style.setProperty("--ink", "#1f2328");
+            root.style.setProperty("--muted", "#5b6570");
+            root.style.setProperty("--line", "rgba(31,35,40,.12)");
+            showToast("Light card mode");
+          }
+        });
+
+        function copyVarsNow() {
+          var v = readTheme();
+          copyText(getThemeVarsText(v.h, v.s, v.l), "Copied theme variables!");
+        }
+        btnCopyVarsTop.addEventListener("click", copyVarsNow);
+        btnCopyVarsMid.addEventListener("click", copyVarsNow);
+        btnCopyVarsBlock.addEventListener("click", copyVarsNow);
+        btnCopyTheme.addEventListener("click", copyVarsNow);
+
+        /* Converter events */
+        btnFromHex.addEventListener("click", function () {
+          updateConverterFromHex();
+        });
+        btnFromRgb.addEventListener("click", function () {
+          updateConverterFromRgb();
+        });
+
+        rIn.addEventListener("input", updateConverterFromRgb);
+        gIn.addEventListener("input", updateConverterFromRgb);
+        bIn.addEventListener("input", updateConverterFromRgb);
+
+        hexIn.addEventListener("change", function () {
+          updateConverterFromHex();
+        });
+
+        btnCopyConv.addEventListener("click", function () {
+          var r = clamp(parseInt(rIn.value, 10) || 0, 0, 255);
+          var g = clamp(parseInt(gIn.value, 10) || 0, 0, 255);
+          var b = clamp(parseInt(bIn.value, 10) || 0, 0, 255);
+          var css = "rgb(" + r + " " + g + " " + b + ")";
+          copyText(css, "Copied: " + css);
+        });
+
+        /* Gradient events */
+        function wireGrad() {
+          updateGradientCss();
+          applyGradientToPreview();
+        }
+        gradAngle.addEventListener("input", updateGradientCss);
+        gradAlpha.addEventListener("input", updateGradientCss);
+        stop1.addEventListener("input", updateGradientCss);
+        stop2.addEventListener("input", updateGradientCss);
+        stop3.addEventListener("input", updateGradientCss);
+
+        btnCopyGrad.addEventListener("click", function () {
+          updateGradientCss();
+          copyText(gradCss.value, "Copied gradient CSS!");
+        });
+
+        btnApplyGrad.addEventListener("click", function () {
+          applyGradientToPreview();
+          showToast("Applied to preview");
+        });
+
+        btnCopyGradExample.addEventListener("click", function () {
+          updateGradientCss();
+          copyText(gradExample.textContent, "Copied example block!");
+        });
+
+        /* Practice events */
+        for (var i = 0; i < exButtons.length; i++) {
+          (function (idx) {
+            exButtons[idx].addEventListener("click", function () {
+              setSelectedExample(idx);
+              showToast("Selected Example " + (idx + 1));
+            });
+          })(i);
+        }
+
+        btnCopyExample.addEventListener("click", function () {
+          var code = getExample(selectedExampleIndex);
+          copyText(code, "Copied selected example");
+          exampleOut.textContent = code;
+        });
+
+        btnOpenExamplePreview.addEventListener("click", function () {
+          var code = getExample(selectedExampleIndex);
+          exampleOut.textContent = code;
+          openHtmlPreview(code);
+          showToast("Opened example preview in new tab");
+        });
+
+        btnOpenEditorTab.addEventListener("click", function () {
+          window.open(editorURL, "_blank", "noopener");
+          showToast("Opened editor in new tab");
+        });
+
+        btnOpenExampleEditor.addEventListener("click", function () {
+          var code = getExample(selectedExampleIndex);
+          exampleOut.textContent = code;
+
+          try {
+            localStorage.setItem("pp_open_example_html", code);
+            localStorage.setItem(
+              "pp_open_example_hint",
+              "Paste the stored code into the editor. Key: pp_open_example_html",
+            );
+          } catch (e) {}
+
+          // Also copy to clipboard so the user can paste immediately
+          copyText(code, "Example copied. Opening editor…");
+          window.open(editorURL, "_blank", "noopener");
+        });
+
+        btnClearStored.addEventListener("click", function () {
+          try {
+            localStorage.removeItem("pp_open_example_html");
+            localStorage.removeItem("pp_open_example_hint");
+            showToast("Cleared stored example key");
+          } catch (e) {
+            showToast("Could not clear (blocked)");
+          }
+        });
+
+        /* ===== Init ===== */
+        setTheme(28, 90, 55);
+        setSelectedExample(0);
+
+        // Converter init from default
+        updateConverterFromRgb();
+
+        // Gradient init
+        wireGrad();
+      })();
+    </script>
+  </body>
+</html>
