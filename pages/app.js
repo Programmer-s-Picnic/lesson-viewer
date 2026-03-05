@@ -39,7 +39,7 @@
   // WhatsApp CTA
   const WA_NUMBER = "919335874326";
   const WA_TEXT = encodeURIComponent(
-    "Hi Champak Roy! I found you via Programmer’s Picnic. I need help with coaching/projects/interviews."
+    "Hi Champak Roy! I found you via Programmer’s Picnic. I need help with coaching/projects/interviews.",
   );
   const WA_LINK = `https://wa.me/${WA_NUMBER}?text=${WA_TEXT}`;
   $("#btnWhatsApp").href = WA_LINK;
@@ -271,7 +271,7 @@
                 href="${escapeAttr(p.url)}" target="_blank" rel="noopener">🔗 Open</a>
             </div>
           </div>
-        `
+        `,
           )
           .join("")}
         ${list.length > 80 ? `<div class="hint">Showing 80 only. Use search to narrow down.</div>` : ``}
@@ -293,11 +293,21 @@
 
   // ------------------------- Featured -------------------------
   function isFeaturedPost(p) {
-    const labs = (p.labels || []).map((x) => String(x || "").trim()).filter(Boolean);
+    const labs = (p.labels || [])
+      .map((x) => String(x || "").trim())
+      .filter(Boolean);
     if (!labs.length) return false;
 
-    const wanted = (state.cfg.featuredLabels || DEFAULT_CFG.featuredLabels || [])
-      .map((x) => String(x || "").trim().toLowerCase())
+    const wanted = (
+      state.cfg.featuredLabels ||
+      DEFAULT_CFG.featuredLabels ||
+      []
+    )
+      .map((x) =>
+        String(x || "")
+          .trim()
+          .toLowerCase(),
+      )
       .filter(Boolean);
 
     return labs.some((l) => {
@@ -318,14 +328,14 @@
     // ✅ Prefer dedicated featuredItems (direct label fetch),
     // fallback to scanning the loaded index
     let list =
-      (state.featuredItems && state.featuredItems.length)
+      state.featuredItems && state.featuredItems.length
         ? state.featuredItems.slice()
         : state.items.filter(isFeaturedPost);
 
     // Respect active label filters
     if (state.activeLabels.size) {
       list = list.filter((p) =>
-        (p.labels || []).some((l) => state.activeLabels.has(l))
+        (p.labels || []).some((l) => state.activeLabels.has(l)),
       );
     }
 
@@ -388,7 +398,11 @@
     }
 
     const labels = Array.from(
-      new Set(["Featured"].concat(state.cfg.featuredLabels || DEFAULT_CFG.featuredLabels || []))
+      new Set(
+        ["Featured"].concat(
+          state.cfg.featuredLabels || DEFAULT_CFG.featuredLabels || [],
+        ),
+      ),
     );
 
     const limit = clampInt(state.cfg.featuredLimit || 9, 1, 30);
@@ -431,16 +445,21 @@
         if (!ok) return false;
       }
       if (tks.length) {
-        const hay = [p.title, p.snippet, ...(p.labels || [])].join(" ").toLowerCase();
+        const hay = [p.title, p.snippet, ...(p.labels || [])]
+          .join(" ")
+          .toLowerCase();
         const ok = tks.every((t) => hay.includes(t));
         if (!ok) return false;
       }
       return true;
     });
 
-    if (state.sort === "new") list.sort((a, b) => (b.published || "").localeCompare(a.published || ""));
-    else if (state.sort === "old") list.sort((a, b) => (a.published || "").localeCompare(b.published || ""));
-    else if (state.sort === "alpha") list.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+    if (state.sort === "new")
+      list.sort((a, b) => (b.published || "").localeCompare(a.published || ""));
+    else if (state.sort === "old")
+      list.sort((a, b) => (a.published || "").localeCompare(b.published || ""));
+    else if (state.sort === "alpha")
+      list.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
 
     return list;
   }
@@ -456,7 +475,9 @@
     list.slice(0, 40).forEach((p) => grid.appendChild(itemCard(p)));
 
     const more = Math.max(0, list.length - 40);
-    $("#loaded").textContent = more ? `Showing 40 • +${more} more match` : "Showing all matches";
+    $("#loaded").textContent = more
+      ? `Showing 40 • +${more} more match`
+      : "Showing all matches";
 
     renderLabelDirectory();
   }
@@ -581,7 +602,7 @@
         ],
         openHref: p.url,
         copyText: `${p.title}\n${p.snippet}\n${p.url}`,
-      }
+      },
     );
 
     bindModalDelegatesOnce();
@@ -613,8 +634,10 @@
   }
 
   function focusFirstInModal() {
-    const focusables = $$(".modal a, .modal button, .modal input, .modal select, .modal textarea", backdrop)
-      .filter((el) => !el.disabled && el.offsetParent !== null);
+    const focusables = $$(
+      ".modal a, .modal button, .modal input, .modal select, .modal textarea",
+      backdrop,
+    ).filter((el) => !el.disabled && el.offsetParent !== null);
     (focusables[0] || $("#mClose")).focus();
   }
 
@@ -622,8 +645,10 @@
     if (!backdrop.classList.contains("open")) return;
     if (e.key !== "Tab") return;
 
-    const focusables = $$(".modal a, .modal button, .modal input, .modal select, .modal textarea", backdrop)
-      .filter((el) => !el.disabled && el.offsetParent !== null);
+    const focusables = $$(
+      ".modal a, .modal button, .modal input, .modal select, .modal textarea",
+      backdrop,
+    ).filter((el) => !el.disabled && el.offsetParent !== null);
 
     if (!focusables.length) return;
 
@@ -650,7 +675,9 @@
 
       if (b.dataset.act === "preview") {
         const id = b.dataset.id;
-        const p = state.items.find((x) => x.id === id) || state.featuredItems.find((x) => x.id === id);
+        const p =
+          state.items.find((x) => x.id === id) ||
+          state.featuredItems.find((x) => x.id === id);
         if (p) openPreview(p);
       }
     });
@@ -706,7 +733,7 @@
             <span>${highlight(p.snippet || "", q)}</span>
           </div>
         </div>
-      `
+      `,
         )
         .join("");
 
@@ -731,7 +758,9 @@
     const tks = tokens(query);
     return state.items
       .filter((p) => {
-        const hay = [p.title, p.snippet, ...(p.labels || [])].join(" ").toLowerCase();
+        const hay = [p.title, p.snippet, ...(p.labels || [])]
+          .join(" ")
+          .toLowerCase();
         return tks.every((t) => hay.includes(t));
       })
       .sort((a, b) => (b.published || "").localeCompare(a.published || ""));
@@ -745,7 +774,8 @@
     if (!gqSuggest.hidden && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
       e.preventDefault();
       const max = state.suggest.items.length - 1;
-      if (e.key === "ArrowDown") setActiveSuggest(Math.min(max, state.suggest.idx + 1));
+      if (e.key === "ArrowDown")
+        setActiveSuggest(Math.min(max, state.suggest.idx + 1));
       else setActiveSuggest(Math.max(0, state.suggest.idx - 1));
       return;
     }
@@ -755,7 +785,11 @@
       const q = gq.value.trim();
       if (!q) return toast("Type to search");
 
-      if (!gqSuggest.hidden && state.suggest.idx >= 0 && state.suggest.items[state.suggest.idx]) {
+      if (
+        !gqSuggest.hidden &&
+        state.suggest.idx >= 0 &&
+        state.suggest.items[state.suggest.idx]
+      ) {
         const p = state.suggest.items[state.suggest.idx];
         closeSuggest();
         openPreview(p);
@@ -766,7 +800,9 @@
       $("#q").value = q;
       state.q = q;
       render();
-      document.querySelector(".results")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      document
+        .querySelector(".results")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   });
 
@@ -809,7 +845,9 @@
   });
 
   $("#btnOpenAll").addEventListener("click", () => {
-    document.querySelector(".results")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    document
+      .querySelector(".results")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
     toast("Results");
   });
 
@@ -818,7 +856,9 @@
   $("#btnOnlyProjects").addEventListener("click", () => quickLabel("Projects"));
 
   function quickLabel(label) {
-    const exact = Array.from(state.labels.keys()).find((x) => x.toLowerCase() === label.toLowerCase());
+    const exact = Array.from(state.labels.keys()).find(
+      (x) => x.toLowerCase() === label.toLowerCase(),
+    );
     const lab = exact || label;
     if (state.activeLabels.has(lab)) state.activeLabels.delete(lab);
     else state.activeLabels.add(lab);
@@ -927,16 +967,28 @@
 
     const root = $("#mMain");
     root.querySelector("#cfgSave").addEventListener("click", async () => {
-      const base = root.querySelector("#cfgBase").value.trim() || DEFAULT_CFG.base;
+      const base =
+        root.querySelector("#cfgBase").value.trim() || DEFAULT_CFG.base;
       const maxResults = clampInt(root.querySelector("#cfgMax").value, 1, 150);
       const mode = root.querySelector("#cfgMode").value;
       const autoCrawl = root.querySelector("#cfgAuto").value === "yes";
-      const maxTotalItems = clampInt(root.querySelector("#cfgCap").value, 50, 5000);
+      const maxTotalItems = clampInt(
+        root.querySelector("#cfgCap").value,
+        50,
+        5000,
+      );
 
       const featuredLabelsRaw = root.querySelector("#cfgFeat").value || "";
-      const featuredLabels = featuredLabelsRaw.split(",").map((s) => s.trim()).filter(Boolean);
+      const featuredLabels = featuredLabelsRaw
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
 
-      const featuredLimit = clampInt(root.querySelector("#cfgFeatLim").value, 1, 30);
+      const featuredLimit = clampInt(
+        root.querySelector("#cfgFeatLim").value,
+        1,
+        30,
+      );
 
       state.cfg = {
         ...state.cfg,
@@ -945,7 +997,9 @@
         mode,
         autoCrawl,
         maxTotalItems,
-        featuredLabels: featuredLabels.length ? featuredLabels : DEFAULT_CFG.featuredLabels,
+        featuredLabels: featuredLabels.length
+          ? featuredLabels
+          : DEFAULT_CFG.featuredLabels,
         featuredLimit,
       };
       saveCfg();
@@ -979,8 +1033,10 @@
         updateStats();
         renderChips();
         render();
-        $("#status").textContent = `Loaded from cache • ${state.items.length} items`;
-        $("#crawlMsg").textContent = "Cache loaded. Auto-load may continue if enabled.";
+        $("#status").textContent =
+          `Loaded from cache • ${state.items.length} items`;
+        $("#crawlMsg").textContent =
+          "Cache loaded. Auto-load may continue if enabled.";
         maybeAutoCrawl();
         return;
       }
@@ -1059,7 +1115,8 @@
     }
 
     if (state.items.length >= state.cfg.maxTotalItems) {
-      $("#crawlMsg").textContent = `Auto-load reached cap: ${state.cfg.maxTotalItems} items.`;
+      $("#crawlMsg").textContent =
+        `Auto-load reached cap: ${state.cfg.maxTotalItems} items.`;
       $("#crawlBar").style.width = "100%";
       $("#btnStop").disabled = true;
       return;
@@ -1092,25 +1149,32 @@
         const cfg = state.cfg;
 
         if (state.items.length >= cfg.maxTotalItems) {
-          $("#crawlMsg").textContent = `Auto-load reached cap: ${cfg.maxTotalItems} items.`;
+          $("#crawlMsg").textContent =
+            `Auto-load reached cap: ${cfg.maxTotalItems} items.`;
           $("#crawlBar").style.width = "100%";
           break;
         }
         if (state.crawl.pages >= cfg.maxAutoPages) {
-          $("#crawlMsg").textContent = `Auto-load stopped at page cap (${cfg.maxAutoPages}).`;
+          $("#crawlMsg").textContent =
+            `Auto-load stopped at page cap (${cfg.maxAutoPages}).`;
           break;
         }
 
         state.crawl.pages++;
-        const percent = Math.min(99, Math.round((state.items.length / cfg.maxTotalItems) * 100));
+        const percent = Math.min(
+          99,
+          Math.round((state.items.length / cfg.maxTotalItems) * 100),
+        );
         $("#crawlBar").style.width = `${percent}%`;
-        $("#crawlMsg").textContent = `Auto-loading… page ${state.crawl.pages} • indexed ${state.items.length}/${cfg.maxTotalItems}`;
+        $("#crawlMsg").textContent =
+          `Auto-loading… page ${state.crawl.pages} • indexed ${state.items.length}/${cfg.maxTotalItems}`;
 
         const { items } = await loadMore();
         if (state.crawl.stop) break;
 
         if (!items) {
-          $("#crawlMsg").textContent = `Auto-load finished • total ${state.items.length} items`;
+          $("#crawlMsg").textContent =
+            `Auto-load finished • total ${state.items.length} items`;
           $("#crawlBar").style.width = "100%";
           break;
         }
@@ -1172,7 +1236,10 @@
   }
   function saveFeatCache() {
     try {
-      localStorage.setItem(FEAT_CACHE_KEY, JSON.stringify({ ts: Date.now(), items: state.featuredItems }));
+      localStorage.setItem(
+        FEAT_CACHE_KEY,
+        JSON.stringify({ ts: Date.now(), items: state.featuredItems }),
+      );
     } catch {}
   }
 
@@ -1210,7 +1277,11 @@
     if (!iso) return "";
     try {
       const d = new Date(iso);
-      return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "2-digit" });
+      return d.toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "2-digit",
+      });
     } catch {
       return "";
     }
@@ -1252,7 +1323,8 @@
   // Voice Search + Speech Output
   // =========================================================
   const Voice = (function () {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+    const SR =
+      window.SpeechRecognition || window.webkitSpeechRecognition || null;
     const synth = window.speechSynthesis || null;
 
     let rec = null;
@@ -1338,7 +1410,10 @@
       }
 
       const top = alsoTop
-        ? list.slice(0, 5).map((p) => p?.title).filter(Boolean)
+        ? list
+            .slice(0, 5)
+            .map((p) => p?.title)
+            .filter(Boolean)
         : [];
 
       const msg = top.length
@@ -1431,8 +1506,12 @@
     const btnVoice = document.getElementById("btnVoiceGlobal");
     const btnSpeak = document.getElementById("btnSpeakResults");
 
-    if (btnVoice) btnVoice.addEventListener("click", () => Voice.startVoiceGlobal());
-    if (btnSpeak) btnSpeak.addEventListener("click", () => Voice.speakResultsSummary({ alsoTop: true }));
+    if (btnVoice)
+      btnVoice.addEventListener("click", () => Voice.startVoiceGlobal());
+    if (btnSpeak)
+      btnSpeak.addEventListener("click", () =>
+        Voice.speakResultsSummary({ alsoTop: true }),
+      );
   })();
 
   // ------------------------- Practice Lab tabs -------------------------
@@ -1477,23 +1556,33 @@
 
       btnOpenFull.href = URLS[t] || "#";
       toast(
-        t === "py" ? "Python editor"
-        : t === "js" ? "JavaScript editor"
-        : t === "sql" ? "SQL editor"
-        : t === "html" ? "HTML preview"
-        : "MongoDB editor"
+        t === "py"
+          ? "Python editor"
+          : t === "js"
+            ? "JavaScript editor"
+            : t === "sql"
+              ? "SQL editor"
+              : t === "html"
+                ? "HTML preview"
+                : "MongoDB editor",
       );
     }
 
-    tabBtns.forEach((b) => b.addEventListener("click", () => setTab(b.dataset.labtab)));
+    tabBtns.forEach((b) =>
+      b.addEventListener("click", () => setTab(b.dataset.labtab)),
+    );
 
     btnReload.addEventListener("click", () => {
       const f =
-        current === "py" ? framePy
-        : current === "js" ? frameJs
-        : current === "sql" ? frameSql
-        : current === "html" ? frameHtml
-        : frameMongo;
+        current === "py"
+          ? framePy
+          : current === "js"
+            ? frameJs
+            : current === "sql"
+              ? frameSql
+              : current === "html"
+                ? frameHtml
+                : frameMongo;
 
       const src = f.getAttribute("src");
       f.setAttribute("src", src);
@@ -1514,8 +1603,10 @@
       renderChips();
       render();
       updateStats();
-      $("#status").textContent = `Loaded from cache • ${state.items.length} items`;
-      $("#crawlMsg").textContent = "Cache loaded. Auto-load may continue if enabled.";
+      $("#status").textContent =
+        `Loaded from cache • ${state.items.length} items`;
+      $("#crawlMsg").textContent =
+        "Cache loaded. Auto-load may continue if enabled.";
     } else {
       $("#status").textContent = "No cache. Loading…";
     }

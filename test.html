@@ -1,564 +1,1083 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>DOM Master Lesson + Embedded HTML Preview Editor</title>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sun Mon Tue Wed Thu Fri Sat — Printing a Monthly Calendar (Python + Interactive)</title>
+  <meta name="description" content="Learn how to print a monthly calendar (Sun–Sat) using Python: leap years, days-in-month, date difference, weekday calculation, and a clean calendar printer. Includes an interactive calendar generator and an embedded Programmer’s Picnic Python Editor." />
+  <meta name="theme-color" content="#d97706" />
 
-    <style>
-      :root {
-        --bg: #fff7e6;
-        --card: #ffffff;
-        --accent: #ff9800;
-        --line: #f2d2a2;
-        --ink: #1b1b1b;
-        --muted: #6b6b6b;
-        --soft: #fff1d6;
-      }
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Inter:wght@400;600&display=swap" rel="stylesheet" />
 
-      * {
-        box-sizing: border-box;
-      }
-      body {
-        margin: 0;
-        font-family:
-          system-ui,
-          -apple-system,
-          Segoe UI,
-          Roboto,
-          Arial,
-          sans-serif;
-        background:
-          radial-gradient(900px 420px at 15% 0%, #ffe2b3, transparent),
-          radial-gradient(900px 420px at 85% 0%, #ffd4a8, transparent),
-          var(--bg);
-        color: var(--ink);
-      }
+  <style>
+    :root{
+      /* Light saffron meets VS Code-ish surface */
+      --bg: #fff7e6;
+      --panel: rgba(255,255,255,.86);
+      --ink: #111827;
+      --muted: #4b5563;
+      --line: rgba(17,24,39,.12);
 
-      .wrap {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 22px;
-      }
+      --saffron: #d97706;
+      --saffron2: #f59e0b;
 
-      .hero {
-        border: 1px solid var(--line);
-        background: rgba(255, 255, 255, 0.72);
-        backdrop-filter: blur(6px);
-        border-radius: 18px;
-        padding: 16px;
-      }
-      .hero h1 {
-        margin: 0 0 6px 0;
-        font-size: 24px;
-      }
-      .hero p {
-        margin: 0;
-        color: var(--muted);
-        line-height: 1.4;
-      }
+      /* VS Code-ish code colors */
+      --codeBg: #0b1220;
+      --codeBg2: #0f172a;
+      --codeInk: #e5e7eb;
+      --codeMuted: #9ca3af;
+      --codeLine: rgba(229,231,235,.12);
 
-      .grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 14px;
-        margin-top: 14px;
-      }
-      @media (min-width: 980px) {
-        .grid {
-          grid-template-columns: 1fr 1fr;
-        }
-      }
+      --radius: 18px;
+      --shadow: 0 10px 30px rgba(17,24,39,.10);
+    }
 
-      .card {
-        background: var(--card);
-        border: 1px solid var(--line);
-        border-radius: 18px;
-        padding: 14px;
-        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
-        overflow: hidden;
-      }
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 700px at 20% -10%, rgba(245,158,11,.26), transparent 55%),
+        radial-gradient(900px 500px at 110% 0%, rgba(217,119,6,.18), transparent 50%),
+        linear-gradient(180deg, var(--bg), #fff);
+    }
 
-      .bar {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 10px;
-      }
-      .bar .left {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        align-items: center;
-      }
-      .pill {
-        font-size: 12px;
-        color: #3a2c12;
-        background: var(--soft);
-        border: 1px solid var(--line);
-        padding: 6px 10px;
-        border-radius: 999px;
-      }
+    a{ color: inherit; text-decoration: none; }
+    a:hover{ text-decoration: underline; }
 
-      button {
-        padding: 9px 12px;
-        border-radius: 12px;
-        border: 1px solid var(--line);
-        background: #fff;
-        cursor: pointer;
-      }
-      button:hover {
-        border-color: var(--accent);
-      }
+    .wrap{
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 26px 16px 60px;
+    }
 
-      textarea {
-        width: 100%;
-        min-height: 520px;
-        resize: vertical;
-        padding: 12px;
-        border-radius: 14px;
-        border: 1px solid #e8cda7;
-        background: #fffdf8;
-        outline: none;
-        font-family:
-          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-          "Liberation Mono", monospace;
-        font-size: 13px;
-        line-height: 1.45;
-        tab-size: 2;
-      }
-      textarea:focus {
-        border-color: var(--accent);
-        box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.18);
-      }
+    header.hero{
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,.88), rgba(255,255,255,.76));
+      box-shadow: var(--shadow);
+      border-radius: calc(var(--radius) + 8px);
+      padding: 22px 18px;
+      position: relative;
+      overflow:hidden;
+    }
+    header.hero:before{
+      content:"";
+      position:absolute; inset:-2px;
+      background:
+        radial-gradient(600px 240px at 10% 0%, rgba(245,158,11,.22), transparent 60%),
+        radial-gradient(560px 260px at 90% 0%, rgba(217,119,6,.18), transparent 60%);
+      pointer-events:none;
+    }
 
-      iframe {
-        width: 100%;
-        height: 580px;
-        border: 1px solid #e8cda7;
-        border-radius: 14px;
-        background: #fff;
-      }
+    .heroTop{
+      position: relative;
+      display:flex;
+      gap: 14px;
+      align-items:center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
 
-      .hint {
-        margin-top: 10px;
-        color: var(--muted);
-        font-size: 13px;
-        line-height: 1.5;
-      }
+    .brand{
+      display:flex; gap:12px; align-items:center;
+      min-width: 260px;
+    }
+    .logo{
+      width: 44px; height: 44px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--saffron), var(--saffron2));
+      box-shadow: 0 10px 20px rgba(217,119,6,.20);
+      position: relative;
+    }
+    .logo:after{
+      content:"PP";
+      position:absolute; inset:0;
+      display:grid; place-items:center;
+      font-weight:800;
+      font-family: "DM Sans", Inter, sans-serif;
+      color:#1f2937;
+      mix-blend-mode: soft-light;
+      letter-spacing:.5px;
+    }
+    .brand h1{
+      margin:0;
+      font-size: 20px;
+      line-height: 1.25;
+      font-family: "DM Sans", Inter, sans-serif;
+    }
+    .brand p{
+      margin:2px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
 
-      .status {
-        margin-top: 10px;
-        padding: 10px 12px;
-        border-radius: 12px;
-        border: 1px solid var(--line);
-        background: var(--soft);
-        color: #3a2c12;
-      }
-      .status.ok {
-        background: #f3fff3;
-        border-color: #b7e0b7;
-      }
-      .status.warn {
-        background: #fff1e6;
-        border-color: #ffd0a8;
-      }
+    .pillRow{
+      position: relative;
+      display:flex;
+      gap: 10px;
+      align-items:center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .pill{
+      font-size: 12px;
+      color: #111827;
+      background: rgba(245,158,11,.18);
+      border: 1px solid rgba(217,119,6,.20);
+      padding: 7px 10px;
+      border-radius: 999px;
+      display:flex; align-items:center; gap:8px;
+      user-select:none;
+      white-space: nowrap;
+    }
+    .pill .dot{
+      width:8px; height:8px; border-radius:99px;
+      background: var(--saffron);
+      box-shadow: 0 0 0 4px rgba(217,119,6,.12);
+    }
 
-      .foot {
-        margin-top: 14px;
-        color: var(--muted);
-        font-size: 13px;
-      }
-    </style>
-  </head>
+    .heroBody{
+      position: relative;
+      margin-top: 14px;
+      display:grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 14px;
+      align-items: start;
+    }
+    @media (max-width: 920px){
+      .heroBody{ grid-template-columns: 1fr; }
+    }
 
-  <body>
-    <div class="wrap">
-      <section class="hero">
-        <h1>
-          DOM Master Lesson (createElement + remove + dynamic datalist) ✅
-        </h1>
-        <p>
-          This page embeds a simple <strong>HTML Preview Editor</strong>. Edit
-          the lesson code on the left and click <strong>Run</strong> to preview
-          on the right.
-        </p>
-      </section>
+    .card{
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.86);
+      border-radius: var(--radius);
+      padding: 14px;
+    }
+    .card h2{
+      margin:0 0 8px;
+      font-family:"DM Sans", Inter, sans-serif;
+      font-size: 16px;
+    }
+    .card p{
+      margin: 8px 0 0;
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 14px;
+    }
 
-      <section class="grid">
-        <div class="card">
-          <div class="bar">
-            <div class="left">
-              <span class="pill">Editor (HTML/CSS/JS)</span>
-              <span class="pill">In-page JS • Light Saffron</span>
-            </div>
-            <div class="left">
-              <button id="runBtn" type="button">Run ▶</button>
-              <button id="resetBtn" type="button">Reset ↩</button>
-              <button id="copyBtn" type="button">Copy Code ⧉</button>
-            </div>
+    .miniGrid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    @media (max-width: 520px){
+      .miniGrid{ grid-template-columns: 1fr; }
+    }
+
+    .kbd{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      background: rgba(17,24,39,.06);
+      border: 1px solid rgba(17,24,39,.12);
+      padding: 2px 7px;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #111827;
+      white-space: nowrap;
+    }
+
+    main{
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 14px;
+      align-items: start;
+    }
+    @media (max-width: 980px){
+      main{ grid-template-columns: 1fr; }
+    }
+
+    .sectionTitle{
+      display:flex; align-items:center; justify-content:space-between;
+      gap: 10px;
+      margin: 0 0 10px;
+    }
+    .sectionTitle h3{
+      margin:0;
+      font-size: 16px;
+      font-family:"DM Sans", Inter, sans-serif;
+    }
+    .sectionTitle small{
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    /* Code block (VS Code-ish) */
+    .codeShell{
+      background: linear-gradient(180deg, var(--codeBg2), var(--codeBg));
+      border: 1px solid var(--codeLine);
+      border-radius: var(--radius);
+      overflow:hidden;
+      box-shadow: 0 16px 40px rgba(2,6,23,.25);
+    }
+    .codeTop{
+      display:flex; align-items:center; justify-content:space-between;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--codeLine);
+    }
+    .codeTopLeft{
+      display:flex; align-items:center; gap:10px;
+      color: var(--codeMuted);
+      font-size: 12px;
+    }
+    .traffic{
+      display:flex; gap:6px; align-items:center;
+    }
+    .tDot{ width:10px; height:10px; border-radius:99px; background: rgba(229,231,235,.20); }
+    .tDot:nth-child(1){ background: rgba(239,68,68,.75); }
+    .tDot:nth-child(2){ background: rgba(245,158,11,.75); }
+    .tDot:nth-child(3){ background: rgba(34,197,94,.75); }
+
+    .codeBtns{
+      display:flex; gap:8px; align-items:center;
+    }
+    .btn{
+      border: 1px solid rgba(229,231,235,.16);
+      background: rgba(229,231,235,.08);
+      color: var(--codeInk);
+      font-size: 12px;
+      padding: 7px 10px;
+      border-radius: 10px;
+      cursor:pointer;
+      user-select:none;
+    }
+    .btn:hover{ background: rgba(229,231,235,.12); }
+    .btn:active{ transform: translateY(1px); }
+
+    pre{
+      margin:0;
+      padding: 12px;
+      overflow:auto;
+      color: var(--codeInk);
+      font-size: 12.6px;
+      line-height: 1.65;
+      tab-size: 2;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+    code{ font-family: inherit; }
+
+    /* Simple syntax tint (no external libs) */
+    .tok-k{ color:#93c5fd; }    /* keyword */
+    .tok-f{ color:#a7f3d0; }    /* function name */
+    .tok-n{ color:#fcd34d; }    /* number */
+    .tok-s{ color:#fca5a5; }    /* string */
+    .tok-c{ color:#94a3b8; }    /* comment */
+    .tok-op{ color:#e5e7eb; }   /* operators */
+
+    /* Interactive calendar */
+    .tool{
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.86);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+    .tool .controls{
+      display:grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 10px;
+      align-items:end;
+    }
+    @media (max-width: 560px){
+      .tool .controls{ grid-template-columns: 1fr; }
+    }
+    label{
+      display:block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    input, select{
+      width:100%;
+      padding: 10px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(17,24,39,.16);
+      background: rgba(255,255,255,.92);
+      outline: none;
+      font-size: 14px;
+    }
+    input:focus, select:focus{
+      border-color: rgba(217,119,6,.45);
+      box-shadow: 0 0 0 4px rgba(217,119,6,.12);
+    }
+    .cta{
+      background: linear-gradient(135deg, var(--saffron), var(--saffron2));
+      border: 1px solid rgba(17,24,39,.12);
+      color: #111827;
+      font-weight: 700;
+      padding: 10px 12px;
+      border-radius: 12px;
+      cursor:pointer;
+      box-shadow: 0 12px 24px rgba(217,119,6,.18);
+    }
+    .cta:hover{ filter: brightness(1.02); }
+    .cta:active{ transform: translateY(1px); }
+
+    .calBox{
+      margin-top: 12px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(17,24,39,.12);
+      overflow:hidden;
+      background: rgba(255,255,255,.94);
+    }
+    .calHead{
+      padding: 12px 12px;
+      background: rgba(245,158,11,.14);
+      border-bottom: 1px solid rgba(17,24,39,.12);
+      display:flex;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items:center;
+    }
+    .calHead strong{
+      font-family: "DM Sans", Inter, sans-serif;
+      font-size: 16px;
+    }
+    .calHead span{
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .grid7{
+      display:grid;
+      grid-template-columns: repeat(7, 1fr);
+    }
+    .dow{
+      padding: 10px 8px;
+      text-align:center;
+      font-size: 12px;
+      color: #111827;
+      font-weight: 700;
+      border-bottom: 1px solid rgba(17,24,39,.10);
+      background: rgba(17,24,39,.03);
+    }
+    .cell{
+      min-height: 52px;
+      padding: 8px;
+      border-bottom: 1px solid rgba(17,24,39,.08);
+      border-right: 1px solid rgba(17,24,39,.08);
+      display:flex;
+      align-items:flex-start;
+      justify-content:flex-start;
+      background: rgba(255,255,255,.90);
+    }
+    .cell:nth-child(7n){ border-right: none; }
+    .dateNum{
+      width: 28px; height: 28px;
+      border-radius: 10px;
+      display:grid; place-items:center;
+      font-weight: 700;
+      color: #111827;
+      font-size: 13px;
+      background: rgba(245,158,11,.0);
+    }
+    .cell.today .dateNum{
+      background: rgba(217,119,6,.18);
+      border: 1px solid rgba(217,119,6,.35);
+    }
+    .cell.empty{
+      background: rgba(17,24,39,.02);
+    }
+    .note{
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    /* Embed */
+    .embed{
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.86);
+      border-radius: var(--radius);
+      overflow:hidden;
+      box-shadow: var(--shadow);
+    }
+    .embedTop{
+      padding: 10px 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.82));
+    }
+    .embedTop strong{
+      font-family:"DM Sans", Inter, sans-serif;
+      font-size: 14px;
+    }
+    .embedTop .links{
+      display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end;
+    }
+    .linkBtn{
+      display:inline-flex; align-items:center; gap:8px;
+      font-size: 12px;
+      padding: 7px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(17,24,39,.14);
+      background: rgba(245,158,11,.12);
+      cursor:pointer;
+    }
+    .linkBtn:hover{ background: rgba(245,158,11,.16); }
+    iframe{
+      width:100%;
+      height: 660px;
+      border:0;
+      display:block;
+      background: #0b1220;
+    }
+
+    /* Article formatting */
+    .article{
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.86);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+    .article h3{
+      margin: 0 0 8px;
+      font-family: "DM Sans", Inter, sans-serif;
+      font-size: 16px;
+    }
+    .article h4{
+      margin: 14px 0 8px;
+      font-family: "DM Sans", Inter, sans-serif;
+      font-size: 14px;
+    }
+    .article p, .article li{
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 14px;
+    }
+    .article ul{ margin: 8px 0 0 18px; }
+    .callout{
+      margin-top: 12px;
+      border-radius: var(--radius);
+      border: 1px dashed rgba(217,119,6,.45);
+      background: rgba(245,158,11,.10);
+      padding: 12px;
+      color: #111827;
+    }
+    .callout b{ color:#111827; }
+    footer{
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align:center;
+      padding: 12px 8px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <div class="heroTop">
+        <div class="brand">
+          <div class="logo" aria-hidden="true"></div>
+          <div>
+            <h1>Sun Mon Tue Wed Thu Fri Sat</h1>
+            <p>Printing a monthly calendar with Python (and understanding the logic)</p>
           </div>
+        </div>
 
-          <textarea id="editor" spellcheck="false"></textarea>
+        <div class="pillRow">
+          <div class="pill"><span class="dot"></span>Programmer’s Picnic</div>
+          <div class="pill">Base date: <span class="kbd">01-03-2026</span> is <span class="kbd">Sunday</span></div>
+          <div class="pill">Output format: <span class="kbd">Sun → Sat</span></div>
+        </div>
+      </div>
 
-          <div id="status" class="status">Status: Ready.</div>
-          <div class="hint">
-            Tip: This is a real “mini IDE”. Whatever is in the editor is sent
-            into the preview using <code>iframe.srcdoc</code>. Great for
-            teaching your students interactively.
+      <div class="heroBody">
+        <div class="card">
+          <h2>What you will build</h2>
+          <p>
+            A working monthly calendar printer that correctly handles leap years, different month lengths,
+            and weekday alignment. The key trick is to compute the weekday of the 1st day of the month,
+            then print leading tabs (empty slots) before printing day numbers.
+          </p>
+
+          <div class="miniGrid">
+            <div class="card" style="padding:12px">
+              <h2 style="font-size:14px;margin-bottom:6px">Core functions</h2>
+              <p style="margin:0">
+                <span class="kbd">isLeapYear</span>,
+                <span class="kbd">getDaysInMonth</span>,
+                <span class="kbd">dateDifference</span>,
+                <span class="kbd">getWeekDay</span>,
+                <span class="kbd">printMonthlyCalendar</span>
+              </p>
+            </div>
+            <div class="card" style="padding:12px">
+              <h2 style="font-size:14px;margin-bottom:6px">Practical goal</h2>
+              <p style="margin:0">
+                Print calendars like <span class="kbd">January 1970</span> and any month/year you input.
+              </p>
+            </div>
           </div>
         </div>
 
         <div class="card">
-          <div class="bar">
-            <div class="left">
-              <span class="pill">Live Preview</span>
-              <span class="pill">Sandboxed iframe</span>
+          <h2>Big idea</h2>
+          <p>
+            If we know the weekday of a “base date”, we can compute the weekday of any other date by
+            counting how many days apart they are, then taking <span class="kbd">mod 7</span>.
+          </p>
+          <p>
+            In this program, the base date is <span class="kbd">1-3-2026</span> and it is assumed to be
+            <span class="kbd">Sunday</span>. That makes <span class="kbd">Sun = 0</span>, <span class="kbd">Mon = 1</span>, …, <span class="kbd">Sat = 6</span>.
+          </p>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <!-- LEFT COLUMN -->
+      <section style="display:flex;flex-direction:column;gap:14px">
+        <div class="article">
+          <div class="sectionTitle">
+            <h3>Step-by-step: how the logic works</h3>
+            <small>Readable reasoning, same code you provided</small>
+          </div>
+
+          <h4>1) Leap year rule</h4>
+          <p>
+            A year is a leap year if it is divisible by 4, except centuries must be divisible by 400.
+            That’s why 2000 is leap, but 1900 is not.
+          </p>
+
+          <h4>2) Days in month</h4>
+          <p>
+            Most months have fixed days. February depends on leap year. That lets us compute day counts
+            for ranges of dates.
+          </p>
+
+          <h4>3) Comparing two dates</h4>
+          <p>
+            Before computing a difference, the program compares two dates so it can decide the sign of
+            the difference. It returns:
+          </p>
+          <ul>
+            <li><span class="kbd">1</span> if <span class="kbd">D2 &gt; D1</span></li>
+            <li><span class="kbd">0</span> if <span class="kbd">D2 == D1</span></li>
+            <li><span class="kbd">-1</span> if <span class="kbd">D1 &gt; D2</span></li>
+          </ul>
+
+          <h4>4) Date difference (in days)</h4>
+          <p>
+            The function <span class="kbd">dateDifference(d1,m1,y1,d2,m2,y2)</span> effectively counts:
+          </p>
+          <ul>
+            <li>Days passed in year <span class="kbd">y2</span> up to <span class="kbd">d2</span></li>
+            <li>Minus days passed in year <span class="kbd">y1</span> up to <span class="kbd">d1</span></li>
+            <li>Plus full-year totals for all years in between</li>
+          </ul>
+
+          <h4>5) Weekday from base date</h4>
+          <p>
+            Once we know <span class="kbd">datediff</span> from the base date, weekday is:
+            <span class="kbd">datediff % 7</span>, adjusted for dates earlier than the base.
+          </p>
+
+          <div class="callout">
+            <b>Why modulo 7?</b> Because weekdays repeat every 7 days. So +7 days is the same weekday.
+          </div>
+        </div>
+
+        <div class="codeShell" id="codeShell">
+          <div class="codeTop">
+            <div class="codeTopLeft">
+              <div class="traffic" aria-hidden="true">
+                <div class="tDot"></div><div class="tDot"></div><div class="tDot"></div>
+              </div>
+              <span>main.py</span>
+              <span style="opacity:.65">— calendar printer</span>
+            </div>
+            <div class="codeBtns">
+              <button class="btn" id="btnCopy">Copy code</button>
+              <button class="btn" id="btnToggleHighlight">Toggle tint</button>
+            </div>
+          </div>
+
+          <pre id="codePre"><code id="codeBlock">
+# Sun Mon Tue Wed Thu Fri Sat
+
+def isLeapYear(year):
+	if year % 4!=0:
+		return False
+	if year % 400==0:
+		return True
+
+	if year % 100==0:
+		return False
+	return True
+
+def getDaysInMonth(monthno,yearno):
+	if monthno in [4,6,9,11]:
+		return 30
+	if monthno==2:
+		if isLeapYear(yearno):
+			return 29
+		return 28
+	return 31
+
+def compareDates(d1,m1,y1,d2,m2,y2):
+	# =-1 if D1>D2, 0 if D1==D2 1 if D2>D1
+	if y2>y1:
+		return 1
+	if y2<y1:
+		return -1
+	if m2>m1:
+		return 1
+	if m2<m1:
+		return -1
+	if d2>d1:
+		return 1
+	if d2<d1:
+		return -1
+	return 0
+
+def getWeekDay(d,m,y):
+	# Base date is 1-3-2026 Sunday
+	datediff=dateDifference(1,3,2026,d,m,y)
+	#print(datediff)
+	if datediff<0:
+		datediff=-datediff
+		datediff=datediff % 7
+		datediff=7-datediff
+
+	datediff=datediff % 7
+	#print(datediff)
+
+	return datediff
+
+def dateDifference(d1,m1,y1,d2,m2,y2):
+	# D2>=D1
+	sign=compareDates(d1, m1, y1,d2,m2,y2)
+	if sign==0:
+		return 0
+	if sign==-1:
+		d1,m1,y1,d2,m2,y2=d2,m2,y2,d1,m1,y1
+	#print(d1,m1,y1,d2,m2,y2)
+	diff1=d2-1
+	diff2=d1-1
+	#print(diff1,diff2)
+
+	diff3,diff4=0,0
+	for monthno in range(1,m2):
+		#print(monthno)
+		diff3+=getDaysInMonth(monthno,y2)
+	for monthno in range(1,m1):
+		diff4+=getDaysInMonth(monthno,y1)
+
+	diff5=0
+	for yearno in range(y1,y2):
+		if isLeapYear(yearno):
+			diff5+=366
+		else:
+			diff5+=365
+
+	return sign* (diff1+diff3+diff5-diff2-diff4)
+
+def getMonthName(monthno):
+	months=["","January","February","March","April","May","June","JUly","August","September","October","November","December"]
+	return months[monthno]
+
+def getWeekDayName(d,m,y):
+	dayno=getWeekDay(d,m,y)
+	weekdays=["Sun", "Mon" ,"Tue", "Wed", "Thu", "Fri", "Sat"]
+	return weekdays[dayno]
+
+def printMonthlyCalendar(monthno,yearno):
+	weekdays=["Sun", "Mon" ,"Tue", "Wed", "Thu", "Fri", "Sat"]
+	startdayno=getWeekDay(1,monthno,yearno)
+
+	print(getMonthName(monthno),yearno,end="\n")
+
+	for days in weekdays:
+		print(days, end="\t")
+	print()
+
+	for i in range(startdayno):
+		print( "", end="\t")
+
+	totaldays=getDaysInMonth(monthno,yearno)
+	#print(startdayno,totaldays)
+
+	day=1
+	daycount=startdayno
+	while day<=totaldays:
+		daycount+=1
+		print(day, end="\t")
+		if daycount>=7:
+			print()
+			daycount=0
+		day+=1
+
+printMonthlyCalendar(1,1970)
+          </code></pre>
+        </div>
+
+        <div class="tool" id="tool">
+          <div class="sectionTitle">
+            <h3>Interactive calendar (same rules, rendered in the browser)</h3>
+            <small>Sun–Sat grid + correct alignment</small>
+          </div>
+
+          <div class="controls">
+            <div>
+              <label for="month">Month</label>
+              <select id="month">
+                <option value="1">January</option>
+                <option value="2">February</option>
+                <option value="3">March</option>
+                <option value="4">April</option>
+                <option value="5">May</option>
+                <option value="6">June</option>
+                <option value="7">July</option>
+                <option value="8">August</option>
+                <option value="9">September</option>
+                <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
+              </select>
+            </div>
+            <div>
+              <label for="year">Year</label>
+              <input id="year" type="number" inputmode="numeric" value="1970" />
+            </div>
+            <button class="cta" id="btnRender" title="Render calendar">Render</button>
+          </div>
+
+          <div class="calBox" id="calBox" aria-live="polite">
+            <div class="calHead">
+              <strong id="calTitle">January 1970</strong>
+              <span id="calMeta">Aligned by weekday of 1st day</span>
+            </div>
+
+            <div class="grid7" id="dowRow">
+              <div class="dow">Sun</div><div class="dow">Mon</div><div class="dow">Tue</div><div class="dow">Wed</div>
+              <div class="dow">Thu</div><div class="dow">Fri</div><div class="dow">Sat</div>
+            </div>
+            <div class="grid7" id="calGrid"></div>
+          </div>
+
+          <p class="note">
+            This preview follows the same structure as your Python printer:
+            compute <span class="kbd">startdayno = weekday(1, month, year)</span>, add empty cells, then place days 1..N.
+          </p>
+        </div>
+      </section>
+
+      <!-- RIGHT COLUMN -->
+      <aside style="display:flex;flex-direction:column;gap:14px">
+        <div class="embed" id="embed">
+          <div class="embedTop">
+            <strong>Try it in our Python Editor</strong>
+            <div class="links">
+              <a class="linkBtn" id="openEditor" target="_blank" rel="noopener">
+                Open in new tab →
+              </a>
+              <button class="linkBtn" id="scrollToTool" type="button">
+                Jump to interactive ↓
+              </button>
             </div>
           </div>
 
           <iframe
-            id="preview"
-            sandbox="allow-scripts allow-forms allow-modals allow-pointer-lock allow-popups"
+            id="ppEditor"
+            title="Programmer’s Picnic Python Editor"
+            loading="lazy"
+            referrerpolicy="no-referrer"
+            allow="clipboard-read; clipboard-write"
+            src="https://programmer-s-picnic.github.io/lesson-viewer/python-starter/editor/super/?tmode=0#pp=eyJ0YWJzIjpbeyJuYW1lIjoibWFpbi5weSIsImNvZGUiOiIjIFN1biBNb24gVHVlIFdlZCBUaHUgRnJpIFNhdFxuXG5kZWYgaXNMZWFwWWVhcih5ZWFyKTpcblx0aWYgeWVhciAlIDQhPTA6XG5cdFx0cmV0dXJuIEZhbHNlXG5cdGlmIHllYXIgJSA0MDA9PTA6XG5cdFx0cmV0dXJuIFRydWVcblxuXHRpZiB5ZWFyICUgMTAwPT0wOlxuXHRcdHJldHVybiBGYWxzZVxuXHRyZXR1cm4gVHJ1ZVxuZGVmIGdldERheXNJbk1vbnRoKG1vbnRobm8seWVhcm5vKTpcblx0aWYgbW9udGhubyBpbiBbNCw2LDksMTFdOlxuXHRcdHJldHVybiAzMFxuXHRpZiBtb250aG5vPT0yOlxuXHRcdGlmIGlzTGVhcFllYXIoeWVhcm5vKTpcblx0XHRcdHJldHVybiAyOVxuXHRcdHJldHVybiAyOFxuXHRyZXR1cm4gMzFcblxuZGVmIGNvbXBhcmVEYXRlcyhkMSxtMSx5MSxkMixtMix5Mik6XG5cdCMgPS0xIGlmIEQxPkQyLCAwIGlmIEQxPT1EMiAxIGlmIEQyPkQxXG5cdGlmIHkyPnkxOlxuXHRcdHJldHVybiAxXG5cdGlmIHkyPHkxOlxuXHRcdHJldHVybiAtMVxuXHRpZiBtMj5tMTpcblx0XHRyZXR1cm4gMVxuXHRpZiBtMjxtMTpcblx0XHRyZXR1cm4gLTFcblx0aWYgZDI-ZDE6XG5cdFx0cmV0dXJuIDFcblx0aWYgZDI8ZDE6XG5cdFx0cmV0dXJuIC0xXG5cdHJldHVybiAwXG5kZWYgZ2V0V2Vla0RheShkLG0seSk6XG5cdCMgQmFzZSBkYXRlIGlzIDEtMy0yMDI2IFN1bmRheVxuXHRkYXRlZGlmZj1kYXRlRGlmZmVyZW5jZSgxLDMsMjAyNixkLG0seSlcblx0I3ByaW50KGRhdGVkaWZmKVxuXHRpZiBkYXRlZGlmZjwwOlxuXHRcdGRhdGVkaWZmPS1kYXRlZGlmZlxuXHRcdGRhdGVkaWZmPWRhdGVkaWZmICUgN1xuXHRcdGRhdGVkaWZmPTctZGF0ZWRpZmZcblxuXG5cblxuXHRkYXRlZGlmZj1kYXRlZGlmZiAlIDdcblx0I3ByaW50KGRhdGVkaWZmKVxuXG5cdHJldHVybiBkYXRlZGlmZlxuZGVmIGRhdGVEaWZmZXJlbmNlKGQxLG0xLHkxLGQyLG0yLHkyKTpcblx0IyBEMj49RDFcblx0c2lnbj1jb21wYXJlRGF0ZXMoZDEsIG0xLCB5MSxkMixtMix5Milcblx0aWYgc2lnbj09MDpcblx0XHRyZXR1cm4gMFxuXHRpZiBzaWduPT0tMTpcblx0XHRkMSxtMSx5MSxkMixtMix5Mj1kMixtMix5MixkMSxtMSx5MVxuXHQjcHJpbnQoZDEsbTEseTEsZDIsbTIseTIpXG5cdGRpZmYxPWQyLTFcblx0ZGlmZjI9ZDEtMVxuXHQjcHJpbnQoZGlmZjEsZGlmZjIpXG5cdCMxLCAxLCAyMDI2LDUsMywyMDI2KVxuXHQjIDEsMSwyMDI2LDEsMywyMDI2XG5cdGRpZmYzLGRpZmY0PTAsMFxuXHRmb3IgbW9udGhubyBpbiByYW5nZSgxLG0yKTpcblx0XHQjcHJpbnQobW9udGhubylcblx0XHRkaWZmMys9Z2V0RGF5c0luTW9udGgobW9udGhubyx5Milcblx0Zm9yIG1vbnRobm8gaW4gcmFuZ2UoMSxtMSk6XG5cdFx0ZGlmZjQrPWdldERheXNJbk1vbnRoKG1vbnRobm8seTEpXG5cdCNwcmludChkaWZmMyxkaWZmNClcblx0ZGlmZjU9MFxuXHRmb3IgeWVhcm5vIGluIHJhbmdlKHkxLHkyKTpcblx0XHRpZiBpc0xlYXBZZWFyKHllYXJubyk6XG5cdFx0XHRkaWZmNSs9MzY2XG5cdFx0ZWxzZTpcblx0XHRcdGRpZmY1Kz0zNjVcblx0I3ByaW50KGRpZmY1KVxuXHRyZXR1cm4gc2lnbiogKGRpZmYxK2RpZmYzK2RpZmY1LWRpZmYyLWRpZmY0KVxuZGVmIGdldE1vbnRoTmFtZShtb250aG5vKTpcblx0bW9udGhzPVtcIlwiLFwiSmFudWFyeVwiLFwiRmVicnVhcnlcIixcIk1hcmNoXCIsXCJBcHJpbFwiLFwiTWF5XCIsXCJKdW5lXCIsXCJKVWx5XCIsXCJBdWd1c3RcIixcIlNlcHRlbWJlclwiLFwiT2N0b2JlclwiLFwiTm92ZW1iZXJcIixcIkRlY2VtYmVyXCJdXG5cdHJldHVybiBtb250aHNbbW9udGhub11cbmRlZiBnZXRXZWVrRGF5TmFtZShkLG0seSk6XG5cdGRheW5vPWdldFdlZWtEYXkoZCxtLHkpXG5cblx0d2Vla2RheXM9W1wiU3VuXCIsIFwiTW9uXCIgLFwiVHVlXCIsIFwiV2VkXCIsIFwiVGh1XCIsIFwiRnJpXCIsIFwiU2F0XCJdXG5cdHJldHVybiB3ZWVrZGF5c1tkYXlub11cbmRlZiBwcmludE1vbnRobHlDYWxlbmRhcihtb250aG5vLHllYXJubyk6XG5cdHdlZWtkYXlzPVtcIlN1blwiLCBcIk1vblwiICxcIlR1ZVwiLCBcIldlZFwiLCBcIlRodVwiLCBcIkZyaVwiLCBcIlNhdFwiXVxuXHRzdGFydGRheW5vPWdldFdlZWtEYXkoMSxtb250aG5vLHllYXJubylcblxuXHRcdFxuXHRwcmludChnZXRNb250aE5hbWUobW9udGhubykseWVhcm5vLGVuZD1cIlxcblwiKVxuXHRcblx0Zm9yIGRheXMgaW4gd2Vla2RheXM6XG5cdFx0cHJpbnQoZGF5cywgZW5kPVwiXFx0XCIpXG5cdHByaW50KClcblx0Zm9yIGkgaW4gcmFuZ2Uoc3RhcnRkYXlubyk6XG5cdFx0cHJpbnQoIFwiXCIsIGVuZD1cIlxcdFwiKVxuXHR0b3RhbGRheXM9Z2V0RGF5c0luTW9udGgobW9udGhubyx5ZWFybm8pXG5cdCNwcmludChzdGFydGRheW5vLHRvdGFsZGF5cylcblx0ZGF5PTFcblx0ZGF5Y291bnQ9c3RhcnRkYXlub1xuXHR3aGlsZSBkYXk8PXRvdGFsZGF5czpcblx0XHRkYXljb3VudCs9MVxuXHRcdHByaW50KGRheSwgZW5kPVwiXFx0XCIpXG5cdFx0aWYgZGF5Y291bnQ-PTc6XG5cdFx0XHRwcmludCgpXG5cdFx0XHRkYXljb3VudD0wXG5cdFx0ZGF5Kz0xXG5cblx0XG5cbnByaW50TW9udGhseUNhbGVuZGFyKDEsMTk3MClcbiAjIHgxLXgyID0xMCwgeDIteDE9LTEwICAgMTAwLTcwXG4jIE1hciAyMDI2XG4jIFN1biBNb24gVHVlIFdlZCBUaHUgRnJpIFNhdFxuIyAgMSAgIDIgICAzICAgNCAgIDUgICA2ICAgN1xuIyAgOCAgIDkgICAxMCAgMTEgIDEyICAxMyAgMTRcbiMgIDE1ICAxNiAgMTcgIDE4ICAxOSAgMjAgIDIxXG4jICAyMiAgMjMgIDI0ICAyNSAgMjYgIDI3ICAyOFxuIyAgMjkgIDMwICAzMVxuXG5cbiJ9XSwiY3VycmVudFRhYiI6MCwic3RkaW4iOiIzXG4oYStiKSooYytkKVxuICgoMiszKSlcbigoMyArIDIpIMOXICg2IOKIkiA0KSArIDIpIMOXIDQiLCJwcm9ibGVtIjoicmV2ZXJzZV9udW0ifQ"
           ></iframe>
-
-          <div class="foot">Programmer’s Picnic • Light Saffron theme</div>
         </div>
-      </section>
-    </div>
 
-    <script>
-      // ---------------------------------------------------------
-      // 1) The lesson HTML (this is what loads into the editor)
-      // ---------------------------------------------------------
-      const LESSON_HTML = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>DOM Master Lesson</title>
+        <div class="article">
+          <div class="sectionTitle">
+            <h3>Try these challenges</h3>
+            <small>Small upgrades students love</small>
+          </div>
 
-<style>
-:root{
-  --bg:#fff7e6;
-  --card:#ffffff;
-  --accent:#ff9800;
-  --line:#f2d2a2;
-}
+          <ul>
+            <li><b>Challenge A:</b> Print <span class="kbd">February 2000</span> and verify leap-year handling.</li>
+            <li><b>Challenge B:</b> Write <span class="kbd">printYearCalendar(year)</span> that prints all 12 months.</li>
+            <li><b>Challenge C:</b> Replace tabs with a fixed-width format so alignment looks perfect in any font.</li>
+            <li><b>Challenge D:</b> Add a function <span class="kbd">getWeekDayName(d,m,y)</span> and test random dates.</li>
+          </ul>
 
-body{
-  margin:0;
-  font-family:Arial;
-  background:
-  radial-gradient(900px 400px at 10% 0%, #ffe2b3, transparent),
-  radial-gradient(900px 400px at 90% 0%, #ffd4a8, transparent),
-  var(--bg);
-  padding:30px;
-}
+          <div class="callout">
+            <b>Teaching tip:</b> Ask students to change the base date and prove the entire system still works.
+          </div>
+        </div>
+      </aside>
+    </main>
 
-.card{
-  background:var(--card);
-  border:1px solid var(--line);
-  border-radius:18px;
-  padding:20px;
-  margin-bottom:20px;
-  box-shadow:0 10px 25px rgba(0,0,0,.05);
-}
+    <footer>
+      Built for Programmer’s Picnic • Champak Roy • Calendar logic with day-difference and modulo arithmetic
+    </footer>
+  </div>
 
-h2{ margin-top:0; }
+  <script>
+    (function(){
+      "use strict";
 
-button{
-  padding:8px 12px;
-  border-radius:10px;
-  border:1px solid var(--line);
-  background:#fff;
-  cursor:pointer;
-  margin-right:6px;
-  margin-top:6px;
-}
-button:hover{ border-color:var(--accent); }
+      // --- Link setup
+      var editorURL = document.getElementById("ppEditor").getAttribute("src");
+      var openEditor = document.getElementById("openEditor");
+      openEditor.href = editorURL;
 
-input{
-  padding:8px;
-  width:100%;
-  border-radius:10px;
-  border:1px solid var(--line);
-  margin-bottom:8px;
-}
+      document.getElementById("scrollToTool").addEventListener("click", function(){
+        var el = document.getElementById("tool");
+        el.scrollIntoView({behavior:"smooth", block:"start"});
+      });
 
-.log{
-  background:#111;
-  color:#eee;
-  padding:10px;
-  border-radius:10px;
-  margin-top:10px;
-  overflow:auto;
-}
-small{ color:#666; }
-</style>
-</head>
+      // --- Copy code
+      var btnCopy = document.getElementById("btnCopy");
+      btnCopy.addEventListener("click", function(){
+        var text = document.getElementById("codeBlock").textContent.replace(/\n\s+\n/g, "\n\n").trim();
+        if (!navigator.clipboard) {
+          alert("Clipboard not available in this browser context.");
+          return;
+        }
+        navigator.clipboard.writeText(text).then(function(){
+          btnCopy.textContent = "Copied ✓";
+          setTimeout(function(){ btnCopy.textContent = "Copy code"; }, 1200);
+        }).catch(function(){
+          alert("Copy failed.");
+        });
+      });
 
-<body>
+      // --- Optional lightweight token tint (simple regex-based; not a full parser)
+      var tinted = true;
+      var btnToggle = document.getElementById("btnToggleHighlight");
+      var codeBlock = document.getElementById("codeBlock");
+      var rawCode = codeBlock.textContent;
 
-<div class="card">
-  <h2>Part 1 – createElement() + remove()</h2>
-  <small>Click “Create Box” multiple times. Then remove the last box.</small><br>
-  <button onclick="createBox()">Create Box</button>
-  <button onclick="removeLastBox()">Remove Last Box</button>
-  <div id="boxContainer"></div>
-</div>
+      function escapeHTML(s){
+        return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+      }
 
-<div class="card">
-  <h2>Part 2 – Dynamic List (Add & Remove Items)</h2>
-  <small>Create & delete items using createElement() and remove().</small>
-  <input id="itemInput" placeholder="Enter item name">
-  <button onclick="addItem()">Add Item</button>
-  <button onclick="clearList()">Clear All</button>
-  <ul id="itemList"></ul>
-</div>
+      function tintPython(code){
+        // Very small, safe highlighter (best-effort):
+        // 1) escape HTML
+        // 2) comments
+        // 3) strings
+        // 4) keywords
+        // 5) numbers
+        // 6) def function names
+        var s = escapeHTML(code);
 
-<div class="card">
-  <h2>Part 3 – Dynamic Datalist (State → City → Locality)</h2>
-  <small>Datalist is suggestions. We fill & clear options dynamically.</small><br><br>
+        // comments (# ... endline)
+        s = s.replace(/(^|\n)(\s*#.*)$/g, function(m, p1, p2){
+          return p1 + '<span class="tok-c">' + p2 + "</span>";
+        });
 
-  <input id="stateInput" list="stateList" placeholder="Select State">
-  <datalist id="stateList"></datalist>
+        // strings "..." or '...'
+        s = s.replace(/(\"[^\"\n]*\"|\'[^\'\n]*\')/g, function(m){
+          return '<span class="tok-s">' + m + "</span>";
+        });
 
-  <input id="cityInput" list="cityList" placeholder="Select City" disabled>
-  <datalist id="cityList"></datalist>
+        // def functionName(
+        s = s.replace(/\bdef\s+([A-Za-z_]\w*)\s*\(/g, function(m, fn){
+          return '<span class="tok-k">def</span> <span class="tok-f">' + fn + "</span>(";
+        });
 
-  <input id="localityInput" list="localityList" placeholder="Select Locality" disabled>
-  <datalist id="localityList"></datalist>
+        // keywords
+        var kw = ["return","if","elif","else","for","in","while","True","False","range","print"];
+        var kwRe = new RegExp("\\b(" + kw.join("|") + ")\\b","g");
+        s = s.replace(kwRe, '<span class="tok-k">$1</span>');
 
-  <div class="log" id="selectionLog">Selection will appear here.</div>
-</div>
+        // numbers
+        s = s.replace(/\b(\d+)\b/g, '<span class="tok-n">$1</span>');
 
-<script>
-/* ==============================
-   PART 1 – CREATE & REMOVE
-================================
-Baby steps:
-1) createElement
-2) customize
-3) appendChild
-4) remove
-*/
+        return s;
+      }
 
-function createBox(){
-  const box = document.createElement("div"); // 1) create
-  box.textContent = "I am a dynamic box";    // 2) customize
+      function renderTint(){
+        if (!tinted){
+          codeBlock.innerHTML = escapeHTML(rawCode);
+          return;
+        }
+        codeBlock.innerHTML = tintPython(rawCode);
+      }
 
-  // style (customize)
-  box.style.padding = "8px";
-  box.style.margin = "6px 0";
-  box.style.border = "1px solid orange";
-  box.style.borderRadius = "10px";
-  box.style.background = "#fffaf0";
+      btnToggle.addEventListener("click", function(){
+        tinted = !tinted;
+        btnToggle.textContent = tinted ? "Toggle tint" : "Toggle tint";
+        renderTint();
+      });
 
-  // 3) append (attach to DOM)
-  document.getElementById("boxContainer").appendChild(box);
-}
+      renderTint();
 
-function removeLastBox(){
-  const container = document.getElementById("boxContainer");
-  if(container.lastElementChild){
-    container.lastElementChild.remove(); // 4) remove
-  }
-}
+      // --- Browser version of the same logic (matching your Python)
+      function isLeapYear(year){
+        if (year % 4 !== 0) return false;
+        if (year % 400 === 0) return true;
+        if (year % 100 === 0) return false;
+        return true;
+      }
 
-/* ==============================
-   PART 2 – LIST ADD & REMOVE
-================================
-We create:
-- li
-- button inside li
-Button removes its own li.
-*/
+      function getDaysInMonth(monthno, yearno){
+        if (monthno === 4 || monthno === 6 || monthno === 9 || monthno === 11) return 30;
+        if (monthno === 2) return isLeapYear(yearno) ? 29 : 28;
+        return 31;
+      }
 
-function addItem(){
-  const input = document.getElementById("itemInput");
-  const value = input.value.trim();
-  if(!value) return;
+      // returns 1 if D2>D1, 0 if equal, -1 if D1>D2
+      function compareDates(d1,m1,y1,d2,m2,y2){
+        if (y2 > y1) return 1;
+        if (y2 < y1) return -1;
+        if (m2 > m1) return 1;
+        if (m2 < m1) return -1;
+        if (d2 > d1) return 1;
+        if (d2 < d1) return -1;
+        return 0;
+      }
 
-  const li = document.createElement("li");
-  li.textContent = value + " ";
+      function dateDifference(d1,m1,y1,d2,m2,y2){
+        var sign = compareDates(d1,m1,y1,d2,m2,y2);
+        if (sign === 0) return 0;
 
-  const delBtn = document.createElement("button");
-  delBtn.textContent = "Delete";
+        if (sign === -1){
+          // swap
+          var td=d1, tm=m1, ty=y1;
+          d1=d2; m1=m2; y1=y2;
+          d2=td; m2=tm; y2=ty;
+        }
 
-  delBtn.onclick = function(){
-    li.remove(); // remove the li
-  };
+        var diff1 = d2 - 1;
+        var diff2 = d1 - 1;
 
-  li.appendChild(delBtn);
-  document.getElementById("itemList").appendChild(li);
+        var diff3 = 0, diff4 = 0;
+        for (var monthno = 1; monthno < m2; monthno++){
+          diff3 += getDaysInMonth(monthno, y2);
+        }
+        for (var monthno2 = 1; monthno2 < m1; monthno2++){
+          diff4 += getDaysInMonth(monthno2, y1);
+        }
 
-  input.value = "";
-  input.focus();
-}
+        var diff5 = 0;
+        for (var yearno = y1; yearno < y2; yearno++){
+          diff5 += isLeapYear(yearno) ? 366 : 365;
+        }
 
-function clearList(){
-  // Clears all children at once (fast & common for UI reset)
-  document.getElementById("itemList").innerHTML = "";
-}
+        return sign * (diff1 + diff3 + diff5 - diff2 - diff4);
+      }
 
-/* ==============================
-   PART 3 – DYNAMIC DATALIST
-================================
-Data structure:
-State -> { City -> [Localities] }
-We fill datalist with createElement("option").
-We clear old options using innerHTML = "".
-*/
+      function getWeekDay(d,m,y){
+        // Base date: 1-3-2026 is Sunday => 0
+        var datediff = dateDifference(1,3,2026,d,m,y);
 
-const DATA = {
-  "Uttar Pradesh": {
-    "Varanasi": ["Lanka","Assi","Godowlia","Sigra","Bhelupur"],
-    "Lucknow": ["Hazratganj","Gomti Nagar","Alambagh","Indira Nagar"],
-    "Prayagraj": ["Civil Lines","Katra","Naini"]
-  },
-  "Bihar": {
-    "Patna": ["Boring Road","Kankarbagh","Danapur"],
-    "Gaya": ["Bodh Gaya","Tekari Road"]
-  },
-  "Maharashtra": {
-    "Mumbai": ["Andheri","Bandra","Juhu","Dadar"],
-    "Pune": ["Hinjewadi","Kothrud","Shivaji Nagar"]
-  }
-};
+        if (datediff < 0){
+          datediff = -datediff;
+          datediff = datediff % 7;
+          datediff = 7 - datediff;
+        }
 
-const stateInput = document.getElementById("stateInput");
-const cityInput = document.getElementById("cityInput");
-const localityInput = document.getElementById("localityInput");
+        datediff = datediff % 7;
+        return datediff; // 0..6 (Sun..Sat)
+      }
 
-const stateList = document.getElementById("stateList");
-const cityList = document.getElementById("cityList");
-const localityList = document.getElementById("localityList");
+      var MONTHS = ["","January","February","March","April","May","June","July","August","September","October","November","December"];
+      var DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
-function fillDatalist(listEl, values){
-  listEl.innerHTML = ""; // remove old <option> elements
+      function renderCalendar(month, year){
+        month = Number(month);
+        year = Number(year);
 
-  values.forEach(val => {
-    const option = document.createElement("option"); // create
-    option.value = val;                              // customize
-    listEl.appendChild(option);                      // attach
-  });
-}
+        var startdayno = getWeekDay(1, month, year);
+        var totaldays = getDaysInMonth(month, year);
 
-function loadStates(){
-  fillDatalist(stateList, Object.keys(DATA));
-}
+        document.getElementById("calTitle").textContent = MONTHS[month] + " " + year;
+        document.getElementById("calMeta").textContent =
+          "Start weekday of 1st: " + DOW[startdayno] + " • Days: " + totaldays + " • Leap: " + (isLeapYear(year) ? "Yes" : "No");
 
-stateInput.addEventListener("input", function(){
-  // reset city + locality whenever state changes
-  cityInput.value = "";
-  localityInput.value = "";
+        var grid = document.getElementById("calGrid");
+        grid.innerHTML = "";
 
-  cityList.innerHTML = "";      // clear old cities
-  localityList.innerHTML = "";  // clear old localities
+        // Leading empty cells
+        for (var i = 0; i < startdayno; i++){
+          var empty = document.createElement("div");
+          empty.className = "cell empty";
+          grid.appendChild(empty);
+        }
 
-  cityInput.disabled = true;
-  localityInput.disabled = true;
+        // Days
+        var today = new Date();
+        var tD = today.getDate();
+        var tM = today.getMonth() + 1;
+        var tY = today.getFullYear();
 
-  const state = stateInput.value.trim();
+        for (var day = 1; day <= totaldays; day++){
+          var cell = document.createElement("div");
+          var isToday = (day === tD && month === tM && year === tY);
+          cell.className = "cell" + (isToday ? " today" : "");
 
-  if(DATA[state]){
-    fillDatalist(cityList, Object.keys(DATA[state]));
-    cityInput.disabled = false;
-  }
-});
+          var num = document.createElement("div");
+          num.className = "dateNum";
+          num.textContent = String(day);
 
-cityInput.addEventListener("input", function(){
-  // reset locality whenever city changes
-  localityInput.value = "";
-  localityList.innerHTML = "";
-  localityInput.disabled = true;
+          cell.appendChild(num);
+          grid.appendChild(cell);
+        }
 
-  const state = stateInput.value.trim();
-  const city = cityInput.value.trim();
+        // Trailing cells to complete last row (nice visual)
+        var filled = startdayno + totaldays;
+        var rem = filled % 7;
+        if (rem !== 0){
+          var tail = 7 - rem;
+          for (var j = 0; j < tail; j++){
+            var empty2 = document.createElement("div");
+            empty2.className = "cell empty";
+            grid.appendChild(empty2);
+          }
+        }
+      }
 
-  if(DATA[state] && DATA[state][city]){
-    fillDatalist(localityList, DATA[state][city]);
-    localityInput.disabled = false;
-  }
-});
+      // Wire controls
+      var selMonth = document.getElementById("month");
+      var inpYear = document.getElementById("year");
+      var btnRender = document.getElementById("btnRender");
 
-localityInput.addEventListener("input", function(){
-  document.getElementById("selectionLog").textContent =
-    stateInput.value + " → " + cityInput.value + " → " + localityInput.value;
-});
+      btnRender.addEventListener("click", function(){
+        renderCalendar(selMonth.value, inpYear.value);
+      });
 
-loadStates();
-<\/script>
+      selMonth.addEventListener("change", function(){
+        renderCalendar(selMonth.value, inpYear.value);
+      });
 
+      inpYear.addEventListener("keydown", function(e){
+        if (e.key === "Enter"){
+          renderCalendar(selMonth.value, inpYear.value);
+        }
+      });
+
+      // Default example
+      selMonth.value = "1";
+      inpYear.value = "1970";
+      renderCalendar(1, 1970);
+    })();
+  </script>
 </body>
-</html>`;
-
-      // ---------------------------------------------------------
-      // 2) Minimal editor + preview wiring
-      // ---------------------------------------------------------
-      const editor = document.getElementById("editor");
-      const preview = document.getElementById("preview");
-      const status = document.getElementById("status");
-
-      function setStatus(msg, type = "") {
-        status.className = "status" + (type ? " " + type : "");
-        status.textContent = "Status: " + msg;
-      }
-
-      function run() {
-        const code = editor.value;
-        preview.srcdoc = code;
-        setStatus("Rendered preview.", "ok");
-      }
-
-      function reset() {
-        editor.value = LESSON_HTML;
-        run();
-        setStatus("Reset to lesson code.", "ok");
-      }
-
-      async function copyCode() {
-        try {
-          await navigator.clipboard.writeText(editor.value);
-          setStatus("Copied to clipboard.", "ok");
-        } catch (e) {
-          setStatus(
-            "Clipboard blocked (browser permission). Select all and copy manually.",
-            "warn",
-          );
-        }
-      }
-
-      // Tab key support in textarea (nice for teaching)
-      editor.addEventListener("keydown", (e) => {
-        if (e.key === "Tab") {
-          e.preventDefault();
-          const start = editor.selectionStart;
-          const end = editor.selectionEnd;
-          editor.value =
-            editor.value.substring(0, start) +
-            "  " +
-            editor.value.substring(end);
-          editor.selectionStart = editor.selectionEnd = start + 2;
-        }
-      });
-
-      document.getElementById("runBtn").addEventListener("click", run);
-      document.getElementById("resetBtn").addEventListener("click", reset);
-      document.getElementById("copyBtn").addEventListener("click", copyCode);
-
-      // Optional: live preview on pause (lightweight debounce)
-      let t = null;
-      editor.addEventListener("input", () => {
-        setStatus("Typing… (auto-run in 600ms)", "");
-        clearTimeout(t);
-        t = setTimeout(run, 600);
-      });
-
-      // Start
-      reset();
-    </script>
-  </body>
 </html>
