@@ -7,33 +7,135 @@
 
 <title>Saturday Questions</title>
 
+<meta name="description"
+content="Programmer’s Picnic Saturday Questions practice system">
+
+<meta name="theme-color" content="#ff9f1c">
+
 <style>
 
 :root{
 --bg:#fff7e6;
 --panel:#ffffff;
 --ink:#1f2328;
+--muted:#5b6570;
 --line:#e5e5e5;
 --saffron:#ff9f1c;
+--saffron2:#ffb74d;
+--radius:18px;
 }
+
+*{box-sizing:border-box;}
 
 body{
 margin:0;
-font-family:system-ui;
+font-family:system-ui,-apple-system,Segoe UI,Roboto;
 background:var(--bg);
+color:var(--ink);
+}
+
+.wrap{
+max-width:1200px;
+margin:auto;
+padding:20px;
+}
+
+header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:20px;
+}
+
+.brand{
+display:flex;
+align-items:center;
+gap:10px;
+}
+
+.logo{
+width:42px;
+height:42px;
+border-radius:12px;
+display:grid;
+place-items:center;
+background:linear-gradient(135deg,var(--saffron),var(--saffron2));
+font-weight:900;
+}
+
+.title{
+font-weight:900;
+font-size:18px;
 }
 
 .banner{
-margin:20px auto;
-max-width:1200px;
-border-radius:18px;
+margin:15px 0;
+border-radius:var(--radius);
 overflow:hidden;
 border:1px solid var(--line);
+background:#fff;
 }
 
 .banner img{
 width:100%;
 display:block;
+}
+
+.grid{
+display:grid;
+grid-template-columns:320px 1fr;
+gap:20px;
+margin-top:20px;
+}
+
+.panel{
+background:var(--panel);
+border:1px solid var(--line);
+border-radius:var(--radius);
+padding:15px;
+}
+
+.q-item{
+padding:10px;
+border-radius:12px;
+border:1px solid var(--line);
+margin-bottom:10px;
+cursor:pointer;
+}
+
+.q-item:hover{
+border-color:var(--saffron);
+}
+
+.q-item.active{
+border-color:var(--saffron);
+background:#fffaf2;
+}
+
+.problem{
+white-space:pre-wrap;
+line-height:1.5;
+}
+
+pre{
+background:#fafafa;
+border:1px solid var(--line);
+padding:10px;
+border-radius:12px;
+overflow:auto;
+}
+
+button{
+background:linear-gradient(180deg,var(--saffron),var(--saffron2));
+border:none;
+padding:8px 14px;
+border-radius:12px;
+cursor:pointer;
+font-weight:600;
+}
+
+@media(max-width:900px){
+.grid{grid-template-columns:1fr;}
 }
 
 </style>
@@ -42,73 +144,195 @@ display:block;
 
 <body>
 
+<div class="wrap">
+
+<header>
+
+<div class="brand">
+<div class="logo">PP</div>
+<div class="title" id="siteTitle">Saturday Questions</div>
+</div>
+
+<div id="todayDate"></div>
+
+</header>
+
 <div class="banner" id="banner"></div>
+
+<div class="grid">
+
+<div class="panel">
+
+<input id="search"
+placeholder="Search questions"
+style="width:100%;padding:8px;margin-bottom:10px">
+
+<div id="qList"></div>
+
+</div>
+
+<div class="panel">
+
+<h2 id="qTitle">Select a question</h2>
+
+<div id="problem" class="problem"></div>
+
+<h3>Starter Code</h3>
+
+<pre id="starter"></pre>
+
+<h3>Solution</h3>
+
+<pre id="solution"></pre>
+
+</div>
+
+</div>
+
+</div>
+
 
 <script>
 
-let META={};
+let META={}
+let QUESTIONS=[]
+
+function escapeHTML(s){
+return String(s)
+.replaceAll("&","&amp;")
+.replaceAll("<","&lt;")
+.replaceAll(">","&gt;")
+}
 
 function defaultBannerSVG(){
 
 return `
-<svg viewBox="0 0 1200 280" width="100%" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 1200 260"
+xmlns="http://www.w3.org/2000/svg">
 
 <defs>
+
 <linearGradient id="g" x1="0" x2="1">
+
 <stop offset="0" stop-color="#ff9f1c"/>
+
 <stop offset="1" stop-color="#ffb74d"/>
+
 </linearGradient>
+
 </defs>
 
-<rect width="1200" height="280" fill="url(#g)" rx="28"/>
+<rect width="1200" height="260"
+fill="url(#g)" rx="30"/>
 
-<text x="100" y="150"
-font-size="48"
+<text
+x="100"
+y="130"
+font-size="46"
 font-weight="900"
 fill="#111"
 font-family="system-ui">
+
 Programmer’s Picnic
+
 </text>
 
-<text x="100" y="200"
+<text
+x="100"
+y="180"
 font-size="24"
 fill="#111"
 font-family="system-ui">
+
 Saturday Questions
+
 </text>
 
 </svg>
-`;
+`
 }
 
 
 
 function renderBanner(){
 
-const banner= META.banner || {};
+const b=META.banner||{}
 
-const type=banner.type || "default";
+const type=b.type||"default"
 
-const container=document.getElementById("banner");
+const el=document.getElementById("banner")
 
-if(type==="image" && banner.image_url){
+if(type==="image" && b.image_url){
 
-container.innerHTML=
-`<img src="${banner.image_url}">`;
+el.innerHTML=`<img src="${b.image_url}" alt="banner">`
 
-return;
-
-}
-
-if(type==="svg" && banner.svg_html){
-
-container.innerHTML=banner.svg_html;
-
-return;
+return
 
 }
 
-container.innerHTML=defaultBannerSVG();
+if(type==="svg" && b.svg_html){
+
+el.innerHTML=b.svg_html
+
+return
+
+}
+
+el.innerHTML=defaultBannerSVG()
+
+}
+
+
+
+function renderList(list){
+
+const box=document.getElementById("qList")
+
+box.innerHTML=""
+
+list.forEach(q=>{
+
+const div=document.createElement("div")
+
+div.className="q-item"
+
+div.textContent=q.title
+
+div.onclick=()=>selectQuestion(q)
+
+box.appendChild(div)
+
+})
+
+}
+
+
+
+function selectQuestion(q){
+
+document.getElementById("qTitle").textContent=q.title
+
+document.getElementById("problem").textContent=q.prompt
+
+document.getElementById("starter").textContent=q.starter_code||""
+
+document.getElementById("solution").textContent=q.solution_code||""
+
+}
+
+
+
+function filter(){
+
+const s=document.getElementById("search").value.toLowerCase()
+
+const list=QUESTIONS.filter(q=>
+
+q.title.toLowerCase().includes(s)
+
+)
+
+renderList(list)
 
 }
 
@@ -116,17 +340,27 @@ container.innerHTML=defaultBannerSVG();
 
 async function load(){
 
-const res=await fetch("questions.json");
+const res=await fetch("questions.json")
 
-const data=await res.json();
+const data=await res.json()
 
-META=data.meta||{};
+META=data.meta||{}
 
-renderBanner();
+QUESTIONS=data.questions||[]
+
+document.getElementById("siteTitle").textContent=META.site_title||"Saturday Questions"
+
+document.getElementById("todayDate").textContent=META.today_date||""
+
+renderBanner()
+
+renderList(QUESTIONS)
 
 }
 
-load();
+document.getElementById("search").addEventListener("input",filter)
+
+load()
 
 </script>
 
