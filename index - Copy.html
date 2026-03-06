@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Learning Sutras — Knowledge Search</title>
+    <meta
+      name="description"
+      content="Search your Learning Sutras knowledge library using a public JSON feed. Built for Programmer’s Picnic by Champak Roy."
+    />
+    <meta name="theme-color" content="#d97706" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+
+  <body>
+    <div class="topbar">
+      <div class="row wrap">
+        <div class="brand" role="banner">
+          <div class="logo" aria-hidden="true"></div>
+          <div>
+            <h1>Learning Sutras — Knowledge Search</h1>
+            <p>Programmer’s Picnic • Champak Roy</p>
+          </div>
+        </div>
+
+        <div class="actions">
+          <div class="gqWrap" id="gqWrap" style="width: min(520px, 70vw)">
+            <label class="sr" for="gq">Search</label>
+            <input
+              id="gq"
+              class="input"
+              placeholder="Search: Python, DSA, VS Code, projects, interview…"
+              autocomplete="off"
+            />
+            <div
+              class="suggest"
+              id="gqSuggest"
+              role="listbox"
+              aria-label="Search suggestions"
+              hidden
+            ></div>
+          </div>
+
+          <!-- VOICE CONTROLS -->
+          <button
+            class="voiceBtn"
+            id="btnVoiceGlobal"
+            type="button"
+            aria-pressed="false"
+            title="Voice search"
+          >
+            🎙️ Voice
+          </button>
+
+          <button
+            class="voiceBtn"
+            id="btnSpeakResults"
+            type="button"
+            title="Speak results"
+          >
+            🔊 Speak
+          </button>
+
+          <span class="voicePill" id="voicePill" aria-live="polite">
+            <span class="voiceDot" aria-hidden="true"></span>
+            <span id="voiceMsg">Voice: off</span>
+          </span>
+
+          <a
+            class="btn green"
+            id="btnWhatsApp"
+            target="_blank"
+            rel="noopener"
+            title="WhatsApp"
+          >
+            🟢 WhatsApp
+          </a>
+
+          <button class="btn" id="btnRefresh" title="Reload">🔄 Refresh</button>
+          <button class="btn primary" id="btnLoadMore" title="Load more">
+            ➕ Load more
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="wrap">
+      <section class="card hero">
+        <div class="heroGrid">
+          <div>
+            <span class="badge"><i></i> Quick Search</span>
+            <h2 class="heroTitle">Find anything fast — Programmer's Picnic</h2>
+            <p class="heroSub">Programmer's Picnic Database.</p>
+
+            <div class="heroBtns">
+              <button class="btn primary" id="btnOpenAll">
+                🔎 Jump to results
+              </button>
+              <button class="btn" id="btnClear">🧹 Clear</button>
+              <button class="btn" id="btnSettings">⚙️ Source</button>
+              <button class="btn" id="btnStop" title="Stop loading" disabled>
+                ⛔ Stop
+              </button>
+              <button class="btn" id="btnJumpLab" title="Open practice lab">
+                🧪 Practice Lab
+              </button>
+            </div>
+
+            <div style="margin-top: 12px">
+              <div class="hint" id="crawlMsg">—</div>
+              <div class="bar" style="margin-top: 8px">
+                <i id="crawlBar"></i>
+              </div>
+            </div>
+          </div>
+
+          <aside class="heroAside">
+            <div class="mini">
+              <h3>Programmer’s Picnic</h3>
+              <p>
+                Need help in software coaching, projects, interviews, or
+                development? Tap WhatsApp and message <b>+91 93358 74326</b>.
+              </p>
+            </div>
+            <div class="mini">
+              <h3>Tip</h3>
+              <p>
+                Use labels like <b>Python</b>, <b>DSA</b>, <b>Projects</b>.
+                Label filtering is the fastest way to narrow down.
+              </p>
+            </div>
+            <div class="mini">
+              <h3>Offline cache</h3>
+              <p>
+                Results are stored
+                <span class="mono">locally</span> so repeat visits are fast.
+              </p>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="mainGrid">
+        <div class="card">
+          <div class="controls">
+            <div class="row2">
+              <div class="field">
+                <div class="label">Search</div>
+                <input
+                  class="input"
+                  id="q"
+                  placeholder="Filter by title + summary + labels…"
+                />
+              </div>
+              <div class="field">
+                <div class="label">Sort</div>
+                <select class="select" id="sort">
+                  <option value="new">Newest</option>
+                  <option value="old">Oldest</option>
+                  <option value="alpha">A → Z</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="chips" id="chips" aria-label="Label filters"></div>
+
+            <div class="statusRow">
+              <div class="hint" id="status">Loading…</div>
+              <div class="hint" id="loaded">—</div>
+            </div>
+          </div>
+
+          <div class="results">
+            <div class="resultsHead">
+              <h2 id="count">Results</h2>
+              <div class="hint">
+                Click a card to preview • “Open” goes to the source page
+              </div>
+            </div>
+
+            <!-- Featured -->
+            <div id="featuredBox" class="featuredBox" hidden>
+              <div class="featuredHead">
+                <div>
+                  <h3>⭐ Featured Posts</h3>
+                  <p class="hint" id="featuredHint" style="margin-top: 6px">
+                    Posts marked with featured labels.
+                  </p>
+                </div>
+                <div class="hint">
+                  Tip: add label <b>Featured</b> to any Blogger post
+                </div>
+              </div>
+              <div id="featuredGrid" class="featuredGrid"></div>
+            </div>
+
+            <div class="grid" id="grid" aria-live="polite"></div>
+          </div>
+        </div>
+
+        <aside class="card side">
+          <div class="stat">
+            <div>
+              <b>Total indexed</b>
+              <span id="stTotal">0</span>
+            </div>
+            <div>
+              <b>Labels</b>
+              <span id="stLabels">0</span>
+            </div>
+          </div>
+
+          <div class="stat" style="margin-top: 10px">
+            <div>
+              <b>Loaded so far</b>
+              <span id="stLoaded">0</span>
+            </div>
+            <div>
+              <b>Start index</b>
+              <span id="stStart">1</span>
+            </div>
+          </div>
+
+          <div class="mini" style="margin-top: 12px">
+            <h3>Quick filters</h3>
+            <p class="miniBtns">
+              <button class="btn" id="btnOnlyPython">🐍 Python</button>
+              <button class="btn" id="btnOnlyDSA">🧠 DSA</button>
+              <button class="btn" id="btnOnlyProjects">🧩 Projects</button>
+            </p>
+            <p style="margin-top: 10px" class="hint">Toggle the labels.</p>
+          </div>
+
+          <div class="mini" style="margin-top: 12px">
+            <h3>Label directory</h3>
+            <p class="hint" style="margin-top: 6px">
+              Click any label below to view matching results.
+            </p>
+            <div class="labList" id="labDir"></div>
+          </div>
+
+          <div class="mini" style="margin-top: 12px">
+            <h3>Need help?</h3>
+            <p>
+              Coaching • Projects • Interview prep • Development support —
+              message Champak Roy on WhatsApp:
+              <b>+91 93358 74326</b>
+            </p>
+            <p style="margin-top: 8px">
+              <a
+                class="btn green"
+                target="_blank"
+                rel="noopener"
+                href="#"
+                id="btnWhatsApp2"
+                >🟢 WhatsApp now</a
+              >
+            </p>
+          </div>
+        </aside>
+      </section>
+
+      <!-- PRACTICE LAB -->
+      <section class="card labSection" id="ppLab">
+        <div class="labHead">
+          <div>
+            <h2>🧪 Practice Lab — Embedded Editors</h2>
+            <p>
+              Switch tabs for Python, JavaScript, SQL, HTML Preview and MongoDB.
+              Use “Open Fullscreen” any time.
+            </p>
+          </div>
+          <div class="hint">
+            Tip: Search something → open a result → come back and practice here.
+          </div>
+        </div>
+
+        <div class="embedWrap">
+          <div class="embedTop">
+            <div class="tabs" role="tablist" aria-label="Practice Lab Tabs">
+              <button
+                class="tabBtn on"
+                type="button"
+                data-labtab="py"
+                role="tab"
+                aria-selected="true"
+              >
+                🐍 Python
+              </button>
+              <button
+                class="tabBtn"
+                type="button"
+                data-labtab="js"
+                role="tab"
+                aria-selected="false"
+              >
+                🟨 JavaScript
+              </button>
+              <button
+                class="tabBtn"
+                type="button"
+                data-labtab="sql"
+                role="tab"
+                aria-selected="false"
+              >
+                🧱 SQL
+              </button>
+              <button
+                class="tabBtn"
+                type="button"
+                data-labtab="html"
+                role="tab"
+                aria-selected="false"
+              >
+                🧾 HTML Preview
+              </button>
+              <button
+                class="tabBtn"
+                type="button"
+                data-labtab="mongo"
+                role="tab"
+                aria-selected="false"
+              >
+                🍃 MongoDB
+              </button>
+            </div>
+
+            <div class="embedActions">
+              <button class="btn" id="labReload" type="button">🔄 Reload</button>
+              <a
+                class="btn primary"
+                id="labOpenFull"
+                target="_blank"
+                rel="noopener"
+                href="#"
+                >⛶ Open Fullscreen</a
+              >
+            </div>
+          </div>
+
+          <iframe
+            id="labPy"
+            class="embedFrame show"
+            title="Python Editor"
+            loading="lazy"
+            allow="clipboard-read; clipboard-write; fullscreen"
+            allowfullscreen
+            src="https://programmer-s-picnic.github.io/lesson-viewer/python-starter/editor/super?tmode=0"
+          ></iframe>
+
+          <iframe
+            id="labJs"
+            class="embedFrame"
+            title="JavaScript Editor"
+            loading="lazy"
+            allow="clipboard-read; clipboard-write; fullscreen"
+            allowfullscreen
+            src="https://programmer-s-picnic.github.io/lesson-viewer/java-script/editor/"
+          ></iframe>
+
+          <iframe
+            id="labSql"
+            class="embedFrame"
+            title="SQL Editor"
+            loading="lazy"
+            allow="clipboard-read; clipboard-write; fullscreen"
+            allowfullscreen
+            src="https://programmer-s-picnic.github.io/lesson-viewer/sql/premium/"
+          ></iframe>
+
+          <iframe
+            id="labHtml"
+            class="embedFrame"
+            title="HTML Preview Editor"
+            loading="lazy"
+            allow="clipboard-read; clipboard-write; fullscreen"
+            allowfullscreen
+            src="https://www.learnwithchampak.live/2026/01/programmers-picnic-html-preview.html"
+          ></iframe>
+
+          <iframe
+            id="labMongo"
+            class="embedFrame"
+            title="MongoDB Queries Editor"
+            loading="lazy"
+            allow="clipboard-read; clipboard-write; fullscreen"
+            allowfullscreen
+            src="https://www.learnwithchampak.live/2026/02/programmers-picnic-mongodb-queries.html"
+          ></iframe>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <div class="footerRow">
+          <div>© <span id="y"></span> Programmer’s Picnic • Champak Roy</div>
+          <div>Knowledge Search</div>
+        </div>
+      </footer>
+    </div>
+
+    <!-- Modal -->
+    <div class="backdrop" id="backdrop" aria-hidden="true">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+        <div class="modalTop">
+          <strong id="mTitle">Preview</strong>
+          <button class="closeX" id="mClose" aria-label="Close">✕</button>
+        </div>
+        <div class="modalBody">
+          <div class="modalMain" id="mMain"></div>
+          <aside class="modalAside">
+            <div class="kvs" id="mKvs"></div>
+            <div class="modalActions">
+              <a class="btn primary" id="mOpen" target="_blank" rel="noopener">🔗 Open</a>
+              <button class="btn" id="mCopy">📋 Copy</button>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <!-- Floating Open Lab -->
+    <button class="fabLab pulse" id="btnOpenLab" type="button" title="Open Practice Lab">
+      🧪 <span>Open Lab</span> <small>Editors</small>
+    </button>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
