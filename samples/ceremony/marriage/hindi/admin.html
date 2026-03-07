@@ -1,0 +1,1345 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Wedding Invitation & Memoir App</title>
+  <meta
+    name="description"
+    content="A single-file wedding invitation and memoir application with admin editing for date, time, venues, itinerary, images, videos, and memories."
+  />
+  <meta name="theme-color" content="#d97706" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    :root{
+      --saffron:#d97706;
+      --saffron-2:#f59e0b;
+      --rose:#b9385d;
+      --bg:#fff8ef;
+      --panel:rgba(255,255,255,.88);
+      --panel-strong:#ffffff;
+      --ink:#1f2328;
+      --muted:#5b6570;
+      --line:#ecd7bb;
+      --deep:#7a4304;
+      --shadow:0 18px 42px rgba(90,50,8,.10);
+      --shadow-lg:0 28px 80px rgba(90,50,8,.15);
+      --radius:24px;
+      --radius-lg:34px;
+      --maxw:1320px;
+    }
+
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      font-family:Inter,DM Sans,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+      color:var(--ink);
+      line-height:1.6;
+      background:
+        radial-gradient(circle at 8% 10%, rgba(245,158,11,.10), transparent 18%),
+        radial-gradient(circle at 90% 12%, rgba(185,56,93,.08), transparent 18%),
+        linear-gradient(180deg,#fffaf4 0%, #fff8ef 48%, #fff3e9 100%);
+    }
+
+    a{color:inherit;text-decoration:none}
+    img,video{display:block;max-width:100%}
+
+    .container{
+      width:min(calc(100% - 28px), var(--maxw));
+      margin:auto;
+    }
+
+    .topbar{
+      position:sticky;
+      top:0;
+      z-index:50;
+      backdrop-filter:blur(14px);
+      background:rgba(255,248,239,.84);
+      border-bottom:1px solid rgba(236,215,187,.92);
+    }
+
+    .topbar-inner{
+      min-height:74px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      flex-wrap:wrap;
+      padding:10px 0;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      min-width:0;
+    }
+
+    .brand-mark{
+      width:52px;
+      height:52px;
+      border-radius:18px;
+      display:grid;
+      place-items:center;
+      color:#fff;
+      font-weight:800;
+      letter-spacing:.03em;
+      background:linear-gradient(135deg,var(--saffron),var(--saffron-2));
+      box-shadow:0 12px 28px rgba(217,119,6,.24);
+      flex:0 0 auto;
+    }
+
+    .brand-copy h1{
+      margin:0;
+      font-size:1.04rem;
+      line-height:1.1;
+      letter-spacing:-.02em;
+    }
+
+    .brand-copy p{
+      margin:.18rem 0 0;
+      color:var(--muted);
+      font-size:.88rem;
+      line-height:1.2;
+    }
+
+    .toolbar{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+
+    .btn{
+      border:1px solid var(--line);
+      background:#fff;
+      color:var(--ink);
+      padding:10px 14px;
+      border-radius:999px;
+      font:700 .92rem/1 Inter,sans-serif;
+      cursor:pointer;
+      transition:.2s ease;
+      box-shadow:0 4px 14px rgba(31,35,40,.04);
+    }
+
+    .btn:hover{transform:translateY(-1px)}
+    .btn.primary{
+      background:linear-gradient(135deg,var(--saffron),var(--saffron-2));
+      border-color:transparent;
+      color:#fff;
+      box-shadow:0 10px 24px rgba(217,119,6,.22);
+    }
+    .btn.rose{
+      background:linear-gradient(135deg,var(--rose),#d45d80);
+      border-color:transparent;
+      color:#fff;
+    }
+
+    .hero{
+      padding:26px 0 18px;
+    }
+
+    .hero-card{
+      position:relative;
+      overflow:hidden;
+      border:1px solid var(--line);
+      border-radius:40px;
+      background:var(--panel);
+      box-shadow:var(--shadow-lg);
+      min-height:520px;
+    }
+
+    .hero-bg{
+      position:absolute;
+      inset:0;
+      background-size:cover;
+      background-position:center;
+      filter:saturate(1.02);
+      transform:scale(1.01);
+    }
+
+    .hero-overlay{
+      position:absolute;
+      inset:0;
+      background:
+        linear-gradient(180deg, rgba(33,23,12,.18) 0%, rgba(33,23,12,.48) 58%, rgba(33,23,12,.72) 100%);
+    }
+
+    .hero-content{
+      position:relative;
+      z-index:1;
+      padding:34px;
+      min-height:520px;
+      display:flex;
+      flex-direction:column;
+      justify-content:flex-end;
+      color:#fff;
+    }
+
+    .eyebrow{
+      display:inline-flex;
+      width:max-content;
+      align-items:center;
+      gap:10px;
+      padding:8px 14px;
+      border-radius:999px;
+      background:rgba(255,255,255,.16);
+      border:1px solid rgba(255,255,255,.22);
+      font-size:.82rem;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      backdrop-filter:blur(8px);
+      margin-bottom:16px;
+    }
+
+    .eyebrow .dot{
+      width:9px;
+      height:9px;
+      border-radius:50%;
+      background:#ffd178;
+      box-shadow:0 0 0 5px rgba(255,209,120,.14);
+    }
+
+    .hero-title{
+      margin:0;
+      font-size:clamp(2.2rem,4.8vw,4.25rem);
+      line-height:1.02;
+      letter-spacing:-.06em;
+      max-width:12ch;
+      text-shadow:0 8px 28px rgba(0,0,0,.22);
+    }
+
+    .hero-subtitle{
+      margin:14px 0 0;
+      max-width:60ch;
+      color:rgba(255,255,255,.92);
+      font-size:1.05rem;
+    }
+
+    .hero-meta{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:18px;
+    }
+
+    .meta-pill{
+      padding:10px 14px;
+      border-radius:999px;
+      background:rgba(255,255,255,.14);
+      border:1px solid rgba(255,255,255,.20);
+      backdrop-filter:blur(8px);
+      font-weight:700;
+    }
+
+    .hero-actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:18px;
+    }
+
+    .hero-action{
+      padding:11px 15px;
+      border-radius:999px;
+      background:#fff;
+      color:#6e4312;
+      font-weight:800;
+      border:1px solid rgba(255,255,255,.4);
+    }
+
+    .section{
+      padding:18px 0 8px;
+    }
+
+    .panel{
+      border:1px solid var(--line);
+      border-radius:30px;
+      background:var(--panel);
+      box-shadow:var(--shadow);
+      padding:20px;
+      overflow:hidden;
+    }
+
+    .section-head{
+      display:flex;
+      align-items:end;
+      justify-content:space-between;
+      gap:16px;
+      margin-bottom:16px;
+      flex-wrap:wrap;
+    }
+
+    .section-head h2{
+      margin:0;
+      font-size:clamp(1.45rem,2.5vw,2.2rem);
+      line-height:1.08;
+      letter-spacing:-.04em;
+    }
+
+    .section-head p{
+      margin:0;
+      color:var(--muted);
+      max-width:62ch;
+    }
+
+    .invite-grid{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:14px;
+    }
+
+    .stat-card{
+      border:1px solid var(--line);
+      border-radius:22px;
+      background:#fff;
+      padding:16px;
+    }
+
+    .stat-label{
+      color:var(--muted);
+      font-size:.82rem;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      margin-bottom:8px;
+    }
+
+    .stat-value{
+      font-size:1.08rem;
+      font-weight:800;
+      line-height:1.25;
+      color:#6a4011;
+    }
+
+    .two-col{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:18px;
+    }
+
+    .story-card{
+      border:1px solid var(--line);
+      border-radius:24px;
+      background:#fff;
+      padding:18px;
+    }
+
+    .story-card h3{
+      margin:0 0 8px;
+      font-size:1.08rem;
+      letter-spacing:-.02em;
+    }
+
+    .story-card p{
+      margin:0;
+      color:#4d545d;
+    }
+
+    .itinerary{
+      display:grid;
+      gap:14px;
+    }
+
+    .event-row{
+      border:1px solid var(--line);
+      border-radius:24px;
+      background:#fff;
+      padding:16px;
+      display:grid;
+      grid-template-columns:120px 1fr auto;
+      gap:16px;
+      align-items:start;
+    }
+
+    .event-time{
+      border-radius:16px;
+      background:linear-gradient(135deg,#fff3de,#fff9f2);
+      border:1px solid #f3dec4;
+      color:#7b4710;
+      padding:12px;
+      font-weight:800;
+      text-align:center;
+      line-height:1.25;
+    }
+
+    .event-main h3{
+      margin:0 0 4px;
+      font-size:1.05rem;
+      letter-spacing:-.02em;
+    }
+
+    .event-main p{
+      margin:0;
+      color:var(--muted);
+      font-size:.95rem;
+    }
+
+    .event-meta{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:10px;
+    }
+
+    .mini-pill{
+      border:1px solid var(--line);
+      background:#fff8ef;
+      color:#6b4215;
+      border-radius:999px;
+      padding:7px 10px;
+      font-size:.82rem;
+      font-weight:700;
+    }
+
+    .gallery-grid{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:14px;
+    }
+
+    .media-card{
+      border:1px solid var(--line);
+      border-radius:22px;
+      background:#fff;
+      overflow:hidden;
+      box-shadow:0 8px 24px rgba(90,50,8,.05);
+    }
+
+    .media-frame{
+      aspect-ratio:16/10;
+      background:#f8ead8;
+      display:grid;
+      place-items:center;
+      overflow:hidden;
+    }
+
+    .media-frame img,
+    .media-frame video{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+    }
+
+    .media-info{
+      padding:12px 14px;
+    }
+
+    .media-info h3{
+      margin:0 0 4px;
+      font-size:1rem;
+    }
+
+    .media-info p{
+      margin:0;
+      color:var(--muted);
+      font-size:.92rem;
+    }
+
+    .footer-note{
+      color:var(--muted);
+      text-align:center;
+      padding:22px 0 36px;
+      font-size:.95rem;
+    }
+
+    /* Admin drawer */
+    .admin-drawer{
+      position:fixed;
+      top:0;
+      right:0;
+      width:min(520px, 100%);
+      height:100dvh;
+      z-index:120;
+      background:#fffaf4;
+      border-left:1px solid var(--line);
+      box-shadow:-18px 0 40px rgba(50,30,8,.14);
+      transform:translateX(100%);
+      transition:transform .28s ease;
+      display:flex;
+      flex-direction:column;
+    }
+
+    .admin-drawer.open{
+      transform:translateX(0);
+    }
+
+    .admin-head{
+      padding:18px 18px 14px;
+      border-bottom:1px solid var(--line);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      background:rgba(255,248,239,.92);
+      backdrop-filter:blur(10px);
+    }
+
+    .admin-head h2{
+      margin:0;
+      font-size:1.15rem;
+      letter-spacing:-.03em;
+    }
+
+    .admin-body{
+      padding:16px 18px 26px;
+      overflow:auto;
+      display:grid;
+      gap:18px;
+    }
+
+    .admin-section{
+      border:1px solid var(--line);
+      border-radius:22px;
+      background:#fff;
+      padding:14px;
+    }
+
+    .admin-section h3{
+      margin:0 0 12px;
+      font-size:1rem;
+      letter-spacing:-.02em;
+      color:#6c4212;
+    }
+
+    .field{
+      display:grid;
+      gap:7px;
+      margin-bottom:12px;
+    }
+
+    .field:last-child{
+      margin-bottom:0;
+    }
+
+    .field label{
+      font-size:.86rem;
+      font-weight:800;
+      color:#6b4416;
+    }
+
+    .field input,
+    .field textarea,
+    .field select{
+      width:100%;
+      border:1px solid var(--line);
+      border-radius:16px;
+      background:#fff;
+      padding:11px 12px;
+      color:var(--ink);
+      outline:none;
+      resize:vertical;
+    }
+
+    .field textarea{
+      min-height:100px;
+    }
+
+    .admin-grid-2{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+
+    .admin-help{
+      color:var(--muted);
+      font-size:.86rem;
+      margin-top:6px;
+    }
+
+    .repeat-list{
+      display:grid;
+      gap:12px;
+    }
+
+    .repeat-item{
+      border:1px solid #f0dec5;
+      background:#fffaf2;
+      border-radius:18px;
+      padding:12px;
+    }
+
+    .repeat-item-head{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:center;
+      margin-bottom:10px;
+    }
+
+    .repeat-item-head strong{
+      color:#6f4311;
+      font-size:.94rem;
+    }
+
+    .row-actions{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .tiny-btn{
+      border:1px solid var(--line);
+      background:#fff;
+      border-radius:999px;
+      padding:7px 10px;
+      font-size:.8rem;
+      font-weight:800;
+      cursor:pointer;
+      color:#6d4212;
+    }
+
+    .tiny-btn.danger{
+      color:#a12c49;
+      border-color:#efc0cb;
+      background:#fff7fa;
+    }
+
+    .backdrop{
+      position:fixed;
+      inset:0;
+      background:rgba(22,18,12,.34);
+      backdrop-filter:blur(3px);
+      z-index:110;
+      opacity:0;
+      pointer-events:none;
+      transition:.22s ease;
+    }
+
+    .backdrop.show{
+      opacity:1;
+      pointer-events:auto;
+    }
+
+    .empty-state{
+      border:1px dashed #e5cda9;
+      border-radius:20px;
+      padding:18px;
+      text-align:center;
+      color:var(--muted);
+      background:#fffaf3;
+    }
+
+    @media (max-width:1100px){
+      .invite-grid{grid-template-columns:1fr 1fr}
+      .two-col{grid-template-columns:1fr}
+      .gallery-grid{grid-template-columns:1fr 1fr}
+    }
+
+    @media (max-width:760px){
+      .hero-content{padding:22px;min-height:440px}
+      .event-row{grid-template-columns:1fr}
+      .gallery-grid{grid-template-columns:1fr}
+      .invite-grid{grid-template-columns:1fr}
+      .admin-grid-2{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="backdrop" id="backdrop"></div>
+
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <div class="brand">
+        <div class="brand-mark">PP</div>
+        <div class="brand-copy">
+          <h1 id="brandTitle">Wedding Invitation & Memoir</h1>
+          <p id="brandSubtitle">Beautiful invitation, editable itinerary, and memory archive</p>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <a class="btn" href="#schedule">Schedule</a>
+        <a class="btn" href="#memories">Memories</a>
+        <a class="btn" href="#gallery">Gallery</a>
+        <button class="btn" id="exportJsonBtn">Export JSON</button>
+        <label class="btn" for="importJsonInput">Import JSON</label>
+        <input id="importJsonInput" type="file" accept="application/json" hidden />
+        <button class="btn rose" id="resetDataBtn">Reset Demo</button>
+        <button class="btn primary" id="openAdminBtn">Admin</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <div class="hero-card">
+          <div class="hero-bg" id="heroBg"></div>
+          <div class="hero-overlay"></div>
+
+          <div class="hero-content">
+            <div class="eyebrow">
+              <span class="dot"></span>
+              Invitation & Memoir
+            </div>
+
+            <h2 class="hero-title" id="coupleNames">Aarav & Meera</h2>
+            <p class="hero-subtitle" id="heroText">
+              With love, gratitude, and joy, we invite you to celebrate our wedding and relive the beautiful memories that make this journey special.
+            </p>
+
+            <div class="hero-meta">
+              <span class="meta-pill" id="heroDatePill">Sunday, 14 December 2026</span>
+              <span class="meta-pill" id="heroTimePill">6:30 PM onwards</span>
+              <span class="meta-pill" id="heroVenuePill">Rajghat Lawn, Varanasi</span>
+            </div>
+
+            <div class="hero-actions">
+              <a class="hero-action" id="mapLinkBtn" href="#" target="_blank" rel="noopener">Open Venue Map</a>
+              <a class="hero-action" href="#schedule">View Itinerary</a>
+              <a class="hero-action" href="#gallery">See Photos & Videos</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container panel">
+        <div class="section-head">
+          <div>
+            <h2>Invitation Details</h2>
+          </div>
+          <p>Everything below is editable from the admin panel, including date, time, venue, contact info, itinerary, media, and memory notes.</p>
+        </div>
+
+        <div class="invite-grid">
+          <div class="stat-card">
+            <div class="stat-label">Wedding Date</div>
+            <div class="stat-value" id="weddingDateText">Sunday, 14 December 2026</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Main Time</div>
+            <div class="stat-value" id="weddingTimeText">6:30 PM onwards</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Main Venue</div>
+            <div class="stat-value" id="weddingVenueText">Rajghat Lawn, Varanasi</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Contact</div>
+            <div class="stat-value" id="contactText">+91 90000 00000</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="memories">
+      <div class="container panel">
+        <div class="section-head">
+          <div>
+            <h2>Our Story & Memoir</h2>
+          </div>
+          <p>Use this section as an invitation note, a couple story, family note, or memory archive.</p>
+        </div>
+
+        <div class="two-col" id="storyGrid"></div>
+      </div>
+    </section>
+
+    <section class="section" id="schedule">
+      <div class="container panel">
+        <div class="section-head">
+          <div>
+            <h2>Wedding Itinerary</h2>
+          </div>
+          <p>The admin can add, remove, and reorder events such as mehendi, haldi, tilak, wedding, reception, or family gatherings.</p>
+        </div>
+
+        <div class="itinerary" id="itineraryList"></div>
+      </div>
+    </section>
+
+    <section class="section" id="gallery">
+      <div class="container panel">
+        <div class="section-head">
+          <div>
+            <h2>Photos & Videos</h2>
+          </div>
+          <p>Add image URLs, video URLs, titles, and captions. This can be used for invitation visuals before the wedding and memoir media after the wedding.</p>
+        </div>
+
+        <div class="gallery-grid" id="galleryGrid"></div>
+      </div>
+    </section>
+
+    <div class="footer-note">
+      Built as a single-file invitation and memoir application with editable admin content.
+    </div>
+  </main>
+
+  <aside class="admin-drawer" id="adminDrawer" aria-hidden="true">
+    <div class="admin-head">
+      <h2>Admin Panel</h2>
+      <div class="row-actions">
+        <button class="tiny-btn" id="saveBtn">Save</button>
+        <button class="tiny-btn" id="closeAdminBtn">Close</button>
+      </div>
+    </div>
+
+    <div class="admin-body">
+      <div class="admin-section">
+        <h3>Basic Invitation</h3>
+
+        <div class="field">
+          <label for="adminBrandTitle">Brand / Site Title</label>
+          <input id="adminBrandTitle" type="text" />
+        </div>
+
+        <div class="field">
+          <label for="adminBrandSubtitle">Brand Subtitle</label>
+          <input id="adminBrandSubtitle" type="text" />
+        </div>
+
+        <div class="field">
+          <label for="adminCoupleNames">Main Title / Couple Names</label>
+          <input id="adminCoupleNames" type="text" />
+        </div>
+
+        <div class="field">
+          <label for="adminHeroText">Invitation Message</label>
+          <textarea id="adminHeroText"></textarea>
+        </div>
+
+        <div class="admin-grid-2">
+          <div class="field">
+            <label for="adminWeddingDate">Wedding Date Text</label>
+            <input id="adminWeddingDate" type="text" />
+          </div>
+          <div class="field">
+            <label for="adminWeddingTime">Wedding Time Text</label>
+            <input id="adminWeddingTime" type="text" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="adminWeddingVenue">Wedding Venue</label>
+          <input id="adminWeddingVenue" type="text" />
+        </div>
+
+        <div class="field">
+          <label for="adminMapLink">Google Maps / Venue Link</label>
+          <input id="adminMapLink" type="url" />
+        </div>
+
+        <div class="field">
+          <label for="adminContact">Contact</label>
+          <input id="adminContact" type="text" />
+        </div>
+
+        <div class="field">
+          <label for="adminHeroImage">Hero Background Image URL</label>
+          <input id="adminHeroImage" type="url" />
+          <div class="admin-help">Paste any hosted image URL. Example: a wedding banner, couple photo, venue photo, or invitation background.</div>
+        </div>
+      </div>
+
+      <div class="admin-section">
+        <h3>Memoir / Story Cards</h3>
+        <div class="row-actions" style="margin-bottom:12px;">
+          <button class="tiny-btn" id="addStoryBtn">Add Story Card</button>
+        </div>
+        <div class="repeat-list" id="storyEditorList"></div>
+      </div>
+
+      <div class="admin-section">
+        <h3>Itinerary Editor</h3>
+        <div class="row-actions" style="margin-bottom:12px;">
+          <button class="tiny-btn" id="addEventBtn">Add Event</button>
+        </div>
+        <div class="repeat-list" id="eventEditorList"></div>
+      </div>
+
+      <div class="admin-section">
+        <h3>Gallery Editor</h3>
+        <div class="row-actions" style="margin-bottom:12px;">
+          <button class="tiny-btn" id="addMediaBtn">Add Media</button>
+        </div>
+        <div class="repeat-list" id="mediaEditorList"></div>
+      </div>
+    </div>
+  </aside>
+
+  <script>
+    (() => {
+      const STORAGE_KEY = "pp_wedding_invitation_memoir_app_v1";
+
+      const demoData = {
+        brandTitle: "Wedding Invitation & Memoir",
+        brandSubtitle: "Beautiful invitation, editable itinerary, and memory archive",
+        coupleNames: "Aarav & Meera",
+        heroText: "With love, gratitude, and joy, we invite you to celebrate our wedding and relive the beautiful memories that make this journey special.",
+        weddingDate: "Sunday, 14 December 2026",
+        weddingTime: "6:30 PM onwards",
+        weddingVenue: "Rajghat Lawn, Varanasi",
+        mapLink: "https://maps.google.com/",
+        contact: "+91 90000 00000",
+        heroImage: "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?q=80&w=1600&auto=format&fit=crop",
+        stories: [
+          {
+            title: "Our Invitation Note",
+            body: "We warmly invite you to join us as our families come together in celebration, blessings, music, joy, and unforgettable memories."
+          },
+          {
+            title: "How We Met",
+            body: "Every love story begins with a small moment. Ours grew through shared conversations, trust, kindness, and the love of our families."
+          },
+          {
+            title: "Family Blessings",
+            body: "This occasion is not only about a wedding ceremony. It is about gratitude, elders, traditions, and the joy of being surrounded by loved ones."
+          },
+          {
+            title: "Memoir Note",
+            body: "After the event, this page can continue as a memoir archive with your best pictures, videos, captions, and beautiful recollections."
+          }
+        ],
+        itinerary: [
+          {
+            time: "10:00 AM",
+            title: "Haldi Ceremony",
+            description: "A cheerful family gathering with songs, blessings, and turmeric rituals.",
+            location: "Family Courtyard",
+            map: "https://maps.google.com/"
+          },
+          {
+            time: "4:00 PM",
+            title: "Baraat Departure",
+            description: "The procession begins with music, dance, celebration, and family joy.",
+            location: "Groom Residence",
+            map: "https://maps.google.com/"
+          },
+          {
+            time: "6:30 PM",
+            title: "Wedding Ceremony",
+            description: "Guests are requested to assemble before the main wedding rituals begin.",
+            location: "Rajghat Lawn, Varanasi",
+            map: "https://maps.google.com/"
+          },
+          {
+            time: "9:00 PM",
+            title: "Dinner & Blessings",
+            description: "Dinner service and blessings with the families and guests.",
+            location: "Rajghat Lawn, Varanasi",
+            map: "https://maps.google.com/"
+          }
+        ],
+        media: [
+          {
+            type: "image",
+            title: "Invitation Banner",
+            caption: "Use this space for a couple portrait, invitation banner, venue banner, or family image.",
+            url: "https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=1200&auto=format&fit=crop"
+          },
+          {
+            type: "image",
+            title: "Family Celebration",
+            caption: "Perfect for pre-wedding or post-wedding memoir photography.",
+            url: "https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?q=80&w=1200&auto=format&fit=crop"
+          },
+          {
+            type: "video",
+            title: "Wedding Highlight Video",
+            caption: "Paste a direct MP4 or hosted video URL here.",
+            url: "https://www.w3schools.com/html/mov_bbb.mp4"
+          }
+        ]
+      };
+
+      let state = loadState();
+
+      function loadState() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          return raw ? JSON.parse(raw) : structuredClone(demoData);
+        } catch (err) {
+          return structuredClone(demoData);
+        }
+      }
+
+      function saveState() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      }
+
+      function qs(id) {
+        return document.getElementById(id);
+      }
+
+      function escapeHtml(text) {
+        return String(text ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      function renderPublic() {
+        qs("brandTitle").textContent = state.brandTitle;
+        qs("brandSubtitle").textContent = state.brandSubtitle;
+        qs("coupleNames").textContent = state.coupleNames;
+        qs("heroText").textContent = state.heroText;
+        qs("heroDatePill").textContent = state.weddingDate;
+        qs("heroTimePill").textContent = state.weddingTime;
+        qs("heroVenuePill").textContent = state.weddingVenue;
+        qs("weddingDateText").textContent = state.weddingDate;
+        qs("weddingTimeText").textContent = state.weddingTime;
+        qs("weddingVenueText").textContent = state.weddingVenue;
+        qs("contactText").textContent = state.contact;
+        qs("mapLinkBtn").href = state.mapLink || "#";
+        qs("heroBg").style.backgroundImage = `url("${state.heroImage}")`;
+
+        const storyGrid = qs("storyGrid");
+        storyGrid.innerHTML = state.stories.length
+          ? state.stories.map(story => `
+              <article class="story-card">
+                <h3>${escapeHtml(story.title)}</h3>
+                <p>${escapeHtml(story.body)}</p>
+              </article>
+            `).join("")
+          : `<div class="empty-state">No story cards added yet.</div>`;
+
+        const itineraryList = qs("itineraryList");
+        itineraryList.innerHTML = state.itinerary.length
+          ? state.itinerary.map(item => `
+              <article class="event-row">
+                <div class="event-time">${escapeHtml(item.time)}</div>
+                <div class="event-main">
+                  <h3>${escapeHtml(item.title)}</h3>
+                  <p>${escapeHtml(item.description)}</p>
+                  <div class="event-meta">
+                    <span class="mini-pill">${escapeHtml(item.location)}</span>
+                    ${item.map ? `<a class="mini-pill" href="${escapeHtml(item.map)}" target="_blank" rel="noopener">Open Map</a>` : ""}
+                  </div>
+                </div>
+                <div>
+                  <span class="mini-pill">Editable</span>
+                </div>
+              </article>
+            `).join("")
+          : `<div class="empty-state">No itinerary events added yet.</div>`;
+
+        const galleryGrid = qs("galleryGrid");
+        galleryGrid.innerHTML = state.media.length
+          ? state.media.map(media => `
+              <article class="media-card">
+                <div class="media-frame">
+                  ${
+                    media.type === "video"
+                      ? `<video controls preload="metadata" src="${escapeHtml(media.url)}"></video>`
+                      : `<img src="${escapeHtml(media.url)}" alt="${escapeHtml(media.title)}" loading="lazy" />`
+                  }
+                </div>
+                <div class="media-info">
+                  <h3>${escapeHtml(media.title)}</h3>
+                  <p>${escapeHtml(media.caption)}</p>
+                </div>
+              </article>
+            `).join("")
+          : `<div class="empty-state">No images or videos added yet.</div>`;
+      }
+
+      function populateAdmin() {
+        qs("adminBrandTitle").value = state.brandTitle;
+        qs("adminBrandSubtitle").value = state.brandSubtitle;
+        qs("adminCoupleNames").value = state.coupleNames;
+        qs("adminHeroText").value = state.heroText;
+        qs("adminWeddingDate").value = state.weddingDate;
+        qs("adminWeddingTime").value = state.weddingTime;
+        qs("adminWeddingVenue").value = state.weddingVenue;
+        qs("adminMapLink").value = state.mapLink;
+        qs("adminContact").value = state.contact;
+        qs("adminHeroImage").value = state.heroImage;
+
+        renderStoryEditors();
+        renderEventEditors();
+        renderMediaEditors();
+      }
+
+      function readAdminBasic() {
+        state.brandTitle = qs("adminBrandTitle").value.trim();
+        state.brandSubtitle = qs("adminBrandSubtitle").value.trim();
+        state.coupleNames = qs("adminCoupleNames").value.trim();
+        state.heroText = qs("adminHeroText").value.trim();
+        state.weddingDate = qs("adminWeddingDate").value.trim();
+        state.weddingTime = qs("adminWeddingTime").value.trim();
+        state.weddingVenue = qs("adminWeddingVenue").value.trim();
+        state.mapLink = qs("adminMapLink").value.trim();
+        state.contact = qs("adminContact").value.trim();
+        state.heroImage = qs("adminHeroImage").value.trim();
+      }
+
+      function renderStoryEditors() {
+        const wrap = qs("storyEditorList");
+        wrap.innerHTML = state.stories.length
+          ? state.stories.map((story, i) => `
+              <div class="repeat-item">
+                <div class="repeat-item-head">
+                  <strong>Story Card ${i + 1}</strong>
+                  <div class="row-actions">
+                    <button class="tiny-btn" onclick="window.__moveStory(${i}, -1)">Up</button>
+                    <button class="tiny-btn" onclick="window.__moveStory(${i}, 1)">Down</button>
+                    <button class="tiny-btn danger" onclick="window.__removeStory(${i})">Delete</button>
+                  </div>
+                </div>
+                <div class="field">
+                  <label>Title</label>
+                  <input type="text" value="${escapeHtml(story.title)}" oninput="window.__updateStory(${i}, 'title', this.value)" />
+                </div>
+                <div class="field">
+                  <label>Body</label>
+                  <textarea oninput="window.__updateStory(${i}, 'body', this.value)">${escapeHtml(story.body)}</textarea>
+                </div>
+              </div>
+            `).join("")
+          : `<div class="empty-state">No story cards yet.</div>`;
+      }
+
+      function renderEventEditors() {
+        const wrap = qs("eventEditorList");
+        wrap.innerHTML = state.itinerary.length
+          ? state.itinerary.map((item, i) => `
+              <div class="repeat-item">
+                <div class="repeat-item-head">
+                  <strong>Event ${i + 1}</strong>
+                  <div class="row-actions">
+                    <button class="tiny-btn" onclick="window.__moveEvent(${i}, -1)">Up</button>
+                    <button class="tiny-btn" onclick="window.__moveEvent(${i}, 1)">Down</button>
+                    <button class="tiny-btn danger" onclick="window.__removeEvent(${i})">Delete</button>
+                  </div>
+                </div>
+
+                <div class="admin-grid-2">
+                  <div class="field">
+                    <label>Time</label>
+                    <input type="text" value="${escapeHtml(item.time)}" oninput="window.__updateEvent(${i}, 'time', this.value)" />
+                  </div>
+                  <div class="field">
+                    <label>Title</label>
+                    <input type="text" value="${escapeHtml(item.title)}" oninput="window.__updateEvent(${i}, 'title', this.value)" />
+                  </div>
+                </div>
+
+                <div class="field">
+                  <label>Description</label>
+                  <textarea oninput="window.__updateEvent(${i}, 'description', this.value)">${escapeHtml(item.description)}</textarea>
+                </div>
+
+                <div class="field">
+                  <label>Location</label>
+                  <input type="text" value="${escapeHtml(item.location)}" oninput="window.__updateEvent(${i}, 'location', this.value)" />
+                </div>
+
+                <div class="field">
+                  <label>Location Map Link</label>
+                  <input type="url" value="${escapeHtml(item.map)}" oninput="window.__updateEvent(${i}, 'map', this.value)" />
+                </div>
+              </div>
+            `).join("")
+          : `<div class="empty-state">No itinerary events yet.</div>`;
+      }
+
+      function renderMediaEditors() {
+        const wrap = qs("mediaEditorList");
+        wrap.innerHTML = state.media.length
+          ? state.media.map((item, i) => `
+              <div class="repeat-item">
+                <div class="repeat-item-head">
+                  <strong>Media ${i + 1}</strong>
+                  <div class="row-actions">
+                    <button class="tiny-btn" onclick="window.__moveMedia(${i}, -1)">Up</button>
+                    <button class="tiny-btn" onclick="window.__moveMedia(${i}, 1)">Down</button>
+                    <button class="tiny-btn danger" onclick="window.__removeMedia(${i})">Delete</button>
+                  </div>
+                </div>
+
+                <div class="field">
+                  <label>Type</label>
+                  <select onchange="window.__updateMedia(${i}, 'type', this.value)">
+                    <option value="image" ${item.type === "image" ? "selected" : ""}>Image</option>
+                    <option value="video" ${item.type === "video" ? "selected" : ""}>Video</option>
+                  </select>
+                </div>
+
+                <div class="field">
+                  <label>Title</label>
+                  <input type="text" value="${escapeHtml(item.title)}" oninput="window.__updateMedia(${i}, 'title', this.value)" />
+                </div>
+
+                <div class="field">
+                  <label>Caption</label>
+                  <textarea oninput="window.__updateMedia(${i}, 'caption', this.value)">${escapeHtml(item.caption)}</textarea>
+                </div>
+
+                <div class="field">
+                  <label>Image / Video URL</label>
+                  <input type="url" value="${escapeHtml(item.url)}" oninput="window.__updateMedia(${i}, 'url', this.value)" />
+                </div>
+              </div>
+            `).join("")
+          : `<div class="empty-state">No media items yet.</div>`;
+      }
+
+      function openAdmin() {
+        qs("adminDrawer").classList.add("open");
+        qs("backdrop").classList.add("show");
+        qs("adminDrawer").setAttribute("aria-hidden", "false");
+        populateAdmin();
+      }
+
+      function closeAdmin() {
+        qs("adminDrawer").classList.remove("open");
+        qs("backdrop").classList.remove("show");
+        qs("adminDrawer").setAttribute("aria-hidden", "true");
+      }
+
+      function exportJSON() {
+        const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "wedding-invitation-memoir-data.json";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      }
+
+      function importJSON(file) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const parsed = JSON.parse(String(reader.result));
+            state = parsed;
+            saveState();
+            renderPublic();
+            populateAdmin();
+            alert("JSON imported successfully.");
+          } catch (err) {
+            alert("Invalid JSON file.");
+          }
+        };
+        reader.readAsText(file);
+      }
+
+      function resetDemo() {
+        const ok = confirm("Reset everything to demo data?");
+        if (!ok) return;
+        state = structuredClone(demoData);
+        saveState();
+        renderPublic();
+        populateAdmin();
+      }
+
+      window.__updateStory = (index, key, value) => {
+        state.stories[index][key] = value;
+      };
+
+      window.__removeStory = (index) => {
+        state.stories.splice(index, 1);
+        renderStoryEditors();
+      };
+
+      window.__moveStory = (index, dir) => {
+        const next = index + dir;
+        if (next < 0 || next >= state.stories.length) return;
+        [state.stories[index], state.stories[next]] = [state.stories[next], state.stories[index]];
+        renderStoryEditors();
+      };
+
+      window.__updateEvent = (index, key, value) => {
+        state.itinerary[index][key] = value;
+      };
+
+      window.__removeEvent = (index) => {
+        state.itinerary.splice(index, 1);
+        renderEventEditors();
+      };
+
+      window.__moveEvent = (index, dir) => {
+        const next = index + dir;
+        if (next < 0 || next >= state.itinerary.length) return;
+        [state.itinerary[index], state.itinerary[next]] = [state.itinerary[next], state.itinerary[index]];
+        renderEventEditors();
+      };
+
+      window.__updateMedia = (index, key, value) => {
+        state.media[index][key] = value;
+      };
+
+      window.__removeMedia = (index) => {
+        state.media.splice(index, 1);
+        renderMediaEditors();
+      };
+
+      window.__moveMedia = (index, dir) => {
+        const next = index + dir;
+        if (next < 0 || next >= state.media.length) return;
+        [state.media[index], state.media[next]] = [state.media[next], state.media[index]];
+        renderMediaEditors();
+      };
+
+      qs("openAdminBtn").addEventListener("click", openAdmin);
+      qs("closeAdminBtn").addEventListener("click", closeAdmin);
+      qs("backdrop").addEventListener("click", closeAdmin);
+
+      qs("saveBtn").addEventListener("click", () => {
+        readAdminBasic();
+        saveState();
+        renderPublic();
+        populateAdmin();
+        alert("Saved successfully.");
+      });
+
+      qs("addStoryBtn").addEventListener("click", () => {
+        state.stories.push({
+          title: "New Story Card",
+          body: "Write your memory, family note, invitation paragraph, or event recollection here."
+        });
+        renderStoryEditors();
+      });
+
+      qs("addEventBtn").addEventListener("click", () => {
+        state.itinerary.push({
+          time: "New Time",
+          title: "New Event",
+          description: "Describe this event here.",
+          location: "Venue name",
+          map: "https://maps.google.com/"
+        });
+        renderEventEditors();
+      });
+
+      qs("addMediaBtn").addEventListener("click", () => {
+        state.media.push({
+          type: "image",
+          title: "New Media Item",
+          caption: "Write a caption here.",
+          url: "https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=1200&auto=format&fit=crop"
+        });
+        renderMediaEditors();
+      });
+
+      qs("exportJsonBtn").addEventListener("click", exportJSON);
+      qs("importJsonInput").addEventListener("change", (e) => {
+        const file = e.target.files?.[0];
+        if (file) importJSON(file);
+        e.target.value = "";
+      });
+
+      qs("resetDataBtn").addEventListener("click", resetDemo);
+
+      renderPublic();
+    })();
+  </script>
+</body>
+</html>
