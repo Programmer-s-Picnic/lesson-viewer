@@ -1,0 +1,1821 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Advanced JSON Pattern Editor</title>
+  <meta
+    name="description"
+    content="Advanced JSON editor with tree view, schema editor, JSON Schema export, syntax highlighting, inline error markers, validation, correction suggestions, URL loading, and shareable code hash."
+  />
+  <style>
+    :root{
+      --bg:#0b1020;
+      --bg-soft:#111834;
+      --panel:#121933;
+      --panel-2:#1a2347;
+      --card:#10182f;
+      --text:#e8ecff;
+      --muted:#9aa6d1;
+      --line:rgba(255,255,255,.12);
+      --accent:#7c9cff;
+      --accent-2:#56d6c5;
+      --danger:#ff6b7a;
+      --warn:#ffbe55;
+      --ok:#56d6a2;
+      --shadow:0 20px 60px rgba(0,0,0,.35);
+      --radius:18px;
+      --mono:ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      --sans:Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+      --code-bg:#0a1022;
+      --code-key:#8ab4ff;
+      --code-string:#8ee59d;
+      --code-number:#ffcf75;
+      --code-bool:#ff8da1;
+      --code-null:#c4a1ff;
+      --code-punc:#cfd8ff;
+      --code-line:#7f8ab4;
+      --code-line-active:rgba(255,107,122,.12);
+      --code-line-active-border:rgba(255,107,122,.45);
+      --error-chip-bg:rgba(255,107,122,.14);
+      --error-chip-text:#ffd6dc;
+      --error-col-bg:rgba(255,190,85,.18);
+      --error-col-border:rgba(255,190,85,.75);
+    }
+
+    body.light{
+      --bg:#f7f8fc;
+      --bg-soft:#eef2fb;
+      --panel:#ffffff;
+      --panel-2:#f8faff;
+      --card:#ffffff;
+      --text:#182033;
+      --muted:#5c6885;
+      --line:rgba(24,32,51,.12);
+      --accent:#4f6fff;
+      --accent-2:#0ea5a4;
+      --danger:#d93853;
+      --warn:#b77900;
+      --ok:#168f61;
+      --shadow:0 18px 50px rgba(30,41,59,.10);
+
+      --code-bg:#f6f8fd;
+      --code-key:#2457d6;
+      --code-string:#18794e;
+      --code-number:#a16207;
+      --code-bool:#c2410c;
+      --code-null:#7c3aed;
+      --code-punc:#334155;
+      --code-line:#94a3b8;
+      --code-line-active:rgba(217,56,83,.08);
+      --code-line-active-border:rgba(217,56,83,.28);
+      --error-chip-bg:rgba(217,56,83,.10);
+      --error-chip-text:#8c1d34;
+      --error-col-bg:rgba(183,121,0,.16);
+      --error-col-border:rgba(183,121,0,.55);
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:var(--sans);
+      color:var(--text);
+      background:
+        radial-gradient(circle at top right, rgba(124,156,255,.14), transparent 24%),
+        radial-gradient(circle at bottom left, rgba(86,214,197,.10), transparent 22%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg-soft) 100%);
+      transition:background .2s ease, color .2s ease;
+    }
+
+    .app{
+      max-width:1600px;
+      margin:0 auto;
+      padding:18px;
+    }
+
+    .hero{
+      background:linear-gradient(135deg, rgba(124,156,255,.15), rgba(86,214,197,.08));
+      border:1px solid var(--line);
+      border-radius:24px;
+      padding:22px;
+      box-shadow:var(--shadow);
+      margin-bottom:18px;
+    }
+
+    .hero-top{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+    }
+
+    .hero h1{
+      margin:0 0 8px;
+      font-size:clamp(28px,4vw,42px);
+      line-height:1.08;
+      letter-spacing:-.02em;
+    }
+
+    .hero p{
+      margin:0;
+      color:var(--muted);
+      max-width:960px;
+      font-size:15px;
+      line-height:1.7;
+    }
+
+    .main-grid{
+      display:grid;
+      grid-template-columns:1.2fr 1fr .95fr;
+      gap:18px;
+      align-items:start;
+    }
+
+    .column{
+      display:flex;
+      flex-direction:column;
+      gap:18px;
+      min-width:0;
+    }
+
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.02));
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      min-width:0;
+    }
+
+    .card-header{
+      padding:14px 16px;
+      border-bottom:1px solid var(--line);
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      background:rgba(255,255,255,.02);
+    }
+
+    .card-title{
+      display:flex;
+      flex-direction:column;
+      gap:3px;
+      min-width:0;
+    }
+
+    .card-title h2{
+      margin:0;
+      font-size:16px;
+    }
+
+    .card-title span{
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.4;
+    }
+
+    .toolbar{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    button,
+    .file-label,
+    select{
+      border:1px solid var(--line);
+      background:linear-gradient(180deg, var(--panel-2), var(--panel));
+      color:var(--text);
+      border-radius:12px;
+      padding:10px 12px;
+      font-size:13px;
+      cursor:pointer;
+      transition:.18s ease;
+      font-family:inherit;
+    }
+
+    select{cursor:pointer}
+
+    button:hover,
+    .file-label:hover,
+    select:hover{
+      transform:translateY(-1px);
+      border-color:rgba(124,156,255,.55);
+      box-shadow:0 10px 30px rgba(0,0,0,.12);
+    }
+
+    button.primary{
+      background:linear-gradient(180deg, #7c9cff, #5f82f5);
+      color:#081225;
+      border-color:transparent;
+      font-weight:700;
+    }
+
+    button.ok{
+      background:linear-gradient(180deg, #56d6a2, #30b884);
+      color:#062016;
+      border-color:transparent;
+      font-weight:700;
+    }
+
+    button.warn{
+      background:linear-gradient(180deg, #ffcf75, #ffb648);
+      color:#2b1800;
+      border-color:transparent;
+      font-weight:700;
+    }
+
+    .file-label input{display:none}
+
+    .editor-wrap{padding:16px}
+
+    textarea{
+      width:100%;
+      min-height:320px;
+      resize:vertical;
+      background:var(--code-bg);
+      color:var(--text);
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:16px;
+      font-size:14px;
+      line-height:1.65;
+      font-family:var(--mono);
+      outline:none;
+    }
+
+    textarea:focus{
+      border-color:rgba(124,156,255,.65);
+      box-shadow:0 0 0 4px rgba(124,156,255,.12);
+    }
+
+    .mini{min-height:190px}
+    .section{padding:16px;min-width:0}
+
+    .hintbar{
+      padding:12px 16px 16px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.7;
+      border-top:1px solid var(--line);
+      background:rgba(255,255,255,.02);
+    }
+
+    .hintbar code{
+      background:var(--code-bg);
+      border:1px solid var(--line);
+      padding:2px 6px;
+      border-radius:8px;
+      color:var(--text);
+      font-family:var(--mono);
+      font-size:12px;
+    }
+
+    .status-row{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:12px;
+      padding:16px;
+    }
+
+    .stat{
+      background:rgba(255,255,255,.03);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:14px;
+      min-width:0;
+    }
+
+    .stat-label{
+      color:var(--muted);
+      font-size:12px;
+      margin-bottom:6px;
+    }
+
+    .stat-value{
+      font-size:20px;
+      font-weight:800;
+      letter-spacing:-.02em;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 10px;
+      border-radius:999px;
+      font-size:12px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.03);
+      white-space:nowrap;
+    }
+
+    .pill.ok{color:var(--ok)}
+    .pill.warn{color:var(--warn)}
+    .pill.danger{color:var(--danger)}
+
+    pre{
+      margin:0;
+      white-space:pre-wrap;
+      word-break:break-word;
+      font-family:var(--mono);
+      font-size:13px;
+      line-height:1.65;
+      color:var(--text);
+      background:var(--code-bg);
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:16px;
+      overflow:auto;
+    }
+
+    .result-list{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    .result-item{
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:12px;
+      background:rgba(255,255,255,.025);
+    }
+
+    .result-item strong{
+      display:block;
+      margin-bottom:4px;
+    }
+
+    .muted{color:var(--muted)}
+
+    .split-editor{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+      padding:16px;
+    }
+
+    .pane{min-width:0}
+
+    .pane-label{
+      font-size:12px;
+      color:var(--muted);
+      margin:0 0 8px;
+    }
+
+    .syntax-box{
+      border:1px solid var(--line);
+      border-radius:16px;
+      overflow:auto;
+      background:var(--code-bg);
+      max-height:560px;
+    }
+
+    .syntax-grid{
+      display:grid;
+      grid-template-columns:auto 1fr;
+      min-width:100%;
+    }
+
+    .line-nos,
+    .code-lines{
+      margin:0;
+      padding:12px 0;
+      font-family:var(--mono);
+      font-size:13px;
+      line-height:1.65;
+      white-space:pre;
+    }
+
+    .line-nos{
+      user-select:none;
+      text-align:right;
+      color:var(--code-line);
+      padding-left:12px;
+      padding-right:10px;
+      border-right:1px solid var(--line);
+      background:rgba(255,255,255,.02);
+    }
+
+    .line-no{
+      display:block;
+      min-height:1.65em;
+      padding:0 0 0 0;
+    }
+
+    .line-no.error{
+      background:var(--code-line-active);
+      box-shadow:inset -2px 0 0 var(--code-line-active-border);
+      color:var(--danger);
+      font-weight:700;
+    }
+
+    .code-lines{
+      padding-left:0;
+      padding-right:0;
+      color:var(--text);
+      overflow:auto;
+    }
+
+    .code-line{
+      display:flex;
+      align-items:center;
+      min-height:1.65em;
+      padding:0 12px;
+      position:relative;
+      border-left:3px solid transparent;
+    }
+
+    .code-line.error{
+      background:var(--code-line-active);
+      border-left-color:var(--code-line-active-border);
+    }
+
+    .code-line-text{
+      display:block;
+      width:100%;
+      min-width:0;
+    }
+
+    .error-chip{
+      margin-left:10px;
+      flex:0 0 auto;
+      font-size:11px;
+      line-height:1.3;
+      padding:3px 8px;
+      border-radius:999px;
+      background:var(--error-chip-bg);
+      color:var(--error-chip-text);
+      border:1px solid var(--code-line-active-border);
+      max-width:38%;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      cursor:help;
+    }
+
+    .error-col{
+      background:linear-gradient(180deg, transparent 0 18%, var(--error-col-bg) 18% 84%, transparent 84% 100%);
+      border-bottom:2px solid var(--error-col-border);
+      border-radius:2px;
+    }
+
+    .tok-key{color:var(--code-key)}
+    .tok-string{color:var(--code-string)}
+    .tok-number{color:var(--code-number)}
+    .tok-bool{color:var(--code-bool)}
+    .tok-null{color:var(--code-null)}
+    .tok-punc{color:var(--code-punc)}
+
+    .tree{
+      font-family:var(--mono);
+      font-size:13px;
+      line-height:1.6;
+    }
+
+    .tree details{
+      margin-left:12px;
+      padding-left:10px;
+      border-left:1px dashed var(--line);
+    }
+
+    .tree summary{
+      cursor:pointer;
+      list-style:none;
+      outline:none;
+      margin:4px 0;
+      color:var(--text);
+    }
+
+    .tree summary::-webkit-details-marker{display:none}
+    .tree .k{color:var(--code-key)}
+    .tree .s{color:var(--code-string)}
+    .tree .n{color:var(--code-number)}
+    .tree .b{color:var(--code-bool)}
+    .tree .z{color:var(--code-null)}
+    .tree .m{color:var(--muted)}
+
+    .tree .leaf{
+      margin:4px 0 4px 24px;
+      padding-left:8px;
+      border-left:1px dashed var(--line);
+    }
+
+    .footer-note{
+      padding:0 16px 16px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.6;
+    }
+
+    @media (max-width:1400px){
+      .main-grid{grid-template-columns:1fr 1fr}
+      .column.full-span{grid-column:1 / -1}
+    }
+
+    @media (max-width:1024px){
+      .main-grid{grid-template-columns:1fr}
+      .split-editor{grid-template-columns:1fr}
+      .status-row{grid-template-columns:1fr 1fr}
+    }
+
+    @media (max-width:720px){
+      .hero-top,
+      .card-header{
+        flex-direction:column;
+        align-items:flex-start;
+      }
+
+      .toolbar{justify-content:flex-start}
+      .error-chip{max-width:50%}
+    }
+
+    @media (max-width:520px){
+      .status-row{grid-template-columns:1fr}
+      .error-chip{display:none}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section class="hero">
+      <div class="hero-top">
+        <div>
+          <h1>Advanced JSON Pattern Editor</h1>
+          <p>
+            Create JSON, detect patterns from a sample, edit schema side by side, export as JSON Schema,
+            inspect the JSON tree, highlight syntax with line numbers, show inline error markers by line and column,
+            validate and auto-correct common mistakes, load content from URL parameters, and share the editor via <code>#code</code>.
+          </p>
+        </div>
+        <div class="toolbar">
+          <button id="btnTheme">Toggle Theme</button>
+        </div>
+      </div>
+    </section>
+
+    <div class="main-grid">
+      <div class="column">
+        <section class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <h2>JSON Editor + Highlighted Preview</h2>
+              <span>Main editor with line-based syntax highlighting and inline error markers</span>
+            </div>
+            <div class="toolbar">
+              <button id="btnFormat" class="primary">Format JSON</button>
+              <button id="btnValidate">Validate</button>
+              <button id="btnSuggest" class="warn">Suggest Fixes</button>
+              <button id="btnDownload" class="ok">Download JSON</button>
+              <button id="btnShareCode">Share #code URL</button>
+              <label class="file-label">
+                Load JSON
+                <input type="file" id="fileInput" accept=".json,application/json" />
+              </label>
+            </div>
+          </div>
+
+          <div class="split-editor">
+            <div class="pane">
+              <div class="pane-label">Editable JSON</div>
+              <textarea id="jsonEditor" spellcheck="false">{
+  "name": "Champak",
+  "age": 30,
+  "skills": ["JavaScript", "Python"],
+  "active": true,
+  "address": {
+    "city": "Varanasi",
+    "pin": 221001
+  }
+}</textarea>
+            </div>
+
+            <div class="pane">
+              <div class="pane-label">Highlighted preview</div>
+              <div class="syntax-box">
+                <div class="syntax-grid">
+                  <pre id="lineNos" class="line-nos"></pre>
+                  <div id="codePreview" class="code-lines"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="hintbar">
+            Supported URL loading:
+            <code>?json=...</code>
+            <code>?sample=...</code>
+            <code>?jsonUrl=...</code>
+            <code>?sampleUrl=...</code>
+            and sharing with
+            <code>#code=...</code>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <h2>Sample JSON + Detected Schema</h2>
+              <span>Detect a pattern from sample JSON, then inspect or edit the schema</span>
+            </div>
+            <div class="toolbar">
+              <button id="btnDetectPattern" class="primary">Detect Pattern</button>
+              <button id="btnGenerateFromPattern">Generate Starter JSON</button>
+              <button id="btnApplySchema">Apply Schema Editor</button>
+            </div>
+          </div>
+
+          <div class="split-editor">
+            <div class="pane">
+              <div class="pane-label">Sample JSON</div>
+              <textarea id="sampleEditor" class="mini" spellcheck="false">[
+  {
+    "id": 1,
+    "title": "Intro to JSON",
+    "tags": ["json", "schema"],
+    "published": true
+  },
+  {
+    "id": 2,
+    "title": "Advanced JSON",
+    "tags": ["editor", "validation"],
+    "published": false
+  }
+]</textarea>
+            </div>
+
+            <div class="pane">
+              <div class="pane-label">Schema editor</div>
+              <textarea id="schemaEditor" class="mini" spellcheck="false">{
+  "type": "object",
+  "properties": {},
+  "required": []
+}</textarea>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="column">
+        <section class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <h2>Status</h2>
+              <span>Validation and structure summary</span>
+            </div>
+            <div id="validityPill" class="pill warn">Waiting for validation</div>
+          </div>
+          <div class="status-row">
+            <div class="stat">
+              <div class="stat-label">JSON Status</div>
+              <div class="stat-value" id="statStatus">Unknown</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Top Level</div>
+              <div class="stat-value" id="statTopLevel">-</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Keys</div>
+              <div class="stat-value" id="statKeys">0</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Characters</div>
+              <div class="stat-value" id="statChars">0</div>
+            </div>
+          </div>
+          <div class="footer-note">
+            The fixer handles common issues such as smart quotes, trailing commas, single quotes,
+            unquoted keys, and missing closing braces or brackets.
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <h2>Detected Pattern</h2>
+              <span>Human-readable inferred structure</span>
+            </div>
+          </div>
+          <div class="section">
+            <pre id="patternOutput">No pattern detected yet.</pre>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <h2>JSON Schema Export</h2>
+              <span>Standard JSON Schema generated from the detected pattern</span>
+            </div>
+            <div class="toolbar">
+              <button id="btnExportJsonSchema">Export JSON Schema</button>
+              <button id="btnDownloadSchema">Download Schema</button>
+            </div>
+          </div>
+          <div class="section">
+            <pre id="jsonSchemaOutput">No JSON Schema exported yet.</pre>
+          </div>
+        </section>
+      </div>
+
+      <div class="column full-span">
+        <section class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <h2>JSON Tree View</h2>
+              <span>Expandable tree view of the current JSON document</span>
+            </div>
+            <div class="toolbar">
+              <button id="btnRefreshTree">Refresh Tree</button>
+            </div>
+          </div>
+          <div class="section">
+            <div id="treeOutput" class="tree">Tree view will appear here after validation.</div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <h2>Suggestions / Errors</h2>
+              <span>Validation messages and correction proposals</span>
+            </div>
+          </div>
+          <div class="section">
+            <div id="messages" class="result-list">
+              <div class="result-item">
+                <strong>Ready</strong>
+                <div class="muted">Run validation or suggestion tools to see analysis.</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <h2>Corrected Preview</h2>
+              <span>Best-effort auto-corrected JSON</span>
+            </div>
+            <div class="toolbar">
+              <button id="btnUseCorrected">Use Corrected JSON</button>
+            </div>
+          </div>
+          <div class="section">
+            <pre id="correctedOutput">No corrected JSON generated yet.</pre>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const jsonEditor = document.getElementById("jsonEditor");
+    const sampleEditor = document.getElementById("sampleEditor");
+    const schemaEditor = document.getElementById("schemaEditor");
+    const patternOutput = document.getElementById("patternOutput");
+    const jsonSchemaOutput = document.getElementById("jsonSchemaOutput");
+    const correctedOutput = document.getElementById("correctedOutput");
+    const treeOutput = document.getElementById("treeOutput");
+    const codePreview = document.getElementById("codePreview");
+    const lineNos = document.getElementById("lineNos");
+    const messages = document.getElementById("messages");
+
+    const statStatus = document.getElementById("statStatus");
+    const statTopLevel = document.getElementById("statTopLevel");
+    const statKeys = document.getElementById("statKeys");
+    const statChars = document.getElementById("statChars");
+    const validityPill = document.getElementById("validityPill");
+
+    const btnFormat = document.getElementById("btnFormat");
+    const btnValidate = document.getElementById("btnValidate");
+    const btnSuggest = document.getElementById("btnSuggest");
+    const btnDownload = document.getElementById("btnDownload");
+    const btnShareCode = document.getElementById("btnShareCode");
+    const btnDetectPattern = document.getElementById("btnDetectPattern");
+    const btnGenerateFromPattern = document.getElementById("btnGenerateFromPattern");
+    const btnApplySchema = document.getElementById("btnApplySchema");
+    const btnExportJsonSchema = document.getElementById("btnExportJsonSchema");
+    const btnDownloadSchema = document.getElementById("btnDownloadSchema");
+    const btnUseCorrected = document.getElementById("btnUseCorrected");
+    const btnRefreshTree = document.getElementById("btnRefreshTree");
+    const btnTheme = document.getElementById("btnTheme");
+    const fileInput = document.getElementById("fileInput");
+
+    let lastDetectedPattern = null;
+    let lastExportedJsonSchema = null;
+    let lastCorrectedJSON = "";
+    let lastValidationError = null;
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function setMessages(items) {
+      messages.innerHTML = "";
+      if (!items || !items.length) {
+        messages.innerHTML = `
+          <div class="result-item">
+            <strong>No messages</strong>
+            <div class="muted">Everything looks clear right now.</div>
+          </div>
+        `;
+        return;
+      }
+
+      for (const item of items) {
+        const div = document.createElement("div");
+        div.className = "result-item";
+        div.innerHTML = `
+          <strong>${escapeHtml(item.title)}</strong>
+          <div class="muted">${escapeHtml(item.body)}</div>
+        `;
+        messages.appendChild(div);
+      }
+    }
+
+    function parseJSONSafe(text) {
+      try {
+        return { ok: true, value: JSON.parse(text) };
+      } catch (error) {
+        return { ok: false, error };
+      }
+    }
+
+    function countKeysDeep(value) {
+      if (Array.isArray(value)) {
+        return value.reduce((sum, item) => sum + countKeysDeep(item), 0);
+      }
+      if (value && typeof value === "object") {
+        return Object.keys(value).length + Object.values(value).reduce((sum, item) => sum + countKeysDeep(item), 0);
+      }
+      return 0;
+    }
+
+    function updateStatsFromText(text, parsed = null) {
+      statChars.textContent = text.length.toLocaleString();
+
+      if (!parsed) {
+        statTopLevel.textContent = "-";
+        statKeys.textContent = "0";
+        return;
+      }
+
+      statTopLevel.textContent = Array.isArray(parsed)
+        ? "Array"
+        : typeof parsed === "object" && parsed !== null
+        ? "Object"
+        : typeof parsed;
+
+      statKeys.textContent = countKeysDeep(parsed).toLocaleString();
+    }
+
+    function setValidity(status, kind) {
+      statStatus.textContent = status;
+      validityPill.className = "pill";
+      if (kind === "ok") {
+        validityPill.classList.add("ok");
+        validityPill.textContent = "Valid JSON";
+      } else if (kind === "danger") {
+        validityPill.classList.add("danger");
+        validityPill.textContent = "Invalid JSON";
+      } else {
+        validityPill.classList.add("warn");
+        validityPill.textContent = "Waiting for validation";
+      }
+    }
+
+    function inferType(value) {
+      if (value === null) return "null";
+
+      if (Array.isArray(value)) {
+        if (value.length === 0) {
+          return { type: "array", items: "unknown" };
+        }
+        const inferredItems = mergeSchemas(value.map(inferType));
+        return { type: "array", items: inferredItems };
+      }
+
+      if (typeof value === "object") {
+        const fields = {};
+        for (const key of Object.keys(value)) {
+          fields[key] = inferType(value[key]);
+        }
+        return { type: "object", fields };
+      }
+
+      return typeof value;
+    }
+
+    function isSameSchema(a, b) {
+      return JSON.stringify(a) === JSON.stringify(b);
+    }
+
+    function uniqueSchemas(list) {
+      const out = [];
+      for (const item of list) {
+        if (!out.some(x => isSameSchema(x, item))) out.push(item);
+      }
+      return out;
+    }
+
+    function mergeSchemas(schemas) {
+      const cleaned = uniqueSchemas(schemas.filter(Boolean));
+      if (cleaned.length === 0) return "unknown";
+      if (cleaned.length === 1) return cleaned[0];
+
+      const allStrings = cleaned.every(x => typeof x === "string");
+      if (allStrings) {
+        return { anyOf: cleaned.sort() };
+      }
+
+      const allArrays = cleaned.every(x => x && typeof x === "object" && x.type === "array");
+      if (allArrays) {
+        return {
+          type: "array",
+          items: mergeSchemas(cleaned.map(x => x.items))
+        };
+      }
+
+      const allObjects = cleaned.every(x => x && typeof x === "object" && x.type === "object");
+      if (allObjects) {
+        const allKeys = new Set();
+        cleaned.forEach(obj => Object.keys(obj.fields || {}).forEach(k => allKeys.add(k)));
+
+        const mergedFields = {};
+        for (const key of allKeys) {
+          const fieldSchemas = [];
+          for (const obj of cleaned) {
+            if (obj.fields && key in obj.fields) {
+              fieldSchemas.push(obj.fields[key]);
+            } else {
+              fieldSchemas.push("optional");
+            }
+          }
+          mergedFields[key] = mergeSchemas(fieldSchemas);
+        }
+
+        return { type: "object", fields: mergedFields };
+      }
+
+      return { anyOf: cleaned };
+    }
+
+    function schemaToString(schema, indent = 0) {
+      const pad = "  ".repeat(indent);
+
+      if (typeof schema === "string") return schema;
+      if (!schema) return "unknown";
+
+      if (schema.anyOf) {
+        return schema.anyOf.map(s => schemaToString(s, indent)).join(" | ");
+      }
+
+      if (schema.type === "array") {
+        return `array<${schemaToString(schema.items, indent + 1)}>`;
+      }
+
+      if (schema.type === "object") {
+        const lines = ["object {"];
+        for (const [key, value] of Object.entries(schema.fields || {})) {
+          lines.push(`${"  ".repeat(indent + 1)}${key}: ${schemaToString(value, indent + 1)}`);
+        }
+        lines.push(`${pad}}`);
+        return lines.join("\n");
+      }
+
+      return String(schema.type || "unknown");
+    }
+
+    function patternToJsonSchema(pattern) {
+      if (typeof pattern === "string") {
+        switch (pattern) {
+          case "string":
+          case "number":
+          case "boolean":
+          case "null":
+            return { type: pattern };
+          case "optional":
+          case "unknown":
+            return {};
+          default:
+            return {};
+        }
+      }
+
+      if (!pattern) return {};
+
+      if (pattern.anyOf) {
+        return { anyOf: pattern.anyOf.map(patternToJsonSchema) };
+      }
+
+      if (pattern.type === "array") {
+        return {
+          type: "array",
+          items: patternToJsonSchema(pattern.items)
+        };
+      }
+
+      if (pattern.type === "object") {
+        const properties = {};
+        const required = [];
+
+        for (const [key, value] of Object.entries(pattern.fields || {})) {
+          properties[key] = patternToJsonSchema(value);
+          const optionalInUnion =
+            value &&
+            typeof value === "object" &&
+            Array.isArray(value.anyOf) &&
+            value.anyOf.some(v => v === "optional");
+
+          if (!optionalInUnion && value !== "optional") {
+            required.push(key);
+          }
+        }
+
+        const out = {
+          type: "object",
+          properties
+        };
+
+        if (required.length) out.required = required;
+        return out;
+      }
+
+      return {};
+    }
+
+    function buildExampleFromJsonSchema(schema) {
+      if (!schema || typeof schema !== "object") return null;
+
+      if (Array.isArray(schema.anyOf) && schema.anyOf.length) {
+        return buildExampleFromJsonSchema(schema.anyOf[0]);
+      }
+
+      switch (schema.type) {
+        case "string": return "";
+        case "number":
+        case "integer": return 0;
+        case "boolean": return false;
+        case "null": return null;
+        case "array":
+          return [buildExampleFromJsonSchema(schema.items || {})];
+        case "object": {
+          const obj = {};
+          const props = schema.properties || {};
+          for (const key of Object.keys(props)) {
+            obj[key] = buildExampleFromJsonSchema(props[key]);
+          }
+          return obj;
+        }
+        default:
+          return null;
+      }
+    }
+
+    function extractErrorLocation(error) {
+      if (!error || !error.message) return null;
+      const msg = String(error.message);
+
+      const posMatch = msg.match(/position\s+(\d+)/i);
+      if (!posMatch) return null;
+
+      const pos = Number(posMatch[1]);
+      if (!Number.isFinite(pos)) return null;
+
+      const text = jsonEditor.value || "";
+      const boundedPos = Math.max(0, Math.min(pos, text.length));
+      const upto = text.slice(0, boundedPos);
+      const lines = upto.split("\n");
+      const line = lines.length;
+      const column = (lines[lines.length - 1] || "").length + 1;
+
+      return {
+        position: boundedPos,
+        line,
+        column,
+        message: msg
+      };
+    }
+
+    function getErrorHint(message) {
+      const msg = String(message || "").toLowerCase();
+
+      if (msg.includes("unexpected token")) return "Unexpected token";
+      if (msg.includes("unexpected end")) return "Missing closing bracket or brace";
+      if (msg.includes("expected property name")) return "Check key quotes or trailing comma";
+      if (msg.includes("position")) return "Syntax issue near this point";
+      return "JSON syntax error";
+    }
+
+    function tokenizeLineWithErrorHighlight(lineText, errorColumn) {
+      const escaped = escapeHtml(lineText);
+      let html = escaped.replace(
+        /("(?:\\.|[^"\\])*")(\s*:)?|\b(true|false)\b|\bnull\b|-?\b\d+(?:\.\d+)?(?:[eE][+\-]?\d+)?\b|[{}\[\],:]/g,
+        (match, strToken, colonPart, boolToken) => {
+          if (strToken !== undefined) {
+            if (colonPart) {
+              return `<span class="tok-key">${strToken}</span><span class="tok-punc">${colonPart}</span>`;
+            }
+            return `<span class="tok-string">${strToken}</span>`;
+          }
+          if (boolToken !== undefined) return `<span class="tok-bool">${match}</span>`;
+          if (match === "null") return `<span class="tok-null">${match}</span>`;
+          if (/^-?\d/.test(match)) return `<span class="tok-number">${match}</span>`;
+          return `<span class="tok-punc">${match}</span>`;
+        }
+      );
+
+      if (!errorColumn || errorColumn < 1) return html;
+
+      const rawChars = Array.from(lineText);
+      const safeIndex = Math.min(Math.max(errorColumn - 1, 0), rawChars.length);
+      const before = escapeHtml(lineText.slice(0, safeIndex));
+      const targetChar = lineText.charAt(safeIndex) || " ";
+      const after = escapeHtml(lineText.slice(safeIndex + (targetChar ? 1 : 0)));
+
+      const retokenize = (txt) => txt.replace(
+        /("(?:\\.|[^"\\])*")(\s*:)?|\b(true|false)\b|\bnull\b|-?\b\d+(?:\.\d+)?(?:[eE][+\-]?\d+)?\b|[{}\[\],:]/g,
+        (match, strToken, colonPart, boolToken) => {
+          if (strToken !== undefined) {
+            if (colonPart) {
+              return `<span class="tok-key">${strToken}</span><span class="tok-punc">${colonPart}</span>`;
+            }
+            return `<span class="tok-string">${strToken}</span>`;
+          }
+          if (boolToken !== undefined) return `<span class="tok-bool">${match}</span>`;
+          if (match === "null") return `<span class="tok-null">${match}</span>`;
+          if (/^-?\d/.test(match)) return `<span class="tok-number">${match}</span>`;
+          return `<span class="tok-punc">${match}</span>`;
+        }
+      );
+
+      const target = targetChar ? `<span class="error-col">${escapeHtml(targetChar)}</span>` : `<span class="error-col">&nbsp;</span>`;
+      return retokenize(before) + target + retokenize(after);
+    }
+
+    function updateHighlightedPreview() {
+      const text = jsonEditor.value || "";
+      const lines = text.split("\n");
+      const err = lastValidationError;
+
+      lineNos.innerHTML = lines.map((_, i) => {
+        const lineNumber = i + 1;
+        const isError = err && err.line === lineNumber;
+        return `<span class="line-no${isError ? " error" : ""}">${lineNumber}</span>`;
+      }).join("");
+
+      codePreview.innerHTML = lines.map((lineText, i) => {
+        const lineNumber = i + 1;
+        const isError = err && err.line === lineNumber;
+        const lineHtml = tokenizeLineWithErrorHighlight(lineText, isError ? err.column : null);
+        const chip = isError
+          ? `<span class="error-chip" title="${escapeHtml(err.message)}">${escapeHtml(getErrorHint(err.message))} · col ${err.column}</span>`
+          : "";
+        return `
+          <div class="code-line${isError ? " error" : ""}">
+            <span class="code-line-text">${lineHtml || "&nbsp;"}</span>
+            ${chip}
+          </div>
+        `;
+      }).join("");
+    }
+
+    function formatJSON() {
+      const raw = jsonEditor.value.trim();
+      if (!raw) {
+        setMessages([{ title: "Editor is empty", body: "Paste or type some JSON first." }]);
+        return;
+      }
+
+      const result = parseJSONSafe(raw);
+      if (!result.ok) {
+        lastValidationError = extractErrorLocation(result.error);
+        setMessages([{ title: "Cannot format invalid JSON", body: result.error.message }]);
+        setValidity("Invalid", "danger");
+        updateStatsFromText(raw, null);
+        updateHighlightedPreview();
+        return;
+      }
+
+      lastValidationError = null;
+      jsonEditor.value = JSON.stringify(result.value, null, 2);
+      updateHighlightedPreview();
+      refreshTreeFromCurrentEditor();
+      setMessages([{ title: "Formatted successfully", body: "The JSON has been pretty-printed with indentation." }]);
+      setValidity("Valid", "ok");
+      updateStatsFromText(jsonEditor.value, result.value);
+    }
+
+    function renderTreeValue(key, value) {
+      if (Array.isArray(value)) {
+        const children = value.map((item, index) => renderTreeValue(index, item)).join("");
+        return `
+          <details open>
+            <summary><span class="k">${escapeHtml(String(key))}</span>: <span class="m">array(${value.length})</span></summary>
+            ${children}
+          </details>
+        `;
+      }
+
+      if (value && typeof value === "object") {
+        const children = Object.entries(value).map(([k, v]) => renderTreeValue(k, v)).join("");
+        return `
+          <details open>
+            <summary><span class="k">${escapeHtml(String(key))}</span>: <span class="m">object</span></summary>
+            ${children}
+          </details>
+        `;
+      }
+
+      let cls = "s";
+      let display = "";
+
+      if (typeof value === "number") {
+        cls = "n";
+        display = String(value);
+      } else if (typeof value === "boolean") {
+        cls = "b";
+        display = String(value);
+      } else if (value === null) {
+        cls = "z";
+        display = "null";
+      } else {
+        cls = "s";
+        display = `"${String(value)}"`;
+      }
+
+      return `
+        <div class="leaf">
+          <span class="k">${escapeHtml(String(key))}</span>: <span class="${cls}">${escapeHtml(display)}</span>
+        </div>
+      `;
+    }
+
+    function renderTreeRoot(value) {
+      if (Array.isArray(value)) {
+        return `
+          <details open>
+            <summary><span class="m">root</span>: <span class="m">array(${value.length})</span></summary>
+            ${value.map((item, index) => renderTreeValue(index, item)).join("")}
+          </details>
+        `;
+      }
+
+      if (value && typeof value === "object") {
+        return `
+          <details open>
+            <summary><span class="m">root</span>: <span class="m">object</span></summary>
+            ${Object.entries(value).map(([k,v]) => renderTreeValue(k, v)).join("")}
+          </details>
+        `;
+      }
+
+      return renderTreeValue("root", value);
+    }
+
+    function refreshTreeFromCurrentEditor() {
+      const raw = jsonEditor.value.trim();
+      if (!raw) {
+        treeOutput.innerHTML = `<div class="muted">Editor is empty.</div>`;
+        return;
+      }
+
+      const result = parseJSONSafe(raw);
+      if (!result.ok) {
+        treeOutput.innerHTML = `<div class="muted">Tree view unavailable because the JSON is invalid.</div>`;
+        return;
+      }
+
+      treeOutput.innerHTML = renderTreeRoot(result.value);
+    }
+
+    function validateJSON() {
+      const raw = jsonEditor.value.trim();
+      if (!raw) {
+        lastValidationError = null;
+        setMessages([{ title: "Editor is empty", body: "Paste or type JSON to validate it." }]);
+        setValidity("Unknown", "warn");
+        updateStatsFromText("", null);
+        updateHighlightedPreview();
+        refreshTreeFromCurrentEditor();
+        return;
+      }
+
+      const result = parseJSONSafe(raw);
+      if (!result.ok) {
+        lastValidationError = extractErrorLocation(result.error);
+        const errMsg = lastValidationError
+          ? `${result.error.message} Line ${lastValidationError.line}, column ${lastValidationError.column}.`
+          : result.error.message;
+
+        setMessages([{ title: "JSON syntax error", body: errMsg }]);
+        setValidity("Invalid", "danger");
+        updateStatsFromText(raw, null);
+        updateHighlightedPreview();
+        refreshTreeFromCurrentEditor();
+        return;
+      }
+
+      lastValidationError = null;
+      const parsed = result.value;
+      const notes = [];
+
+      if (Array.isArray(parsed)) {
+        notes.push({
+          title: "Valid JSON array",
+          body: `Parsed successfully. Array length: ${parsed.length}.`
+        });
+      } else if (parsed && typeof parsed === "object") {
+        notes.push({
+          title: "Valid JSON object",
+          body: `Parsed successfully. Top-level keys: ${Object.keys(parsed).join(", ") || "none"}.`
+        });
+      } else {
+        notes.push({
+          title: "Valid JSON value",
+          body: `Parsed successfully as type "${typeof parsed}".`
+        });
+      }
+
+      setMessages(notes);
+      setValidity("Valid", "ok");
+      updateStatsFromText(raw, parsed);
+      updateHighlightedPreview();
+      treeOutput.innerHTML = renderTreeRoot(parsed);
+    }
+
+    function detectPattern() {
+      const raw = sampleEditor.value.trim();
+      if (!raw) {
+        setMessages([{ title: "Sample JSON is empty", body: "Paste a JSON sample to infer the pattern." }]);
+        return;
+      }
+
+      const result = parseJSONSafe(raw);
+      if (!result.ok) {
+        setMessages([{ title: "Cannot detect pattern", body: result.error.message }]);
+        patternOutput.textContent = "Pattern detection failed because the sample JSON is invalid.";
+        return;
+      }
+
+      const pattern = inferType(result.value);
+      lastDetectedPattern = pattern;
+      patternOutput.textContent = schemaToString(pattern);
+
+      const schema = patternToJsonSchema(pattern);
+      lastExportedJsonSchema = schema;
+      schemaEditor.value = JSON.stringify(schema, null, 2);
+      jsonSchemaOutput.textContent = JSON.stringify(schema, null, 2);
+
+      setMessages([{ title: "Pattern detected", body: "The structure was inferred and converted into editable JSON Schema." }]);
+    }
+
+    function generateFromPattern() {
+      const schemaResult = parseJSONSafe(schemaEditor.value.trim());
+      if (!schemaResult.ok) {
+        setMessages([{ title: "Schema editor is invalid", body: schemaResult.error.message }]);
+        return;
+      }
+
+      const starter = buildExampleFromJsonSchema(schemaResult.value);
+      jsonEditor.value = JSON.stringify(starter, null, 2);
+      lastValidationError = null;
+      updateHighlightedPreview();
+      validateJSON();
+      setMessages([{ title: "Starter JSON generated", body: "A starter JSON document was created from the schema editor." }]);
+    }
+
+    function applySchemaEditor() {
+      const schemaText = schemaEditor.value.trim();
+      if (!schemaText) {
+        setMessages([{ title: "Schema editor is empty", body: "Enter a JSON Schema first." }]);
+        return;
+      }
+
+      const schemaResult = parseJSONSafe(schemaText);
+      if (!schemaResult.ok) {
+        setMessages([{ title: "Invalid schema JSON", body: schemaResult.error.message }]);
+        return;
+      }
+
+      lastExportedJsonSchema = schemaResult.value;
+      jsonSchemaOutput.textContent = JSON.stringify(schemaResult.value, null, 2);
+      setMessages([{ title: "Schema editor applied", body: "The schema export panel has been updated from the schema editor." }]);
+    }
+
+    function exportJsonSchema() {
+      if (!lastDetectedPattern) {
+        const sampleResult = parseJSONSafe(sampleEditor.value.trim());
+        if (!sampleResult.ok) {
+          setMessages([{ title: "No pattern available", body: "Detect a pattern first or fix the sample JSON." }]);
+          return;
+        }
+        lastDetectedPattern = inferType(sampleResult.value);
+      }
+
+      const schema = patternToJsonSchema(lastDetectedPattern);
+      lastExportedJsonSchema = schema;
+      const pretty = JSON.stringify(schema, null, 2);
+      jsonSchemaOutput.textContent = pretty;
+      schemaEditor.value = pretty;
+
+      setMessages([{ title: "JSON Schema exported", body: "The detected pattern has been converted to standard JSON Schema." }]);
+    }
+
+    function smartFixJSON(raw) {
+      let fixed = raw;
+      const changes = [];
+
+      const before = fixed;
+      fixed = fixed.replace(/[“”]/g, '"').replace(/[‘’]/g, "'");
+      if (fixed !== before) changes.push("Replaced smart quotes with normal quotes.");
+
+      let prev = fixed;
+      fixed = fixed.replace(/,\s*([}\]])/g, "$1");
+      if (fixed !== prev) changes.push("Removed trailing commas before closing brackets or braces.");
+
+      prev = fixed;
+      fixed = fixed.replace(/([{,]\s*)([A-Za-z_$][A-Za-z0-9_$-]*)(\s*:)/g, '$1"$2"$3');
+      if (fixed !== prev) changes.push("Added quotes around unquoted object keys.");
+
+      prev = fixed;
+      fixed = fixed.replace(/'([^'\\]*(?:\\.[^'\\]*)*)'/g, (_, content) => `"${content.replace(/"/g, '\\"')}"`);
+      if (fixed !== prev) changes.push("Converted single-quoted strings to double-quoted JSON strings.");
+
+      const openCurly = (fixed.match(/{/g) || []).length;
+      const closeCurly = (fixed.match(/}/g) || []).length;
+      const openSquare = (fixed.match(/\[/g) || []).length;
+      const closeSquare = (fixed.match(/]/g) || []).length;
+
+      if (openCurly > closeCurly) {
+        fixed += "\n" + "}".repeat(openCurly - closeCurly);
+        changes.push(`Added ${openCurly - closeCurly} missing closing brace(s).`);
+      }
+
+      if (openSquare > closeSquare) {
+        fixed += "\n" + "]".repeat(openSquare - closeSquare);
+        changes.push(`Added ${openSquare - closeSquare} missing closing bracket(s).`);
+      }
+
+      return { fixed, changes };
+    }
+
+    function suggestFixes() {
+      const raw = jsonEditor.value;
+      if (!raw.trim()) {
+        setMessages([{ title: "Editor is empty", body: "Paste invalid or incomplete JSON to get suggestions." }]);
+        return;
+      }
+
+      const firstTry = parseJSONSafe(raw);
+
+      if (firstTry.ok) {
+        lastValidationError = null;
+        correctedOutput.textContent = JSON.stringify(firstTry.value, null, 2);
+        lastCorrectedJSON = correctedOutput.textContent;
+        setMessages([{ title: "No correction needed", body: "The JSON is already valid." }]);
+        setValidity("Valid", "ok");
+        updateStatsFromText(raw, firstTry.value);
+        updateHighlightedPreview();
+        treeOutput.innerHTML = renderTreeRoot(firstTry.value);
+        return;
+      }
+
+      lastValidationError = extractErrorLocation(firstTry.error);
+      const fixedResult = smartFixJSON(raw);
+      const secondTry = parseJSONSafe(fixedResult.fixed);
+
+      const items = [{
+        title: "Original error",
+        body: lastValidationError
+          ? `${firstTry.error.message} Line ${lastValidationError.line}, column ${lastValidationError.column}.`
+          : firstTry.error.message
+      }];
+
+      if (fixedResult.changes.length) {
+        items.push({
+          title: "Automatic corrections attempted",
+          body: fixedResult.changes.join(" ")
+        });
+      } else {
+        items.push({
+          title: "No strong automatic fix found",
+          body: "Try checking quotes, commas, brackets, and key names."
+        });
+      }
+
+      if (secondTry.ok) {
+        const pretty = JSON.stringify(secondTry.value, null, 2);
+        correctedOutput.textContent = pretty;
+        lastCorrectedJSON = pretty;
+
+        items.push({
+          title: "Corrected JSON is valid",
+          body: "A best-effort corrected version has been generated below."
+        });
+
+        setMessages(items);
+        setValidity("Corrected", "ok");
+        updateStatsFromText(pretty, secondTry.value);
+      } else {
+        correctedOutput.textContent = fixedResult.fixed;
+        lastCorrectedJSON = fixedResult.fixed;
+
+        items.push({
+          title: "Still invalid after auto-fix",
+          body: secondTry.error.message
+        });
+
+        setMessages(items);
+        setValidity("Invalid", "danger");
+        updateStatsFromText(raw, null);
+      }
+
+      updateHighlightedPreview();
+      refreshTreeFromCurrentEditor();
+    }
+
+    function useCorrectedJSON() {
+      if (!lastCorrectedJSON) {
+        setMessages([{ title: "No corrected JSON available", body: "Run Suggest Fixes first." }]);
+        return;
+      }
+
+      jsonEditor.value = lastCorrectedJSON;
+      lastValidationError = null;
+      updateHighlightedPreview();
+      validateJSON();
+      setMessages([{ title: "Corrected JSON applied", body: "The corrected preview has been copied into the main editor." }]);
+    }
+
+    function downloadTextFile(filename, content, mimeType) {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function downloadJSON() {
+      const raw = jsonEditor.value.trim();
+      if (!raw) {
+        setMessages([{ title: "Nothing to download", body: "The editor is empty." }]);
+        return;
+      }
+
+      const result = parseJSONSafe(raw);
+      if (!result.ok) {
+        lastValidationError = extractErrorLocation(result.error);
+        updateHighlightedPreview();
+        setMessages([{ title: "Download blocked", body: "The JSON is invalid. Fix it before downloading." }]);
+        return;
+      }
+
+      downloadTextFile("data.json", JSON.stringify(result.value, null, 2), "application/json");
+      setMessages([{ title: "Download started", body: "Your JSON file was generated and downloaded." }]);
+    }
+
+    function downloadSchema() {
+      const schemaText = jsonSchemaOutput.textContent.trim();
+      if (!schemaText || schemaText === "No JSON Schema exported yet.") {
+        setMessages([{ title: "No schema to download", body: "Export a JSON Schema first." }]);
+        return;
+      }
+      downloadTextFile("schema.json", schemaText, "application/json");
+      setMessages([{ title: "Schema download started", body: "The JSON Schema file was generated and downloaded." }]);
+    }
+
+    function loadFile(file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        jsonEditor.value = String(reader.result || "");
+        lastValidationError = null;
+        updateHighlightedPreview();
+        validateJSON();
+      };
+      reader.readAsText(file);
+    }
+
+    function encodeBase64Unicode(str) {
+      return btoa(unescape(encodeURIComponent(str)));
+    }
+
+    function decodeBase64Unicode(str) {
+      return decodeURIComponent(escape(atob(str)));
+    }
+
+    function updateHashWithCode() {
+      const encoded = encodeBase64Unicode(jsonEditor.value || "");
+      history.replaceState(null, "", location.pathname + location.search + "#code=" + encoded);
+      return location.href;
+    }
+
+    async function shareCodeUrl() {
+      const url = updateHashWithCode();
+
+      try {
+        if (navigator.share) {
+          await navigator.share({
+            title: document.title,
+            text: "Shared JSON editor code",
+            url
+          });
+          setMessages([{ title: "Shared", body: "The #code URL was shared successfully." }]);
+          return;
+        }
+      } catch (err) {}
+
+      try {
+        await navigator.clipboard.writeText(url);
+        setMessages([{ title: "Share URL copied", body: "The #code link has been copied to the clipboard." }]);
+      } catch (err) {
+        setMessages([{ title: "Share URL ready", body: url }]);
+      }
+    }
+
+    function getHashParams() {
+      const rawHash = location.hash.startsWith("#") ? location.hash.slice(1) : location.hash;
+      return new URLSearchParams(rawHash);
+    }
+
+    function getQueryParams() {
+      return new URLSearchParams(location.search);
+    }
+
+    function tryLoadFromHash() {
+      const code = getHashParams().get("code");
+      if (!code) return false;
+
+      try {
+        jsonEditor.value = decodeBase64Unicode(code);
+        lastValidationError = null;
+        setMessages([{ title: "Loaded from #code", body: "Editor content was restored from the shared URL hash." }]);
+        return true;
+      } catch (error) {
+        setMessages([{ title: "Invalid #code", body: "The URL hash could not be decoded." }]);
+        return false;
+      }
+    }
+
+    function tryLoadDirectQueryValues() {
+      const params = getQueryParams();
+      let loaded = false;
+
+      const jsonParam = params.get("json");
+      const sampleParam = params.get("sample");
+
+      if (jsonParam !== null) {
+        jsonEditor.value = jsonParam;
+        loaded = true;
+      }
+
+      if (sampleParam !== null) {
+        sampleEditor.value = sampleParam;
+        loaded = true;
+      }
+
+      if (loaded) {
+        lastValidationError = null;
+        setMessages([{ title: "Loaded from query string", body: "Editor content was loaded from GET parameters." }]);
+      }
+
+      return loaded;
+    }
+
+    async function tryLoadRemoteQueryValues() {
+      const params = getQueryParams();
+      const jsonUrl = params.get("jsonUrl");
+      const sampleUrl = params.get("sampleUrl");
+      const notes = [];
+      let loaded = false;
+
+      async function fetchText(url, label) {
+        const res = await fetch(url, { cache: "no-store" });
+        if (!res.ok) throw new Error(`${label} fetch failed with status ${res.status}`);
+        return await res.text();
+      }
+
+      if (jsonUrl) {
+        try {
+          jsonEditor.value = await fetchText(jsonUrl, "jsonUrl");
+          notes.push("Loaded editor JSON from jsonUrl.");
+          loaded = true;
+        } catch (error) {
+          notes.push("Failed to load jsonUrl: " + error.message);
+        }
+      }
+
+      if (sampleUrl) {
+        try {
+          sampleEditor.value = await fetchText(sampleUrl, "sampleUrl");
+          notes.push("Loaded sample JSON from sampleUrl.");
+          loaded = true;
+        } catch (error) {
+          notes.push("Failed to load sampleUrl: " + error.message);
+        }
+      }
+
+      if (notes.length) {
+        setMessages(notes.map((note, i) => ({
+          title: i === 0 ? "URL loading result" : "Info",
+          body: note
+        })));
+      }
+
+      if (loaded) lastValidationError = null;
+      return loaded;
+    }
+
+    function applyTheme(mode) {
+      document.body.classList.toggle("light", mode === "light");
+      localStorage.setItem("json-editor-theme", mode);
+      btnTheme.textContent = mode === "light" ? "Switch to Dark" : "Switch to Light";
+    }
+
+    function toggleTheme() {
+      const next = document.body.classList.contains("light") ? "dark" : "light";
+      applyTheme(next);
+    }
+
+    async function initializeFromUrl() {
+      const loadedFromHash = tryLoadFromHash();
+      const loadedFromDirect = tryLoadDirectQueryValues();
+      const loadedFromRemote = await tryLoadRemoteQueryValues();
+
+      updateHighlightedPreview();
+
+      if (loadedFromHash || loadedFromDirect || loadedFromRemote) {
+        validateJSON();
+      } else {
+        updateStatsFromText(jsonEditor.value, null);
+        setValidity("Unknown", "warn");
+        updateHighlightedPreview();
+        refreshTreeFromCurrentEditor();
+      }
+    }
+
+    btnFormat.addEventListener("click", formatJSON);
+    btnValidate.addEventListener("click", validateJSON);
+    btnSuggest.addEventListener("click", suggestFixes);
+    btnDownload.addEventListener("click", downloadJSON);
+    btnShareCode.addEventListener("click", shareCodeUrl);
+    btnDetectPattern.addEventListener("click", detectPattern);
+    btnGenerateFromPattern.addEventListener("click", generateFromPattern);
+    btnApplySchema.addEventListener("click", applySchemaEditor);
+    btnExportJsonSchema.addEventListener("click", exportJsonSchema);
+    btnDownloadSchema.addEventListener("click", downloadSchema);
+    btnUseCorrected.addEventListener("click", useCorrectedJSON);
+    btnRefreshTree.addEventListener("click", refreshTreeFromCurrentEditor);
+    btnTheme.addEventListener("click", toggleTheme);
+
+    fileInput.addEventListener("change", (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (file) loadFile(file);
+      e.target.value = "";
+    });
+
+    jsonEditor.addEventListener("input", () => {
+      updateStatsFromText(jsonEditor.value, null);
+      setValidity("Editing", "warn");
+      lastValidationError = null;
+      updateHighlightedPreview();
+    });
+
+    schemaEditor.addEventListener("input", () => {
+      jsonSchemaOutput.textContent = schemaEditor.value.trim() || "No JSON Schema exported yet.";
+    });
+
+    window.addEventListener("hashchange", () => {
+      if (tryLoadFromHash()) {
+        updateHighlightedPreview();
+        validateJSON();
+      }
+    });
+
+    (function init() {
+      const savedTheme = localStorage.getItem("json-editor-theme") || "dark";
+      applyTheme(savedTheme);
+      updateHighlightedPreview();
+      initializeFromUrl();
+    })();
+  </script>
+</body>
+</html>
