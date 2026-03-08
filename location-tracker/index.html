@@ -7,7 +7,7 @@
     <title>Programmer’s Picnic — Route Recorder (Area Change)</title>
     <meta
       name="description"
-      content="Programmer’s Picnic Route Recorder by Champak Roy. Track live location, save points when the area changes, view route on a map, and export/share as JSON."
+      content="Programmer’s Picnic Route Recorder by Champak Roy. Track live location, save points when the area changes, trace the actual moved path, view route on a map, and export/share as JSON."
     />
     <meta name="theme-color" content="#d97706" />
 
@@ -17,11 +17,10 @@
     />
     <meta
       property="og:description"
-      content="Track live location, save points when the area changes, view route, export/share JSON. By Champak Roy."
+      content="Track live location, trace actual moved path, save area-change points, view route, export/share JSON. By Champak Roy."
     />
     <meta property="og:type" content="website" />
 
-    <!-- Leaflet -->
     <link
       rel="stylesheet"
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -47,9 +46,11 @@
           system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
           "Apple Color Emoji", "Segoe UI Emoji";
       }
+
       * {
         box-sizing: border-box;
       }
+
       body {
         margin: 0;
         font-family: var(--sans);
@@ -77,6 +78,7 @@
         grid-template-columns: 420px 1fr;
         gap: 14px;
       }
+
       @media (max-width: 980px) {
         .wrap {
           grid-template-columns: 1fr;
@@ -107,6 +109,7 @@
         gap: 12px;
         min-width: 0;
       }
+
       .logo {
         width: 42px;
         height: 42px;
@@ -116,6 +119,7 @@
         position: relative;
         flex: 0 0 auto;
       }
+
       .logo:after {
         content: "PP";
         position: absolute;
@@ -127,9 +131,11 @@
         color: rgba(31, 35, 40, 0.86);
         font-size: 14px;
       }
+
       .titleWrap {
         min-width: 0;
       }
+
       h1 {
         font-size: 15px;
         margin: 0;
@@ -139,6 +145,7 @@
         overflow: hidden;
         text-overflow: ellipsis;
       }
+
       .sub {
         margin: 2px 0 0 0;
         font-size: 12px;
@@ -147,14 +154,17 @@
         overflow: hidden;
         text-overflow: ellipsis;
       }
+
       .byline {
         margin: 0;
         font-size: 12px;
         color: var(--muted);
       }
+
       .byline b {
         color: var(--ink);
       }
+
       .rightTop {
         display: flex;
         align-items: center;
@@ -162,6 +172,7 @@
         flex-wrap: wrap;
         justify-content: flex-end;
       }
+
       .pill {
         font-size: 12px;
         padding: 8px 10px;
@@ -172,6 +183,7 @@
         gap: 8px;
         align-items: center;
       }
+
       .dot {
         width: 10px;
         height: 10px;
@@ -179,10 +191,12 @@
         background: #b42318;
         box-shadow: 0 0 0 4px rgba(180, 35, 24, 0.12);
       }
+
       .dot.on {
         background: #027a48;
         box-shadow: 0 0 0 4px rgba(2, 122, 72, 0.12);
       }
+
       .topActions {
         display: flex;
         gap: 8px;
@@ -211,6 +225,7 @@
         grid-template-columns: 1fr 1fr;
         gap: 10px;
       }
+
       .row {
         display: flex;
         gap: 10px;
@@ -231,24 +246,30 @@
           background 0.2s ease;
         box-shadow: 0 8px 18px rgba(31, 35, 40, 0.08);
       }
+
       button:hover {
         transform: translateY(-1px);
       }
+
       button:active {
         transform: translateY(0px);
       }
+
       button.primary {
         background: linear-gradient(135deg, var(--saffron), var(--saffron2));
         border-color: rgba(255, 159, 28, 0.35);
       }
+
       button.danger {
         background: rgba(180, 35, 24, 0.08);
         border-color: rgba(180, 35, 24, 0.18);
         color: #7a271a;
       }
+
       button.ghost {
         background: rgba(255, 255, 255, 0.56);
       }
+
       button:disabled {
         opacity: 0.55;
         cursor: not-allowed;
@@ -264,14 +285,17 @@
         border: 1px solid var(--line);
         background: rgba(255, 255, 255, 0.58);
       }
+
       .k {
         color: var(--muted);
         font-size: 12px;
       }
+
       .v {
         font-size: 12px;
         font-family: var(--mono);
       }
+
       .mono {
         font-family: var(--mono);
       }
@@ -287,6 +311,7 @@
         outline: none;
         font-size: 13px;
       }
+
       .two {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -302,10 +327,12 @@
         font-size: 12px;
         line-height: 1.5;
       }
+
       .help ul {
         margin: 8px 0 0 18px;
         padding: 0;
       }
+
       .help li {
         margin: 6px 0;
       }
@@ -326,10 +353,12 @@
       .mapCard {
         padding: 0;
       }
+
       #map {
         height: calc(100vh - 150px);
         min-height: 520px;
       }
+
       @media (max-width: 980px) {
         #map {
           height: 62vh;
@@ -347,6 +376,7 @@
         gap: 10px;
         flex-wrap: wrap;
       }
+
       .small {
         font-size: 12px;
         color: var(--muted);
@@ -384,15 +414,16 @@
         overflow: hidden;
         text-overflow: ellipsis;
       }
+
       .toast.show {
         opacity: 1;
         transform: translateX(-50%) translateY(-2px);
       }
 
-      /* Color-only animation for current location marker */
       .pp-now-colorcycle {
         animation: ppNowColors 1.35s linear infinite;
       }
+
       @keyframes ppNowColors {
         0% {
           fill: #ff9f1c;
@@ -411,6 +442,7 @@
           stroke: #1f2328;
         }
       }
+
       @media (prefers-reduced-motion: reduce) {
         .pp-now-colorcycle {
           animation: none !important;
@@ -424,6 +456,7 @@
         color: var(--muted);
         font-size: 12px;
       }
+
       footer.siteFooter .footCard {
         border-radius: 16px;
         border: 1px solid var(--line);
@@ -445,8 +478,8 @@
         <div class="titleWrap">
           <h1>Programmer’s Picnic — Route Recorder</h1>
           <div class="sub">
-            Save a point when your <b>area name changes</b> • View route •
-            Export / Share JSON
+            Trace actual moved path • Save a point when your <b>area name changes</b>
+            • View route • Export / Share JSON
           </div>
           <p class="byline">By <b>Champak Roy</b></p>
         </div>
@@ -531,8 +564,12 @@
               found.
             </li>
             <li>
-              A point is saved only when the <b>area name changes</b> (with
-              move/time limits).
+              The app continuously stores the <b>actual moved path</b> as track
+              samples.
+            </li>
+            <li>
+              A labeled point is saved only when the <b>area name changes</b>
+              (with move/time limits).
             </li>
             <li>
               Use <b>Recorded locations</b> to jump to a saved point or to
@@ -615,8 +652,8 @@
             <span class="badge">Route JSON</span>
           </div>
           <div class="small">
-            Save points happen when the <b>area changes</b>. The route always
-            connects to <b>Now</b>.
+            The map traces the <b>actual moved path</b>. Saved markers happen when
+            the <b>area changes</b>.
           </div>
         </div>
       </section>
@@ -635,7 +672,6 @@
 
     <div class="toast" id="toast"></div>
 
-    <!-- Leaflet -->
     <script
       src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
       integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
@@ -684,8 +720,8 @@
 
       $("#yr").textContent = String(new Date().getFullYear());
 
-      const STORAGE_KEY = "pp_route_recorder_v1";
-      const SCHEMA = "pp.route.v1";
+      const STORAGE_KEY = "pp_route_recorder_v2";
+      const SCHEMA = "pp.route.v2";
 
       const state = {
         watchId: null,
@@ -693,19 +729,18 @@
         route: null,
         lastGeo: { ts: 0, lat: null, lng: null, area: null },
         lastSaved: { ts: 0, lat: null, lng: null, area: null },
+        lastTrackSample: { ts: 0, lat: null, lng: null },
         geocodeInFlight: false,
         lastPosition: null,
         currentAreaGuess: "Now",
-
-        // ✅ NEW: keep last known area so saving never stalls
         lastKnownArea: "",
-        // ✅ NEW: update the seeded “Now” point once a name is found
         seededNowPointId: null,
       };
 
       function nowISO() {
         return new Date().toISOString();
       }
+
       function uid() {
         return "xxxx-xxxx-4xxx-yxxx-xxxxxx".replace(/[xy]/g, (c) => {
           const r = crypto.getRandomValues(new Uint8Array(1))[0] & 15;
@@ -713,16 +748,19 @@
           return v.toString(16);
         });
       }
+
       function fmtM(m) {
         if (!isFinite(m)) return "—";
         if (m < 1000) return `${Math.round(m)} m`;
         return `${(m / 1000).toFixed(2)} km`;
       }
+
       function fmtSpeed(mps) {
         if (!isFinite(mps)) return "—";
         const kmh = mps * 3.6;
         return `${kmh.toFixed(1)} km/h`;
       }
+
       function haversineM(a, b) {
         const R = 6371000;
         const toRad = (d) => (d * Math.PI) / 180;
@@ -735,6 +773,7 @@
           Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
         return 2 * R * Math.asin(Math.sqrt(x));
       }
+
       function routeDistanceM(points) {
         let d = 0;
         for (let i = 1; i < points.length; i++) {
@@ -742,16 +781,19 @@
         }
         return d;
       }
+
       function toast(msg) {
         toastEl.textContent = msg;
         toastEl.classList.add("show");
         setTimeout(() => toastEl.classList.remove("show"), 1800);
       }
+
       function log(msg) {
         const line = `[${new Date().toLocaleTimeString()}] ${msg}\n`;
         logEl.textContent += line;
         logEl.scrollTop = logEl.scrollHeight;
       }
+
       function setStatus(on, text) {
         ui.statusDot.classList.toggle("on", !!on);
         ui.statusText.textContent = text;
@@ -763,18 +805,27 @@
           localStorage.setItem(STORAGE_KEY, JSON.stringify(state.route));
         } catch (_) {}
       }
+
       function loadFromStorage() {
         try {
           const raw = localStorage.getItem(STORAGE_KEY);
           if (!raw) return null;
           const obj = JSON.parse(raw);
-          if (!obj || obj.schema !== SCHEMA || !Array.isArray(obj.points))
+          if (!obj || !Array.isArray(obj.points)) return null;
+
+          if (
+            obj.schema !== "pp.route.v1" &&
+            obj.schema !== "pp.route.v2"
+          ) {
             return null;
+          }
+
           return obj;
         } catch (_) {
           return null;
         }
       }
+
       function newRoute() {
         return {
           schema: SCHEMA,
@@ -790,26 +841,33 @@
             minMoveM: Number(ui.minMove.value || 0),
             minTimeS: Number(ui.minTime.value || 0),
             areaMode: ui.areaMode.value,
+            trackMinMoveM: 6,
+            trackMinTimeS: 3,
           },
           points: [],
+          track: [],
         };
       }
 
-      /* Map */
       const map = L.map("map", { zoomControl: true });
+
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
         attribution: "&copy; OpenStreetMap contributors",
       }).addTo(map);
 
-      const routeLine = L.polyline([], { weight: 5, opacity: 0.9 }).addTo(map);
+      const routeLine = L.polyline([], {
+        weight: 5,
+        opacity: 0.9,
+      }).addTo(map);
+
       const markersLayer = L.layerGroup().addTo(map);
 
-      const currentMarker = L.circleMarker([0, 0], {
+      const currentMarker = L.circleMarker([25.3176, 82.9739], {
         radius: 9,
         weight: 2,
-        opacity: 1,
-        fillOpacity: 0.95,
+        opacity: 0,
+        fillOpacity: 0,
         color: "#1f2328",
         fillColor: "#ff9f1c",
       }).addTo(map);
@@ -820,11 +878,10 @@
           if (el) el.classList.add("pp-now-colorcycle");
         } catch (_) {}
       }
-      map.whenReady(applyNowColorCycle);
 
+      map.whenReady(applyNowColorCycle);
       map.setView([25.3176, 82.9739], 13);
 
-      /* Select + highlight */
       let highlightCircle = null;
       let pointMarkers = [];
 
@@ -867,10 +924,13 @@
           sel.appendChild(opt);
         }
 
-        if (prev === "now" && state.lastPosition) sel.value = "now";
-        else if (prev !== "" && prev !== "now" && Number(prev) < pts.length)
+        if (prev === "now" && state.lastPosition) {
+          sel.value = "now";
+        } else if (prev !== "" && prev !== "now" && Number(prev) < pts.length) {
           sel.value = prev;
-        else sel.value = state.lastPosition ? "now" : "";
+        } else {
+          sel.value = state.lastPosition ? "now" : "";
+        }
 
         const hasSel = sel.value !== "" && sel.value !== null;
         ui.btnGoPoint.disabled = !hasSel;
@@ -884,6 +944,7 @@
           highlightCircle.setRadius(radiusM);
           return;
         }
+
         highlightCircle = L.circle(latlng, {
           radius: radiusM,
           weight: 2,
@@ -906,7 +967,7 @@
           if (openPopup) {
             currentMarker
               .bindPopup(
-                `<b>Now</b><br/><span class="mono">${state.lastKnownArea || "Now"}</span>`,
+                `<b>Now</b><br/><span class="mono">${state.lastKnownArea || "Now"}</span>`
               )
               .openPopup();
           }
@@ -949,6 +1010,8 @@
           state.lastSaved = { ts: 0, lat: null, lng: null, area: null };
         }
 
+        state.route.updatedAt = nowISO();
+        saveToStorage();
         renderRoute();
         updatePointSelect();
         toast("Removed");
@@ -957,26 +1020,38 @@
 
       function fitRoute() {
         const pts = state.route?.points || [];
-        const all = [...pts];
-        if (state.lastPosition)
+        const track = state.route?.track || [];
+
+        const all = [];
+
+        if (track.length) {
+          all.push(...track);
+        } else {
+          all.push(...pts);
+        }
+
+        if (state.lastPosition) {
           all.push({
             lat: state.lastPosition.lat,
             lng: state.lastPosition.lng,
           });
+        }
 
         if (!all.length) {
           toast("No points to fit");
           return;
         }
+
         const bounds = L.latLngBounds(all.map((p) => [p.lat, p.lng]));
         map.fitBounds(bounds.pad(0.2));
       }
 
-      /* Geocoding helpers */
       function pickAreaFromAddress(address, mode) {
         if (!address) return "";
         const parts = [];
+
         if (mode === "full") return "";
+
         if (mode === "city") {
           const city =
             address.city ||
@@ -988,36 +1063,41 @@
           if (stateName) parts.push(stateName);
           return parts.filter(Boolean).join(", ");
         }
+
         const n =
           address.neighbourhood ||
           address.suburb ||
           address.quarter ||
           address.hamlet ||
           address.locality;
+
         const city =
           address.city ||
           address.town ||
           address.village ||
           address.municipality;
+
         if (n) parts.push(n);
         if (city && city !== n) parts.push(city);
+
         return parts.filter(Boolean).join(", ");
       }
+
       function normalizeArea(s) {
         return (s || "").trim().replace(/\s+/g, " ").toLowerCase();
       }
 
-      /* ✅ Improved reverse geocode: stores lastKnownArea so saving never stalls */
       async function reverseGeocode(lat, lng) {
         const minGeoIntervalMs = 1500;
         const t = Date.now();
+
         if (state.geocodeInFlight) return null;
         if (t - state.lastGeo.ts < minGeoIntervalMs) return null;
 
         if (state.lastGeo.lat != null) {
           const moved = haversineM(
             { lat: state.lastGeo.lat, lng: state.lastGeo.lng },
-            { lat, lng },
+            { lat, lng }
           );
           if (moved < 20) return null;
         }
@@ -1032,14 +1112,11 @@
           url.searchParams.set("zoom", "18");
           url.searchParams.set("addressdetails", "1");
 
-          // Optional (recommended): a contact email improves reliability with Nominatim
-          // Change to your public email or remove the next line if you prefer.
-          url.searchParams.set("email", "champak.roy@example.com");
-
           const res = await fetch(url.toString(), {
             method: "GET",
             headers: { Accept: "application/json" },
           });
+
           if (!res.ok) return null;
 
           const data = await res.json();
@@ -1050,12 +1127,13 @@
             area = (data.display_name || "").trim();
           } else {
             area = pickAreaFromAddress(data.address, mode);
-            if (!area)
+            if (!area) {
               area = (data.display_name || "")
                 .split(",")
                 .slice(0, 2)
                 .join(",")
                 .trim();
+            }
           }
 
           area = (area || "").trim();
@@ -1071,7 +1149,6 @@
         }
       }
 
-      /* Save-on-area-change logic */
       function canSavePoint(pos, areaLabel) {
         const minMoveM = Number(ui.minMove.value || 0);
         const minTimeS = Number(ui.minTime.value || 0);
@@ -1083,7 +1160,7 @@
 
         const moved = haversineM(
           { lat: last.lat, lng: last.lng },
-          { lat: pos.lat, lng: pos.lng },
+          { lat: pos.lat, lng: pos.lng }
         );
         const dt = (nowTs - last.ts) / 1000;
 
@@ -1092,23 +1169,76 @@
 
         const prevArea = normalizeArea(last.area);
         const curArea = normalizeArea(areaLabel);
+
         if (!curArea) return false;
         if (curArea === prevArea) return false;
 
         return true;
       }
 
-      /* Render route (saved points + current Now point in the polyline) */
+      function canStoreTrackSample(pos) {
+        const minMoveM = Number(state.route?.settings?.trackMinMoveM ?? 6);
+        const minTimeS = Number(state.route?.settings?.trackMinTimeS ?? 3);
+
+        const last = state.lastTrackSample;
+        if (last.lat == null || last.lng == null) return true;
+
+        const moved = haversineM(
+          { lat: last.lat, lng: last.lng },
+          { lat: pos.lat, lng: pos.lng }
+        );
+        const dt = (pos.ts - last.ts) / 1000;
+
+        if (moved < minMoveM && dt < minTimeS) return false;
+        return true;
+      }
+
+      function storeTrackSample(pos) {
+        if (!state.route.track) state.route.track = [];
+
+        const sample = {
+          lat: pos.lat,
+          lng: pos.lng,
+          ts: new Date(pos.ts).toISOString(),
+          accuracyM: isFinite(pos.accuracyM) ? pos.accuracyM : null,
+          speedMps: isFinite(pos.speedMps) ? pos.speedMps : null,
+        };
+
+        state.route.track.push(sample);
+        state.lastTrackSample = {
+          ts: pos.ts,
+          lat: pos.lat,
+          lng: pos.lng,
+        };
+
+        state.route.updatedAt = nowISO();
+        saveToStorage();
+      }
+
       function renderRoute() {
         markersLayer.clearLayers();
         pointMarkers = [];
 
         const pts = state.route?.points || [];
-        const latlngs = pts.map((p) => [p.lat, p.lng]);
+        const track = state.route?.track || [];
+
+        let latlngs = track.map((p) => [p.lat, p.lng]);
+
+        if (!latlngs.length) {
+          latlngs = pts.map((p) => [p.lat, p.lng]);
+        }
 
         if (state.lastPosition) {
-          latlngs.push([state.lastPosition.lat, state.lastPosition.lng]);
+          const lastTrack = track[track.length - 1];
+          if (
+            !lastTrack ||
+            lastTrack.lat !== state.lastPosition.lat ||
+            lastTrack.lng !== state.lastPosition.lng
+          ) {
+            latlngs.push([state.lastPosition.lat, state.lastPosition.lng]);
+          }
         }
+
         routeLine.setLatLngs(latlngs);
 
         pts.forEach((p, idx) => {
@@ -1118,25 +1248,33 @@
           const acc = isFinite(p.accuracyM)
             ? `${Math.round(p.accuracyM)} m`
             : "—";
+
           m.bindPopup(
             `<b>#${idx + 1}</b><br/>` +
               `<span class="mono">${area}</span><br/>` +
               `${ts}<br/>` +
-              `Accuracy: ${acc}`,
+              `Accuracy: ${acc}`
           );
+
           markersLayer.addLayer(m);
           pointMarkers[idx] = m;
         });
 
         ui.kvCount.textContent = String(pts.length);
-        ui.kvDist.textContent = fmtM(routeDistanceM(pts));
-        state.route.updatedAt = nowISO();
-        saveToStorage();
+
+        const distSource = track.length ? track : pts;
+        const distPts = [...distSource];
+        if (state.lastPosition) {
+          distPts.push({
+            lat: state.lastPosition.lat,
+            lng: state.lastPosition.lng,
+          });
+        }
+        ui.kvDist.textContent = fmtM(routeDistanceM(distPts));
 
         updatePointSelect();
       }
 
-      /* ✅ Tracking: seed “Now” point + update it when name arrives + never-stall saving */
       async function handlePosition(geoPos) {
         const c = geoPos.coords;
         const lat = c.latitude;
@@ -1153,23 +1291,36 @@
 
         state.lastPosition = { lat, lng, ts: Date.now() };
 
-        // show Now until place name appears
-        ui.kvArea.textContent = "Now";
+        ui.kvArea.textContent = state.lastKnownArea || "Now";
 
         currentMarker.setLatLng([lat, lng]);
+        currentMarker.setStyle({
+          opacity: 1,
+          fillOpacity: 0.95,
+        });
         applyNowColorCycle();
         currentMarker.bindPopup(
-          `<b>Now</b><br/><span class="mono">${state.lastKnownArea || "Now"}</span>`,
+          `<b>Now</b><br/><span class="mono">${state.lastKnownArea || "Now"}</span>`
         );
 
-        if (state.tracking && state.route.points.length === 0) {
+        if (state.tracking && state.route.points.length === 0 && state.route.track.length === 0) {
           map.setView([lat, lng], 17);
         }
 
-        // draw line immediately
+        const pos = {
+          lat,
+          lng,
+          ts: Date.now(),
+          accuracyM,
+          speedMps,
+        };
+
+        if (canStoreTrackSample(pos)) {
+          storeTrackSample(pos);
+        }
+
         renderRoute();
 
-        // ✅ seed a single “Now” point (so recording doesn’t feel stuck at start)
         if (state.route.points.length === 0 && !state.seededNowPointId) {
           const posTs = Date.now();
           const seed = {
@@ -1185,20 +1336,24 @@
           state.route.points.push(seed);
           state.seededNowPointId = seed.id;
           state.lastSaved = { ts: posTs, lat, lng, area: "Now" };
+          state.route.updatedAt = nowISO();
+          saveToStorage();
           log("Saved initial point: Now");
           renderRoute();
         }
 
-        // try reverse geocode (may fail; that's ok)
+        if (!state.lastKnownArea) {
+          ui.kvArea.textContent = "Resolving area…";
+        }
+
         const geo = await reverseGeocode(lat, lng);
 
         if (geo && geo.area) {
           ui.kvArea.textContent = geo.area;
           currentMarker.bindPopup(
-            `<b>Now</b><br/><span class="mono">${geo.area}</span>`,
+            `<b>Now</b><br/><span class="mono">${geo.area}</span>`
           );
 
-          // ✅ update seeded point to real name (avoid duplicate)
           const last = state.route.points[state.route.points.length - 1];
           if (
             last &&
@@ -1209,19 +1364,17 @@
             last.note = "Seed point updated with place name";
             state.lastSaved.area = geo.area;
             state.seededNowPointId = null;
+            state.route.updatedAt = nowISO();
+            saveToStorage();
             log(`Updated initial point name: ${geo.area}`);
             renderRoute();
             return;
           }
         }
 
-        // ✅ use lastKnownArea if geo failed this time
         const areaForSaving = (geo?.area || state.lastKnownArea || "").trim();
         if (!areaForSaving) return;
 
-        const pos = { lat, lng, ts: Date.now(), accuracyM, speedMps };
-
-        // Special case: last was “Now” and now we have real area
         const prevArea = normalizeArea(state.lastSaved.area);
         const curArea = normalizeArea(areaForSaving);
 
@@ -1230,9 +1383,10 @@
             state.lastSaved.lat != null
               ? haversineM(
                   { lat: state.lastSaved.lat, lng: state.lastSaved.lng },
-                  { lat, lng },
+                  { lat, lng }
                 )
               : Infinity;
+
           const dt = (pos.ts - state.lastSaved.ts) / 1000;
           const minMoveM = Number(ui.minMove.value || 0);
           const minTimeS = Number(ui.minTime.value || 0);
@@ -1250,13 +1404,14 @@
             };
             state.route.points.push(pt);
             state.lastSaved = { ts: pos.ts, lat, lng, area: areaForSaving };
+            state.route.updatedAt = nowISO();
+            saveToStorage();
             log(`Saved: ${areaForSaving}`);
             renderRoute();
           }
           return;
         }
 
-        // Normal rule: save when area changes
         if (canSavePoint(pos, areaForSaving)) {
           const pt = {
             id: uid(),
@@ -1270,6 +1425,8 @@
           };
           state.route.points.push(pt);
           state.lastSaved = { ts: pos.ts, lat, lng, area: areaForSaving };
+          state.route.updatedAt = nowISO();
+          saveToStorage();
           log(`Saved: ${areaForSaving}`);
           renderRoute();
 
@@ -1289,6 +1446,7 @@
               : err?.code === 3
                 ? "Location request timed out."
                 : "Location error.";
+
         log(msg);
         toast(msg);
         stopTracking();
@@ -1299,12 +1457,15 @@
           toast("Geolocation is not supported on this device.");
           return;
         }
+
         if (state.tracking) return;
 
         state.route.settings = {
           minMoveM: Number(ui.minMove.value || 0),
           minTimeS: Number(ui.minTime.value || 0),
           areaMode: ui.areaMode.value,
+          trackMinMoveM: Number(state.route?.settings?.trackMinMoveM ?? 6),
+          trackMinTimeS: Number(state.route?.settings?.trackMinTimeS ?? 3),
         };
         state.route.name = (ui.routeName.value || "").trim();
         state.route.updatedAt = nowISO();
@@ -1313,7 +1474,7 @@
         state.watchId = navigator.geolocation.watchPosition(
           handlePosition,
           handleError,
-          { enableHighAccuracy: true, maximumAge: 2000, timeout: 15000 },
+          { enableHighAccuracy: true, maximumAge: 2000, timeout: 15000 }
         );
 
         state.tracking = true;
@@ -1326,9 +1487,11 @@
 
       function stopTracking() {
         if (!state.tracking) return;
+
         try {
           navigator.geolocation.clearWatch(state.watchId);
         } catch (_) {}
+
         state.watchId = null;
         state.tracking = false;
         setStatus(false, "Idle");
@@ -1338,15 +1501,18 @@
         toast("Tracking stopped");
       }
 
-      /* Export / Share / Import */
       function getExportJSON() {
         const clone = structuredClone(state.route);
+        clone.schema = SCHEMA;
         clone.name = (ui.routeName.value || clone.name || "").trim();
         clone.settings = {
           minMoveM: Number(ui.minMove.value || 0),
           minTimeS: Number(ui.minTime.value || 0),
           areaMode: ui.areaMode.value,
+          trackMinMoveM: Number(clone.settings?.trackMinMoveM ?? 6),
+          trackMinTimeS: Number(clone.settings?.trackMinTimeS ?? 3),
         };
+        clone.track = Array.isArray(clone.track) ? clone.track : [];
         clone.updatedAt = nowISO();
         return clone;
       }
@@ -1356,16 +1522,21 @@
         const blob = new Blob([JSON.stringify(data, null, 2)], {
           type: "application/json",
         });
+
         const a = document.createElement("a");
         const name = (data.name || "route")
           .replace(/[^\w\-]+/g, "_")
           .slice(0, 60);
-        a.href = URL.createObjectURL(blob);
+
+        const url = URL.createObjectURL(blob);
+        a.href = url;
         a.download = `${name || "route"}_${new Date().toISOString().slice(0, 10)}.json`;
+
         document.body.appendChild(a);
         a.click();
         a.remove();
-        URL.revokeObjectURL(a.href);
+
+        setTimeout(() => URL.revokeObjectURL(url), 1500);
         toast("Downloaded JSON");
       }
 
@@ -1423,20 +1594,28 @@
         const input = document.createElement("input");
         input.type = "file";
         input.accept = "application/json,.json";
+
         input.onchange = async () => {
           const file = input.files?.[0];
           if (!file) return;
+
           try {
             const obj = JSON.parse(await file.text());
-            if (!obj || obj.schema !== SCHEMA || !Array.isArray(obj.points)) {
+            if (!obj || !Array.isArray(obj.points)) {
               toast("Invalid route JSON");
               return;
             }
 
-            // ensure ids exist for older exports
-            obj.points = obj.points.map((p) =>
-              p.id ? p : { ...p, id: uid() },
-            );
+            obj.schema = SCHEMA;
+            obj.points = obj.points.map((p) => (p.id ? p : { ...p, id: uid() }));
+            obj.track = Array.isArray(obj.track) ? obj.track : [];
+            obj.settings = {
+              minMoveM: Number(obj.settings?.minMoveM ?? ui.minMove.value ?? 25),
+              minTimeS: Number(obj.settings?.minTimeS ?? ui.minTime.value ?? 12),
+              areaMode: obj.settings?.areaMode ?? ui.areaMode.value,
+              trackMinMoveM: Number(obj.settings?.trackMinMoveM ?? 6),
+              trackMinTimeS: Number(obj.settings?.trackMinTimeS ?? 3),
+            };
 
             state.route = obj;
 
@@ -1456,23 +1635,38 @@
                 area: last.area,
               };
               ui.kvArea.textContent = last.area || "Now";
-              if (last.area && normalizeArea(last.area) !== "now")
+              if (last.area && normalizeArea(last.area) !== "now") {
                 state.lastKnownArea = last.area;
+              }
             } else {
               state.lastSaved = { ts: 0, lat: null, lng: null, area: null };
               ui.kvArea.textContent = "Now";
               state.lastKnownArea = "";
             }
 
+            const lastTrack = obj.track[obj.track.length - 1];
+            if (lastTrack) {
+              state.lastTrackSample = {
+                ts: Date.parse(lastTrack.ts) || Date.now(),
+                lat: lastTrack.lat,
+                lng: lastTrack.lng,
+              };
+            } else {
+              state.lastTrackSample = { ts: 0, lat: null, lng: null };
+            }
+
             saveToStorage();
             renderRoute();
+            updatePointSelect();
+            ui.pointSelect.value = state.route.points.length ? "" : (state.lastPosition ? "now" : "");
             fitRoute();
-            log(`Imported ${obj.points.length} points.`);
+            log(`Imported ${obj.points.length} points and ${obj.track.length} track sample(s).`);
             toast("Imported");
           } catch (_) {
             toast("Import failed");
           }
         };
+
         input.click();
       }
 
@@ -1481,8 +1675,10 @@
           toast("Stop tracking first");
           return;
         }
+
         state.route = newRoute();
         state.lastSaved = { ts: 0, lat: null, lng: null, area: null };
+        state.lastTrackSample = { ts: 0, lat: null, lng: null };
         state.lastKnownArea = "";
         state.seededNowPointId = null;
 
@@ -1490,6 +1686,8 @@
         ui.kvArea.textContent = "Now";
         logEl.textContent = "";
         saveToStorage();
+
+        currentMarker.bindPopup(`<b>Now</b><br/><span class="mono">Now</span>`);
 
         if (highlightCircle) {
           try {
@@ -1503,7 +1701,6 @@
         log("Route cleared.");
       }
 
-      /* UI wiring */
       ui.btnStart.addEventListener("click", startTracking);
       ui.btnStop.addEventListener("click", stopTracking);
       ui.btnFit.addEventListener("click", fitRoute);
@@ -1515,19 +1712,25 @@
 
       ui.btnHelpToggle.addEventListener("click", () => {
         const isHidden = ui.helpBox.hasAttribute("hidden");
-        if (isHidden) ui.helpBox.removeAttribute("hidden");
-        else ui.helpBox.setAttribute("hidden", "");
+        if (isHidden) {
+          ui.helpBox.removeAttribute("hidden");
+        } else {
+          ui.helpBox.setAttribute("hidden", "");
+        }
         ui.btnHelpToggle.setAttribute("aria-expanded", String(isHidden));
       });
 
       [ui.routeName, ui.minMove, ui.minTime, ui.areaMode].forEach((el) => {
         el.addEventListener("change", () => {
           if (!state.route) return;
+
           state.route.name = (ui.routeName.value || "").trim();
           state.route.settings = {
             minMoveM: Number(ui.minMove.value || 0),
             minTimeS: Number(ui.minTime.value || 0),
             areaMode: ui.areaMode.value,
+            trackMinMoveM: Number(state.route?.settings?.trackMinMoveM ?? 6),
+            trackMinTimeS: Number(state.route?.settings?.trackMinTimeS ?? 3),
           };
           state.route.updatedAt = nowISO();
           saveToStorage();
@@ -1542,27 +1745,32 @@
           ui.pointSelect.value !== "" && ui.pointSelect.value !== "now"
         );
       });
+
       ui.btnGoPoint.addEventListener("click", () => gotoSelectedPoint(false));
       ui.btnOpenPopup.addEventListener("click", () => gotoSelectedPoint(true));
       ui.btnRemovePoint.addEventListener("click", removeSelectedPoint);
 
-      /* Init */
       (function init() {
         const loaded = loadFromStorage();
         state.route = loaded || newRoute();
 
-        // ensure ids exist for older saved data
+        state.route.schema = SCHEMA;
         state.route.points = (state.route.points || []).map((p) =>
-          p.id ? p : { ...p, id: uid() },
+          p.id ? p : { ...p, id: uid() }
         );
+        state.route.track = Array.isArray(state.route.track) ? state.route.track : [];
+        state.route.settings = {
+          minMoveM: Number(state.route.settings?.minMoveM ?? 25),
+          minTimeS: Number(state.route.settings?.minTimeS ?? 12),
+          areaMode: state.route.settings?.areaMode ?? "neighborhood",
+          trackMinMoveM: Number(state.route.settings?.trackMinMoveM ?? 6),
+          trackMinTimeS: Number(state.route.settings?.trackMinTimeS ?? 3),
+        };
 
         ui.routeName.value = state.route.name || "";
-        if (state.route.settings) {
-          ui.minMove.value = state.route.settings.minMoveM ?? ui.minMove.value;
-          ui.minTime.value = state.route.settings.minTimeS ?? ui.minTime.value;
-          ui.areaMode.value =
-            state.route.settings.areaMode ?? ui.areaMode.value;
-        }
+        ui.minMove.value = state.route.settings.minMoveM ?? ui.minMove.value;
+        ui.minTime.value = state.route.settings.minTimeS ?? ui.minTime.value;
+        ui.areaMode.value = state.route.settings.areaMode ?? ui.areaMode.value;
 
         const last = state.route.points[state.route.points.length - 1];
         if (last) {
@@ -1579,11 +1787,24 @@
           state.lastSaved = { ts: 0, lat: null, lng: null, area: null };
         }
 
+        const lastTrack = state.route.track[state.route.track.length - 1];
+        if (lastTrack) {
+          state.lastTrackSample = {
+            ts: Date.parse(lastTrack.ts) || Date.now(),
+            lat: lastTrack.lat,
+            lng: lastTrack.lng,
+          };
+        } else {
+          state.lastTrackSample = { ts: 0, lat: null, lng: null };
+        }
+
         ui.kvArea.textContent = "Now";
         renderRoute();
-        if (state.route.points.length) fitRoute();
+        if (state.route.points.length || state.route.track.length) fitRoute();
         setStatus(false, "Idle");
-        log(`Loaded ${state.route.points.length} saved point(s).`);
+        log(
+          `Loaded ${state.route.points.length} saved point(s) and ${state.route.track.length} track sample(s).`
+        );
 
         setTimeout(applyNowColorCycle, 80);
       })();
