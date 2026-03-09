@@ -1,1982 +1,1346 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>SQL in Browser — SQLite Demo (VS Code Style)</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Programmer’s Picnic — SQL Editor V2</title>
+  <meta
+    name="description"
+    content="Premium in-browser SQL editor with datasets, challenge mode, query history, table explorer, CSV/JSON export, shareable links, and a saffron-themed VS Code style UI."
+  />
+  <meta name="theme-color" content="#f59e0b" />
 
-    <!-- tiny inline favicon to avoid 404 -->
-    <link
-      rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='24' fill='%232d2d2d'/%3E%3Ctext x='64' y='82' font-size='64' text-anchor='middle'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E"
-    />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&family=JetBrains+Mono:wght@400;600&display=swap"
+    rel="stylesheet"
+  />
 
-    <style>
-      :root {
-        /* VS Code-ish palette */
-        --bg: #1e1e1e;
-        --panel: #252526;
-        --panel2: #2d2d2d;
-        --top: #323233;
-        --border: #3a3a3a;
-        --text: #e6e6e6;
-        --muted: #9aa0a6;
-        --accent: #3794ff;
-        --good: #22c55e;
-        --bad: #f85149;
-        --warn: #d29922;
+  <style>
+    :root{
+      --bg:#fff8ef;
+      --panel:#ffffff;
+      --panel-2:#fff3df;
+      --panel-3:#fff7ea;
+      --text:#1f2328;
+      --muted:#6b7280;
+      --line:#ead7bc;
+      --accent:#d97706;
+      --accent-2:#f59e0b;
+      --accent-soft:rgba(217,119,6,.12);
+      --success:#166534;
+      --danger:#b91c1c;
+      --shadow:0 18px 50px rgba(146, 64, 14, .12);
+      --radius:20px;
+      --code-bg:#fffdf8;
+      --sidebar-w:280px;
+      --header-h:72px;
+    }
 
-        --mono:
-          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-          "Liberation Mono", "Courier New", monospace;
-        --sans: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    body.dark{
+      --bg:#0f172a;
+      --panel:#111827;
+      --panel-2:#172033;
+      --panel-3:#0b1220;
+      --text:#e5e7eb;
+      --muted:#94a3b8;
+      --line:#243045;
+      --accent:#f59e0b;
+      --accent-2:#fb923c;
+      --accent-soft:rgba(245,158,11,.12);
+      --success:#4ade80;
+      --danger:#f87171;
+      --shadow:0 20px 60px rgba(0,0,0,.35);
+      --code-bg:#0b1220;
+    }
 
-        --r: 12px;
-      }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:
+        radial-gradient(circle at top right, rgba(245,158,11,.10), transparent 30%),
+        radial-gradient(circle at bottom left, rgba(251,146,60,.10), transparent 25%),
+        var(--bg);
+      color:var(--text);
+      font-family:"DM Sans",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    }
 
-      * {
-        box-sizing: border-box;
-      }
-      html,
-      body {
-        height: 100%;
-      }
-      body {
-        margin: 0;
-        font-family: var(--sans);
-        background: var(--bg);
-        color: var(--text);
-        overflow: hidden;
-      }
-      a {
-        color: inherit;
-      }
+    button,input,select,textarea{
+      font:inherit;
+      color:inherit;
+    }
 
-      /* ===== VS CODE CHROME ===== */
-      .vs-titlebar {
-        height: 38px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 0 12px;
-        background: var(--top);
-        border-bottom: 1px solid var(--border);
-        user-select: none;
-      }
-      .vs-titlebar .title {
-        font-size: 13px;
-        font-weight: 900;
-        color: #d7d7d7;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      .vs-titlebar .right {
-        margin-left: auto;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        flex-wrap: wrap;
-        justify-content: flex-end;
-      }
+    .app{
+      min-height:100vh;
+      display:grid;
+      grid-template-columns: var(--sidebar-w) 1fr;
+    }
 
-      .pill {
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        background: rgba(0, 0, 0, 0.14);
-        padding: 7px 10px;
-        border-radius: 999px;
-        font-weight: 900;
-        font-size: 12px;
-        color: var(--text);
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .dot {
-        width: 10px;
-        height: 10px;
-        border-radius: 999px;
-        background: #94a3b8;
-        box-shadow: 0 0 0 4px rgba(148, 163, 184, 0.12);
-      }
-      .dot.ok {
-        background: var(--good);
-        box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.12);
-      }
+    .sidebar{
+      border-right:1px solid var(--line);
+      background:linear-gradient(180deg,var(--panel),var(--panel-3));
+      padding:18px 16px;
+      position:sticky;
+      top:0;
+      height:100vh;
+      overflow:auto;
+    }
 
-      .vs-shell {
-        height: calc(100vh - 38px);
-        display: flex;
-        min-width: 0;
-      }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:8px 8px 18px;
+      border-bottom:1px solid var(--line);
+      margin-bottom:16px;
+    }
 
-      /* Activity bar */
-      .vs-activity {
-        width: 50px;
-        background: #1b1b1b;
-        border-right: 1px solid var(--border);
-        display: flex;
-        flex-direction: column;
-        padding: 10px 6px;
-        gap: 8px;
-      }
-      .vs-actbtn {
-        width: 38px;
-        height: 38px;
-        border-radius: 10px;
-        border: 1px solid transparent;
-        background: transparent;
-        color: #cfcfcf;
-        display: grid;
-        place-items: center;
-        cursor: pointer;
-        font-size: 18px;
-      }
-      .vs-actbtn:hover {
-        background: rgba(255, 255, 255, 0.04);
-        border-color: rgba(255, 255, 255, 0.08);
-      }
-      .vs-actbtn.active {
-        background: rgba(55, 148, 255, 0.14);
-        border-color: rgba(55, 148, 255, 0.35);
-        color: #ffffff;
-      }
+    .logo{
+      width:44px;
+      height:44px;
+      border-radius:14px;
+      background:linear-gradient(135deg,var(--accent),var(--accent-2));
+      display:grid;
+      place-items:center;
+      color:#fff;
+      font-weight:800;
+      box-shadow:var(--shadow);
+      flex:0 0 auto;
+    }
 
-      /* Sidebar */
-      .vs-sidebar {
-        width: 320px;
-        min-width: 260px;
-        max-width: 420px;
-        background: var(--panel);
-        border-right: 1px solid var(--border);
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-      }
-      .vs-sidehead {
-        padding: 10px 12px;
-        border-bottom: 1px solid var(--border);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-      }
-      .vs-sidehead .label {
-        font-size: 12px;
-        letter-spacing: 0.08em;
-        color: #cfcfcf;
-        opacity: 0.9;
-        font-weight: 900;
-      }
-      .vs-sidebody {
-        overflow: auto;
-        padding: 10px;
-      }
-      .block {
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        background: rgba(0, 0, 0, 0.14);
-        border-radius: 12px;
-        overflow: hidden;
-        margin-bottom: 10px;
-      }
-      .blockhead {
-        padding: 10px 10px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-        background: rgba(255, 255, 255, 0.02);
-      }
-      .blockhead b {
-        font-size: 12px;
-        color: #d7d7d7;
-        letter-spacing: 0.02em;
-        font-weight: 1000;
-      }
-      .blockbody {
-        padding: 10px;
-      }
+    .brand h1{
+      margin:0;
+      font-size:1rem;
+      line-height:1.15;
+    }
 
-      /* Main */
-      .vs-main {
-        flex: 1;
-        min-width: 0;
-        display: flex;
-        flex-direction: column;
-      }
+    .brand p{
+      margin:.2rem 0 0;
+      color:var(--muted);
+      font-size:.82rem;
+    }
 
-      .vs-toolbar {
-        background: var(--panel2);
-        border-bottom: 1px solid var(--border);
-        padding: 10px;
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-        align-items: center;
-      }
-      .spacer {
-        flex: 1;
-        min-width: 10px;
-      }
-      .hint {
-        color: var(--muted);
-        font-size: 12px;
-        font-weight: 700;
-      }
+    .side-section{
+      margin-bottom:16px;
+      border:1px solid var(--line);
+      background:var(--panel);
+      border-radius:18px;
+      overflow:hidden;
+      box-shadow:var(--shadow);
+    }
 
-      /* Split area */
-      .split {
-        flex: 1;
-        min-height: 0;
-        display: grid;
-        grid-template-columns: 1.15fr 0.85fr;
-        gap: 12px;
-        padding: 12px;
-        overflow: hidden;
-      }
-      @media (max-width: 980px) {
-        .vs-sidebar {
-          display: none;
-        }
-        .split {
-          grid-template-columns: 1fr;
-        }
-      }
+    .side-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:12px 14px;
+      background:var(--panel-2);
+      border-bottom:1px solid var(--line);
+      font-weight:700;
+      font-size:.92rem;
+    }
 
-      /* VS code-like cards (panes) */
-      .pane {
-        background: var(--panel);
-        border: 1px solid var(--border);
-        border-radius: 14px;
-        box-shadow: 0 14px 38px rgba(0, 0, 0, 0.22);
-        overflow: hidden;
-        min-height: 0;
-        display: flex;
-        flex-direction: column;
-      }
-      .panehead {
-        padding: 10px 12px;
-        border-bottom: 1px solid var(--border);
-        background: rgba(255, 255, 255, 0.02);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-      }
-      .panehead h2 {
-        margin: 0;
-        font-size: 13px;
-        font-weight: 1000;
-        letter-spacing: 0.06em;
-        color: #d7d7d7;
-      }
+    .side-body{
+      padding:12px;
+    }
 
-      /* Controls & inputs */
-      button {
-        border: none;
-        cursor: pointer;
-        font-weight: 950;
-        user-select: none;
-      }
-      button:disabled {
-        opacity: 0.55;
-        cursor: not-allowed;
-      }
-      .btn {
-        padding: 10px 12px;
-        border-radius: 12px;
-        background: rgba(55, 148, 255, 0.18);
-        border: 1px solid rgba(55, 148, 255, 0.35);
-        color: #fff;
-      }
-      .btn:hover {
-        background: rgba(55, 148, 255, 0.26);
-      }
-      .btn-outline {
-        padding: 10px 12px;
-        border-radius: 12px;
-        background: rgba(255, 255, 255, 0.06);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        color: var(--text);
-      }
-      .btn-outline:hover {
-        background: rgba(255, 255, 255, 0.1);
-      }
-      .btn-ghost {
-        padding: 10px 12px;
-        border-radius: 12px;
-        background: transparent;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        color: var(--text);
-      }
-      .btn-ghost:hover {
-        background: rgba(255, 255, 255, 0.06);
-      }
+    .side-list{
+      display:grid;
+      gap:8px;
+    }
 
-      input[type="text"],
-      input[type="file"] {
-        padding: 10px 12px;
-        border-radius: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.14);
-        background: rgba(0, 0, 0, 0.18);
-        color: var(--text);
-        outline: none;
-        font-weight: 800;
-      }
-      input[type="text"]:focus,
-      input[type="file"]:focus {
-        border-color: rgba(55, 148, 255, 0.45);
-        box-shadow: 0 0 0 4px rgba(55, 148, 255, 0.18);
-      }
+    .tiny{
+      font-size:.78rem;
+      color:var(--muted);
+    }
 
-      code.inline {
-        background: rgba(55, 148, 255, 0.12);
-        border: 1px solid rgba(55, 148, 255, 0.18);
-        padding: 2px 6px;
-        border-radius: 8px;
-        font-family: var(--mono);
-        font-size: 12px;
-      }
+    .btn, .chip, .tab, .icon-btn{
+      border:1px solid var(--line);
+      background:var(--panel);
+      color:var(--text);
+      border-radius:14px;
+      transition:.2s ease;
+    }
 
-      /* Editor area */
-      textarea#sqlInput {
-        width: 100%;
-        min-height: 210px;
-        resize: vertical;
-        padding: 12px;
-        border-radius: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.14);
-        background: rgba(0, 0, 0, 0.18);
-        color: var(--text);
-        font-family: var(--mono);
-        font-size: 13.5px;
-        outline: none;
-        box-shadow: inset 0 10px 22px rgba(0, 0, 0, 0.25);
-      }
-      textarea#sqlInput:focus {
-        border-color: rgba(55, 148, 255, 0.45);
-        box-shadow: 0 0 0 4px rgba(55, 148, 255, 0.18);
-      }
+    .btn{
+      padding:10px 14px;
+      cursor:pointer;
+      font-weight:700;
+    }
 
-      .row {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-        flex-wrap: wrap;
-      }
+    .btn:hover, .chip:hover, .tab:hover, .icon-btn:hover{
+      border-color:var(--accent);
+      transform:translateY(-1px);
+      box-shadow:0 10px 28px rgba(217,119,6,.10);
+    }
 
-      /* Chips */
-      .samples {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-top: 10px;
-      }
-      .chip {
-        padding: 8px 10px;
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.06);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        font-weight: 950;
-        font-size: 12px;
-        color: var(--text);
-      }
-      .chip:hover {
-        background: rgba(55, 148, 255, 0.12);
-        border-color: rgba(55, 148, 255, 0.2);
-      }
-      .chip.h {
-        background: rgba(210, 153, 34, 0.12);
-        border-color: rgba(210, 153, 34, 0.22);
-      }
+    .btn.primary{
+      background:linear-gradient(135deg,var(--accent),var(--accent-2));
+      color:#fff;
+      border-color:transparent;
+    }
 
-      /* Result table */
-      .result {
-        margin-top: 12px;
-        border-radius: 14px;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        overflow: hidden;
-        background: rgba(0, 0, 0, 0.14);
-      }
-      .result .meta {
-        padding: 10px 12px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: space-between;
-      }
-      .result .meta .left {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        align-items: center;
-      }
+    .btn.ghost{
+      background:transparent;
+    }
 
-      .ok {
-        color: var(--good);
-        font-weight: 1000;
-      }
-      .danger {
-        color: var(--bad);
-        font-weight: 1000;
-      }
-      .muted {
-        color: var(--muted);
-      }
-      .small {
-        font-size: 12px;
-      }
+    .btn.full{
+      width:100%;
+    }
 
-      .tablewrap {
-        width: 100%;
-        overflow: auto;
-        max-height: 48vh;
-      }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 13px;
-      }
-      th,
-      td {
-        padding: 10px 10px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-        vertical-align: top;
-        text-align: left;
-      }
-      th {
-        position: sticky;
-        top: 0;
-        background: rgba(37, 37, 38, 0.98);
-        font-weight: 1000;
-        color: #e5e7eb;
-      }
-      td {
-        color: #e5e7eb;
-      }
+    .chip{
+      padding:8px 10px;
+      cursor:pointer;
+      text-align:left;
+      background:var(--panel-3);
+    }
 
-      /* Error box */
-      .errorbox {
-        margin-top: 10px;
-        padding: 10px 12px;
-        border-radius: 12px;
-        border: 1px solid rgba(248, 81, 73, 0.28);
-        background: rgba(248, 81, 73, 0.1);
-        color: #fecaca;
-        white-space: pre-wrap;
-        font-family: var(--mono);
-        font-size: 13px;
-        display: none;
-      }
+    .chip.active{
+      border-color:var(--accent);
+      background:var(--accent-soft);
+    }
 
-      /* History list */
-      .history {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-        margin: 10px 0;
-        flex-wrap: wrap;
-      }
-      .tabs {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-      }
-      .tab {
-        padding: 8px 10px;
-        border-radius: 999px;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        background: rgba(255, 255, 255, 0.06);
-        font-size: 12px;
-        font-weight: 950;
-        color: var(--text);
-      }
-      .tab.on {
-        border-color: rgba(55, 148, 255, 0.45);
-        background: rgba(55, 148, 255, 0.14);
-      }
-      .histlist {
-        flex: 1;
-        min-height: 0;
-        overflow: auto;
-        border-radius: 14px;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        background: rgba(0, 0, 0, 0.14);
-      }
-      .histitem {
-        padding: 10px 12px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      }
-      .histitem:last-child {
-        border-bottom: none;
-      }
-      .histitem .hmeta {
-        display: flex;
-        justify-content: space-between;
-        gap: 10px;
-        font-size: 12px;
-        color: var(--muted);
-        font-weight: 800;
-      }
-      .histitem pre {
-        margin: 8px 0 0;
-        white-space: pre-wrap;
-        word-break: break-word;
-        font-family: var(--mono);
-        font-size: 13px;
-        color: var(--text);
-      }
-      .histitem .actions {
-        display: flex;
-        gap: 8px;
-        margin-top: 10px;
-        flex-wrap: wrap;
-      }
-      .histitem .actions button {
-        padding: 8px 10px;
-        border-radius: 999px;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        background: rgba(255, 255, 255, 0.06);
-        font-size: 12px;
-        font-weight: 950;
-        color: var(--text);
-      }
-      .histitem .actions button:hover {
-        background: rgba(55, 148, 255, 0.12);
-        border-color: rgba(55, 148, 255, 0.18);
-      }
+    .main{
+      display:grid;
+      grid-template-rows:var(--header-h) 1fr;
+      min-width:0;
+    }
 
-      /* Help */
-      .helpbox {
-        margin-top: 12px;
-        border-radius: 14px;
-        border: 1px dashed rgba(255, 255, 255, 0.18);
-        background: rgba(0, 0, 0, 0.12);
-        padding: 12px;
-      }
-      .helpresults {
-        margin-top: 10px;
-        display: grid;
-        gap: 10px;
-      }
-      .helpitem {
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        background: rgba(0, 0, 0, 0.12);
-        border-radius: 12px;
-        padding: 10px 12px;
-      }
-      .helpitem b {
-        font-weight: 1000;
-      }
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:12px 18px;
+      border-bottom:1px solid var(--line);
+      background:rgba(255,255,255,.55);
+      backdrop-filter:blur(10px);
+      position:sticky;
+      top:0;
+      z-index:20;
+    }
 
-      /* Bottom status bar */
-      .vs-statusbar {
-        height: 30px;
-        background: #1b1b1b;
-        border-top: 1px solid var(--border);
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 0 10px;
-        color: #cfcfcf;
-        font-size: 12px;
-        user-select: none;
-      }
-      .vs-statusbar .right {
-        margin-left: auto;
-        color: var(--muted);
-        font-weight: 800;
-      }
-    </style>
-  </head>
+    body.dark .topbar{
+      background:rgba(15,23,42,.65);
+    }
 
-  <body>
-    <!-- VS Code title bar (keeps your existing IDs for status) -->
-    <div class="vs-titlebar">
-      <div class="title">Programmer’s Picnic — SQL in Browser (SQLite)</div>
-      <div class="right">
-        <div class="pill" title="SQLite readiness">
-          <span class="dot" id="statusDot"></span>
-          <span id="statusText">Loading SQLite…</span>
-        </div>
-        <div class="pill" title="CSV tools work after a SELECT">
-          📄 CSV: <span id="csvHint">Run a SELECT</span>
+    .top-left{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width:0;
+    }
+
+    .pill{
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:var(--panel);
+      font-size:.84rem;
+      color:var(--muted);
+      white-space:nowrap;
+    }
+
+    .top-right{
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+      gap:8px;
+    }
+
+    .workspace{
+      display:grid;
+      grid-template-columns: minmax(360px, 1.1fr) minmax(320px, .9fr);
+      gap:18px;
+      padding:18px;
+      min-width:0;
+    }
+
+    .stack{
+      display:grid;
+      gap:18px;
+      min-width:0;
+    }
+
+    .card{
+      background:linear-gradient(180deg,var(--panel),var(--panel-3));
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      min-width:0;
+    }
+
+    .card-head{
+      padding:14px 16px;
+      border-bottom:1px solid var(--line);
+      background:var(--panel-2);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+
+    .card-head h2{
+      margin:0;
+      font-size:1rem;
+    }
+
+    .card-body{
+      padding:16px;
+    }
+
+    .toolbar{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .editor-wrap{
+      padding:0;
+    }
+
+    .editor-top{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      padding:12px 16px;
+      border-bottom:1px solid var(--line);
+      background:var(--panel-3);
+    }
+
+    .code-label{
+      font-family:"JetBrains Mono",monospace;
+      font-size:.84rem;
+      color:var(--muted);
+    }
+
+    textarea{
+      width:100%;
+      min-height:340px;
+      resize:vertical;
+      border:0;
+      outline:none;
+      padding:18px;
+      background:var(--code-bg);
+      color:var(--text);
+      font-family:"JetBrains Mono",monospace;
+      font-size:.95rem;
+      line-height:1.6;
+      tab-size:2;
+    }
+
+    .row{
+      display:grid;
+      gap:12px;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+    }
+
+    .field{
+      display:grid;
+      gap:7px;
+    }
+
+    label{
+      font-size:.84rem;
+      font-weight:700;
+      color:var(--muted);
+    }
+
+    select,input{
+      width:100%;
+      padding:12px 13px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:var(--panel);
+      outline:none;
+    }
+
+    select:focus,input:focus,textarea:focus{
+      border-color:var(--accent);
+      box-shadow:0 0 0 4px var(--accent-soft);
+    }
+
+    .status{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      padding:12px 16px 0;
+    }
+
+    .status-badge{
+      padding:8px 12px;
+      border-radius:999px;
+      background:var(--panel-2);
+      border:1px solid var(--line);
+      font-size:.82rem;
+    }
+
+    .status-ok{color:var(--success)}
+    .status-err{color:var(--danger)}
+
+    .results-toolbar{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+
+    .table-wrap{
+      overflow:auto;
+      border:1px solid var(--line);
+      border-radius:16px;
+      background:var(--panel);
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      min-width:520px;
+    }
+
+    th,td{
+      padding:12px 14px;
+      border-bottom:1px solid var(--line);
+      text-align:left;
+      font-size:.92rem;
+      vertical-align:top;
+    }
+
+    th{
+      background:var(--panel-2);
+      position:sticky;
+      top:0;
+      z-index:1;
+    }
+
+    tr:hover td{
+      background:var(--accent-soft);
+    }
+
+    pre.output{
+      margin:0;
+      white-space:pre-wrap;
+      word-break:break-word;
+      border:1px solid var(--line);
+      border-radius:16px;
+      background:var(--code-bg);
+      padding:16px;
+      font-family:"JetBrains Mono",monospace;
+      line-height:1.6;
+      max-height:320px;
+      overflow:auto;
+    }
+
+    .list{
+      display:grid;
+      gap:8px;
+    }
+
+    .list-item{
+      padding:12px 14px;
+      border:1px solid var(--line);
+      border-radius:16px;
+      background:var(--panel);
+      cursor:pointer;
+    }
+
+    .list-item:hover{
+      border-color:var(--accent);
+      background:var(--accent-soft);
+    }
+
+    .list-item strong{
+      display:block;
+      margin-bottom:4px;
+    }
+
+    .muted{
+      color:var(--muted);
+    }
+
+    .flex{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+
+    .k{
+      display:inline-grid;
+      place-items:center;
+      min-width:30px;
+      padding:4px 8px;
+      border-radius:10px;
+      border:1px solid var(--line);
+      background:var(--panel-2);
+      font-family:"JetBrains Mono",monospace;
+      font-size:.77rem;
+      color:var(--muted);
+    }
+
+    .empty{
+      padding:20px;
+      text-align:center;
+      border:1px dashed var(--line);
+      border-radius:16px;
+      color:var(--muted);
+      background:var(--panel-3);
+    }
+
+    .footer-note{
+      padding:0 18px 18px;
+      color:var(--muted);
+      font-size:.84rem;
+    }
+
+    .hidden{display:none!important}
+
+    .icon-btn{
+      width:42px;
+      height:42px;
+      display:grid;
+      place-items:center;
+      cursor:pointer;
+      background:var(--panel);
+    }
+
+    .small-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:8px;
+    }
+
+    @media (max-width: 1100px){
+      .workspace{
+        grid-template-columns:1fr;
+      }
+    }
+
+    @media (max-width: 900px){
+      .app{
+        grid-template-columns:1fr;
+      }
+      .sidebar{
+        position:relative;
+        height:auto;
+        border-right:0;
+        border-bottom:1px solid var(--line);
+      }
+    }
+
+    @media (max-width: 640px){
+      .row,.small-grid{
+        grid-template-columns:1fr;
+      }
+      .topbar{
+        align-items:flex-start;
+        flex-direction:column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo">PP</div>
+        <div>
+          <h1>Programmer’s Picnic</h1>
+          <p>SQL Editor V2 · Premium</p>
         </div>
       </div>
-    </div>
 
-    <div class="vs-shell">
-      <!-- Activity bar (visual only; no JS dependency) -->
-      <div class="vs-activity">
-        <button class="vs-actbtn active" title="Explorer">📁</button>
-        <button class="vs-actbtn" title="Run">▶</button>
-        <button class="vs-actbtn" title="History">🕘</button>
-        <button class="vs-actbtn" title="Help">❓</button>
-      </div>
-
-      <!-- Sidebar: quick actions + file loading + help search -->
-      <aside class="vs-sidebar">
-        <div class="vs-sidehead">
-          <div class="label">EXPLORER</div>
-          <span class="pill">🟠 Programmer’s Picnic</span>
+      <section class="side-section">
+        <div class="side-head">
+          <span>Datasets</span>
+          <span class="tiny" id="datasetMeta">0 tables</span>
         </div>
-
-        <div class="vs-sidebody">
-          <div class="block">
-            <div class="blockhead">
-              <b>RUN</b>
-              <span class="hint">Ctrl/⌘ + Enter</span>
-            </div>
-            <div class="blockbody">
-              <div class="row">
-                <button id="runBtn" class="btn" disabled>Run SQL</button>
-                <button id="resetBtn" class="btn-outline" disabled>
-                  Reset DB
-                </button>
-                <button id="copySqlBtn" class="btn-ghost" disabled>
-                  Copy SQL
-                </button>
-              </div>
-              <div class="row" style="margin-top: 10px">
-                <button id="downloadCsvBtn" class="btn-outline" disabled>
-                  Download CSV
-                </button>
-                <button id="copyCsvBtn" class="btn-ghost" disabled>
-                  Copy CSV
-                </button>
-              </div>
-            </div>
+        <div class="side-body">
+          <div class="field" style="margin-bottom:10px;">
+            <label for="datasetSelect">Choose dataset</label>
+            <select id="datasetSelect"></select>
           </div>
+          <div class="small-grid" id="tableButtons"></div>
+        </div>
+      </section>
 
-          <div class="block">
-            <div class="blockhead">
-              <b>LOAD DB FILE</b>
-              <span class="hint">.db / .sqlite</span>
-            </div>
-            <div class="blockbody">
-              <input
-                id="sqliteFile"
-                type="file"
-                accept=".db,.sqlite,.sqlite3,application/x-sqlite3"
-              />
-              <div class="row" style="margin-top: 10px">
-                <button id="loadDbBtn" class="btn-outline" disabled>
-                  Load DB file
-                </button>
-                <button id="useSampleBtn" class="btn-ghost" disabled>
-                  Use Sample DB
-                </button>
-              </div>
-              <div class="hint" style="margin-top: 8px">
-                Loads only on this device (in-browser).
-              </div>
-            </div>
+      <section class="side-section">
+        <div class="side-head">
+          <span>Challenges</span>
+          <span class="tiny" id="challengeCount">0 items</span>
+        </div>
+        <div class="side-body">
+          <div class="list" id="challengeList"></div>
+        </div>
+      </section>
+
+      <section class="side-section">
+        <div class="side-head">
+          <span>Query History</span>
+          <button class="btn ghost" id="clearHistoryBtn" type="button">Clear</button>
+        </div>
+        <div class="side-body">
+          <div class="list" id="historyList"></div>
+        </div>
+      </section>
+
+      <section class="side-section">
+        <div class="side-head">
+          <span>Shortcuts</span>
+        </div>
+        <div class="side-body list">
+          <div class="list-item" style="cursor:default">
+            <strong>Run query</strong>
+            <span class="flex"><span class="k">Ctrl</span><span class="k">Enter</span></span>
           </div>
-
-          <div class="block">
-            <div class="blockhead">
-              <b>HELP</b>
-              <span class="hint">Search</span>
-            </div>
-            <div class="blockbody">
-              <button id="toggleHelpBtn" class="btn-ghost">Help</button>
-              <div style="margin-top: 10px">
-                <input
-                  id="helpSearch"
-                  type="text"
-                  placeholder="Search SQL help… (e.g., having, except)"
-                  autocomplete="off"
-                />
-              </div>
-              <div
-                class="helpresults"
-                id="helpResults"
-                style="margin-top: 10px"
-              ></div>
-              <div class="helpbox" id="helpBox" style="display: none"></div>
-            </div>
+          <div class="list-item" style="cursor:default">
+            <strong>Format query</strong>
+            <span class="flex"><span class="k">Ctrl</span><span class="k">Shift</span><span class="k">F</span></span>
           </div>
-
-          <div class="block">
-            <div class="blockhead">
-              <b>HISTORY</b>
-              <span class="hint">Export / Import</span>
-            </div>
-            <div class="blockbody">
-              <div class="row">
-                <button id="exportHistoryBtn" class="btn-outline" disabled>
-                  Export
-                </button>
-                <button id="importHistoryBtn" class="btn-outline" disabled>
-                  Import
-                </button>
-                <button id="clearHistoryBtn" class="btn-ghost" disabled>
-                  Clear
-                </button>
-                <input
-                  id="importFile"
-                  type="file"
-                  accept="application/json,.json"
-                  style="display: none"
-                />
-              </div>
-              <div class="hint" style="margin-top: 8px">
-                Stored in localStorage on this device.
-              </div>
-            </div>
+          <div class="list-item" style="cursor:default">
+            <strong>Clear editor</strong>
+            <span class="flex"><span class="k">Ctrl</span><span class="k">L</span></span>
+          </div>
+          <div class="list-item" style="cursor:default">
+            <strong>Share URL</strong>
+            <span class="flex"><span class="k">Ctrl</span><span class="k">S</span></span>
           </div>
         </div>
-      </aside>
+      </section>
+    </aside>
 
-      <!-- Main editor panes -->
-      <main class="vs-main">
-        <div class="vs-toolbar">
-          <span class="pill">SQL Editor</span>
-          <span class="hint"
-            >Tip: <code class="inline">PRAGMA table_info(table)</code>,
-            <code class="inline">EXCEPT</code> (Oracle MINUS), RIGHT/FULL JOIN
-            are emulated.</span
-          >
-          <div class="spacer"></div>
-          <span class="hint" id="metaMsg">Ready when SQLite loads.</span>
-          <span class="hint" id="metaRows"></span>
+    <main class="main">
+      <header class="topbar">
+        <div class="top-left">
+          <div class="pill" id="activeDatasetPill">Dataset: —</div>
+          <div class="pill" id="tableCountPill">Tables: 0</div>
+          <div class="pill" id="rowsCountPill">Rows: 0</div>
         </div>
 
-        <section class="split">
-          <!-- LEFT PANE: editor + results -->
-          <div class="pane">
-            <div class="panehead">
-              <h2>EDITOR</h2>
-              <div class="row">
-                <!-- sample chips keep working -->
+        <div class="top-right">
+          <button class="btn" id="loadFromUrlBtn" type="button">Load URL Query</button>
+          <button class="btn" id="shareBtn" type="button">Copy Share Link</button>
+          <button class="btn" id="themeBtn" type="button">Toggle Theme</button>
+        </div>
+      </header>
+
+      <div class="workspace">
+        <section class="stack">
+          <article class="card">
+            <div class="card-head">
+              <h2>SQL Workspace</h2>
+              <div class="toolbar">
+                <button class="btn primary" id="runBtn" type="button">Run Query</button>
+                <button class="btn" id="formatBtn" type="button">Format</button>
+                <button class="btn" id="clearBtn" type="button">Clear</button>
+                <button class="btn" id="sampleBtn" type="button">Insert Sample</button>
               </div>
             </div>
 
-            <div style="padding: 12px; overflow: auto; min-height: 0">
-              <div class="samples" aria-label="Sample queries">
-                <!-- core -->
-                <button
-                  class="chip"
-                  data-sql="SELECT name, type FROM sqlite_master WHERE type IN ('table','view') ORDER BY type, name;"
-                >
-                  Show tables
-                </button>
-                <button class="chip" data-sql="PRAGMA table_info(birthdays);">
-                  Describe birthdays
-                </button>
-                <button class="chip" data-sql="PRAGMA foreign_keys;">
-                  FK status
-                </button>
-                <button class="chip" data-sql="SELECT * FROM employees;">
-                  Employees (FK)
-                </button>
-                <button class="chip" data-sql="SELECT * FROM birthdays;">
-                  Birthdays
-                </button>
-                <button
-                  class="chip"
-                  data-sql="INSERT INTO birthdays (name, birthday) VALUES ('New Friend', '2000-01-01'); SELECT * FROM birthdays;"
-                >
-                  Insert sample row
-                </button>
-                <button
-                  class="chip"
-                  data-sql="UPDATE birthdays SET name='Updated Friend' WHERE name='New Friend'; SELECT * FROM birthdays;"
-                >
-                  Update sample row
-                </button>
-                <button
-                  class="chip"
-                  data-sql="DELETE FROM birthdays WHERE name='Updated Friend'; SELECT * FROM birthdays;"
-                >
-                  Delete sample row
-                </button>
+            <div class="status">
+              <div class="status-badge" id="statusText">Ready</div>
+              <div class="status-badge" id="activeTableText">Active table: —</div>
+            </div>
 
-                <!-- section: keys -->
-                <button
-                  class="chip h"
-                  data-sql="-- KEYS: Composite Primary Key\nSELECT * FROM Student ORDER BY Course, RollNo;"
-                >
-                  🔑 Student (Composite PK)
-                </button>
-                <button class="chip" data-sql="PRAGMA table_info(Student);">
-                  Describe Student
-                </button>
-                <button
-                  class="chip"
-                  data-sql="-- Try PK violation: (RollNo,Course) must be unique\nINSERT INTO Student VALUES (1,'Test',20,'MBBS');"
-                >
-                  Try PK violation
-                </button>
-
-                <button
-                  class="chip h"
-                  data-sql="-- Candidate keys: PK + UNIQUE + composite UNIQUE\nSELECT * FROM Ticket;"
-                >
-                  🎫 Ticket (PK + UNIQUE)
-                </button>
-                <button class="chip" data-sql="PRAGMA table_info(Ticket);">
-                  Describe Ticket
-                </button>
-                <button
-                  class="chip"
-                  data-sql="-- Violate UNIQUE PNRNo\nINSERT INTO Ticket VALUES('T2','P1','New Ashish','2023-01-01','123','S2',2);"
-                >
-                  Violate UNIQUE (PNR)
-                </button>
-                <button
-                  class="chip"
-                  data-sql="-- Violate composite UNIQUE(DateOfJourney,TrainNo,CoachNo,BerthNo)\nINSERT INTO Ticket VALUES('T3','P3','Someone','2023-01-01','123','S1',1);"
-                >
-                  Violate UNIQUE (Composite)
-                </button>
-
-                <!-- section: foreign key -->
-                <button
-                  class="chip h"
-                  data-sql="-- FOREIGN KEY demo\nSELECT * FROM Publications;"
-                >
-                  🧾 Publications
-                </button>
-                <button class="chip" data-sql="SELECT * FROM Subscribers;">
-                  Subscribers
-                </button>
-                <button
-                  class="chip"
-                  data-sql="-- This should FAIL (FK): non-existent publication\nINSERT INTO Subscribers VALUES('NonExistent Patrika','Mahesh');"
-                >
-                  Try FK fail
-                </button>
-
-                <!-- section: set operators -->
-                <button
-                  class="chip h"
-                  data-sql="-- SETS: UNION\nSELECT name FROM Cricketers UNION SELECT name FROM Footballers ORDER BY name;"
-                >
-                  🧩 UNION
-                </button>
-                <button
-                  class="chip"
-                  data-sql="-- SETS: UNION ALL\nSELECT name FROM Cricketers UNION ALL SELECT name FROM Footballers ORDER BY name;"
-                >
-                  UNION ALL
-                </button>
-                <button
-                  class="chip"
-                  data-sql="-- SETS: INTERSECT\nSELECT name FROM Cricketers INTERSECT SELECT name FROM Footballers ORDER BY name;"
-                >
-                  INTERSECT
-                </button>
-                <button
-                  class="chip"
-                  data-sql="-- SETS: EXCEPT (Oracle MINUS)\nSELECT name FROM Cricketers EXCEPT SELECT name FROM Footballers ORDER BY name;"
-                >
-                  EXCEPT (MINUS)
-                </button>
-
-                <button
-                  class="chip"
-                  data-sql="-- Players who play only one game:\n-- (Cricketers ∪ Footballers) − (Cricketers ∩ Footballers)\nSELECT name FROM (\n  SELECT name FROM Cricketers\n  UNION\n  SELECT name FROM Footballers\n)\nEXCEPT\nSELECT name FROM (\n  SELECT name FROM Cricketers\n  INTERSECT\n  SELECT name FROM Footballers\n)\nORDER BY name;"
-                >
-                  Only one game
-                </button>
-
-                <!-- section: joins -->
-                <button
-                  class="chip h"
-                  data-sql="-- INNER JOIN\nSELECT * FROM Cricketers C INNER JOIN Footballers F ON C.name=F.name;"
-                >
-                  🔗 INNER JOIN
-                </button>
-                <button
-                  class="chip"
-                  data-sql="-- LEFT JOIN\nSELECT * FROM Cricketers C LEFT JOIN Footballers F ON C.name=F.name ORDER BY C.name;"
-                >
-                  LEFT JOIN
-                </button>
-                <button
-                  class="chip"
-                  data-sql="-- RIGHT JOIN emulation in SQLite:\n-- swap tables in LEFT JOIN\nSELECT * FROM Footballers F LEFT JOIN Cricketers C ON C.name=F.name ORDER BY F.name;"
-                >
-                  RIGHT JOIN (emulated)
-                </button>
-                <button
-                  class="chip"
-                  data-sql="-- FULL OUTER JOIN emulation in SQLite:\nSELECT C.name AS name, C.runs, F.goals\nFROM Cricketers C LEFT JOIN Footballers F ON C.name=F.name\nUNION\nSELECT F.name AS name, C.runs, F.goals\nFROM Footballers F LEFT JOIN Cricketers C ON C.name=F.name\nORDER BY name;"
-                >
-                  FULL JOIN (emulated)
-                </button>
-
-                <!-- section: aggregates -->
-                <button
-                  class="chip h"
-                  data-sql="-- Aggregates\nSELECT * FROM Cricket_Scores;"
-                >
-                  📊 Cricket_Scores
-                </button>
-                <button
-                  class="chip"
-                  data-sql="SELECT MAX(score) AS max_score FROM Cricket_Scores;"
-                >
-                  MAX
-                </button>
-                <button
-                  class="chip"
-                  data-sql="SELECT MIN(score) AS min_score FROM Cricket_Scores;"
-                >
-                  MIN
-                </button>
-                <button
-                  class="chip"
-                  data-sql="SELECT SUM(score) AS total FROM Cricket_Scores;"
-                >
-                  SUM
-                </button>
-                <button
-                  class="chip"
-                  data-sql="SELECT AVG(score) AS average FROM Cricket_Scores;"
-                >
-                  AVG
-                </button>
-                <button
-                  class="chip"
-                  data-sql="SELECT COUNT(score) AS count_score FROM Cricket_Scores;"
-                >
-                  COUNT
-                </button>
-
-                <button
-                  class="chip"
-                  data-sql="-- Need GROUP BY when mixing normal columns + aggregates\nSELECT batsman, MAX(score) AS max_score\nFROM Cricket_Scores\nGROUP BY batsman\nORDER BY max_score DESC;"
-                >
-                  GROUP BY
-                </button>
-
-                <button
-                  class="chip"
-                  data-sql="-- Multiple aggregates per group\nSELECT batsman,\n       MAX(score) AS max_score,\n       MIN(score) AS min_score,\n       AVG(score) AS avg_score,\n       SUM(score) AS sum_score,\n       COUNT(score) AS count_score\nFROM Cricket_Scores\nGROUP BY batsman\nORDER BY batsman;"
-                >
-                  Multi-aggregates
-                </button>
-
-                <button
-                  class="chip"
-                  data-sql="-- HAVING filters groups (aggregate conditions)\nSELECT batsman, MAX(score) AS max_score\nFROM Cricket_Scores\nGROUP BY batsman\nHAVING MAX(score) >= 110\nORDER BY max_score DESC;"
-                >
-                  HAVING
-                </button>
-
-                <button
-                  class="chip"
-                  data-sql="-- Highest scores by MatchType\nSELECT MatchType, MAX(score) AS best\nFROM Cricket_Scores\nGROUP BY MatchType\nORDER BY best DESC;"
-                >
-                  Max by MatchType
-                </button>
-
-                <!-- section: trains self-join -->
-                <button
-                  class="chip h"
-                  data-sql="-- Trains + Stops\nSELECT * FROM trains;"
-                >
-                  🚆 Trains
-                </button>
-                <button
-                  class="chip"
-                  data-sql="SELECT * FROM stops ORDER BY trainno, stopno;"
-                >
-                  Stops
-                </button>
-                <button
-                  class="chip"
-                  data-sql="-- Find trains that go from Itarsi to Jalgaon (source stop before dest stop)\nSELECT Train.TrainNo, Train.TrainName, Source.station AS FromStation, Dest.station AS ToStation\nFROM stops AS Source\nINNER JOIN stops AS Dest\n  ON Source.trainno = Dest.trainno\nINNER JOIN trains AS Train\n  ON Train.TrainNo = Source.trainno\nWHERE Source.station='Itarsi'\n  AND Dest.station='Jalgaon'\n  AND Source.stopno < Dest.stopno\nORDER BY Train.TrainNo;"
-                >
-                  Find trains: Itarsi → Jalgaon
-                </button>
+            <div class="editor-wrap">
+              <div class="editor-top">
+                <div class="code-label">query.sql</div>
+                <div class="tiny">Powered by AlaSQL in the browser</div>
               </div>
+              <textarea id="sqlEditor" spellcheck="false">SELECT * FROM students;</textarea>
+            </div>
+          </article>
 
-              <textarea id="sqlInput" aria-label="SQL editor">
-SELECT * FROM birthdays;</textarea
-              >
-
-              <div class="result" aria-live="polite">
-                <div class="meta">
-                  <div class="left">
-                    <span class="muted small">Results:</span>
-                    <span class="muted small" id="metaRowsInline"></span>
-                  </div>
+          <article class="card">
+            <div class="card-head">
+              <h2>Dataset Builder</h2>
+              <div class="tiny">Paste JSON to replace the current dataset</div>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="field">
+                  <label for="datasetNameInput">Dataset name</label>
+                  <input id="datasetNameInput" placeholder="my_dataset" />
                 </div>
-                <div class="tablewrap" id="result"></div>
-              </div>
-
-              <div class="errorbox" id="error"></div>
-
-              <div class="hint" style="margin-top: 10px">
-                ✅ Works offline once loaded. Query history is saved in
-                localStorage on this device.
-              </div>
-            </div>
-          </div>
-
-          <!-- RIGHT PANE: history (keeps same IDs) -->
-          <div class="pane">
-            <div class="panehead">
-              <h2>QUERY HISTORY</h2>
-              <div class="hint" id="histCount"></div>
-            </div>
-
-            <div
-              style="
-                padding: 12px;
-                min-height: 0;
-                display: flex;
-                flex-direction: column;
-                gap: 10px;
-              "
-            >
-              <div class="history">
-                <div class="tabs" role="tablist" aria-label="History tabs">
-                  <button
-                    class="tab on"
-                    id="tabSuccess"
-                    type="button"
-                    role="tab"
-                    aria-selected="true"
-                  >
-                    Success
-                  </button>
-                  <button
-                    class="tab"
-                    id="tabFail"
-                    type="button"
-                    role="tab"
-                    aria-selected="false"
-                  >
-                    Failed
-                  </button>
+                <div class="field">
+                  <label for="importMode">Import mode</label>
+                  <select id="importMode">
+                    <option value="replace">Replace selected dataset</option>
+                    <option value="new">Create new dataset</option>
+                  </select>
                 </div>
               </div>
 
-              <div class="histlist" id="historyList"></div>
+              <div class="field" style="margin-top:12px;">
+                <label for="jsonInput">JSON structure</label>
+                <textarea id="jsonInput" style="min-height:220px;">{
+  "students": [
+    { "id": 1, "name": "Aarav", "marks": 88, "city": "Varanasi" },
+    { "id": 2, "name": "Diya", "marks": 93, "city": "Lucknow" }
+  ],
+  "courses": [
+    { "id": 101, "course_name": "SQL Basics", "fee": 1200 },
+    { "id": 102, "course_name": "DBMS Mastery", "fee": 1800 }
+  ]
+}</textarea>
+              </div>
+
+              <div class="toolbar">
+                <button class="btn primary" id="applyJsonBtn" type="button">Apply JSON</button>
+                <button class="btn" id="validateJsonBtn" type="button">Validate JSON</button>
+                <button class="btn" id="loadCurrentJsonBtn" type="button">Load Current Dataset JSON</button>
+              </div>
             </div>
-          </div>
+          </article>
         </section>
 
-        <div class="vs-statusbar">
-          <span class="dot" id="ppDotMirror"></span>
-          <span id="ppStatusMirror">Ready.</span>
-          <span class="right">Programmer’s Picnic</span>
-        </div>
-      </main>
-    </div>
-
-    <!-- IMPORTANT FIX: removed integrity attribute so the browser won't block -->
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-    ></script>
-
-    <script>
-      (function () {
-        // ===== Storage keys
-        var LS_SUCCESS = "pp_sql_history_success_v1";
-        var LS_FAIL = "pp_sql_history_fail_v1";
-
-        // ===== State
-        var db = null;
-        var SQLlib = null;
-        var activeTab = "success";
-        var lastSelectResult = null; // {columns, values}
-
-        // ===== DOM
-        var statusDot = document.getElementById("statusDot");
-        var statusText = document.getElementById("statusText");
-        var csvHint = document.getElementById("csvHint");
-
-        var sqlInput = document.getElementById("sqlInput");
-        var runBtn = document.getElementById("runBtn");
-        var resetBtn = document.getElementById("resetBtn");
-        var copySqlBtn = document.getElementById("copySqlBtn");
-        var downloadCsvBtn = document.getElementById("downloadCsvBtn");
-        var copyCsvBtn = document.getElementById("copyCsvBtn");
-
-        var metaMsg = document.getElementById("metaMsg");
-        var metaRows = document.getElementById("metaRows");
-        var metaRowsInline = document.getElementById("metaRowsInline");
-        var resultDiv = document.getElementById("result");
-        var errorDiv = document.getElementById("error");
-
-        var historyList = document.getElementById("historyList");
-        var histCount = document.getElementById("histCount");
-        var tabSuccess = document.getElementById("tabSuccess");
-        var tabFail = document.getElementById("tabFail");
-
-        var exportHistoryBtn = document.getElementById("exportHistoryBtn");
-        var importHistoryBtn = document.getElementById("importHistoryBtn");
-        var clearHistoryBtn = document.getElementById("clearHistoryBtn");
-        var importFile = document.getElementById("importFile");
-
-        var sqliteFile = document.getElementById("sqliteFile");
-        var loadDbBtn = document.getElementById("loadDbBtn");
-        var useSampleBtn = document.getElementById("useSampleBtn");
-
-        var toggleHelpBtn = document.getElementById("toggleHelpBtn");
-        var helpSearch = document.getElementById("helpSearch");
-        var helpBox = document.getElementById("helpBox");
-        var helpResults = document.getElementById("helpResults");
-
-        // ===== Status mirror (bottom bar)
-        var ppDotMirror = document.getElementById("ppDotMirror");
-        var ppStatusMirror = document.getElementById("ppStatusMirror");
-        function mirrorStatus(text, ok) {
-          ppStatusMirror.textContent = text || "Ready.";
-          ppDotMirror.className = "dot" + (ok ? " ok" : "");
-        }
-
-        // ===== Utils
-        function nowISO() {
-          return new Date().toISOString().replace("T", " ").slice(0, 19);
-        }
-        function readLS(key) {
-          try {
-            return JSON.parse(localStorage.getItem(key) || "[]");
-          } catch {
-            return [];
-          }
-        }
-        function writeLS(key, arr) {
-          localStorage.setItem(key, JSON.stringify(arr));
-        }
-        function escapeHtml(s) {
-          return String(s)
-            .replaceAll("&", "&amp;")
-            .replaceAll("<", "&lt;")
-            .replaceAll(">", "&gt;")
-            .replaceAll('"', "&quot;")
-            .replaceAll("'", "&#039;");
-        }
-
-        function enableDbLoadUI(ready) {
-          loadDbBtn.disabled = !ready;
-          useSampleBtn.disabled = !ready;
-        }
-
-        function setStatus(ready) {
-          if (ready) {
-            statusDot.className = "dot ok";
-            statusText.textContent = "DB Ready ✅";
-            runBtn.disabled = false;
-            resetBtn.disabled = false;
-            exportHistoryBtn.disabled = false;
-            importHistoryBtn.disabled = false;
-            clearHistoryBtn.disabled = false;
-            copySqlBtn.disabled = false;
-            downloadCsvBtn.disabled = !lastSelectResult;
-            copyCsvBtn.disabled = !lastSelectResult;
-            enableDbLoadUI(true);
-            mirrorStatus("SQLite ready", true);
-          } else {
-            statusDot.className = "dot";
-            statusText.textContent = "Loading SQLite…";
-            runBtn.disabled = true;
-            resetBtn.disabled = true;
-            exportHistoryBtn.disabled = true;
-            importHistoryBtn.disabled = true;
-            clearHistoryBtn.disabled = true;
-            copySqlBtn.disabled = true;
-            downloadCsvBtn.disabled = true;
-            copyCsvBtn.disabled = true;
-            enableDbLoadUI(false);
-            mirrorStatus("Loading SQLite…", false);
-          }
-        }
-
-        function clearOutput() {
-          resultDiv.innerHTML = "";
-          errorDiv.textContent = "";
-          errorDiv.style.display = "none";
-          metaRows.textContent = "";
-          if (metaRowsInline) metaRowsInline.textContent = "";
-        }
-
-        function showInfo(msg) {
-          metaMsg.innerHTML =
-            '<span class="muted small">' + escapeHtml(msg) + "</span>";
-          mirrorStatus(msg, true);
-        }
-
-        function showOk(msg) {
-          metaMsg.innerHTML =
-            '<span class="ok">✅ ' + escapeHtml(msg) + "</span>";
-          mirrorStatus(msg, true);
-        }
-
-        function showErr(msg) {
-          errorDiv.style.display = "block";
-          errorDiv.textContent = msg;
-          metaMsg.innerHTML = '<span class="danger">❌ Error</span>';
-          mirrorStatus("Error: " + String(msg || ""), false);
-        }
-
-        // ===== Load external SQLite file into sql.js
-        function loadSQLiteArrayBuffer(arrayBuffer) {
-          if (!SQLlib) return;
-          try {
-            if (db) {
-              try {
-                db.close();
-              } catch (e) {}
-            }
-            db = new SQLlib.Database(new Uint8Array(arrayBuffer));
-            try {
-              db.run("PRAGMA foreign_keys = ON;");
-            } catch (e) {}
-
-            lastSelectResult = null;
-            downloadCsvBtn.disabled = true;
-            copyCsvBtn.disabled = true;
-            csvHint.textContent = "Run a SELECT";
-
-            clearOutput();
-            showOk("Loaded SQLite DB file successfully ✅");
-            renderHistory();
-          } catch (e) {
-            showErr(
-              "Failed to open this file as a SQLite database.\n\n" +
-                (e && e.message ? e.message : String(e)),
-            );
-          }
-        }
-
-        function loadSelectedSQLiteFile(file) {
-          if (!file) return;
-          var reader = new FileReader();
-          reader.onload = function () {
-            var buf = reader.result;
-            if (!buf) {
-              showErr("Could not read file.");
-              return;
-            }
-            loadSQLiteArrayBuffer(buf);
-          };
-          reader.onerror = function () {
-            showErr("Failed to read file. Please try again.");
-          };
-          reader.readAsArrayBuffer(file);
-        }
-
-        // ===== DB init
-        function createFreshDB() {
-          db = new SQLlib.Database();
-          db.run("PRAGMA foreign_keys = ON;");
-
-          // Drop existing (order matters due to FKs)
-          db.run("DROP TABLE IF EXISTS stops;");
-          db.run("DROP TABLE IF EXISTS trains;");
-
-          db.run("DROP TABLE IF EXISTS Subscribers;");
-          db.run("DROP TABLE IF EXISTS Publications;");
-
-          db.run("DROP TABLE IF EXISTS Ticket;");
-          db.run("DROP TABLE IF EXISTS Student;");
-
-          db.run("DROP TABLE IF EXISTS Footballers;");
-          db.run("DROP TABLE IF EXISTS Cricketers;");
-
-          db.run("DROP TABLE IF EXISTS Cricket_Scores;");
-
-          db.run("DROP TABLE IF EXISTS employees;");
-          db.run("DROP TABLE IF EXISTS birthdays;");
-
-          // ===== Original sample
-          db.run(
-            "CREATE TABLE birthdays (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, birthday TEXT NOT NULL);",
-          );
-          db.run(
-            "INSERT INTO birthdays (name, birthday) VALUES ('Alice', '1998-07-14');",
-          );
-          db.run(
-            "INSERT INTO birthdays (name, birthday) VALUES ('Bob', '1995-02-28');",
-          );
-          db.run(
-            "INSERT INTO birthdays (name, birthday) VALUES ('Charlie', '2001-12-05');",
-          );
-
-          db.run(
-            "CREATE TABLE employees (emp_id INTEGER PRIMARY KEY, emp_name TEXT NOT NULL, birthday_id INTEGER, FOREIGN KEY(birthday_id) REFERENCES birthdays(id));",
-          );
-          db.run(
-            "INSERT INTO employees (emp_id, emp_name, birthday_id) VALUES (1, 'Riya', 1);",
-          );
-          db.run(
-            "INSERT INTO employees (emp_id, emp_name, birthday_id) VALUES (2, 'Sahil', 2);",
-          );
-          db.run(
-            "INSERT INTO employees (emp_id, emp_name, birthday_id) VALUES (3, 'Nisha', 3);",
-          );
-
-          // ===== KEYS examples (Composite PK + UNIQUE)
-          db.run(`
-            CREATE TABLE Student (
-              RollNo INTEGER,
-              Name TEXT,
-              Age INTEGER,
-              Course TEXT,
-              PRIMARY KEY (RollNo, Course)
-            );
-          `);
-          db.run(`
-            INSERT INTO Student VALUES
-              (1,'Himanshu',35,'MBBS'),
-              (1,'Himanshu',34,'MD'),
-              (2,'Ashish',22,'MBBS');
-          `);
-
-          db.run(`
-            CREATE TABLE Ticket (
-              TicketNo TEXT PRIMARY KEY,
-              PNRNo TEXT UNIQUE,
-              PassengerName TEXT,
-              DateOfJourney TEXT,
-              TrainNo TEXT,
-              CoachNo TEXT,
-              BerthNo INTEGER,
-              UNIQUE(DateOfJourney,TrainNo,CoachNo,BerthNo)
-            );
-          `);
-          db.run(
-            `INSERT INTO Ticket VALUES ('T1','P1','Ashish','2023-01-01','123','S1',1);`,
-          );
-
-          // ===== FOREIGN KEY example (Publications/Subscribers)
-          db.run(`
-            CREATE TABLE Publications(
-              PublicationName TEXT PRIMARY KEY
-            );
-          `);
-          db.run(`
-            INSERT INTO Publications VALUES
-              ('Yuva Bharati'),
-              ('Vivekananda Kendra Patrika');
-          `);
-
-          db.run(`
-            CREATE TABLE Subscribers(
-              PublicationName TEXT REFERENCES Publications(PublicationName),
-              CustomerId TEXT,
-              PRIMARY KEY(PublicationName,CustomerId)
-            );
-          `);
-          db.run(`
-            INSERT INTO Subscribers VALUES
-              ('Yuva Bharati','Ashish'),
-              ('Vivekananda Kendra Patrika','Manish');
-          `);
-
-          // ===== SET operators + JOIN examples
-          db.run(`
-            CREATE TABLE Cricketers(
-              name TEXT PRIMARY KEY,
-              runs INTEGER
-            );
-          `);
-          db.run(`INSERT INTO Cricketers VALUES ('A',100),('C',150);`);
-
-          db.run(`
-            CREATE TABLE Footballers(
-              name TEXT PRIMARY KEY,
-              goals INTEGER
-            );
-          `);
-          db.run(`INSERT INTO Footballers VALUES ('B',15),('C',25);`);
-
-          // ===== Aggregates example
-          db.run(`
-            CREATE TABLE Cricket_Scores(
-              batsman TEXT,
-              InningsNo INTEGER,
-              MatchType TEXT,
-              score INTEGER
-            );
-          `);
-          db.run(`
-            INSERT INTO Cricket_Scores VALUES
-              ('Champak',1,'Test',111),
-              ('Champak',1,'OneDay',112),
-              ('Gaurav',1,'OneDay',0),
-              ('Gaurav',2,'OneDay',10),
-              ('Champak',2,'OneDay',113),
-              ('Pappu',1,'OneDay',3),
-              ('Pappu',2,'OneDay',2);
-          `);
-
-          // ===== Trains between stations (self join on stops)
-          db.run(`
-            CREATE TABLE trains(
-              TrainNo TEXT PRIMARY KEY,
-              TrainName TEXT,
-              Source TEXT,
-              Dest TEXT
-            );
-          `);
-          db.run(`
-            CREATE TABLE stops(
-              stopno INTEGER,
-              trainno TEXT REFERENCES trains(TrainNo),
-              station TEXT,
-              PRIMARY KEY(stopno,trainno)
-            );
-          `);
-
-          db.run(`
-            INSERT INTO trains VALUES
-              ('1','Mahanagari','Varanasi','Mumbai'),
-              ('2','Mahanagari','Mumbai','Varanasi'),
-              ('3','Ratnagiri','Varanasi','Mumbai');
-          `);
-
-          db.run(`
-            INSERT INTO stops VALUES
-              (1,'1','Varanasi'),
-              (2,'1','Jabalpur'),
-              (3,'1','Itarsi'),
-              (4,'1','Jalgaon'),
-              (5,'1','Mumbai');
-          `);
-
-          db.run(`
-            INSERT INTO stops VALUES
-              (1,'3','Varanasi'),
-              (2,'3','Itarsi'),
-              (3,'3','Jalgaon'),
-              (4,'3','Mumbai');
-          `);
-        }
-
-        // ===== SQL execution
-        function isSelectLike(sql) {
-          var s = (sql || "").trim().toLowerCase();
-          return (
-            s.startsWith("select") ||
-            s.startsWith("pragma") ||
-            s.startsWith("with") ||
-            s.startsWith("explain")
-          );
-        }
-
-        function renderTable(columns, values) {
-          var html = "<table><thead><tr>";
-          for (var i = 0; i < columns.length; i++)
-            html += "<th>" + escapeHtml(columns[i]) + "</th>";
-          html += "</tr></thead><tbody>";
-
-          if (!values || values.length === 0) {
-            html +=
-              '<tr><td colspan="' +
-              columns.length +
-              '" class="muted small">No rows.</td></tr>';
-          } else {
-            for (var r = 0; r < values.length; r++) {
-              html += "<tr>";
-              for (var c = 0; c < columns.length; c++) {
-                var v = values[r][c];
-                html += "<td>" + escapeHtml(v === null ? "NULL" : v) + "</td>";
-              }
-              html += "</tr>";
-            }
-          }
-          html += "</tbody></table>";
-          resultDiv.innerHTML = html;
-        }
-
-        function runSQL() {
-          clearOutput();
-          if (!db) return;
-
-          var sql = sqlInput.value || "";
-          var start = performance.now();
-
-          try {
-            if (isSelectLike(sql)) {
-              var res = db.exec(sql);
-              if (!res || res.length === 0) {
-                lastSelectResult = {
-                  columns: ["(message)"],
-                  values: [["Query returned no result set."]],
-                };
-                renderTable(lastSelectResult.columns, lastSelectResult.values);
-                showOk("Query executed.");
-                metaRows.textContent = "";
-                if (metaRowsInline) metaRowsInline.textContent = "";
-              } else {
-                var columns = res[0].columns || [];
-                var values = res[0].values || [];
-                lastSelectResult = { columns: columns, values: values };
-                renderTable(columns, values);
-                showOk("SELECT executed.");
-                metaRows.textContent = values.length + " row(s)";
-                if (metaRowsInline)
-                  metaRowsInline.textContent = values.length + " row(s)";
-              }
-              downloadCsvBtn.disabled = !lastSelectResult;
-              copyCsvBtn.disabled = !lastSelectResult;
-              csvHint.textContent = lastSelectResult ? "Ready" : "Run a SELECT";
-            } else {
-              db.run(sql);
-              lastSelectResult = null;
-              downloadCsvBtn.disabled = true;
-              copyCsvBtn.disabled = true;
-              csvHint.textContent = "Run a SELECT";
-              showOk("Statement executed.");
-              metaRows.textContent = "";
-              if (metaRowsInline) metaRowsInline.textContent = "";
-            }
-
-            var ms = Math.round(performance.now() - start);
-            showInfo("Executed in " + ms + " ms — " + nowISO());
-            saveHistory("success", sql, ms);
-            renderHistory();
-          } catch (e) {
-            showErr(e && e.message ? e.message : String(e));
-            saveHistory("fail", sql, 0, e && e.message ? e.message : String(e));
-            renderHistory();
-          }
-        }
-
-        // ===== History
-        function saveHistory(kind, sql, ms, err) {
-          var key = kind === "success" ? LS_SUCCESS : LS_FAIL;
-          var arr = readLS(key);
-          arr.unshift({ ts: nowISO(), sql: sql, ms: ms || 0, err: err || "" });
-          if (arr.length > 80) arr = arr.slice(0, 80);
-          writeLS(key, arr);
-        }
-
-        function setTab(tab) {
-          activeTab = tab;
-          tabSuccess.classList.toggle("on", tab === "success");
-          tabFail.classList.toggle("on", tab === "fail");
-          tabSuccess.setAttribute("aria-selected", String(tab === "success"));
-          tabFail.setAttribute("aria-selected", String(tab === "fail"));
-          renderHistory();
-        }
-
-        function renderHistory() {
-          var key = activeTab === "success" ? LS_SUCCESS : LS_FAIL;
-          var arr = readLS(key);
-          histCount.textContent = arr.length + " item(s)";
-          historyList.innerHTML = "";
-
-          if (!arr.length) {
-            historyList.innerHTML =
-              '<div class="histitem"><div class="muted small">No history yet.</div></div>';
-            return;
-          }
-
-          arr.forEach(function (it, idx) {
-            var wrap = document.createElement("div");
-            wrap.className = "histitem";
-            wrap.innerHTML =
-              '<div class="hmeta"><span>' +
-              escapeHtml(it.ts) +
-              "</span>" +
-              "<span>" +
-              (activeTab === "success" ? escapeHtml(it.ms + " ms") : "Failed") +
-              "</span></div>" +
-              "<pre>" +
-              escapeHtml(it.sql) +
-              "</pre>" +
-              (it.err
-                ? '<div class="muted small" style="margin-top:8px"><span class="danger">Error:</span> ' +
-                  escapeHtml(it.err) +
-                  "</div>"
-                : "") +
-              '<div class="actions">' +
-              '<button data-act="insert" data-idx="' +
-              idx +
-              '">Insert</button>' +
-              '<button data-act="copy" data-idx="' +
-              idx +
-              '">Copy</button>' +
-              "</div>";
-
-            historyList.appendChild(wrap);
-          });
-        }
-
-        function exportHistory() {
-          var payload = { success: readLS(LS_SUCCESS), fail: readLS(LS_FAIL) };
-          var blob = new Blob([JSON.stringify(payload, null, 2)], {
-            type: "application/json",
-          });
-          var url = URL.createObjectURL(blob);
-          var a = document.createElement("a");
-          a.href = url;
-          a.download = "sql_history.json";
-          a.click();
-          URL.revokeObjectURL(url);
-        }
-
-        function importHistoryFile(file) {
-          var reader = new FileReader();
-          reader.onload = function () {
-            try {
-              var payload = JSON.parse(reader.result || "{}");
-              if (payload.success) writeLS(LS_SUCCESS, payload.success);
-              if (payload.fail) writeLS(LS_FAIL, payload.fail);
-              showOk("History imported ✅");
-              renderHistory();
-            } catch (e) {
-              showErr(
-                "Import failed: " + (e && e.message ? e.message : String(e)),
-              );
-            }
-          };
-          reader.readAsText(file);
-        }
-
-        function clearHistory() {
-          writeLS(LS_SUCCESS, []);
-          writeLS(LS_FAIL, []);
-          showOk("History cleared.");
-          renderHistory();
-        }
-
-        // ===== CSV
-        function toCSV(columns, values) {
-          function csvCell(v) {
-            if (v === null || v === undefined) return "";
-            var s = String(v);
-            if (/[",\n]/.test(s)) s = '"' + s.replaceAll('"', '""') + '"';
-            return s;
-          }
-          var lines = [];
-          lines.push(columns.map(csvCell).join(","));
-          (values || []).forEach(function (row) {
-            lines.push(row.map(csvCell).join(","));
-          });
-          return lines.join("\n");
-        }
-
-        function downloadCSV() {
-          if (!lastSelectResult) return;
-          var csv = toCSV(lastSelectResult.columns, lastSelectResult.values);
-          var blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-          var url = URL.createObjectURL(blob);
-          var a = document.createElement("a");
-          a.href = url;
-          a.download = "result.csv";
-          a.click();
-          URL.revokeObjectURL(url);
-        }
-
-        function copyCSV() {
-          if (!lastSelectResult) return;
-          var csv = toCSV(lastSelectResult.columns, lastSelectResult.values);
-          navigator.clipboard
-            .writeText(csv)
-            .then(function () {
-              showOk("CSV copied ✅");
-            })
-            .catch(function () {
-              showErr("Clipboard blocked by browser.");
-            });
-        }
-
-        // ===== Help
-        var HELP = [
-          {
-            k: "select",
-            d: "Retrieve rows: SELECT col FROM table WHERE ... ORDER BY ... LIMIT ...",
-          },
-          {
-            k: "where",
-            d: "Filter rows: WHERE condition (e.g., age > 18 AND city='Delhi')",
-          },
-          {
-            k: "join",
-            d: "Combine tables: INNER JOIN / LEFT JOIN using ON t1.id=t2.ref (SQLite: no native RIGHT/FULL join; emulate with LEFT JOIN + UNION).",
-          },
-          { k: "inner join", d: "Only matching rows from both tables." },
-          {
-            k: "left join",
-            d: "All rows from left table + matching rows from right table.",
-          },
-          {
-            k: "right join",
-            d: "Not native in SQLite; emulate by swapping tables in a LEFT JOIN.",
-          },
-          {
-            k: "full join",
-            d: "Not native in SQLite; emulate with (A LEFT JOIN B) UNION (B LEFT JOIN A).",
-          },
-          {
-            k: "group by",
-            d: "Aggregate rows: GROUP BY col with COUNT/SUM/AVG/MAX/MIN",
-          },
-          {
-            k: "having",
-            d: "Filter groups (aggregate conditions): HAVING MAX(score) >= 100",
-          },
-          { k: "order by", d: "Sort rows: ORDER BY col ASC|DESC" },
-          { k: "limit", d: "Limit output rows: LIMIT 10 OFFSET 20" },
-          {
-            k: "pragma",
-            d: "SQLite settings & introspection: PRAGMA table_info(tbl); PRAGMA foreign_keys;",
-          },
-
-          {
-            k: "primary key",
-            d: "Primary key uniquely identifies a row. Composite PK can be (col1, col2).",
-          },
-          {
-            k: "unique",
-            d: "UNIQUE enforces that values (or combinations) cannot repeat (candidate key idea).",
-          },
-          {
-            k: "foreign key",
-            d: "FOREIGN KEY ensures child rows reference an existing parent row (referential integrity).",
-          },
-
-          {
-            k: "union",
-            d: "UNION combines rows from two SELECTs and removes duplicates.",
-          },
-          {
-            k: "union all",
-            d: "UNION ALL combines rows and keeps duplicates.",
-          },
-          {
-            k: "intersect",
-            d: "INTERSECT returns rows common to both SELECTs.",
-          },
-          {
-            k: "except",
-            d: "EXCEPT returns rows in first SELECT not present in second (Oracle MINUS).",
-          },
-
-          {
-            k: "aggregate",
-            d: "Aggregate functions operate on many rows: MAX, MIN, SUM, AVG, COUNT.",
-          },
-          {
-            k: "max",
-            d: "MAX(column) returns largest value in the group/result.",
-          },
-          {
-            k: "min",
-            d: "MIN(column) returns smallest value in the group/result.",
-          },
-          { k: "sum", d: "SUM(column) totals numeric values." },
-          { k: "avg", d: "AVG(column) returns average of numeric values." },
-          {
-            k: "count",
-            d: "COUNT(*) or COUNT(col) counts rows/non-null values.",
-          },
-
-          {
-            k: "sqlite_master",
-            d: "System catalog: SELECT name,type,sql FROM sqlite_master WHERE type='table';",
-          },
-        ];
-
-        function renderHelp(q) {
-          var query = (q || "").trim().toLowerCase();
-          var items = HELP.filter(function (it) {
-            return (
-              !query ||
-              it.k.includes(query) ||
-              it.d.toLowerCase().includes(query)
-            );
-          }).slice(0, 12);
-
-          helpResults.innerHTML =
-            items
-              .map(function (it) {
-                return (
-                  '<div class="helpitem"><b>' +
-                  escapeHtml(it.k) +
-                  "</b><div class='muted small' style='margin-top:6px'>" +
-                  escapeHtml(it.d) +
-                  "</div></div>"
-                );
-              })
-              .join("") || '<div class="muted small">No matches.</div>';
-        }
-
-        // ===== Wire UI
-        document.querySelectorAll("[data-sql]").forEach(function (b) {
-          b.addEventListener("click", function () {
-            sqlInput.value = b.getAttribute("data-sql") || "";
-            sqlInput.focus();
-          });
+        <section class="stack">
+          <article class="card">
+            <div class="card-head">
+              <h2>Results</h2>
+              <div class="results-toolbar">
+                <button class="btn" id="exportCsvBtn" type="button">Export CSV</button>
+                <button class="btn" id="exportJsonBtn" type="button">Export JSON</button>
+                <button class="btn" id="copyResultBtn" type="button">Copy JSON</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div id="resultSummary" class="muted" style="margin-bottom:12px;">No query run yet.</div>
+              <div id="resultTableWrap" class="table-wrap hidden"></div>
+              <pre id="resultText" class="output hidden"></pre>
+              <div id="resultEmpty" class="empty">Run a query to see results here.</div>
+            </div>
+          </article>
+
+          <article class="card">
+            <div class="card-head">
+              <h2>Table Preview</h2>
+              <div class="tiny">Click any dataset table from the left panel</div>
+            </div>
+            <div class="card-body">
+              <div id="previewSummary" class="muted" style="margin-bottom:12px;">No table selected.</div>
+              <div id="previewWrap" class="table-wrap hidden"></div>
+              <div id="previewEmpty" class="empty">Select a table to inspect its rows.</div>
+            </div>
+          </article>
+        </section>
+      </div>
+
+      <div class="footer-note">
+        Built for your LearnWithChampak / Programmer’s Picnic editor ecosystem. Single-file, GitHub Pages friendly, saffron-first, no backend needed.
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/alasql@4.6/dist/alasql.min.js"></script>
+  <script>
+    const DEFAULT_DATASETS = {
+      school_demo: {
+        students: [
+          { id: 1, name: "Aarav", marks: 88, city: "Varanasi", course_id: 101 },
+          { id: 2, name: "Diya", marks: 93, city: "Lucknow", course_id: 102 },
+          { id: 3, name: "Kabir", marks: 76, city: "Prayagraj", course_id: 101 },
+          { id: 4, name: "Meera", marks: 85, city: "Kanpur", course_id: 103 },
+          { id: 5, name: "Vihaan", marks: 91, city: "Varanasi", course_id: 102 }
+        ],
+        courses: [
+          { id: 101, course_name: "SQL Basics", fee: 1200, duration_weeks: 4 },
+          { id: 102, course_name: "DBMS Mastery", fee: 1800, duration_weeks: 6 },
+          { id: 103, course_name: "Data Analysis", fee: 2200, duration_weeks: 8 }
+        ],
+        teachers: [
+          { id: 1, teacher_name: "Ritu Sharma", subject: "SQL Basics" },
+          { id: 2, teacher_name: "Karan Singh", subject: "DBMS" },
+          { id: 3, teacher_name: "Ananya Rao", subject: "Analytics" }
+        ]
+      },
+
+      ecommerce_demo: {
+        products: [
+          { id: 1, product_name: "Laptop", category: "Electronics", price: 62000, stock: 8 },
+          { id: 2, product_name: "Mouse", category: "Electronics", price: 800, stock: 50 },
+          { id: 3, product_name: "Chair", category: "Furniture", price: 3500, stock: 12 },
+          { id: 4, product_name: "Notebook", category: "Stationery", price: 120, stock: 200 }
+        ],
+        customers: [
+          { id: 1, customer_name: "Rahul", city: "Delhi" },
+          { id: 2, customer_name: "Neha", city: "Mumbai" },
+          { id: 3, customer_name: "Sana", city: "Varanasi" }
+        ],
+        orders: [
+          { id: 1001, customer_id: 1, product_id: 1, quantity: 1, total: 62000 },
+          { id: 1002, customer_id: 2, product_id: 2, quantity: 2, total: 1600 },
+          { id: 1003, customer_id: 3, product_id: 4, quantity: 5, total: 600 }
+        ]
+      }
+    };
+
+    const CHALLENGES = [
+      {
+        title: "Students scoring above 85",
+        description: "Filter students by marks.",
+        query: "SELECT name, marks FROM students WHERE marks > 85;"
+      },
+      {
+        title: "Average marks by city",
+        description: "Group and aggregate.",
+        query: "SELECT city, AVG(marks) AS avg_marks FROM students GROUP BY city;"
+      },
+      {
+        title: "Join students with courses",
+        description: "Practice INNER JOIN.",
+        query: "SELECT s.name, c.course_name, s.marks FROM students s JOIN courses c ON s.course_id = c.id;"
+      },
+      {
+        title: "Highest priced product",
+        description: "Sort descending with LIMIT.",
+        query: "SELECT * FROM products ORDER BY price DESC LIMIT 1;"
+      },
+      {
+        title: "Order totals by customer",
+        description: "Join three tables.",
+        query: "SELECT c.customer_name, p.product_name, o.quantity, o.total FROM orders o JOIN customers c ON o.customer_id = c.id JOIN products p ON o.product_id = p.id;"
+      }
+    ];
+
+    const state = {
+      datasets: structuredClone(DEFAULT_DATASETS),
+      currentDatasetName: "school_demo",
+      currentPreviewTable: "",
+      lastResult: null,
+      lastResultKind: "",
+      history: JSON.parse(localStorage.getItem("pp_sql_history_v2") || "[]"),
+      theme: localStorage.getItem("pp_sql_theme_v2") || "light"
+    };
+
+    const els = {
+      datasetSelect: document.getElementById("datasetSelect"),
+      datasetMeta: document.getElementById("datasetMeta"),
+      challengeCount: document.getElementById("challengeCount"),
+      challengeList: document.getElementById("challengeList"),
+      historyList: document.getElementById("historyList"),
+      clearHistoryBtn: document.getElementById("clearHistoryBtn"),
+      activeDatasetPill: document.getElementById("activeDatasetPill"),
+      tableCountPill: document.getElementById("tableCountPill"),
+      rowsCountPill: document.getElementById("rowsCountPill"),
+      loadFromUrlBtn: document.getElementById("loadFromUrlBtn"),
+      shareBtn: document.getElementById("shareBtn"),
+      themeBtn: document.getElementById("themeBtn"),
+      runBtn: document.getElementById("runBtn"),
+      formatBtn: document.getElementById("formatBtn"),
+      clearBtn: document.getElementById("clearBtn"),
+      sampleBtn: document.getElementById("sampleBtn"),
+      sqlEditor: document.getElementById("sqlEditor"),
+      statusText: document.getElementById("statusText"),
+      activeTableText: document.getElementById("activeTableText"),
+      tableButtons: document.getElementById("tableButtons"),
+      resultSummary: document.getElementById("resultSummary"),
+      resultTableWrap: document.getElementById("resultTableWrap"),
+      resultText: document.getElementById("resultText"),
+      resultEmpty: document.getElementById("resultEmpty"),
+      previewSummary: document.getElementById("previewSummary"),
+      previewWrap: document.getElementById("previewWrap"),
+      previewEmpty: document.getElementById("previewEmpty"),
+      exportCsvBtn: document.getElementById("exportCsvBtn"),
+      exportJsonBtn: document.getElementById("exportJsonBtn"),
+      copyResultBtn: document.getElementById("copyResultBtn"),
+      datasetNameInput: document.getElementById("datasetNameInput"),
+      importMode: document.getElementById("importMode"),
+      jsonInput: document.getElementById("jsonInput"),
+      applyJsonBtn: document.getElementById("applyJsonBtn"),
+      validateJsonBtn: document.getElementById("validateJsonBtn"),
+      loadCurrentJsonBtn: document.getElementById("loadCurrentJsonBtn")
+    };
+
+    function applyTheme() {
+      document.body.classList.toggle("dark", state.theme === "dark");
+    }
+
+    function setStatus(message, ok = true) {
+      els.statusText.textContent = message;
+      els.statusText.className = "status-badge " + (ok ? "status-ok" : "status-err");
+    }
+
+    function getCurrentDataset() {
+      return state.datasets[state.currentDatasetName] || {};
+    }
+
+    function totalRows(dataset) {
+      return Object.values(dataset).reduce((sum, rows) => sum + (Array.isArray(rows) ? rows.length : 0), 0);
+    }
+
+    function refreshTopPills() {
+      const ds = getCurrentDataset();
+      const tableNames = Object.keys(ds);
+      els.activeDatasetPill.textContent = "Dataset: " + state.currentDatasetName;
+      els.tableCountPill.textContent = "Tables: " + tableNames.length;
+      els.rowsCountPill.textContent = "Rows: " + totalRows(ds);
+      els.datasetMeta.textContent = tableNames.length + " tables";
+    }
+
+    function renderDatasetOptions() {
+      const names = Object.keys(state.datasets);
+      els.datasetSelect.innerHTML = names.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join("");
+      els.datasetSelect.value = state.currentDatasetName;
+      refreshTopPills();
+      renderTableButtons();
+    }
+
+    function renderTableButtons() {
+      const ds = getCurrentDataset();
+      const names = Object.keys(ds);
+      els.tableButtons.innerHTML = names.length
+        ? names.map(name => `
+            <button class="chip ${name === state.currentPreviewTable ? "active" : ""}" type="button" data-table="${escapeHtml(name)}">
+              ${escapeHtml(name)} (${Array.isArray(ds[name]) ? ds[name].length : 0})
+            </button>
+          `).join("")
+        : `<div class="empty">No tables found.</div>`;
+
+      [...els.tableButtons.querySelectorAll("[data-table]")].forEach(btn => {
+        btn.addEventListener("click", () => {
+          state.currentPreviewTable = btn.dataset.table;
+          renderTableButtons();
+          previewTable(state.currentPreviewTable);
         });
+      });
+    }
 
-        runBtn.onclick = runSQL;
+    function renderChallenges() {
+      els.challengeCount.textContent = CHALLENGES.length + " items";
+      els.challengeList.innerHTML = CHALLENGES.map((item, idx) => `
+        <button class="list-item" type="button" data-challenge="${idx}">
+          <strong>${escapeHtml(item.title)}</strong>
+          <span class="tiny">${escapeHtml(item.description)}</span>
+        </button>
+      `).join("");
 
-        resetBtn.onclick = function () {
-          clearOutput();
-          if (!db) return;
-          try {
-            db.close();
-          } catch (e) {}
-          createFreshDB();
-          lastSelectResult = null;
-          downloadCsvBtn.disabled = true;
-          copyCsvBtn.disabled = true;
-          csvHint.textContent = "Run a SELECT";
-          showOk("Database reset (tables + sample rows recreated).");
-        };
+      [...els.challengeList.querySelectorAll("[data-challenge]")].forEach(btn => {
+        btn.addEventListener("click", () => {
+          const item = CHALLENGES[Number(btn.dataset.challenge)];
+          els.sqlEditor.value = item.query;
+          setStatus("Challenge query loaded.", true);
+        });
+      });
+    }
 
-        loadDbBtn.onclick = function () {
-          clearOutput();
-          if (!SQLlib) return;
-          var file =
-            sqliteFile && sqliteFile.files ? sqliteFile.files[0] : null;
-          if (!file) {
-            showErr("Please choose a .db/.sqlite file first.");
-            return;
+    function renderHistory() {
+      if (!state.history.length) {
+        els.historyList.innerHTML = `<div class="empty">No history yet.</div>`;
+        return;
+      }
+
+      els.historyList.innerHTML = state.history.map((item, idx) => `
+        <button class="list-item" type="button" data-history="${idx}">
+          <strong>${escapeHtml(item.query.slice(0, 70))}${item.query.length > 70 ? "..." : ""}</strong>
+          <span class="tiny">${escapeHtml(item.dataset)} · ${escapeHtml(item.time)}</span>
+        </button>
+      `).join("");
+
+      [...els.historyList.querySelectorAll("[data-history]")].forEach(btn => {
+        btn.addEventListener("click", () => {
+          const item = state.history[Number(btn.dataset.history)];
+          state.currentDatasetName = item.dataset in state.datasets ? item.dataset : state.currentDatasetName;
+          renderDatasetOptions();
+          els.sqlEditor.value = item.query;
+          setStatus("History query restored.", true);
+        });
+      });
+    }
+
+    function saveHistory(query) {
+      const entry = {
+        query,
+        dataset: state.currentDatasetName,
+        time: new Date().toLocaleString()
+      };
+      state.history.unshift(entry);
+      state.history = state.history.slice(0, 25);
+      localStorage.setItem("pp_sql_history_v2", JSON.stringify(state.history));
+      renderHistory();
+    }
+
+    function mountTablesToAlaSQL() {
+      const ds = getCurrentDataset();
+      Object.keys(ds).forEach(table => {
+        alasql(`DROP TABLE IF EXISTS ${safeIdent(table)}`);
+      });
+
+      Object.entries(ds).forEach(([table, rows]) => {
+        if (!Array.isArray(rows)) return;
+        alasql(`CREATE TABLE ${safeIdent(table)}`);
+        if (rows.length) {
+          alasql.tables[table].data = structuredClone(rows);
+        }
+      });
+    }
+
+    function runQuery() {
+      const query = els.sqlEditor.value.trim();
+      if (!query) {
+        setStatus("Editor is empty.", false);
+        return;
+      }
+
+      try {
+        mountTablesToAlaSQL();
+        const result = alasql(query);
+        state.lastResult = result;
+        state.lastResultKind = Array.isArray(result) ? "rows" : typeof result;
+        renderResult(result, query);
+        detectActiveTable(query);
+        saveHistory(query);
+        setStatus("Query executed successfully.", true);
+      } catch (err) {
+        state.lastResult = null;
+        state.lastResultKind = "";
+        els.resultTableWrap.classList.add("hidden");
+        els.resultText.classList.remove("hidden");
+        els.resultEmpty.classList.add("hidden");
+        els.resultText.textContent = String(err.message || err);
+        els.resultSummary.textContent = "Query failed.";
+        setStatus("Query error: " + String(err.message || err), false);
+      }
+    }
+
+    function detectActiveTable(query) {
+      const match = query.match(/\bfrom\s+([a-zA-Z_][\w]*)/i);
+      const table = match ? match[1] : "—";
+      els.activeTableText.textContent = "Active table: " + table;
+    }
+
+    function renderResult(result, query) {
+      els.resultEmpty.classList.add("hidden");
+
+      if (Array.isArray(result)) {
+        els.resultText.classList.add("hidden");
+        els.resultTableWrap.classList.remove("hidden");
+        els.resultTableWrap.innerHTML = renderTableHtml(result);
+        els.resultSummary.textContent =
+          `${result.length} row(s) returned from query on dataset "${state.currentDatasetName}".`;
+      } else {
+        els.resultTableWrap.classList.add("hidden");
+        els.resultText.classList.remove("hidden");
+        els.resultText.textContent = typeof result === "object"
+          ? JSON.stringify(result, null, 2)
+          : String(result);
+        els.resultSummary.textContent =
+          `Query executed. Result type: ${typeof result}.`;
+      }
+    }
+
+    function previewTable(tableName) {
+      const ds = getCurrentDataset();
+      const rows = ds[tableName];
+
+      if (!tableName || !Array.isArray(rows)) {
+        els.previewWrap.classList.add("hidden");
+        els.previewEmpty.classList.remove("hidden");
+        els.previewSummary.textContent = "No table selected.";
+        return;
+      }
+
+      els.previewWrap.classList.remove("hidden");
+      els.previewEmpty.classList.add("hidden");
+      els.previewWrap.innerHTML = renderTableHtml(rows);
+      els.previewSummary.textContent = `Table "${tableName}" · ${rows.length} row(s).`;
+    }
+
+    function renderTableHtml(rows) {
+      if (!rows || !rows.length) {
+        return `<div class="empty">No rows to display.</div>`;
+      }
+
+      const keys = [...new Set(rows.flatMap(row => Object.keys(row)))];
+      const head = keys.map(k => `<th>${escapeHtml(k)}</th>`).join("");
+      const body = rows.map(row => `
+        <tr>
+          ${keys.map(k => `<td>${escapeHtml(formatCell(row[k]))}</td>`).join("")}
+        </tr>
+      `).join("");
+
+      return `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+    }
+
+    function formatCell(value) {
+      if (value === null) return "null";
+      if (value === undefined) return "undefined";
+      if (typeof value === "object") return JSON.stringify(value);
+      return String(value);
+    }
+
+    function exportCSV() {
+      if (!Array.isArray(state.lastResult)) {
+        setStatus("Last result is not tabular.", false);
+        return;
+      }
+
+      const csv = arrayToCsv(state.lastResult);
+      downloadFile(csv, "query-result.csv", "text/csv;charset=utf-8;");
+      setStatus("CSV exported.", true);
+    }
+
+    function exportJSON() {
+      if (state.lastResult == null) {
+        setStatus("No result to export.", false);
+        return;
+      }
+
+      downloadFile(JSON.stringify(state.lastResult, null, 2), "query-result.json", "application/json;charset=utf-8;");
+      setStatus("JSON exported.", true);
+    }
+
+    async function copyResultJson() {
+      if (state.lastResult == null) {
+        setStatus("No result to copy.", false);
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(JSON.stringify(state.lastResult, null, 2));
+        setStatus("Result JSON copied.", true);
+      } catch {
+        setStatus("Clipboard copy failed.", false);
+      }
+    }
+
+    function arrayToCsv(rows) {
+      if (!rows.length) return "";
+      const keys = [...new Set(rows.flatMap(row => Object.keys(row)))];
+      const lines = [
+        keys.join(","),
+        ...rows.map(row => keys.map(k => csvEscape(row[k])).join(","))
+      ];
+      return lines.join("\\n");
+    }
+
+    function csvEscape(value) {
+      const s = value == null ? "" : String(typeof value === "object" ? JSON.stringify(value) : value);
+      return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    }
+
+    function downloadFile(content, filename, mime) {
+      const blob = new Blob([content], { type: mime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function safeIdent(name) {
+      return name.replace(/[^\w]/g, "_");
+    }
+
+    function formatQueryBasic(sql) {
+      return sql
+        .replace(/\s+/g, " ")
+        .replace(/\s*,\s*/g, ", ")
+        .replace(/\b(select|from|where|join|inner join|left join|right join|group by|order by|limit|having|on)\b/gi, m => "\n" + m.toUpperCase())
+        .replace(/\n+/g, "\n")
+        .trim() + (sql.trim().endsWith(";") ? "" : ";");
+    }
+
+    function insertSampleQuery() {
+      const ds = getCurrentDataset();
+      const table = Object.keys(ds)[0];
+      els.sqlEditor.value = table ? `SELECT * FROM ${table};` : "SELECT 1 AS demo;";
+      setStatus("Sample query inserted.", true);
+    }
+
+    function applyJsonDataset() {
+      const raw = els.jsonInput.value.trim();
+      const mode = els.importMode.value;
+      let name = els.datasetNameInput.value.trim();
+
+      try {
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+          throw new Error("Top-level JSON must be an object with table names as keys.");
+        }
+
+        for (const [key, rows] of Object.entries(parsed)) {
+          if (!Array.isArray(rows)) {
+            throw new Error(`Table "${key}" must contain an array of rows.`);
           }
-          showInfo("Loading DB file: " + file.name + " …");
-          loadSelectedSQLiteFile(file);
-        };
-
-        useSampleBtn.onclick = function () {
-          clearOutput();
-          if (!SQLlib) return;
-          try {
-            if (db) {
-              try {
-                db.close();
-              } catch (e) {}
+          for (const row of rows) {
+            if (typeof row !== "object" || row === null || Array.isArray(row)) {
+              throw new Error(`Each row in table "${key}" must be an object.`);
             }
-            createFreshDB();
-            lastSelectResult = null;
-            downloadCsvBtn.disabled = true;
-            copyCsvBtn.disabled = true;
-            csvHint.textContent = "Run a SELECT";
-            showOk("Switched back to Sample DB ✅");
-            runSQL();
-          } catch (e) {
-            showErr(
-              "Failed to restore sample DB.\n\n" +
-                (e && e.message ? e.message : String(e)),
-            );
           }
-        };
+        }
 
-        copySqlBtn.onclick = function () {
-          navigator.clipboard
-            .writeText(sqlInput.value || "")
-            .then(function () {
-              showOk("SQL copied ✅");
-            })
-            .catch(function () {
-              showErr("Clipboard blocked by browser.");
-            });
-        };
-
-        downloadCsvBtn.onclick = downloadCSV;
-        copyCsvBtn.onclick = copyCSV;
-
-        tabSuccess.onclick = function () {
-          setTab("success");
-        };
-        tabFail.onclick = function () {
-          setTab("fail");
-        };
-
-        historyList.addEventListener("click", function (e) {
-          var btn = e.target.closest("button[data-act]");
-          if (!btn) return;
-          var act = btn.getAttribute("data-act");
-          var idx = parseInt(btn.getAttribute("data-idx") || "0", 10);
-          var arr = readLS(activeTab === "success" ? LS_SUCCESS : LS_FAIL);
-          var item = arr[idx];
-          if (!item) return;
-
-          if (act === "insert") {
-            sqlInput.value = item.sql || "";
-            sqlInput.focus();
-          }
-          if (act === "copy") {
-            navigator.clipboard
-              .writeText(item.sql || "")
-              .then(function () {
-                showOk("Copied ✅");
-              })
-              .catch(function () {
-                showErr("Clipboard blocked by browser.");
-              });
-          }
-        });
-
-        exportHistoryBtn.onclick = exportHistory;
-        importHistoryBtn.onclick = function () {
-          importFile.click();
-        };
-        importFile.addEventListener("change", function () {
-          var file = importFile.files && importFile.files[0];
-          if (file) importHistoryFile(file);
-          importFile.value = "";
-        });
-        clearHistoryBtn.onclick = clearHistory;
-
-        toggleHelpBtn.onclick = function () {
-          var show = helpBox.style.display === "none";
-          helpBox.style.display = show ? "block" : "none";
-          if (show) renderHelp(helpSearch.value);
-        };
-        helpSearch.addEventListener("input", function () {
-          renderHelp(helpSearch.value);
-        });
-
-        // ===== Init sql.js
-        setStatus(false);
-
-        if (window.initSqlJs) {
-          window
-            .initSqlJs({
-              locateFile: function (f) {
-                return (
-                  "https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/" + f
-                );
-              },
-            })
-            .then(function (SQL) {
-              SQLlib = SQL;
-              createFreshDB();
-              setStatus(true);
-              showOk("SQLite loaded. Sample DB created.");
-              renderHistory();
-              renderHelp("");
-            })
-            .catch(function (e) {
-              showErr(
-                "Failed to load sql.js\n\n" +
-                  (e && e.message ? e.message : String(e)),
-              );
-              setStatus(false);
-            });
+        if (mode === "replace") {
+          state.datasets[state.currentDatasetName] = parsed;
         } else {
-          showErr(
-            "sql.js not available (initSqlJs missing). Check the script include.",
-          );
-          setStatus(false);
+          if (!name) name = "dataset_" + Date.now();
+          state.datasets[name] = parsed;
+          state.currentDatasetName = name;
         }
 
-        // Bonus: Ctrl/Cmd + Enter to run SQL
-        sqlInput.addEventListener("keydown", function (ev) {
-          var isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
-          if ((isMac ? ev.metaKey : ev.ctrlKey) && ev.key === "Enter") {
-            ev.preventDefault();
-            if (!runBtn.disabled) runSQL();
-          }
-        });
-      })();
-    </script>
-  </body>
+        renderDatasetOptions();
+        renderTableButtons();
+        previewTable("");
+        refreshTopPills();
+        setStatus("Dataset applied successfully.", true);
+      } catch (err) {
+        setStatus("JSON error: " + String(err.message || err), false);
+      }
+    }
+
+    function validateJsonOnly() {
+      try {
+        const parsed = JSON.parse(els.jsonInput.value.trim());
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+          throw new Error("Top-level JSON must be an object.");
+        }
+        setStatus("JSON is valid.", true);
+      } catch (err) {
+        setStatus("Invalid JSON: " + String(err.message || err), false);
+      }
+    }
+
+    function loadCurrentDatasetJson() {
+      els.jsonInput.value = JSON.stringify(getCurrentDataset(), null, 2);
+      els.datasetNameInput.value = state.currentDatasetName;
+      setStatus("Current dataset loaded into JSON editor.", true);
+    }
+
+    async function copyShareLink() {
+      const query = els.sqlEditor.value.trim();
+      const params = new URLSearchParams();
+      params.set("dataset", state.currentDatasetName);
+      params.set("q", query);
+      const url = location.origin + location.pathname + "?" + params.toString();
+
+      try {
+        await navigator.clipboard.writeText(url);
+        setStatus("Share link copied.", true);
+      } catch {
+        setStatus("Could not copy share link.", false);
+      }
+    }
+
+    function loadFromUrl() {
+      const params = new URLSearchParams(location.search);
+      const q = params.get("q");
+      const dataset = params.get("dataset");
+
+      if (dataset && dataset in state.datasets) {
+        state.currentDatasetName = dataset;
+      }
+
+      if (q) {
+        els.sqlEditor.value = q;
+        setStatus("Query loaded from URL.", true);
+      } else {
+        setStatus("No query found in URL.", false);
+      }
+
+      renderDatasetOptions();
+    }
+
+    function bindEvents() {
+      els.datasetSelect.addEventListener("change", () => {
+        state.currentDatasetName = els.datasetSelect.value;
+        state.currentPreviewTable = "";
+        renderDatasetOptions();
+        previewTable("");
+        setStatus("Dataset switched.", true);
+      });
+
+      els.runBtn.addEventListener("click", runQuery);
+      els.formatBtn.addEventListener("click", () => {
+        els.sqlEditor.value = formatQueryBasic(els.sqlEditor.value);
+        setStatus("Query formatted.", true);
+      });
+
+      els.clearBtn.addEventListener("click", () => {
+        els.sqlEditor.value = "";
+        setStatus("Editor cleared.", true);
+      });
+
+      els.sampleBtn.addEventListener("click", insertSampleQuery);
+      els.exportCsvBtn.addEventListener("click", exportCSV);
+      els.exportJsonBtn.addEventListener("click", exportJSON);
+      els.copyResultBtn.addEventListener("click", copyResultJson);
+      els.validateJsonBtn.addEventListener("click", validateJsonOnly);
+      els.applyJsonBtn.addEventListener("click", applyJsonDataset);
+      els.loadCurrentJsonBtn.addEventListener("click", loadCurrentDatasetJson);
+      els.shareBtn.addEventListener("click", copyShareLink);
+      els.loadFromUrlBtn.addEventListener("click", loadFromUrl);
+
+      els.themeBtn.addEventListener("click", () => {
+        state.theme = state.theme === "dark" ? "light" : "dark";
+        localStorage.setItem("pp_sql_theme_v2", state.theme);
+        applyTheme();
+        setStatus("Theme changed.", true);
+      });
+
+      els.clearHistoryBtn.addEventListener("click", () => {
+        state.history = [];
+        localStorage.removeItem("pp_sql_history_v2");
+        renderHistory();
+        setStatus("History cleared.", true);
+      });
+
+      document.addEventListener("keydown", (e) => {
+        const ctrl = e.ctrlKey || e.metaKey;
+
+        if (ctrl && e.key === "Enter") {
+          e.preventDefault();
+          runQuery();
+        }
+
+        if (ctrl && e.shiftKey && e.key.toLowerCase() === "f") {
+          e.preventDefault();
+          els.sqlEditor.value = formatQueryBasic(els.sqlEditor.value);
+          setStatus("Query formatted.", true);
+        }
+
+        if (ctrl && e.key.toLowerCase() === "l") {
+          e.preventDefault();
+          els.sqlEditor.value = "";
+          setStatus("Editor cleared.", true);
+        }
+
+        if (ctrl && e.key.toLowerCase() === "s") {
+          e.preventDefault();
+          copyShareLink();
+        }
+      });
+    }
+
+    function init() {
+      applyTheme();
+      renderDatasetOptions();
+      renderChallenges();
+      renderHistory();
+      bindEvents();
+      loadFromUrl();
+      refreshTopPills();
+      setStatus("Ready", true);
+      insertSampleQuery();
+    }
+
+    init();
+  </script>
+</body>
 </html>
