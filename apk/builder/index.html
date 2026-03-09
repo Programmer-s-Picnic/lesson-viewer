@@ -1,0 +1,542 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Programmer’s Picnic — Android TV APK Generator</title>
+  <meta name="description" content="Generate a GitHub Actions based Android TV WebView APK project without Android Studio. Built for Programmer’s Picnic by Champak Roy." />
+  <meta name="theme-color" content="#d97706" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    :root{
+      --bg:#fff8ef;
+      --bg2:#fff1d9;
+      --panel:rgba(255,255,255,.82);
+      --panel-2:rgba(255,255,255,.68);
+      --ink:#1f2328;
+      --muted:#5b6570;
+      --line:rgba(31,35,40,.10);
+      --saffron:#d97706;
+      --saffron-2:#f59e0b;
+      --accent:#ffedd5;
+      --shadow:0 18px 50px rgba(31,35,40,.12);
+      --radius:24px;
+      --radius-sm:16px;
+      --mono: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:
+      radial-gradient(1100px 620px at 0% 0%, rgba(217,119,6,.18), transparent 60%),
+      radial-gradient(900px 560px at 100% 10%, rgba(245,158,11,.18), transparent 56%),
+      linear-gradient(180deg,var(--bg),var(--bg2));
+      color:var(--ink);font-family:Inter,system-ui,sans-serif;min-height:100%;}
+    a{color:inherit}
+    .wrap{max-width:1380px;margin:0 auto;padding:24px}
+    .hero{display:grid;grid-template-columns:1.1fr .9fr;gap:18px;align-items:stretch}
+    .card{background:var(--panel);backdrop-filter: blur(14px);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+    .hero-main{padding:24px}
+    .hero-side{padding:20px;display:grid;gap:14px}
+    .brand{display:flex;align-items:center;gap:16px;margin-bottom:10px}
+    .logo{width:64px;height:64px;border-radius:18px;display:grid;place-items:center;background:linear-gradient(135deg,var(--saffron),var(--saffron-2));font-weight:900;font-size:1.15rem;box-shadow:0 16px 36px rgba(217,119,6,.24)}
+    h1{font-family:'DM Sans',Inter,sans-serif;font-size:clamp(2rem,4vw,3.1rem);line-height:1.02;margin:.1rem 0 .7rem}
+    .lead{font-size:1.05rem;color:var(--muted);line-height:1.65;max-width:60ch}
+    .chips{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+    .chip{background:rgba(255,255,255,.76);border:1px solid var(--line);padding:10px 12px;border-radius:999px;font-size:.92rem;color:var(--muted)}
+    .mini{padding:14px 16px;border-radius:18px;background:var(--panel-2);border:1px solid var(--line)}
+    .mini strong{display:block;font-size:.95rem;margin-bottom:4px}
+    .main{display:grid;grid-template-columns:430px 1fr;gap:18px;margin-top:18px}
+    .controls{padding:20px;position:sticky;top:20px;height:max-content}
+    .controls h2,.output h2{font-family:'DM Sans',Inter,sans-serif;margin:0 0 14px}
+    .field{display:grid;gap:8px;margin-bottom:14px}
+    label{font-size:.93rem;font-weight:700}
+    input, textarea, select{width:100%;border:1px solid var(--line);background:#fff;border-radius:14px;padding:12px 14px;font:inherit;color:var(--ink);outline:none}
+    textarea{min-height:88px;resize:vertical}
+    input:focus,textarea:focus,select:focus{border-color:rgba(217,119,6,.45);box-shadow:0 0 0 4px rgba(217,119,6,.12)}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .check{display:flex;align-items:flex-start;gap:10px;padding:12px;border-radius:14px;background:#fff;border:1px solid var(--line);margin-bottom:12px}
+    .check input{width:auto;margin-top:4px}
+    .btns{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}
+    button{appearance:none;border:0;cursor:pointer;border-radius:16px;padding:13px 16px;font:700 0.98rem Inter,system-ui,sans-serif;transition:.18s transform,.18s box-shadow,.18s opacity}
+    button:hover{transform:translateY(-1px)}
+    .btn-primary{background:linear-gradient(135deg,var(--saffron),var(--saffron-2));color:#1f2328;box-shadow:0 14px 32px rgba(217,119,6,.24)}
+    .btn-secondary{background:#fff;border:1px solid var(--line);color:var(--ink)}
+    .btn-wide{width:100%;margin-top:10px}
+    .hint{font-size:.86rem;color:var(--muted);line-height:1.5}
+    .output{padding:18px;min-width:0}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+    .stat{background:var(--panel-2);border:1px solid var(--line);padding:14px;border-radius:18px}
+    .stat .k{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+    .stat .v{font:800 1.05rem 'DM Sans',Inter,sans-serif;margin-top:6px}
+    .tabs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+    .tab{padding:10px 12px;border-radius:12px;background:#fff;border:1px solid var(--line);font-size:.9rem;cursor:pointer;user-select:none}
+    .tab.active{background:linear-gradient(135deg,var(--saffron),var(--saffron-2));border-color:transparent;color:#1f2328;font-weight:800}
+    .filebar{display:flex;justify-content:space-between;gap:12px;align-items:center;background:var(--panel-2);border:1px solid var(--line);padding:12px 14px;border-radius:16px;margin-bottom:10px}
+    .filebar code{font-family:var(--mono);font-size:.88rem;overflow:auto}
+    pre{margin:0;background:#fff;border:1px solid var(--line);border-radius:20px;padding:16px;overflow:auto;max-height:70vh;font:13px/1.55 var(--mono);white-space:pre-wrap;word-break:break-word}
+    .footer-note{margin-top:14px;color:var(--muted);font-size:.88rem}
+    .toast{position:fixed;right:18px;bottom:18px;background:#1f2328;color:#fff;padding:12px 14px;border-radius:14px;box-shadow:var(--shadow);opacity:0;pointer-events:none;transform:translateY(10px);transition:.2s}
+    .toast.show{opacity:1;transform:translateY(0)}
+    @media (max-width:1100px){.hero,.main{grid-template-columns:1fr}.controls{position:static}.stats{grid-template-columns:1fr 1fr}}
+    @media (max-width:700px){.wrap{padding:14px}.row,.btns,.stats{grid-template-columns:1fr}.filebar{display:grid}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <div class="card hero-main">
+        <div class="brand">
+          <div class="logo">PP</div>
+          <div>
+            <div style="font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--saffron)">Programmer’s Picnic</div>
+            <div style="font-size:.98rem;color:var(--muted)">Android TV APK Generator</div>
+          </div>
+        </div>
+        <h1>Generate a TV APK project without Android Studio.</h1>
+        <p class="lead">This tool creates a complete Android TV WebView wrapper project with GitHub Actions build files. Enter your app name, package name, and website URL. Then preview every generated file, copy individual files, or download the full project as a ZIP.</p>
+        <div class="chips">
+          <div class="chip">Leanback launcher enabled</div>
+          <div class="chip">GitHub Actions build</div>
+          <div class="chip">Offline fallback page</div>
+          <div class="chip">Single-page generator</div>
+        </div>
+      </div>
+      <div class="card hero-side">
+        <div class="mini">
+          <strong>Best fit</strong>
+          GitHub Pages, Blogger-hosted tools, PP TV interfaces, or any remote-friendly web app.
+        </div>
+        <div class="mini">
+          <strong>What gets generated</strong>
+          Manifest, activity, Gradle files, workflow, offline page, icons, and TV banner resources.
+        </div>
+        <div class="mini">
+          <strong>Typical flow</strong>
+          Generate → download ZIP → upload to GitHub → open Actions → download APK artifact.
+        </div>
+      </div>
+    </section><section class="main">
+  <aside class="card controls">
+    <h2>Generator Inputs</h2>
+    <div class="field">
+      <label for="appName">App name</label>
+      <input id="appName" value="PP TV" placeholder="PP TV" />
+    </div>
+    <div class="field">
+      <label for="packageId">Package ID</label>
+      <input id="packageId" value="io.github.programmerspicnic.tv" placeholder="com.example.myapp" />
+      <div class="hint">Use lowercase letters, numbers, and dots only.</div>
+    </div>
+    <div class="field">
+      <label for="startUrl">Start URL</label>
+      <input id="startUrl" value="https://programmer-s-picnic.github.io/tv/" placeholder="https://example.com/" />
+    </div>
+    <div class="row">
+      <div class="field">
+        <label for="repoName">ZIP / repo folder name</label>
+        <input id="repoName" value="pp-tv-apk-demo" placeholder="my-tv-app" />
+      </div>
+      <div class="field">
+        <label for="orientation">Orientation</label>
+        <select id="orientation">
+          <option value="landscape" selected>Landscape</option>
+          <option value="unspecified">Unspecified</option>
+        </select>
+      </div>
+    </div>
+    <label class="check">
+      <input id="includeOffline" type="checkbox" checked />
+      <span>
+        <strong>Include offline fallback</strong><br>
+        Generate an offline HTML page and load it when the site cannot be reached.
+      </span>
+    </label>
+    <label class="check">
+      <input id="appendUserAgent" type="checkbox" checked />
+      <span>
+        <strong>Append custom user agent</strong><br>
+        Helps identify TV WebView requests and can improve compatibility debugging.
+      </span>
+    </label>
+    <label class="check">
+      <input id="leanback" type="checkbox" checked disabled />
+      <span>
+        <strong>Android TV launcher support</strong><br>
+        Leanback launcher intent and TV feature flags are always included.
+      </span>
+    </label>
+    <div class="btns">
+      <button class="btn-primary" id="generateBtn">Generate Files</button>
+      <button class="btn-secondary" id="copyCurrentBtn">Copy Current File</button>
+    </div>
+    <button class="btn-primary btn-wide" id="downloadZipBtn">Download ZIP Project</button>
+    <div class="footer-note">This is designed for your saffron-themed Programmer’s Picnic workflow and works well for GitHub-hosted TV pages.</div>
+  </aside>
+
+  <section class="card output">
+    <h2>Generated Project</h2>
+    <div class="stats">
+      <div class="stat"><div class="k">Package</div><div class="v" id="statPackage">io.github.programmerspicnic.tv</div></div>
+      <div class="stat"><div class="k">Start URL</div><div class="v" id="statUrl">PP TV URL</div></div>
+      <div class="stat"><div class="k">Files</div><div class="v" id="statFiles">0</div></div>
+      <div class="stat"><div class="k">Mode</div><div class="v" id="statMode">Offline fallback</div></div>
+    </div>
+    <div class="tabs" id="tabs"></div>
+    <div class="filebar">
+      <code id="currentPath">Generate files to preview project output.</code>
+      <button class="btn-secondary" id="copyPathBtn" style="padding:9px 12px">Copy Path</button>
+    </div>
+    <pre id="codeView">Press “Generate Files” to create the Android TV APK project.</pre>
+  </section>
+</section>
+
+  </div>
+  <div class="toast" id="toast">Copied</div>  <script>
+    const els = {
+      appName: document.getElementById('appName'),
+      packageId: document.getElementById('packageId'),
+      startUrl: document.getElementById('startUrl'),
+      repoName: document.getElementById('repoName'),
+      orientation: document.getElementById('orientation'),
+      includeOffline: document.getElementById('includeOffline'),
+      appendUserAgent: document.getElementById('appendUserAgent'),
+      generateBtn: document.getElementById('generateBtn'),
+      copyCurrentBtn: document.getElementById('copyCurrentBtn'),
+      downloadZipBtn: document.getElementById('downloadZipBtn'),
+      tabs: document.getElementById('tabs'),
+      codeView: document.getElementById('codeView'),
+      currentPath: document.getElementById('currentPath'),
+      copyPathBtn: document.getElementById('copyPathBtn'),
+      statPackage: document.getElementById('statPackage'),
+      statUrl: document.getElementById('statUrl'),
+      statFiles: document.getElementById('statFiles'),
+      statMode: document.getElementById('statMode'),
+      toast: document.getElementById('toast')
+    };
+
+    let generatedFiles = [];
+    let activeIndex = 0;
+
+    function showToast(msg){
+      els.toast.textContent = msg;
+      els.toast.classList.add('show');
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => els.toast.classList.remove('show'), 1800);
+    }
+
+    function slugifyRepoName(value){
+      return (value || 'pp-tv-apk-demo')
+        .toLowerCase()
+        .replace(/[^a-z0-9._-]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'pp-tv-apk-demo';
+    }
+
+    function sanitizePackageId(value){
+      const cleaned = (value || 'com.example.tvapp')
+        .toLowerCase()
+        .replace(/[^a-z0-9.]+/g, '')
+        .replace(/\.{2,}/g, '.')
+        .replace(/^\./, '')
+        .replace(/\.$/, '');
+      const parts = cleaned.split('.').filter(Boolean).map(p => /^[a-z]/.test(p) ? p : ('p' + p.replace(/^[^a-z]+/, ''))).filter(Boolean);
+      return parts.length >= 2 ? parts.join('.') : 'com.example.tvapp';
+    }
+
+    function packageToFolders(packageId){
+      return packageId.split('.').join('/');
+    }
+
+    function packageToNamespace(packageId){
+      return packageId;
+    }
+
+    function packageToKotlinPackage(packageId){
+      return packageId;
+    }
+
+    function escapeKotlinString(str){
+      return String(str).replace(/\\/g,'\\\\').replace(/"/g,'\\"');
+    }
+
+    function escapeXml(str){
+      return String(str)
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;')
+        .replace(/'/g,'&apos;');
+    }
+
+    function xmlBanner(appName){
+      const initials = appName.trim().split(/\s+/).slice(0,2).map(s => s[0]?.toUpperCase() || '').join('') || 'PP';
+      return `<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+  <item>
+    <shape android:shape="rectangle">
+      <gradient android:angle="0" android:startColor="#D97706" android:endColor="#F59E0B" />
+      <corners android:radius="18dp" />
+    </shape>
+  </item>
+  <item android:left="18dp" android:right="18dp" android:top="12dp" android:bottom="12dp">
+    <shape android:shape="rectangle">
+      <solid android:color="#1F2328" />
+      <alpha android:alpha="0.10" />
+      <corners android:radius="14dp" />
+    </shape>
+  </item>
+</layer-list>`;
+    }
+
+    function iconForeground(){
+      return `<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+  android:width="108dp"
+  android:height="108dp"
+  android:viewportWidth="108"
+  android:viewportHeight="108">
+  <path android:fillColor="#D97706" android:pathData="M18,18h72v72h-72z"/>
+  <path android:fillColor="#F59E0B" android:pathData="M26,26h56v56h-56z"/>
+  <path android:fillColor="#1F2328" android:pathData="M34,34h10c8,0 14,6 14,14s-6,14 -14,14h-10z M44,44v18c4,0 6,-4 6,-9s-2,-9 -6,-9z"/>
+  <path android:fillColor="#1F2328" android:pathData="M60,34h10c8,0 14,6 14,14s-6,14 -14,14h-10z M70,44v18c4,0 6,-4 6,-9s-2,-9 -6,-9z"/>
+</vector>`;
+    }
+
+    function adaptiveIcon(){
+      return `<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+  <background android:drawable="@color/ic_launcher_background" />
+  <foreground android:drawable="@drawable/ic_launcher_foreground" />
+</adaptive-icon>`;
+    }
+
+    function buildFiles(config){
+      const packagePath = packageToFolders(config.packageId);
+      const kotlinPackage = packageToKotlinPackage(config.packageId);
+      const includeOffline = config.includeOffline;
+      const uaLine = config.appendUserAgent ? '    s.userAgentString = s.userAgentString + " PP-TV-WebView"\n' : '';
+      const offlineUrlLine = includeOffline ? '  private val OFFLINE_URL = "file:///android_asset/offline.html"\n' : '';
+      const offlineLogic = includeOffline ? `
+    web.webViewClient = object : WebViewClient() {
+      private var hadMainLoadError = false
+
+      override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+        if (url == START_URL) hadMainLoadError = false
+        super.onPageStarted(view, url, favicon)
+      }
+
+      override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
+        if (request.isForMainFrame && request.url.toString().startsWith(START_URL)) {
+          hadMainLoadError = true
+        }
+        super.onReceivedError(view, request, error)
+      }
+
+      override fun onReceivedHttpError(view: WebView, request: WebResourceRequest, errorResponse: WebResourceResponse) {
+        if (request.isForMainFrame && request.url.toString().startsWith(START_URL)) {
+          hadMainLoadError = true
+        }
+        super.onReceivedHttpError(view, request, errorResponse)
+      }
+
+      override fun onPageFinished(view: WebView, url: String?) {
+        if (url == START_URL && hadMainLoadError) {
+          view.loadUrl(OFFLINE_URL)
+          return
+        }
+        super.onPageFinished(view, url)
+      }
+
+      override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+        return false
+      }
+    }
+` : `
+    web.webViewClient = object : WebViewClient() {
+      override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+        return false
+      }
+    }
+`;
+
+      const activityImports = includeOffline
+        ? `import android.graphics.Bitmap\nimport android.webkit.*`
+        : `import android.webkit.WebChromeClient\nimport android.webkit.WebResourceRequest\nimport android.webkit.WebSettings\nimport android.webkit.WebView\nimport android.webkit.WebViewClient`;
+
+      const files = [
+        {
+          path: '.github/workflows/android.yml',
+          content: `name: Build Android TV APK\n\non:\n  push:\n    branches: ["main"]\n  workflow_dispatch:\n\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - name: Checkout\n        uses: actions/checkout@v4\n\n      - name: Setup JDK 17\n        uses: actions/setup-java@v4\n        with:\n          distribution: "temurin"\n          java-version: "17"\n\n      - name: Download Gradle 8.2\n        run: |\n          curl -L -o gradle.zip https://services.gradle.org/distributions/gradle-8.2-bin.zip\n          unzip -q gradle.zip\n          echo "$PWD/gradle-8.2/bin" >> $GITHUB_PATH\n\n      - name: Build Debug APK\n        run: gradle assembleDebug\n\n      - name: Upload APK artifact\n        uses: actions/upload-artifact@v4\n        with:\n          name: ${config.repoName}-apk\n          path: app/build/outputs/apk/debug/*.apk`
+        },
+        {
+          path: 'settings.gradle',
+          content: `rootProject.name = "${config.appName.replace(/"/g, '\\"')}"\ninclude(":app")`
+        },
+        {
+          path: 'build.gradle',
+          content: `buildscript {\n  repositories {\n    google()\n    mavenCentral()\n  }\n  dependencies {\n    classpath "com.android.tools.build:gradle:8.2.2"\n    classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.22"\n  }\n}\n\nallprojects {\n  repositories {\n    google()\n    mavenCentral()\n  }\n}`
+        },
+        {
+          path: 'gradle.properties',
+          content: `org.gradle.jvmargs=-Xmx2g -Dfile.encoding=UTF-8\nandroid.useAndroidX=true\nkotlin.code.style=official`
+        },
+        {
+          path: 'app/build.gradle',
+          content: `plugins {\n  id "com.android.application"\n  id "org.jetbrains.kotlin.android"\n}\n\nandroid {\n  namespace "${packageToNamespace(config.packageId)}"\n  compileSdk 34\n\n  defaultConfig {\n    applicationId "${config.packageId}"\n    minSdk 21\n    targetSdk 34\n    versionCode 1\n    versionName "1.0"\n  }\n\n  buildTypes {\n    release {\n      minifyEnabled false\n      proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"\n    }\n  }\n\n  compileOptions {\n    sourceCompatibility JavaVersion.VERSION_17\n    targetCompatibility JavaVersion.VERSION_17\n  }\n\n  kotlinOptions {\n    jvmTarget = "17"\n  }\n}\n\ndependencies {\n  implementation "androidx.core:core-ktx:1.13.1"\n  implementation "androidx.appcompat:appcompat:1.7.0"\n}`
+        },
+        {
+          path: 'app/proguard-rules.pro',
+          content: '# no-op'
+        },
+        {
+          path: 'app/src/main/AndroidManifest.xml',
+          content: `<manifest xmlns:android="http://schemas.android.com/apk/res/android">\n\n  <uses-feature android:name="android.software.leanback" android:required="true" />\n  <uses-feature android:name="android.hardware.touchscreen" android:required="false" />\n\n  <uses-permission android:name="android.permission.INTERNET" />\n\n  <application\n      android:allowBackup="true"\n      android:label="@string/app_name"\n      android:banner="@drawable/app_banner"\n      android:icon="@mipmap/ic_launcher"\n      android:roundIcon="@mipmap/ic_launcher_round"\n      android:supportsRtl="true"\n      android:usesCleartextTraffic="true"\n      android:networkSecurityConfig="@xml/network_security_config"\n      android:theme="@style/Theme.AppCompat.DayNight.NoActionBar">\n\n    <activity\n        android:name=".MainActivity"\n        android:exported="true"\n        android:screenOrientation="${config.orientation}"\n        android:configChanges="keyboard|keyboardHidden|orientation|screenSize|uiMode">\n      <intent-filter>\n        <action android:name="android.intent.action.MAIN" />\n        <category android:name="android.intent.category.LEANBACK_LAUNCHER" />\n      </intent-filter>\n    </activity>\n\n  </application>\n</manifest>`
+        },
+        {
+          path: `app/src/main/java/${packagePath}/MainActivity.kt`,
+          content: `package ${kotlinPackage}\n\nimport android.annotation.SuppressLint\nimport android.os.Bundle\nimport android.view.KeyEvent\nimport android.view.View\n${activityImports}\nimport androidx.appcompat.app.AppCompatActivity\n\nclass MainActivity : AppCompatActivity() {\n\n  private lateinit var web: WebView\n  private val START_URL = "${escapeKotlinString(config.startUrl)}"\n${offlineUrlLine}\n  @SuppressLint("SetJavaScriptEnabled")\n  override fun onCreate(savedInstanceState: Bundle?) {\n    super.onCreate(savedInstanceState)\n\n    web = WebView(this)\n    web.isFocusable = true\n    web.isFocusableInTouchMode = true\n    web.descendantFocusability = View.FOCUS_AFTER_DESCENDANTS\n\n    val s = web.settings\n    s.javaScriptEnabled = true\n    s.domStorageEnabled = true\n    s.databaseEnabled = true\n    s.loadsImagesAutomatically = true\n    s.useWideViewPort = true\n    s.loadWithOverviewMode = true\n    s.mediaPlaybackRequiresUserGesture = false\n    s.cacheMode = WebSettings.LOAD_DEFAULT\n    s.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE\n${uaLine}\n    web.webChromeClient = WebChromeClient()\n${offlineLogic}\n    setContentView(web)\n    web.loadUrl(START_URL)\n    web.post { web.requestFocus() }\n  }\n\n  override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {\n    if (keyCode == KeyEvent.KEYCODE_BACK) {\n      if (this::web.isInitialized && web.canGoBack()) {\n        web.goBack()\n        return true\n      }\n    }\n    return super.onKeyDown(keyCode, event)\n  }\n\n  override fun onDestroy() {\n    if (this::web.isInitialized) web.destroy()\n    super.onDestroy()\n  }\n}`
+        },
+        {
+          path: 'app/src/main/assets/offline.html',
+          content: `<!doctype html>\n<html lang="en">\n<head>\n  <meta charset="utf-8" />\n  <meta name="viewport" content="width=device-width,initial-scale=1" />\n  <title>${escapeXml(config.appName)} — Offline</title>\n  <style>\n    :root{--bg:#fff8ef;--panel:rgba(255,255,255,.88);--ink:#1f2328;--muted:#5b6570;--saffron:#d97706;--saffron2:#f59e0b;--line:rgba(31,35,40,.10)}\n    *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:28px;background:radial-gradient(1000px 500px at 10% 0%, rgba(217,119,6,.18), transparent 60%),linear-gradient(180deg,#fff8ef,#fff1d9);font-family:Inter,system-ui,sans-serif;color:var(--ink)}\n    .card{width:min(920px,92vw);background:var(--panel);border:1px solid var(--line);border-radius:24px;padding:28px;box-shadow:0 16px 44px rgba(31,35,40,.12)}\n    h1{margin:0 0 10px;font-size:2rem}p{margin:10px 0 0;color:var(--muted);line-height:1.6;font-size:1.05rem}.pill{display:inline-block;margin-top:14px;padding:8px 12px;border-radius:999px;background:#fff;border:1px solid var(--line);font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}\n  </style>\n</head>\n<body>\n  <div class="card" tabindex="0">\n    <h1>${escapeXml(config.appName)}</h1>\n    <p>The TV app is offline right now and could not load the online page.</p>\n    <p class="pill">Check network, reopen app, and try again.</p>\n  </div>\n</body>\n</html>`},
+    {
+      path: 'app/src/main/res/values/strings.xml',
+      content: `<resources>\n  <string name="app_name">${escapeXml(config.appName)}</string>\n</resources>`
+    },
+    {
+      path: 'app/src/main/res/xml/network_security_config.xml',
+      content: `<?xml version="1.0" encoding="utf-8"?>\n<network-security-config>\n  <base-config cleartextTrafficPermitted="true" />\n</network-security-config>`
+    },
+    {
+      path: 'app/src/main/res/drawable/app_banner.xml',
+      content: xmlBanner(config.appName)
+    },
+    {
+      path: 'app/src/main/res/values/ic_launcher_background.xml',
+      content: `<resources>\n  <color name="ic_launcher_background">#FFF8EF</color>\n</resources>`
+    },
+    {
+      path: 'app/src/main/res/drawable/ic_launcher_foreground.xml',
+      content: iconForeground()
+    },
+    {
+      path: 'app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml',
+      content: adaptiveIcon()
+    },
+    {
+      path: 'app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml',
+      content: adaptiveIcon()
+    },
+    {
+      path: 'README.md',
+      content: `# ${config.appName}\n\nGenerated by Programmer’s Picnic Android TV APK Generator.\n\n## Build without Android Studio\n\n1. Upload these files to a GitHub repository.\n2. Push to the \`main\` branch.\n3. Open the repository **Actions** tab.\n4. Run **Build Android TV APK**.\n5. Download the artifact ZIP and extract \`app-debug.apk\`.\n\n## Start URL\n\n${config.startUrl}\n\n## Package ID\n\n${config.packageId}`
+    }
+  ];
+
+  return includeOffline ? files : files.filter(f => f.path !== 'app/src/main/assets/offline.html');
+}
+
+function renderTabs(){
+  els.tabs.innerHTML = '';
+  generatedFiles.forEach((file, idx) => {
+    const btn = document.createElement('button');
+    btn.className = 'tab' + (idx === activeIndex ? ' active' : '');
+    btn.textContent = file.path.split('/').slice(-1)[0];
+    btn.title = file.path;
+    btn.addEventListener('click', () => {
+      activeIndex = idx;
+      renderViewer();
+    });
+    els.tabs.appendChild(btn);
+  });
+}
+
+function renderViewer(){
+  if (!generatedFiles.length) return;
+  renderTabs();
+  const file = generatedFiles[activeIndex];
+  els.currentPath.textContent = file.path;
+  els.codeView.textContent = file.content;
+}
+
+function collectConfig(){
+  return {
+    appName: (els.appName.value || 'PP TV').trim(),
+    packageId: sanitizePackageId(els.packageId.value),
+    startUrl: (els.startUrl.value || 'https://example.com/').trim(),
+    repoName: slugifyRepoName(els.repoName.value || 'pp-tv-apk-demo'),
+    orientation: els.orientation.value,
+    includeOffline: els.includeOffline.checked,
+    appendUserAgent: els.appendUserAgent.checked
+  };
+}
+
+function generate(){
+  const config = collectConfig();
+  els.packageId.value = config.packageId;
+  els.repoName.value = config.repoName;
+  generatedFiles = buildFiles(config);
+  activeIndex = 0;
+  els.statPackage.textContent = config.packageId;
+  els.statUrl.textContent = new URL(config.startUrl).hostname || config.startUrl;
+  els.statFiles.textContent = String(generatedFiles.length);
+  els.statMode.textContent = config.includeOffline ? 'Offline fallback' : 'Online only';
+  renderViewer();
+  showToast('Files generated');
+}
+
+async function copyText(text, message){
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast(message || 'Copied');
+  } catch (err) {
+    showToast('Clipboard blocked');
+  }
+}
+
+async function downloadZip(){
+  if (!generatedFiles.length) generate();
+  const config = collectConfig();
+  const zip = new JSZip();
+  const root = zip.folder(config.repoName);
+  generatedFiles.forEach(file => root.file(file.path, file.content));
+  const blob = await zip.generateAsync({type:'blob'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${config.repoName}.zip`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  showToast('ZIP downloaded');
+}
+
+els.generateBtn.addEventListener('click', generate);
+els.copyCurrentBtn.addEventListener('click', () => {
+  const file = generatedFiles[activeIndex];
+  if (!file) return showToast('Generate files first');
+  copyText(file.content, 'Current file copied');
+});
+els.copyPathBtn.addEventListener('click', () => {
+  const file = generatedFiles[activeIndex];
+  if (!file) return showToast('Generate files first');
+  copyText(file.path, 'Path copied');
+});
+els.downloadZipBtn.addEventListener('click', downloadZip);
+
+['appName','packageId','startUrl','repoName','orientation','includeOffline','appendUserAgent'].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener('change', generate);
+  if (el.tagName === 'INPUT') el.addEventListener('input', () => {
+    clearTimeout(el._t);
+    el._t = setTimeout(generate, 220);
+  });
+});
+
+generate();
+
+  </script>
+</body>
+</html>
