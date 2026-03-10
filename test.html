@@ -1,1085 +1,1155 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Sun Mon Tue Wed Thu Fri Sat — Printing a Monthly Calendar (Python + Interactive)</title>
-  <meta name="description" content="Learn how to print a monthly calendar (Sun–Sat) using Python: leap years, days-in-month, date difference, weekday calculation, and a clean calendar printer. Includes an interactive calendar generator and an embedded Programmer’s Picnic Python Editor." />
-  <meta name="theme-color" content="#d97706" />
-
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Inter:wght@400;600&display=swap" rel="stylesheet" />
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Music Pattern Drawer</title>
   <style>
-    :root{
-      /* Light saffron meets VS Code-ish surface */
-      --bg: #fff7e6;
-      --panel: rgba(255,255,255,.86);
-      --ink: #111827;
-      --muted: #4b5563;
-      --line: rgba(17,24,39,.12);
-
-      --saffron: #d97706;
-      --saffron2: #f59e0b;
-
-      /* VS Code-ish code colors */
-      --codeBg: #0b1220;
-      --codeBg2: #0f172a;
-      --codeInk: #e5e7eb;
-      --codeMuted: #9ca3af;
-      --codeLine: rgba(229,231,235,.12);
-
-      --radius: 18px;
-      --shadow: 0 10px 30px rgba(17,24,39,.10);
+    :root {
+      --bg: #0b1020;
+      --panel: rgba(255,255,255,0.08);
+      --panel-2: rgba(255,255,255,0.12);
+      --text: #f8fafc;
+      --muted: #cbd5e1;
+      --accent: #f59e0b;
+      --accent-2: #fb7185;
+      --line: rgba(255,255,255,0.14);
     }
 
-    *{ box-sizing:border-box; }
-    html,body{ height:100%; }
-    body{
-      margin:0;
-      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      color: var(--ink);
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
       background:
-        radial-gradient(1200px 700px at 20% -10%, rgba(245,158,11,.26), transparent 55%),
-        radial-gradient(900px 500px at 110% 0%, rgba(217,119,6,.18), transparent 50%),
-        linear-gradient(180deg, var(--bg), #fff);
+        radial-gradient(circle at top left, rgba(245,158,11,0.18), transparent 28%),
+        radial-gradient(circle at top right, rgba(251,113,133,0.12), transparent 30%),
+        linear-gradient(135deg, #050816, #0b1020 45%, #111827);
     }
 
-    a{ color: inherit; text-decoration: none; }
-    a:hover{ text-decoration: underline; }
-
-    .wrap{
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 26px 16px 60px;
+    .app {
+      min-height: 100%;
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 18px;
+      padding: 18px;
     }
 
-    header.hero{
+    .panel {
+      background: var(--panel);
       border: 1px solid var(--line);
-      background: linear-gradient(180deg, rgba(255,255,255,.88), rgba(255,255,255,.76));
-      box-shadow: var(--shadow);
-      border-radius: calc(var(--radius) + 8px);
-      padding: 22px 18px;
-      position: relative;
-      overflow:hidden;
-    }
-    header.hero:before{
-      content:"";
-      position:absolute; inset:-2px;
-      background:
-        radial-gradient(600px 240px at 10% 0%, rgba(245,158,11,.22), transparent 60%),
-        radial-gradient(560px 260px at 90% 0%, rgba(217,119,6,.18), transparent 60%);
-      pointer-events:none;
+      backdrop-filter: blur(12px);
+      border-radius: 24px;
+      box-shadow: 0 18px 50px rgba(0,0,0,0.35);
     }
 
-    .heroTop{
-      position: relative;
-      display:flex;
-      gap: 14px;
-      align-items:center;
-      justify-content: space-between;
-      flex-wrap: wrap;
+    .sidebar {
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
     }
 
-    .brand{
-      display:flex; gap:12px; align-items:center;
-      min-width: 260px;
-    }
-    .logo{
-      width: 44px; height: 44px;
-      border-radius: 14px;
-      background: linear-gradient(135deg, var(--saffron), var(--saffron2));
-      box-shadow: 0 10px 20px rgba(217,119,6,.20);
-      position: relative;
-    }
-    .logo:after{
-      content:"PP";
-      position:absolute; inset:0;
-      display:grid; place-items:center;
-      font-weight:800;
-      font-family: "DM Sans", Inter, sans-serif;
-      color:#1f2937;
-      mix-blend-mode: soft-light;
-      letter-spacing:.5px;
-    }
-    .brand h1{
-      margin:0;
-      font-size: 20px;
-      line-height: 1.25;
-      font-family: "DM Sans", Inter, sans-serif;
-    }
-    .brand p{
-      margin:2px 0 0;
-      color: var(--muted);
-      font-size: 13px;
+    .title {
+      font-size: 1.55rem;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      margin: 0;
     }
 
-    .pillRow{
-      position: relative;
-      display:flex;
-      gap: 10px;
-      align-items:center;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-    }
-    .pill{
-      font-size: 12px;
-      color: #111827;
-      background: rgba(245,158,11,.18);
-      border: 1px solid rgba(217,119,6,.20);
-      padding: 7px 10px;
-      border-radius: 999px;
-      display:flex; align-items:center; gap:8px;
-      user-select:none;
-      white-space: nowrap;
-    }
-    .pill .dot{
-      width:8px; height:8px; border-radius:99px;
-      background: var(--saffron);
-      box-shadow: 0 0 0 4px rgba(217,119,6,.12);
-    }
-
-    .heroBody{
-      position: relative;
-      margin-top: 14px;
-      display:grid;
-      grid-template-columns: 1.1fr .9fr;
-      gap: 14px;
-      align-items: start;
-    }
-    @media (max-width: 920px){
-      .heroBody{ grid-template-columns: 1fr; }
-    }
-
-    .card{
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,.86);
-      border-radius: var(--radius);
-      padding: 14px;
-    }
-    .card h2{
-      margin:0 0 8px;
-      font-family:"DM Sans", Inter, sans-serif;
-      font-size: 16px;
-    }
-    .card p{
+    .subtitle {
       margin: 8px 0 0;
       color: var(--muted);
-      line-height: 1.6;
-      font-size: 14px;
+      line-height: 1.5;
+      font-size: 0.96rem;
     }
 
-    .miniGrid{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-top: 10px;
-    }
-    @media (max-width: 520px){
-      .miniGrid{ grid-template-columns: 1fr; }
+    .card {
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 14px;
     }
 
-    .kbd{
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      background: rgba(17,24,39,.06);
-      border: 1px solid rgba(17,24,39,.12);
-      padding: 2px 7px;
-      border-radius: 8px;
-      font-size: 12px;
-      color: #111827;
-      white-space: nowrap;
+    .section-label {
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: #fde68a;
+      margin-bottom: 10px;
+      font-weight: 700;
     }
 
-    main{
-      margin-top: 16px;
+    .grid {
       display: grid;
-      grid-template-columns: 1.1fr .9fr;
-      gap: 14px;
-      align-items: start;
-    }
-    @media (max-width: 980px){
-      main{ grid-template-columns: 1fr; }
-    }
-
-    .sectionTitle{
-      display:flex; align-items:center; justify-content:space-between;
       gap: 10px;
-      margin: 0 0 10px;
-    }
-    .sectionTitle h3{
-      margin:0;
-      font-size: 16px;
-      font-family:"DM Sans", Inter, sans-serif;
-    }
-    .sectionTitle small{
-      color: var(--muted);
-      font-size: 12px;
     }
 
-    /* Code block (VS Code-ish) */
-    .codeShell{
-      background: linear-gradient(180deg, var(--codeBg2), var(--codeBg));
-      border: 1px solid var(--codeLine);
-      border-radius: var(--radius);
-      overflow:hidden;
-      box-shadow: 0 16px 40px rgba(2,6,23,.25);
+    .row-2 {
+      grid-template-columns: 1fr 1fr;
     }
-    .codeTop{
-      display:flex; align-items:center; justify-content:space-between;
-      padding: 10px 12px;
-      border-bottom: 1px solid var(--codeLine);
-    }
-    .codeTopLeft{
-      display:flex; align-items:center; gap:10px;
-      color: var(--codeMuted);
-      font-size: 12px;
-    }
-    .traffic{
-      display:flex; gap:6px; align-items:center;
-    }
-    .tDot{ width:10px; height:10px; border-radius:99px; background: rgba(229,231,235,.20); }
-    .tDot:nth-child(1){ background: rgba(239,68,68,.75); }
-    .tDot:nth-child(2){ background: rgba(245,158,11,.75); }
-    .tDot:nth-child(3){ background: rgba(34,197,94,.75); }
 
-    .codeBtns{
-      display:flex; gap:8px; align-items:center;
+    button,
+    select,
+    input[type="range"],
+    input[type="file"] {
+      width: 100%;
     }
-    .btn{
-      border: 1px solid rgba(229,231,235,.16);
-      background: rgba(229,231,235,.08);
-      color: var(--codeInk);
-      font-size: 12px;
-      padding: 7px 10px;
-      border-radius: 10px;
-      cursor:pointer;
-      user-select:none;
-    }
-    .btn:hover{ background: rgba(229,231,235,.12); }
-    .btn:active{ transform: translateY(1px); }
 
-    pre{
-      margin:0;
-      padding: 12px;
-      overflow:auto;
-      color: var(--codeInk);
-      font-size: 12.6px;
-      line-height: 1.65;
-      tab-size: 2;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    }
-    code{ font-family: inherit; }
-
-    /* Simple syntax tint (no external libs) */
-    .tok-k{ color:#93c5fd; }    /* keyword */
-    .tok-f{ color:#a7f3d0; }    /* function name */
-    .tok-n{ color:#fcd34d; }    /* number */
-    .tok-s{ color:#fca5a5; }    /* string */
-    .tok-c{ color:#94a3b8; }    /* comment */
-    .tok-op{ color:#e5e7eb; }   /* operators */
-
-    /* Interactive calendar */
-    .tool{
+    button,
+    select {
       border: 1px solid var(--line);
-      background: rgba(255,255,255,.86);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 14px;
+      background: rgba(255,255,255,0.08);
+      color: var(--text);
+      border-radius: 14px;
+      padding: 12px 14px;
+      font: inherit;
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
     }
-    .tool .controls{
-      display:grid;
-      grid-template-columns: 1fr 1fr auto;
-      gap: 10px;
-      align-items:end;
-    }
-    @media (max-width: 560px){
-      .tool .controls{ grid-template-columns: 1fr; }
-    }
-    label{
-      display:block;
-      font-size: 12px;
-      color: var(--muted);
-      margin-bottom: 6px;
-    }
-    input, select{
-      width:100%;
-      padding: 10px 10px;
-      border-radius: 12px;
-      border: 1px solid rgba(17,24,39,.16);
-      background: rgba(255,255,255,.92);
-      outline: none;
-      font-size: 14px;
-    }
-    input:focus, select:focus{
-      border-color: rgba(217,119,6,.45);
-      box-shadow: 0 0 0 4px rgba(217,119,6,.12);
-    }
-    .cta{
-      background: linear-gradient(135deg, var(--saffron), var(--saffron2));
-      border: 1px solid rgba(17,24,39,.12);
-      color: #111827;
-      font-weight: 700;
-      padding: 10px 12px;
-      border-radius: 12px;
-      cursor:pointer;
-      box-shadow: 0 12px 24px rgba(217,119,6,.18);
-    }
-    .cta:hover{ filter: brightness(1.02); }
-    .cta:active{ transform: translateY(1px); }
 
-    .calBox{
-      margin-top: 12px;
-      border-radius: var(--radius);
-      border: 1px solid rgba(17,24,39,.12);
-      overflow:hidden;
-      background: rgba(255,255,255,.94);
+    button:hover,
+    select:hover {
+      transform: translateY(-1px);
+      background: rgba(255,255,255,0.12);
+      border-color: rgba(255,255,255,0.25);
     }
-    .calHead{
-      padding: 12px 12px;
-      background: rgba(245,158,11,.14);
-      border-bottom: 1px solid rgba(17,24,39,.12);
-      display:flex;
+
+    button.primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: white;
+      border: none;
+      font-weight: 700;
+    }
+
+    .stat {
+      display: flex;
       justify-content: space-between;
-      gap: 10px;
-      flex-wrap: wrap;
-      align-items:center;
-    }
-    .calHead strong{
-      font-family: "DM Sans", Inter, sans-serif;
-      font-size: 16px;
-    }
-    .calHead span{
-      color: var(--muted);
-      font-size: 12px;
+      gap: 12px;
+      padding: 9px 0;
+      border-bottom: 1px dashed rgba(255,255,255,0.12);
+      font-size: 0.94rem;
     }
 
-    .grid7{
-      display:grid;
-      grid-template-columns: repeat(7, 1fr);
-    }
-    .dow{
-      padding: 10px 8px;
-      text-align:center;
-      font-size: 12px;
-      color: #111827;
-      font-weight: 700;
-      border-bottom: 1px solid rgba(17,24,39,.10);
-      background: rgba(17,24,39,.03);
-    }
-    .cell{
-      min-height: 52px;
-      padding: 8px;
-      border-bottom: 1px solid rgba(17,24,39,.08);
-      border-right: 1px solid rgba(17,24,39,.08);
-      display:flex;
-      align-items:flex-start;
-      justify-content:flex-start;
-      background: rgba(255,255,255,.90);
-    }
-    .cell:nth-child(7n){ border-right: none; }
-    .dateNum{
-      width: 28px; height: 28px;
-      border-radius: 10px;
-      display:grid; place-items:center;
-      font-weight: 700;
-      color: #111827;
-      font-size: 13px;
-      background: rgba(245,158,11,.0);
-    }
-    .cell.today .dateNum{
-      background: rgba(217,119,6,.18);
-      border: 1px solid rgba(217,119,6,.35);
-    }
-    .cell.empty{
-      background: rgba(17,24,39,.02);
-    }
-    .note{
-      margin-top: 10px;
+    .stat:last-child { border-bottom: none; }
+    .stat span:first-child { color: var(--muted); }
+    .hint {
       color: var(--muted);
-      font-size: 13px;
-      line-height: 1.6;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      margin: 0;
     }
 
-    /* Embed */
-    .embed{
+    .slider-wrap { display: grid; gap: 6px; }
+    .slider-wrap label {
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+
+    .canvas-wrap {
+      position: relative;
+      overflow: hidden;
+      min-height: 70vh;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      border-radius: 24px;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at center, transparent 25%, rgba(3,7,18,0.12) 70%, rgba(3,7,18,0.25) 100%);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
       border: 1px solid var(--line);
-      background: rgba(255,255,255,.86);
-      border-radius: var(--radius);
-      overflow:hidden;
-      box-shadow: var(--shadow);
-    }
-    .embedTop{
-      padding: 10px 12px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap: 10px;
-      border-bottom: 1px solid var(--line);
-      background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.82));
-    }
-    .embedTop strong{
-      font-family:"DM Sans", Inter, sans-serif;
-      font-size: 14px;
-    }
-    .embedTop .links{
-      display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end;
-    }
-    .linkBtn{
-      display:inline-flex; align-items:center; gap:8px;
-      font-size: 12px;
-      padding: 7px 10px;
-      border-radius: 12px;
-      border: 1px solid rgba(17,24,39,.14);
-      background: rgba(245,158,11,.12);
-      cursor:pointer;
-    }
-    .linkBtn:hover{ background: rgba(245,158,11,.16); }
-    iframe{
-      width:100%;
-      height: 660px;
-      border:0;
-      display:block;
-      background: #0b1220;
+      background: rgba(255,255,255,0.08);
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 0.88rem;
+      color: var(--muted);
     }
 
-    /* Article formatting */
-    .article{
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,.86);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 14px;
+    .topbar {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      right: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      z-index: 2;
+      pointer-events: none;
     }
-    .article h3{
-      margin: 0 0 8px;
-      font-family: "DM Sans", Inter, sans-serif;
-      font-size: 16px;
-    }
-    .article h4{
-      margin: 14px 0 8px;
-      font-family: "DM Sans", Inter, sans-serif;
-      font-size: 14px;
-    }
-    .article p, .article li{
-      color: var(--muted);
-      line-height: 1.7;
-      font-size: 14px;
-    }
-    .article ul{ margin: 8px 0 0 18px; }
-    .callout{
-      margin-top: 12px;
-      border-radius: var(--radius);
-      border: 1px dashed rgba(217,119,6,.45);
-      background: rgba(245,158,11,.10);
-      padding: 12px;
-      color: #111827;
-    }
-    .callout b{ color:#111827; }
-    footer{
-      margin-top: 16px;
-      color: var(--muted);
-      font-size: 12px;
-      text-align:center;
-      padding: 12px 8px;
+
+    .topbar > * { pointer-events: auto; }
+
+    body.visualizer-fullscreen .sidebar{display:none}
+    body.visualizer-fullscreen .app{grid-template-columns:1fr}
+    body.visualizer-fullscreen .canvas-wrap{min-height:100vh;border-radius:0}
+
+    @media (max-width: 980px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+      .canvas-wrap {
+        min-height: 56vh;
+      }
     }
   </style>
 </head>
-
 <body>
-  <div class="wrap">
-    <header class="hero">
-      <div class="heroTop">
-        <div class="brand">
-          <div class="logo" aria-hidden="true"></div>
-          <div>
-            <h1>Sun Mon Tue Wed Thu Fri Sat</h1>
-            <p>Printing a monthly calendar with Python (and understanding the logic)</p>
-          </div>
-        </div>
-
-        <div class="pillRow">
-          <div class="pill"><span class="dot"></span>Programmer’s Picnic</div>
-          <div class="pill">Base date: <span class="kbd">01-03-2026</span> is <span class="kbd">Sunday</span></div>
-          <div class="pill">Output format: <span class="kbd">Sun → Sat</span></div>
-        </div>
+  <div class="app">
+    <aside class="panel sidebar">
+      <div>
+        <h1 class="title">Music Pattern Drawer</h1>
+        <p class="subtitle">
+          Upload a song or use your microphone. The app analyzes the sound in real time and turns frequency, volume, and rhythm into animated patterns.
+        </p>
       </div>
 
-      <div class="heroBody">
-        <div class="card">
-          <h2>What you will build</h2>
-          <p>
-            A working monthly calendar printer that correctly handles leap years, different month lengths,
-            and weekday alignment. The key trick is to compute the weekday of the 1st day of the month,
-            then print leading tabs (empty slots) before printing day numbers.
-          </p>
-
-          <div class="miniGrid">
-            <div class="card" style="padding:12px">
-              <h2 style="font-size:14px;margin-bottom:6px">Core functions</h2>
-              <p style="margin:0">
-                <span class="kbd">isLeapYear</span>,
-                <span class="kbd">getDaysInMonth</span>,
-                <span class="kbd">dateDifference</span>,
-                <span class="kbd">getWeekDay</span>,
-                <span class="kbd">printMonthlyCalendar</span>
-              </p>
-            </div>
-            <div class="card" style="padding:12px">
-              <h2 style="font-size:14px;margin-bottom:6px">Practical goal</h2>
-              <p style="margin:0">
-                Print calendars like <span class="kbd">January 1970</span> and any month/year you input.
-              </p>
-            </div>
-          </div>
+      <section class="card">
+        <div class="section-label">Audio Input</div>
+        <div class="grid row-2">
+          <button id="micBtn">Use Microphone</button>
+          <button id="stopBtn">Stop Input</button>
         </div>
+        <div style="height:10px"></div>
+        <input id="fileInput" type="file" accept="audio/*" />
+        <audio id="audioPlayer" controls style="width:100%; margin-top:10px;"></audio>
+      </section>
 
-        <div class="card">
-          <h2>Big idea</h2>
-          <p>
-            If we know the weekday of a “base date”, we can compute the weekday of any other date by
-            counting how many days apart they are, then taking <span class="kbd">mod 7</span>.
-          </p>
-          <p>
-            In this program, the base date is <span class="kbd">1-3-2026</span> and it is assumed to be
-            <span class="kbd">Sunday</span>. That makes <span class="kbd">Sun = 0</span>, <span class="kbd">Mon = 1</span>, …, <span class="kbd">Sat = 6</span>.
-          </p>
-        </div>
-      </div>
-    </header>
-
-    <main>
-      <!-- LEFT COLUMN -->
-      <section style="display:flex;flex-direction:column;gap:14px">
-        <div class="article">
-          <div class="sectionTitle">
-            <h3>Step-by-step: how the logic works</h3>
-            <small>Readable reasoning, same code you provided</small>
-          </div>
-
-          <h4>1) Leap year rule</h4>
-          <p>
-            A year is a leap year if it is divisible by 4, except centuries must be divisible by 400.
-            That’s why 2000 is leap, but 1900 is not.
-          </p>
-
-          <h4>2) Days in month</h4>
-          <p>
-            Most months have fixed days. February depends on leap year. That lets us compute day counts
-            for ranges of dates.
-          </p>
-
-          <h4>3) Comparing two dates</h4>
-          <p>
-            Before computing a difference, the program compares two dates so it can decide the sign of
-            the difference. It returns:
-          </p>
-          <ul>
-            <li><span class="kbd">1</span> if <span class="kbd">D2 &gt; D1</span></li>
-            <li><span class="kbd">0</span> if <span class="kbd">D2 == D1</span></li>
-            <li><span class="kbd">-1</span> if <span class="kbd">D1 &gt; D2</span></li>
-          </ul>
-
-          <h4>4) Date difference (in days)</h4>
-          <p>
-            The function <span class="kbd">dateDifference(d1,m1,y1,d2,m2,y2)</span> effectively counts:
-          </p>
-          <ul>
-            <li>Days passed in year <span class="kbd">y2</span> up to <span class="kbd">d2</span></li>
-            <li>Minus days passed in year <span class="kbd">y1</span> up to <span class="kbd">d1</span></li>
-            <li>Plus full-year totals for all years in between</li>
-          </ul>
-
-          <h4>5) Weekday from base date</h4>
-          <p>
-            Once we know <span class="kbd">datediff</span> from the base date, weekday is:
-            <span class="kbd">datediff % 7</span>, adjusted for dates earlier than the base.
-          </p>
-
-          <div class="callout">
-            <b>Why modulo 7?</b> Because weekdays repeat every 7 days. So +7 days is the same weekday.
-          </div>
-        </div>
-
-        <div class="codeShell" id="codeShell">
-          <div class="codeTop">
-            <div class="codeTopLeft">
-              <div class="traffic" aria-hidden="true">
-                <div class="tDot"></div><div class="tDot"></div><div class="tDot"></div>
-              </div>
-              <span>main.py</span>
-              <span style="opacity:.65">— calendar printer</span>
-            </div>
-            <div class="codeBtns">
-              <button class="btn" id="btnCopy">Copy code</button>
-              <button class="btn" id="btnToggleHighlight">Toggle tint</button>
-            </div>
-          </div>
-
-          <pre id="codePre"><code id="codeBlock">
-# Sun Mon Tue Wed Thu Fri Sat
-
-def isLeapYear(year):
-	if year % 4!=0:
-		return False
-	if year % 400==0:
-		return True
-
-	if year % 100==0:
-		return False
-	return True
-
-def getDaysInMonth(monthno,yearno):
-	if monthno in [4,6,9,11]:
-		return 30
-	if monthno==2:
-		if isLeapYear(yearno):
-			return 29
-		return 28
-	return 31
-
-def compareDates(d1,m1,y1,d2,m2,y2):
-	# =-1 if D1>D2, 0 if D1==D2 1 if D2>D1
-	if y2>y1:
-		return 1
-	if y2<y1:
-		return -1
-	if m2>m1:
-		return 1
-	if m2<m1:
-		return -1
-	if d2>d1:
-		return 1
-	if d2<d1:
-		return -1
-	return 0
-
-def getWeekDay(d,m,y):
-	# Base date is 1-3-2026 Sunday
-	datediff=dateDifference(1,3,2026,d,m,y)
-	#print(datediff)
-	if datediff<0:
-		datediff=-datediff
-		datediff=datediff % 7
-		datediff=7-datediff
-
-	datediff=datediff % 7
-	#print(datediff)
-
-	return datediff
-
-def dateDifference(d1,m1,y1,d2,m2,y2):
-	# D2>=D1
-	sign=compareDates(d1, m1, y1,d2,m2,y2)
-	if sign==0:
-		return 0
-	if sign==-1:
-		d1,m1,y1,d2,m2,y2=d2,m2,y2,d1,m1,y1
-	#print(d1,m1,y1,d2,m2,y2)
-	diff1=d2-1
-	diff2=d1-1
-	#print(diff1,diff2)
-
-	diff3,diff4=0,0
-	for monthno in range(1,m2):
-		#print(monthno)
-		diff3+=getDaysInMonth(monthno,y2)
-	for monthno in range(1,m1):
-		diff4+=getDaysInMonth(monthno,y1)
-
-	diff5=0
-	for yearno in range(y1,y2):
-		if isLeapYear(yearno):
-			diff5+=366
-		else:
-			diff5+=365
-
-	return sign* (diff1+diff3+diff5-diff2-diff4)
-
-def getMonthName(monthno):
-	months=["","January","February","March","April","May","June","JUly","August","September","October","November","December"]
-	return months[monthno]
-
-def getWeekDayName(d,m,y):
-	dayno=getWeekDay(d,m,y)
-	weekdays=["Sun", "Mon" ,"Tue", "Wed", "Thu", "Fri", "Sat"]
-	return weekdays[dayno]
-
-def printMonthlyCalendar(monthno,yearno):
-	weekdays=["Sun", "Mon" ,"Tue", "Wed", "Thu", "Fri", "Sat"]
-	startdayno=getWeekDay(1,monthno,yearno)
-
-	print(getMonthName(monthno),yearno,end="\n")
-
-	for days in weekdays:
-		print(days, end="\t")
-	print()
-
-	for i in range(startdayno):
-		print( "", end="\t")
-
-	totaldays=getDaysInMonth(monthno,yearno)
-	#print(startdayno,totaldays)
-
-	day=1
-	daycount=startdayno
-	while day<=totaldays:
-		daycount+=1
-		print(day, end="\t")
-		if daycount>=7:
-			print()
-			daycount=0
-		day+=1
-
-printMonthlyCalendar(1,1970)
-          </code></pre>
-        </div>
-
-        <div class="tool" id="tool">
-          <div class="sectionTitle">
-            <h3>Interactive calendar (same rules, rendered in the browser)</h3>
-            <small>Sun–Sat grid + correct alignment</small>
-          </div>
-
-          <div class="controls">
-            <div>
-              <label for="month">Month</label>
-              <select id="month">
-                <option value="1">January</option>
-                <option value="2">February</option>
-                <option value="3">March</option>
-                <option value="4">April</option>
-                <option value="5">May</option>
-                <option value="6">June</option>
-                <option value="7">July</option>
-                <option value="8">August</option>
-                <option value="9">September</option>
-                <option value="10">October</option>
-                <option value="11">November</option>
-                <option value="12">December</option>
-              </select>
-            </div>
-            <div>
-              <label for="year">Year</label>
-              <input id="year" type="number" inputmode="numeric" value="1970" />
-            </div>
-            <button class="cta" id="btnRender" title="Render calendar">Render</button>
-          </div>
-
-          <div class="calBox" id="calBox" aria-live="polite">
-            <div class="calHead">
-              <strong id="calTitle">January 1970</strong>
-              <span id="calMeta">Aligned by weekday of 1st day</span>
-            </div>
-
-            <div class="grid7" id="dowRow">
-              <div class="dow">Sun</div><div class="dow">Mon</div><div class="dow">Tue</div><div class="dow">Wed</div>
-              <div class="dow">Thu</div><div class="dow">Fri</div><div class="dow">Sat</div>
-            </div>
-            <div class="grid7" id="calGrid"></div>
-          </div>
-
-          <p class="note">
-            This preview follows the same structure as your Python printer:
-            compute <span class="kbd">startdayno = weekday(1, month, year)</span>, add empty cells, then place days 1..N.
-          </p>
+      <section class="card">
+        <div class="section-label">Dancer Photos</div>
+        <div class="grid">
+          <input id="photoInput" type="file" accept="image/*" />
+          <button id="usePhotoBtn">Use Uploaded Photo as Solo Silhouette</button>
+          <button id="saveSoloDefaultBtn">Save Solo Photo as Default</button>
+          <input id="duoPhotoInput" type="file" accept="image/*" />
+          <button id="useDuoPhotoBtn">Use Uploaded Photo as Dual Silhouette</button>
+          <button id="saveDuoDefaultBtn">Save Dual Photo as Default</button>
+          <p class="hint">Upload one picture for solo dancer mode, or upload a photo with two people for dual dancer mode. The app will keep all previous visualizer options and add glowing silhouette dancers.</p>
         </div>
       </section>
 
-      <!-- RIGHT COLUMN -->
-      <aside style="display:flex;flex-direction:column;gap:14px">
-        <div class="embed" id="embed">
-          <div class="embedTop">
-            <strong>Try it in our Python Editor</strong>
-            <div class="links">
-              <a class="linkBtn" id="openEditor" target="_blank" rel="noopener">
-                Open in new tab →
-              </a>
-              <button class="linkBtn" id="scrollToTool" type="button">
-                Jump to interactive ↓
-              </button>
-            </div>
+      <section class="card">
+        <div class="section-label">Pattern Controls</div>
+        <div class="grid">
+          <select id="modeSelect">
+            <option value="rings">Pulse Rings</option>
+            <option value="wave">Wave Field</option>
+            <option value="spiral">Spiral Bloom</option>
+            <option value="bars">Radial Bars</option>
+            <option value="particles">Particles</option>
+            <option value="dancer">Human Dancer</option>
+            <option value="duo">Dual Dancers</option>
+          </select>
+
+          <div class="slider-wrap">
+            <label for="sensitivity">Sensitivity</label>
+            <input id="sensitivity" type="range" min="0.5" max="3" value="1.3" step="0.1" />
           </div>
 
-          <iframe
-            id="ppEditor"
-            title="Programmer’s Picnic Python Editor"
-            loading="lazy"
-            referrerpolicy="no-referrer"
-            allow="clipboard-read; clipboard-write"
-            src="https://programmer-s-picnic.github.io/lesson-viewer/python-starter/editor/super/?tmode=0#pp=eyJ0YWJzIjpbeyJuYW1lIjoibWFpbi5weSIsImNvZGUiOiIjIFN1biBNb24gVHVlIFdlZCBUaHUgRnJpIFNhdFxuXG5kZWYgaXNMZWFwWWVhcih5ZWFyKTpcblx0aWYgeWVhciAlIDQhPTA6XG5cdFx0cmV0dXJuIEZhbHNlXG5cdGlmIHllYXIgJSA0MDA9PTA6XG5cdFx0cmV0dXJuIFRydWVcblxuXHRpZiB5ZWFyICUgMTAwPT0wOlxuXHRcdHJldHVybiBGYWxzZVxuXHRyZXR1cm4gVHJ1ZVxuZGVmIGdldERheXNJbk1vbnRoKG1vbnRobm8seWVhcm5vKTpcblx0aWYgbW9udGhubyBpbiBbNCw2LDksMTFdOlxuXHRcdHJldHVybiAzMFxuXHRpZiBtb250aG5vPT0yOlxuXHRcdGlmIGlzTGVhcFllYXIoeWVhcm5vKTpcblx0XHRcdHJldHVybiAyOVxuXHRcdHJldHVybiAyOFxuXHRyZXR1cm4gMzFcblxuZGVmIGNvbXBhcmVEYXRlcyhkMSxtMSx5MSxkMixtMix5Mik6XG5cdCMgPS0xIGlmIEQxPkQyLCAwIGlmIEQxPT1EMiAxIGlmIEQyPkQxXG5cdGlmIHkyPnkxOlxuXHRcdHJldHVybiAxXG5cdGlmIHkyPHkxOlxuXHRcdHJldHVybiAtMVxuXHRpZiBtMj5tMTpcblx0XHRyZXR1cm4gMVxuXHRpZiBtMjxtMTpcblx0XHRyZXR1cm4gLTFcblx0aWYgZDI-ZDE6XG5cdFx0cmV0dXJuIDFcblx0aWYgZDI8ZDE6XG5cdFx0cmV0dXJuIC0xXG5cdHJldHVybiAwXG5kZWYgZ2V0V2Vla0RheShkLG0seSk6XG5cdCMgQmFzZSBkYXRlIGlzIDEtMy0yMDI2IFN1bmRheVxuXHRkYXRlZGlmZj1kYXRlRGlmZmVyZW5jZSgxLDMsMjAyNixkLG0seSlcblx0I3ByaW50KGRhdGVkaWZmKVxuXHRpZiBkYXRlZGlmZjwwOlxuXHRcdGRhdGVkaWZmPS1kYXRlZGlmZlxuXHRcdGRhdGVkaWZmPWRhdGVkaWZmICUgN1xuXHRcdGRhdGVkaWZmPTctZGF0ZWRpZmZcblxuXG5cblxuXHRkYXRlZGlmZj1kYXRlZGlmZiAlIDdcblx0I3ByaW50KGRhdGVkaWZmKVxuXG5cdHJldHVybiBkYXRlZGlmZlxuZGVmIGRhdGVEaWZmZXJlbmNlKGQxLG0xLHkxLGQyLG0yLHkyKTpcblx0IyBEMj49RDFcblx0c2lnbj1jb21wYXJlRGF0ZXMoZDEsIG0xLCB5MSxkMixtMix5Milcblx0aWYgc2lnbj09MDpcblx0XHRyZXR1cm4gMFxuXHRpZiBzaWduPT0tMTpcblx0XHRkMSxtMSx5MSxkMixtMix5Mj1kMixtMix5MixkMSxtMSx5MVxuXHQjcHJpbnQoZDEsbTEseTEsZDIsbTIseTIpXG5cdGRpZmYxPWQyLTFcblx0ZGlmZjI9ZDEtMVxuXHQjcHJpbnQoZGlmZjEsZGlmZjIpXG5cdCMxLCAxLCAyMDI2LDUsMywyMDI2KVxuXHQjIDEsMSwyMDI2LDEsMywyMDI2XG5cdGRpZmYzLGRpZmY0PTAsMFxuXHRmb3IgbW9udGhubyBpbiByYW5nZSgxLG0yKTpcblx0XHQjcHJpbnQobW9udGhubylcblx0XHRkaWZmMys9Z2V0RGF5c0luTW9udGgobW9udGhubyx5Milcblx0Zm9yIG1vbnRobm8gaW4gcmFuZ2UoMSxtMSk6XG5cdFx0ZGlmZjQrPWdldERheXNJbk1vbnRoKG1vbnRobm8seTEpXG5cdCNwcmludChkaWZmMyxkaWZmNClcblx0ZGlmZjU9MFxuXHRmb3IgeWVhcm5vIGluIHJhbmdlKHkxLHkyKTpcblx0XHRpZiBpc0xlYXBZZWFyKHllYXJubyk6XG5cdFx0XHRkaWZmNSs9MzY2XG5cdFx0ZWxzZTpcblx0XHRcdGRpZmY1Kz0zNjVcblx0I3ByaW50KGRpZmY1KVxuXHRyZXR1cm4gc2lnbiogKGRpZmYxK2RpZmYzK2RpZmY1LWRpZmYyLWRpZmY0KVxuZGVmIGdldE1vbnRoTmFtZShtb250aG5vKTpcblx0bW9udGhzPVtcIlwiLFwiSmFudWFyeVwiLFwiRmVicnVhcnlcIixcIk1hcmNoXCIsXCJBcHJpbFwiLFwiTWF5XCIsXCJKdW5lXCIsXCJKVWx5XCIsXCJBdWd1c3RcIixcIlNlcHRlbWJlclwiLFwiT2N0b2JlclwiLFwiTm92ZW1iZXJcIixcIkRlY2VtYmVyXCJdXG5cdHJldHVybiBtb250aHNbbW9udGhub11cbmRlZiBnZXRXZWVrRGF5TmFtZShkLG0seSk6XG5cdGRheW5vPWdldFdlZWtEYXkoZCxtLHkpXG5cblx0d2Vla2RheXM9W1wiU3VuXCIsIFwiTW9uXCIgLFwiVHVlXCIsIFwiV2VkXCIsIFwiVGh1XCIsIFwiRnJpXCIsIFwiU2F0XCJdXG5cdHJldHVybiB3ZWVrZGF5c1tkYXlub11cbmRlZiBwcmludE1vbnRobHlDYWxlbmRhcihtb250aG5vLHllYXJubyk6XG5cdHdlZWtkYXlzPVtcIlN1blwiLCBcIk1vblwiICxcIlR1ZVwiLCBcIldlZFwiLCBcIlRodVwiLCBcIkZyaVwiLCBcIlNhdFwiXVxuXHRzdGFydGRheW5vPWdldFdlZWtEYXkoMSxtb250aG5vLHllYXJubylcblxuXHRcdFxuXHRwcmludChnZXRNb250aE5hbWUobW9udGhubykseWVhcm5vLGVuZD1cIlxcblwiKVxuXHRcblx0Zm9yIGRheXMgaW4gd2Vla2RheXM6XG5cdFx0cHJpbnQoZGF5cywgZW5kPVwiXFx0XCIpXG5cdHByaW50KClcblx0Zm9yIGkgaW4gcmFuZ2Uoc3RhcnRkYXlubyk6XG5cdFx0cHJpbnQoIFwiXCIsIGVuZD1cIlxcdFwiKVxuXHR0b3RhbGRheXM9Z2V0RGF5c0luTW9udGgobW9udGhubyx5ZWFybm8pXG5cdCNwcmludChzdGFydGRheW5vLHRvdGFsZGF5cylcblx0ZGF5PTFcblx0ZGF5Y291bnQ9c3RhcnRkYXlub1xuXHR3aGlsZSBkYXk8PXRvdGFsZGF5czpcblx0XHRkYXljb3VudCs9MVxuXHRcdHByaW50KGRheSwgZW5kPVwiXFx0XCIpXG5cdFx0aWYgZGF5Y291bnQ-PTc6XG5cdFx0XHRwcmludCgpXG5cdFx0XHRkYXljb3VudD0wXG5cdFx0ZGF5Kz0xXG5cblx0XG5cbnByaW50TW9udGhseUNhbGVuZGFyKDEsMTk3MClcbiAjIHgxLXgyID0xMCwgeDIteDE9LTEwICAgMTAwLTcwXG4jIE1hciAyMDI2XG4jIFN1biBNb24gVHVlIFdlZCBUaHUgRnJpIFNhdFxuIyAgMSAgIDIgICAzICAgNCAgIDUgICA2ICAgN1xuIyAgOCAgIDkgICAxMCAgMTEgIDEyICAxMyAgMTRcbiMgIDE1ICAxNiAgMTcgIDE4ICAxOSAgMjAgIDIxXG4jICAyMiAgMjMgIDI0ICAyNSAgMjYgIDI3ICAyOFxuIyAgMjkgIDMwICAzMVxuXG5cbiJ9XSwiY3VycmVudFRhYiI6MCwic3RkaW4iOiIzXG4oYStiKSooYytkKVxuICgoMiszKSlcbigoMyArIDIpIMOXICg2IOKIkiA0KSArIDIpIMOXIDQiLCJwcm9ibGVtIjoicmV2ZXJzZV9udW0ifQ"
-          ></iframe>
+          <div class="slider-wrap">
+            <label for="trail">Trail / Fade</label>
+            <input id="trail" type="range" min="0.02" max="0.3" value="0.08" step="0.01" />
+          </div>
+
+          <div class="slider-wrap">
+            <label for="zoom">Zoom</label>
+            <input id="zoom" type="range" min="0.4" max="2.4" value="1" step="0.1" />
+          </div>
+
+          <button class="primary" id="saveBtn">Save Current Frame</button>
         </div>
+      </section>
 
-        <div class="article">
-          <div class="sectionTitle">
-            <h3>Try these challenges</h3>
-            <small>Small upgrades students love</small>
-          </div>
+      <section class="card">
+        <div class="section-label">Live Audio Stats</div>
+        <div class="stat"><span>Status</span><strong id="statusText">Idle</strong></div>
+        <div class="stat"><span>Volume</span><strong id="volumeText">0</strong></div>
+        <div class="stat"><span>Bass</span><strong id="bassText">0</strong></div>
+        <div class="stat"><span>Mid</span><strong id="midText">0</strong></div>
+        <div class="stat"><span>Treble</span><strong id="trebleText">0</strong></div>
+      </section>
 
-          <ul>
-            <li><b>Challenge A:</b> Print <span class="kbd">February 2000</span> and verify leap-year handling.</li>
-            <li><b>Challenge B:</b> Write <span class="kbd">printYearCalendar(year)</span> that prints all 12 months.</li>
-            <li><b>Challenge C:</b> Replace tabs with a fixed-width format so alignment looks perfect in any font.</li>
-            <li><b>Challenge D:</b> Add a function <span class="kbd">getWeekDayName(d,m,y)</span> and test random dates.</li>
-          </ul>
+      <section class="card">
+        <div class="section-label">Notes</div>
+        <p class="hint">
+          Browsers cannot automatically capture music playing from every app. For best results, upload an audio file or allow microphone access and play music near the device.
+        </p>
+      </section>
+    </aside>
 
-          <div class="callout">
-            <b>Teaching tip:</b> Ask students to change the base date and prove the entire system still works.
-          </div>
-        </div>
-      </aside>
+    <main class="panel canvas-wrap">
+      <div class="topbar">
+        <div class="badge" id="modeBadge">Mode: Pulse Rings</div>
+        <div class="badge">Canvas reacts to sound in real time</div>
+      </div>
+      <canvas id="canvas"></canvas>
+      <div class="overlay"></div>
     </main>
-
-    <footer>
-      Built for Programmer’s Picnic • Champak Roy • Calendar logic with day-difference and modulo arithmetic
-    </footer>
   </div>
 
   <script>
-    (function(){
-      "use strict";
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const modeSelect = document.getElementById('modeSelect');
+    const sensitivityEl = document.getElementById('sensitivity');
+    const trailEl = document.getElementById('trail');
+    const zoomEl = document.getElementById('zoom');
+    const fileInput = document.getElementById('fileInput');
+    const audioPlayer = document.getElementById('audioPlayer');
+    const micBtn = document.getElementById('micBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const saveBtn = document.getElementById('saveBtn');
+    const photoInput = document.getElementById('photoInput');
+    const usePhotoBtn = document.getElementById('usePhotoBtn');
+    const duoPhotoInput = document.getElementById('duoPhotoInput');
+    const useDuoPhotoBtn = document.getElementById('useDuoPhotoBtn');
+    const saveSoloDefaultBtn = document.getElementById('saveSoloDefaultBtn');
+    const saveDuoDefaultBtn = document.getElementById('saveDuoDefaultBtn');
+    const statusText = document.getElementById('statusText');
+    const volumeText = document.getElementById('volumeText');
+    const bassText = document.getElementById('bassText');
+    const midText = document.getElementById('midText');
+    const trebleText = document.getElementById('trebleText');
+    const modeBadge = document.getElementById('modeBadge');
 
-      // --- Link setup
-      var editorURL = document.getElementById("ppEditor").getAttribute("src");
-      var openEditor = document.getElementById("openEditor");
-      openEditor.href = editorURL;
+    // Built-in default images.
+    // You can replace these empty strings with data URLs later if you want permanent baked-in photos.
+    const DEFAULT_SOLO_IMAGE = localStorage.getItem('pp_default_solo_image') || '';
+    const DEFAULT_DUO_IMAGE = localStorage.getItem('pp_default_duo_image') || '';
 
-      document.getElementById("scrollToTool").addEventListener("click", function(){
-        var el = document.getElementById("tool");
-        el.scrollIntoView({behavior:"smooth", block:"start"});
+    let audioCtx;
+    let analyser;
+    let sourceNode;
+    let micStream;
+    let dataArray;
+    let timeArray;
+    let animationId;
+    let particles = [];
+    let danceTime = 0;
+    let dancerImage = null;
+    let dancerSilhouetteReady = false;
+    const dancerCanvas = document.createElement('canvas');
+    const dancerCtx = dancerCanvas.getContext('2d', { willReadFrequently: true });
+    let duoDancerSilhouetteReady = false;
+    const duoCanvas = document.createElement('canvas');
+    const duoCtx = duoCanvas.getContext('2d', { willReadFrequently: true });
+    let duoLeftBounds = null;
+    let duoRightBounds = null;
+
+    function resizeCanvas() {
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function ensureAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 2048;
+        analyser.smoothingTimeConstant = 0.82;
+        dataArray = new Uint8Array(analyser.frequencyBinCount);
+        timeArray = new Uint8Array(analyser.fftSize);
+      }
+    }
+
+    function disconnectCurrentSource() {
+      if (sourceNode) {
+        try { sourceNode.disconnect(); } catch (_) {}
+        sourceNode = null;
+      }
+      if (micStream) {
+        micStream.getTracks().forEach(track => track.stop());
+        micStream = null;
+      }
+      audioPlayer.pause();
+      audioPlayer.removeAttribute('src');
+      audioPlayer.load();
+      statusText.textContent = 'Idle';
+    }
+
+    function connectAnalyser(node) {
+      if (!analyser) return;
+      node.connect(analyser);
+      analyser.connect(audioCtx.destination);
+    }
+
+    function connectFileAudio(file) {
+      ensureAudio();
+      disconnectCurrentSource();
+      const url = URL.createObjectURL(file);
+      audioPlayer.src = url;
+      audioPlayer.play().catch(() => {});
+      sourceNode = audioCtx.createMediaElementSource(audioPlayer);
+      connectAnalyser(sourceNode);
+      statusText.textContent = 'Playing file';
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      startVisualization();
+    }
+
+    async function connectMic() {
+      ensureAudio();
+      disconnectCurrentSource();
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        sourceNode = audioCtx.createMediaStreamSource(micStream);
+        sourceNode.connect(analyser);
+        statusText.textContent = 'Listening to microphone';
+        if (audioCtx.state === 'suspended') await audioCtx.resume();
+        startVisualization();
+      } catch (err) {
+        statusText.textContent = 'Microphone blocked';
+        alert('Could not access microphone. Please allow mic permission.');
+      }
+    }
+
+    function avgRange(start, end) {
+      let sum = 0;
+      const len = Math.max(1, end - start);
+      for (let i = start; i < end; i++) sum += dataArray[i] || 0;
+      return sum / len;
+    }
+
+    function getMetrics() {
+      if (!analyser) {
+        return { volume: 0, bass: 0, mid: 0, treble: 0, waveform: [] };
+      }
+      analyser.getByteFrequencyData(dataArray);
+      analyser.getByteTimeDomainData(timeArray);
+
+      const bass = avgRange(0, 20);
+      const mid = avgRange(20, 100);
+      const treble = avgRange(100, 220);
+      let volume = 0;
+      for (let i = 0; i < dataArray.length; i++) volume += dataArray[i];
+      volume /= dataArray.length;
+
+      return {
+        volume,
+        bass,
+        mid,
+        treble,
+        waveform: timeArray
+      };
+    }
+
+    function drawBackground(fade) {
+      ctx.fillStyle = `rgba(4, 10, 24, ${fade})`;
+      ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+    }
+
+    function drawRings(m) {
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      const cx = w / 2;
+      const cy = h / 2;
+      const sens = Number(sensitivityEl.value);
+      const zoom = Number(zoomEl.value);
+      const energy = (m.volume * sens) / 255;
+      const bass = (m.bass * sens) / 255;
+      const treble = (m.treble * sens) / 255;
+
+      for (let i = 0; i < 7; i++) {
+        const radius = (50 + i * 26 + energy * 120 + bass * 90) * zoom;
+        const alpha = 0.12 + (i / 12);
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.strokeStyle = `hsla(${(Date.now() / 18 + i * 32) % 360}, 90%, ${60 + treble * 20}%, ${alpha})`;
+        ctx.lineWidth = 2 + bass * 7;
+        ctx.stroke();
+      }
+    }
+
+    function drawWave(m) {
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      const waveform = m.waveform;
+      const sens = Number(sensitivityEl.value);
+      const zoom = Number(zoomEl.value);
+      ctx.beginPath();
+      for (let i = 0; i < waveform.length; i++) {
+        const x = (i / (waveform.length - 1)) * w;
+        const centered = (waveform[i] - 128) / 128;
+        const y = h / 2 + centered * 180 * sens * zoom + Math.sin(i * 0.04 + performance.now() * 0.003) * m.bass * 0.12;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.strokeStyle = `hsla(${(Date.now() / 25) % 360}, 100%, 70%, 0.9)`;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
+
+    function drawSpiral(m) {
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      const cx = w / 2;
+      const cy = h / 2;
+      const sens = Number(sensitivityEl.value);
+      const zoom = Number(zoomEl.value);
+      const turns = 220;
+      ctx.beginPath();
+      for (let i = 0; i < turns; i++) {
+        const a = i * 0.16 + performance.now() * 0.0012;
+        const radius = i * 1.3 * zoom + (m.volume * sens) * 0.35;
+        const wobble = Math.sin(i * 0.18 + performance.now() * 0.004) * m.treble * 0.16;
+        const x = cx + Math.cos(a) * (radius + wobble);
+        const y = cy + Math.sin(a) * (radius + wobble);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.strokeStyle = `hsla(${(Date.now() / 20 + m.bass) % 360}, 100%, 68%, 0.85)`;
+      ctx.lineWidth = 2.2 + (m.mid / 255) * 4;
+      ctx.stroke();
+    }
+
+    function drawBars(m) {
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      const cx = w / 2;
+      const cy = h / 2;
+      const zoom = Number(zoomEl.value);
+      const bars = 120;
+      const radius = Math.min(w, h) * 0.16 * zoom;
+      for (let i = 0; i < bars; i++) {
+        const angle = (i / bars) * Math.PI * 2;
+        const val = dataArray[Math.floor((i / bars) * dataArray.length)] || 0;
+        const len = 20 + (val / 255) * 160 * Number(sensitivityEl.value);
+        const x1 = cx + Math.cos(angle) * radius;
+        const y1 = cy + Math.sin(angle) * radius;
+        const x2 = cx + Math.cos(angle) * (radius + len);
+        const y2 = cy + Math.sin(angle) * (radius + len);
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = `hsla(${(i * 3 + Date.now() / 30) % 360}, 100%, 70%, 0.8)`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+    }
+
+    function initParticles() {
+      particles = Array.from({ length: 220 }, () => ({
+        x: Math.random() * canvas.clientWidth,
+        y: Math.random() * canvas.clientHeight,
+        vx: (Math.random() - 0.5) * 2,
+        vy: (Math.random() - 0.5) * 2,
+        size: Math.random() * 3 + 1
+      }));
+    }
+
+    function drawParticles(m) {
+      if (!particles.length) initParticles();
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      const sens = Number(sensitivityEl.value);
+      const push = (m.volume / 255) * 1.8 * sens;
+      const hue = (Date.now() / 24 + m.treble) % 360;
+      particles.forEach((p, idx) => {
+        const angle = idx * 0.2 + performance.now() * 0.001 + m.bass * 0.01;
+        p.vx += Math.cos(angle) * 0.02 * push;
+        p.vy += Math.sin(angle) * 0.02 * push;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vx *= 0.98;
+        p.vy *= 0.98;
+        if (p.x < 0) p.x = w;
+        if (p.x > w) p.x = 0;
+        if (p.y < 0) p.y = h;
+        if (p.y > h) p.y = 0;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size + push * 0.8, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${hue + idx * 0.7}, 100%, 70%, 0.65)`;
+        ctx.fill();
+      });
+    }
+
+    function drawPhotoDancer(m) {
+      if (!dancerImage || !dancerSilhouetteReady) {
+        drawDancer(m);
+        return;
+      }
+
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      const cx = w / 2;
+      const cy = h / 2 + 40;
+      const sens = Number(sensitivityEl.value);
+      const zoom = Number(zoomEl.value);
+      const bass = (m.bass / 255) * sens;
+      const treble = (m.treble / 255) * sens;
+      const volume = (m.volume / 255) * sens;
+      const t = performance.now() * 0.004;
+
+      const sway = Math.sin(t * 1.15) * (16 + bass * 14);
+      const bounce = Math.abs(Math.sin(t * 1.9)) * (20 + volume * 22);
+      const shoulderTilt = Math.sin(t * 1.3) * 0.08;
+      const scale = (0.72 + zoom * 0.42) * (1 + volume * 0.06);
+      const legSplit = Math.sin(t * 1.65) * (18 + bass * 22);
+      const armSwing = Math.sin(t * 2.1) * (10 + treble * 18);
+      const hue = (Date.now() / 22 + m.bass) % 360;
+
+      const baseHeight = Math.min(h * 0.74, dancerCanvas.height * scale);
+      const imgScale = baseHeight / dancerCanvas.height;
+      const imgW = dancerCanvas.width * imgScale;
+      const imgH = dancerCanvas.height * imgScale;
+      const x = cx - imgW / 2 + sway;
+      const y = cy - imgH / 2 - bounce;
+
+      ctx.save();
+      ctx.shadowBlur = 30 + volume * 20;
+      ctx.shadowColor = `hsla(${hue}, 100%, 65%, 0.55)`;
+
+      for (let i = 0; i < 7; i++) {
+        const r = 70 + i * 28 + bass * 70;
+        ctx.beginPath();
+        ctx.arc(cx + sway, cy - imgH * 0.1 - bounce, r, 0, Math.PI * 2);
+        ctx.strokeStyle = `hsla(${hue + i * 16}, 100%, 60%, ${0.05 + i * 0.025})`;
+        ctx.lineWidth = 2 + i * 0.5;
+        ctx.stroke();
+      }
+
+      ctx.translate(cx + sway, cy - bounce);
+      ctx.rotate(shoulderTilt);
+      ctx.translate(-(cx + sway), -(cy - bounce));
+      ctx.drawImage(dancerCanvas, x, y, imgW, imgH);
+
+      const footY = y + imgH - 10;
+      ctx.strokeStyle = `hsla(${hue + 40}, 100%, 70%, 0.75)`;
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(cx + sway, y + imgH * 0.38);
+      ctx.lineTo(cx + sway - armSwing, y + imgH * 0.58);
+      ctx.moveTo(cx + sway, y + imgH * 0.4);
+      ctx.lineTo(cx + sway + armSwing, y + imgH * 0.6);
+      ctx.moveTo(cx + sway - 12, y + imgH * 0.72);
+      ctx.lineTo(cx + sway - 18 - legSplit, footY);
+      ctx.moveTo(cx + sway + 12, y + imgH * 0.72);
+      ctx.lineTo(cx + sway + 18 + legSplit, footY);
+      ctx.stroke();
+
+      ctx.strokeStyle = `hsla(${hue + 20}, 100%, 60%, 0.35)`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(cx - 240 + sway, Math.min(h - 30, footY + 8));
+      ctx.lineTo(cx + 240 + sway, Math.min(h - 30, footY + 8));
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawDualPhotoDancers(m) {
+      if (!duoDancerSilhouetteReady || !duoLeftBounds || !duoRightBounds) {
+        if (dancerSilhouetteReady) drawPhotoDancer(m);
+        else drawDancer(m);
+        return;
+      }
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      const sens = Number(sensitivityEl.value);
+      const zoom = Number(zoomEl.value);
+      const bass = (m.bass / 255) * sens;
+      const treble = (m.treble / 255) * sens;
+      const volume = (m.volume / 255) * sens;
+      const t = performance.now() * 0.004;
+      const hue = (Date.now() / 18 + m.bass * 1.2) % 360;
+      const centerX = w / 2;
+      const floorY = h * 0.84;
+
+      for (let i = 0; i < 8; i++) {
+        const r = 80 + i * 30 + bass * 80;
+        ctx.beginPath();
+        ctx.arc(centerX, h * 0.42, r, 0, Math.PI * 2);
+        ctx.strokeStyle = `hsla(${hue + i * 14}, 100%, 60%, ${0.04 + i * 0.022})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+
+      const leftSway = Math.sin(t * 1.4) * (14 + bass * 12);
+      const rightSway = Math.sin(t * 1.4 + Math.PI) * (14 + bass * 12);
+      const leftBounce = Math.abs(Math.sin(t * 1.9)) * (18 + volume * 20);
+      const rightBounce = Math.abs(Math.sin(t * 1.9 + 0.5)) * (18 + volume * 20);
+      const leftArm = Math.sin(t * 2.4) * (10 + treble * 14);
+      const rightArm = Math.sin(t * 2.4 + Math.PI) * (10 + treble * 14);
+      const leftLeg = Math.sin(t * 1.8) * (16 + bass * 20);
+      const rightLeg = Math.sin(t * 1.8 + Math.PI) * (16 + bass * 20);
+
+      function drawOne(bounds, targetCenterX, bounce, sway, armSwing, legSwing, tilt, glowShift) {
+        const bw = bounds.maxX - bounds.minX + 1;
+        const bh = bounds.maxY - bounds.minY + 1;
+        const desiredH = Math.min(h * 0.62, bh * (0.58 + zoom * 0.34));
+        const scale = desiredH / bh;
+        const dw = bw * scale;
+        const dh = bh * scale;
+        const x = targetCenterX - dw / 2 + sway;
+        const y = floorY - dh - bounce;
+        ctx.save();
+        ctx.shadowBlur = 28 + volume * 18;
+        ctx.shadowColor = `hsla(${hue + glowShift}, 100%, 70%, 0.55)`;
+        ctx.translate(targetCenterX + sway, floorY - dh * 0.58 - bounce);
+        ctx.rotate(tilt);
+        ctx.translate(-(targetCenterX + sway), -(floorY - dh * 0.58 - bounce));
+        ctx.drawImage(duoCanvas, bounds.minX, bounds.minY, bw, bh, x, y, dw, dh);
+        ctx.strokeStyle = `hsla(${hue + glowShift + 30}, 100%, 72%, 0.75)`;
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(targetCenterX + sway, y + dh * 0.38);
+        ctx.lineTo(targetCenterX + sway - armSwing, y + dh * 0.56);
+        ctx.moveTo(targetCenterX + sway, y + dh * 0.4);
+        ctx.lineTo(targetCenterX + sway + armSwing, y + dh * 0.58);
+        ctx.moveTo(targetCenterX + sway - 10, y + dh * 0.72);
+        ctx.lineTo(targetCenterX + sway - 16 - legSwing, y + dh - 8);
+        ctx.moveTo(targetCenterX + sway + 10, y + dh * 0.72);
+        ctx.lineTo(targetCenterX + sway + 16 + legSwing, y + dh - 8);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      drawOne(duoLeftBounds, centerX - 130, leftBounce, leftSway, leftArm, leftLeg, Math.sin(t * 1.1) * 0.08, 0);
+      drawOne(duoRightBounds, centerX + 130, rightBounce, rightSway, rightArm, rightLeg, Math.sin(t * 1.1 + 0.7) * -0.08, 40);
+
+      ctx.strokeStyle = `hsla(${hue + 20}, 100%, 65%, 0.35)`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(centerX - 320, floorY + 8);
+      ctx.lineTo(centerX + 320, floorY + 8);
+      ctx.stroke();
+    }
+
+    function drawDancer(m) {
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      const cx = w / 2;
+      const cy = h / 2 + 30;
+      const sens = Number(sensitivityEl.value);
+      const zoom = Number(zoomEl.value);
+      const bass = (m.bass / 255) * sens;
+      const mid = (m.mid / 255) * sens;
+      const treble = (m.treble / 255) * sens;
+      const volume = (m.volume / 255) * sens;
+      const t = performance.now() * 0.004;
+
+      danceTime += 0.04 + volume * 0.05;
+
+      const bodyScale = 0.9 + zoom * 0.55;
+      const torso = 90 * bodyScale;
+      const shoulderY = cy - 90 * bodyScale;
+      const hipY = cy;
+      const headR = 24 * bodyScale + bass * 5;
+      const sway = Math.sin(danceTime) * (18 + bass * 16);
+      const bounce = Math.abs(Math.sin(danceTime * 1.4)) * (18 + volume * 22);
+      const torsoLean = Math.sin(danceTime * 0.8) * 0.28;
+      const armSwingL = Math.sin(danceTime * 1.8 + 0.7) * (0.9 + treble * 0.9);
+      const armSwingR = Math.sin(danceTime * 1.8 + Math.PI) * (0.9 + treble * 0.9);
+      const legSwingL = Math.sin(danceTime * 1.6) * (0.8 + bass * 0.7);
+      const legSwingR = Math.sin(danceTime * 1.6 + Math.PI) * (0.8 + bass * 0.7);
+
+      const baseX = cx + sway;
+      const baseY = cy - bounce;
+      const shoulderWidth = 34 * bodyScale;
+      const hipWidth = 24 * bodyScale;
+      const upperArm = 48 * bodyScale;
+      const lowerArm = 42 * bodyScale;
+      const upperLeg = 58 * bodyScale;
+      const lowerLeg = 54 * bodyScale;
+
+      function joint(x, y, angle, len) {
+        return { x: x + Math.cos(angle) * len, y: y + Math.sin(angle) * len };
+      }
+
+      const neck = { x: baseX, y: baseY - torso + 6 };
+      const head = { x: neck.x, y: neck.y - headR - 8 };
+      const leftShoulder = { x: neck.x - shoulderWidth, y: shoulderY - bounce };
+      const rightShoulder = { x: neck.x + shoulderWidth, y: shoulderY - bounce };
+      const leftHip = { x: baseX - hipWidth, y: hipY - bounce };
+      const rightHip = { x: baseX + hipWidth, y: hipY - bounce };
+
+      const leftElbow = joint(leftShoulder.x, leftShoulder.y, Math.PI + armSwingL + torsoLean, upperArm);
+      const rightElbow = joint(rightShoulder.x, rightShoulder.y, armSwingR + torsoLean, upperArm);
+      const leftHand = joint(leftElbow.x, leftElbow.y, Math.PI / 2 + armSwingL * 0.8, lowerArm);
+      const rightHand = joint(rightElbow.x, rightElbow.y, Math.PI / 2 + armSwingR * 0.8, lowerArm);
+
+      const leftKnee = joint(leftHip.x, leftHip.y, Math.PI / 2 + legSwingL * 0.7, upperLeg);
+      const rightKnee = joint(rightHip.x, rightHip.y, Math.PI / 2 + legSwingR * 0.7, upperLeg);
+      const leftFoot = joint(leftKnee.x, leftKnee.y, Math.PI / 2 - legSwingL * 0.45, lowerLeg);
+      const rightFoot = joint(rightKnee.x, rightKnee.y, Math.PI / 2 - legSwingR * 0.45, lowerLeg);
+
+      ctx.save();
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      const glowHue = (Date.now() / 20 + m.bass * 0.8) % 360;
+      ctx.shadowBlur = 24 + volume * 18;
+      ctx.shadowColor = `hsla(${glowHue}, 100%, 70%, 0.45)`;
+      ctx.strokeStyle = `hsla(${glowHue}, 100%, 78%, 0.95)`;
+      ctx.lineWidth = 8 + mid * 3;
+
+      for (let i = 0; i < 6; i++) {
+        const r = 70 + i * 28 + bass * 80;
+        ctx.beginPath();
+        ctx.arc(baseX, baseY - torso * 0.35, r, 0, Math.PI * 2);
+        ctx.strokeStyle = `hsla(${glowHue + i * 18}, 100%, 60%, ${0.05 + i * 0.025})`;
+        ctx.lineWidth = 2 + i * 0.5;
+        ctx.stroke();
+      }
+
+      ctx.strokeStyle = `hsla(${glowHue}, 100%, 78%, 0.95)`;
+      ctx.lineWidth = 8 + mid * 3;
+
+      ctx.beginPath();
+      ctx.moveTo(neck.x, neck.y);
+      ctx.lineTo(leftShoulder.x, leftShoulder.y);
+      ctx.moveTo(neck.x, neck.y);
+      ctx.lineTo(rightShoulder.x, rightShoulder.y);
+      ctx.moveTo(baseX, baseY - torso);
+      ctx.lineTo(baseX, baseY);
+      ctx.moveTo(baseX, baseY);
+      ctx.lineTo(leftHip.x, leftHip.y);
+      ctx.moveTo(baseX, baseY);
+      ctx.lineTo(rightHip.x, rightHip.y);
+      ctx.moveTo(leftShoulder.x, leftShoulder.y);
+      ctx.lineTo(leftElbow.x, leftElbow.y);
+      ctx.lineTo(leftHand.x, leftHand.y);
+      ctx.moveTo(rightShoulder.x, rightShoulder.y);
+      ctx.lineTo(rightElbow.x, rightElbow.y);
+      ctx.lineTo(rightHand.x, rightHand.y);
+      ctx.moveTo(leftHip.x, leftHip.y);
+      ctx.lineTo(leftKnee.x, leftKnee.y);
+      ctx.lineTo(leftFoot.x, leftFoot.y);
+      ctx.moveTo(rightHip.x, rightHip.y);
+      ctx.lineTo(rightKnee.x, rightKnee.y);
+      ctx.lineTo(rightFoot.x, rightFoot.y);
+      ctx.stroke();
+
+      ctx.fillStyle = `hsla(${glowHue + 20}, 100%, 80%, 0.95)`;
+      ctx.beginPath();
+      ctx.arc(head.x, head.y, headR, 0, Math.PI * 2);
+      ctx.fill();
+
+      [leftShoulder, rightShoulder, leftElbow, rightElbow, leftHand, rightHand, leftHip, rightHip, leftKnee, rightKnee, leftFoot, rightFoot, neck].forEach((p, idx) => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 4 + (idx % 3), 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${glowHue + idx * 8}, 100%, 72%, 0.9)`;
+        ctx.fill();
       });
 
-      // --- Copy code
-      var btnCopy = document.getElementById("btnCopy");
-      btnCopy.addEventListener("click", function(){
-        var text = document.getElementById("codeBlock").textContent.replace(/\n\s+\n/g, "\n\n").trim();
-        if (!navigator.clipboard) {
-          alert("Clipboard not available in this browser context.");
-          return;
-        }
-        navigator.clipboard.writeText(text).then(function(){
-          btnCopy.textContent = "Copied ✓";
-          setTimeout(function(){ btnCopy.textContent = "Copy code"; }, 1200);
-        }).catch(function(){
-          alert("Copy failed.");
-        });
+      const floorY = Math.min(h - 40, baseY + 120 * bodyScale);
+      ctx.strokeStyle = `hsla(${glowHue + 40}, 100%, 60%, 0.35)`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(baseX - 220, floorY);
+      ctx.lineTo(baseX + 220, floorY);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    function render() {
+      const m = getMetrics();
+      const volume = Math.round(m.volume);
+      const bass = Math.round(m.bass);
+      const mid = Math.round(m.mid);
+      const treble = Math.round(m.treble);
+
+      volumeText.textContent = volume;
+      bassText.textContent = bass;
+      midText.textContent = mid;
+      trebleText.textContent = treble;
+
+      drawBackground(Number(trailEl.value));
+
+      switch (modeSelect.value) {
+        case 'wave': drawWave(m); break;
+        case 'spiral': drawSpiral(m); break;
+        case 'bars': drawBars(m); break;
+        case 'particles': drawParticles(m); break;
+        case 'dancer':
+          if (dancerSilhouetteReady) drawPhotoDancer(m);
+          else drawDancer(m);
+          break;
+        case 'duo':
+          if (duoDancerSilhouetteReady) drawDualPhotoDancers(m);
+          else if (dancerSilhouetteReady) drawPhotoDancer(m);
+          else drawDancer(m);
+          break;
+        default: drawRings(m); break;
+      }
+
+      animationId = requestAnimationFrame(render);
+    }
+
+    function startVisualization() {
+      cancelAnimationFrame(animationId);
+      render();
+    }
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files?.[0];
+      if (file) connectFileAudio(file);
+    });
+
+    micBtn.addEventListener('click', connectMic);
+
+    stopBtn.addEventListener('click', () => {
+      disconnectCurrentSource();
+      cancelAnimationFrame(animationId);
+    });
+
+    modeSelect.addEventListener('change', () => {
+      modeBadge.textContent = `Mode: ${modeSelect.options[modeSelect.selectedIndex].text}`;
+    });
+
+    saveBtn.addEventListener('click', () => {
+      const link = document.createElement('a');
+      link.download = `music-pattern-${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
+
+    function buildSilhouetteFromImage(img) {
+      const maxSide = 900;
+      const ratio = Math.min(1, maxSide / Math.max(img.naturalWidth || img.width, img.naturalHeight || img.height));
+      const w = Math.max(1, Math.round((img.naturalWidth || img.width) * ratio));
+      const h = Math.max(1, Math.round((img.naturalHeight || img.height) * ratio));
+      dancerCanvas.width = w;
+      dancerCanvas.height = h;
+      dancerCtx.clearRect(0, 0, w, h);
+      dancerCtx.drawImage(img, 0, 0, w, h);
+
+      const imageData = dancerCtx.getImageData(0, 0, w, h);
+      const d = imageData.data;
+      let sumR = 0, sumG = 0, sumB = 0, count = 0;
+      const sample = [[0,0],[w-1,0],[0,h-1],[w-1,h-1],[Math.floor(w/2),0],[0,Math.floor(h/2)],[w-1,Math.floor(h/2)]];
+      sample.forEach(([sx, sy]) => {
+        const i = (sy * w + sx) * 4;
+        sumR += d[i]; sumG += d[i + 1]; sumB += d[i + 2]; count++;
       });
+      const bgR = sumR / count, bgG = sumG / count, bgB = sumB / count;
 
-      // --- Optional lightweight token tint (simple regex-based; not a full parser)
-      var tinted = true;
-      var btnToggle = document.getElementById("btnToggleHighlight");
-      var codeBlock = document.getElementById("codeBlock");
-      var rawCode = codeBlock.textContent;
-
-      function escapeHTML(s){
-        return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-      }
-
-      function tintPython(code){
-        // Very small, safe highlighter (best-effort):
-        // 1) escape HTML
-        // 2) comments
-        // 3) strings
-        // 4) keywords
-        // 5) numbers
-        // 6) def function names
-        var s = escapeHTML(code);
-
-        // comments (# ... endline)
-        s = s.replace(/(^|\n)(\s*#.*)$/g, function(m, p1, p2){
-          return p1 + '<span class="tok-c">' + p2 + "</span>";
-        });
-
-        // strings "..." or '...'
-        s = s.replace(/(\"[^\"\n]*\"|\'[^\'\n]*\')/g, function(m){
-          return '<span class="tok-s">' + m + "</span>";
-        });
-
-        // def functionName(
-        s = s.replace(/\bdef\s+([A-Za-z_]\w*)\s*\(/g, function(m, fn){
-          return '<span class="tok-k">def</span> <span class="tok-f">' + fn + "</span>(";
-        });
-
-        // keywords
-        var kw = ["return","if","elif","else","for","in","while","True","False","range","print"];
-        var kwRe = new RegExp("\\b(" + kw.join("|") + ")\\b","g");
-        s = s.replace(kwRe, '<span class="tok-k">$1</span>');
-
-        // numbers
-        s = s.replace(/\b(\d+)\b/g, '<span class="tok-n">$1</span>');
-
-        return s;
-      }
-
-      function renderTint(){
-        if (!tinted){
-          codeBlock.innerHTML = escapeHTML(rawCode);
-          return;
-        }
-        codeBlock.innerHTML = tintPython(rawCode);
-      }
-
-      btnToggle.addEventListener("click", function(){
-        tinted = !tinted;
-        btnToggle.textContent = tinted ? "Toggle tint" : "Toggle tint";
-        renderTint();
-      });
-
-      renderTint();
-
-      // --- Browser version of the same logic (matching your Python)
-      function isLeapYear(year){
-        if (year % 4 !== 0) return false;
-        if (year % 400 === 0) return true;
-        if (year % 100 === 0) return false;
-        return true;
-      }
-
-      function getDaysInMonth(monthno, yearno){
-        if (monthno === 4 || monthno === 6 || monthno === 9 || monthno === 11) return 30;
-        if (monthno === 2) return isLeapYear(yearno) ? 29 : 28;
-        return 31;
-      }
-
-      // returns 1 if D2>D1, 0 if equal, -1 if D1>D2
-      function compareDates(d1,m1,y1,d2,m2,y2){
-        if (y2 > y1) return 1;
-        if (y2 < y1) return -1;
-        if (m2 > m1) return 1;
-        if (m2 < m1) return -1;
-        if (d2 > d1) return 1;
-        if (d2 < d1) return -1;
-        return 0;
-      }
-
-      function dateDifference(d1,m1,y1,d2,m2,y2){
-        var sign = compareDates(d1,m1,y1,d2,m2,y2);
-        if (sign === 0) return 0;
-
-        if (sign === -1){
-          // swap
-          var td=d1, tm=m1, ty=y1;
-          d1=d2; m1=m2; y1=y2;
-          d2=td; m2=tm; y2=ty;
-        }
-
-        var diff1 = d2 - 1;
-        var diff2 = d1 - 1;
-
-        var diff3 = 0, diff4 = 0;
-        for (var monthno = 1; monthno < m2; monthno++){
-          diff3 += getDaysInMonth(monthno, y2);
-        }
-        for (var monthno2 = 1; monthno2 < m1; monthno2++){
-          diff4 += getDaysInMonth(monthno2, y1);
-        }
-
-        var diff5 = 0;
-        for (var yearno = y1; yearno < y2; yearno++){
-          diff5 += isLeapYear(yearno) ? 366 : 365;
-        }
-
-        return sign * (diff1 + diff3 + diff5 - diff2 - diff4);
-      }
-
-      function getWeekDay(d,m,y){
-        // Base date: 1-3-2026 is Sunday => 0
-        var datediff = dateDifference(1,3,2026,d,m,y);
-
-        if (datediff < 0){
-          datediff = -datediff;
-          datediff = datediff % 7;
-          datediff = 7 - datediff;
-        }
-
-        datediff = datediff % 7;
-        return datediff; // 0..6 (Sun..Sat)
-      }
-
-      var MONTHS = ["","January","February","March","April","May","June","July","August","September","October","November","December"];
-      var DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-
-      function renderCalendar(month, year){
-        month = Number(month);
-        year = Number(year);
-
-        var startdayno = getWeekDay(1, month, year);
-        var totaldays = getDaysInMonth(month, year);
-
-        document.getElementById("calTitle").textContent = MONTHS[month] + " " + year;
-        document.getElementById("calMeta").textContent =
-          "Start weekday of 1st: " + DOW[startdayno] + " • Days: " + totaldays + " • Leap: " + (isLeapYear(year) ? "Yes" : "No");
-
-        var grid = document.getElementById("calGrid");
-        grid.innerHTML = "";
-
-        // Leading empty cells
-        for (var i = 0; i < startdayno; i++){
-          var empty = document.createElement("div");
-          empty.className = "cell empty";
-          grid.appendChild(empty);
-        }
-
-        // Days
-        var today = new Date();
-        var tD = today.getDate();
-        var tM = today.getMonth() + 1;
-        var tY = today.getFullYear();
-
-        for (var day = 1; day <= totaldays; day++){
-          var cell = document.createElement("div");
-          var isToday = (day === tD && month === tM && year === tY);
-          cell.className = "cell" + (isToday ? " today" : "");
-
-          var num = document.createElement("div");
-          num.className = "dateNum";
-          num.textContent = String(day);
-
-          cell.appendChild(num);
-          grid.appendChild(cell);
-        }
-
-        // Trailing cells to complete last row (nice visual)
-        var filled = startdayno + totaldays;
-        var rem = filled % 7;
-        if (rem !== 0){
-          var tail = 7 - rem;
-          for (var j = 0; j < tail; j++){
-            var empty2 = document.createElement("div");
-            empty2.className = "cell empty";
-            grid.appendChild(empty2);
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const i = (y * w + x) * 4;
+          const r = d[i], g = d[i + 1], b = d[i + 2], a = d[i + 3];
+          const dist = Math.sqrt((r - bgR) ** 2 + (g - bgG) ** 2 + (b - bgB) ** 2);
+          const brightness = (r + g + b) / 3;
+          const centerBias = 1 - Math.abs(x - w / 2) / (w / 2);
+          const keep = a > 0 && (dist > 55 || (centerBias > 0.2 && brightness < 215));
+          if (keep) {
+            d[i] = 10; d[i + 1] = 10; d[i + 2] = 16; d[i + 3] = 255;
+          } else {
+            d[i + 3] = 0;
           }
         }
       }
+      dancerCtx.putImageData(imageData, 0, 0);
+      dancerCtx.globalCompositeOperation = 'source-atop';
+      const glow = dancerCtx.createLinearGradient(0, 0, 0, h);
+      glow.addColorStop(0, 'rgba(255,255,255,0.18)');
+      glow.addColorStop(0.45, 'rgba(32,32,40,0.96)');
+      glow.addColorStop(1, 'rgba(0,0,0,1)');
+      dancerCtx.fillStyle = glow;
+      dancerCtx.fillRect(0, 0, w, h);
+      dancerCtx.globalCompositeOperation = 'source-over';
+      dancerSilhouetteReady = true;
+      modeSelect.value = 'dancer';
+      modeBadge.textContent = 'Mode: Human Dancer';
+      statusText.textContent = 'Solo silhouette loaded';
+    }
 
-      // Wire controls
-      var selMonth = document.getElementById("month");
-      var inpYear = document.getElementById("year");
-      var btnRender = document.getElementById("btnRender");
-
-      btnRender.addEventListener("click", function(){
-        renderCalendar(selMonth.value, inpYear.value);
+    function buildDualSilhouetteFromImage(img) {
+      const maxSide = 1200;
+      const ratio = Math.min(1, maxSide / Math.max(img.naturalWidth || img.width, img.naturalHeight || img.height));
+      const w = Math.max(1, Math.round((img.naturalWidth || img.width) * ratio));
+      const h = Math.max(1, Math.round((img.naturalHeight || img.height) * ratio));
+      duoCanvas.width = w;
+      duoCanvas.height = h;
+      duoCtx.clearRect(0, 0, w, h);
+      duoCtx.drawImage(img, 0, 0, w, h);
+      const imageData = duoCtx.getImageData(0, 0, w, h);
+      const d = imageData.data;
+      let sumR = 0, sumG = 0, sumB = 0, count = 0;
+      const sample = [[0,0],[w-1,0],[0,h-1],[w-1,h-1],[Math.floor(w/2),0],[0,Math.floor(h/2)],[w-1,Math.floor(h/2)]];
+      sample.forEach(([sx, sy]) => {
+        const i = (sy * w + sx) * 4;
+        sumR += d[i]; sumG += d[i + 1]; sumB += d[i + 2]; count++;
       });
-
-      selMonth.addEventListener("change", function(){
-        renderCalendar(selMonth.value, inpYear.value);
-      });
-
-      inpYear.addEventListener("keydown", function(e){
-        if (e.key === "Enter"){
-          renderCalendar(selMonth.value, inpYear.value);
+      const bgR = sumR / count, bgG = sumG / count, bgB = sumB / count;
+      let minX = w, minY = h, maxX = 0, maxY = 0;
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const i = (y * w + x) * 4;
+          const r = d[i], g = d[i + 1], b = d[i + 2], a = d[i + 3];
+          const dist = Math.sqrt((r - bgR) ** 2 + (g - bgG) ** 2 + (b - bgB) ** 2);
+          const brightness = (r + g + b) / 3;
+          const keep = a > 0 && (dist > 60 || brightness < 205);
+          if (keep) {
+            d[i] = 10; d[i + 1] = 10; d[i + 2] = 16; d[i + 3] = 255;
+            if (x < minX) minX = x;
+            if (y < minY) minY = y;
+            if (x > maxX) maxX = x;
+            if (y > maxY) maxY = y;
+          } else {
+            d[i + 3] = 0;
+          }
         }
-      });
+      }
+      duoCtx.putImageData(imageData, 0, 0);
+      duoCtx.globalCompositeOperation = 'source-atop';
+      const glow = duoCtx.createLinearGradient(0, 0, 0, h);
+      glow.addColorStop(0, 'rgba(255,255,255,0.16)');
+      glow.addColorStop(0.45, 'rgba(32,32,40,0.96)');
+      glow.addColorStop(1, 'rgba(0,0,0,1)');
+      duoCtx.fillStyle = glow;
+      duoCtx.fillRect(0, 0, w, h);
+      duoCtx.globalCompositeOperation = 'source-over';
 
-      // Default example
-      selMonth.value = "1";
-      inpYear.value = "1970";
-      renderCalendar(1, 1970);
-    })();
+      if (minX >= maxX || minY >= maxY) {
+        duoDancerSilhouetteReady = false;
+        return;
+      }
+      const midX = Math.floor((minX + maxX) / 2);
+      duoLeftBounds = { minX, minY, maxX: midX, maxY };
+      duoRightBounds = { minX: midX + 1, minY, maxX, maxY };
+      duoDancerSilhouetteReady = true;
+      modeSelect.value = 'duo';
+      modeBadge.textContent = 'Mode: Dual Dancers';
+      statusText.textContent = 'Dual silhouette loaded';
+    }
+
+    photoInput.addEventListener('change', (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const img = new Image();
+      img.onload = () => {
+        dancerImage = img;
+        buildSilhouetteFromImage(img);
+      };
+      img.src = URL.createObjectURL(file);
+    });
+
+    usePhotoBtn.addEventListener('click', () => {
+      if (!photoInput.files?.[0]) {
+        alert('Please upload a photo first.');
+        return;
+      }
+      const img = new Image();
+      img.onload = () => {
+        dancerImage = img;
+        buildSilhouetteFromImage(img);
+      };
+      img.src = URL.createObjectURL(photoInput.files[0]);
+    });
+
+    duoPhotoInput.addEventListener('change', (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const img = new Image();
+      img.onload = () => buildDualSilhouetteFromImage(img);
+      img.src = URL.createObjectURL(file);
+    });
+
+    useDuoPhotoBtn.addEventListener('click', () => {
+      if (!duoPhotoInput.files?.[0]) {
+        alert('Please upload a photo with two people first.');
+        return;
+      }
+      const img = new Image();
+      img.onload = () => buildDualSilhouetteFromImage(img);
+      img.src = URL.createObjectURL(duoPhotoInput.files[0]);
+    });
+
+    saveSoloDefaultBtn.addEventListener('click', () => {
+      const file = photoInput.files?.[0];
+      if (!file) {
+        alert('Please choose a solo photo first.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        localStorage.setItem('pp_default_solo_image', reader.result);
+        statusText.textContent = 'Solo default saved';
+      };
+      reader.readAsDataURL(file);
+    });
+
+    saveDuoDefaultBtn.addEventListener('click', () => {
+      const file = duoPhotoInput.files?.[0];
+      if (!file) {
+        alert('Please choose a dual photo first.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        localStorage.setItem('pp_default_duo_image', reader.result);
+        statusText.textContent = 'Dual default saved';
+      };
+      reader.readAsDataURL(file);
+    });
+
+    window.addEventListener('resize', () => {
+      // Auto full-screen visualizer after 5 seconds
+    setTimeout(() => {
+      try {
+        if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen();
+        }
+      } catch(e) {}
+      document.body.classList.add('visualizer-fullscreen');
+    }, 5000);
+
+    resizeCanvas();
+      initParticles();
+    });
+
+    function loadImageFromSrc(src) {
+      return new Promise((resolve, reject) => {
+        if (!src) {
+          reject(new Error('Missing image source'));
+          return;
+        }
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = src;
+      });
+    }
+
+    async function tryLoadBuiltInDefaults() {
+      try {
+        if (DEFAULT_SOLO_IMAGE) {
+          const soloImg = await loadImageFromSrc(DEFAULT_SOLO_IMAGE);
+          dancerImage = soloImg;
+          buildSilhouetteFromImage(soloImg);
+        }
+      } catch (_) {}
+
+      try {
+        if (DEFAULT_DUO_IMAGE) {
+          const duoImg = await loadImageFromSrc(DEFAULT_DUO_IMAGE);
+          buildDualSilhouetteFromImage(duoImg);
+        }
+      } catch (_) {}
+    }
+
+    resizeCanvas();
+    initParticles();
+    drawBackground(1);
+    tryLoadBuiltInDefaults();
   </script>
 </body>
 </html>
-
-
