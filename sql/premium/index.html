@@ -667,6 +667,15 @@
       <div class="title">Programmer’s Picnic — SQL in Browser (SQLite)</div>
       <div class="right">
         <button
+          id="shareBtn"
+          class="btn-ghost"
+          type="button"
+          title="Share this SQL playground"
+        >
+          🔗 Share
+        </button>
+
+        <button
           id="themeToggleBtn"
           class="btn-ghost"
           type="button"
@@ -688,7 +697,9 @@
     <div class="vs-shell">
       <div class="vs-activity">
         <button class="vs-actbtn active" title="Explorer">📁</button>
-        <button class="vs-actbtn" id="activityRunBtn" title="Run SQL">▶</button>
+        <button class="vs-actbtn" id="activityRunBtn" title="Run SQL">
+          ▶
+        </button>
         <button
           class="vs-actbtn"
           id="activityHistoryBtn"
@@ -721,6 +732,9 @@
                 </button>
                 <button id="copySqlBtn" class="btn-ghost" disabled>
                   Copy SQL
+                </button>
+                <button id="shareSqlBtn" class="btn-ghost" disabled>
+                  Share
                 </button>
               </div>
               <div class="row" style="margin-top: 10px">
@@ -1236,6 +1250,7 @@ SELECT * FROM birthdays;</textarea
         var runBtn = document.getElementById("runBtn");
         var resetBtn = document.getElementById("resetBtn");
         var copySqlBtn = document.getElementById("copySqlBtn");
+        var shareSqlBtn = document.getElementById("shareSqlBtn");
         var downloadCsvBtn = document.getElementById("downloadCsvBtn");
         var copyCsvBtn = document.getElementById("copyCsvBtn");
 
@@ -1265,6 +1280,7 @@ SELECT * FROM birthdays;</textarea
         var helpResults = document.getElementById("helpResults");
 
         var themeToggleBtn = document.getElementById("themeToggleBtn");
+        var shareBtn = document.getElementById("shareBtn");
         var activityRunBtn = document.getElementById("activityRunBtn");
         var activityHistoryBtn = document.getElementById("activityHistoryBtn");
         var activityHelpBtn = document.getElementById("activityHelpBtn");
@@ -1317,6 +1333,7 @@ SELECT * FROM birthdays;</textarea
             importHistoryBtn.disabled = false;
             clearHistoryBtn.disabled = false;
             copySqlBtn.disabled = false;
+            shareSqlBtn.disabled = false;
             downloadCsvBtn.disabled = !lastSelectResult;
             copyCsvBtn.disabled = !lastSelectResult;
             enableDbLoadUI(true);
@@ -1330,6 +1347,7 @@ SELECT * FROM birthdays;</textarea
             importHistoryBtn.disabled = true;
             clearHistoryBtn.disabled = true;
             copySqlBtn.disabled = true;
+            shareSqlBtn.disabled = true;
             downloadCsvBtn.disabled = true;
             copyCsvBtn.disabled = true;
             enableDbLoadUI(false);
@@ -1843,6 +1861,72 @@ SELECT * FROM birthdays;</textarea
             });
         }
 
+        function buildShareUrl() {
+          var url = new URL(window.location.href);
+          var sql = sqlInput.value || "";
+          if (sql.trim()) {
+            url.hash = "sql=" + encodeURIComponent(sql);
+          } else {
+            url.hash = "";
+          }
+          return url.toString();
+        }
+
+        function shareCurrentSQL() {
+          var shareUrl = buildShareUrl();
+          var sql = sqlInput.value || "";
+          var shareText =
+            "Try this SQL in Programmer’s Picnic — SQL in Browser:\n\n" + sql;
+
+          if (navigator.share) {
+            navigator
+              .share({
+                title: "Programmer’s Picnic — SQL in Browser",
+                text: shareText,
+                url: shareUrl,
+              })
+              .then(function () {
+                showOk("Shared ✅");
+              })
+              .catch(function (err) {
+                if (err && err.name === "AbortError") return;
+                navigator.clipboard
+                  .writeText(shareUrl)
+                  .then(function () {
+                    showOk("Share link copied ✅");
+                  })
+                  .catch(function () {
+                    showErr("Sharing and clipboard both failed.");
+                  });
+              });
+            return;
+          }
+
+          navigator.clipboard
+            .writeText(shareUrl)
+            .then(function () {
+              showOk("Share link copied ✅");
+            })
+            .catch(function () {
+              showErr("Clipboard blocked by browser.");
+            });
+        }
+
+        function loadSQLFromHash() {
+          var hash = window.location.hash || "";
+          if (!hash.startsWith("#sql=")) return;
+          try {
+            var encoded = hash.slice(5);
+            var decoded = decodeURIComponent(encoded);
+            if (decoded.trim()) {
+              sqlInput.value = decoded;
+              showInfo("Loaded shared SQL from link.");
+            }
+          } catch (e) {
+            showErr("Could not read shared SQL from URL.");
+          }
+        }
+
         var HELP = [
           {
             k: "select",
@@ -1970,6 +2054,18 @@ SELECT * FROM birthdays;</textarea
           themeToggleBtn.addEventListener("click", function () {
             var isDark = document.body.classList.contains("theme-dark");
             applyTheme(isDark ? "light" : "dark");
+          });
+        }
+
+        if (shareBtn) {
+          shareBtn.addEventListener("click", function () {
+            shareCurrentSQL();
+          });
+        }
+
+        if (shareSqlBtn) {
+          shareSqlBtn.addEventListener("click", function () {
+            shareCurrentSQL();
           });
         }
 
@@ -2133,6 +2229,7 @@ SELECT * FROM birthdays;</textarea
               SQLlib = SQL;
               createFreshDB();
               setStatus(true);
+              loadSQLFromHash();
               showOk("SQLite loaded. Sample DB created.");
               renderHistory();
               renderHelp("");
