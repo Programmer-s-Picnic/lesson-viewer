@@ -5,7 +5,6 @@
     <title>SQL in Browser — SQLite Demo (VS Code Style)</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <!-- tiny inline favicon to avoid 404 -->
     <link
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='24' fill='%232d2d2d'/%3E%3Ctext x='64' y='82' font-size='64' text-anchor='middle'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E"
@@ -13,7 +12,15 @@
 
     <style>
       :root {
-        /* VS Code-ish palette */
+        --mono:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        --sans: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        --r: 12px;
+      }
+
+      /* DARK THEME */
+      body.theme-dark {
         --bg: #1e1e1e;
         --panel: #252526;
         --panel2: #2d2d2d;
@@ -25,13 +32,21 @@
         --good: #22c55e;
         --bad: #f85149;
         --warn: #d29922;
+      }
 
-        --mono:
-          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-          "Liberation Mono", "Courier New", monospace;
-        --sans: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-
-        --r: 12px;
+      /* LIGHT THEME */
+      body.theme-light {
+        --bg: #f7f7fb;
+        --panel: #ffffff;
+        --panel2: #f1f3f6;
+        --top: #e9edf3;
+        --border: #d3d9e3;
+        --text: #1f2937;
+        --muted: #6b7280;
+        --accent: #2563eb;
+        --good: #15803d;
+        --bad: #dc2626;
+        --warn: #b45309;
       }
 
       * {
@@ -47,12 +62,14 @@
         background: var(--bg);
         color: var(--text);
         overflow: hidden;
+        transition:
+          background 0.2s ease,
+          color 0.2s ease;
       }
       a {
         color: inherit;
       }
 
-      /* ===== VS CODE CHROME ===== */
       .vs-titlebar {
         height: 38px;
         display: flex;
@@ -110,7 +127,6 @@
         min-width: 0;
       }
 
-      /* Activity bar */
       .vs-activity {
         width: 50px;
         background: #1b1b1b;
@@ -142,7 +158,6 @@
         color: #ffffff;
       }
 
-      /* Sidebar */
       .vs-sidebar {
         width: 320px;
         min-width: 260px;
@@ -198,7 +213,6 @@
         padding: 10px;
       }
 
-      /* Main */
       .vs-main {
         flex: 1;
         min-width: 0;
@@ -225,7 +239,6 @@
         font-weight: 700;
       }
 
-      /* Split area */
       .split {
         flex: 1;
         min-height: 0;
@@ -244,7 +257,6 @@
         }
       }
 
-      /* VS code-like cards (panes) */
       .pane {
         background: var(--panel);
         border: 1px solid var(--border);
@@ -272,7 +284,6 @@
         color: #d7d7d7;
       }
 
-      /* Controls & inputs */
       button {
         border: none;
         cursor: pointer;
@@ -339,7 +350,6 @@
         font-size: 12px;
       }
 
-      /* Editor area */
       textarea#sqlInput {
         width: 100%;
         min-height: 210px;
@@ -366,7 +376,6 @@
         flex-wrap: wrap;
       }
 
-      /* Chips */
       .samples {
         display: flex;
         flex-wrap: wrap;
@@ -391,7 +400,6 @@
         border-color: rgba(210, 153, 34, 0.22);
       }
 
-      /* Result table */
       .result {
         margin-top: 12px;
         border-radius: 14px;
@@ -458,7 +466,6 @@
         color: #e5e7eb;
       }
 
-      /* Error box */
       .errorbox {
         margin-top: 10px;
         padding: 10px 12px;
@@ -472,7 +479,6 @@
         display: none;
       }
 
-      /* History list */
       .history {
         display: flex;
         gap: 10px;
@@ -549,7 +555,6 @@
         border-color: rgba(55, 148, 255, 0.18);
       }
 
-      /* Help */
       .helpbox {
         margin-top: 12px;
         border-radius: 14px;
@@ -572,7 +577,6 @@
         font-weight: 1000;
       }
 
-      /* Bottom status bar */
       .vs-statusbar {
         height: 30px;
         background: #1b1b1b;
@@ -590,14 +594,87 @@
         color: var(--muted);
         font-weight: 800;
       }
+
+      body.theme-light .vs-activity {
+        background: #edf1f7;
+      }
+
+      body.theme-light .vs-statusbar {
+        background: #e9edf3;
+        color: #1f2937;
+      }
+
+      body.theme-light .vs-statusbar .right {
+        color: #4b5563;
+      }
+
+      body.theme-light .pill,
+      body.theme-light .block,
+      body.theme-light .result,
+      body.theme-light .histlist,
+      body.theme-light .helpbox,
+      body.theme-light .helpitem,
+      body.theme-light .btn-outline,
+      body.theme-light .btn-ghost,
+      body.theme-light .chip,
+      body.theme-light input[type="text"],
+      body.theme-light input[type="file"],
+      body.theme-light textarea#sqlInput {
+        background: rgba(0, 0, 0, 0.03);
+      }
+
+      body.theme-light .panehead h2,
+      body.theme-light .blockhead b,
+      body.theme-light .vs-sidehead .label,
+      body.theme-light .vs-titlebar .title,
+      body.theme-light th,
+      body.theme-light td {
+        color: var(--text);
+      }
+
+      body.theme-light th {
+        background: rgba(255, 255, 255, 0.96);
+      }
+
+      body.theme-light .vs-actbtn {
+        color: #374151;
+      }
+
+      body.theme-light .vs-actbtn:hover {
+        background: rgba(0, 0, 0, 0.04);
+        border-color: rgba(0, 0, 0, 0.08);
+      }
+
+      body.theme-light .tab {
+        background: rgba(0, 0, 0, 0.04);
+        color: var(--text);
+      }
+
+      body.theme-light .histitem pre {
+        color: var(--text);
+      }
+
+      body.theme-light .errorbox {
+        color: #7f1d1d;
+        background: rgba(220, 38, 38, 0.08);
+        border-color: rgba(220, 38, 38, 0.22);
+      }
     </style>
   </head>
 
-  <body>
-    <!-- VS Code title bar (keeps your existing IDs for status) -->
+  <body class="theme-dark">
     <div class="vs-titlebar">
       <div class="title">Programmer’s Picnic — SQL in Browser (SQLite)</div>
       <div class="right">
+        <button
+          id="themeToggleBtn"
+          class="btn-ghost"
+          type="button"
+          title="Toggle theme"
+        >
+          🌙 Dark
+        </button>
+
         <div class="pill" title="SQLite readiness">
           <span class="dot" id="statusDot"></span>
           <span id="statusText">Loading SQLite…</span>
@@ -609,15 +686,21 @@
     </div>
 
     <div class="vs-shell">
-      <!-- Activity bar (visual only; no JS dependency) -->
       <div class="vs-activity">
         <button class="vs-actbtn active" title="Explorer">📁</button>
-        <button class="vs-actbtn" title="Run">▶</button>
-        <button class="vs-actbtn" title="History">🕘</button>
-        <button class="vs-actbtn" title="Help">❓</button>
+        <button class="vs-actbtn" id="activityRunBtn" title="Run SQL">▶</button>
+        <button
+          class="vs-actbtn"
+          id="activityHistoryBtn"
+          title="Show Success History"
+        >
+          🕘
+        </button>
+        <button class="vs-actbtn" id="activityHelpBtn" title="Toggle Help">
+          ❓
+        </button>
       </div>
 
-      <!-- Sidebar: quick actions + file loading + help search -->
       <aside class="vs-sidebar">
         <div class="vs-sidehead">
           <div class="label">EXPLORER</div>
@@ -731,7 +814,6 @@
         </div>
       </aside>
 
-      <!-- Main editor panes -->
       <main class="vs-main">
         <div class="vs-toolbar">
           <span class="pill">SQL Editor</span>
@@ -746,18 +828,14 @@
         </div>
 
         <section class="split">
-          <!-- LEFT PANE: editor + results -->
           <div class="pane">
             <div class="panehead">
               <h2>EDITOR</h2>
-              <div class="row">
-                <!-- sample chips keep working -->
-              </div>
+              <div class="row"></div>
             </div>
 
             <div style="padding: 12px; overflow: auto; min-height: 0">
               <div class="samples" aria-label="Sample queries">
-                <!-- core -->
                 <button
                   class="chip"
                   data-sql="SELECT name, type FROM sqlite_master WHERE type IN ('table','view') ORDER BY type, name;"
@@ -795,10 +873,10 @@
                   Delete sample row
                 </button>
 
-                <!-- section: keys -->
                 <button
                   class="chip h"
-                  data-sql="-- KEYS: Composite Primary Key\nSELECT * FROM Student ORDER BY Course, RollNo;"
+                  data-sql="-- KEYS: Composite Primary Key
+SELECT * FROM Student ORDER BY Course, RollNo;"
                 >
                   🔑 Student (Composite PK)
                 </button>
@@ -807,14 +885,16 @@
                 </button>
                 <button
                   class="chip"
-                  data-sql="-- Try PK violation: (RollNo,Course) must be unique\nINSERT INTO Student VALUES (1,'Test',20,'MBBS');"
+                  data-sql="-- Try PK violation: (RollNo,Course) must be unique
+INSERT INTO Student VALUES (1,'Test',20,'MBBS');"
                 >
                   Try PK violation
                 </button>
 
                 <button
                   class="chip h"
-                  data-sql="-- Candidate keys: PK + UNIQUE + composite UNIQUE\nSELECT * FROM Ticket;"
+                  data-sql="-- Candidate keys: PK + UNIQUE + composite UNIQUE
+SELECT * FROM Ticket;"
                 >
                   🎫 Ticket (PK + UNIQUE)
                 </button>
@@ -823,21 +903,23 @@
                 </button>
                 <button
                   class="chip"
-                  data-sql="-- Violate UNIQUE PNRNo\nINSERT INTO Ticket VALUES('T2','P1','New Ashish','2023-01-01','123','S2',2);"
+                  data-sql="-- Violate UNIQUE PNRNo
+INSERT INTO Ticket VALUES('T2','P1','New Ashish','2023-01-01','123','S2',2);"
                 >
                   Violate UNIQUE (PNR)
                 </button>
                 <button
                   class="chip"
-                  data-sql="-- Violate composite UNIQUE(DateOfJourney,TrainNo,CoachNo,BerthNo)\nINSERT INTO Ticket VALUES('T3','P3','Someone','2023-01-01','123','S1',1);"
+                  data-sql="-- Violate composite UNIQUE(DateOfJourney,TrainNo,CoachNo,BerthNo)
+INSERT INTO Ticket VALUES('T3','P3','Someone','2023-01-01','123','S1',1);"
                 >
                   Violate UNIQUE (Composite)
                 </button>
 
-                <!-- section: foreign key -->
                 <button
                   class="chip h"
-                  data-sql="-- FOREIGN KEY demo\nSELECT * FROM Publications;"
+                  data-sql="-- FOREIGN KEY demo
+SELECT * FROM Publications;"
                 >
                   🧾 Publications
                 </button>
@@ -846,74 +928,100 @@
                 </button>
                 <button
                   class="chip"
-                  data-sql="-- This should FAIL (FK): non-existent publication\nINSERT INTO Subscribers VALUES('NonExistent Patrika','Mahesh');"
+                  data-sql="-- This should FAIL (FK): non-existent publication
+INSERT INTO Subscribers VALUES('NonExistent Patrika','Mahesh');"
                 >
                   Try FK fail
                 </button>
 
-                <!-- section: set operators -->
                 <button
                   class="chip h"
-                  data-sql="-- SETS: UNION\nSELECT name FROM Cricketers UNION SELECT name FROM Footballers ORDER BY name;"
+                  data-sql="-- SETS: UNION
+SELECT name FROM Cricketers UNION SELECT name FROM Footballers ORDER BY name;"
                 >
                   🧩 UNION
                 </button>
                 <button
                   class="chip"
-                  data-sql="-- SETS: UNION ALL\nSELECT name FROM Cricketers UNION ALL SELECT name FROM Footballers ORDER BY name;"
+                  data-sql="-- SETS: UNION ALL
+SELECT name FROM Cricketers UNION ALL SELECT name FROM Footballers ORDER BY name;"
                 >
                   UNION ALL
                 </button>
                 <button
                   class="chip"
-                  data-sql="-- SETS: INTERSECT\nSELECT name FROM Cricketers INTERSECT SELECT name FROM Footballers ORDER BY name;"
+                  data-sql="-- SETS: INTERSECT
+SELECT name FROM Cricketers INTERSECT SELECT name FROM Footballers ORDER BY name;"
                 >
                   INTERSECT
                 </button>
                 <button
                   class="chip"
-                  data-sql="-- SETS: EXCEPT (Oracle MINUS)\nSELECT name FROM Cricketers EXCEPT SELECT name FROM Footballers ORDER BY name;"
+                  data-sql="-- SETS: EXCEPT (Oracle MINUS)
+SELECT name FROM Cricketers EXCEPT SELECT name FROM Footballers ORDER BY name;"
                 >
                   EXCEPT (MINUS)
                 </button>
 
                 <button
                   class="chip"
-                  data-sql="-- Players who play only one game:\n-- (Cricketers ∪ Footballers) − (Cricketers ∩ Footballers)\nSELECT name FROM (\n  SELECT name FROM Cricketers\n  UNION\n  SELECT name FROM Footballers\n)\nEXCEPT\nSELECT name FROM (\n  SELECT name FROM Cricketers\n  INTERSECT\n  SELECT name FROM Footballers\n)\nORDER BY name;"
+                  data-sql="-- Players who play only one game:
+-- (Cricketers ∪ Footballers) − (Cricketers ∩ Footballers)
+SELECT name FROM (
+  SELECT name FROM Cricketers
+  UNION
+  SELECT name FROM Footballers
+)
+EXCEPT
+SELECT name FROM (
+  SELECT name FROM Cricketers
+  INTERSECT
+  SELECT name FROM Footballers
+)
+ORDER BY name;"
                 >
                   Only one game
                 </button>
 
-                <!-- section: joins -->
                 <button
                   class="chip h"
-                  data-sql="-- INNER JOIN\nSELECT * FROM Cricketers C INNER JOIN Footballers F ON C.name=F.name;"
+                  data-sql="-- INNER JOIN
+SELECT * FROM Cricketers C INNER JOIN Footballers F ON C.name=F.name;"
                 >
                   🔗 INNER JOIN
                 </button>
                 <button
                   class="chip"
-                  data-sql="-- LEFT JOIN\nSELECT * FROM Cricketers C LEFT JOIN Footballers F ON C.name=F.name ORDER BY C.name;"
+                  data-sql="-- LEFT JOIN
+SELECT * FROM Cricketers C LEFT JOIN Footballers F ON C.name=F.name ORDER BY C.name;"
                 >
                   LEFT JOIN
                 </button>
                 <button
                   class="chip"
-                  data-sql="-- RIGHT JOIN emulation in SQLite:\n-- swap tables in LEFT JOIN\nSELECT * FROM Footballers F LEFT JOIN Cricketers C ON C.name=F.name ORDER BY F.name;"
+                  data-sql="-- RIGHT JOIN emulation in SQLite:
+-- swap tables in LEFT JOIN
+SELECT * FROM Footballers F LEFT JOIN Cricketers C ON C.name=F.name ORDER BY F.name;"
                 >
                   RIGHT JOIN (emulated)
                 </button>
                 <button
                   class="chip"
-                  data-sql="-- FULL OUTER JOIN emulation in SQLite:\nSELECT C.name AS name, C.runs, F.goals\nFROM Cricketers C LEFT JOIN Footballers F ON C.name=F.name\nUNION\nSELECT F.name AS name, C.runs, F.goals\nFROM Footballers F LEFT JOIN Cricketers C ON C.name=F.name\nORDER BY name;"
+                  data-sql="-- FULL OUTER JOIN emulation in SQLite:
+SELECT C.name AS name, C.runs, F.goals
+FROM Cricketers C LEFT JOIN Footballers F ON C.name=F.name
+UNION
+SELECT F.name AS name, C.runs, F.goals
+FROM Footballers F LEFT JOIN Cricketers C ON C.name=F.name
+ORDER BY name;"
                 >
                   FULL JOIN (emulated)
                 </button>
 
-                <!-- section: aggregates -->
                 <button
                   class="chip h"
-                  data-sql="-- Aggregates\nSELECT * FROM Cricket_Scores;"
+                  data-sql="-- Aggregates
+SELECT * FROM Cricket_Scores;"
                 >
                   📊 Cricket_Scores
                 </button>
@@ -950,36 +1058,58 @@
 
                 <button
                   class="chip"
-                  data-sql="-- Need GROUP BY when mixing normal columns + aggregates\nSELECT batsman, MAX(score) AS max_score\nFROM Cricket_Scores\nGROUP BY batsman\nORDER BY max_score DESC;"
+                  data-sql="-- Need GROUP BY when mixing normal columns + aggregates
+SELECT batsman, MAX(score) AS max_score
+FROM Cricket_Scores
+GROUP BY batsman
+ORDER BY max_score DESC;"
                 >
                   GROUP BY
                 </button>
 
                 <button
                   class="chip"
-                  data-sql="-- Multiple aggregates per group\nSELECT batsman,\n       MAX(score) AS max_score,\n       MIN(score) AS min_score,\n       AVG(score) AS avg_score,\n       SUM(score) AS sum_score,\n       COUNT(score) AS count_score\nFROM Cricket_Scores\nGROUP BY batsman\nORDER BY batsman;"
+                  data-sql="-- Multiple aggregates per group
+SELECT batsman,
+       MAX(score) AS max_score,
+       MIN(score) AS min_score,
+       AVG(score) AS avg_score,
+       SUM(score) AS sum_score,
+       COUNT(score) AS count_score
+FROM Cricket_Scores
+GROUP BY batsman
+ORDER BY batsman;"
                 >
                   Multi-aggregates
                 </button>
 
                 <button
                   class="chip"
-                  data-sql="-- HAVING filters groups (aggregate conditions)\nSELECT batsman, MAX(score) AS max_score\nFROM Cricket_Scores\nGROUP BY batsman\nHAVING MAX(score) >= 110\nORDER BY max_score DESC;"
+                  data-sql="-- HAVING filters groups (aggregate conditions)
+SELECT batsman, MAX(score) AS max_score
+FROM Cricket_Scores
+GROUP BY batsman
+HAVING MAX(score) >= 110
+ORDER BY max_score DESC;"
                 >
                   HAVING
                 </button>
 
                 <button
                   class="chip"
-                  data-sql="-- Highest scores by MatchType\nSELECT MatchType, MAX(score) AS best\nFROM Cricket_Scores\nGROUP BY MatchType\nORDER BY best DESC;"
+                  data-sql="-- Highest scores by MatchType
+SELECT MatchType, MAX(score) AS best
+FROM Cricket_Scores
+GROUP BY MatchType
+ORDER BY best DESC;"
                 >
                   Max by MatchType
                 </button>
 
-                <!-- section: trains self-join -->
                 <button
                   class="chip h"
-                  data-sql="-- Trains + Stops\nSELECT * FROM trains;"
+                  data-sql="-- Trains + Stops
+SELECT * FROM trains;"
                 >
                   🚆 Trains
                 </button>
@@ -991,7 +1121,17 @@
                 </button>
                 <button
                   class="chip"
-                  data-sql="-- Find trains that go from Itarsi to Jalgaon (source stop before dest stop)\nSELECT Train.TrainNo, Train.TrainName, Source.station AS FromStation, Dest.station AS ToStation\nFROM stops AS Source\nINNER JOIN stops AS Dest\n  ON Source.trainno = Dest.trainno\nINNER JOIN trains AS Train\n  ON Train.TrainNo = Source.trainno\nWHERE Source.station='Itarsi'\n  AND Dest.station='Jalgaon'\n  AND Source.stopno < Dest.stopno\nORDER BY Train.TrainNo;"
+                  data-sql="-- Find trains that go from Itarsi to Jalgaon (source stop before dest stop)
+SELECT Train.TrainNo, Train.TrainName, Source.station AS FromStation, Dest.station AS ToStation
+FROM stops AS Source
+INNER JOIN stops AS Dest
+  ON Source.trainno = Dest.trainno
+INNER JOIN trains AS Train
+  ON Train.TrainNo = Source.trainno
+WHERE Source.station='Itarsi'
+  AND Dest.station='Jalgaon'
+  AND Source.stopno < Dest.stopno
+ORDER BY Train.TrainNo;"
                 >
                   Find trains: Itarsi → Jalgaon
                 </button>
@@ -1020,7 +1160,6 @@ SELECT * FROM birthdays;</textarea
             </div>
           </div>
 
-          <!-- RIGHT PANE: history (keeps same IDs) -->
           <div class="pane">
             <div class="panehead">
               <h2>QUERY HISTORY</h2>
@@ -1072,7 +1211,6 @@ SELECT * FROM birthdays;</textarea
       </main>
     </div>
 
-    <!-- IMPORTANT FIX: removed integrity attribute so the browser won't block -->
     <script
       src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"
       crossorigin="anonymous"
@@ -1081,17 +1219,15 @@ SELECT * FROM birthdays;</textarea
 
     <script>
       (function () {
-        // ===== Storage keys
         var LS_SUCCESS = "pp_sql_history_success_v1";
         var LS_FAIL = "pp_sql_history_fail_v1";
+        var LS_THEME = "pp_sql_theme_v1";
 
-        // ===== State
         var db = null;
         var SQLlib = null;
         var activeTab = "success";
-        var lastSelectResult = null; // {columns, values}
+        var lastSelectResult = null;
 
-        // ===== DOM
         var statusDot = document.getElementById("statusDot");
         var statusText = document.getElementById("statusText");
         var csvHint = document.getElementById("csvHint");
@@ -1128,18 +1264,23 @@ SELECT * FROM birthdays;</textarea
         var helpBox = document.getElementById("helpBox");
         var helpResults = document.getElementById("helpResults");
 
-        // ===== Status mirror (bottom bar)
+        var themeToggleBtn = document.getElementById("themeToggleBtn");
+        var activityRunBtn = document.getElementById("activityRunBtn");
+        var activityHistoryBtn = document.getElementById("activityHistoryBtn");
+        var activityHelpBtn = document.getElementById("activityHelpBtn");
+
         var ppDotMirror = document.getElementById("ppDotMirror");
         var ppStatusMirror = document.getElementById("ppStatusMirror");
+
         function mirrorStatus(text, ok) {
           ppStatusMirror.textContent = text || "Ready.";
           ppDotMirror.className = "dot" + (ok ? " ok" : "");
         }
 
-        // ===== Utils
         function nowISO() {
           return new Date().toISOString().replace("T", " ").slice(0, 19);
         }
+
         function readLS(key) {
           try {
             return JSON.parse(localStorage.getItem(key) || "[]");
@@ -1147,9 +1288,11 @@ SELECT * FROM birthdays;</textarea
             return [];
           }
         }
+
         function writeLS(key, arr) {
           localStorage.setItem(key, JSON.stringify(arr));
         }
+
         function escapeHtml(s) {
           return String(s)
             .replaceAll("&", "&amp;")
@@ -1221,7 +1364,30 @@ SELECT * FROM birthdays;</textarea
           mirrorStatus("Error: " + String(msg || ""), false);
         }
 
-        // ===== Load external SQLite file into sql.js
+        function applyTheme(theme) {
+          var t = theme === "light" ? "light" : "dark";
+          document.body.classList.remove("theme-dark", "theme-light");
+          document.body.classList.add("theme-" + t);
+
+          if (themeToggleBtn) {
+            themeToggleBtn.textContent = t === "dark" ? "🌙 Dark" : "☀ Light";
+            themeToggleBtn.title =
+              t === "dark" ? "Switch to light theme" : "Switch to dark theme";
+          }
+
+          try {
+            localStorage.setItem(LS_THEME, t);
+          } catch (e) {}
+        }
+
+        function initTheme() {
+          var saved = "dark";
+          try {
+            saved = localStorage.getItem(LS_THEME) || "dark";
+          } catch (e) {}
+          applyTheme(saved);
+        }
+
         function loadSQLiteArrayBuffer(arrayBuffer) {
           if (!SQLlib) return;
           try {
@@ -1268,12 +1434,10 @@ SELECT * FROM birthdays;</textarea
           reader.readAsArrayBuffer(file);
         }
 
-        // ===== DB init
         function createFreshDB() {
           db = new SQLlib.Database();
           db.run("PRAGMA foreign_keys = ON;");
 
-          // Drop existing (order matters due to FKs)
           db.run("DROP TABLE IF EXISTS stops;");
           db.run("DROP TABLE IF EXISTS trains;");
 
@@ -1291,7 +1455,6 @@ SELECT * FROM birthdays;</textarea
           db.run("DROP TABLE IF EXISTS employees;");
           db.run("DROP TABLE IF EXISTS birthdays;");
 
-          // ===== Original sample
           db.run(
             "CREATE TABLE birthdays (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, birthday TEXT NOT NULL);",
           );
@@ -1318,7 +1481,6 @@ SELECT * FROM birthdays;</textarea
             "INSERT INTO employees (emp_id, emp_name, birthday_id) VALUES (3, 'Nisha', 3);",
           );
 
-          // ===== KEYS examples (Composite PK + UNIQUE)
           db.run(`
             CREATE TABLE Student (
               RollNo INTEGER,
@@ -1351,7 +1513,6 @@ SELECT * FROM birthdays;</textarea
             `INSERT INTO Ticket VALUES ('T1','P1','Ashish','2023-01-01','123','S1',1);`,
           );
 
-          // ===== FOREIGN KEY example (Publications/Subscribers)
           db.run(`
             CREATE TABLE Publications(
               PublicationName TEXT PRIMARY KEY
@@ -1376,7 +1537,6 @@ SELECT * FROM birthdays;</textarea
               ('Vivekananda Kendra Patrika','Manish');
           `);
 
-          // ===== SET operators + JOIN examples
           db.run(`
             CREATE TABLE Cricketers(
               name TEXT PRIMARY KEY,
@@ -1393,7 +1553,6 @@ SELECT * FROM birthdays;</textarea
           `);
           db.run(`INSERT INTO Footballers VALUES ('B',15),('C',25);`);
 
-          // ===== Aggregates example
           db.run(`
             CREATE TABLE Cricket_Scores(
               batsman TEXT,
@@ -1413,7 +1572,6 @@ SELECT * FROM birthdays;</textarea
               ('Pappu',2,'OneDay',2);
           `);
 
-          // ===== Trains between stations (self join on stops)
           db.run(`
             CREATE TABLE trains(
               TrainNo TEXT PRIMARY KEY,
@@ -1456,7 +1614,6 @@ SELECT * FROM birthdays;</textarea
           `);
         }
 
-        // ===== SQL execution
         function isSelectLike(sql) {
           var s = (sql || "").trim().toLowerCase();
           return (
@@ -1469,8 +1626,9 @@ SELECT * FROM birthdays;</textarea
 
         function renderTable(columns, values) {
           var html = "<table><thead><tr>";
-          for (var i = 0; i < columns.length; i++)
+          for (var i = 0; i < columns.length; i++) {
             html += "<th>" + escapeHtml(columns[i]) + "</th>";
+          }
           html += "</tr></thead><tbody>";
 
           if (!values || values.length === 0) {
@@ -1508,18 +1666,19 @@ SELECT * FROM birthdays;</textarea
                   values: [["Query returned no result set."]],
                 };
                 renderTable(lastSelectResult.columns, lastSelectResult.values);
-                showOk("Query executed.");
                 metaRows.textContent = "";
                 if (metaRowsInline) metaRowsInline.textContent = "";
+                showOk("Query executed.");
               } else {
                 var columns = res[0].columns || [];
                 var values = res[0].values || [];
                 lastSelectResult = { columns: columns, values: values };
                 renderTable(columns, values);
-                showOk("SELECT executed.");
                 metaRows.textContent = values.length + " row(s)";
-                if (metaRowsInline)
+                if (metaRowsInline) {
                   metaRowsInline.textContent = values.length + " row(s)";
+                }
+                showOk("SELECT executed.");
               }
               downloadCsvBtn.disabled = !lastSelectResult;
               copyCsvBtn.disabled = !lastSelectResult;
@@ -1530,9 +1689,9 @@ SELECT * FROM birthdays;</textarea
               downloadCsvBtn.disabled = true;
               copyCsvBtn.disabled = true;
               csvHint.textContent = "Run a SELECT";
-              showOk("Statement executed.");
               metaRows.textContent = "";
               if (metaRowsInline) metaRowsInline.textContent = "";
+              showOk("Statement executed.");
             }
 
             var ms = Math.round(performance.now() - start);
@@ -1546,7 +1705,6 @@ SELECT * FROM birthdays;</textarea
           }
         }
 
-        // ===== History
         function saveHistory(kind, sql, ms, err) {
           var key = kind === "success" ? LS_SUCCESS : LS_FAIL;
           var arr = readLS(key);
@@ -1645,7 +1803,6 @@ SELECT * FROM birthdays;</textarea
           renderHistory();
         }
 
-        // ===== CSV
         function toCSV(columns, values) {
           function csvCell(v) {
             if (v === null || v === undefined) return "";
@@ -1686,7 +1843,6 @@ SELECT * FROM birthdays;</textarea
             });
         }
 
-        // ===== Help
         var HELP = [
           {
             k: "select",
@@ -1727,7 +1883,6 @@ SELECT * FROM birthdays;</textarea
             k: "pragma",
             d: "SQLite settings & introspection: PRAGMA table_info(tbl); PRAGMA foreign_keys;",
           },
-
           {
             k: "primary key",
             d: "Primary key uniquely identifies a row. Composite PK can be (col1, col2).",
@@ -1740,7 +1895,6 @@ SELECT * FROM birthdays;</textarea
             k: "foreign key",
             d: "FOREIGN KEY ensures child rows reference an existing parent row (referential integrity).",
           },
-
           {
             k: "union",
             d: "UNION combines rows from two SELECTs and removes duplicates.",
@@ -1757,7 +1911,6 @@ SELECT * FROM birthdays;</textarea
             k: "except",
             d: "EXCEPT returns rows in first SELECT not present in second (Oracle MINUS).",
           },
-
           {
             k: "aggregate",
             d: "Aggregate functions operate on many rows: MAX, MIN, SUM, AVG, COUNT.",
@@ -1776,7 +1929,6 @@ SELECT * FROM birthdays;</textarea
             k: "count",
             d: "COUNT(*) or COUNT(col) counts rows/non-null values.",
           },
-
           {
             k: "sqlite_master",
             d: "System catalog: SELECT name,type,sql FROM sqlite_master WHERE type='table';",
@@ -1807,13 +1959,43 @@ SELECT * FROM birthdays;</textarea
               .join("") || '<div class="muted small">No matches.</div>';
         }
 
-        // ===== Wire UI
         document.querySelectorAll("[data-sql]").forEach(function (b) {
           b.addEventListener("click", function () {
             sqlInput.value = b.getAttribute("data-sql") || "";
             sqlInput.focus();
           });
         });
+
+        if (themeToggleBtn) {
+          themeToggleBtn.addEventListener("click", function () {
+            var isDark = document.body.classList.contains("theme-dark");
+            applyTheme(isDark ? "light" : "dark");
+          });
+        }
+
+        if (activityRunBtn) {
+          activityRunBtn.addEventListener("click", function () {
+            if (!runBtn.disabled) runSQL();
+          });
+        }
+
+        if (activityHistoryBtn) {
+          activityHistoryBtn.addEventListener("click", function () {
+            setTab("success");
+            historyList.scrollIntoView({ behavior: "smooth", block: "start" });
+          });
+        }
+
+        if (activityHelpBtn) {
+          activityHelpBtn.addEventListener("click", function () {
+            var show = helpBox.style.display === "none";
+            helpBox.style.display = show ? "block" : "none";
+            if (show) renderHelp(helpSearch.value);
+            if (show) {
+              helpBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            }
+          });
+        }
 
         runBtn.onclick = runSQL;
 
@@ -1930,11 +2112,12 @@ SELECT * FROM birthdays;</textarea
           helpBox.style.display = show ? "block" : "none";
           if (show) renderHelp(helpSearch.value);
         };
+
         helpSearch.addEventListener("input", function () {
           renderHelp(helpSearch.value);
         });
 
-        // ===== Init sql.js
+        initTheme();
         setStatus(false);
 
         if (window.initSqlJs) {
@@ -1968,7 +2151,6 @@ SELECT * FROM birthdays;</textarea
           setStatus(false);
         }
 
-        // Bonus: Ctrl/Cmd + Enter to run SQL
         sqlInput.addEventListener("keydown", function (ev) {
           var isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
           if ((isMac ? ev.metaKey : ev.ctrlKey) && ev.key === "Enter") {

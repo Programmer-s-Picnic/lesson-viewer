@@ -1,1155 +1,309 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Music Pattern Drawer</title>
-  <style>
-    :root {
-      --bg: #0b1020;
-      --panel: rgba(255,255,255,0.08);
-      --panel-2: rgba(255,255,255,0.12);
-      --text: #f8fafc;
-      --muted: #cbd5e1;
-      --accent: #f59e0b;
-      --accent-2: #fb7185;
-      --line: rgba(255,255,255,0.14);
-    }
+<meta charset="UTF-8">
+<title>Programmer's Picnic SQL Playground</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-    * { box-sizing: border-box; }
-    html, body {
-      margin: 0;
-      height: 100%;
-      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      color: var(--text);
-      background:
-        radial-gradient(circle at top left, rgba(245,158,11,0.18), transparent 28%),
-        radial-gradient(circle at top right, rgba(251,113,133,0.12), transparent 30%),
-        linear-gradient(135deg, #050816, #0b1020 45%, #111827);
-    }
+<style>
+:root{
+--bg:#1e1e1e;
+--panel:#252526;
+--text:#e6e6e6;
+--accent:#3794ff;
+--border:#3a3a3a;
+--good:#22c55e;
+--bad:#f85149;
+}
 
-    .app {
-      min-height: 100%;
-      display: grid;
-      grid-template-columns: 340px 1fr;
-      gap: 18px;
-      padding: 18px;
-    }
+body.light{
+--bg:#f7f7fb;
+--panel:#ffffff;
+--text:#1f2937;
+--border:#d3d9e3;
+--accent:#2563eb;
+}
 
-    .panel {
-      background: var(--panel);
-      border: 1px solid var(--line);
-      backdrop-filter: blur(12px);
-      border-radius: 24px;
-      box-shadow: 0 18px 50px rgba(0,0,0,0.35);
-    }
+body{
+margin:0;
+font-family:system-ui;
+background:var(--bg);
+color:var(--text);
+display:flex;
+flex-direction:column;
+height:100vh;
+}
 
-    .sidebar {
-      padding: 18px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
+header{
+height:40px;
+display:flex;
+align-items:center;
+padding:0 12px;
+background:var(--panel);
+border-bottom:1px solid var(--border);
+}
 
-    .title {
-      font-size: 1.55rem;
-      font-weight: 800;
-      letter-spacing: 0.02em;
-      margin: 0;
-    }
+header .title{
+font-weight:700;
+}
 
-    .subtitle {
-      margin: 8px 0 0;
-      color: var(--muted);
-      line-height: 1.5;
-      font-size: 0.96rem;
-    }
+header .right{
+margin-left:auto;
+display:flex;
+gap:10px;
+}
 
-    .card {
-      background: var(--panel-2);
-      border: 1px solid var(--line);
-      border-radius: 20px;
-      padding: 14px;
-    }
+button{
+padding:8px 10px;
+border-radius:8px;
+border:1px solid var(--border);
+background:var(--panel);
+color:var(--text);
+cursor:pointer;
+}
 
-    .section-label {
-      font-size: 0.82rem;
-      text-transform: uppercase;
-      letter-spacing: 0.14em;
-      color: #fde68a;
-      margin-bottom: 10px;
-      font-weight: 700;
-    }
+button:hover{
+background:var(--accent);
+color:white;
+}
 
-    .grid {
-      display: grid;
-      gap: 10px;
-    }
+main{
+flex:1;
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:10px;
+padding:10px;
+}
 
-    .row-2 {
-      grid-template-columns: 1fr 1fr;
-    }
+textarea{
+width:100%;
+height:220px;
+background:#111;
+color:#e6e6e6;
+border-radius:10px;
+padding:10px;
+font-family:monospace;
+}
 
-    button,
-    select,
-    input[type="range"],
-    input[type="file"] {
-      width: 100%;
-    }
+.result{
+overflow:auto;
+border:1px solid var(--border);
+border-radius:10px;
+padding:10px;
+}
 
-    button,
-    select {
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,0.08);
-      color: var(--text);
-      border-radius: 14px;
-      padding: 12px 14px;
-      font: inherit;
-      cursor: pointer;
-      transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
-    }
+table{
+width:100%;
+border-collapse:collapse;
+}
 
-    button:hover,
-    select:hover {
-      transform: translateY(-1px);
-      background: rgba(255,255,255,0.12);
-      border-color: rgba(255,255,255,0.25);
-    }
+th,td{
+border-bottom:1px solid var(--border);
+padding:6px;
+}
 
-    button.primary {
-      background: linear-gradient(135deg, var(--accent), var(--accent-2));
-      color: white;
-      border: none;
-      font-weight: 700;
-    }
+.history{
+border-top:1px solid var(--border);
+padding:10px;
+overflow:auto;
+height:150px;
+}
 
-    .stat {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 9px 0;
-      border-bottom: 1px dashed rgba(255,255,255,0.12);
-      font-size: 0.94rem;
-    }
+.history pre{
+margin:0;
+}
 
-    .stat:last-child { border-bottom: none; }
-    .stat span:first-child { color: var(--muted); }
-    .hint {
-      color: var(--muted);
-      font-size: 0.9rem;
-      line-height: 1.5;
-      margin: 0;
-    }
+.status{
+font-size:12px;
+color:#9aa0a6;
+}
 
-    .slider-wrap { display: grid; gap: 6px; }
-    .slider-wrap label {
-      font-size: 0.92rem;
-      color: var(--muted);
-    }
-
-    .canvas-wrap {
-      position: relative;
-      overflow: hidden;
-      min-height: 70vh;
-    }
-
-    canvas {
-      width: 100%;
-      height: 100%;
-      display: block;
-      border-radius: 24px;
-    }
-
-    .overlay {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      background:
-        radial-gradient(circle at center, transparent 25%, rgba(3,7,18,0.12) 70%, rgba(3,7,18,0.25) 100%);
-    }
-
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,0.08);
-      padding: 8px 12px;
-      border-radius: 999px;
-      font-size: 0.88rem;
-      color: var(--muted);
-    }
-
-    .topbar {
-      position: absolute;
-      top: 16px;
-      left: 16px;
-      right: 16px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      z-index: 2;
-      pointer-events: none;
-    }
-
-    .topbar > * { pointer-events: auto; }
-
-    body.visualizer-fullscreen .sidebar{display:none}
-    body.visualizer-fullscreen .app{grid-template-columns:1fr}
-    body.visualizer-fullscreen .canvas-wrap{min-height:100vh;border-radius:0}
-
-    @media (max-width: 980px) {
-      .app {
-        grid-template-columns: 1fr;
-      }
-      .canvas-wrap {
-        min-height: 56vh;
-      }
-    }
-  </style>
+</style>
 </head>
+
 <body>
-  <div class="app">
-    <aside class="panel sidebar">
-      <div>
-        <h1 class="title">Music Pattern Drawer</h1>
-        <p class="subtitle">
-          Upload a song or use your microphone. The app analyzes the sound in real time and turns frequency, volume, and rhythm into animated patterns.
-        </p>
-      </div>
-
-      <section class="card">
-        <div class="section-label">Audio Input</div>
-        <div class="grid row-2">
-          <button id="micBtn">Use Microphone</button>
-          <button id="stopBtn">Stop Input</button>
-        </div>
-        <div style="height:10px"></div>
-        <input id="fileInput" type="file" accept="audio/*" />
-        <audio id="audioPlayer" controls style="width:100%; margin-top:10px;"></audio>
-      </section>
-
-      <section class="card">
-        <div class="section-label">Dancer Photos</div>
-        <div class="grid">
-          <input id="photoInput" type="file" accept="image/*" />
-          <button id="usePhotoBtn">Use Uploaded Photo as Solo Silhouette</button>
-          <button id="saveSoloDefaultBtn">Save Solo Photo as Default</button>
-          <input id="duoPhotoInput" type="file" accept="image/*" />
-          <button id="useDuoPhotoBtn">Use Uploaded Photo as Dual Silhouette</button>
-          <button id="saveDuoDefaultBtn">Save Dual Photo as Default</button>
-          <p class="hint">Upload one picture for solo dancer mode, or upload a photo with two people for dual dancer mode. The app will keep all previous visualizer options and add glowing silhouette dancers.</p>
-        </div>
-      </section>
-
-      <section class="card">
-        <div class="section-label">Pattern Controls</div>
-        <div class="grid">
-          <select id="modeSelect">
-            <option value="rings">Pulse Rings</option>
-            <option value="wave">Wave Field</option>
-            <option value="spiral">Spiral Bloom</option>
-            <option value="bars">Radial Bars</option>
-            <option value="particles">Particles</option>
-            <option value="dancer">Human Dancer</option>
-            <option value="duo">Dual Dancers</option>
-          </select>
-
-          <div class="slider-wrap">
-            <label for="sensitivity">Sensitivity</label>
-            <input id="sensitivity" type="range" min="0.5" max="3" value="1.3" step="0.1" />
-          </div>
-
-          <div class="slider-wrap">
-            <label for="trail">Trail / Fade</label>
-            <input id="trail" type="range" min="0.02" max="0.3" value="0.08" step="0.01" />
-          </div>
-
-          <div class="slider-wrap">
-            <label for="zoom">Zoom</label>
-            <input id="zoom" type="range" min="0.4" max="2.4" value="1" step="0.1" />
-          </div>
-
-          <button class="primary" id="saveBtn">Save Current Frame</button>
-        </div>
-      </section>
-
-      <section class="card">
-        <div class="section-label">Live Audio Stats</div>
-        <div class="stat"><span>Status</span><strong id="statusText">Idle</strong></div>
-        <div class="stat"><span>Volume</span><strong id="volumeText">0</strong></div>
-        <div class="stat"><span>Bass</span><strong id="bassText">0</strong></div>
-        <div class="stat"><span>Mid</span><strong id="midText">0</strong></div>
-        <div class="stat"><span>Treble</span><strong id="trebleText">0</strong></div>
-      </section>
-
-      <section class="card">
-        <div class="section-label">Notes</div>
-        <p class="hint">
-          Browsers cannot automatically capture music playing from every app. For best results, upload an audio file or allow microphone access and play music near the device.
-        </p>
-      </section>
-    </aside>
-
-    <main class="panel canvas-wrap">
-      <div class="topbar">
-        <div class="badge" id="modeBadge">Mode: Pulse Rings</div>
-        <div class="badge">Canvas reacts to sound in real time</div>
-      </div>
-      <canvas id="canvas"></canvas>
-      <div class="overlay"></div>
-    </main>
-  </div>
-
-  <script>
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    const modeSelect = document.getElementById('modeSelect');
-    const sensitivityEl = document.getElementById('sensitivity');
-    const trailEl = document.getElementById('trail');
-    const zoomEl = document.getElementById('zoom');
-    const fileInput = document.getElementById('fileInput');
-    const audioPlayer = document.getElementById('audioPlayer');
-    const micBtn = document.getElementById('micBtn');
-    const stopBtn = document.getElementById('stopBtn');
-    const saveBtn = document.getElementById('saveBtn');
-    const photoInput = document.getElementById('photoInput');
-    const usePhotoBtn = document.getElementById('usePhotoBtn');
-    const duoPhotoInput = document.getElementById('duoPhotoInput');
-    const useDuoPhotoBtn = document.getElementById('useDuoPhotoBtn');
-    const saveSoloDefaultBtn = document.getElementById('saveSoloDefaultBtn');
-    const saveDuoDefaultBtn = document.getElementById('saveDuoDefaultBtn');
-    const statusText = document.getElementById('statusText');
-    const volumeText = document.getElementById('volumeText');
-    const bassText = document.getElementById('bassText');
-    const midText = document.getElementById('midText');
-    const trebleText = document.getElementById('trebleText');
-    const modeBadge = document.getElementById('modeBadge');
-
-    // Built-in default images.
-    // You can replace these empty strings with data URLs later if you want permanent baked-in photos.
-    const DEFAULT_SOLO_IMAGE = localStorage.getItem('pp_default_solo_image') || '';
-    const DEFAULT_DUO_IMAGE = localStorage.getItem('pp_default_duo_image') || '';
-
-    let audioCtx;
-    let analyser;
-    let sourceNode;
-    let micStream;
-    let dataArray;
-    let timeArray;
-    let animationId;
-    let particles = [];
-    let danceTime = 0;
-    let dancerImage = null;
-    let dancerSilhouetteReady = false;
-    const dancerCanvas = document.createElement('canvas');
-    const dancerCtx = dancerCanvas.getContext('2d', { willReadFrequently: true });
-    let duoDancerSilhouetteReady = false;
-    const duoCanvas = document.createElement('canvas');
-    const duoCtx = duoCanvas.getContext('2d', { willReadFrequently: true });
-    let duoLeftBounds = null;
-    let duoRightBounds = null;
-
-    function resizeCanvas() {
-      const dpr = Math.max(1, window.devicePixelRatio || 1);
-      const rect = canvas.getBoundingClientRect();
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    }
-
-    function ensureAudio() {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 2048;
-        analyser.smoothingTimeConstant = 0.82;
-        dataArray = new Uint8Array(analyser.frequencyBinCount);
-        timeArray = new Uint8Array(analyser.fftSize);
-      }
-    }
-
-    function disconnectCurrentSource() {
-      if (sourceNode) {
-        try { sourceNode.disconnect(); } catch (_) {}
-        sourceNode = null;
-      }
-      if (micStream) {
-        micStream.getTracks().forEach(track => track.stop());
-        micStream = null;
-      }
-      audioPlayer.pause();
-      audioPlayer.removeAttribute('src');
-      audioPlayer.load();
-      statusText.textContent = 'Idle';
-    }
-
-    function connectAnalyser(node) {
-      if (!analyser) return;
-      node.connect(analyser);
-      analyser.connect(audioCtx.destination);
-    }
-
-    function connectFileAudio(file) {
-      ensureAudio();
-      disconnectCurrentSource();
-      const url = URL.createObjectURL(file);
-      audioPlayer.src = url;
-      audioPlayer.play().catch(() => {});
-      sourceNode = audioCtx.createMediaElementSource(audioPlayer);
-      connectAnalyser(sourceNode);
-      statusText.textContent = 'Playing file';
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-      startVisualization();
-    }
-
-    async function connectMic() {
-      ensureAudio();
-      disconnectCurrentSource();
-      try {
-        micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-        sourceNode = audioCtx.createMediaStreamSource(micStream);
-        sourceNode.connect(analyser);
-        statusText.textContent = 'Listening to microphone';
-        if (audioCtx.state === 'suspended') await audioCtx.resume();
-        startVisualization();
-      } catch (err) {
-        statusText.textContent = 'Microphone blocked';
-        alert('Could not access microphone. Please allow mic permission.');
-      }
-    }
-
-    function avgRange(start, end) {
-      let sum = 0;
-      const len = Math.max(1, end - start);
-      for (let i = start; i < end; i++) sum += dataArray[i] || 0;
-      return sum / len;
-    }
-
-    function getMetrics() {
-      if (!analyser) {
-        return { volume: 0, bass: 0, mid: 0, treble: 0, waveform: [] };
-      }
-      analyser.getByteFrequencyData(dataArray);
-      analyser.getByteTimeDomainData(timeArray);
-
-      const bass = avgRange(0, 20);
-      const mid = avgRange(20, 100);
-      const treble = avgRange(100, 220);
-      let volume = 0;
-      for (let i = 0; i < dataArray.length; i++) volume += dataArray[i];
-      volume /= dataArray.length;
-
-      return {
-        volume,
-        bass,
-        mid,
-        treble,
-        waveform: timeArray
-      };
-    }
-
-    function drawBackground(fade) {
-      ctx.fillStyle = `rgba(4, 10, 24, ${fade})`;
-      ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
-    }
-
-    function drawRings(m) {
-      const w = canvas.clientWidth;
-      const h = canvas.clientHeight;
-      const cx = w / 2;
-      const cy = h / 2;
-      const sens = Number(sensitivityEl.value);
-      const zoom = Number(zoomEl.value);
-      const energy = (m.volume * sens) / 255;
-      const bass = (m.bass * sens) / 255;
-      const treble = (m.treble * sens) / 255;
-
-      for (let i = 0; i < 7; i++) {
-        const radius = (50 + i * 26 + energy * 120 + bass * 90) * zoom;
-        const alpha = 0.12 + (i / 12);
-        ctx.beginPath();
-        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-        ctx.strokeStyle = `hsla(${(Date.now() / 18 + i * 32) % 360}, 90%, ${60 + treble * 20}%, ${alpha})`;
-        ctx.lineWidth = 2 + bass * 7;
-        ctx.stroke();
-      }
-    }
-
-    function drawWave(m) {
-      const w = canvas.clientWidth;
-      const h = canvas.clientHeight;
-      const waveform = m.waveform;
-      const sens = Number(sensitivityEl.value);
-      const zoom = Number(zoomEl.value);
-      ctx.beginPath();
-      for (let i = 0; i < waveform.length; i++) {
-        const x = (i / (waveform.length - 1)) * w;
-        const centered = (waveform[i] - 128) / 128;
-        const y = h / 2 + centered * 180 * sens * zoom + Math.sin(i * 0.04 + performance.now() * 0.003) * m.bass * 0.12;
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      }
-      ctx.strokeStyle = `hsla(${(Date.now() / 25) % 360}, 100%, 70%, 0.9)`;
-      ctx.lineWidth = 3;
-      ctx.stroke();
-    }
-
-    function drawSpiral(m) {
-      const w = canvas.clientWidth;
-      const h = canvas.clientHeight;
-      const cx = w / 2;
-      const cy = h / 2;
-      const sens = Number(sensitivityEl.value);
-      const zoom = Number(zoomEl.value);
-      const turns = 220;
-      ctx.beginPath();
-      for (let i = 0; i < turns; i++) {
-        const a = i * 0.16 + performance.now() * 0.0012;
-        const radius = i * 1.3 * zoom + (m.volume * sens) * 0.35;
-        const wobble = Math.sin(i * 0.18 + performance.now() * 0.004) * m.treble * 0.16;
-        const x = cx + Math.cos(a) * (radius + wobble);
-        const y = cy + Math.sin(a) * (radius + wobble);
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      }
-      ctx.strokeStyle = `hsla(${(Date.now() / 20 + m.bass) % 360}, 100%, 68%, 0.85)`;
-      ctx.lineWidth = 2.2 + (m.mid / 255) * 4;
-      ctx.stroke();
-    }
-
-    function drawBars(m) {
-      const w = canvas.clientWidth;
-      const h = canvas.clientHeight;
-      const cx = w / 2;
-      const cy = h / 2;
-      const zoom = Number(zoomEl.value);
-      const bars = 120;
-      const radius = Math.min(w, h) * 0.16 * zoom;
-      for (let i = 0; i < bars; i++) {
-        const angle = (i / bars) * Math.PI * 2;
-        const val = dataArray[Math.floor((i / bars) * dataArray.length)] || 0;
-        const len = 20 + (val / 255) * 160 * Number(sensitivityEl.value);
-        const x1 = cx + Math.cos(angle) * radius;
-        const y1 = cy + Math.sin(angle) * radius;
-        const x2 = cx + Math.cos(angle) * (radius + len);
-        const y2 = cy + Math.sin(angle) * (radius + len);
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.strokeStyle = `hsla(${(i * 3 + Date.now() / 30) % 360}, 100%, 70%, 0.8)`;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      }
-    }
-
-    function initParticles() {
-      particles = Array.from({ length: 220 }, () => ({
-        x: Math.random() * canvas.clientWidth,
-        y: Math.random() * canvas.clientHeight,
-        vx: (Math.random() - 0.5) * 2,
-        vy: (Math.random() - 0.5) * 2,
-        size: Math.random() * 3 + 1
-      }));
-    }
-
-    function drawParticles(m) {
-      if (!particles.length) initParticles();
-      const w = canvas.clientWidth;
-      const h = canvas.clientHeight;
-      const sens = Number(sensitivityEl.value);
-      const push = (m.volume / 255) * 1.8 * sens;
-      const hue = (Date.now() / 24 + m.treble) % 360;
-      particles.forEach((p, idx) => {
-        const angle = idx * 0.2 + performance.now() * 0.001 + m.bass * 0.01;
-        p.vx += Math.cos(angle) * 0.02 * push;
-        p.vy += Math.sin(angle) * 0.02 * push;
-        p.x += p.vx;
-        p.y += p.vy;
-        p.vx *= 0.98;
-        p.vy *= 0.98;
-        if (p.x < 0) p.x = w;
-        if (p.x > w) p.x = 0;
-        if (p.y < 0) p.y = h;
-        if (p.y > h) p.y = 0;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size + push * 0.8, 0, Math.PI * 2);
-        ctx.fillStyle = `hsla(${hue + idx * 0.7}, 100%, 70%, 0.65)`;
-        ctx.fill();
-      });
-    }
-
-    function drawPhotoDancer(m) {
-      if (!dancerImage || !dancerSilhouetteReady) {
-        drawDancer(m);
-        return;
-      }
-
-      const w = canvas.clientWidth;
-      const h = canvas.clientHeight;
-      const cx = w / 2;
-      const cy = h / 2 + 40;
-      const sens = Number(sensitivityEl.value);
-      const zoom = Number(zoomEl.value);
-      const bass = (m.bass / 255) * sens;
-      const treble = (m.treble / 255) * sens;
-      const volume = (m.volume / 255) * sens;
-      const t = performance.now() * 0.004;
-
-      const sway = Math.sin(t * 1.15) * (16 + bass * 14);
-      const bounce = Math.abs(Math.sin(t * 1.9)) * (20 + volume * 22);
-      const shoulderTilt = Math.sin(t * 1.3) * 0.08;
-      const scale = (0.72 + zoom * 0.42) * (1 + volume * 0.06);
-      const legSplit = Math.sin(t * 1.65) * (18 + bass * 22);
-      const armSwing = Math.sin(t * 2.1) * (10 + treble * 18);
-      const hue = (Date.now() / 22 + m.bass) % 360;
-
-      const baseHeight = Math.min(h * 0.74, dancerCanvas.height * scale);
-      const imgScale = baseHeight / dancerCanvas.height;
-      const imgW = dancerCanvas.width * imgScale;
-      const imgH = dancerCanvas.height * imgScale;
-      const x = cx - imgW / 2 + sway;
-      const y = cy - imgH / 2 - bounce;
-
-      ctx.save();
-      ctx.shadowBlur = 30 + volume * 20;
-      ctx.shadowColor = `hsla(${hue}, 100%, 65%, 0.55)`;
-
-      for (let i = 0; i < 7; i++) {
-        const r = 70 + i * 28 + bass * 70;
-        ctx.beginPath();
-        ctx.arc(cx + sway, cy - imgH * 0.1 - bounce, r, 0, Math.PI * 2);
-        ctx.strokeStyle = `hsla(${hue + i * 16}, 100%, 60%, ${0.05 + i * 0.025})`;
-        ctx.lineWidth = 2 + i * 0.5;
-        ctx.stroke();
-      }
-
-      ctx.translate(cx + sway, cy - bounce);
-      ctx.rotate(shoulderTilt);
-      ctx.translate(-(cx + sway), -(cy - bounce));
-      ctx.drawImage(dancerCanvas, x, y, imgW, imgH);
-
-      const footY = y + imgH - 10;
-      ctx.strokeStyle = `hsla(${hue + 40}, 100%, 70%, 0.75)`;
-      ctx.lineWidth = 5;
-      ctx.beginPath();
-      ctx.moveTo(cx + sway, y + imgH * 0.38);
-      ctx.lineTo(cx + sway - armSwing, y + imgH * 0.58);
-      ctx.moveTo(cx + sway, y + imgH * 0.4);
-      ctx.lineTo(cx + sway + armSwing, y + imgH * 0.6);
-      ctx.moveTo(cx + sway - 12, y + imgH * 0.72);
-      ctx.lineTo(cx + sway - 18 - legSplit, footY);
-      ctx.moveTo(cx + sway + 12, y + imgH * 0.72);
-      ctx.lineTo(cx + sway + 18 + legSplit, footY);
-      ctx.stroke();
-
-      ctx.strokeStyle = `hsla(${hue + 20}, 100%, 60%, 0.35)`;
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(cx - 240 + sway, Math.min(h - 30, footY + 8));
-      ctx.lineTo(cx + 240 + sway, Math.min(h - 30, footY + 8));
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    function drawDualPhotoDancers(m) {
-      if (!duoDancerSilhouetteReady || !duoLeftBounds || !duoRightBounds) {
-        if (dancerSilhouetteReady) drawPhotoDancer(m);
-        else drawDancer(m);
-        return;
-      }
-      const w = canvas.clientWidth;
-      const h = canvas.clientHeight;
-      const sens = Number(sensitivityEl.value);
-      const zoom = Number(zoomEl.value);
-      const bass = (m.bass / 255) * sens;
-      const treble = (m.treble / 255) * sens;
-      const volume = (m.volume / 255) * sens;
-      const t = performance.now() * 0.004;
-      const hue = (Date.now() / 18 + m.bass * 1.2) % 360;
-      const centerX = w / 2;
-      const floorY = h * 0.84;
-
-      for (let i = 0; i < 8; i++) {
-        const r = 80 + i * 30 + bass * 80;
-        ctx.beginPath();
-        ctx.arc(centerX, h * 0.42, r, 0, Math.PI * 2);
-        ctx.strokeStyle = `hsla(${hue + i * 14}, 100%, 60%, ${0.04 + i * 0.022})`;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      }
-
-      const leftSway = Math.sin(t * 1.4) * (14 + bass * 12);
-      const rightSway = Math.sin(t * 1.4 + Math.PI) * (14 + bass * 12);
-      const leftBounce = Math.abs(Math.sin(t * 1.9)) * (18 + volume * 20);
-      const rightBounce = Math.abs(Math.sin(t * 1.9 + 0.5)) * (18 + volume * 20);
-      const leftArm = Math.sin(t * 2.4) * (10 + treble * 14);
-      const rightArm = Math.sin(t * 2.4 + Math.PI) * (10 + treble * 14);
-      const leftLeg = Math.sin(t * 1.8) * (16 + bass * 20);
-      const rightLeg = Math.sin(t * 1.8 + Math.PI) * (16 + bass * 20);
-
-      function drawOne(bounds, targetCenterX, bounce, sway, armSwing, legSwing, tilt, glowShift) {
-        const bw = bounds.maxX - bounds.minX + 1;
-        const bh = bounds.maxY - bounds.minY + 1;
-        const desiredH = Math.min(h * 0.62, bh * (0.58 + zoom * 0.34));
-        const scale = desiredH / bh;
-        const dw = bw * scale;
-        const dh = bh * scale;
-        const x = targetCenterX - dw / 2 + sway;
-        const y = floorY - dh - bounce;
-        ctx.save();
-        ctx.shadowBlur = 28 + volume * 18;
-        ctx.shadowColor = `hsla(${hue + glowShift}, 100%, 70%, 0.55)`;
-        ctx.translate(targetCenterX + sway, floorY - dh * 0.58 - bounce);
-        ctx.rotate(tilt);
-        ctx.translate(-(targetCenterX + sway), -(floorY - dh * 0.58 - bounce));
-        ctx.drawImage(duoCanvas, bounds.minX, bounds.minY, bw, bh, x, y, dw, dh);
-        ctx.strokeStyle = `hsla(${hue + glowShift + 30}, 100%, 72%, 0.75)`;
-        ctx.lineWidth = 5;
-        ctx.beginPath();
-        ctx.moveTo(targetCenterX + sway, y + dh * 0.38);
-        ctx.lineTo(targetCenterX + sway - armSwing, y + dh * 0.56);
-        ctx.moveTo(targetCenterX + sway, y + dh * 0.4);
-        ctx.lineTo(targetCenterX + sway + armSwing, y + dh * 0.58);
-        ctx.moveTo(targetCenterX + sway - 10, y + dh * 0.72);
-        ctx.lineTo(targetCenterX + sway - 16 - legSwing, y + dh - 8);
-        ctx.moveTo(targetCenterX + sway + 10, y + dh * 0.72);
-        ctx.lineTo(targetCenterX + sway + 16 + legSwing, y + dh - 8);
-        ctx.stroke();
-        ctx.restore();
-      }
-
-      drawOne(duoLeftBounds, centerX - 130, leftBounce, leftSway, leftArm, leftLeg, Math.sin(t * 1.1) * 0.08, 0);
-      drawOne(duoRightBounds, centerX + 130, rightBounce, rightSway, rightArm, rightLeg, Math.sin(t * 1.1 + 0.7) * -0.08, 40);
-
-      ctx.strokeStyle = `hsla(${hue + 20}, 100%, 65%, 0.35)`;
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(centerX - 320, floorY + 8);
-      ctx.lineTo(centerX + 320, floorY + 8);
-      ctx.stroke();
-    }
-
-    function drawDancer(m) {
-      const w = canvas.clientWidth;
-      const h = canvas.clientHeight;
-      const cx = w / 2;
-      const cy = h / 2 + 30;
-      const sens = Number(sensitivityEl.value);
-      const zoom = Number(zoomEl.value);
-      const bass = (m.bass / 255) * sens;
-      const mid = (m.mid / 255) * sens;
-      const treble = (m.treble / 255) * sens;
-      const volume = (m.volume / 255) * sens;
-      const t = performance.now() * 0.004;
-
-      danceTime += 0.04 + volume * 0.05;
-
-      const bodyScale = 0.9 + zoom * 0.55;
-      const torso = 90 * bodyScale;
-      const shoulderY = cy - 90 * bodyScale;
-      const hipY = cy;
-      const headR = 24 * bodyScale + bass * 5;
-      const sway = Math.sin(danceTime) * (18 + bass * 16);
-      const bounce = Math.abs(Math.sin(danceTime * 1.4)) * (18 + volume * 22);
-      const torsoLean = Math.sin(danceTime * 0.8) * 0.28;
-      const armSwingL = Math.sin(danceTime * 1.8 + 0.7) * (0.9 + treble * 0.9);
-      const armSwingR = Math.sin(danceTime * 1.8 + Math.PI) * (0.9 + treble * 0.9);
-      const legSwingL = Math.sin(danceTime * 1.6) * (0.8 + bass * 0.7);
-      const legSwingR = Math.sin(danceTime * 1.6 + Math.PI) * (0.8 + bass * 0.7);
-
-      const baseX = cx + sway;
-      const baseY = cy - bounce;
-      const shoulderWidth = 34 * bodyScale;
-      const hipWidth = 24 * bodyScale;
-      const upperArm = 48 * bodyScale;
-      const lowerArm = 42 * bodyScale;
-      const upperLeg = 58 * bodyScale;
-      const lowerLeg = 54 * bodyScale;
-
-      function joint(x, y, angle, len) {
-        return { x: x + Math.cos(angle) * len, y: y + Math.sin(angle) * len };
-      }
-
-      const neck = { x: baseX, y: baseY - torso + 6 };
-      const head = { x: neck.x, y: neck.y - headR - 8 };
-      const leftShoulder = { x: neck.x - shoulderWidth, y: shoulderY - bounce };
-      const rightShoulder = { x: neck.x + shoulderWidth, y: shoulderY - bounce };
-      const leftHip = { x: baseX - hipWidth, y: hipY - bounce };
-      const rightHip = { x: baseX + hipWidth, y: hipY - bounce };
-
-      const leftElbow = joint(leftShoulder.x, leftShoulder.y, Math.PI + armSwingL + torsoLean, upperArm);
-      const rightElbow = joint(rightShoulder.x, rightShoulder.y, armSwingR + torsoLean, upperArm);
-      const leftHand = joint(leftElbow.x, leftElbow.y, Math.PI / 2 + armSwingL * 0.8, lowerArm);
-      const rightHand = joint(rightElbow.x, rightElbow.y, Math.PI / 2 + armSwingR * 0.8, lowerArm);
-
-      const leftKnee = joint(leftHip.x, leftHip.y, Math.PI / 2 + legSwingL * 0.7, upperLeg);
-      const rightKnee = joint(rightHip.x, rightHip.y, Math.PI / 2 + legSwingR * 0.7, upperLeg);
-      const leftFoot = joint(leftKnee.x, leftKnee.y, Math.PI / 2 - legSwingL * 0.45, lowerLeg);
-      const rightFoot = joint(rightKnee.x, rightKnee.y, Math.PI / 2 - legSwingR * 0.45, lowerLeg);
-
-      ctx.save();
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-
-      const glowHue = (Date.now() / 20 + m.bass * 0.8) % 360;
-      ctx.shadowBlur = 24 + volume * 18;
-      ctx.shadowColor = `hsla(${glowHue}, 100%, 70%, 0.45)`;
-      ctx.strokeStyle = `hsla(${glowHue}, 100%, 78%, 0.95)`;
-      ctx.lineWidth = 8 + mid * 3;
-
-      for (let i = 0; i < 6; i++) {
-        const r = 70 + i * 28 + bass * 80;
-        ctx.beginPath();
-        ctx.arc(baseX, baseY - torso * 0.35, r, 0, Math.PI * 2);
-        ctx.strokeStyle = `hsla(${glowHue + i * 18}, 100%, 60%, ${0.05 + i * 0.025})`;
-        ctx.lineWidth = 2 + i * 0.5;
-        ctx.stroke();
-      }
-
-      ctx.strokeStyle = `hsla(${glowHue}, 100%, 78%, 0.95)`;
-      ctx.lineWidth = 8 + mid * 3;
-
-      ctx.beginPath();
-      ctx.moveTo(neck.x, neck.y);
-      ctx.lineTo(leftShoulder.x, leftShoulder.y);
-      ctx.moveTo(neck.x, neck.y);
-      ctx.lineTo(rightShoulder.x, rightShoulder.y);
-      ctx.moveTo(baseX, baseY - torso);
-      ctx.lineTo(baseX, baseY);
-      ctx.moveTo(baseX, baseY);
-      ctx.lineTo(leftHip.x, leftHip.y);
-      ctx.moveTo(baseX, baseY);
-      ctx.lineTo(rightHip.x, rightHip.y);
-      ctx.moveTo(leftShoulder.x, leftShoulder.y);
-      ctx.lineTo(leftElbow.x, leftElbow.y);
-      ctx.lineTo(leftHand.x, leftHand.y);
-      ctx.moveTo(rightShoulder.x, rightShoulder.y);
-      ctx.lineTo(rightElbow.x, rightElbow.y);
-      ctx.lineTo(rightHand.x, rightHand.y);
-      ctx.moveTo(leftHip.x, leftHip.y);
-      ctx.lineTo(leftKnee.x, leftKnee.y);
-      ctx.lineTo(leftFoot.x, leftFoot.y);
-      ctx.moveTo(rightHip.x, rightHip.y);
-      ctx.lineTo(rightKnee.x, rightKnee.y);
-      ctx.lineTo(rightFoot.x, rightFoot.y);
-      ctx.stroke();
-
-      ctx.fillStyle = `hsla(${glowHue + 20}, 100%, 80%, 0.95)`;
-      ctx.beginPath();
-      ctx.arc(head.x, head.y, headR, 0, Math.PI * 2);
-      ctx.fill();
-
-      [leftShoulder, rightShoulder, leftElbow, rightElbow, leftHand, rightHand, leftHip, rightHip, leftKnee, rightKnee, leftFoot, rightFoot, neck].forEach((p, idx) => {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 4 + (idx % 3), 0, Math.PI * 2);
-        ctx.fillStyle = `hsla(${glowHue + idx * 8}, 100%, 72%, 0.9)`;
-        ctx.fill();
-      });
-
-      const floorY = Math.min(h - 40, baseY + 120 * bodyScale);
-      ctx.strokeStyle = `hsla(${glowHue + 40}, 100%, 60%, 0.35)`;
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(baseX - 220, floorY);
-      ctx.lineTo(baseX + 220, floorY);
-      ctx.stroke();
-
-      ctx.restore();
-    }
-
-    function render() {
-      const m = getMetrics();
-      const volume = Math.round(m.volume);
-      const bass = Math.round(m.bass);
-      const mid = Math.round(m.mid);
-      const treble = Math.round(m.treble);
-
-      volumeText.textContent = volume;
-      bassText.textContent = bass;
-      midText.textContent = mid;
-      trebleText.textContent = treble;
-
-      drawBackground(Number(trailEl.value));
-
-      switch (modeSelect.value) {
-        case 'wave': drawWave(m); break;
-        case 'spiral': drawSpiral(m); break;
-        case 'bars': drawBars(m); break;
-        case 'particles': drawParticles(m); break;
-        case 'dancer':
-          if (dancerSilhouetteReady) drawPhotoDancer(m);
-          else drawDancer(m);
-          break;
-        case 'duo':
-          if (duoDancerSilhouetteReady) drawDualPhotoDancers(m);
-          else if (dancerSilhouetteReady) drawPhotoDancer(m);
-          else drawDancer(m);
-          break;
-        default: drawRings(m); break;
-      }
-
-      animationId = requestAnimationFrame(render);
-    }
-
-    function startVisualization() {
-      cancelAnimationFrame(animationId);
-      render();
-    }
-
-    fileInput.addEventListener('change', (e) => {
-      const file = e.target.files?.[0];
-      if (file) connectFileAudio(file);
-    });
-
-    micBtn.addEventListener('click', connectMic);
-
-    stopBtn.addEventListener('click', () => {
-      disconnectCurrentSource();
-      cancelAnimationFrame(animationId);
-    });
-
-    modeSelect.addEventListener('change', () => {
-      modeBadge.textContent = `Mode: ${modeSelect.options[modeSelect.selectedIndex].text}`;
-    });
-
-    saveBtn.addEventListener('click', () => {
-      const link = document.createElement('a');
-      link.download = `music-pattern-${Date.now()}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    });
-
-    function buildSilhouetteFromImage(img) {
-      const maxSide = 900;
-      const ratio = Math.min(1, maxSide / Math.max(img.naturalWidth || img.width, img.naturalHeight || img.height));
-      const w = Math.max(1, Math.round((img.naturalWidth || img.width) * ratio));
-      const h = Math.max(1, Math.round((img.naturalHeight || img.height) * ratio));
-      dancerCanvas.width = w;
-      dancerCanvas.height = h;
-      dancerCtx.clearRect(0, 0, w, h);
-      dancerCtx.drawImage(img, 0, 0, w, h);
-
-      const imageData = dancerCtx.getImageData(0, 0, w, h);
-      const d = imageData.data;
-      let sumR = 0, sumG = 0, sumB = 0, count = 0;
-      const sample = [[0,0],[w-1,0],[0,h-1],[w-1,h-1],[Math.floor(w/2),0],[0,Math.floor(h/2)],[w-1,Math.floor(h/2)]];
-      sample.forEach(([sx, sy]) => {
-        const i = (sy * w + sx) * 4;
-        sumR += d[i]; sumG += d[i + 1]; sumB += d[i + 2]; count++;
-      });
-      const bgR = sumR / count, bgG = sumG / count, bgB = sumB / count;
-
-      for (let y = 0; y < h; y++) {
-        for (let x = 0; x < w; x++) {
-          const i = (y * w + x) * 4;
-          const r = d[i], g = d[i + 1], b = d[i + 2], a = d[i + 3];
-          const dist = Math.sqrt((r - bgR) ** 2 + (g - bgG) ** 2 + (b - bgB) ** 2);
-          const brightness = (r + g + b) / 3;
-          const centerBias = 1 - Math.abs(x - w / 2) / (w / 2);
-          const keep = a > 0 && (dist > 55 || (centerBias > 0.2 && brightness < 215));
-          if (keep) {
-            d[i] = 10; d[i + 1] = 10; d[i + 2] = 16; d[i + 3] = 255;
-          } else {
-            d[i + 3] = 0;
-          }
-        }
-      }
-      dancerCtx.putImageData(imageData, 0, 0);
-      dancerCtx.globalCompositeOperation = 'source-atop';
-      const glow = dancerCtx.createLinearGradient(0, 0, 0, h);
-      glow.addColorStop(0, 'rgba(255,255,255,0.18)');
-      glow.addColorStop(0.45, 'rgba(32,32,40,0.96)');
-      glow.addColorStop(1, 'rgba(0,0,0,1)');
-      dancerCtx.fillStyle = glow;
-      dancerCtx.fillRect(0, 0, w, h);
-      dancerCtx.globalCompositeOperation = 'source-over';
-      dancerSilhouetteReady = true;
-      modeSelect.value = 'dancer';
-      modeBadge.textContent = 'Mode: Human Dancer';
-      statusText.textContent = 'Solo silhouette loaded';
-    }
-
-    function buildDualSilhouetteFromImage(img) {
-      const maxSide = 1200;
-      const ratio = Math.min(1, maxSide / Math.max(img.naturalWidth || img.width, img.naturalHeight || img.height));
-      const w = Math.max(1, Math.round((img.naturalWidth || img.width) * ratio));
-      const h = Math.max(1, Math.round((img.naturalHeight || img.height) * ratio));
-      duoCanvas.width = w;
-      duoCanvas.height = h;
-      duoCtx.clearRect(0, 0, w, h);
-      duoCtx.drawImage(img, 0, 0, w, h);
-      const imageData = duoCtx.getImageData(0, 0, w, h);
-      const d = imageData.data;
-      let sumR = 0, sumG = 0, sumB = 0, count = 0;
-      const sample = [[0,0],[w-1,0],[0,h-1],[w-1,h-1],[Math.floor(w/2),0],[0,Math.floor(h/2)],[w-1,Math.floor(h/2)]];
-      sample.forEach(([sx, sy]) => {
-        const i = (sy * w + sx) * 4;
-        sumR += d[i]; sumG += d[i + 1]; sumB += d[i + 2]; count++;
-      });
-      const bgR = sumR / count, bgG = sumG / count, bgB = sumB / count;
-      let minX = w, minY = h, maxX = 0, maxY = 0;
-      for (let y = 0; y < h; y++) {
-        for (let x = 0; x < w; x++) {
-          const i = (y * w + x) * 4;
-          const r = d[i], g = d[i + 1], b = d[i + 2], a = d[i + 3];
-          const dist = Math.sqrt((r - bgR) ** 2 + (g - bgG) ** 2 + (b - bgB) ** 2);
-          const brightness = (r + g + b) / 3;
-          const keep = a > 0 && (dist > 60 || brightness < 205);
-          if (keep) {
-            d[i] = 10; d[i + 1] = 10; d[i + 2] = 16; d[i + 3] = 255;
-            if (x < minX) minX = x;
-            if (y < minY) minY = y;
-            if (x > maxX) maxX = x;
-            if (y > maxY) maxY = y;
-          } else {
-            d[i + 3] = 0;
-          }
-        }
-      }
-      duoCtx.putImageData(imageData, 0, 0);
-      duoCtx.globalCompositeOperation = 'source-atop';
-      const glow = duoCtx.createLinearGradient(0, 0, 0, h);
-      glow.addColorStop(0, 'rgba(255,255,255,0.16)');
-      glow.addColorStop(0.45, 'rgba(32,32,40,0.96)');
-      glow.addColorStop(1, 'rgba(0,0,0,1)');
-      duoCtx.fillStyle = glow;
-      duoCtx.fillRect(0, 0, w, h);
-      duoCtx.globalCompositeOperation = 'source-over';
-
-      if (minX >= maxX || minY >= maxY) {
-        duoDancerSilhouetteReady = false;
-        return;
-      }
-      const midX = Math.floor((minX + maxX) / 2);
-      duoLeftBounds = { minX, minY, maxX: midX, maxY };
-      duoRightBounds = { minX: midX + 1, minY, maxX, maxY };
-      duoDancerSilhouetteReady = true;
-      modeSelect.value = 'duo';
-      modeBadge.textContent = 'Mode: Dual Dancers';
-      statusText.textContent = 'Dual silhouette loaded';
-    }
-
-    photoInput.addEventListener('change', (e) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      const img = new Image();
-      img.onload = () => {
-        dancerImage = img;
-        buildSilhouetteFromImage(img);
-      };
-      img.src = URL.createObjectURL(file);
-    });
-
-    usePhotoBtn.addEventListener('click', () => {
-      if (!photoInput.files?.[0]) {
-        alert('Please upload a photo first.');
-        return;
-      }
-      const img = new Image();
-      img.onload = () => {
-        dancerImage = img;
-        buildSilhouetteFromImage(img);
-      };
-      img.src = URL.createObjectURL(photoInput.files[0]);
-    });
-
-    duoPhotoInput.addEventListener('change', (e) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      const img = new Image();
-      img.onload = () => buildDualSilhouetteFromImage(img);
-      img.src = URL.createObjectURL(file);
-    });
-
-    useDuoPhotoBtn.addEventListener('click', () => {
-      if (!duoPhotoInput.files?.[0]) {
-        alert('Please upload a photo with two people first.');
-        return;
-      }
-      const img = new Image();
-      img.onload = () => buildDualSilhouetteFromImage(img);
-      img.src = URL.createObjectURL(duoPhotoInput.files[0]);
-    });
-
-    saveSoloDefaultBtn.addEventListener('click', () => {
-      const file = photoInput.files?.[0];
-      if (!file) {
-        alert('Please choose a solo photo first.');
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = () => {
-        localStorage.setItem('pp_default_solo_image', reader.result);
-        statusText.textContent = 'Solo default saved';
-      };
-      reader.readAsDataURL(file);
-    });
-
-    saveDuoDefaultBtn.addEventListener('click', () => {
-      const file = duoPhotoInput.files?.[0];
-      if (!file) {
-        alert('Please choose a dual photo first.');
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = () => {
-        localStorage.setItem('pp_default_duo_image', reader.result);
-        statusText.textContent = 'Dual default saved';
-      };
-      reader.readAsDataURL(file);
-    });
-
-    window.addEventListener('resize', () => {
-      // Auto full-screen visualizer after 5 seconds
-    setTimeout(() => {
-      try {
-        if (document.documentElement.requestFullscreen) {
-          document.documentElement.requestFullscreen();
-        }
-      } catch(e) {}
-      document.body.classList.add('visualizer-fullscreen');
-    }, 5000);
-
-    resizeCanvas();
-      initParticles();
-    });
-
-    function loadImageFromSrc(src) {
-      return new Promise((resolve, reject) => {
-        if (!src) {
-          reject(new Error('Missing image source'));
-          return;
-        }
-        const img = new Image();
-        img.onload = () => resolve(img);
-        img.onerror = reject;
-        img.src = src;
-      });
-    }
-
-    async function tryLoadBuiltInDefaults() {
-      try {
-        if (DEFAULT_SOLO_IMAGE) {
-          const soloImg = await loadImageFromSrc(DEFAULT_SOLO_IMAGE);
-          dancerImage = soloImg;
-          buildSilhouetteFromImage(soloImg);
-        }
-      } catch (_) {}
-
-      try {
-        if (DEFAULT_DUO_IMAGE) {
-          const duoImg = await loadImageFromSrc(DEFAULT_DUO_IMAGE);
-          buildDualSilhouetteFromImage(duoImg);
-        }
-      } catch (_) {}
-    }
-
-    resizeCanvas();
-    initParticles();
-    drawBackground(1);
-    tryLoadBuiltInDefaults();
-  </script>
+
+<header>
+<div class="title">Programmer's Picnic — SQL Playground</div>
+
+<div class="right">
+<button id="themeToggle">🌙 Theme</button>
+<button id="runBtn">▶ Run</button>
+</div>
+</header>
+
+<main>
+
+<div>
+<h3>SQL Editor</h3>
+
+<textarea id="sqlInput">SELECT * FROM birthdays;</textarea>
+
+<div style="margin-top:8px">
+<button id="resetDB">Reset DB</button>
+</div>
+
+</div>
+
+<div>
+<h3>Result</h3>
+
+<div class="result" id="result"></div>
+
+<div class="status" id="status"></div>
+
+</div>
+
+</main>
+
+<div class="history">
+<h4>Query History</h4>
+<div id="history"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+
+<script>
+
+let db
+let SQL
+let history = []
+
+const sqlInput = document.getElementById("sqlInput")
+const resultDiv = document.getElementById("result")
+const status = document.getElementById("status")
+const historyDiv = document.getElementById("history")
+
+function addHistory(q){
+
+history.unshift(q)
+
+if(history.length>20) history.pop()
+
+renderHistory()
+
+}
+
+function renderHistory(){
+
+historyDiv.innerHTML = history.map(q=>`
+<div>
+<pre>${q}</pre>
+</div>
+`).join("")
+
+}
+
+function renderTable(columns,values){
+
+let html="<table><tr>"
+
+columns.forEach(c=> html+=`<th>${c}</th>`)
+
+html+="</tr>"
+
+values.forEach(row=>{
+html+="<tr>"
+row.forEach(v=>{
+html+=`<td>${v}</td>`
+})
+html+="</tr>"
+})
+
+html+="</table>"
+
+resultDiv.innerHTML=html
+
+}
+
+function runSQL(){
+
+let q = sqlInput.value.trim()
+
+if(!q) return
+
+try{
+
+let res = db.exec(q)
+
+if(res.length===0){
+
+resultDiv.innerHTML="<b>Query executed.</b>"
+status.textContent="Success"
+addHistory(q)
+return
+
+}
+
+let r=res[0]
+
+renderTable(r.columns,r.values)
+
+status.textContent=`${r.values.length} rows returned`
+
+addHistory(q)
+
+}catch(e){
+
+status.textContent="Error: "+e.message
+
+}
+
+}
+
+document.getElementById("runBtn").onclick = runSQL
+
+document.getElementById("resetDB").onclick = ()=>{
+
+createDB()
+
+status.textContent="Database reset"
+
+}
+
+document.getElementById("themeToggle").onclick = ()=>{
+
+document.body.classList.toggle("light")
+
+}
+
+function createDB(){
+
+db = new SQL.Database()
+
+db.run(`
+CREATE TABLE birthdays(
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+name TEXT,
+birthday TEXT
+);
+`)
+
+db.run(`
+INSERT INTO birthdays(name,birthday) VALUES
+('Alice','1990-01-01'),
+('Bob','1988-04-12'),
+('Charlie','1995-07-22');
+`)
+
+}
+
+initSqlJs({
+
+locateFile: file =>
+"https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/"+file
+
+}).then(SQLLib=>{
+
+SQL = SQLLib
+
+createDB()
+
+status.textContent="SQLite ready"
+
+})
+
+</script>
+
 </body>
 </html>
