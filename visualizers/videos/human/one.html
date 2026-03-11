@@ -1,0 +1,837 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Champak & Anita Dance Visualizer</title>
+  <style>
+    :root{
+      --bg:#050816;
+      --bg2:#0b1020;
+      --panel:rgba(255,255,255,.08);
+      --line:rgba(255,255,255,.12);
+      --text:#f8fafc;
+      --muted:#cbd5e1;
+      --accent:#f59e0b;
+      --accent2:#fb7185;
+    }
+
+    *{box-sizing:border-box}
+
+    html,body{
+      margin:0;
+      height:100%;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(245,158,11,.18), transparent 26%),
+        radial-gradient(circle at top right, rgba(251,113,133,.12), transparent 28%),
+        linear-gradient(135deg,var(--bg),var(--bg2) 45%,#111827);
+      overflow:hidden;
+    }
+
+    .app{
+      min-height:100%;
+      display:grid;
+      grid-template-columns:340px 1fr;
+      gap:16px;
+      padding:16px;
+    }
+
+    .panel{
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:24px;
+      backdrop-filter:blur(10px);
+    }
+
+    .side{
+      padding:16px;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+      z-index:5;
+    }
+
+    .card{
+      padding:14px;
+      border:1px solid var(--line);
+      border-radius:18px;
+      background:rgba(255,255,255,.06);
+    }
+
+    h1{
+      margin:0;
+      font-size:1.45rem;
+    }
+
+    p{
+      margin:.45rem 0 0;
+      color:var(--muted);
+      line-height:1.45;
+    }
+
+    .label{
+      font-size:.78rem;
+      text-transform:uppercase;
+      letter-spacing:.14em;
+      color:#fde68a;
+      font-weight:700;
+      margin-bottom:10px;
+    }
+
+    button,select,input[type=file],input[type=range]{
+      width:100%;
+    }
+
+    button,select{
+      padding:12px 14px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.08);
+      color:var(--text);
+      cursor:pointer;
+    }
+
+    button:hover,
+    select:hover{
+      background:rgba(255,255,255,.12);
+    }
+
+    .primary{
+      background:linear-gradient(135deg,var(--accent),var(--accent2));
+      border:none;
+      font-weight:700;
+    }
+
+    .row{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+
+    .canvas-wrap{
+      position:relative;
+      overflow:hidden;
+      min-height:78vh;
+    }
+
+    canvas{
+      display:block;
+      width:100%;
+      height:100%;
+    }
+
+    .top{
+      position:absolute;
+      top:14px;
+      left:14px;
+      right:14px;
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      z-index:2;
+      pointer-events:none;
+    }
+
+    .badge{
+      background:rgba(255,255,255,.09);
+      border:1px solid var(--line);
+      padding:8px 12px;
+      border-radius:999px;
+      color:var(--muted);
+      font-size:.88rem;
+    }
+
+    .stat{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      padding:8px 0;
+      border-bottom:1px dashed rgba(255,255,255,.12);
+    }
+
+    .stat:last-child{
+      border-bottom:none;
+    }
+
+    .hint{
+      color:var(--muted);
+      font-size:.92rem;
+      line-height:1.45;
+    }
+
+    .exit-btn{
+      position:fixed;
+      top:16px;
+      right:16px;
+      z-index:9999;
+      padding:10px 14px;
+      border:none;
+      border-radius:999px;
+      background:rgba(0,0,0,.45);
+      color:#fff;
+      cursor:pointer;
+      backdrop-filter:blur(8px);
+      width:auto;
+    }
+
+    body.full .side{
+      display:none;
+    }
+
+    body.full .app{
+      grid-template-columns:1fr;
+      padding:0;
+      gap:0;
+    }
+
+    body.full .panel,
+    body.full .canvas-wrap{
+      border-radius:0;
+      border:none;
+      min-height:100vh;
+    }
+
+    @media (max-width: 900px){
+      .app{
+        grid-template-columns:1fr;
+      }
+      .canvas-wrap{
+        min-height:60vh;
+      }
+    }
+  </style>
+</head>
+<body>
+  <button class="exit-btn" id="exitBtn">Exit Full Screen</button>
+
+  <div class="app">
+    <aside class="panel side">
+      <div>
+        <h1>Champak & Anita Dance Visualizer</h1>
+        <p>Uses <strong>champak.jpg</strong> and <strong>anita.jpg</strong> from the same folder.</p>
+      </div>
+
+      <section class="card">
+        <div class="label">Audio Input</div>
+        <div class="row">
+          <button id="micBtn">Use Microphone</button>
+          <button id="stopBtn">Stop Input</button>
+        </div>
+        <div style="height:10px"></div>
+        <input id="fileInput" type="file" accept="audio/*" />
+        <audio id="audioPlayer" controls style="width:100%;margin-top:10px"></audio>
+      </section>
+
+      <section class="card">
+        <div class="label">Mode</div>
+        <select id="mode">
+          <option value="dual">Dual Dancers</option>
+          <option value="champak">Champak Solo</option>
+          <option value="anita">Anita Solo</option>
+        </select>
+      </section>
+
+      <section class="card">
+        <div class="label">Dance Controls</div>
+        <label>Sensitivity</label>
+        <input id="sens" type="range" min="0.5" max="3" step="0.1" value="1.3" />
+
+        <label>Trail / Fade</label>
+        <input id="trail" type="range" min="0.02" max="0.3" step="0.01" value="0.08" />
+
+        <label>Zoom</label>
+        <input id="zoom" type="range" min="0.4" max="2.4" step="0.1" value="1" />
+
+        <label>Dance Speed</label>
+        <input id="danceSpeed" type="range" min="0.5" max="2.5" step="0.1" value="1.2" />
+
+        <div style="height:10px"></div>
+        <button id="saveBtn" class="primary">Save Current Frame</button>
+      </section>
+
+      <section class="card">
+        <div class="label">Image Status</div>
+        <div class="stat"><span>champak.jpg</span><strong id="champakStatus">Loading...</strong></div>
+        <div class="stat"><span>anita.jpg</span><strong id="anitaStatus">Loading...</strong></div>
+        <div class="stat"><span>App</span><strong id="status">Starting...</strong></div>
+      </section>
+
+      <section class="card">
+        <div class="label">Audio Stats</div>
+        <div class="stat"><span>Volume</span><strong id="vol">0</strong></div>
+        <div class="stat"><span>Bass</span><strong id="bass">0</strong></div>
+        <div class="stat"><span>Mid</span><strong id="mid">0</strong></div>
+        <div class="stat"><span>Treble</span><strong id="treble">0</strong></div>
+      </section>
+
+      <section class="card">
+        <div class="label">How this dances</div>
+        <div class="hint">
+          This uses a puppet-style effect. Each photo is split into head, torso, arms, and legs, then those parts are rotated separately to create actual dance motion.
+        </div>
+      </section>
+    </aside>
+
+    <main class="panel canvas-wrap">
+      <div class="top">
+        <div class="badge" id="modeBadge">Mode: Dual Dancers</div>
+        <div class="badge">Auto full screen after 5 seconds</div>
+      </div>
+      <canvas id="canvas"></canvas>
+    </main>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    const modeEl = document.getElementById('mode');
+    const modeBadge = document.getElementById('modeBadge');
+    const sensEl = document.getElementById('sens');
+    const trailEl = document.getElementById('trail');
+    const zoomEl = document.getElementById('zoom');
+    const danceSpeedEl = document.getElementById('danceSpeed');
+
+    const fileInput = document.getElementById('fileInput');
+    const audioPlayer = document.getElementById('audioPlayer');
+    const micBtn = document.getElementById('micBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const saveBtn = document.getElementById('saveBtn');
+    const exitBtn = document.getElementById('exitBtn');
+
+    const statusEl = document.getElementById('status');
+    const champakStatusEl = document.getElementById('champakStatus');
+    const anitaStatusEl = document.getElementById('anitaStatus');
+
+    const volEl = document.getElementById('vol');
+    const bassEl = document.getElementById('bass');
+    const midEl = document.getElementById('mid');
+    const trebleEl = document.getElementById('treble');
+
+    let audioCtx;
+    let analyser;
+    let sourceNode;
+    let micStream;
+    let dataArray;
+    let timeArray;
+    let raf;
+
+    const champakImg = new Image();
+    const anitaImg = new Image();
+
+    let champakReady = false;
+    let anitaReady = false;
+
+    champakImg.onload = () => {
+      champakReady = true;
+      champakStatusEl.textContent = 'Loaded';
+      updateAppStatus();
+    };
+
+    champakImg.onerror = () => {
+      champakReady = false;
+      champakStatusEl.textContent = 'Not found';
+      updateAppStatus();
+    };
+
+    anitaImg.onload = () => {
+      anitaReady = true;
+      anitaStatusEl.textContent = 'Loaded';
+      updateAppStatus();
+    };
+
+    anitaImg.onerror = () => {
+      anitaReady = false;
+      anitaStatusEl.textContent = 'Not found';
+      updateAppStatus();
+    };
+
+    champakImg.src = 'champak.jpg';
+    anitaImg.src = 'anita.jpg';
+
+    function updateAppStatus() {
+      if (champakReady && anitaReady) {
+        statusEl.textContent = 'Images loaded';
+      } else if (champakReady || anitaReady) {
+        statusEl.textContent = 'One image loaded';
+      } else {
+        statusEl.textContent = 'Images missing';
+      }
+    }
+
+    function updateModeBadge() {
+      const text = modeEl.options[modeEl.selectedIndex].text;
+      modeBadge.textContent = 'Mode: ' + text;
+    }
+
+    function resizeCanvas() {
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function ensureAudio() {
+      if (audioCtx) return;
+
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 2048;
+      analyser.smoothingTimeConstant = 0.82;
+
+      dataArray = new Uint8Array(analyser.frequencyBinCount);
+      timeArray = new Uint8Array(analyser.fftSize);
+    }
+
+    function disconnectCurrentSource() {
+      if (sourceNode) {
+        try { sourceNode.disconnect(); } catch (e) {}
+        sourceNode = null;
+      }
+
+      if (micStream) {
+        micStream.getTracks().forEach(track => track.stop());
+        micStream = null;
+      }
+
+      audioPlayer.pause();
+      audioPlayer.removeAttribute('src');
+      audioPlayer.load();
+      updateAppStatus();
+    }
+
+    function connectAnalyser(node) {
+      node.connect(analyser);
+      analyser.connect(audioCtx.destination);
+    }
+
+    function connectFileAudio(file) {
+      ensureAudio();
+      disconnectCurrentSource();
+
+      const url = URL.createObjectURL(file);
+      audioPlayer.src = url;
+      audioPlayer.play().catch(() => {});
+      sourceNode = audioCtx.createMediaElementSource(audioPlayer);
+      connectAnalyser(sourceNode);
+      statusEl.textContent = 'Playing file';
+
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+
+      startViz();
+    }
+
+    async function connectMic() {
+      ensureAudio();
+      disconnectCurrentSource();
+
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        sourceNode = audioCtx.createMediaStreamSource(micStream);
+        sourceNode.connect(analyser);
+        statusEl.textContent = 'Listening to microphone';
+
+        if (audioCtx.state === 'suspended') {
+          await audioCtx.resume();
+        }
+
+        startViz();
+      } catch (err) {
+        statusEl.textContent = 'Microphone blocked';
+        alert('Microphone permission was blocked.');
+      }
+    }
+
+    function avgRange(start, end) {
+      let sum = 0;
+      const len = Math.max(1, end - start);
+      for (let i = start; i < end; i++) sum += dataArray[i] || 0;
+      return sum / len;
+    }
+
+    function getMetrics() {
+      if (!analyser) {
+        return { volume: 0, bass: 0, mid: 0, treble: 0 };
+      }
+
+      analyser.getByteFrequencyData(dataArray);
+      analyser.getByteTimeDomainData(timeArray);
+
+      let volume = 0;
+      for (let i = 0; i < dataArray.length; i++) volume += dataArray[i];
+      volume /= dataArray.length;
+
+      return {
+        volume,
+        bass: avgRange(0, 20),
+        mid: avgRange(20, 100),
+        treble: avgRange(100, 220)
+      };
+    }
+
+    function drawBackground(fade) {
+      ctx.fillStyle = `rgba(4,10,24,${fade})`;
+      ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+    }
+
+    function drawMissingText(text) {
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      ctx.fillStyle = 'rgba(255,255,255,0.92)';
+      ctx.font = '600 24px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(text, w / 2, h / 2);
+    }
+
+    function drawStageLights(hue, centerX, centerY, bass) {
+      for (let i = 0; i < 8; i++) {
+        const r = 80 + i * 30 + bass * 80;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, r, 0, Math.PI * 2);
+        ctx.strokeStyle = `hsla(${hue + i * 14},100%,60%,${0.04 + i * 0.022})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+    }
+
+    function drawLimb(img, sx, sy, sw, sh, px, py, dx, dy, dw, dh, angle, hue) {
+      ctx.save();
+      ctx.translate(dx + px * dw, dy + py * dh);
+      ctx.rotate(angle);
+      ctx.translate(-(px * dw), -(py * dh));
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, dw, dh);
+      ctx.strokeStyle = `hsla(${hue},100%,75%,0.2)`;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(0, 0, dw, dh);
+      ctx.restore();
+    }
+
+    function drawPuppetDancer(img, baseX, floorY, motion, hueShift, centerMode = false) {
+      const s = +sensEl.value;
+      const z = +zoomEl.value;
+      const speed = +danceSpeedEl.value;
+
+      const bass = motion.bass;
+      const treble = motion.treble;
+      const mid = motion.mid;
+      const volume = motion.volume;
+      const t = motion.t * speed;
+      const hue = motion.hue + hueShift;
+
+      const maxH = canvas.clientHeight * (centerMode ? 0.72 : 0.58) * z;
+      const scale = Math.min(
+        maxH / img.naturalHeight,
+        (canvas.clientWidth * (centerMode ? 0.28 : 0.22)) / img.naturalWidth
+      );
+
+      const fullW = img.naturalWidth * scale;
+      const fullH = img.naturalHeight * scale;
+
+      const x = baseX - fullW / 2 + motion.sway;
+      const y = floorY - fullH - motion.bounce;
+
+      const iw = img.naturalWidth;
+      const ih = img.naturalHeight;
+
+      // Simple body segmentation ratios
+      const head = { x: 0.28 * iw, y: 0.02 * ih, w: 0.44 * iw, h: 0.20 * ih };
+      const torso = { x: 0.22 * iw, y: 0.20 * ih, w: 0.56 * iw, h: 0.34 * ih };
+
+      const lArm = { x: 0.02 * iw, y: 0.20 * ih, w: 0.22 * iw, h: 0.34 * ih };
+      const rArm = { x: 0.76 * iw, y: 0.20 * ih, w: 0.22 * iw, h: 0.34 * ih };
+
+      const lLeg = { x: 0.24 * iw, y: 0.54 * ih, w: 0.22 * iw, h: 0.42 * ih };
+      const rLeg = { x: 0.54 * iw, y: 0.54 * ih, w: 0.22 * iw, h: 0.42 * ih };
+
+      const torsoTilt = Math.sin(t * 0.9) * (0.06 + mid * 0.10);
+      const headTilt = Math.sin(t * 1.4 + 0.6) * (0.05 + treble * 0.06);
+      const leftArmAngle = Math.sin(t * 2.2) * (0.30 + treble * 0.70);
+      const rightArmAngle = Math.sin(t * 2.2 + Math.PI) * (0.30 + treble * 0.70);
+      const leftLegAngle = Math.sin(t * 1.6) * (0.18 + bass * 0.45);
+      const rightLegAngle = Math.sin(t * 1.6 + Math.PI) * (0.18 + bass * 0.45);
+
+      ctx.save();
+      ctx.shadowBlur = 20 + volume * 24;
+      ctx.shadowColor = `hsla(${hue},100%,70%,0.55)`;
+
+      // glow rings
+      for (let i = 0; i < 5; i++) {
+        const r = 70 + i * 26 + bass * 60;
+        ctx.beginPath();
+        ctx.arc(baseX + motion.sway, y + fullH * 0.28, r, 0, Math.PI * 2);
+        ctx.strokeStyle = `hsla(${hue + i * 16},100%,60%,${0.05 + i * 0.03})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+
+      // torso
+      ctx.save();
+      ctx.translate(x + fullW * 0.5, y + fullH * 0.38);
+      ctx.rotate(torsoTilt);
+      ctx.translate(-(fullW * 0.5), -(fullH * 0.38));
+      ctx.drawImage(
+        img,
+        torso.x, torso.y, torso.w, torso.h,
+        x + fullW * 0.22, y + fullH * 0.20, fullW * 0.56, fullH * 0.34
+      );
+      ctx.restore();
+
+      // head
+      drawLimb(
+        img,
+        head.x, head.y, head.w, head.h,
+        0.5, 0.82,
+        x + fullW * 0.28,
+        y + fullH * (0.02 - 0.02 * Math.abs(Math.sin(t * 2.0))),
+        fullW * 0.44,
+        fullH * 0.20,
+        headTilt,
+        hue + 20
+      );
+
+      // left arm
+      drawLimb(
+        img,
+        lArm.x, lArm.y, lArm.w, lArm.h,
+        0.90, 0.08,
+        x + fullW * 0.02,
+        y + fullH * 0.20,
+        fullW * 0.22,
+        fullH * 0.34,
+        leftArmAngle,
+        hue + 10
+      );
+
+      // right arm
+      drawLimb(
+        img,
+        rArm.x, rArm.y, rArm.w, rArm.h,
+        0.10, 0.08,
+        x + fullW * 0.76,
+        y + fullH * 0.20,
+        fullW * 0.22,
+        fullH * 0.34,
+        rightArmAngle,
+        hue + 10
+      );
+
+      // left leg
+      drawLimb(
+        img,
+        lLeg.x, lLeg.y, lLeg.w, lLeg.h,
+        0.50, 0.05,
+        x + fullW * 0.24,
+        y + fullH * 0.54,
+        fullW * 0.22,
+        fullH * 0.42,
+        leftLegAngle,
+        hue + 30
+      );
+
+      // right leg
+      drawLimb(
+        img,
+        rLeg.x, rLeg.y, rLeg.w, rLeg.h,
+        0.50, 0.05,
+        x + fullW * 0.54,
+        y + fullH * 0.54,
+        fullW * 0.22,
+        fullH * 0.42,
+        rightLegAngle,
+        hue + 30
+      );
+
+      // floor shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.22)';
+      ctx.beginPath();
+      ctx.ellipse(baseX + motion.sway, floorY + 8, fullW * 0.24, 16 + volume * 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    function drawSolo(img, m, hueShift = 0) {
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      const centerX = w / 2;
+      const floorY = h * 0.84;
+
+      const s = +sensEl.value;
+      const speed = +danceSpeedEl.value;
+
+      const bass = (m.bass / 255) * s;
+      const treble = (m.treble / 255) * s;
+      const mid = (m.mid / 255) * s;
+      const volume = (m.volume / 255) * s;
+      const t = performance.now() * 0.004 * speed;
+      const hue = (Date.now() / 18 + m.bass * 1.2) % 360;
+
+      drawStageLights(hue, centerX, h * 0.42, bass);
+
+      drawPuppetDancer(
+        img,
+        centerX,
+        floorY,
+        {
+          bass,
+          treble,
+          mid,
+          volume,
+          t,
+          hue,
+          sway: Math.sin(t * 1.35) * (18 + bass * 16),
+          bounce: Math.abs(Math.sin(t * 2.0)) * (18 + volume * 24)
+        },
+        hueShift,
+        true
+      );
+    }
+
+    function drawDual(m) {
+      if (!champakReady && !anitaReady) {
+        drawMissingText('champak.jpg and anita.jpg not found');
+        return;
+      }
+
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      const centerX = w / 2;
+      const floorY = h * 0.84;
+
+      const s = +sensEl.value;
+      const speed = +danceSpeedEl.value;
+
+      const bass = (m.bass / 255) * s;
+      const treble = (m.treble / 255) * s;
+      const mid = (m.mid / 255) * s;
+      const volume = (m.volume / 255) * s;
+      const t = performance.now() * 0.004 * speed;
+      const hue = (Date.now() / 18 + m.bass * 1.2) % 360;
+
+      drawStageLights(hue, centerX, h * 0.42, bass);
+
+      if (champakReady) {
+        drawPuppetDancer(
+          champakImg,
+          centerX - 160,
+          floorY,
+          {
+            bass,
+            treble,
+            mid,
+            volume,
+            t,
+            hue,
+            sway: Math.sin(t * 1.35) * (16 + bass * 12),
+            bounce: Math.abs(Math.sin(t * 1.95)) * (16 + volume * 20)
+          },
+          0,
+          false
+        );
+      }
+
+      if (anitaReady) {
+        drawPuppetDancer(
+          anitaImg,
+          centerX + 160,
+          floorY,
+          {
+            bass,
+            treble,
+            mid,
+            volume,
+            t: t + 0.45,
+            hue,
+            sway: Math.sin(t * 1.35 + Math.PI) * (16 + bass * 12),
+            bounce: Math.abs(Math.sin(t * 1.95 + 0.5)) * (16 + volume * 20)
+          },
+          40,
+          false
+        );
+      }
+    }
+
+    function render() {
+      const m = getMetrics();
+
+      volEl.textContent = Math.round(m.volume);
+      bassEl.textContent = Math.round(m.bass);
+      midEl.textContent = Math.round(m.mid);
+      trebleEl.textContent = Math.round(m.treble);
+
+      drawBackground(+trailEl.value);
+
+      if (modeEl.value === 'champak') {
+        if (!champakReady) drawMissingText('champak.jpg not found');
+        else drawSolo(champakImg, m, 0);
+      } else if (modeEl.value === 'anita') {
+        if (!anitaReady) drawMissingText('anita.jpg not found');
+        else drawSolo(anitaImg, m, 40);
+      } else {
+        drawDual(m);
+      }
+
+      raf = requestAnimationFrame(render);
+    }
+
+    function startViz() {
+      cancelAnimationFrame(raf);
+      render();
+    }
+
+    fileInput.addEventListener('change', e => {
+      const f = e.target.files?.[0];
+      if (f) connectFileAudio(f);
+    });
+
+    micBtn.addEventListener('click', connectMic);
+
+    stopBtn.addEventListener('click', () => {
+      disconnectCurrentSource();
+      cancelAnimationFrame(raf);
+    });
+
+    modeEl.addEventListener('change', updateModeBadge);
+
+    saveBtn.addEventListener('click', () => {
+      const a = document.createElement('a');
+      a.href = canvas.toDataURL('image/png');
+      a.download = 'dance-frame.png';
+      a.click();
+    });
+
+    exitBtn.addEventListener('click', async () => {
+      if (document.fullscreenElement) {
+        try { await document.exitFullscreen(); } catch (e) {}
+      }
+      document.body.classList.remove('full');
+    });
+
+    document.addEventListener('fullscreenchange', () => {
+      if (!document.fullscreenElement) {
+        document.body.classList.remove('full');
+      }
+    });
+
+    window.addEventListener('resize', resizeCanvas);
+
+    setTimeout(async () => {
+      document.body.classList.add('full');
+      try {
+        const el = document.documentElement;
+        if (el.requestFullscreen) await el.requestFullscreen();
+      } catch (e) {}
+    }, 5000);
+
+    resizeCanvas();
+    drawBackground(1);
+    updateAppStatus();
+    updateModeBadge();
+  </script>
+</body>
+</html>
