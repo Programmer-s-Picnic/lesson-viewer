@@ -69,6 +69,12 @@ const ui = {
   clearSubs: $("ppClearSubs"),
   subCount: $("ppSubCount"),
   studentLink: $("ppStudentLink"),
+
+  themeToggle: $("ppThemeToggle"),
+  sidebarResizer: $("ppSidebarResizer"),
+  panelResizer: $("ppPanelResizer"),
+  sidebar: document.getElementById("vsSidebar"),
+  panel: document.querySelector(".vs-panel"),
 };
 
 const btn = {
@@ -106,6 +112,9 @@ const K_STU_ROLL = "pp_student_roll_v2";
 
 // Installed packages UI list (local display)
 const K_INSTALLED_PKGS = "pp_installed_pkgs_v1";
+const K_THEME = "pp_theme_v1";
+const K_SIDEBAR_W = "pp_sidebar_width_v1";
+const K_PANEL_H = "pp_panel_height_v1";
 
 // ---- Custom Problems Store (builder exports + optional remote JSON) ----
 const K_PROBLEMS_LOCAL = "pp_problems_custom_v1";
@@ -478,30 +487,164 @@ function renderInstalledPkgs() {
     .join(" ");
 }
 
+// ----- Theme / layout helpers -----
+function applyTheme(theme) {
+  const t = theme === "light" ? "light" : "dark";
+  document.body.setAttribute("data-theme", t);
+  try { localStorage.setItem(K_THEME, t); } catch {}
+  if (ui.themeToggle) ui.themeToggle.textContent = t === "light" ? "☀️ Light" : "🌙 Dark";
+}
+
+function toggleTheme() {
+  const cur = document.body.getAttribute("data-theme") || "dark";
+  applyTheme(cur === "dark" ? "light" : "dark");
+}
+
+function setSidebarWidth(px) {
+  if (!ui.sidebar) return;
+  const w = clamp(px, 220, 520);
+  ui.sidebar.style.width = w + "px";
+  ui.sidebar.style.minWidth = w + "px";
+  ui.sidebar.style.maxWidth = w + "px";
+  try { localStorage.setItem(K_SIDEBAR_W, String(w)); } catch {}
+}
+
+function setPanelHeight(px) {
+  if (!ui.panel) return;
+  const h = clamp(px, 180, Math.max(260, window.innerHeight - 140));
+  ui.panel.style.height = h + "px";
+  try { localStorage.setItem(K_PANEL_H, String(h)); } catch {}
+}
+
+function wireDragResize(handle, onMove, className) {
+  if (!handle) return;
+  const start = (ev) => {
+    if (window.matchMedia("(max-width: 980px)").matches && handle === ui.sidebarResizer) return;
+    ev.preventDefault();
+    document.body.classList.add(className);
+    const move = (e) => onMove(e);
+    const stop = () => {
+      document.removeEventListener("pointermove", move);
+      document.removeEventListener("pointerup", stop);
+      document.body.classList.remove(className);
+    };
+    document.addEventListener("pointermove", move);
+    document.addEventListener("pointerup", stop);
+  };
+  handle.addEventListener("pointerdown", start);
+}
+
+function lineBounds(value, start, end) {
+  const ls = value.lastIndexOf("\n", Math.max(0, start - 1)) + 1;
+  const next = value.indexOf("\n", end);
+  const le = next === -1 ? value.length : next;
+  return [ls, le];
+}
+
+function toggleCommentSelection() {
+  const el = ui.code;
+  const v = el.value;
+  const s = el.selectionStart;
+  const t = el.selectionEnd;
+  const [ls, le] = lineBounds(v, s, t);
+  const lines = v.slice(ls, le).split("\n");
+  const nonEmpty = lines.filter((line) => line.trim());
+  const uncomment = nonEmpty.length > 0 && nonEmpty.every((line) => /^\s*#/.test(line));
+  const updated = lines.map((line) => {
+    if (!line.trim()) return line;
+    if (uncomment) return line.replace(/^(\s*)# ?/, "$1");
+    return line.replace(/^(\s*)/, "$1# ");
+  }).join("\n");
+  el.value = v.slice(0, ls) + updated + v.slice(le);
+  el.selectionStart = ls;
+  el.selectionEnd = ls + updated.length;
+  updateGutter();
+  autosave();
+  toast(uncomment ? "Uncommented" : "Commented");
+}
+
 // ----- Output renderer (stdout + plots) -----
 let _lastStdout = "";
 let _lastPlots = []; // array of data:image/png;base64,...
+let _activePlotFullscreen = null;
+
+function togglePlotFullscreen(img) {
+  if (!img) return;
+  const isActive = img.classList.contains("pp-plot-fullscreen");
+  document.querySelectorAll(".pp-plot-fullscreen").forEach((el) => {
+    el.classList.remove("pp-plot-fullscreen");
+    el.setAttribute("aria-expanded", "false");
+  });
+  if (isActive) {
+    _activePlotFullscreen = null;
+    document.body.classList.remove("pp-plot-has-fullscreen");
+    return;
+  }
+  img.classList.add("pp-plot-fullscreen");
+  img.setAttribute("aria-expanded", "true");
+  _activePlotFullscreen = img;
+  document.body.classList.add("pp-plot-has-fullscreen");
+}
+
+function closeFullscreenPlot() {
+  if (!_activePlotFullscreen) return;
+  _activePlotFullscreen.classList.remove("pp-plot-fullscreen");
+  _activePlotFullscreen.setAttribute("aria-expanded", "false");
+  _activePlotFullscreen = null;
+  document.body.classList.remove("pp-plot-has-fullscreen");
+}
+
 function renderOut(stdoutText, plots = []) {
+  closeFullscreenPlot();
   _lastStdout = String(stdoutText || "");
   _lastPlots = Array.isArray(plots) ? plots : [];
 
-  const pre = `<pre class="pp-mono pp-pre" style="margin:0">${esc(_lastStdout)}</pre>`;
-  const imgs =
-    _lastPlots.length
-      ? `<div style="margin-top:10px;display:grid;gap:10px">
-          ${_lastPlots
-            .map(
-              (src, i) =>
-                `<div style="border:1px solid var(--pp-border, rgba(31,41,55,.12));border-radius:14px;overflow:hidden;background:rgba(255,255,255,.7)">
-                   <div class="pp-small" style="padding:8px 10px;border-bottom:1px solid rgba(31,41,55,.08)">Plot #${i + 1}</div>
-                   <img alt="plot ${i + 1}" src="${src}" style="width:100%;display:block" />
-                 </div>`,
-            )
-            .join("")}
-        </div>`
-      : "";
+  ui.out.innerHTML = "";
 
-  ui.out.innerHTML = pre + imgs;
+  const pre = document.createElement("pre");
+  pre.className = "pp-mono pp-pre";
+  pre.style.margin = "0";
+  pre.textContent = _lastStdout;
+  ui.out.appendChild(pre);
+
+  if (_lastPlots.length) {
+    const wrap = document.createElement("div");
+    wrap.className = "pp-plots-wrap";
+
+    _lastPlots.forEach((src, i) => {
+      const card = document.createElement("div");
+      card.className = "pp-plot-card";
+
+      const head = document.createElement("div");
+      head.className = "pp-plot-head pp-small";
+      head.textContent = `Plot #${i + 1} • double-click to fullscreen`;
+
+      const img = document.createElement("img");
+      img.alt = `plot ${i + 1}`;
+      img.src = src;
+      img.className = "pp-plot-img";
+      img.loading = "lazy";
+      img.decoding = "async";
+      img.tabIndex = 0;
+      img.setAttribute("role", "button");
+      img.setAttribute("aria-label", `Plot ${i + 1}. Double-click to toggle fullscreen.`);
+      img.setAttribute("aria-expanded", "false");
+      img.addEventListener("dblclick", () => togglePlotFullscreen(img));
+      img.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          togglePlotFullscreen(img);
+        }
+      });
+
+      card.appendChild(head);
+      card.appendChild(img);
+      wrap.appendChild(card);
+    });
+
+    ui.out.appendChild(wrap);
+  }
+
   ui.out.scrollTop = ui.out.scrollHeight;
 }
 
@@ -1342,6 +1485,12 @@ ui.code.addEventListener("keydown", (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
     e.preventDefault();
     run();
+    return;
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === "/") {
+    e.preventDefault();
+    toggleCommentSelection();
+    return;
   }
   if (e.key === "Tab") {
     e.preventDefault();
@@ -1353,9 +1502,7 @@ ui.code.addEventListener("keydown", (e) => {
 
     if (s !== t) {
       const v = el.value;
-      const ls = v.lastIndexOf("\n", s - 1) + 1;
-      const le = v.indexOf("\n", t);
-      const end = le === -1 ? v.length : le;
+      const [ls, end] = lineBounds(v, s, t);
       const block = v
         .slice(ls, end)
         .split("\n")
@@ -1370,6 +1517,10 @@ ui.code.addEventListener("keydown", (e) => {
     updateGutter();
     autosave();
   }
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeFullscreenPlot();
 });
 
 // problems
@@ -1424,12 +1575,35 @@ ui.runAll.onclick = async () => {
   await runJudge(p.tests, "All tests");
 };
 
+if (ui.themeToggle) ui.themeToggle.addEventListener("click", toggleTheme);
+
+wireDragResize(ui.sidebarResizer, (e) => {
+  setSidebarWidth(e.clientX - 50);
+}, "pp-resizing-col");
+
+wireDragResize(ui.panelResizer, (e) => {
+  const rect = ui.panel.parentElement.getBoundingClientRect();
+  const next = rect.bottom - e.clientY - 34;
+  setPanelHeight(next);
+}, "pp-resizing-row");
+
+window.addEventListener("resize", () => {
+  const saved = parseInt(localStorage.getItem(K_PANEL_H) || "0", 10);
+  if (saved) setPanelHeight(saved);
+});
+
 // ----- Init -----
 async function init() {
   setXP(getXP());
   setStreak(getStreak());
   updateSubCount();
   renderInstalledPkgs();
+
+  applyTheme(localStorage.getItem(K_THEME) || "dark");
+  const savedSidebarW = parseInt(localStorage.getItem(K_SIDEBAR_W) || "0", 10);
+  if (savedSidebarW) setSidebarWidth(savedSidebarW);
+  const savedPanelH = parseInt(localStorage.getItem(K_PANEL_H) || "0", 10);
+  if (savedPanelH) setPanelHeight(savedPanelH);
 
   // Optional URL loaders
   const codeFile = URLP.get("codefile");

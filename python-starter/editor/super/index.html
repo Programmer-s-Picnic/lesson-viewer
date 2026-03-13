@@ -19,6 +19,8 @@
         --good:#2ea043;
         --bad:#f85149;
         --warn:#d29922;
+        --surface:rgba(255,255,255,.04);
+        --surface2:rgba(255,255,255,.06);
 
         --r:12px;
         --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
@@ -34,6 +36,45 @@
         color:var(--text);
         overflow:hidden;
       }
+
+      body[data-theme="light"]{
+        --bg:#fff8ef;
+        --panel:#fffdf8;
+        --panel2:#fff6e8;
+        --top:#ffe8c7;
+        --border:#e9d3b2;
+        --muted:#7a6c5b;
+        --text:#2f2416;
+        --accent:#d97706;
+        --good:#15803d;
+        --bad:#dc2626;
+        --warn:#b45309;
+        --surface:rgba(255,255,255,.82);
+        --surface2:rgba(255,247,234,.92);
+      }
+      body[data-theme="light"] .vs-activity{ background:#fff1db; }
+      body[data-theme="light"] .vs-statusbar{ background:#fff1db; color:var(--text); }
+      body[data-theme="light"] .vs-topbar .title,
+      body[data-theme="light"] .vs-blockhead b,
+      body[data-theme="light"] .vs-badge{ color:var(--text); }
+      body[data-theme="light"] .vs-btn,
+      body[data-theme="light"] .vs-select,
+      body[data-theme="light"] .vs-input,
+      body[data-theme="light"] #ppStdin,
+      body[data-theme="light"] #ppOut,
+      body[data-theme="light"] #ppErr,
+      body[data-theme="light"] #ppShareInput,
+      body[data-theme="light"] #ppStuName,
+      body[data-theme="light"] #ppStuRoll,
+      body[data-theme="light"] #ppPkgs,
+      body[data-theme="light"] #ppAttemptLimit{
+        background:rgba(255,255,255,.92);
+        color:var(--text);
+        border-color:var(--border);
+      }
+      body[data-theme="light"] #ppCode{ color:#241a0f; }
+      body[data-theme="light"] #ppGutter{ color:#9b8570; background:rgba(0,0,0,.03); }
+      body[data-theme="light"] .pp-plot-img{ background:#fffaf2; }
 
       /* ----- VS Code chrome ----- */
       .vs-topbar{
@@ -520,6 +561,75 @@
         white-space:nowrap;
       }
 
+      .pp-plots-wrap{
+        margin-top:10px;
+        display:grid;
+        gap:10px;
+      }
+      .pp-plot-card{
+        border:1px solid var(--border);
+        border-radius:14px;
+        overflow:hidden;
+        background:var(--surface);
+        box-shadow:0 10px 24px rgba(0,0,0,.12);
+      }
+      .pp-plot-head{
+        padding:8px 10px;
+        border-bottom:1px solid var(--border);
+        background:var(--surface2);
+      }
+      .pp-plot-img{
+        width:100%;
+        display:block;
+        cursor:zoom-in;
+        background:#fff;
+        user-select:none;
+        -webkit-user-drag:none;
+      }
+      .pp-plot-img:focus-visible{
+        outline:2px solid var(--accent);
+        outline-offset:-2px;
+      }
+      .pp-plot-fullscreen{
+        position:fixed;
+        inset:0;
+        width:100vw !important;
+        height:100vh !important;
+        object-fit:contain;
+        background:#000;
+        z-index:999999;
+        cursor:zoom-out;
+        padding:24px;
+        margin:0 !important;
+        border-radius:0 !important;
+      }
+      body.pp-plot-has-fullscreen{
+        overflow:hidden;
+      }
+
+      .pp-resizer-vertical{
+        width:6px;
+        cursor:col-resize;
+        background:linear-gradient(180deg, transparent, rgba(127,127,127,.25), transparent);
+        flex:0 0 6px;
+      }
+      .pp-resizer-vertical:hover, body.pp-resizing-col .pp-resizer-vertical{
+        background:linear-gradient(180deg, transparent, rgba(55,148,255,.6), transparent);
+      }
+      .pp-resizer-horizontal{
+        height:6px;
+        cursor:row-resize;
+        background:linear-gradient(90deg, transparent, rgba(127,127,127,.25), transparent);
+        flex:0 0 6px;
+      }
+      .pp-resizer-horizontal:hover, body.pp-resizing-row .pp-resizer-horizontal{
+        background:linear-gradient(90deg, transparent, rgba(55,148,255,.6), transparent);
+      }
+      #ppOut, #ppErr, #ppPExamples, #ppJudgeTableWrap{ resize:vertical; }
+      #ppOut, #ppErr, #ppPExamples, #ppJudgeTableWrap, #ppStdin{ overflow:auto; }
+      #ppJudgeTableWrap{ min-height:120px; }
+      @media (max-width: 980px){ .pp-resizer-vertical{ display:none; } }
+
       /* Responsive */
       @media (max-width: 980px){
         .vs-sidebar{ display:none; }
@@ -537,6 +647,7 @@
       <div class="title">Programmer's Picnic — Python Editor</div>
       <div class="pill">
         <span class="vs-badge">Mode: <b id="ppModeText">—</b></span>
+        <button class="vs-btn ghost" id="ppThemeToggle" title="Toggle light/dark mode">🌙 Dark</button>
         <button class="vs-btn ghost" id="ppTeacherBtn" style="display:none" title="Teacher Panel (tmode=1)">🎓 Teacher</button>
       </div>
     </div>
@@ -653,6 +764,8 @@
         </div>
       </aside>
 
+      <div id="ppSidebarResizer" class="pp-resizer-vertical" title="Drag to resize sidebar"></div>
+
       <!-- Main editor -->
       <main class="vs-main">
         <div class="vs-editorbar">
@@ -689,6 +802,8 @@
             <pre id="ppGutter">1</pre>
             <textarea id="ppCode" spellcheck="false"></textarea>
           </div>
+
+          <div id="ppPanelResizer" class="pp-resizer-horizontal" title="Drag to resize output and code panels"></div>
 
           <!-- Bottom Panel -->
           <div class="vs-panel">
@@ -769,7 +884,7 @@
             <span class="pp-dot" id="ppDot"></span>
             <span id="ppStatus">Ready.</span>
             <div class="vs-progress"><div id="ppBar"></div></div>
-            <span class="vs-small" style="margin-left:auto">Ctrl+Enter to run</span>
+            <span class="vs-small" style="margin-left:auto">Ctrl+Enter to run • Ctrl+/ to comment</span>
           </div>
         </section>
       </main>
