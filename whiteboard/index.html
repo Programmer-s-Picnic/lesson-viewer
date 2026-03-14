@@ -511,9 +511,20 @@
           </button>
         </div>
       </section>
-    </aside>
 
-    <section class="canvas-wrap">
+      <section class="panel">
+        <h3>AI diagram helper</h3>
+        <p>
+          This version uses built-in prompt rules, not an external AI API.
+          Describe a CS topic and it will generate a starter diagram.
+        </p>
+        <div class="field">
+          <label for="aiPrompt">Prompt</label>
+          <textarea id="aiPrompt" placeholder="Examples:
+
+Binary search tree Stack push pop Client API database cache Flowchart for login validation Queue enqueue dequeue"></textarea> </div> <div class="row"> <button class="btn primary" id="aiGenerateBtn">Generate</button> <button class="btn" id="aiSampleBtn">Sample prompt</button> </div> <div class="hint"> Works best for flowcharts, stacks, queues, trees, linked lists, and simple system design layouts. </div> </section> </aside>
+
+<section class="canvas-wrap">
       <div class="canvas-stage">
         <canvas id="board"></canvas>
         <div class="statusbar">
@@ -559,6 +570,9 @@
   };
 
   const els = {
+    aiPrompt: document.getElementById("aiPrompt"),
+    aiGenerateBtn: document.getElementById("aiGenerateBtn"),
+    aiSampleBtn: document.getElementById("aiSampleBtn"),
     toolButtons: [...document.querySelectorAll("[data-tool]")],
     gridBtn: document.getElementById("gridBtn"),
     snapBtn: document.getElementById("snapBtn"),
@@ -1352,7 +1366,101 @@
     }
   }
 
-  function addTemplate(name) {
+  function addCenteredText(label, x, y, fontSize = 20) {
+    state.items.push({ id: uid(), type: "text", x, y, w: 140, h: 30, text: label, stroke: "#1f2328", fontSize });
+  }
+
+  function addQueueTemplate() {
+    saveHistory();
+    const baseX = 110;
+    const baseY = 160;
+    for (let i = 0; i < 5; i++) {
+      state.items.push({ id: uid(), type: "rect", x: baseX + i * 90, y: baseY, w: 78, h: 64, stroke: "#1f2328", fill: ["#dbeafe", "#dcfce7", "#fde68a", "#fee2e2", "#ede9fe"][i % 5], strokeWidth: 2, radius: 12 });
+      addCenteredText("Q" + (i + 1), baseX + 24 + i * 90, baseY + 18, 18);
+    }
+    addCenteredText("Front", baseX + 6, baseY - 56, 18);
+    addCenteredText("Rear", baseX + 356, baseY - 56, 18);
+    state.items.push({ id: uid(), type: "arrow", x: baseX + 36, y: baseY - 18, x2: baseX + 36, y2: baseY - 2, stroke: "#1f2328", strokeWidth: 2 });
+    state.items.push({ id: uid(), type: "arrow", x: baseX + 396, y: baseY - 18, x2: baseX + 396, y2: baseY - 2, stroke: "#1f2328", strokeWidth: 2 });
+    render();
+  }
+
+  function addLinkedListTemplate() {
+    saveHistory();
+    const baseX = 90;
+    const baseY = 170;
+    for (let i = 0; i < 4; i++) {
+      state.items.push({ id: uid(), type: "rect", x: baseX + i * 180, y: baseY, w: 120, h: 70, stroke: "#1f2328", fill: "#fff1c7", strokeWidth: 2, radius: 12 });
+      state.items.push({ id: uid(), type: "line", x: baseX + i * 180 + 80, y: baseY, x2: baseX + i * 180 + 80, y2: baseY + 70, stroke: "#1f2328", strokeWidth: 2 });
+      addCenteredText("data", baseX + i * 180 + 18, baseY + 22, 18);
+      addCenteredText("next", baseX + i * 180 + 86, baseY + 22, 18);
+      if (i < 3) {
+        state.items.push({ id: uid(), type: "arrow", x: baseX + i * 180 + 120, y: baseY + 35, x2: baseX + i * 180 + 180, y2: baseY + 35, stroke: "#1f2328", strokeWidth: 2 });
+      }
+    }
+    addCenteredText("Head", baseX + 6, baseY - 56, 18);
+    state.items.push({ id: uid(), type: "arrow", x: baseX + 36, y: baseY - 18, x2: baseX + 36, y2: baseY - 2, stroke: "#1f2328", strokeWidth: 2 });
+    render();
+  }
+
+  function addLoginFlowTemplate() {
+    saveHistory();
+    addTemplate("flowchart");
+    const extraX = 510;
+    const extraY = 260;
+    state.items.push({ id: uid(), type: "rect", x: extraX, y: extraY, w: 180, h: 72, stroke: "#1f2328", fill: "#dcfce7", strokeWidth: 2, radius: 16 });
+    addCenteredText("Grant Access", extraX + 24, extraY + 22, 20);
+    state.items.push({ id: uid(), type: "rect", x: extraX, y: extraY + 130, w: 180, h: 72, stroke: "#1f2328", fill: "#fee2e2", strokeWidth: 2, radius: 16 });
+    addCenteredText("Show Error", extraX + 34, extraY + 152, 20);
+    state.items.push({ id: uid(), type: "arrow", x: 425, y: 445, x2: extraX, y2: extraY + 36, stroke: "#1f2328", strokeWidth: 2 });
+    state.items.push({ id: uid(), type: "arrow", x: 425, y: 445, x2: extraX, y2: extraY + 166, stroke: "#1f2328", strokeWidth: 2 });
+    addCenteredText("Yes", 465, 320, 16);
+    addCenteredText("No", 470, 470, 16);
+    render();
+  }
+
+  function generateAIDiagram(promptText) {
+    const prompt = String(promptText || "").trim().toLowerCase();
+    if (!prompt) {
+      alert("Enter a prompt first.");
+      return;
+    }
+
+    if (prompt.includes("binary") && prompt.includes("tree") || prompt.includes("bst") || prompt.includes("tree")) {
+      addTemplate("tree");
+      return;
+    }
+    if (prompt.includes("stack")) {
+      addTemplate("stack");
+      return;
+    }
+    if (prompt.includes("queue")) {
+      addQueueTemplate();
+      return;
+    }
+    if (prompt.includes("linked list") || prompt.includes("node") && prompt.includes("next")) {
+      addLinkedListTemplate();
+      return;
+    }
+    if (prompt.includes("system") || prompt.includes("api") || prompt.includes("database") || prompt.includes("cache") || prompt.includes("client server")) {
+      addTemplate("system");
+      return;
+    }
+    if (prompt.includes("login") || prompt.includes("validation")) {
+      addLoginFlowTemplate();
+      return;
+    }
+    if (prompt.includes("flowchart") || prompt.includes("algorithm") || prompt.includes("process")) {
+      addTemplate("flowchart");
+      return;
+    }
+
+    saveHistory();
+    state.items.push({ id: uid(), type: "sticky", x: 140, y: 120, w: 300, h: 180, text: "Prompt: " + promptText + "
+
+I could not map this to a built-in diagram type yet. Try prompts like: stack, queue, binary tree, linked list, system design, or login flowchart.", stroke: "#7a4a00", fill: "#ffe082", fontSize: 18, radius: 16, strokeWidth: 2 }); render(); }
+
+function addTemplate(name) {
     saveHistory();
     const baseX = 120;
     const baseY = 100;
@@ -1441,6 +1549,18 @@
   els.bringFrontBtn.addEventListener("click", bringFront);
   els.sendBackBtn.addEventListener("click", sendBack);
   els.templateButtons.forEach((btn) => btn.addEventListener("click", () => addTemplate(btn.dataset.template)));
+  els.aiGenerateBtn.addEventListener("click", () => generateAIDiagram(els.aiPrompt.value));
+  els.aiSampleBtn.addEventListener("click", () => {
+    const samples = [
+      "Binary search tree",
+      "Stack push pop",
+      "Queue enqueue dequeue",
+      "Client API database cache",
+      "Flowchart for login validation",
+      "Linked list node next pointer"
+    ];
+    els.aiPrompt.value = samples[Math.floor(Math.random() * samples.length)];
+  });
 
   state.colors.forEach((color) => {
     const b = document.createElement("button");
