@@ -605,6 +605,8 @@ Binary search tree Stack push pop Client API database cache Flowchart for login 
     showGrid: false,
     snap: false,
     selectedId: null,
+    selectedIds: [],
+    selectionBox: null,
     hoveredId: null,
     dragOffsetX: 0,
     dragOffsetY: 0,
@@ -621,6 +623,8 @@ Binary search tree Stack push pop Client API database cache Flowchart for login 
   };
 
   const els = {
+    combineBtn: document.getElementById("combineBtn"),
+    ungroupBtn: document.getElementById("ungroupBtn"),
     aiPrompt: document.getElementById("aiPrompt"),
     aiGenerateBtn: document.getElementById("aiGenerateBtn"),
     aiSampleBtn: document.getElementById("aiSampleBtn"),
@@ -902,7 +906,7 @@ Binary search tree Stack push pop Client API database cache Flowchart for login 
       }
     }
 
-    if (item.id === state.selectedId) {
+    if (item.id === state.selectedId || state.selectedIds.includes(item.id)) {
       drawSelection(item);
     }
     ctx.restore();
@@ -967,6 +971,14 @@ Binary search tree Stack push pop Client API database cache Flowchart for login 
     ctx.scale(state.zoom, state.zoom);
     for (const item of state.items) renderItem(item);
     if (state.temp) renderItem(state.temp);
+    if (state.selectionBox) {
+      ctx.save();
+      ctx.setLineDash([8, 6]);
+      ctx.strokeStyle = "#2563eb";
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(state.selectionBox.x, state.selectionBox.y, state.selectionBox.w, state.selectionBox.h);
+      ctx.restore();
+    }
     ctx.restore();
     updateStatus();
     syncProps();
@@ -1000,18 +1012,41 @@ Binary search tree Stack push pop Client API database cache Flowchart for login 
     const hit = hitTest(world.x, world.y);
 
     if (state.tool === "select") {
-      state.selectedId = hit ? hit.id : null;
-      const selected = state.items.find((i) => i.id === state.selectedId);
-      state.resizeHandle = selected ? getResizeHandle(selected, world.x, world.y) : null;
-      if (selected && state.resizeHandle) {
-        saveHistory();
-        state.drawing = true;
-      } else if (hit) {
-        saveHistory();
-        state.drawing = true;
-        const b = getBounds(hit);
-        state.dragOffsetX = world.x - b.x;
-        state.dragOffsetY = world.y - b.y;
+      const selectedItems = getSelectedItems();
+      const item = state.items.find((i) => i.id === state.selectedId);
+      if (state.selectionBox) {
+        const n = normalizeRect(state.pointerStart.worldX, state.pointerStart.worldY, world.x, world.y);
+        state.selectionBox = n;
+        const ids = state.items.filter((it) => boundsIntersect(getBounds(it), n)).map((it) => it.id);
+        selectMany(ids);
+      } else if (item) {
+        if (state.resizeHandle === "se") {
+          const b = getBounds(item);
+          const nw = Math.max(24, snap(world.x) - b.x);
+          const nh = Math.max(24, snap(world.y) - b.y);
+          if (item.type === "line" || item.type === "arrow") {
+            item.x2 = item.x + nw;
+            item.y2 = item.y + nh;
+          } else {
+            item.w = nw;
+            item.h = nh;
+          }
+        } else {
+          const leadBounds = getBounds(item);
+          const targetX = snap(world.x - state.dragOffsetX);
+          const targetY = snap(world.y - state.dragOffsetY);
+          const dx = targetX - leadBounds.x;
+          const dy = targetY - leadBounds.y;
+          for (const sel of selectedItems) {
+            if (sel.type === "line" || sel.type === "arrow") {
+              sel.x += dx; sel.x2 += dx; sel.y += dy; sel.y2 += dy;
+            } else if (sel.type === "pen") {
+              sel.points.forEach((p) => { p.x += dx; p.y += dy; });
+            } else {
+              sel.x += dx; sel.y += dy;
+            }
+          }
+        }
       }
       render();
       return;
@@ -1216,6 +1251,7 @@ Binary search tree Stack push pop Client API database cache Flowchart for login 
     if (state.tool === "select") {
       state.drawing = false;
       state.resizeHandle = null;
+      state.selectionBox = null;
       render();
       return;
     }
@@ -1241,6 +1277,31 @@ Binary search tree Stack push pop Client API database cache Flowchart for login 
     state.drawing = false;
     render();
   }
+
+  canvas.addEventListener("dblclick", (evt) => {
+    const pos = pointerPos(evt);
+    const world = screenToWorld(pos.x, pos.y);
+    const text = prompt("Enter text", "New text");
+    if (!text) return;
+    saveHistory();
+    const item = {
+      id: uid(),
+      type: "text",
+      x: snap(world.x),
+      y: snap(world.y),
+      w: Math.max(180, Math.min(360, text.length * 10)),
+      h: 90,
+      text,
+      stroke: state.stroke,
+      fill: state.fill,
+      fontSize: 20,
+      radius: 0,
+      strokeWidth: 1,
+    };
+    state.items.push(item);
+    selectOnly(item.id);
+    render();
+  });
 
   canvas.addEventListener("pointerup", finishPointer);
   canvas.addEventListener("pointercancel", finishPointer);
@@ -1278,6 +1339,7 @@ Binary search tree Stack push pop Client API database cache Flowchart for login 
     state.future.push(clone(state.items));
     state.items = state.history.pop();
     state.selectedId = null;
+    state.selectedIds = [];
     render();
   }
 
@@ -1286,14 +1348,17 @@ Binary search tree Stack push pop Client API database cache Flowchart for login 
     state.history.push(clone(state.items));
     state.items = state.future.pop();
     state.selectedId = null;
+    state.selectedIds = [];
     render();
   }
 
   function removeSelected() {
-    if (!state.selectedId) return;
+    const ids = state.selectedIds.length ? state.selectedIds : state.selectedId ? [state.selectedId] : [];
+    if (!ids.length) return;
     saveHistory();
-    state.items = state.items.filter((item) => item.id !== state.selectedId);
+    state.items = state.items.filter((item) => !ids.includes(item.id));
     state.selectedId = null;
+    state.selectedIds = [];
     render();
   }
 
@@ -1306,32 +1371,70 @@ Binary search tree Stack push pop Client API database cache Flowchart for login 
     els.propRadius.value = item?.radius ?? "";
   }
 
+  function combineSelected(){
+    const items=getSelectedItems();
+    if(items.length<2) return;
+    const gid=uid();
+    items.forEach(it=>it.groupId=gid);
+    render();
+  }
+
+  function ungroupSelected(){
+    const items=getSelectedItems();
+    items.forEach(it=>delete it.groupId);
+    render();
+  }
+
+  function getSelectedItems() {
+    const ids = state.selectedIds.length ? state.selectedIds : state.selectedId ? [state.selectedId] : [];
+    return state.items.filter((i) => ids.includes(i.id));
+  }
+
+  function selectOnly(id) {
+    state.selectedId = id || null;
+    state.selectedIds = id ? [id] : [];
+  }
+
+  function selectMany(ids) {
+    state.selectedIds = [...ids];
+    state.selectedId = ids[0] || null;
+  }
+
+  function boundsIntersect(a, b) {
+    return a.x <= b.x + b.w && a.x + a.w >= b.x && a.y <= b.y + b.h && a.y + a.h >= b.y;
+  }
+
   function applyProps() {
+    const selected = getSelectedItems();
+    if (!selected.length) return;
     const item = state.items.find((i) => i.id === state.selectedId);
-    if (!item) return;
-    if ("text" in item) item.text = els.propText.value;
-    if ("w" in item && els.propWidth.value) item.w = Math.max(20, Number(els.propWidth.value));
-    if ("h" in item && els.propHeight.value) item.h = Math.max(20, Number(els.propHeight.value));
-    if (els.propFont.value) item.fontSize = Number(els.propFont.value);
-    if (els.propRadius.value) item.radius = Number(els.propRadius.value);
+    if (item && "text" in item) item.text = els.propText.value;
+    for (const sel of selected) {
+      if ("w" in sel && els.propWidth.value) sel.w = Math.max(20, Number(els.propWidth.value));
+      if ("h" in sel && els.propHeight.value) sel.h = Math.max(20, Number(els.propHeight.value));
+      if (els.propFont.value) sel.fontSize = Number(els.propFont.value);
+      if (els.propRadius.value) sel.radius = Number(els.propRadius.value);
+    }
     render();
   }
 
   function bringFront() {
-    const index = state.items.findIndex((i) => i.id === state.selectedId);
-    if (index < 0) return;
+    const ids = state.selectedIds.length ? state.selectedIds : state.selectedId ? [state.selectedId] : [];
+    if (!ids.length) return;
     saveHistory();
-    const [item] = state.items.splice(index, 1);
-    state.items.push(item);
+    const chosen = state.items.filter((i) => ids.includes(i.id));
+    const rest = state.items.filter((i) => !ids.includes(i.id));
+    state.items = [...rest, ...chosen];
     render();
   }
 
   function sendBack() {
-    const index = state.items.findIndex((i) => i.id === state.selectedId);
-    if (index < 0) return;
+    const ids = state.selectedIds.length ? state.selectedIds : state.selectedId ? [state.selectedId] : [];
+    if (!ids.length) return;
     saveHistory();
-    const [item] = state.items.splice(index, 1);
-    state.items.unshift(item);
+    const chosen = state.items.filter((i) => ids.includes(i.id));
+    const rest = state.items.filter((i) => !ids.includes(i.id));
+    state.items = [...chosen, ...rest];
     render();
   }
 
@@ -1364,6 +1467,7 @@ Binary search tree Stack push pop Client API database cache Flowchart for login 
     state.snap = !!data.snap;
     els.zoomRange.value = state.zoom;
     state.selectedId = null;
+    state.selectedIds = [];
     render();
   }
 
@@ -1382,6 +1486,7 @@ Binary search tree Stack push pop Client API database cache Flowchart for login 
 
   function exportPNG() {
     state.selectedId = null;
+    state.selectedIds = [];
     render();
     const url = canvas.toDataURL("image/png");
     const a = document.createElement("a");
@@ -1601,6 +1706,9 @@ function addTemplate(name) {
   els.sendBackBtn.addEventListener("click", sendBack);
   els.templateButtons.forEach((btn) => btn.addEventListener("click", () => addTemplate(btn.dataset.template)));
   els.aiGenerateBtn.addEventListener("click", () => generateAIDiagram(els.aiPrompt.value));
+  if(els.combineBtn) els.combineBtn.onclick=combineSelected;
+  if(els.ungroupBtn) els.ungroupBtn.onclick=ungroupSelected;
+
   els.aiSampleBtn.addEventListener("click", () => {
     const samples = [
       "Binary search tree",
