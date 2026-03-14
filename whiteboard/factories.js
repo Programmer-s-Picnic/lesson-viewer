@@ -6,6 +6,7 @@ function getNextZIndex(state) {
 }
 
 function createBaseObject(state, type, x, y, width, height, style = {}) {
+  const toolOptions = state.toolState?.toolOptions || {};
   return {
     id: nextObjectId(),
     type,
@@ -19,9 +20,9 @@ function createBaseObject(state, type, x, y, width, height, style = {}) {
     visible: true,
     groupId: null,
     style: {
-      stroke: "#1f2328",
-      fill: "#fff1c7",
-      strokeWidth: 2,
+      stroke: toolOptions.stroke || "#1f2328",
+      fill: toolOptions.fill || "#fff1c7",
+      strokeWidth: toolOptions.strokeWidth || 2,
       opacity: 1,
       ...style,
     },
@@ -57,8 +58,8 @@ export function createLine(state, x1, y1, x2, y2) {
     visible: true,
     groupId: null,
     style: {
-      stroke: "#1f2328",
-      strokeWidth: 2,
+      stroke: state.toolState?.toolOptions?.stroke || "#1f2328",
+      strokeWidth: state.toolState?.toolOptions?.strokeWidth || 2,
       opacity: 1,
     },
     meta: {},
@@ -91,9 +92,9 @@ export function createText(state, x, y, text) {
     textAlign: "left",
     verticalAlign: "top",
     style: {
-      color: "#1f2328",
-      fontSize: 18,
-      fontFamily: "Inter, sans-serif",
+      color: state.toolState?.toolOptions?.stroke || "#1f2328",
+      fontSize: state.toolState?.toolOptions?.fontSize || 18,
+      fontFamily: state.toolState?.toolOptions?.fontFamily || "Inter, sans-serif",
       fontWeight: 600,
       opacity: 1,
     },

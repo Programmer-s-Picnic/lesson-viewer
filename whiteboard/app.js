@@ -11,6 +11,21 @@ const commandManager = createCommandManager(store, history);
 const renderer = createRenderer(canvas, store);
 
 const statusText = document.getElementById("statusText");
+const strokeColorInput = document.getElementById("strokeColor");
+const fillColorInput = document.getElementById("fillColor");
+const strokeWidthInput = document.getElementById("strokeWidth");
+const strokeWidthValue = document.getElementById("strokeWidthValue");
+const fontFamilyInput = document.getElementById("fontFamily");
+const fontSizeInput = document.getElementById("fontSize");
+const fontSizeValue = document.getElementById("fontSizeValue");
+const propStroke = document.getElementById("propStroke");
+const propFill = document.getElementById("propFill");
+const propWidth = document.getElementById("propWidth");
+const propHeight = document.getElementById("propHeight");
+const propStrokeWidth = document.getElementById("propStrokeWidth");
+const propFontFamily = document.getElementById("propFontFamily");
+const propFontSize = document.getElementById("propFontSize");
+const propText = document.getElementById("propText");
 
 const interaction = {
   pointerDown: false,
@@ -29,11 +44,101 @@ function updateStatus() {
 store.subscribe(() => {
   renderer.requestRender();
   updateStatus();
+  syncPropertyPanel();
+  syncColorInputs();
 });
 
 function getPointerScreenPosition(event) {
   const r = canvas.getBoundingClientRect();
   return { x: event.clientX - r.left, y: event.clientY - r.top };
+}
+
+function updateCanvasCursor(tool) {
+  const cursorMap = {
+    select: "default",
+    rect: "crosshair",
+    ellipse: "crosshair",
+    diamond: "crosshair",
+    line: "cell",
+    arrow: "cell",
+    text: "text",
+  };
+  canvas.style.cursor = cursorMap[tool] || "crosshair";
+}
+
+function syncColorInputs() {
+  const state = store.getState();
+  if (strokeColorInput) strokeColorInput.value = state.toolState.toolOptions.stroke || "#1f2328";
+  if (fillColorInput) fillColorInput.value = state.toolState.toolOptions.fill || "#fff1c7";
+  if (strokeWidthInput) strokeWidthInput.value = state.toolState.toolOptions.strokeWidth || 2;
+  if (strokeWidthValue) strokeWidthValue.textContent = String(state.toolState.toolOptions.strokeWidth || 2);
+  if (fontFamilyInput) fontFamilyInput.value = state.toolState.toolOptions.fontFamily || "Inter, sans-serif";
+  if (fontSizeInput) fontSizeInput.value = state.toolState.toolOptions.fontSize || 18;
+  if (fontSizeValue) fontSizeValue.textContent = String(state.toolState.toolOptions.fontSize || 18);
+}
+
+function getPrimarySelectedObject() {
+  const state = store.getState();
+  const selection = getSelectionObjects(state);
+  return selection.length ? selection[0] : null;
+}
+
+function syncPropertyPanel() {
+  const obj = getPrimarySelectedObject();
+  const disabled = !obj;
+
+  [propStroke, propFill, propWidth, propHeight, propStrokeWidth, propFontFamily, propFontSize, propText].forEach((el) => {
+    if (el) el.disabled = disabled;
+  });
+
+  if (!obj) {
+    if (propText) propText.value = "";
+    if (propWidth) propWidth.value = "";
+    if (propHeight) propHeight.value = "";
+    if (propFontFamily) propFontFamily.value = "Inter, sans-serif";
+    if (propFontSize) propFontSize.value = 18;
+    return;
+  }
+
+  const stroke = obj.style?.stroke || obj.style?.color || "#1f2328";
+  const fill = obj.style?.fill || "#fff1c7";
+  const sw = obj.style?.strokeWidth || 2;
+
+  if (propStroke) propStroke.value = normalizeColor(stroke);
+  if (propFill) propFill.value = normalizeColor(fill);
+  if (propStrokeWidth) propStrokeWidth.value = sw;
+  if (propWidth) propWidth.value = obj.width ?? "";
+  if (propHeight) propHeight.value = obj.height ?? "";
+  if (propFontFamily) propFontFamily.value = obj.style?.fontFamily || "Inter, sans-serif";
+  if (propFontSize) propFontSize.value = obj.style?.fontSize || 18;
+  if (propText) propText.value = obj.text || "";
+}
+
+function normalizeColor(value) {
+  if (!value) return "#1f2328";
+  if (value.startsWith("#") && (value.length === 7 || value.length === 4)) return value;
+  return "#1f2328";
+}
+
+function updateSelectedObjects(mutator) {
+  const state = store.getState();
+  const selection = getSelectionObjects(state);
+  if (!selection.length) return;
+
+  const ids = new Set(selection.map((o) => o.id));
+  const before = selection.map((o) => deepClone(o));
+  const nextObjects = state.objects.map((obj) => {
+    if (!ids.has(obj.id)) return obj;
+    const copy = deepClone(obj);
+    mutator(copy);
+    return copy;
+  });
+  const after = nextObjects.filter((o) => ids.has(o.id)).map((o) => deepClone(o));
+
+  commandManager.execute({
+    type: COMMANDS.UPDATE_OBJECTS,
+    payload: { before, after },
+  });
 }
 
 function setActiveTool(tool) {
@@ -49,6 +154,8 @@ function setActiveTool(tool) {
   document.querySelectorAll("[data-tool]").forEach((button) => {
     button.classList.toggle("active", button.dataset.tool === tool);
   });
+  updateCanvasCursor(tool);
+  syncColorInputs();
 }
 
 function handleSelectPointerDown(event, hit, world) {
@@ -392,6 +499,172 @@ document.getElementById("pngBtn").addEventListener("click", () => {
   link.click();
 });
 
+if (strokeColorInput) {
+  strokeColorInput.addEventListener("input", (event) => {
+    const state = store.getState();
+    store.setState({
+      ...state,
+      toolState: {
+        ...state.toolState,
+        toolOptions: {
+          ...state.toolState.toolOptions,
+          stroke: event.target.value,
+        },
+      },
+    });
+  });
+}
+
+if (fillColorInput) {
+  fillColorInput.addEventListener("input", (event) => {
+    const state = store.getState();
+    store.setState({
+      ...state,
+      toolState: {
+        ...state.toolState,
+        toolOptions: {
+          ...state.toolState.toolOptions,
+          fill: event.target.value,
+        },
+      },
+    });
+  });
+}
+
+if (strokeWidthInput) {
+  strokeWidthInput.addEventListener("input", (event) => {
+    const value = Number(event.target.value);
+    const state = store.getState();
+    store.setState({
+      ...state,
+      toolState: {
+        ...state.toolState,
+        toolOptions: {
+          ...state.toolState.toolOptions,
+          strokeWidth: value,
+        },
+      },
+    });
+    if (strokeWidthValue) strokeWidthValue.textContent = String(value);
+  });
+}
+
+if (fontFamilyInput) {
+  fontFamilyInput.addEventListener("change", (event) => {
+    const state = store.getState();
+    store.setState({
+      ...state,
+      toolState: {
+        ...state.toolState,
+        toolOptions: {
+          ...state.toolState.toolOptions,
+          fontFamily: event.target.value,
+        },
+      },
+    });
+  });
+}
+
+if (fontSizeInput) {
+  fontSizeInput.addEventListener("input", (event) => {
+    const value = Number(event.target.value);
+    const state = store.getState();
+    store.setState({
+      ...state,
+      toolState: {
+        ...state.toolState,
+        toolOptions: {
+          ...state.toolState.toolOptions,
+          fontSize: value,
+        },
+      },
+    });
+    if (fontSizeValue) fontSizeValue.textContent = String(value);
+  });
+}
+
+if (propStroke) {
+  propStroke.addEventListener("input", (event) => {
+    const color = event.target.value;
+    updateSelectedObjects((obj) => {
+      obj.style = obj.style || {};
+      if (obj.type === "text") obj.style.color = color;
+      else obj.style.stroke = color;
+    });
+  });
+}
+
+if (propFill) {
+  propFill.addEventListener("input", (event) => {
+    const color = event.target.value;
+    updateSelectedObjects((obj) => {
+      obj.style = obj.style || {};
+      if (obj.type !== "line" && obj.type !== "arrow" && obj.type !== "text") {
+        obj.style.fill = color;
+      }
+    });
+  });
+}
+
+if (propStrokeWidth) {
+  propStrokeWidth.addEventListener("input", (event) => {
+    const value = Number(event.target.value);
+    updateSelectedObjects((obj) => {
+      obj.style = obj.style || {};
+      obj.style.strokeWidth = value;
+    });
+  });
+}
+
+if (propWidth) {
+  propWidth.addEventListener("change", (event) => {
+    const value = Number(event.target.value);
+    if (!Number.isFinite(value) || value <= 0) return;
+    updateSelectedObjects((obj) => {
+      if ("width" in obj) obj.width = value;
+    });
+  });
+}
+
+if (propHeight) {
+  propHeight.addEventListener("change", (event) => {
+    const value = Number(event.target.value);
+    if (!Number.isFinite(value) || value <= 0) return;
+    updateSelectedObjects((obj) => {
+      if ("height" in obj) obj.height = value;
+    });
+  });
+}
+
+if (propFontFamily) {
+  propFontFamily.addEventListener("change", (event) => {
+    const value = event.target.value;
+    updateSelectedObjects((obj) => {
+      obj.style = obj.style || {};
+      obj.style.fontFamily = value;
+    });
+  });
+}
+
+if (propFontSize) {
+  propFontSize.addEventListener("input", (event) => {
+    const value = Number(event.target.value);
+    updateSelectedObjects((obj) => {
+      obj.style = obj.style || {};
+      obj.style.fontSize = value;
+    });
+  });
+}
+
+if (propText) {
+  propText.addEventListener("input", (event) => {
+    const value = event.target.value;
+    updateSelectedObjects((obj) => {
+      if ("text" in obj) obj.text = value;
+    });
+  });
+}
+
 document.getElementById("themeBtn").addEventListener("click", () => {
   const root = document.documentElement;
   const next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
@@ -483,7 +756,9 @@ function boot() {
     { record: false }
   );
 
+  syncColorInputs();
   setActiveTool(TOOLS.SELECT);
+  syncPropertyPanel();
   renderer.requestRender();
 }
 
