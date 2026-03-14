@@ -1,1761 +1,2065 @@
 <!doctype html>
-
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Programmer's Picnic — Advanced Whiteboard</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Programmer's Picnic Editor Hub</title>
     <meta
       name="description"
-      content="A single-file advanced whiteboard with drawing, shapes, connectors, sticky notes, code blocks, undo/redo, PNG export, JSON save/load, and share links."
+      content="A premium Blogger homepage for Programmer's Picnic that opens Python, JavaScript, SQL, HTML, JSON, Preview, MongoDB, Whiteboard, Room, and Search in one elegant interactive hub."
     />
+    <meta name="theme-color" content="#d97706" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
     <style>
       :root {
         --bg: #fff8ef;
-        --bg-2: #fff2d6;
-        --panel: rgba(255, 255, 255, 0.82);
-        --panel-strong: rgba(255, 255, 255, 0.94);
-        --line: rgba(31, 35, 40, 0.12);
-        --line-strong: rgba(31, 35, 40, 0.18);
+        --bg2: #fff3d9;
+        --panel: rgba(255, 255, 255, 0.78);
+        --panel-strong: rgba(255, 255, 255, 0.92);
         --ink: #1f2328;
         --muted: #5f6771;
+        --line: rgba(31, 35, 40, 0.1);
+        --line-strong: rgba(31, 35, 40, 0.16);
         --saffron: #ff9f1c;
-        --saffron-2: #ffb74d;
-        --saffron-3: #f59e0b;
+        --saffron2: #ffb74d;
+        --saffron3: #f59e0b;
         --green: #2f7d4a;
-        --red: #d94841;
-        --blue: #2563eb;
         --shadow: 0 24px 60px rgba(31, 35, 40, 0.12);
-        --shadow-soft: 0 12px 28px rgba(31, 35, 40, 0.1);
+        --shadow-soft: 0 14px 36px rgba(31, 35, 40, 0.1);
         --radius: 22px;
-        --radius-lg: 28px;
-        --sans: Inter, "DM Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-      }* {
-    box-sizing: border-box;
-  }
+        --radius2: 30px;
+        --sans:
+          "DM Sans", Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial,
+          sans-serif;
+        --mono:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+      }
 
-  html,
-  body {
-    margin: 0;
-    height: 100%;
-  }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: var(--sans);
+        color: var(--ink);
+        background:
+          radial-gradient(
+            1200px 700px at 0% 0%,
+            rgba(255, 159, 28, 0.18),
+            transparent 60%
+          ),
+          radial-gradient(
+            900px 600px at 100% 10%,
+            rgba(255, 183, 77, 0.18),
+            transparent 60%
+          ),
+          linear-gradient(180deg, #fffdf7 0%, var(--bg) 50%, var(--bg2) 100%);
+        min-height: 100vh;
+      }
 
-  body {
-    font-family: var(--sans);
-    color: var(--ink);
-    background:
-      radial-gradient(circle at top left, rgba(255, 159, 28, 0.22), transparent 35%),
-      radial-gradient(circle at top right, rgba(255, 183, 77, 0.16), transparent 32%),
-      linear-gradient(180deg, #fffdf8 0%, var(--bg) 58%, var(--bg-2) 100%);
-    overflow: hidden;
-  }
+      a {
+        text-decoration: none;
+        color: inherit;
+      }
+      img {
+        max-width: 100%;
+        display: block;
+      }
 
-  button,
-  input,
-  select,
-  textarea {
-    font: inherit;
-  }
+      .wrap {
+        width: min(1280px, calc(100% - 28px));
+        margin: 0 auto;
+      }
 
-  .app {
-    display: grid;
-    grid-template-rows: auto 1fr;
-    height: 100%;
-  }
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        backdrop-filter: blur(16px);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 248, 239, 0.88),
+          rgba(255, 248, 239, 0.62)
+        );
+        border-bottom: 1px solid var(--line);
+      }
+      .topbar-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 12px 0;
+      }
 
-  .topbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--line);
-    background: rgba(255, 248, 239, 0.78);
-    backdrop-filter: blur(14px);
-  }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+      }
+      .logo {
+        width: 46px;
+        height: 46px;
+        border-radius: 16px;
+        background: conic-gradient(
+          from 210deg,
+          var(--saffron),
+          var(--saffron2),
+          #ffd799,
+          var(--saffron)
+        );
+        box-shadow: 0 14px 28px rgba(255, 159, 28, 0.26);
+        position: relative;
+        flex: 0 0 auto;
+      }
+      .logo:before {
+        content: "";
+        position: absolute;
+        inset: 10px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.76);
+        border: 1px solid rgba(31, 35, 40, 0.08);
+      }
+      .brand-copy {
+        min-width: 0;
+      }
+      .brand-copy h1 {
+        margin: 0;
+        font-size: 16px;
+        line-height: 1.1;
+        letter-spacing: 0.2px;
+      }
+      .brand-copy p {
+        margin: 4px 0 0;
+        font-size: 12px;
+        color: var(--muted);
+      }
 
-  .brand {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-width: 0;
-  }
+      .nav {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
 
-  .logo {
-    width: 46px;
-    height: 46px;
-    border-radius: 16px;
-    background: conic-gradient(from 210deg, var(--saffron), var(--saffron-2), #ffe0a6, var(--saffron));
-    position: relative;
-    box-shadow: 0 14px 30px rgba(255, 159, 28, 0.28);
-    flex: 0 0 auto;
-  }
+      .btn,
+      .chip,
+      .seg-btn {
+        border: 1px solid rgba(31, 35, 40, 0.12);
+        background: rgba(255, 255, 255, 0.78);
+        color: var(--ink);
+        border-radius: 999px;
+        padding: 10px 14px;
+        font-weight: 800;
+        font-size: 13px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        transition:
+          transform 0.16s ease,
+          box-shadow 0.16s ease,
+          background 0.16s ease,
+          border-color 0.16s ease;
+        box-shadow: 0 10px 24px rgba(31, 35, 40, 0.08);
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .btn:hover,
+      .chip:hover,
+      .seg-btn:hover {
+        transform: translateY(-1px);
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: 0 16px 28px rgba(31, 35, 40, 0.12);
+      }
+      .btn:active,
+      .chip:active,
+      .seg-btn:active {
+        transform: translateY(0) scale(0.99);
+      }
+      .btn.primary {
+        background: linear-gradient(
+          180deg,
+          rgba(255, 159, 28, 0.98),
+          rgba(255, 183, 77, 0.98)
+        );
+        border-color: rgba(217, 119, 6, 0.26);
+        color: #22180c;
+      }
+      .btn.dark {
+        background: #1f2328;
+        color: #fff;
+        border-color: #1f2328;
+      }
+      .btn.green {
+        background: rgba(47, 125, 74, 0.12);
+        border-color: rgba(47, 125, 74, 0.24);
+      }
 
-  .logo::before {
-    content: "";
-    position: absolute;
-    inset: 9px;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.9);
-    border: 1px solid rgba(31, 35, 40, 0.08);
-  }
+      .hero {
+        padding: 26px 0 18px;
+      }
+      .hero-card {
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.86),
+          rgba(255, 255, 255, 0.72)
+        );
+        border: 1px solid rgba(31, 35, 40, 0.08);
+        border-radius: var(--radius2);
+        box-shadow: var(--shadow);
+        padding: 26px;
+        isolation: isolate;
+      }
+      .hero-card:before {
+        content: "";
+        position: absolute;
+        inset: auto -80px -80px auto;
+        width: 260px;
+        height: 260px;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle at center,
+          rgba(255, 183, 77, 0.44),
+          rgba(255, 183, 77, 0)
+        );
+        z-index: -1;
+      }
+      .hero-card:after {
+        content: "";
+        position: absolute;
+        inset: -90px auto auto -90px;
+        width: 240px;
+        height: 240px;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle at center,
+          rgba(255, 159, 28, 0.2),
+          rgba(255, 159, 28, 0)
+        );
+        z-index: -1;
+      }
 
-  .logo::after {
-    content: "✎";
-    position: absolute;
-    inset: 0;
-    display: grid;
-    place-items: center;
-    font-size: 18px;
-    color: #9a5800;
-    font-weight: 900;
-  }
+      .hero-grid {
+        display: grid;
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: 20px;
+        align-items: stretch;
+      }
 
-  .brand-copy h1 {
-    margin: 0;
-    font-size: 17px;
-    line-height: 1.1;
-  }
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.76);
+        border: 1px solid rgba(31, 35, 40, 0.1);
+        font-size: 12px;
+        font-weight: 900;
+      }
+      .eyebrow i {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--saffron);
+        box-shadow: 0 0 0 5px rgba(255, 159, 28, 0.14);
+        display: inline-block;
+      }
 
-  .brand-copy p {
-    margin: 4px 0 0;
-    font-size: 12px;
-    color: var(--muted);
-  }
+      .hero-title {
+        margin: 14px 0 10px;
+        font-size: clamp(34px, 5vw, 58px);
+        line-height: 0.98;
+        letter-spacing: -1.6px;
+      }
+      .hero-sub {
+        margin: 0;
+        font-size: 15px;
+        color: var(--muted);
+        line-height: 1.65;
+        max-width: 70ch;
+      }
 
-  .top-actions {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
+      .hero-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 18px;
+      }
 
-  .btn,
-  .tool-btn,
-  .swatch,
-  .seg-btn {
-    border: 1px solid rgba(31, 35, 40, 0.12);
-    background: rgba(255, 255, 255, 0.84);
-    color: var(--ink);
-    border-radius: 999px;
-    padding: 10px 14px;
-    font-weight: 800;
-    font-size: 13px;
-    cursor: pointer;
-    transition: transform 0.14s ease, box-shadow 0.14s ease, background 0.14s ease, border-color 0.14s ease;
-    box-shadow: 0 10px 24px rgba(31, 35, 40, 0.08);
-  }
+      .hero-stats {
+        margin-top: 18px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+      .stat {
+        background: rgba(255, 255, 255, 0.74);
+        border: 1px solid rgba(31, 35, 40, 0.08);
+        border-radius: 20px;
+        padding: 14px;
+        box-shadow: var(--shadow-soft);
+      }
+      .stat strong {
+        display: block;
+        font-size: 18px;
+        line-height: 1;
+        margin-bottom: 6px;
+      }
+      .stat span {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.35;
+      }
 
-  .btn:hover,
-  .tool-btn:hover,
-  .swatch:hover,
-  .seg-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 16px 28px rgba(31, 35, 40, 0.12);
-  }
+      .hero-side {
+        display: grid;
+        gap: 12px;
+      }
+      .mini {
+        background: rgba(255, 255, 255, 0.74);
+        border: 1px solid rgba(31, 35, 40, 0.08);
+        border-radius: 22px;
+        padding: 16px;
+        box-shadow: var(--shadow-soft);
+      }
+      .mini h3 {
+        margin: 0 0 8px;
+        font-size: 14px;
+        letter-spacing: 0.1px;
+      }
+      .mini p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.55;
+      }
+      .mini .mono {
+        font-family: var(--mono);
+        font-size: 12px;
+        color: #9a5800;
+        font-weight: 700;
+      }
 
-  .btn.primary {
-    background: linear-gradient(180deg, rgba(255, 159, 28, 0.98), rgba(255, 183, 77, 0.98));
-    color: #2b1c08;
-    border-color: rgba(217, 119, 6, 0.24);
-  }
+      .section {
+        padding: 10px 0 18px;
+      }
+      .section-head {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+      }
+      .section-head h2 {
+        margin: 0;
+        font-size: 28px;
+        letter-spacing: -0.7px;
+      }
+      .section-head p {
+        margin: 7px 0 0;
+        color: var(--muted);
+        font-size: 14px;
+        max-width: 72ch;
+        line-height: 1.55;
+      }
 
-  .btn.dark {
-    background: #1f2328;
-    color: #fff;
-    border-color: #1f2328;
-  }
+      .toolbar {
+        background: var(--panel);
+        border: 1px solid rgba(31, 35, 40, 0.08);
+        border-radius: 26px;
+        box-shadow: var(--shadow);
+        padding: 14px;
+        display: grid;
+        gap: 12px;
+      }
+      .toolbar-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .search-wrap {
+        flex: 1 1 340px;
+        position: relative;
+      }
+      .search {
+        width: 100%;
+        padding: 14px 16px 14px 46px;
+        border-radius: 18px;
+        border: 1px solid rgba(31, 35, 40, 0.12);
+        background: rgba(255, 255, 255, 0.88);
+        font: 700 14px var(--sans);
+        color: var(--ink);
+        outline: none;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+      }
+      .search:focus {
+        border-color: rgba(217, 119, 6, 0.3);
+        box-shadow: 0 0 0 4px rgba(255, 159, 28, 0.14);
+      }
+      .search-icon {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 16px;
+        opacity: 0.72;
+        pointer-events: none;
+      }
 
-  .main {
-    display: grid;
-    grid-template-columns: 320px 1fr;
-    min-height: 0;
-  }
+      .chips {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .chip.active {
+        background: rgba(255, 159, 28, 0.2);
+        border-color: rgba(217, 119, 6, 0.22);
+      }
 
-  .sidebar {
-    padding: 14px;
-    border-right: 1px solid var(--line);
-    overflow: auto;
-    background: rgba(255, 255, 255, 0.28);
-  }
+      .seg {
+        display: flex;
+        gap: 8px;
+        padding: 6px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.74);
+        border: 1px solid rgba(31, 35, 40, 0.1);
+      }
+      .seg-btn.active {
+        background: rgba(255, 159, 28, 0.2);
+        border-color: rgba(217, 119, 6, 0.22);
+        box-shadow: 0 12px 24px rgba(255, 159, 28, 0.12);
+      }
 
-  .panel {
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow-soft);
-    padding: 14px;
-    margin-bottom: 12px;
-  }
+      .main-grid {
+        margin-top: 14px;
+        display: grid;
+        grid-template-columns: 420px 1fr;
+        gap: 14px;
+        align-items: start;
+      }
 
-  .panel h2,
-  .panel h3 {
-    margin: 0 0 10px;
-    font-size: 14px;
-  }
+      .card {
+        background: var(--panel);
+        border: 1px solid rgba(31, 35, 40, 0.08);
+        border-radius: 28px;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
 
-  .panel p {
-    margin: 0;
-    color: var(--muted);
-    font-size: 12px;
-    line-height: 1.5;
-  }
+      .left-panel {
+        display: flex;
+        flex-direction: column;
+        min-height: 1080px;
+      }
+      .panel-head {
+        padding: 16px 16px 12px;
+        border-bottom: 1px solid rgba(31, 35, 40, 0.08);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.78),
+          rgba(255, 255, 255, 0.56)
+        );
+      }
+      .panel-head h3 {
+        margin: 0;
+        font-size: 18px;
+        letter-spacing: -0.3px;
+      }
+      .panel-head p {
+        margin: 6px 0 0;
+        font-size: 13px;
+        color: var(--muted);
+        line-height: 1.5;
+      }
 
-  .tool-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-  }
+      .tool-list {
+        padding: 12px;
+        display: grid;
+        gap: 10px;
+        overflow: auto;
+      }
 
-  .tool-btn.active,
-  .seg-btn.active {
-    background: rgba(255, 159, 28, 0.2);
-    border-color: rgba(217, 119, 6, 0.22);
-  }
+      .tool-card {
+        position: relative;
+        border: 1px solid rgba(31, 35, 40, 0.08);
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.8);
+        padding: 14px;
+        box-shadow: 0 12px 26px rgba(31, 35, 40, 0.08);
+        cursor: pointer;
+        transition:
+          transform 0.16s ease,
+          box-shadow 0.16s ease,
+          border-color 0.16s ease,
+          background 0.16s ease;
+      }
+      .tool-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 20px 36px rgba(31, 35, 40, 0.12);
+        background: rgba(255, 255, 255, 0.92);
+      }
+      .tool-card.active {
+        border-color: rgba(217, 119, 6, 0.24);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 244, 225, 0.96),
+          rgba(255, 255, 255, 0.9)
+        );
+        box-shadow: 0 20px 38px rgba(255, 159, 28, 0.12);
+      }
 
-  .seg {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
+      .tool-top {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+      }
+      .tool-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 16px;
+        display: grid;
+        place-items: center;
+        font-size: 22px;
+        flex: 0 0 auto;
+        background: linear-gradient(
+          135deg,
+          rgba(255, 159, 28, 0.24),
+          rgba(255, 183, 77, 0.14)
+        );
+        border: 1px solid rgba(217, 119, 6, 0.1);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      }
+      .tool-copy {
+        min-width: 0;
+        flex: 1 1 auto;
+      }
+      .tool-copy h4 {
+        margin: 0;
+        font-size: 17px;
+        line-height: 1.15;
+        letter-spacing: -0.3px;
+      }
+      .tool-copy p {
+        margin: 6px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      .tool-meta {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+      }
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(31, 35, 40, 0.1);
+        background: rgba(255, 255, 255, 0.78);
+        font-size: 11px;
+        font-weight: 900;
+        color: #2b3138;
+      }
 
-  .field {
-    display: grid;
-    gap: 6px;
-    margin-top: 10px;
-  }
+      .tool-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+      }
 
-  .field label {
-    font-size: 12px;
-    font-weight: 800;
-  }
+      .small-btn {
+        border: 1px solid rgba(31, 35, 40, 0.12);
+        background: rgba(255, 255, 255, 0.88);
+        border-radius: 14px;
+        padding: 9px 11px;
+        font-size: 12px;
+        font-weight: 900;
+        cursor: pointer;
+        box-shadow: 0 8px 20px rgba(31, 35, 40, 0.08);
+      }
+      .small-btn:hover {
+        background: #fff;
+      }
 
-  .field input,
-  .field textarea,
-  .field select {
-    width: 100%;
-    border: 1px solid var(--line-strong);
-    background: rgba(255, 255, 255, 0.9);
-    border-radius: 14px;
-    padding: 10px 12px;
-    color: var(--ink);
-    outline: none;
-  }
+      .viewer {
+        display: flex;
+        flex-direction: column;
+        min-height: 1080px;
+      }
 
-  .field textarea {
-    min-height: 88px;
-    resize: vertical;
-  }
+      .viewer-top {
+        padding: 14px;
+        border-bottom: 1px solid rgba(31, 35, 40, 0.08);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.82),
+          rgba(255, 255, 255, 0.58)
+        );
+        display: grid;
+        gap: 12px;
+      }
 
-  .row {
-    display: flex;
-    gap: 8px;
-  }
+      .viewer-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: flex-start;
+      }
 
-  .row > * {
-    flex: 1 1 0;
-  }
+      .viewer-title {
+        min-width: 0;
+      }
+      .viewer-title .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.82);
+        border: 1px solid rgba(31, 35, 40, 0.08);
+        font-size: 11px;
+        font-weight: 900;
+        color: #8a4d00;
+        margin-bottom: 8px;
+      }
+      .viewer-title h3 {
+        margin: 0;
+        font-size: 24px;
+        letter-spacing: -0.6px;
+        line-height: 1.05;
+      }
+      .viewer-title p {
+        margin: 7px 0 0;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.6;
+        max-width: 78ch;
+      }
 
-  .swatches {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-top: 8px;
-  }
+      .viewer-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
 
-  .swatch {
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
-    padding: 0;
-    border-radius: 50%;
-  }
+      .info-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+      }
+      .info {
+        padding: 12px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.78);
+        border: 1px solid rgba(31, 35, 40, 0.08);
+      }
+      .info b {
+        display: block;
+        font-size: 12px;
+        margin-bottom: 4px;
+      }
+      .info span {
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.45;
+        display: block;
+        word-break: break-word;
+      }
+      .info code {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: #9a5800;
+      }
 
-  .canvas-wrap {
-    position: relative;
-    min-width: 0;
-    min-height: 0;
-    overflow: hidden;
-  }
+      .frame-wrap {
+        padding: 14px;
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        min-height: 0;
+      }
 
-  .canvas-stage {
-    position: absolute;
-    inset: 0;
-  }
+      .frame-shell {
+        position: relative;
+        flex: 1 1 auto;
+        min-height: 840px;
+        border-radius: 26px;
+        overflow: hidden;
+        border: 1px solid rgba(31, 35, 40, 0.1);
+        background:
+          linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0.28),
+            rgba(255, 255, 255, 0.04)
+          ),
+          linear-gradient(135deg, #fff7e8, #fffdf8);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.52),
+          0 20px 40px rgba(31, 35, 40, 0.08);
+      }
 
-  #board {
-    width: 100%;
-    height: 100%;
-    display: block;
-    cursor: crosshair;
-    background:
-      linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.06));
-  }
+      .browser-bar {
+        height: 54px;
+        border-bottom: 1px solid rgba(31, 35, 40, 0.08);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.84),
+          rgba(255, 255, 255, 0.66)
+        );
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 0 14px;
+      }
+      .browser-dots {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex: 0 0 auto;
+      }
+      .browser-dots span {
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        display: block;
+        background: #ffd5a0;
+        border: 1px solid rgba(31, 35, 40, 0.08);
+      }
+      .browser-dots span:nth-child(1) {
+        background: #ffb4a8;
+      }
+      .browser-dots span:nth-child(2) {
+        background: #ffe08a;
+      }
+      .browser-dots span:nth-child(3) {
+        background: #bce9b7;
+      }
+      .browser-url {
+        min-width: 0;
+        flex: 1 1 auto;
+        border: 1px solid rgba(31, 35, 40, 0.08);
+        background: rgba(255, 255, 255, 0.84);
+        border-radius: 999px;
+        padding: 10px 14px;
+        font: 700 12px var(--mono);
+        color: #805000;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
 
-  .statusbar {
-    position: absolute;
-    left: 16px;
-    right: 16px;
-    bottom: 16px;
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 10px 14px;
-    border-radius: 18px;
-    background: rgba(255, 255, 255, 0.86);
-    border: 1px solid var(--line);
-    box-shadow: var(--shadow-soft);
-    backdrop-filter: blur(10px);
-    font-size: 12px;
-    color: var(--muted);
-    pointer-events: none;
-  }
+      iframe {
+        width: 100%;
+        height: calc(100% - 54px);
+        min-height: 786px;
+        border: 0;
+        display: block;
+        background: #fff;
+      }
 
-  .hint {
-    font-size: 11px;
-    color: var(--muted);
-    margin-top: 8px;
-  }
+      .quick-links {
+        display: grid;
+        grid-template-columns: repeat(10, minmax(0, 1fr));
+        gap: 10px;
+      }
+      .quick-link {
+        border: 1px solid rgba(31, 35, 40, 0.08);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.76);
+        padding: 12px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        transition:
+          transform 0.16s ease,
+          box-shadow 0.16s ease;
+        box-shadow: 0 12px 24px rgba(31, 35, 40, 0.08);
+        cursor: pointer;
+      }
+      .quick-link:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 18px 32px rgba(31, 35, 40, 0.11);
+      }
+      .quick-link .qicon {
+        width: 38px;
+        height: 38px;
+        border-radius: 13px;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(
+          135deg,
+          rgba(255, 159, 28, 0.2),
+          rgba(255, 183, 77, 0.1)
+        );
+        border: 1px solid rgba(217, 119, 6, 0.08);
+        flex: 0 0 auto;
+        font-size: 18px;
+      }
+      .quick-link strong {
+        display: block;
+        font-size: 13px;
+        line-height: 1.15;
+      }
+      .quick-link span {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+        margin-top: 3px;
+      }
 
-  .kbd {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 24px;
-    height: 24px;
-    padding: 0 7px;
-    border-radius: 8px;
-    border: 1px solid var(--line-strong);
-    background: #fff;
-    font-size: 11px;
-    font-weight: 900;
-    color: var(--ink);
-  }
+      .feature-band {
+        margin-top: 14px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+      .feature {
+        border: 1px solid rgba(31, 35, 40, 0.08);
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.76);
+        padding: 18px;
+        box-shadow: var(--shadow-soft);
+      }
+      .feature h3 {
+        margin: 0 0 8px;
+        font-size: 16px;
+        letter-spacing: -0.2px;
+      }
+      .feature p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.6;
+      }
 
-  .chip-list {
-    display: grid;
-    gap: 8px;
-  }
+      .footer {
+        padding: 24px 0 34px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .footer-box {
+        background: rgba(255, 255, 255, 0.62);
+        border: 1px solid rgba(31, 35, 40, 0.08);
+        border-radius: 24px;
+        box-shadow: var(--shadow-soft);
+        padding: 16px 18px;
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
 
-  .template-btn {
-    text-align: left;
-    border-radius: 16px;
-    padding: 12px;
-    border: 1px solid var(--line);
-    background: rgba(255, 255, 255, 0.78);
-    cursor: pointer;
-    box-shadow: 0 10px 18px rgba(31, 35, 40, 0.06);
-  }
+      .hidden {
+        display: none !important;
+      }
 
-  .template-btn b {
-    display: block;
-    font-size: 13px;
-    margin-bottom: 4px;
-  }
+      @media (max-width: 1180px) {
+        .main-grid {
+          grid-template-columns: 1fr;
+        }
+        .left-panel {
+          min-height: auto;
+        }
+        .viewer {
+          min-height: auto;
+        }
+        .quick-links {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
 
-  .template-btn span {
-    font-size: 12px;
-    color: var(--muted);
-  }
+      @media (max-width: 980px) {
+        .hero-grid {
+          grid-template-columns: 1fr;
+        }
+        .hero-stats {
+          grid-template-columns: 1fr;
+        }
+        .info-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .feature-band {
+          grid-template-columns: 1fr;
+        }
+        .quick-links {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
 
-  @media (max-width: 980px) {
-    .main {
-      grid-template-columns: 1fr;
-    }
-
-    .sidebar {
-      max-height: 42vh;
-      border-right: 0;
-      border-bottom: 1px solid var(--line);
-    }
-  }
-
-  @media (max-width: 640px) {
-    .topbar {
-      align-items: flex-start;
-      flex-direction: column;
-    }
-
-    .tool-grid {
-      grid-template-columns: 1fr 1fr;
-    }
-
-    .statusbar {
-      flex-direction: column;
-    }
-  }
-
-  /* Dark theme overrides */
-  [data-theme="dark"] {
-    --bg:#0f1115;
-    --panel:#161a21;
-    --ink:#e6edf3;
-    --muted:#9aa4af;
-    --line:#2a2f37;
-  }
-  [data-theme="dark"] body{
-    background:#0f1115;
-    color:#e6edf3;
-  }
-  [data-theme="dark"] .panel,
-  [data-theme="dark"] .card,
-  [data-theme="dark"] .toolbar,
-  [data-theme="dark"] .viewer{
-    background:#161a21;
-    border-color:#2a2f37;
-  }
-  [data-theme="dark"] .btn{
-    background:#1f2630;
-    color:#e6edf3;
-    border-color:#2a2f37;
-  }
-  [data-theme="dark"] textarea,
-  [data-theme="dark"] input{
-    background:#0f1115;
-    color:#e6edf3;
-    border-color:#2a2f37;
-  }
-
-  /* floating theme toggle */
-  #themeToggle{
-    position:fixed;
-    right:18px;
-    bottom:18px;
-    z-index:9999;
-    border-radius:999px;
-    padding:10px 14px;
-    font-weight:700;
-    border:1px solid rgba(0,0,0,0.2);
-    background:#ffffff;
-    cursor:pointer;
-    box-shadow:0 10px 20px rgba(0,0,0,0.15);
-  }
-  [data-theme="dark"] #themeToggle{
-    background:#1f2630;
-    color:#e6edf3;
-    border-color:#2a2f37;
-  }
-
-</style>
+      @media (max-width: 640px) {
+        .wrap {
+          width: min(100% - 18px, 1280px);
+        }
+        .topbar-inner {
+          align-items: flex-start;
+        }
+        .nav {
+          justify-content: flex-start;
+        }
+        .section-head h2 {
+          font-size: 24px;
+        }
+        .hero-card {
+          padding: 18px;
+        }
+        .toolbar {
+          padding: 12px;
+        }
+        .quick-links {
+          grid-template-columns: 1fr;
+        }
+        .info-grid {
+          grid-template-columns: 1fr;
+        }
+        .browser-url {
+          font-size: 11px;
+        }
+        .frame-shell {
+          min-height: 700px;
+        }
+        iframe {
+          height: calc(100% - 54px);
+          min-height: 646px;
+        }
+      }
+    </style>
   </head>
   <body>
-    <div class="app">
-      <header class="topbar">
+    <header class="topbar">
+      <div class="wrap topbar-inner">
         <div class="brand">
           <div class="logo" aria-hidden="true"></div>
           <div class="brand-copy">
-            <h1>Programmer's Picnic — Advanced Whiteboard</h1>
-            <p>Single-file visual board with drawing, shapes, connectors, code blocks, share links, and export.</p>
+            <h1>Programmer's Picnic Editor Hub</h1>
+            <p>Interactive coding lab for Learn with Champak</p>
           </div>
         </div>
-        <div class="top-actions">
-          <button class="btn" id="newBoardBtn">New</button>
-          <button class="btn" id="undoBtn">Undo</button>
-          <button class="btn" id="redoBtn">Redo</button>
-          <button class="btn" id="saveJsonBtn">Save JSON</button>
-          <button class="btn" id="loadJsonBtn">Load JSON</button>
-          <button class="btn" id="shareBtn">Copy Share Link</button>
-          <button class="btn primary" id="exportBtn">Export PNG</button>
-          <input type="file" id="fileInput" accept="application/json" hidden />
-        </div>
-      </header><div class="main">
-    <aside class="sidebar">
-      <section class="panel">
-        <h2>Tools</h2>
-        <div class="tool-grid" id="toolButtons">
-          <button class="tool-btn active" data-tool="select">Select</button>
-          <button class="tool-btn" data-tool="pen">Pen</button>
-          <button class="tool-btn" data-tool="rect">Rectangle</button>
-          <button class="tool-btn" data-tool="ellipse">Ellipse</button>
-          <button class="tool-btn" data-tool="diamond">Diamond</button>
-          <button class="tool-btn" data-tool="line">Line</button>
-          <button class="tool-btn" data-tool="arrow">Arrow</button>
-          <button class="tool-btn" data-tool="text">Text</button>
-          <button class="tool-btn" data-tool="sticky">Sticky</button>
-          <button class="tool-btn" data-tool="code">Code</button>
-        </div>
-        <div class="hint">
-          Hold <span class="kbd">Space</span> and drag to pan. Use <span class="kbd">Delete</span> to remove selected items.
-        </div>
-      </section>
 
-      <section class="panel">
-        <h3>Board</h3>
-        <div class="seg">
-          <button class="seg-btn" id="gridBtn">Grid</button>
-          <button class="seg-btn" id="snapBtn">Snap</button>
-        </div>
-        <div class="field">
-          <label for="zoomRange">Zoom</label>
-          <input type="range" id="zoomRange" min="0.4" max="2" step="0.05" value="1" />
-        </div>
-        <div class="field">
-          <label for="strokeWidth">Stroke width</label>
-          <input type="range" id="strokeWidth" min="1" max="8" step="1" value="2" />
-        </div>
-      </section>
-
-      <section class="panel">
-        <h3>Colors</h3>
-        <div class="field">
-          <label for="strokeColor">Stroke</label>
-          <input type="color" id="strokeColor" value="#1f2328" />
-        </div>
-        <div class="field">
-          <label for="fillColor">Fill</label>
-          <input type="color" id="fillColor" value="#fff6d8" />
-        </div>
-        <div class="swatches" id="swatches"></div>
-      </section>
-
-      <section class="panel">
-        <h3>Selected item</h3>
-        <div class="field">
-          <label for="propText">Text / content</label>
-          <textarea id="propText" placeholder="Edit text, sticky notes, or code block content"></textarea>
-        </div>
-        <div class="row">
-          <div class="field">
-            <label for="propWidth">Width</label>
-            <input id="propWidth" type="number" min="20" step="10" />
-          </div>
-          <div class="field">
-            <label for="propHeight">Height</label>
-            <input id="propHeight" type="number" min="20" step="10" />
-          </div>
-        </div>
-        <div class="row">
-          <div class="field">
-            <label for="propFont">Font size</label>
-            <input id="propFont" type="number" min="10" max="40" step="1" />
-          </div>
-          <div class="field">
-            <label for="propRadius">Radius</label>
-            <input id="propRadius" type="number" min="0" max="32" step="1" />
-          </div>
-        </div>
-        <div class="row">
-          <button class="btn" id="bringFrontBtn">Bring front</button>
-          <button class="btn" id="sendBackBtn">Send back</button>
-        </div>
-      </section>
-
-      <section class="panel">
-        <h3>CS templates</h3>
-        <div class="chip-list">
-          <button class="template-btn" data-template="flowchart">
-            <b>Flowchart starter</b>
-            <span>Start, process, decision, end.</span>
-          </button>
-          <button class="template-btn" data-template="stack">
-            <b>Stack diagram</b>
-            <span>Push/pop blocks with labels.</span>
-          </button>
-          <button class="template-btn" data-template="tree">
-            <b>Binary tree</b>
-            <span>Simple parent-child layout.</span>
-          </button>
-          <button class="template-btn" data-template="system">
-            <b>System design</b>
-            <span>Client, API, DB, cache sketch.</span>
-          </button>
-        </div>
-      </section>
-
-      <section class="panel">
-        <h3>AI diagram helper</h3>
-        <p>
-          This version uses built-in prompt rules, not an external AI API.
-          Describe a CS topic and it will generate a starter diagram.
-        </p>
-        <div class="field">
-          <label for="aiPrompt">Prompt</label>
-          <textarea id="aiPrompt" placeholder="Examples:
-
-Binary search tree Stack push pop Client API database cache Flowchart for login validation Queue enqueue dequeue"></textarea> </div> <div class="row"> <button class="btn primary" id="aiGenerateBtn">Generate</button> <button class="btn" id="aiSampleBtn">Sample prompt</button> </div> <div class="hint"> Works best for flowcharts, stacks, queues, trees, linked lists, and simple system design layouts. </div> </section> </aside>
-
-<section class="canvas-wrap">
-      <div class="canvas-stage">
-        <canvas id="board"></canvas>
-        <div class="statusbar">
-          <div id="statusLeft">Tool: Select</div>
-          <div id="statusCenter">0 items</div>
-          <div id="statusRight">100% zoom</div>
-        </div>
+        <nav class="nav">
+          <a
+            class="btn"
+            href="https://learnwithchampak.live"
+            target="_blank"
+            rel="noopener"
+            >🏠 Blog</a
+          >
+          <a
+            class="btn"
+            href="https://editor.learnwithchampak.live/whiteboard/"
+            target="_blank"
+            rel="noopener"
+            >📝 Whiteboard</a
+          >
+          <a
+            class="btn"
+            href="https://editor.learnwithchampak.live/room/"
+            target="_blank"
+            rel="noopener"
+            >🏫 Room</a
+          >
+          <a
+            class="btn"
+            href="https://editor.learnwithchampak.live/search/"
+            target="_blank"
+            rel="noopener"
+            >🔎 Search</a
+          >
+          <a class="btn green" href="#editors">🧪 Editors</a>
+          <a class="btn primary" href="#viewer">⚡ Open Lab</a>
+        </nav>
       </div>
-    </section>
-  </div>
-</div>
+    </header>
 
-<script>
-  const canvas = document.getElementById("board");
-  const ctx = canvas.getContext("2d");
-  const stage = canvas.parentElement;
+    <main>
+      <section class="hero">
+        <div class="wrap">
+          <div class="hero-card">
+            <div class="hero-grid">
+              <div>
+                <span class="eyebrow"><i></i> Premium practice experience</span>
+                <h2 class="hero-title">Home for all your code editors.</h2>
+                <p class="hero-sub">
+                  Bring together Python, JavaScript, SQL, HTML Preview, HTML
+                  Editor, JSON Editor, Whiteboard, Room, Search, and MongoDB in
+                  a single homepage. Explore, switch, practice, and open the
+                  full editor experience.
+                </p>
 
-  const state = {
-    items: [],
-    tool: "select",
-    stroke: "#1f2328",
-    fill: "#fff6d8",
-    strokeWidth: 2,
-    zoom: 1,
-    panX: 0,
-    panY: 0,
-    showGrid: false,
-    snap: false,
-    selectedId: null,
-    selectedIds: [],
-    selectionBox: null,
-    hoveredId: null,
-    dragOffsetX: 0,
-    dragOffsetY: 0,
-    drawing: false,
-    panning: false,
-    resizeHandle: null,
-    history: [],
-    future: [],
-    temp: null,
-    penCurrent: null,
-    pointerStart: null,
-    spaceDown: false,
-    colors: ["#1f2328", "#ff9f1c", "#2563eb", "#2f7d4a", "#d94841", "#7c3aed", "#0f766e", "#111827"],
-  };
+                <div class="hero-actions">
+                  <a class="btn primary" href="#viewer">🚀 Start practicing</a>
+                  <a class="btn" href="#editors">🗂 Browse editors</a>
+                  <button class="btn dark" type="button" id="btnOpenCurrentTop">
+                    🔗 Open current editor
+                  </button>
+                </div>
 
-  const els = {
-    combineBtn: document.getElementById("combineBtn"),
-    ungroupBtn: document.getElementById("ungroupBtn"),
-    aiPrompt: document.getElementById("aiPrompt"),
-    aiGenerateBtn: document.getElementById("aiGenerateBtn"),
-    aiSampleBtn: document.getElementById("aiSampleBtn"),
-    toolButtons: [...document.querySelectorAll("[data-tool]")],
-    gridBtn: document.getElementById("gridBtn"),
-    snapBtn: document.getElementById("snapBtn"),
-    zoomRange: document.getElementById("zoomRange"),
-    strokeWidth: document.getElementById("strokeWidth"),
-    strokeColor: document.getElementById("strokeColor"),
-    fillColor: document.getElementById("fillColor"),
-    statusLeft: document.getElementById("statusLeft"),
-    statusCenter: document.getElementById("statusCenter"),
-    statusRight: document.getElementById("statusRight"),
-    undoBtn: document.getElementById("undoBtn"),
-    redoBtn: document.getElementById("redoBtn"),
-    newBoardBtn: document.getElementById("newBoardBtn"),
-    exportBtn: document.getElementById("exportBtn"),
-    saveJsonBtn: document.getElementById("saveJsonBtn"),
-    loadJsonBtn: document.getElementById("loadJsonBtn"),
-    shareBtn: document.getElementById("shareBtn"),
-    fileInput: document.getElementById("fileInput"),
-    propText: document.getElementById("propText"),
-    propWidth: document.getElementById("propWidth"),
-    propHeight: document.getElementById("propHeight"),
-    propFont: document.getElementById("propFont"),
-    propRadius: document.getElementById("propRadius"),
-    bringFrontBtn: document.getElementById("bringFrontBtn"),
-    sendBackBtn: document.getElementById("sendBackBtn"),
-    swatches: document.getElementById("swatches"),
-    templateButtons: [...document.querySelectorAll("[data-template]")],
-  };
+                <div class="hero-stats">
+                  <div class="stat">
+                    <strong>10</strong>
+                    <span
+                      >Integrated editor and tool experiences in one polished
+                      landing page.</span
+                    >
+                  </div>
+                  <div class="stat">
+                    <strong>1</strong>
+                    <span>Unified practice home.</span>
+                  </div>
+                  <div class="stat">
+                    <strong>∞</strong>
+                    <span>Tools, labs, and visualizers.</span>
+                  </div>
+                </div>
+              </div>
 
-  function uid() {
-    return "i_" + Math.random().toString(36).slice(2, 10);
-  }
+              <aside class="hero-side">
+                <div class="mini">
+                  <h3>Designed for your workflow</h3>
+                  <p>
+                    Lessons on
+                    <span class="mono">learnwithchampak.live</span>, and
+                    powerful coding tools.
+                  </p>
+                </div>
+                <div class="mini">
+                  <h3>Fast switching</h3>
+                  <p>
+                    Move between editors, boards, search, and classroom tools.
+                  </p>
+                </div>
+                <div class="mini">
+                  <h3>Friendly 👍</h3>
+                  <p>Programmer's Picnic.</p>
+                </div>
+              </aside>
+            </div>
+          </div>
+        </div>
+      </section>
 
-  function clone(obj) {
-    return JSON.parse(JSON.stringify(obj));
-  }
+      <section class="section" id="editors">
+        <div class="wrap">
+          <div class="section-head">
+            <div>
+              <h2>Editor Collection</h2>
+              <p>Pick any editor below.</p>
+            </div>
+          </div>
 
-  function saveHistory() {
-    state.history.push(clone(state.items));
-    if (state.history.length > 80) state.history.shift();
-    state.future = [];
-  }
+          <div class="toolbar">
+            <div class="toolbar-row">
+              <div class="search-wrap">
+                <span class="search-icon">🔎</span>
+                <input
+                  id="searchBox"
+                  class="search"
+                  type="text"
+                  placeholder="Search editors by name, language, purpose, or keywords..."
+                  autocomplete="off"
+                />
+              </div>
 
-  function setTool(tool) {
-    state.tool = tool;
-    els.toolButtons.forEach((b) => b.classList.toggle("active", b.dataset.tool === tool));
-    updateStatus();
-  }
+              <div class="seg" aria-label="View mode">
+                <button class="seg-btn active" type="button" data-filter="all">
+                  All
+                </button>
+                <button class="seg-btn" type="button" data-filter="code">
+                  Code
+                </button>
+                <button class="seg-btn" type="button" data-filter="database">
+                  Database
+                </button>
+                <button class="seg-btn" type="button" data-filter="web">
+                  Web
+                </button>
+              </div>
+            </div>
 
-  function updateStatus() {
-    els.statusLeft.textContent = `Tool: ${state.tool.charAt(0).toUpperCase() + state.tool.slice(1)}`;
-    els.statusCenter.textContent = `${state.items.length} item${state.items.length === 1 ? "" : "s"}`;
-    els.statusRight.textContent = `${Math.round(state.zoom * 100)}% zoom`;
-    els.gridBtn.classList.toggle("active", state.showGrid);
-    els.snapBtn.classList.toggle("active", state.snap);
-  }
+            <div class="chips" id="chips"></div>
+          </div>
 
-  function resizeCanvas() {
-    const rect = stage.getBoundingClientRect();
-    const ratio = window.devicePixelRatio || 1;
-    canvas.width = rect.width * ratio;
-    canvas.height = rect.height * ratio;
-    canvas.style.width = rect.width + "px";
-    canvas.style.height = rect.height + "px";
-    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-    render();
-  }
+          <div class="main-grid">
+            <section class="card left-panel">
+              <div class="panel-head">
+                <h3>Practice tools</h3>
+                <p>
+                  Select a card to load the editor into the live embedded
+                  viewer.
+                </p>
+              </div>
 
-  function worldToScreen(x, y) {
-    return { x: x * state.zoom + state.panX, y: y * state.zoom + state.panY };
-  }
+              <div class="tool-list" id="toolList"></div>
+            </section>
 
-  function screenToWorld(x, y) {
-    return { x: (x - state.panX) / state.zoom, y: (y - state.panY) / state.zoom };
-  }
+            <section class="card viewer" id="viewer">
+              <div class="viewer-top">
+                <div class="viewer-head">
+                  <div class="viewer-title">
+                    <span class="pill" id="viewerPill"
+                      >✨ Live embedded editor</span
+                    >
+                    <h3 id="viewerName">Python Editor</h3>
+                    <p id="viewerDesc">
+                      Practice Python in the embedded editor. This area updates
+                      automatically when you select a different tool.
+                    </p>
+                  </div>
 
-  function snap(v) {
-    return state.snap ? Math.round(v / 20) * 20 : v;
-  }
+                  <div class="viewer-actions">
+                    <button class="btn" type="button" id="btnReload">
+                      🔄 Reload
+                    </button>
+                    <button class="btn" type="button" id="btnCopySrc">
+                      📋 Copy src
+                    </button>
+                    <a
+                      class="btn primary"
+                      id="btnOpenCurrent"
+                      href="#"
+                      target="_blank"
+                      rel="noopener"
+                      >⛶ Open fullscreen</a
+                    >
+                  </div>
+                </div>
 
-  function pointInRect(px, py, item) {
-    return px >= item.x && py >= item.y && px <= item.x + item.w && py <= item.y + item.h;
-  }
+                <div class="info-grid">
+                  <div class="info">
+                    <b>Category</b>
+                    <span id="viewerCategory">Code</span>
+                  </div>
+                  <div class="info">
+                    <b>Keywords</b>
+                    <span id="viewerKeywords"
+                      >python, programming, practice</span
+                    >
+                  </div>
+                  <div class="info">
+                    <b>Best for</b>
+                    <span id="viewerUse"
+                      >Learning, classroom demos, quick experiments</span
+                    >
+                  </div>
+                  <div class="info">
+                    <b>+👍🙂</b>
+                    <span
+                      ><code style="visibility: hidden" id="viewerSrcText"
+                        >Loading...</code
+                      ></span
+                    >
+                  </div>
+                </div>
+              </div>
 
-  function pointInEllipse(px, py, item) {
-    const rx = item.w / 2;
-    const ry = item.h / 2;
-    const cx = item.x + rx;
-    const cy = item.y + ry;
-    return (((px - cx) * (px - cx)) / (rx * rx || 1) + ((py - cy) * (py - cy)) / (ry * ry || 1)) <= 1;
-  }
+              <div class="frame-wrap">
+                <div class="quick-links" id="quickLinks"></div>
 
-  function pointInDiamond(px, py, item) {
-    const cx = item.x + item.w / 2;
-    const cy = item.y + item.h / 2;
-    const dx = Math.abs(px - cx) / (item.w / 2 || 1);
-    const dy = Math.abs(py - cy) / (item.h / 2 || 1);
-    return dx + dy <= 1;
-  }
+                <div class="frame-shell">
+                  <div class="browser-bar">
+                    <div class="browser-dots" aria-hidden="true">
+                      <span></span><span></span><span></span>
+                    </div>
+                    <div
+                      style="visibility: hidden"
+                      class="browser-url"
+                      id="browserUrl"
+                    >
+                      https://editor.learnwithchampak.live/python-starter/editor/super/?tmode=1
+                    </div>
+                  </div>
+                  <iframe
+                    id="editorFrame"
+                    title="Embedded editor"
+                    loading="lazy"
+                    allow="clipboard-read; clipboard-write; fullscreen"
+                    allowfullscreen
+                    src="https://editor.learnwithchampak.live/python-starter/editor/super/?tmode=1"
+                  ></iframe>
+                </div>
+              </div>
+            </section>
+          </div>
 
-  function distToSegment(px, py, x1, y1, x2, y2) {
-    const A = px - x1;
-    const B = py - y1;
-    const C = x2 - x1;
-    const D = y2 - y1;
-    const dot = A * C + B * D;
-    const lenSq = C * C + D * D;
-    let t = lenSq ? dot / lenSq : -1;
-    t = Math.max(0, Math.min(1, t));
-    const ex = x1 + t * C;
-    const ey = y1 + t * D;
-    return Math.hypot(px - ex, py - ey);
-  }
+          <div class="feature-band">
+            <div class="feature">
+              <h3>Unified learning journey</h3>
+              <p>
+                Discover the lesson, then move directly into practice without
+                losing momentum.
+              </p>
+            </div>
+            <div class="feature">
+              <h3>Elegant</h3>
+              <p>
+                Layout uses layered panels, premium shadows, generous spacing.
+              </p>
+            </div>
+            <div class="feature">
+              <h3>Expandable architecture</h3>
+              <p>
+                Editors, whiteboards, rooms, search tools, visualizers, question
+                banks, or simulators can be added by extending the JavaScript
+                data array. The page will scale naturally with your ecosystem.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
 
-  function hitTest(worldX, worldY) {
-    for (let i = state.items.length - 1; i >= 0; i--) {
-      const item = state.items[i];
-      if (item.type === "pen") {
-        for (let p = 1; p < item.points.length; p++) {
-          const a = item.points[p - 1];
-          const b = item.points[p];
-          if (distToSegment(worldX, worldY, a.x, a.y, b.x, b.y) <= 8) return item;
+      <section class="section">
+        <div class="wrap footer">
+          <div class="footer-box">
+            <div>
+              <div class="pp-champak-roy-books-widget">
+                <style>
+                  .pp-champak-roy-books-widget {
+                    --pp-bg: #fff8eb;
+                    --pp-panel: #ffffff;
+                    --pp-panel2: #fff4d6;
+                    --pp-ink: #1f2937;
+                    --pp-muted: #6b7280;
+                    --pp-line: #ead9b3;
+                    --pp-saffron: #f59e0b;
+                    --pp-saffron-dark: #d97706;
+                    --pp-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+                    font-family:
+                      system-ui,
+                      -apple-system,
+                      Segoe UI,
+                      Roboto,
+                      Arial,
+                      sans-serif;
+                    margin: 32px 0;
+                    color: var(--pp-ink);
+                  }
+
+                  .pp-champak-roy-books-widget * {
+                    box-sizing: border-box;
+                  }
+
+                  .pp-cr-wrap {
+                    background: linear-gradient(180deg, var(--pp-bg), #fffdf7);
+                    border: 1px solid var(--pp-line);
+                    border-radius: 20px;
+                    overflow: hidden;
+                    box-shadow: var(--pp-shadow);
+                  }
+
+                  .pp-cr-head {
+                    padding: 22px 20px 16px;
+                    background: linear-gradient(
+                      135deg,
+                      #fff7e6,
+                      var(--pp-panel2)
+                    );
+                    border-bottom: 1px solid var(--pp-line);
+                  }
+
+                  .pp-cr-badge {
+                    display: inline-block;
+                    padding: 6px 10px;
+                    border-radius: 999px;
+                    background: var(--pp-saffron);
+                    color: #fff;
+                    font-size: 0.78rem;
+                    font-weight: 700;
+                    letter-spacing: 0.2px;
+                    margin-bottom: 10px;
+                  }
+
+                  .pp-cr-title {
+                    margin: 0 0 8px;
+                    font-size: 1.6rem;
+                    line-height: 1.2;
+                  }
+
+                  .pp-cr-desc {
+                    margin: 0;
+                    color: var(--pp-muted);
+                    font-size: 0.98rem;
+                    line-height: 1.65;
+                  }
+
+                  .pp-cr-grid {
+                    display: grid;
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                    gap: 18px;
+                    padding: 20px;
+                  }
+
+                  .pp-cr-card {
+                    background: var(--pp-panel);
+                    border: 1px solid #eee2c5;
+                    border-radius: 16px;
+                    padding: 16px;
+                    display: flex;
+                    gap: 14px;
+                    align-items: flex-start;
+                    min-width: 0;
+                  }
+
+                  .pp-cr-cover {
+                    width: 110px;
+                    flex: 0 0 110px;
+                  }
+
+                  .pp-cr-cover img {
+                    display: block;
+                    width: 100%;
+                    aspect-ratio: 2/3;
+                    object-fit: cover;
+                    border-radius: 12px;
+                    border: 1px solid #eee2c5;
+                    background: #fff7e6;
+                  }
+
+                  .pp-cr-body {
+                    min-width: 0;
+                    flex: 1;
+                  }
+
+                  .pp-cr-book-title {
+                    margin: 0 0 8px;
+                    font-size: 1.08rem;
+                    line-height: 1.35;
+                    font-weight: 800;
+                    color: var(--pp-ink);
+                  }
+
+                  .pp-cr-book-text {
+                    margin: 0 0 12px;
+                    color: #4b5563;
+                    font-size: 0.94rem;
+                    line-height: 1.65;
+                  }
+
+                  .pp-cr-tags {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 8px;
+                    margin: 0 0 14px;
+                    padding: 0;
+                    list-style: none;
+                  }
+
+                  .pp-cr-tags li {
+                    padding: 6px 10px;
+                    border-radius: 999px;
+                    background: #fff7e6;
+                    border: 1px solid #f4dfab;
+                    font-size: 0.78rem;
+                    color: #8a5a00;
+                    font-weight: 700;
+                  }
+
+                  .pp-cr-actions {
+                    display: flex;
+                    gap: 10px;
+                    flex-wrap: wrap;
+                  }
+
+                  .pp-cr-btn {
+                    display: inline-block;
+                    text-decoration: none !important;
+                    border-radius: 10px;
+                    padding: 10px 14px;
+                    font-size: 0.92rem;
+                    font-weight: 800;
+                    transition: 0.2s ease;
+                    border: 1px solid transparent;
+                  }
+
+                  .pp-cr-btn-primary {
+                    background: var(--pp-saffron);
+                    color: #fff !important;
+                  }
+
+                  .pp-cr-btn-primary:hover {
+                    background: var(--pp-saffron-dark);
+                  }
+
+                  .pp-cr-btn-secondary {
+                    background: #fff;
+                    color: var(--pp-ink) !important;
+                    border-color: #ead9b3;
+                  }
+
+                  .pp-cr-btn-secondary:hover {
+                    background: #fff9ec;
+                  }
+
+                  .pp-cr-foot {
+                    padding: 0 20px 20px;
+                    color: var(--pp-muted);
+                    font-size: 0.82rem;
+                    line-height: 1.6;
+                  }
+
+                  @media (max-width: 760px) {
+                    .pp-cr-grid {
+                      grid-template-columns: 1fr;
+                    }
+                  }
+
+                  @media (max-width: 520px) {
+                    .pp-cr-card {
+                      flex-direction: column;
+                    }
+                    .pp-cr-cover {
+                      width: 140px;
+                      flex-basis: auto;
+                    }
+                  }
+                </style>
+
+                <div class="pp-cr-wrap">
+                  <div class="pp-cr-head">
+                    <div class="pp-cr-badge">Books by Champak Roy</div>
+                    <h2 class="pp-cr-title">
+                      Recommended Reads by Champak Roy
+                    </h2>
+                    <p class="pp-cr-desc">
+                      Explore programming books by Champak Roy on Amazon. These
+                      links already include my Amazon affiliate code.
+                    </p>
+                  </div>
+
+                  <div class="pp-cr-grid">
+                    <div class="pp-cr-card">
+                      <div class="pp-cr-cover">
+                        <img
+                          src="https://m.media-amazon.com/images/I/71UtOK3wieL._SY466_.jpg"
+                          alt="The Recursion Sutras by Champak Roy"
+                        />
+                      </div>
+                      <div class="pp-cr-body">
+                        <h3 class="pp-cr-book-title">The Recursion Sutras</h3>
+                        <p class="pp-cr-book-text">
+                          A recursion-focused programming title centered on data
+                          structures and solving problems without iterative
+                          loops.
+                        </p>
+                        <ul class="pp-cr-tags">
+                          <li>Recursion</li>
+                          <li>Data Structures</li>
+                          <li>Algorithmic Thinking</li>
+                        </ul>
+                        <div class="pp-cr-actions">
+                          <a
+                            class="pp-cr-btn pp-cr-btn-primary"
+                            href="https://amzn.to/4bqCMxX"
+                            target="_blank"
+                            rel="nofollow sponsored noopener"
+                          >
+                            Buy on Amazon
+                          </a>
+                          <a
+                            class="pp-cr-btn pp-cr-btn-secondary"
+                            href="https://amzn.to/4rUDr0i"
+                            target="_blank"
+                            rel="nofollow sponsored noopener"
+                          >
+                            View Kindle
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="pp-cr-card">
+                      <div class="pp-cr-cover">
+                        <img
+                          src="https://m.media-amazon.com/images/I/71IhjIt5BwL._SY466_.jpg"
+                          alt="Object Oriented Programing in Java by Champak Roy"
+                        />
+                      </div>
+                      <div class="pp-cr-body">
+                        <h3 class="pp-cr-book-title">
+                          Object Oriented Programing in Java?
+                        </h3>
+                        <p class="pp-cr-book-text">
+                          An introduction to object-oriented programming in Java
+                          with explanation and illustration for learners
+                          building strong foundations.
+                        </p>
+                        <ul class="pp-cr-tags">
+                          <li>Java</li>
+                          <li>OOP</li>
+                          <li>Beginner Friendly</li>
+                        </ul>
+                        <div class="pp-cr-actions">
+                          <a
+                            class="pp-cr-btn pp-cr-btn-primary"
+                            href="https://www.amazon.in/dp/B07SRQ8JJ5?tag=vsj04-21"
+                            target="_blank"
+                            rel="nofollow sponsored noopener"
+                          >
+                            Buy on Amazon
+                          </a>
+                          <a
+                            class="pp-cr-btn pp-cr-btn-secondary"
+                            href="https://amzn.to/4ukAHv2"
+                            target="_blank"
+                            rel="nofollow sponsored noopener"
+                          >
+                            View Kindle
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="pp-cr-foot">
+                    Disclosure: As an Amazon Associate, I may earn from
+                    qualifying purchases. Book availability and pricing can
+                    change on Amazon.
+                  </div>
+                </div>
+              </div>
+
+              © <span id="year"></span> Programmer's Picnic • Champak Roy
+            </div>
+            <div>
+              Built for Programmer's Picnic • Editor Hub • Learn with Champak
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      (function () {
+        "use strict";
+
+        var editors = [
+          {
+            id: "python",
+            name: "Python Editor",
+            icon: "🐍",
+            category: "code",
+            categoryLabel: "Code",
+            keywords: ["python", "coding", "practice", "logic", "programming"],
+            use: "Python lessons, exercises, live demos",
+            tag: "Most popular",
+            description:
+              "A ready-to-use Python practice environment for lessons, quick experiments, and guided classroom practice.",
+            src: "https://editor.learnwithchampak.live/python-starter/editor/super/?tmode=1",
+          },
+          {
+            id: "javascript",
+            name: "JavaScript Editor",
+            icon: "🟨",
+            category: "code",
+            categoryLabel: "Code",
+            keywords: ["javascript", "js", "frontend", "web", "scripting"],
+            use: "JavaScript concepts, browser logic, examples",
+            tag: "Frontend",
+            description:
+              "A focused JavaScript playground for scripts, browser-based logic, and interactive experiments.",
+            src: "https://editor.learnwithchampak.live/java-script/editor/",
+          },
+          {
+            id: "sql",
+            name: "SQL Editor",
+            icon: "🧱",
+            category: "database",
+            categoryLabel: "Database",
+            keywords: ["sql", "database", "queries", "tables", "relational"],
+            use: "SQL practice, query writing, DB lessons",
+            tag: "Database",
+            description:
+              "A practical SQL lab for teaching queries, tables, filters, joins, and structured database thinking.",
+            src: "https://editor.learnwithchampak.live/sql/premium/",
+          },
+          {
+            id: "html-preview",
+            name: "HTML Preview",
+            icon: "🖥️",
+            category: "web",
+            categoryLabel: "Web",
+            keywords: ["html", "preview", "render", "webpage", "browser"],
+            use: "Previewing markup output and visual examples",
+            tag: "Visual",
+            description:
+              "A visual preview environment for seeing how HTML output behaves in a browser-style presentation.",
+            src: "https://www.learnwithchampak.live/2026/01/programmers-picnic-html-preview.html",
+          },
+          {
+            id: "html-editor",
+            name: "HTML Editor",
+            icon: "🧾",
+            category: "web",
+            categoryLabel: "Web",
+            keywords: ["html", "editor", "markup", "web design", "practice"],
+            use: "HTML writing, examples, page building",
+            tag: "Markup",
+            description:
+              "A dedicated HTML editing workspace for writing markup, exploring structure, and building web examples.",
+            src: "https://editor.learnwithchampak.live/samples/html/editor/",
+          },
+          {
+            id: "json-editor",
+            name: "JSON Editor",
+            icon: "🧩",
+            category: "web",
+            categoryLabel: "Web",
+            keywords: ["json", "editor", "data", "objects", "arrays", "schema"],
+            use: "JSON practice, structured data editing, examples",
+            tag: "JSON",
+            description:
+              "A JSON editing workspace for creating, formatting, and experimenting with structured data.",
+            src: "https://editor.learnwithchampak.live/samples/html/editor/json/",
+          },
+          {
+            id: "whiteboard",
+            name: "Whiteboard",
+            icon: "📝",
+            category: "web",
+            categoryLabel: "Web",
+            keywords: [
+              "whiteboard",
+              "draw",
+              "teaching",
+              "classroom",
+              "notes",
+              "canvas",
+            ],
+            use: "Teaching, explaining concepts, visual collaboration",
+            tag: "Board",
+            description:
+              "An interactive whiteboard for teaching, sketching ideas, and explaining concepts visually.",
+            src: "https://editor.learnwithchampak.live/whiteboard/",
+          },
+          {
+            id: "room",
+            name: "Room",
+            icon: "🏫",
+            category: "web",
+            categoryLabel: "Web",
+            keywords: [
+              "room",
+              "classroom",
+              "meeting",
+              "session",
+              "teaching",
+              "live",
+            ],
+            use: "Virtual classroom and shared learning sessions",
+            tag: "Classroom",
+            description:
+              "A room-style learning space for running sessions, sharing ideas, and teaching interactively.",
+            src: "https://editor.learnwithchampak.live/room/",
+          },
+          {
+            id: "search",
+            name: "Search",
+            icon: "🔎",
+            category: "web",
+            categoryLabel: "Web",
+            keywords: [
+              "search",
+              "find",
+              "blog",
+              "site search",
+              "content",
+              "lookup",
+            ],
+            use: "Finding lessons, pages, tools, and blog content",
+            tag: "Discover",
+            description:
+              "A search experience for quickly finding lessons, tools, and useful content across your ecosystem.",
+            src: "https://editor.learnwithchampak.live/search/",
+          },
+          {
+            id: "mongo",
+            name: "MongoDB Queries",
+            icon: "🍃",
+            category: "database",
+            categoryLabel: "Database",
+            keywords: ["mongodb", "mongo", "nosql", "queries", "collections"],
+            use: "MongoDB fundamentals and query practice",
+            tag: "NoSQL",
+            description:
+              "A MongoDB query experience for demonstrating collections, filters, and NoSQL-style workflows.",
+            src: "https://www.learnwithchampak.live/2026/02/programmers-picnic-mongodb-queries.html",
+          },
+        ];
+
+        var state = {
+          activeId: "python",
+          search: "",
+          filter: "all",
+        };
+
+        var toolList = document.getElementById("toolList");
+        var quickLinks = document.getElementById("quickLinks");
+        var chips = document.getElementById("chips");
+        var searchBox = document.getElementById("searchBox");
+        var frame = document.getElementById("editorFrame");
+        var browserUrl = document.getElementById("browserUrl");
+        var viewerName = document.getElementById("viewerName");
+        var viewerDesc = document.getElementById("viewerDesc");
+        var viewerCategory = document.getElementById("viewerCategory");
+        var viewerKeywords = document.getElementById("viewerKeywords");
+        var viewerUse = document.getElementById("viewerUse");
+        var viewerSrcText = document.getElementById("viewerSrcText");
+        var viewerPill = document.getElementById("viewerPill");
+        var btnOpenCurrent = document.getElementById("btnOpenCurrent");
+        var btnOpenCurrentTop = document.getElementById("btnOpenCurrentTop");
+        var btnReload = document.getElementById("btnReload");
+        var btnCopySrc = document.getElementById("btnCopySrc");
+
+        document.getElementById("year").textContent = new Date().getFullYear();
+
+        function escapeHtml(str) {
+          return String(str)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
         }
-      } else if (item.type === "line" || item.type === "arrow") {
-        if (distToSegment(worldX, worldY, item.x, item.y, item.x2, item.y2) <= 8) return item;
-      } else if (item.type === "ellipse") {
-        if (pointInEllipse(worldX, worldY, item)) return item;
-      } else if (item.type === "diamond") {
-        if (pointInDiamond(worldX, worldY, item)) return item;
-      } else {
-        if (pointInRect(worldX, worldY, item)) return item;
-      }
-    }
-    return null;
-  }
 
-  function normalizeRect(x1, y1, x2, y2) {
-    const x = Math.min(x1, x2);
-    const y = Math.min(y1, y2);
-    const w = Math.abs(x2 - x1);
-    const h = Math.abs(y2 - y1);
-    return { x, y, w, h };
-  }
-
-  function drawRoundRect(x, y, w, h, r) {
-    const radius = Math.max(0, Math.min(r, Math.min(w, h) / 2));
-    ctx.beginPath();
-    ctx.moveTo(x + radius, y);
-    ctx.arcTo(x + w, y, x + w, y + h, radius);
-    ctx.arcTo(x + w, y + h, x, y + h, radius);
-    ctx.arcTo(x, y + h, x, y, radius);
-    ctx.arcTo(x, y, x + w, y, radius);
-    ctx.closePath();
-  }
-
-  function drawArrowHead(x1, y1, x2, y2, size) {
-    const angle = Math.atan2(y2 - y1, x2 - x1);
-    ctx.beginPath();
-    ctx.moveTo(x2, y2);
-    ctx.lineTo(x2 - size * Math.cos(angle - Math.PI / 6), y2 - size * Math.sin(angle - Math.PI / 6));
-    ctx.lineTo(x2 - size * Math.cos(angle + Math.PI / 6), y2 - size * Math.sin(angle + Math.PI / 6));
-    ctx.closePath();
-    ctx.fill();
-  }
-
-  function drawTextBlock(item, bg, fontFamily) {
-    if (bg) {
-      ctx.fillStyle = item.fill || "#fff6d8";
-      drawRoundRect(item.x, item.y, item.w, item.h, item.radius || 14);
-      ctx.fill();
-      ctx.strokeStyle = item.stroke || "#1f2328";
-      ctx.lineWidth = item.strokeWidth || 2;
-      ctx.stroke();
-    }
-    ctx.fillStyle = item.stroke || "#1f2328";
-    ctx.font = `${item.fontSize || 18}px ${fontFamily}`;
-    ctx.textBaseline = "top";
-    const lines = wrapLines(item.text || "", item.w - 20, fontFamily, item.fontSize || 18);
-    let yy = item.y + 12;
-    for (const line of lines) {
-      ctx.fillText(line, item.x + 10, yy);
-      yy += (item.fontSize || 18) * 1.35;
-    }
-  }
-
-  function wrapLines(text, maxWidth, family, size) {
-    ctx.save();
-    ctx.font = `${size}px ${family}`;
-    const paragraphs = String(text).split("\n");
-    const out = [];
-    for (const para of paragraphs) {
-      const words = para.split(" ");
-      let line = "";
-      for (const word of words) {
-        const test = line ? line + " " + word : word;
-        if (ctx.measureText(test).width > maxWidth && line) {
-          out.push(line);
-          line = word;
-        } else {
-          line = test;
+        function getActive() {
+          return (
+            editors.find(function (item) {
+              return item.id === state.activeId;
+            }) || editors[0]
+          );
         }
-      }
-      out.push(line);
-    }
-    ctx.restore();
-    return out;
-  }
 
-  function renderItem(item) {
-    ctx.save();
-    ctx.strokeStyle = item.stroke || state.stroke;
-    ctx.fillStyle = item.fill || state.fill;
-    ctx.lineWidth = item.strokeWidth || 2;
-    ctx.lineJoin = "round";
-    ctx.lineCap = "round";
+        function matches(item) {
+          var q = state.search.trim().toLowerCase();
+          var okFilter =
+            state.filter === "all" ? true : item.category === state.filter;
+          if (!okFilter) return false;
+          if (!q) return true;
 
-    if (item.type === "rect") {
-      drawRoundRect(item.x, item.y, item.w, item.h, item.radius || 14);
-      ctx.fill();
-      ctx.stroke();
-    } else if (item.type === "ellipse") {
-      ctx.beginPath();
-      ctx.ellipse(item.x + item.w / 2, item.y + item.h / 2, Math.abs(item.w / 2), Math.abs(item.h / 2), 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-    } else if (item.type === "diamond") {
-      ctx.beginPath();
-      ctx.moveTo(item.x + item.w / 2, item.y);
-      ctx.lineTo(item.x + item.w, item.y + item.h / 2);
-      ctx.lineTo(item.x + item.w / 2, item.y + item.h);
-      ctx.lineTo(item.x, item.y + item.h / 2);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-    } else if (item.type === "line" || item.type === "arrow") {
-      ctx.beginPath();
-      ctx.moveTo(item.x, item.y);
-      ctx.lineTo(item.x2, item.y2);
-      ctx.stroke();
-      if (item.type === "arrow") {
-        ctx.fillStyle = item.stroke || state.stroke;
-        drawArrowHead(item.x, item.y, item.x2, item.y2, 14);
-      }
-    } else if (item.type === "pen") {
-      if (item.points.length > 1) {
-        ctx.beginPath();
-        ctx.moveTo(item.points[0].x, item.points[0].y);
-        for (let i = 1; i < item.points.length; i++) ctx.lineTo(item.points[i].x, item.points[i].y);
-        ctx.stroke();
-      }
-    } else if (item.type === "text") {
-      drawTextBlock(item, false, "Inter, sans-serif");
-    } else if (item.type === "sticky") {
-      drawTextBlock(item, true, "Inter, sans-serif");
-      ctx.fillStyle = "rgba(255,255,255,0.42)";
-      ctx.beginPath();
-      ctx.moveTo(item.x + item.w - 24, item.y);
-      ctx.lineTo(item.x + item.w, item.y + 24);
-      ctx.lineTo(item.x + item.w, item.y);
-      ctx.closePath();
-      ctx.fill();
-    } else if (item.type === "code") {
-      drawRoundRect(item.x, item.y, item.w, item.h, item.radius || 16);
-      ctx.fillStyle = item.fill || "#111827";
-      ctx.fill();
-      ctx.strokeStyle = item.stroke || "#e5e7eb";
-      ctx.stroke();
-      ctx.fillStyle = "#d1d5db";
-      ctx.font = `${item.fontSize || 15}px ${getComputedStyle(document.documentElement).getPropertyValue("--mono")}`;
-      ctx.textBaseline = "top";
-      const lines = String(item.text || "").split("\n");
-      let yy = item.y + 12;
-      for (const line of lines) {
-        ctx.fillText(line, item.x + 12, yy);
-        yy += (item.fontSize || 15) * 1.45;
-      }
-    }
+          var hay = [
+            item.name,
+            item.categoryLabel,
+            item.description,
+            item.use,
+            item.tag,
+            item.src,
+            item.keywords.join(" "),
+          ]
+            .join(" ")
+            .toLowerCase();
 
-    if (item.id === state.selectedId || state.selectedIds.includes(item.id)) {
-      drawSelection(item);
-    }
-    ctx.restore();
-  }
+          return hay.indexOf(q) !== -1;
+        }
 
-  function getBounds(item) {
-    if (item.type === "line" || item.type === "arrow") {
-      return { x: Math.min(item.x, item.x2), y: Math.min(item.y, item.y2), w: Math.abs(item.x2 - item.x), h: Math.abs(item.y2 - item.y) };
-    }
-    if (item.type === "pen") {
-      const xs = item.points.map((p) => p.x);
-      const ys = item.points.map((p) => p.y);
-      return { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
-    }
-    return { x: item.x, y: item.y, w: item.w, h: item.h };
-  }
+        function renderChips() {
+          chips.innerHTML = editors
+            .map(function (item) {
+              var active = item.id === state.activeId ? " active" : "";
+              return (
+                '<button class="chip' +
+                active +
+                '" type="button" data-chip="' +
+                escapeHtml(item.id) +
+                '">' +
+                item.icon +
+                " " +
+                escapeHtml(item.name) +
+                "</button>"
+              );
+            })
+            .join("");
 
-  function drawSelection(item) {
-    const b = getBounds(item);
-    ctx.save();
-    ctx.setLineDash([6, 6]);
-    ctx.strokeStyle = "#2563eb";
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(b.x - 6, b.y - 6, b.w + 12, b.h + 12);
-    ctx.setLineDash([]);
-    const handle = { x: b.x + b.w + 6, y: b.y + b.h + 6 };
-    ctx.fillStyle = "#2563eb";
-    ctx.beginPath();
-    ctx.arc(handle.x, handle.y, 6, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  }
+          Array.prototype.forEach.call(
+            chips.querySelectorAll("[data-chip]"),
+            function (btn) {
+              btn.addEventListener("click", function () {
+                state.activeId = btn.getAttribute("data-chip");
+                updateViewer();
+                renderChips();
+                renderTools();
+              });
+            },
+          );
+        }
 
-  function drawGrid() {
-    if (!state.showGrid) return;
-    const rect = canvas.getBoundingClientRect();
-    const step = 20 * state.zoom;
-    ctx.save();
-    ctx.strokeStyle = "rgba(31, 35, 40, 0.08)";
-    ctx.lineWidth = 1;
-    for (let x = state.panX % step; x < rect.width; x += step) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, rect.height);
-      ctx.stroke();
-    }
-    for (let y = state.panY % step; y < rect.height; y += step) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(rect.width, y);
-      ctx.stroke();
-    }
-    ctx.restore();
-  }
+        function renderQuickLinks() {
+          quickLinks.innerHTML = editors
+            .map(function (item) {
+              return (
+                '<button class="quick-link" type="button" data-quick="' +
+                escapeHtml(item.id) +
+                '">' +
+                '<div class="qicon">' +
+                item.icon +
+                "</div>" +
+                "<div><strong>" +
+                escapeHtml(item.name) +
+                "</strong><span>" +
+                escapeHtml(item.tag) +
+                "</span></div>" +
+                "</button>"
+              );
+            })
+            .join("");
 
-  function render() {
-    const rect = canvas.getBoundingClientRect();
-    ctx.clearRect(0, 0, rect.width, rect.height);
-    drawGrid();
-    ctx.save();
-    ctx.translate(state.panX, state.panY);
-    ctx.scale(state.zoom, state.zoom);
-    for (const item of state.items) renderItem(item);
-    if (state.temp) renderItem(state.temp);
-    if (state.selectionBox) {
-      ctx.save();
-      ctx.setLineDash([8, 6]);
-      ctx.strokeStyle = "#2563eb";
-      ctx.lineWidth = 1.5;
-      ctx.strokeRect(state.selectionBox.x, state.selectionBox.y, state.selectionBox.w, state.selectionBox.h);
-      ctx.restore();
-    }
-    ctx.restore();
-    updateStatus();
-    syncProps();
-  }
+          Array.prototype.forEach.call(
+            quickLinks.querySelectorAll("[data-quick]"),
+            function (btn) {
+              btn.addEventListener("click", function () {
+                state.activeId = btn.getAttribute("data-quick");
+                updateViewer();
+                renderChips();
+                renderTools();
+                document
+                  .getElementById("viewer")
+                  .scrollIntoView({ behavior: "smooth", block: "start" });
+              });
+            },
+          );
+        }
 
-  function pointerPos(evt) {
-    const r = canvas.getBoundingClientRect();
-    return { x: evt.clientX - r.left, y: evt.clientY - r.top };
-  }
+        function renderTools() {
+          var visible = editors.filter(matches);
 
-  function getResizeHandle(item, worldX, worldY) {
-    if (!item || item.type === "pen") return null;
-    const b = getBounds(item);
-    const hx = b.x + b.w + 6;
-    const hy = b.y + b.h + 6;
-    if (Math.hypot(worldX - hx, worldY - hy) <= 10) return "se";
-    return null;
-  }
+          toolList.innerHTML = visible
+            .map(function (item) {
+              var active = item.id === state.activeId ? " active" : "";
+              return (
+                '<article class="tool-card' +
+                active +
+                '" data-id="' +
+                escapeHtml(item.id) +
+                '">' +
+                '<div class="tool-top">' +
+                '<div class="tool-icon">' +
+                item.icon +
+                "</div>" +
+                '<div class="tool-copy">' +
+                "<h4>" +
+                escapeHtml(item.name) +
+                "</h4>" +
+                "<p>" +
+                escapeHtml(item.description) +
+                "</p>" +
+                "</div>" +
+                "</div>" +
+                '<div class="tool-meta">' +
+                '<span class="tag">' +
+                escapeHtml(item.categoryLabel) +
+                "</span>" +
+                '<span class="tag">' +
+                escapeHtml(item.tag) +
+                "</span>" +
+                "</div>" +
+                '<div class="tool-actions">' +
+                '<button class="small-btn" type="button" data-open="' +
+                escapeHtml(item.id) +
+                '">Open here</button>' +
+                '<button class="small-btn" type="button" data-copy="' +
+                escapeHtml(item.id) +
+                '">Copy src</button>' +
+                '<a class="small-btn" href="' +
+                escapeHtml(item.src) +
+                '" target="_blank" rel="noopener">Fullscreen</a>' +
+                "</div>" +
+                "</article>"
+              );
+            })
+            .join("");
 
-  canvas.addEventListener("pointerdown", (evt) => {
-    canvas.setPointerCapture(evt.pointerId);
-    const pos = pointerPos(evt);
-    const world = screenToWorld(pos.x, pos.y);
-    state.pointerStart = { screenX: pos.x, screenY: pos.y, worldX: world.x, worldY: world.y };
+          Array.prototype.forEach.call(
+            toolList.querySelectorAll(".tool-card"),
+            function (card) {
+              card.addEventListener("click", function (e) {
+                if (e.target.closest("[data-copy]") || e.target.closest("a"))
+                  return;
+                state.activeId = card.getAttribute("data-id");
+                updateViewer();
+                renderChips();
+                renderTools();
+              });
+            },
+          );
 
-    if (state.spaceDown) {
-      state.panning = true;
-      return;
-    }
+          Array.prototype.forEach.call(
+            toolList.querySelectorAll("[data-open]"),
+            function (btn) {
+              btn.addEventListener("click", function (e) {
+                e.stopPropagation();
+                state.activeId = btn.getAttribute("data-open");
+                updateViewer();
+                renderChips();
+                renderTools();
+              });
+            },
+          );
 
-    const hit = hitTest(world.x, world.y);
+          Array.prototype.forEach.call(
+            toolList.querySelectorAll("[data-copy]"),
+            function (btn) {
+              btn.addEventListener("click", function (e) {
+                e.stopPropagation();
+                var id = btn.getAttribute("data-copy");
+                var item = editors.find(function (x) {
+                  return x.id === id;
+                });
+                if (item) copyText(item.src, "iframe src copied");
+              });
+            },
+          );
+        }
 
-    if (state.tool === "select") {
-      const selectedItems = getSelectedItems();
-      const item = state.items.find((i) => i.id === state.selectedId);
-      if (state.selectionBox) {
-        const n = normalizeRect(state.pointerStart.worldX, state.pointerStart.worldY, world.x, world.y);
-        state.selectionBox = n;
-        const ids = state.items.filter((it) => boundsIntersect(getBounds(it), n)).map((it) => it.id);
-        selectMany(ids);
-      } else if (item) {
-        if (state.resizeHandle === "se") {
-          const b = getBounds(item);
-          const nw = Math.max(24, snap(world.x) - b.x);
-          const nh = Math.max(24, snap(world.y) - b.y);
-          if (item.type === "line" || item.type === "arrow") {
-            item.x2 = item.x + nw;
-            item.y2 = item.y + nh;
+        function updateViewer() {
+          var item = getActive();
+
+          viewerName.textContent = item.name;
+          viewerDesc.textContent = item.description;
+          viewerCategory.textContent = item.categoryLabel;
+          viewerKeywords.textContent = item.keywords.join(", ");
+          viewerUse.textContent = item.use;
+          viewerSrcText.textContent = item.src;
+          browserUrl.textContent = item.src;
+          viewerPill.textContent = "✨ Now viewing: " + item.name;
+          btnOpenCurrent.href = item.src;
+          frame.src = item.src;
+
+          var pageTitle = "Programmer's Picnic Editor Hub — " + item.name;
+          document.title = pageTitle;
+        }
+
+        function copyText(text, msg) {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard
+              .writeText(text)
+              .then(function () {
+                toast(msg || "Copied");
+              })
+              .catch(function () {
+                fallbackCopy(text, msg);
+              });
           } else {
-            item.w = nw;
-            item.h = nh;
-          }
-        } else {
-          const leadBounds = getBounds(item);
-          const targetX = snap(world.x - state.dragOffsetX);
-          const targetY = snap(world.y - state.dragOffsetY);
-          const dx = targetX - leadBounds.x;
-          const dy = targetY - leadBounds.y;
-          for (const sel of selectedItems) {
-            if (sel.type === "line" || sel.type === "arrow") {
-              sel.x += dx; sel.x2 += dx; sel.y += dy; sel.y2 += dy;
-            } else if (sel.type === "pen") {
-              sel.points.forEach((p) => { p.x += dx; p.y += dy; });
-            } else {
-              sel.x += dx; sel.y += dy;
-            }
+            fallbackCopy(text, msg);
           }
         }
-      }
-      render();
-      return;
-    }
 
-    saveHistory();
-    state.drawing = true;
-
-    if (state.tool === "pen") {
-      state.penCurrent = {
-        id: uid(),
-        type: "pen",
-        stroke: state.stroke,
-        strokeWidth: state.strokeWidth,
-        points: [{ x: world.x, y: world.y }],
-      };
-      state.temp = state.penCurrent;
-      return;
-    }
-
-    if (state.tool === "text") {
-      const text = prompt("Enter text", "New text") || "Text";
-      state.items.push({
-        id: uid(),
-        type: "text",
-        x: snap(world.x),
-        y: snap(world.y),
-        w: 220,
-        h: 90,
-        text,
-        stroke: state.stroke,
-        fill: state.fill,
-        fontSize: 20,
-        radius: 0,
-        strokeWidth: 1,
-      });
-      state.drawing = false;
-      render();
-      return;
-    }
-
-    if (state.tool === "sticky") {
-      const text = prompt("Sticky note text", "Idea") || "Idea";
-      state.items.push({
-        id: uid(),
-        type: "sticky",
-        x: snap(world.x),
-        y: snap(world.y),
-        w: 220,
-        h: 150,
-        text,
-        stroke: "#7a4a00",
-        fill: "#ffe082",
-        fontSize: 18,
-        radius: 16,
-        strokeWidth: 2,
-      });
-      state.drawing = false;
-      render();
-      return;
-    }
-
-    if (state.tool === "code") {
-      const text = prompt("Code block content", "for i in range(5):\n    print(i)") || "code";
-      state.items.push({
-        id: uid(),
-        type: "code",
-        x: snap(world.x),
-        y: snap(world.y),
-        w: 320,
-        h: 160,
-        text,
-        stroke: "#e5e7eb",
-        fill: "#111827",
-        fontSize: 15,
-        radius: 16,
-        strokeWidth: 1,
-      });
-      state.drawing = false;
-      render();
-      return;
-    }
-
-    if (state.tool === "line" || state.tool === "arrow") {
-      state.temp = {
-        id: uid(),
-        type: state.tool,
-        x: snap(world.x),
-        y: snap(world.y),
-        x2: snap(world.x),
-        y2: snap(world.y),
-        stroke: state.stroke,
-        fill: state.fill,
-        strokeWidth: state.strokeWidth,
-      };
-      return;
-    }
-
-    state.temp = {
-      id: uid(),
-      type: state.tool,
-      x: snap(world.x),
-      y: snap(world.y),
-      w: 0,
-      h: 0,
-      stroke: state.stroke,
-      fill: state.fill,
-      strokeWidth: state.strokeWidth,
-      radius: 16,
-    };
-  });
-
-  canvas.addEventListener("pointermove", (evt) => {
-    const pos = pointerPos(evt);
-    const world = screenToWorld(pos.x, pos.y);
-
-    if (state.panning && state.pointerStart) {
-      state.panX += pos.x - state.pointerStart.screenX;
-      state.panY += pos.y - state.pointerStart.screenY;
-      state.pointerStart.screenX = pos.x;
-      state.pointerStart.screenY = pos.y;
-      render();
-      return;
-    }
-
-    if (!state.drawing) {
-      state.hoveredId = hitTest(world.x, world.y)?.id || null;
-      return;
-    }
-
-    if (state.tool === "select") {
-      const item = state.items.find((i) => i.id === state.selectedId);
-      if (!item) return;
-      if (state.resizeHandle === "se") {
-        const b = getBounds(item);
-        const nw = Math.max(24, snap(world.x) - b.x);
-        const nh = Math.max(24, snap(world.y) - b.y);
-        if (item.type === "line" || item.type === "arrow") {
-          item.x2 = item.x + nw;
-          item.y2 = item.y + nh;
-        } else {
-          item.w = nw;
-          item.h = nh;
+        function fallbackCopy(text, msg) {
+          var ta = document.createElement("textarea");
+          ta.value = text;
+          ta.setAttribute("readonly", "");
+          ta.style.position = "fixed";
+          ta.style.top = "-9999px";
+          document.body.appendChild(ta);
+          ta.select();
+          try {
+            document.execCommand("copy");
+            toast(msg || "Copied");
+          } catch (err) {
+            toast("Copy failed");
+          }
+          ta.remove();
         }
-      } else {
-        if (item.type === "line" || item.type === "arrow") {
-          const dx = snap(world.x - state.dragOffsetX) - Math.min(item.x, item.x2);
-          const dy = snap(world.y - state.dragOffsetY) - Math.min(item.y, item.y2);
-          item.x += dx;
-          item.x2 += dx;
-          item.y += dy;
-          item.y2 += dy;
-        } else if (item.type === "pen") {
-          const b = getBounds(item);
-          const targetX = snap(world.x - state.dragOffsetX);
-          const targetY = snap(world.y - state.dragOffsetY);
-          const dx = targetX - b.x;
-          const dy = targetY - b.y;
-          item.points.forEach((p) => {
-            p.x += dx;
-            p.y += dy;
+
+        function toast(message) {
+          var el = document.createElement("div");
+          el.textContent = message;
+          el.style.position = "fixed";
+          el.style.left = "50%";
+          el.style.bottom = "18px";
+          el.style.transform = "translateX(-50%)";
+          el.style.background = "rgba(31,35,40,.94)";
+          el.style.color = "#fff";
+          el.style.padding = "10px 14px";
+          el.style.borderRadius = "999px";
+          el.style.fontSize = "12px";
+          el.style.fontWeight = "800";
+          el.style.zIndex = "999";
+          el.style.boxShadow = "0 16px 34px rgba(0,0,0,.24)";
+          el.style.opacity = "0";
+          el.style.transition = "opacity .18s ease, transform .18s ease";
+          document.body.appendChild(el);
+
+          requestAnimationFrame(function () {
+            el.style.opacity = "1";
+            el.style.transform = "translateX(-50%) translateY(-2px)";
           });
-        } else {
-          item.x = snap(world.x - state.dragOffsetX);
-          item.y = snap(world.y - state.dragOffsetY);
+
+          setTimeout(function () {
+            el.style.opacity = "0";
+            el.style.transform = "translateX(-50%)";
+            setTimeout(function () {
+              el.remove();
+            }, 220);
+          }, 1300);
         }
-      }
-      render();
-      return;
-    }
 
-    if (state.tool === "pen" && state.penCurrent) {
-      state.penCurrent.points.push({ x: world.x, y: world.y });
-      render();
-      return;
-    }
+        searchBox.addEventListener("input", function () {
+          state.search = this.value;
+          renderTools();
+        });
 
-    if (state.tool === "line" || state.tool === "arrow") {
-      state.temp.x2 = snap(world.x);
-      state.temp.y2 = snap(world.y);
-      render();
-      return;
-    }
+        Array.prototype.forEach.call(
+          document.querySelectorAll("[data-filter]"),
+          function (btn) {
+            btn.addEventListener("click", function () {
+              state.filter = btn.getAttribute("data-filter");
 
-    if (state.temp) {
-      const n = normalizeRect(state.pointerStart.worldX, state.pointerStart.worldY, snap(world.x), snap(world.y));
-      state.temp.x = n.x;
-      state.temp.y = n.y;
-      state.temp.w = Math.max(8, n.w);
-      state.temp.h = Math.max(8, n.h);
-      render();
-    }
-  });
+              Array.prototype.forEach.call(
+                document.querySelectorAll("[data-filter]"),
+                function (b) {
+                  b.classList.remove("active");
+                },
+              );
+              btn.classList.add("active");
 
-  function finishPointer() {
-    if (state.panning) {
-      state.panning = false;
-      return;
-    }
-    if (!state.drawing) return;
+              renderTools();
+            });
+          },
+        );
 
-    if (state.tool === "select") {
-      state.drawing = false;
-      state.resizeHandle = null;
-      state.selectionBox = null;
-      render();
-      return;
-    }
+        btnReload.addEventListener("click", function () {
+          frame.src = getActive().src;
+          toast("Editor reloaded");
+        });
 
-    if (state.tool === "pen" && state.penCurrent) {
-      if (state.penCurrent.points.length > 1) state.items.push(clone(state.penCurrent));
-      state.penCurrent = null;
-      state.temp = null;
-      state.drawing = false;
-      render();
-      return;
-    }
+        btnCopySrc.addEventListener("click", function () {
+          copyText(getActive().src, "iframe src copied");
+        });
 
-    if (state.temp) {
-      if (state.tool === "line" || state.tool === "arrow") {
-        if (Math.hypot(state.temp.x2 - state.temp.x, state.temp.y2 - state.temp.y) > 4) state.items.push(clone(state.temp));
-      } else if (state.temp.w > 10 && state.temp.h > 10) {
-        state.items.push(clone(state.temp));
-      }
-      state.temp = null;
-    }
+        btnOpenCurrentTop.addEventListener("click", function () {
+          window.open(getActive().src, "_blank", "noopener");
+        });
 
-    state.drawing = false;
-    render();
-  }
-
-  canvas.addEventListener("dblclick", (evt) => {
-    const pos = pointerPos(evt);
-    const world = screenToWorld(pos.x, pos.y);
-    const text = prompt("Enter text", "New text");
-    if (!text) return;
-    saveHistory();
-    const item = {
-      id: uid(),
-      type: "text",
-      x: snap(world.x),
-      y: snap(world.y),
-      w: Math.max(180, Math.min(360, text.length * 10)),
-      h: 90,
-      text,
-      stroke: state.stroke,
-      fill: state.fill,
-      fontSize: 20,
-      radius: 0,
-      strokeWidth: 1,
-    };
-    state.items.push(item);
-    selectOnly(item.id);
-    render();
-  });
-
-  canvas.addEventListener("pointerup", finishPointer);
-  canvas.addEventListener("pointercancel", finishPointer);
-  canvas.addEventListener("wheel", (evt) => {
-    evt.preventDefault();
-    const factor = evt.deltaY < 0 ? 1.08 : 0.92;
-    state.zoom = Math.max(0.4, Math.min(2, state.zoom * factor));
-    els.zoomRange.value = state.zoom;
-    render();
-  }, { passive: false });
-
-  document.addEventListener("keydown", (evt) => {
-    if (evt.code === "Space") state.spaceDown = true;
-    if ((evt.ctrlKey || evt.metaKey) && evt.key.toLowerCase() === "z") {
-      evt.preventDefault();
-      undo();
-    }
-    if ((evt.ctrlKey || evt.metaKey) && evt.key.toLowerCase() === "y") {
-      evt.preventDefault();
-      redo();
-    }
-    if (evt.key === "Delete" || evt.key === "Backspace") {
-      const tag = document.activeElement?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA") return;
-      removeSelected();
-    }
-  });
-
-  document.addEventListener("keyup", (evt) => {
-    if (evt.code === "Space") state.spaceDown = false;
-  });
-
-  function undo() {
-    if (!state.history.length) return;
-    state.future.push(clone(state.items));
-    state.items = state.history.pop();
-    state.selectedId = null;
-    state.selectedIds = [];
-    render();
-  }
-
-  function redo() {
-    if (!state.future.length) return;
-    state.history.push(clone(state.items));
-    state.items = state.future.pop();
-    state.selectedId = null;
-    state.selectedIds = [];
-    render();
-  }
-
-  function removeSelected() {
-    const ids = state.selectedIds.length ? state.selectedIds : state.selectedId ? [state.selectedId] : [];
-    if (!ids.length) return;
-    saveHistory();
-    state.items = state.items.filter((item) => !ids.includes(item.id));
-    state.selectedId = null;
-    state.selectedIds = [];
-    render();
-  }
-
-  function syncProps() {
-    const item = state.items.find((i) => i.id === state.selectedId);
-    els.propText.value = item?.text || "";
-    els.propWidth.value = item?.w ?? "";
-    els.propHeight.value = item?.h ?? "";
-    els.propFont.value = item?.fontSize ?? "";
-    els.propRadius.value = item?.radius ?? "";
-  }
-
-  function combineSelected(){
-    const items=getSelectedItems();
-    if(items.length<2) return;
-    const gid=uid();
-    items.forEach(it=>it.groupId=gid);
-    render();
-  }
-
-  function ungroupSelected(){
-    const items=getSelectedItems();
-    items.forEach(it=>delete it.groupId);
-    render();
-  }
-
-  function getSelectedItems() {
-    const ids = state.selectedIds.length ? state.selectedIds : state.selectedId ? [state.selectedId] : [];
-    return state.items.filter((i) => ids.includes(i.id));
-  }
-
-  function selectOnly(id) {
-    state.selectedId = id || null;
-    state.selectedIds = id ? [id] : [];
-  }
-
-  function selectMany(ids) {
-    state.selectedIds = [...ids];
-    state.selectedId = ids[0] || null;
-  }
-
-  function boundsIntersect(a, b) {
-    return a.x <= b.x + b.w && a.x + a.w >= b.x && a.y <= b.y + b.h && a.y + a.h >= b.y;
-  }
-
-  function applyProps() {
-    const selected = getSelectedItems();
-    if (!selected.length) return;
-    const item = state.items.find((i) => i.id === state.selectedId);
-    if (item && "text" in item) item.text = els.propText.value;
-    for (const sel of selected) {
-      if ("w" in sel && els.propWidth.value) sel.w = Math.max(20, Number(els.propWidth.value));
-      if ("h" in sel && els.propHeight.value) sel.h = Math.max(20, Number(els.propHeight.value));
-      if (els.propFont.value) sel.fontSize = Number(els.propFont.value);
-      if (els.propRadius.value) sel.radius = Number(els.propRadius.value);
-    }
-    render();
-  }
-
-  function bringFront() {
-    const ids = state.selectedIds.length ? state.selectedIds : state.selectedId ? [state.selectedId] : [];
-    if (!ids.length) return;
-    saveHistory();
-    const chosen = state.items.filter((i) => ids.includes(i.id));
-    const rest = state.items.filter((i) => !ids.includes(i.id));
-    state.items = [...rest, ...chosen];
-    render();
-  }
-
-  function sendBack() {
-    const ids = state.selectedIds.length ? state.selectedIds : state.selectedId ? [state.selectedId] : [];
-    if (!ids.length) return;
-    saveHistory();
-    const chosen = state.items.filter((i) => ids.includes(i.id));
-    const rest = state.items.filter((i) => !ids.includes(i.id));
-    state.items = [...chosen, ...rest];
-    render();
-  }
-
-  function saveJson() {
-    const data = {
-      version: 1,
-      zoom: state.zoom,
-      panX: state.panX,
-      panY: state.panY,
-      showGrid: state.showGrid,
-      snap: state.snap,
-      items: state.items,
-    };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "pp-whiteboard.json";
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  function loadFromData(data) {
-    if (!data || !Array.isArray(data.items)) return;
-    state.items = data.items;
-    state.zoom = data.zoom || 1;
-    state.panX = data.panX || 0;
-    state.panY = data.panY || 0;
-    state.showGrid = !!data.showGrid;
-    state.snap = !!data.snap;
-    els.zoomRange.value = state.zoom;
-    state.selectedId = null;
-    state.selectedIds = [];
-    render();
-  }
-
-  function loadJsonFile(file) {
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const data = JSON.parse(reader.result);
-        loadFromData(data);
-      } catch {
-        alert("Invalid JSON file.");
-      }
-    };
-    reader.readAsText(file);
-  }
-
-  function exportPNG() {
-    state.selectedId = null;
-    state.selectedIds = [];
-    render();
-    const url = canvas.toDataURL("image/png");
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "pp-whiteboard.png";
-    a.click();
-  }
-
-  function copyShareLink() {
-    const data = {
-      version: 1,
-      zoom: state.zoom,
-      panX: state.panX,
-      panY: state.panY,
-      showGrid: state.showGrid,
-      snap: state.snap,
-      items: state.items,
-    };
-    const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
-    const url = location.origin + location.pathname + "#data=" + encoded;
-    navigator.clipboard.writeText(url).then(() => alert("Share link copied."));
-  }
-
-  function loadFromHash() {
-    const hash = location.hash || "";
-    const match = hash.match(/data=(.*)$/);
-    if (!match) return;
-    try {
-      const json = decodeURIComponent(escape(atob(match[1])));
-      loadFromData(JSON.parse(json));
-    } catch {
-      console.warn("Could not load board from hash.");
-    }
-  }
-
-  function addCenteredText(label, x, y, fontSize = 20) {
-    state.items.push({ id: uid(), type: "text", x, y, w: 140, h: 30, text: label, stroke: "#1f2328", fontSize });
-  }
-
-  function addQueueTemplate() {
-    saveHistory();
-    const baseX = 110;
-    const baseY = 160;
-    for (let i = 0; i < 5; i++) {
-      state.items.push({ id: uid(), type: "rect", x: baseX + i * 90, y: baseY, w: 78, h: 64, stroke: "#1f2328", fill: ["#dbeafe", "#dcfce7", "#fde68a", "#fee2e2", "#ede9fe"][i % 5], strokeWidth: 2, radius: 12 });
-      addCenteredText("Q" + (i + 1), baseX + 24 + i * 90, baseY + 18, 18);
-    }
-    addCenteredText("Front", baseX + 6, baseY - 56, 18);
-    addCenteredText("Rear", baseX + 356, baseY - 56, 18);
-    state.items.push({ id: uid(), type: "arrow", x: baseX + 36, y: baseY - 18, x2: baseX + 36, y2: baseY - 2, stroke: "#1f2328", strokeWidth: 2 });
-    state.items.push({ id: uid(), type: "arrow", x: baseX + 396, y: baseY - 18, x2: baseX + 396, y2: baseY - 2, stroke: "#1f2328", strokeWidth: 2 });
-    render();
-  }
-
-  function addLinkedListTemplate() {
-    saveHistory();
-    const baseX = 90;
-    const baseY = 170;
-    for (let i = 0; i < 4; i++) {
-      state.items.push({ id: uid(), type: "rect", x: baseX + i * 180, y: baseY, w: 120, h: 70, stroke: "#1f2328", fill: "#fff1c7", strokeWidth: 2, radius: 12 });
-      state.items.push({ id: uid(), type: "line", x: baseX + i * 180 + 80, y: baseY, x2: baseX + i * 180 + 80, y2: baseY + 70, stroke: "#1f2328", strokeWidth: 2 });
-      addCenteredText("data", baseX + i * 180 + 18, baseY + 22, 18);
-      addCenteredText("next", baseX + i * 180 + 86, baseY + 22, 18);
-      if (i < 3) {
-        state.items.push({ id: uid(), type: "arrow", x: baseX + i * 180 + 120, y: baseY + 35, x2: baseX + i * 180 + 180, y2: baseY + 35, stroke: "#1f2328", strokeWidth: 2 });
-      }
-    }
-    addCenteredText("Head", baseX + 6, baseY - 56, 18);
-    state.items.push({ id: uid(), type: "arrow", x: baseX + 36, y: baseY - 18, x2: baseX + 36, y2: baseY - 2, stroke: "#1f2328", strokeWidth: 2 });
-    render();
-  }
-
-  function addLoginFlowTemplate() {
-    saveHistory();
-    addTemplate("flowchart");
-    const extraX = 510;
-    const extraY = 260;
-    state.items.push({ id: uid(), type: "rect", x: extraX, y: extraY, w: 180, h: 72, stroke: "#1f2328", fill: "#dcfce7", strokeWidth: 2, radius: 16 });
-    addCenteredText("Grant Access", extraX + 24, extraY + 22, 20);
-    state.items.push({ id: uid(), type: "rect", x: extraX, y: extraY + 130, w: 180, h: 72, stroke: "#1f2328", fill: "#fee2e2", strokeWidth: 2, radius: 16 });
-    addCenteredText("Show Error", extraX + 34, extraY + 152, 20);
-    state.items.push({ id: uid(), type: "arrow", x: 425, y: 445, x2: extraX, y2: extraY + 36, stroke: "#1f2328", strokeWidth: 2 });
-    state.items.push({ id: uid(), type: "arrow", x: 425, y: 445, x2: extraX, y2: extraY + 166, stroke: "#1f2328", strokeWidth: 2 });
-    addCenteredText("Yes", 465, 320, 16);
-    addCenteredText("No", 470, 470, 16);
-    render();
-  }
-
-  function generateAIDiagram(promptText) {
-    const prompt = String(promptText || "").trim().toLowerCase();
-    if (!prompt) {
-      alert("Enter a prompt first.");
-      return;
-    }
-
-    if (prompt.includes("binary") && prompt.includes("tree") || prompt.includes("bst") || prompt.includes("tree")) {
-      addTemplate("tree");
-      return;
-    }
-    if (prompt.includes("stack")) {
-      addTemplate("stack");
-      return;
-    }
-    if (prompt.includes("queue")) {
-      addQueueTemplate();
-      return;
-    }
-    if (prompt.includes("linked list") || prompt.includes("node") && prompt.includes("next")) {
-      addLinkedListTemplate();
-      return;
-    }
-    if (prompt.includes("system") || prompt.includes("api") || prompt.includes("database") || prompt.includes("cache") || prompt.includes("client server")) {
-      addTemplate("system");
-      return;
-    }
-    if (prompt.includes("login") || prompt.includes("validation")) {
-      addLoginFlowTemplate();
-      return;
-    }
-    if (prompt.includes("flowchart") || prompt.includes("algorithm") || prompt.includes("process")) {
-      addTemplate("flowchart");
-      return;
-    }
-
-    saveHistory();
-    state.items.push({ id: uid(), type: "sticky", x: 140, y: 120, w: 300, h: 180, text: "Prompt: " + promptText + "
-
-I could not map this to a built-in diagram type yet. Try prompts like: stack, queue, binary tree, linked list, system design, or login flowchart.", stroke: "#7a4a00", fill: "#ffe082", fontSize: 18, radius: 16, strokeWidth: 2 }); render(); }
-
-function addTemplate(name) {
-    saveHistory();
-    const baseX = 120;
-    const baseY = 100;
-    if (name === "flowchart") {
-      state.items.push(
-        { id: uid(), type: "ellipse", x: baseX + 120, y: baseY, w: 180, h: 70, text: "", stroke: "#1f2328", fill: "#fff1c7", strokeWidth: 2, radius: 16 },
-        { id: uid(), type: "text", x: baseX + 175, y: baseY + 22, w: 100, h: 30, text: "Start", stroke: "#1f2328", fill: "#fff", fontSize: 20, radius: 0, strokeWidth: 1 },
-        { id: uid(), type: "rect", x: baseX + 120, y: baseY + 140, w: 180, h: 80, text: "", stroke: "#1f2328", fill: "#e0f2fe", strokeWidth: 2, radius: 16 },
-        { id: uid(), type: "text", x: baseX + 148, y: baseY + 168, w: 130, h: 30, text: "Process", stroke: "#1f2328", fill: "#fff", fontSize: 20, radius: 0, strokeWidth: 1 },
-        { id: uid(), type: "diamond", x: baseX + 115, y: baseY + 290, w: 190, h: 110, text: "", stroke: "#1f2328", fill: "#fde68a", strokeWidth: 2, radius: 0 },
-        { id: uid(), type: "text", x: baseX + 175, y: baseY + 330, w: 90, h: 30, text: "Check?", stroke: "#1f2328", fill: "#fff", fontSize: 18, radius: 0, strokeWidth: 1 },
-        { id: uid(), type: "arrow", x: baseX + 210, y: baseY + 70, x2: baseX + 210, y2: baseY + 140, stroke: "#1f2328", strokeWidth: 2 },
-        { id: uid(), type: "arrow", x: baseX + 210, y: baseY + 220, x2: baseX + 210, y2: baseY + 290, stroke: "#1f2328", strokeWidth: 2 }
-      );
-    } else if (name === "stack") {
-      for (let i = 0; i < 4; i++) {
-        state.items.push({ id: uid(), type: "rect", x: baseX + 130, y: baseY + 220 - i * 70, w: 180, h: 58, stroke: "#1f2328", fill: ["#fee2e2", "#fde68a", "#dbeafe", "#dcfce7"][i], strokeWidth: 2, radius: 12 });
-        state.items.push({ id: uid(), type: "text", x: baseX + 190, y: baseY + 238 - i * 70, w: 100, h: 20, text: "Item " + (i + 1), stroke: "#1f2328", fontSize: 18 });
-      }
-      state.items.push({ id: uid(), type: "text", x: baseX + 150, y: baseY - 70, w: 150, h: 24, text: "Stack Top", stroke: "#1f2328", fontSize: 20 });
-      state.items.push({ id: uid(), type: "arrow", x: baseX + 220, y: baseY - 26, x2: baseX + 220, y2: baseY + 8, stroke: "#1f2328", strokeWidth: 2 });
-    } else if (name === "tree") {
-      const nodes = [
-        { x: 280, y: 90, label: "8" },
-        { x: 180, y: 210, label: "4" },
-        { x: 380, y: 210, label: "12" },
-        { x: 120, y: 330, label: "2" },
-        { x: 240, y: 330, label: "6" },
-        { x: 340, y: 330, label: "10" },
-        { x: 440, y: 330, label: "14" },
-      ];
-      const links = [[0,1],[0,2],[1,3],[1,4],[2,5],[2,6]];
-      links.forEach(([a,b]) => state.items.push({ id: uid(), type: "line", x: nodes[a].x, y: nodes[a].y, x2: nodes[b].x, y2: nodes[b].y, stroke: "#1f2328", strokeWidth: 2 }));
-      nodes.forEach((n) => {
-        state.items.push({ id: uid(), type: "ellipse", x: n.x - 36, y: n.y - 30, w: 72, h: 60, stroke: "#1f2328", fill: "#fff1c7", strokeWidth: 2 });
-        state.items.push({ id: uid(), type: "text", x: n.x - 10, y: n.y - 11, w: 24, h: 20, text: n.label, stroke: "#1f2328", fontSize: 20 });
-      });
-    } else if (name === "system") {
-      state.items.push(
-        { id: uid(), type: "rect", x: 80, y: 150, w: 180, h: 90, stroke: "#1f2328", fill: "#dbeafe", strokeWidth: 2, radius: 16 },
-        { id: uid(), type: "text", x: 130, y: 182, w: 100, h: 30, text: "Client", stroke: "#1f2328", fontSize: 22 },
-        { id: uid(), type: "rect", x: 350, y: 150, w: 220, h: 90, stroke: "#1f2328", fill: "#dcfce7", strokeWidth: 2, radius: 16 },
-        { id: uid(), type: "text", x: 415, y: 182, w: 120, h: 30, text: "API Server", stroke: "#1f2328", fontSize: 22 },
-        { id: uid(), type: "rect", x: 670, y: 80, w: 180, h: 90, stroke: "#1f2328", fill: "#fde68a", strokeWidth: 2, radius: 16 },
-        { id: uid(), type: "text", x: 726, y: 112, w: 100, h: 30, text: "Cache", stroke: "#1f2328", fontSize: 22 },
-        { id: uid(), type: "rect", x: 670, y: 240, w: 180, h: 90, stroke: "#1f2328", fill: "#fee2e2", strokeWidth: 2, radius: 16 },
-        { id: uid(), type: "text", x: 706, y: 272, w: 120, h: 30, text: "Database", stroke: "#1f2328", fontSize: 22 },
-        { id: uid(), type: "arrow", x: 260, y: 195, x2: 350, y2: 195, stroke: "#1f2328", strokeWidth: 2 },
-        { id: uid(), type: "arrow", x: 570, y: 180, x2: 670, y2: 125, stroke: "#1f2328", strokeWidth: 2 },
-        { id: uid(), type: "arrow", x: 570, y: 210, x2: 670, y2: 285, stroke: "#1f2328", strokeWidth: 2 }
-      );
-    }
-    render();
-  }
-
-  els.toolButtons.forEach((btn) => btn.addEventListener("click", () => setTool(btn.dataset.tool)));
-  els.gridBtn.addEventListener("click", () => { state.showGrid = !state.showGrid; render(); });
-  els.snapBtn.addEventListener("click", () => { state.snap = !state.snap; render(); });
-  els.zoomRange.addEventListener("input", () => { state.zoom = Number(els.zoomRange.value); render(); });
-  els.strokeWidth.addEventListener("input", () => { state.strokeWidth = Number(els.strokeWidth.value); });
-  els.strokeColor.addEventListener("input", () => { state.stroke = els.strokeColor.value; });
-  els.fillColor.addEventListener("input", () => { state.fill = els.fillColor.value; });
-  els.undoBtn.addEventListener("click", undo);
-  els.redoBtn.addEventListener("click", redo);
-  els.newBoardBtn.addEventListener("click", () => {
-    if (!confirm("Clear the board?")) return;
-    saveHistory();
-    state.items = [];
-    state.selectedId = null;
-    state.panX = 0;
-    state.panY = 0;
-    state.zoom = 1;
-    els.zoomRange.value = 1;
-    render();
-  });
-  els.exportBtn.addEventListener("click", exportPNG);
-  els.saveJsonBtn.addEventListener("click", saveJson);
-  els.loadJsonBtn.addEventListener("click", () => els.fileInput.click());
-  els.fileInput.addEventListener("change", (e) => {
-    const file = e.target.files?.[0];
-    if (file) loadJsonFile(file);
-    e.target.value = "";
-  });
-  els.shareBtn.addEventListener("click", copyShareLink);
-  [els.propText, els.propWidth, els.propHeight, els.propFont, els.propRadius].forEach((el) => el.addEventListener("input", applyProps));
-  els.bringFrontBtn.addEventListener("click", bringFront);
-  els.sendBackBtn.addEventListener("click", sendBack);
-  els.templateButtons.forEach((btn) => btn.addEventListener("click", () => addTemplate(btn.dataset.template)));
-  els.aiGenerateBtn.addEventListener("click", () => generateAIDiagram(els.aiPrompt.value));
-  if(els.combineBtn) els.combineBtn.onclick=combineSelected;
-  if(els.ungroupBtn) els.ungroupBtn.onclick=ungroupSelected;
-
-  els.aiSampleBtn.addEventListener("click", () => {
-    const samples = [
-      "Binary search tree",
-      "Stack push pop",
-      "Queue enqueue dequeue",
-      "Client API database cache",
-      "Flowchart for login validation",
-      "Linked list node next pointer"
-    ];
-    els.aiPrompt.value = samples[Math.floor(Math.random() * samples.length)];
-  });
-
-  state.colors.forEach((color) => {
-    const b = document.createElement("button");
-    b.className = "swatch";
-    b.style.background = color;
-    b.title = color;
-    b.addEventListener("click", () => {
-      state.stroke = color;
-      els.strokeColor.value = color;
-    });
-    els.swatches.appendChild(b);
-  });
-
-  loadFromHash();
-  updateStatus();
-  setTool("select");
-  window.addEventListener("resize", resizeCanvas);
-  resizeCanvas();
-</script>
-
-<script>
-  const toggleBtn=document.createElement("button");
-  toggleBtn.id="themeToggle";
-  toggleBtn.textContent="Toggle Theme";
-  document.body.appendChild(toggleBtn);
-
-  const savedTheme=localStorage.getItem("pp-theme");
-  if(savedTheme){
-    document.documentElement.setAttribute("data-theme",savedTheme);
-  }
-
-  toggleBtn.onclick=()=>{
-    const current=document.documentElement.getAttribute("data-theme");
-    const next=current==="dark"?"light":"dark";
-    document.documentElement.setAttribute("data-theme",next);
-    localStorage.setItem("pp-theme",next);
-  };
-</script></body>
+        renderChips();
+        renderQuickLinks();
+        renderTools();
+        updateViewer();
+      })();
+    </script>
+  </body>
 </html>
