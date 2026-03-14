@@ -763,3 +763,25 @@ function boot() {
 }
 
 boot();
+
+const fullscreenBtn = document.getElementById("fullscreenBtn");
+
+function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen();
+    if (fullscreenBtn) fullscreenBtn.textContent = "Exit Fullscreen";
+  } else {
+    document.exitFullscreen();
+    if (fullscreenBtn) fullscreenBtn.textContent = "Fullscreen";
+  }
+}
+
+if (fullscreenBtn) {
+  fullscreenBtn.addEventListener("click", toggleFullscreen);
+}
+
+document.addEventListener("fullscreenchange", () => {
+  if (!document.fullscreenElement) {
+    if (fullscreenBtn) fullscreenBtn.textContent = "Fullscreen";
+  }
+});
