@@ -12,7 +12,7 @@
 
       body {
         margin: 0;
-        font-family: system-ui;
+        font-family: system-ui, sans-serif;
         background: #111;
       }
 
@@ -27,7 +27,7 @@
         flex-wrap: wrap;
         align-items: center;
         padding: 10px;
-        background: rgba(255, 255, 255, 0.9);
+        background: rgba(255, 255, 255, 0.92);
         backdrop-filter: blur(8px);
       }
 
@@ -104,7 +104,92 @@
         bottom: -8px;
         cursor: nwse-resize;
       }
+
+      .textPanel {
+        position: fixed;
+        right: 14px;
+        top: 78px;
+        width: 320px;
+        z-index: 120;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 16px;
+        padding: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+      }
+
+      .textPanel h3 {
+        margin: 0 0 10px;
+        font-size: 15px;
+      }
+
+      .textPanel textarea {
+        width: 100%;
+        min-height: 130px;
+        resize: vertical;
+        border-radius: 12px;
+        border: 1px solid rgba(0, 0, 0, 0.15);
+        padding: 10px 12px;
+        font:
+          14px/1.5 system-ui,
+          sans-serif;
+        outline: none;
+      }
+
+      .textGrid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      .textPanel label {
+        display: block;
+        font-size: 12px;
+        font-weight: 700;
+        margin-bottom: 4px;
+        color: #333;
+      }
+
+      .textPanel input[type="number"],
+      .textPanel select {
+        width: 100%;
+        padding: 8px 10px;
+        border-radius: 10px;
+        border: 1px solid rgba(0, 0, 0, 0.15);
+        background: #fff;
+      }
+
+      .textActions {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+        flex-wrap: wrap;
+      }
+
+      .hint {
+        margin-top: 8px;
+        font-size: 12px;
+        color: #555;
+      }
+
+      @media (max-width: 900px) {
+        .textPanel {
+          left: 10px;
+          right: 10px;
+          width: auto;
+          top: auto;
+          bottom: 10px;
+          max-height: 42vh;
+          overflow: auto;
+        }
+      }
     </style>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Patrick+Hand&family=Kalam:wght@300;400;700&display=swap"
+      rel="stylesheet"
+    />
   </head>
 
   <body>
@@ -122,204 +207,302 @@
       <button id="fullscreenBtn">Fullscreen</button>
     </div>
 
+    <div class="textPanel">
+      <h3>Write text on board</h3>
+      <textarea
+        id="boardText"
+        placeholder="Type here...
+Each line will be drawn separately on the board."
+      ></textarea>
+
+      <div class="textGrid">
+        <div>
+          <label for="textFont">Handwriting font</label>
+          <select id="textFont">
+            <option value="'Caveat', cursive">Caveat</option>
+            <option value="'Patrick Hand', cursive">Patrick Hand</option>
+            <option value="'Kalam', cursive">Kalam</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="textSize">Text size</label>
+          <input type="number" id="textSize" value="36" min="12" max="120" />
+        </div>
+
+        <div>
+          <label for="textX">Start X</label>
+          <input type="number" id="textX" value="40" min="0" />
+        </div>
+
+        <div>
+          <label for="textY">Start Y</label>
+          <input type="number" id="textY" value="70" min="0" />
+        </div>
+
+        <div>
+          <label for="lineGap">Line gap</label>
+          <input type="number" id="lineGap" value="12" min="0" max="80" />
+        </div>
+
+        <div>
+          <label for="textColor">Text color</label>
+          <input type="color" id="textColor" value="#111827" />
+        </div>
+      </div>
+
+      <div class="textActions">
+        <button id="writeTextBtn" class="primary">Write on Board</button>
+        <button id="clearTextBtn">Clear Text Box</button>
+      </div>
+
+      <div class="hint">
+        Line breaks are preserved. Change X and Y to place the writing where you
+        want.
+      </div>
+    </div>
+
     <div class="stage">
       <div class="bg"></div>
 
       <div class="boardBox" id="boardBox">
         <div class="calibOutline" id="outline"></div>
         <div class="handle h-se" id="resizeHandle"></div>
-
         <canvas id="board"></canvas>
       </div>
     </div>
 
     <script>
+      const canvas = document.getElementById("board");
+      const ctx = canvas.getContext("2d");
+      const boardBox = document.getElementById("boardBox");
 
-      const canvas=document.getElementById("board");
-      const ctx=canvas.getContext("2d");
-      const boardBox=document.getElementById("boardBox");
+      const penBtn = document.getElementById("penBtn");
+      const eraserBtn = document.getElementById("eraserBtn");
+      const colorEl = document.getElementById("color");
+      const sizeEl = document.getElementById("size");
+      const sizeVal = document.getElementById("sizeVal");
+      const clearBtn = document.getElementById("clearBtn");
+      const saveBtn = document.getElementById("saveBtn");
+      const calibBtn = document.getElementById("calibBtn");
+      const fullscreenBtn = document.getElementById("fullscreenBtn");
 
-      const penBtn=document.getElementById("penBtn");
-      const eraserBtn=document.getElementById("eraserBtn");
-      const colorEl=document.getElementById("color");
-      const sizeEl=document.getElementById("size");
-      const sizeVal=document.getElementById("sizeVal");
-      const clearBtn=document.getElementById("clearBtn");
-      const saveBtn=document.getElementById("saveBtn");
-      const calibBtn=document.getElementById("calibBtn");
-      const fullscreenBtn=document.getElementById("fullscreenBtn");
+      const outline = document.getElementById("outline");
+      const resizeHandle = document.getElementById("resizeHandle");
 
-      const outline=document.getElementById("outline");
-      const resizeHandle=document.getElementById("resizeHandle");
+      const boardText = document.getElementById("boardText");
+      const textFont = document.getElementById("textFont");
+      const textSize = document.getElementById("textSize");
+      const textX = document.getElementById("textX");
+      const textY = document.getElementById("textY");
+      const lineGap = document.getElementById("lineGap");
+      const textColor = document.getElementById("textColor");
+      const writeTextBtn = document.getElementById("writeTextBtn");
+      const clearTextBtn = document.getElementById("clearTextBtn");
 
-      let tool="pen";
-      let drawing=false;
-      let last=null;
-      let calibrate=false;
+      let tool = "pen";
+      let drawing = false;
+      let last = null;
+      let calibrate = false;
 
-      function resizeCanvas(){
-      const rect=boardBox.getBoundingClientRect();
-      const dpr=window.devicePixelRatio||1;
+      function resizeCanvas() {
+        const rect = boardBox.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
 
-      canvas.width=rect.width*dpr;
-      canvas.height=rect.height*dpr;
+        const oldCanvas = document.createElement("canvas");
+        oldCanvas.width = canvas.width;
+        oldCanvas.height = canvas.height;
+        oldCanvas.getContext("2d").drawImage(canvas, 0, 0);
 
-      ctx.setTransform(dpr,0,0,dpr,0,0);
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        if (oldCanvas.width && oldCanvas.height) {
+          ctx.drawImage(
+            oldCanvas,
+            0,
+            0,
+            oldCanvas.width,
+            oldCanvas.height,
+            0,
+            0,
+            rect.width,
+            rect.height,
+          );
+        }
       }
 
       new ResizeObserver(resizeCanvas).observe(boardBox);
+      window.addEventListener("load", resizeCanvas);
 
-      function getPos(e){
-      const r=canvas.getBoundingClientRect();
-      return{
-      x:e.clientX-r.left,
-      y:e.clientY-r.top
-      };
+      function getPos(e) {
+        const r = canvas.getBoundingClientRect();
+        return {
+          x: e.clientX - r.left,
+          y: e.clientY - r.top,
+        };
       }
 
-      function stroke(a,b){
+      function stroke(a, b) {
+        ctx.lineWidth = Number(sizeEl.value);
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
 
-      ctx.lineWidth=Number(sizeEl.value);
-      ctx.lineCap="round";
-      ctx.lineJoin="round";
+        if (tool === "eraser") {
+          ctx.globalCompositeOperation = "destination-out";
+          ctx.strokeStyle = "rgba(0,0,0,1)";
+        } else {
+          ctx.globalCompositeOperation = "source-over";
+          ctx.strokeStyle = colorEl.value;
+        }
 
-      if(tool==="eraser"){
-      ctx.globalCompositeOperation="destination-out";
-      ctx.strokeStyle="rgba(0,0,0,1)";
-      }
-      else{
-      ctx.globalCompositeOperation="source-over";
-      ctx.strokeStyle=colorEl.value;
-      }
-
-      ctx.beginPath();
-      ctx.moveTo(a.x,a.y);
-      ctx.lineTo(b.x,b.y);
-      ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.stroke();
       }
 
-      canvas.addEventListener("pointerdown",e=>{
-      if(calibrate)return;
+      function drawBoardText() {
+        const raw = boardText.value;
+        if (!raw.trim()) return;
 
-      drawing=true;
-      last=getPos(e);
+        const lines = raw.replace(/\r\n/g, "\n").split("\n");
+        const startX = Number(textX.value) || 0;
+        const startY = Number(textY.value) || 0;
+        const fontSize = Math.max(12, Number(textSize.value) || 36);
+        const extraGap = Math.max(0, Number(lineGap.value) || 0);
+        const stepY = fontSize + extraGap;
+
+        ctx.save();
+        ctx.globalCompositeOperation = "source-over";
+        ctx.fillStyle = textColor.value;
+        ctx.textAlign = "left";
+        ctx.textBaseline = "alphabetic";
+        ctx.font = `${fontSize}px ${textFont.value}`;
+
+        lines.forEach((line, index) => {
+          const y = startY + index * stepY;
+          ctx.fillText(line, startX, y);
+        });
+
+        ctx.restore();
+      }
+
+      canvas.addEventListener("pointerdown", (e) => {
+        if (calibrate) return;
+        drawing = true;
+        last = getPos(e);
       });
 
-      canvas.addEventListener("pointermove",e=>{
-      if(!drawing||calibrate)return;
-
-      const p=getPos(e);
-      stroke(last,p);
-      last=p;
+      canvas.addEventListener("pointermove", (e) => {
+        if (!drawing || calibrate) return;
+        const p = getPos(e);
+        stroke(last, p);
+        last = p;
       });
 
-      window.addEventListener("pointerup",()=>drawing=false);
-
-      penBtn.onclick=()=>{
-      tool="pen";
-      penBtn.classList.add("active");
-      eraserBtn.classList.remove("active");
-      };
-
-      eraserBtn.onclick=()=>{
-      tool="eraser";
-      eraserBtn.classList.add("active");
-      penBtn.classList.remove("active");
-      };
-
-      sizeEl.oninput=()=>sizeVal.textContent=sizeEl.value;
-
-      clearBtn.onclick=()=>{
-      ctx.clearRect(0,0,canvas.width,canvas.height);
-      };
-
-      calibBtn.onclick=()=>{
-      calibrate=!calibrate;
-
-      outline.style.display=calibrate?"block":"none";
-      resizeHandle.style.display=calibrate?"block":"none";
-      };
-
-      let resizing=false;
-
-      resizeHandle.addEventListener("pointerdown",()=>resizing=true);
-
-      window.addEventListener("pointermove",e=>{
-
-      if(!resizing)return;
-
-      const rect=boardBox.getBoundingClientRect();
-
-      boardBox.style.width=e.clientX-rect.left+"px";
-      boardBox.style.height=e.clientY-rect.top+"px";
-
+      window.addEventListener("pointerup", () => {
+        drawing = false;
       });
 
-      window.addEventListener("pointerup",()=>resizing=false);
-
-      saveBtn.onclick=()=>{
-
-      const stage=document.querySelector(".stage");
-      const stageRect=stage.getBoundingClientRect();
-
-      const output=document.createElement("canvas");
-
-      const dpr=window.devicePixelRatio||1;
-
-      output.width=stageRect.width*dpr;
-      output.height=stageRect.height*dpr;
-
-      const octx=output.getContext("2d");
-      octx.scale(dpr,dpr);
-
-      const img=new Image();
-
-      img.onload=function(){
-
-      octx.drawImage(img,0,0,stageRect.width,stageRect.height);
-
-      const boardRect=boardBox.getBoundingClientRect();
-
-      const x=boardRect.left-stageRect.left;
-      const y=boardRect.top-stageRect.top;
-
-      octx.drawImage(canvas,x,y,boardRect.width,boardRect.height);
-
-      const link=document.createElement("a");
-      link.download="full-classroom-board.png";
-      link.href=output.toDataURL("image/png");
-      link.click();
-
+      penBtn.onclick = () => {
+        tool = "pen";
+        penBtn.classList.add("active");
+        eraserBtn.classList.remove("active");
       };
 
-      img.src="classroom.jpg";
+      eraserBtn.onclick = () => {
+        tool = "eraser";
+        eraserBtn.classList.add("active");
+        penBtn.classList.remove("active");
       };
 
-      fullscreenBtn.onclick=()=>{
-
-      if(!document.fullscreenElement){
-
-      document.documentElement.requestFullscreen();
-      fullscreenBtn.textContent="Exit Fullscreen";
-
-      }
-      else{
-
-      document.exitFullscreen();
-      fullscreenBtn.textContent="Fullscreen";
-
-      }
-
+      sizeEl.oninput = () => {
+        sizeVal.textContent = sizeEl.value;
       };
 
-      document.addEventListener("fullscreenchange",()=>{
+      clearBtn.onclick = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      };
 
-      fullscreenBtn.textContent=
-      document.fullscreenElement?
-      "Exit Fullscreen":
-      "Fullscreen";
+      calibBtn.onclick = () => {
+        calibrate = !calibrate;
+        outline.style.display = calibrate ? "block" : "none";
+        resizeHandle.style.display = calibrate ? "block" : "none";
+      };
 
+      let resizing = false;
+
+      resizeHandle.addEventListener("pointerdown", () => {
+        resizing = true;
       });
+
+      window.addEventListener("pointermove", (e) => {
+        if (!resizing) return;
+        const rect = boardBox.getBoundingClientRect();
+        boardBox.style.width = e.clientX - rect.left + "px";
+        boardBox.style.height = e.clientY - rect.top + "px";
+      });
+
+      window.addEventListener("pointerup", () => {
+        resizing = false;
+      });
+
+      saveBtn.onclick = () => {
+        const stage = document.querySelector(".stage");
+        const stageRect = stage.getBoundingClientRect();
+
+        const output = document.createElement("canvas");
+        const dpr = window.devicePixelRatio || 1;
+        output.width = stageRect.width * dpr;
+        output.height = stageRect.height * dpr;
+
+        const octx = output.getContext("2d");
+        octx.scale(dpr, dpr);
+
+        const img = new Image();
+        img.onload = function () {
+          octx.drawImage(img, 0, 0, stageRect.width, stageRect.height);
+
+          const boardRect = boardBox.getBoundingClientRect();
+          const x = boardRect.left - stageRect.left;
+          const y = boardRect.top - stageRect.top;
+          octx.drawImage(canvas, x, y, boardRect.width, boardRect.height);
+
+          const link = document.createElement("a");
+          link.download = "full-classroom-board.png";
+          link.href = output.toDataURL("image/png");
+          link.click();
+        };
+        img.src = "classroom.jpg";
+      };
+
+      fullscreenBtn.onclick = () => {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen();
+          fullscreenBtn.textContent = "Exit Fullscreen";
+        } else {
+          document.exitFullscreen();
+          fullscreenBtn.textContent = "Fullscreen";
+        }
+      };
+
+      document.addEventListener("fullscreenchange", () => {
+        fullscreenBtn.textContent = document.fullscreenElement
+          ? "Exit Fullscreen"
+          : "Fullscreen";
+      });
+
+      writeTextBtn.onclick = () => {
+        drawBoardText();
+      };
+
+      clearTextBtn.onclick = () => {
+        boardText.value = "";
+        boardText.focus();
+      };
     </script>
   </body>
 </html>
