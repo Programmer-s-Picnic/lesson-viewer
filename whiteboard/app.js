@@ -26,6 +26,8 @@ const propStrokeWidth = document.getElementById("propStrokeWidth");
 const propFontFamily = document.getElementById("propFontFamily");
 const propFontSize = document.getElementById("propFontSize");
 const propText = document.getElementById("propText");
+const shareHashBtn = document.getElementById("shareHashBtn");
+const shareQueryBtn = document.getElementById("shareQueryBtn");
 
 const interaction = {
   pointerDown: false,
@@ -665,6 +667,33 @@ if (propText) {
   });
 }
 
+
+if (shareHashBtn) {
+  shareHashBtn.addEventListener("click", async () => {
+    try {
+      const url = buildHashShareUrl();
+      await copyTextToClipboard(url);
+      alert("Hash share link copied.");
+    } catch (error) {
+      console.error(error);
+      alert("Could not copy hash share link.");
+    }
+  });
+}
+
+if (shareQueryBtn) {
+  shareQueryBtn.addEventListener("click", async () => {
+    try {
+      const url = buildQueryShareUrl();
+      await copyTextToClipboard(url);
+      alert("Query share link copied. Replace example.json with your filename if needed.");
+    } catch (error) {
+      console.error(error);
+      alert("Could not copy query share link.");
+    }
+  });
+}
+
 document.getElementById("themeBtn").addEventListener("click", () => {
   const root = document.documentElement;
   const next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
@@ -723,7 +752,87 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
-function boot() {
+
+function encodeStateToHash(state) {
+  const json = JSON.stringify(state);
+  return btoa(unescape(encodeURIComponent(json)));
+}
+
+function decodeHashToState(encoded) {
+  const json = decodeURIComponent(escape(atob(encoded)));
+  return JSON.parse(json);
+}
+
+async function loadJsonFromQuery() {
+  const params = new URLSearchParams(window.location.search);
+  const file = params.get("json");
+  if (!file) return false;
+
+  try {
+    const response = await fetch(file, { cache: "no-store" });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    const previousState = deepClone(store.getState());
+
+    commandManager.execute({
+      type: COMMANDS.LOAD_BOARD,
+      payload: {
+        state: data,
+        previousState,
+      },
+    });
+    return true;
+  } catch (error) {
+    console.error("Failed to load JSON from query parameter:", error);
+    alert(`Could not load JSON file: ${file}`);
+    return false;
+  }
+}
+
+function loadJsonFromHash() {
+  const rawHash = window.location.hash ? window.location.hash.slice(1) : "";
+  if (!rawHash) return false;
+
+  try {
+    const state = decodeHashToState(rawHash);
+    const previousState = deepClone(store.getState());
+
+    commandManager.execute({
+      type: COMMANDS.LOAD_BOARD,
+      payload: {
+        state,
+        previousState,
+      },
+    });
+    return true;
+  } catch (error) {
+    console.error("Failed to load board from hash:", error);
+    return false;
+  }
+}
+
+async function copyTextToClipboard(text) {
+  await navigator.clipboard.writeText(text);
+}
+
+function buildQueryShareUrl() {
+  const current = new URL(window.location.href);
+  current.hash = "";
+  const params = new URLSearchParams(current.search);
+  const existing = params.get("json");
+  params.set("json", existing || "example.json");
+  current.search = params.toString();
+  return current.toString();
+}
+
+function buildHashShareUrl() {
+  const current = new URL(window.location.href);
+  current.search = "";
+  current.hash = encodeStateToHash(store.getState());
+  return current.toString();
+}
+
+async function boot() {
   const savedTheme = localStorage.getItem("pp-theme");
   if (savedTheme) {
     document.documentElement.setAttribute("data-theme", savedTheme);
@@ -759,6 +868,12 @@ function boot() {
   syncColorInputs();
   setActiveTool(TOOLS.SELECT);
   syncPropertyPanel();
+
+  const loadedFromQuery = await loadJsonFromQuery();
+  if (!loadedFromQuery) {
+    loadJsonFromHash();
+  }
+
   renderer.requestRender();
 }
 

@@ -196,6 +196,7 @@
     <div class="topbar">
       <button id="penBtn" class="primary active">Pen</button>
       <button id="eraserBtn">Eraser</button>
+      <button id="moveTextBtn">Move Text</button>
 
       <input type="color" id="color" value="#111827" />
       <input type="range" id="size" min="2" max="30" value="6" />
@@ -257,8 +258,8 @@ Each line will be drawn separately on the board."
       </div>
 
       <div class="hint">
-        Line breaks are preserved. Change X and Y to place the writing where you
-        want.
+        In <b>Move Text</b> mode, drag a text block up/down with the mouse or
+        use the mouse wheel to nudge the selected block vertically.
       </div>
     </div>
 
@@ -279,6 +280,7 @@ Each line will be drawn separately on the board."
 
       const penBtn = document.getElementById("penBtn");
       const eraserBtn = document.getElementById("eraserBtn");
+      const moveTextBtn = document.getElementById("moveTextBtn");
       const colorEl = document.getElementById("color");
       const sizeEl = document.getElementById("size");
       const sizeVal = document.getElementById("sizeVal");
@@ -305,33 +307,46 @@ Each line will be drawn separately on the board."
       let last = null;
       let calibrate = false;
 
+      let drawLayer = document.createElement("canvas");
+      let drawCtx = drawLayer.getContext("2d");
+
+      let textBlocks = [];
+      let selectedTextId = null;
+      let draggingText = false;
+      let dragOffsetY = 0;
+
       function resizeCanvas() {
         const rect = boardBox.getBoundingClientRect();
         const dpr = window.devicePixelRatio || 1;
 
-        const oldCanvas = document.createElement("canvas");
-        oldCanvas.width = canvas.width;
-        oldCanvas.height = canvas.height;
-        oldCanvas.getContext("2d").drawImage(canvas, 0, 0);
+        const oldDrawLayer = document.createElement("canvas");
+        oldDrawLayer.width = drawLayer.width;
+        oldDrawLayer.height = drawLayer.height;
+        oldDrawLayer.getContext("2d").drawImage(drawLayer, 0, 0);
 
         canvas.width = rect.width * dpr;
         canvas.height = rect.height * dpr;
-
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-        if (oldCanvas.width && oldCanvas.height) {
-          ctx.drawImage(
-            oldCanvas,
+        drawLayer.width = rect.width * dpr;
+        drawLayer.height = rect.height * dpr;
+        drawCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        if (oldDrawLayer.width && oldDrawLayer.height) {
+          drawCtx.drawImage(
+            oldDrawLayer,
             0,
             0,
-            oldCanvas.width,
-            oldCanvas.height,
+            oldDrawLayer.width,
+            oldDrawLayer.height,
             0,
             0,
             rect.width,
             rect.height,
           );
         }
+
+        renderScene();
       }
 
       new ResizeObserver(resizeCanvas).observe(boardBox);
@@ -346,25 +361,25 @@ Each line will be drawn separately on the board."
       }
 
       function stroke(a, b) {
-        ctx.lineWidth = Number(sizeEl.value);
-        ctx.lineCap = "round";
-        ctx.lineJoin = "round";
+        drawCtx.lineWidth = Number(sizeEl.value);
+        drawCtx.lineCap = "round";
+        drawCtx.lineJoin = "round";
 
         if (tool === "eraser") {
-          ctx.globalCompositeOperation = "destination-out";
-          ctx.strokeStyle = "rgba(0,0,0,1)";
+          drawCtx.globalCompositeOperation = "destination-out";
+          drawCtx.strokeStyle = "rgba(0,0,0,1)";
         } else {
-          ctx.globalCompositeOperation = "source-over";
-          ctx.strokeStyle = colorEl.value;
+          drawCtx.globalCompositeOperation = "source-over";
+          drawCtx.strokeStyle = colorEl.value;
         }
 
-        ctx.beginPath();
-        ctx.moveTo(a.x, a.y);
-        ctx.lineTo(b.x, b.y);
-        ctx.stroke();
+        drawCtx.beginPath();
+        drawCtx.moveTo(a.x, a.y);
+        drawCtx.lineTo(b.x, b.y);
+        drawCtx.stroke();
       }
 
-      function drawBoardText() {
+      function addTextBlock() {
         const raw = boardText.value;
         if (!raw.trim()) return;
 
@@ -373,58 +388,189 @@ Each line will be drawn separately on the board."
         const startY = Number(textY.value) || 0;
         const fontSize = Math.max(12, Number(textSize.value) || 36);
         const extraGap = Math.max(0, Number(lineGap.value) || 0);
-        const stepY = fontSize + extraGap;
+
+        const block = {
+          id: crypto.randomUUID
+            ? crypto.randomUUID()
+            : String(Date.now() + Math.random()),
+          lines,
+          x: startX,
+          y: startY,
+          fontSize,
+          fontFamily: textFont.value,
+          color: textColor.value,
+          lineGap: extraGap,
+        };
+
+        textBlocks.push(block);
+        selectedTextId = block.id;
+        renderScene();
+      }
+
+      function drawTextBlock(block, isSelected = false) {
+        const stepY = block.fontSize + block.lineGap;
 
         ctx.save();
         ctx.globalCompositeOperation = "source-over";
-        ctx.fillStyle = textColor.value;
+        ctx.fillStyle = block.color;
         ctx.textAlign = "left";
         ctx.textBaseline = "alphabetic";
-        ctx.font = `${fontSize}px ${textFont.value}`;
+        ctx.font = `${block.fontSize}px ${block.fontFamily}`;
 
-        lines.forEach((line, index) => {
-          const y = startY + index * stepY;
-          ctx.fillText(line, startX, y);
+        let maxWidth = 0;
+        block.lines.forEach((line) => {
+          maxWidth = Math.max(maxWidth, ctx.measureText(line).width);
         });
+
+        block.lines.forEach((line, index) => {
+          const y = block.y + index * stepY;
+          ctx.fillText(line, block.x, y);
+        });
+
+        if (isSelected) {
+          const top = block.y - block.fontSize;
+          const height = block.lines.length * stepY;
+          ctx.strokeStyle = "rgba(255,140,0,0.95)";
+          ctx.lineWidth = 2;
+          ctx.setLineDash([6, 4]);
+          ctx.strokeRect(block.x - 8, top - 8, maxWidth + 16, height + 16);
+        }
 
         ctx.restore();
       }
 
+      function getTextBlockBounds(block) {
+        ctx.save();
+        ctx.font = `${block.fontSize}px ${block.fontFamily}`;
+        let maxWidth = 0;
+        block.lines.forEach((line) => {
+          maxWidth = Math.max(maxWidth, ctx.measureText(line).width);
+        });
+        ctx.restore();
+
+        const stepY = block.fontSize + block.lineGap;
+        return {
+          x: block.x - 8,
+          y: block.y - block.fontSize - 8,
+          w: maxWidth + 16,
+          h: block.lines.length * stepY + 16,
+        };
+      }
+
+      function hitTestTextBlock(pos) {
+        for (let i = textBlocks.length - 1; i >= 0; i--) {
+          const block = textBlocks[i];
+          const b = getTextBlockBounds(block);
+          if (
+            pos.x >= b.x &&
+            pos.x <= b.x + b.w &&
+            pos.y >= b.y &&
+            pos.y <= b.y + b.h
+          ) {
+            return block;
+          }
+        }
+        return null;
+      }
+
+      function renderScene() {
+        const rect = boardBox.getBoundingClientRect();
+        ctx.clearRect(0, 0, rect.width, rect.height);
+        ctx.drawImage(drawLayer, 0, 0, rect.width, rect.height);
+
+        for (const block of textBlocks) {
+          drawTextBlock(block, block.id === selectedTextId);
+        }
+      }
+
       canvas.addEventListener("pointerdown", (e) => {
         if (calibrate) return;
+
+        const pos = getPos(e);
+
+        if (tool === "moveText") {
+          const hit = hitTestTextBlock(pos);
+          if (hit) {
+            selectedTextId = hit.id;
+            draggingText = true;
+            dragOffsetY = pos.y - hit.y;
+          } else {
+            selectedTextId = null;
+          }
+          renderScene();
+          return;
+        }
+
         drawing = true;
-        last = getPos(e);
+        last = pos;
       });
 
       canvas.addEventListener("pointermove", (e) => {
-        if (!drawing || calibrate) return;
         const p = getPos(e);
+
+        if (tool === "moveText" && draggingText) {
+          const block = textBlocks.find((t) => t.id === selectedTextId);
+          if (block) {
+            block.y = p.y - dragOffsetY;
+            renderScene();
+          }
+          return;
+        }
+
+        if (!drawing || calibrate) return;
         stroke(last, p);
         last = p;
+        renderScene();
       });
+
+      canvas.addEventListener(
+        "wheel",
+        (e) => {
+          if (tool !== "moveText" || !selectedTextId) return;
+
+          e.preventDefault();
+          const block = textBlocks.find((t) => t.id === selectedTextId);
+          if (!block) return;
+
+          block.y += e.deltaY > 0 ? 8 : -8;
+          renderScene();
+        },
+        { passive: false },
+      );
 
       window.addEventListener("pointerup", () => {
         drawing = false;
+        draggingText = false;
       });
 
-      penBtn.onclick = () => {
-        tool = "pen";
-        penBtn.classList.add("active");
-        eraserBtn.classList.remove("active");
-      };
+      function setActiveTool(nextTool) {
+        tool = nextTool;
 
-      eraserBtn.onclick = () => {
-        tool = "eraser";
-        eraserBtn.classList.add("active");
-        penBtn.classList.remove("active");
-      };
+        penBtn.classList.toggle("active", nextTool === "pen");
+        eraserBtn.classList.toggle("active", nextTool === "eraser");
+        moveTextBtn.classList.toggle("active", nextTool === "moveText");
+
+        canvas.style.cursor =
+          nextTool === "moveText"
+            ? "grab"
+            : nextTool === "eraser"
+              ? "cell"
+              : "crosshair";
+      }
+
+      penBtn.onclick = () => setActiveTool("pen");
+      eraserBtn.onclick = () => setActiveTool("eraser");
+      moveTextBtn.onclick = () => setActiveTool("moveText");
 
       sizeEl.oninput = () => {
         sizeVal.textContent = sizeEl.value;
       };
 
       clearBtn.onclick = () => {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawCtx.clearRect(0, 0, drawLayer.width, drawLayer.height);
+        textBlocks = [];
+        selectedTextId = null;
+        renderScene();
       };
 
       calibBtn.onclick = () => {
@@ -469,6 +615,7 @@ Each line will be drawn separately on the board."
           const boardRect = boardBox.getBoundingClientRect();
           const x = boardRect.left - stageRect.left;
           const y = boardRect.top - stageRect.top;
+
           octx.drawImage(canvas, x, y, boardRect.width, boardRect.height);
 
           const link = document.createElement("a");
@@ -496,13 +643,15 @@ Each line will be drawn separately on the board."
       });
 
       writeTextBtn.onclick = () => {
-        drawBoardText();
+        addTextBlock();
       };
 
       clearTextBtn.onclick = () => {
         boardText.value = "";
         boardText.focus();
       };
+
+      setActiveTool("pen");
     </script>
   </body>
 </html>
