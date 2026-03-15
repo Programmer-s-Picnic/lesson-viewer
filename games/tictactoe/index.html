@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Tic Tac Toe with #share</title>
+  <meta name="theme-color" content="#d97706" />
+  <style>
+    :root{
+      --bg:#fff8ef;
+      --panel:#ffffff;
+      --panel2:#fff3df;
+      --text:#1f2937;
+      --muted:#6b7280;
+      --line:#f0c78a;
+      --accent:#d97706;
+      --accent2:#f59e0b;
+      --win:#166534;
+      --shadow:0 20px 50px rgba(217,119,6,.12);
+      --radius:24px;
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(245,158,11,.16), transparent 30%),
+        radial-gradient(circle at bottom right, rgba(217,119,6,.12), transparent 28%),
+        linear-gradient(180deg,#fffaf3, #fff3e0 100%);
+      min-height:100vh;
+      display:grid;
+      place-items:center;
+      padding:24px;
+    }
+
+    .app{
+      width:min(100%, 760px);
+      background:rgba(255,255,255,.82);
+      backdrop-filter: blur(10px);
+      border:1px solid rgba(217,119,6,.14);
+      border-radius:32px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+
+    .hero{
+      padding:26px 26px 12px;
+      background:linear-gradient(135deg, rgba(245,158,11,.12), rgba(255,255,255,.5));
+      border-bottom:1px solid rgba(217,119,6,.12);
+    }
+
+    .eyebrow{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 12px;
+      border-radius:999px;
+      background:var(--panel2);
+      border:1px solid var(--line);
+      color:var(--accent);
+      font-size:12px;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+
+    h1{
+      margin:14px 0 8px;
+      font-size:clamp(28px,5vw,44px);
+      line-height:1.05;
+    }
+
+    .sub{
+      margin:0;
+      color:var(--muted);
+      font-size:15px;
+    }
+
+    .main{
+      display:grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap:20px;
+      padding:22px;
+    }
+
+    @media (max-width: 760px){
+      .main{ grid-template-columns:1fr; }
+    }
+
+    .card{
+      background:var(--panel);
+      border:1px solid rgba(217,119,6,.12);
+      border-radius:var(--radius);
+      box-shadow:0 12px 30px rgba(15,23,42,.05);
+    }
+
+    .board-wrap{
+      padding:18px;
+    }
+
+    .board{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:12px;
+      aspect-ratio:1/1;
+    }
+
+    .cell{
+      border:none;
+      border-radius:22px;
+      background:linear-gradient(180deg,#fff,#fff7ed);
+      border:1px solid rgba(217,119,6,.18);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 10px 18px rgba(217,119,6,.08);
+      font-size:clamp(40px,8vw,72px);
+      font-weight:900;
+      color:var(--accent);
+      cursor:pointer;
+      transition:transform .12s ease, box-shadow .12s ease, background .12s ease;
+    }
+
+    .cell:hover:not(:disabled){
+      transform:translateY(-2px);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.95), 0 16px 24px rgba(217,119,6,.14);
+      background:linear-gradient(180deg,#fff,#ffedd5);
+    }
+
+    .cell:disabled{
+      cursor:not-allowed;
+    }
+
+    .cell.win{
+      color:var(--win);
+      background:linear-gradient(180deg,#f0fdf4,#dcfce7);
+      border-color:rgba(22,101,52,.24);
+    }
+
+    .side{
+      padding:18px;
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+    }
+
+    .status{
+      padding:18px;
+      border-radius:22px;
+      background:linear-gradient(180deg,#fff,#fff7ed);
+      border:1px solid rgba(217,119,6,.15);
+    }
+
+    .label{
+      font-size:12px;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:var(--muted);
+      margin-bottom:8px;
+    }
+
+    .big{
+      font-size:24px;
+      font-weight:900;
+      line-height:1.15;
+    }
+
+    .turn-badges{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+
+    .badge{
+      padding:14px;
+      border-radius:18px;
+      border:1px solid rgba(217,119,6,.12);
+      background:#fff;
+      text-align:center;
+      font-weight:800;
+    }
+
+    .badge.active{
+      background:linear-gradient(180deg,#fff7ed,#ffedd5);
+      border-color:rgba(217,119,6,.28);
+      color:var(--accent);
+      box-shadow:0 10px 20px rgba(217,119,6,.10);
+    }
+
+    .actions{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+    }
+
+    .btn{
+      appearance:none;
+      border:none;
+      border-radius:18px;
+      padding:14px 16px;
+      font-size:15px;
+      font-weight:800;
+      cursor:pointer;
+      transition:transform .12s ease, opacity .12s ease, box-shadow .12s ease;
+    }
+
+    .btn:hover{
+      transform:translateY(-1px);
+    }
+
+    .btn:active{
+      transform:translateY(0);
+    }
+
+    .btn-primary{
+      background:linear-gradient(135deg,var(--accent),var(--accent2));
+      color:white;
+      box-shadow:0 14px 24px rgba(217,119,6,.22);
+    }
+
+    .btn-secondary{
+      background:#fff;
+      color:var(--text);
+      border:1px solid rgba(217,119,6,.18);
+    }
+
+    .mini{
+      padding:14px 16px;
+      border-radius:20px;
+      background:#fff;
+      border:1px dashed rgba(217,119,6,.22);
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.5;
+    }
+
+    .share-link{
+      margin-top:8px;
+      display:block;
+      width:100%;
+      padding:12px 14px;
+      border-radius:14px;
+      border:1px solid rgba(217,119,6,.18);
+      background:#fffaf5;
+      color:#7c2d12;
+      font-size:13px;
+      word-break:break-all;
+    }
+
+    .foot{
+      padding:0 22px 22px;
+      color:var(--muted);
+      font-size:13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="hero">
+      <div class="eyebrow">Programmer’s Picnic • Tic Tac Toe</div>
+      <h1>Tic Tac Toe with #share</h1>
+      <p class="sub">
+        Make moves, copy the link, and share the exact board state through the URL hash.
+      </p>
+    </div>
+
+    <div class="main">
+      <section class="card board-wrap">
+        <div class="board" id="board"></div>
+      </section>
+
+      <aside class="card side">
+        <div class="status">
+          <div class="label">Game Status</div>
+          <div class="big" id="statusText">Player X to move</div>
+        </div>
+
+        <div class="turn-badges">
+          <div class="badge active" id="badgeX">Player X</div>
+          <div class="badge" id="badgeO">Player O</div>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-primary" id="restartBtn">Restart</button>
+          <button class="btn btn-secondary" id="shareBtn">Copy #share Link</button>
+        </div>
+
+        <div class="mini">
+          <strong>How it works:</strong><br />
+          The board, turn, result, and winning cells are encoded into the URL hash.
+          Open or send the link and the same position appears automatically.
+          <input class="share-link" id="shareLink" readonly />
+        </div>
+      </aside>
+    </div>
+
+    <div class="foot">
+      Tip: after every move, the URL hash updates automatically.
+    </div>
+  </div>
+
+  <script>
+    const boardEl = document.getElementById("board");
+    const statusText = document.getElementById("statusText");
+    const badgeX = document.getElementById("badgeX");
+    const badgeO = document.getElementById("badgeO");
+    const restartBtn = document.getElementById("restartBtn");
+    const shareBtn = document.getElementById("shareBtn");
+    const shareLinkInput = document.getElementById("shareLink");
+
+    const WIN_LINES = [
+      [0,1,2],[3,4,5],[6,7,8],
+      [0,3,6],[1,4,7],[2,5,8],
+      [0,4,8],[2,4,6]
+    ];
+
+    let state = createFreshState();
+
+    function createFreshState() {
+      return {
+        board: Array(9).fill(""),
+        turn: "X",
+        winner: "",
+        draw: false,
+        winLine: []
+      };
+    }
+
+    function getWinner(board) {
+      for (const line of WIN_LINES) {
+        const [a,b,c] = line;
+        if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+          return { winner: board[a], line };
+        }
+      }
+      return null;
+    }
+
+    function evaluateState() {
+      const result = getWinner(state.board);
+
+      if (result) {
+        state.winner = result.winner;
+        state.draw = false;
+        state.winLine = result.line;
+        return;
+      }
+
+      if (state.board.every(Boolean)) {
+        state.winner = "";
+        state.draw = true;
+        state.winLine = [];
+        return;
+      }
+
+      state.winner = "";
+      state.draw = false;
+      state.winLine = [];
+    }
+
+    function render() {
+      boardEl.innerHTML = "";
+
+      state.board.forEach((value, index) => {
+        const btn = document.createElement("button");
+        btn.className = "cell";
+        if (state.winLine.includes(index)) btn.classList.add("win");
+        btn.textContent = value;
+        btn.disabled = !!value || !!state.winner || state.draw;
+        btn.addEventListener("click", () => handleMove(index));
+        boardEl.appendChild(btn);
+      });
+
+      if (state.winner) {
+        statusText.textContent = `Player ${state.winner} wins`;
+      } else if (state.draw) {
+        statusText.textContent = "It’s a draw";
+      } else {
+        statusText.textContent = `Player ${state.turn} to move`;
+      }
+
+      badgeX.classList.toggle("active", !state.winner && !state.draw && state.turn === "X");
+      badgeO.classList.toggle("active", !state.winner && !state.draw && state.turn === "O");
+
+      shareLinkInput.value = window.location.href;
+    }
+
+    function handleMove(index) {
+      if (state.board[index] || state.winner || state.draw) return;
+
+      state.board[index] = state.turn;
+      evaluateState();
+
+      if (!state.winner && !state.draw) {
+        state.turn = state.turn === "X" ? "O" : "X";
+      }
+
+      writeHashFromState();
+      render();
+    }
+
+    function restartGame() {
+      state = createFreshState();
+      writeHashFromState();
+      render();
+    }
+
+    function serializeState() {
+      return {
+        b: state.board.map(v => v || "-").join(""),
+        t: state.turn,
+        w: state.winner || "-",
+        d: state.draw ? 1 : 0,
+        l: state.winLine.length ? state.winLine.join(",") : "-"
+      };
+    }
+
+    function deserializeState(obj) {
+      const next = createFreshState();
+
+      if (!obj || typeof obj !== "object") return next;
+
+      const b = String(obj.b || "---------").slice(0, 9).padEnd(9, "-");
+      next.board = [...b].map(ch => (ch === "X" || ch === "O") ? ch : "");
+
+      next.turn = obj.t === "O" ? "O" : "X";
+      next.winner = obj.w === "X" || obj.w === "O" ? obj.w : "";
+      next.draw = Number(obj.d) === 1;
+
+      if (typeof obj.l === "string" && obj.l !== "-") {
+        next.winLine = obj.l
+          .split(",")
+          .map(n => Number(n))
+          .filter(n => Number.isInteger(n) && n >= 0 && n <= 8);
+      }
+
+      // Re-evaluate to keep it trustworthy
+      const result = getWinner(next.board);
+      if (result) {
+        next.winner = result.winner;
+        next.draw = false;
+        next.winLine = result.line;
+      } else if (next.board.every(Boolean)) {
+        next.winner = "";
+        next.draw = true;
+        next.winLine = [];
+      } else {
+        next.winner = "";
+        next.draw = false;
+        next.winLine = [];
+      }
+
+      // Fix turn if needed
+      const xCount = next.board.filter(v => v === "X").length;
+      const oCount = next.board.filter(v => v === "O").length;
+
+      if (!next.winner && !next.draw) {
+        next.turn = xCount <= oCount ? "X" : "O";
+      }
+
+      return next;
+    }
+
+    function encodeState(obj) {
+      return btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
+    }
+
+    function decodeState(str) {
+      return JSON.parse(decodeURIComponent(escape(atob(str))));
+    }
+
+    function writeHashFromState() {
+      const encoded = encodeState(serializeState());
+      const newHash = `#share=${encoded}`;
+      history.replaceState(null, "", newHash);
+      shareLinkInput.value = window.location.href;
+    }
+
+    function loadStateFromHash() {
+      const hash = window.location.hash || "";
+      const match = hash.match(/#share=([^&]+)/);
+
+      if (!match) {
+        state = createFreshState();
+        writeHashFromState();
+        return;
+      }
+
+      try {
+        const decoded = decodeState(match[1]);
+        state = deserializeState(decoded);
+      } catch (err) {
+        state = createFreshState();
+        writeHashFromState();
+      }
+    }
+
+    async function copyShareLink() {
+      const url = window.location.href;
+      try {
+        await navigator.clipboard.writeText(url);
+        shareBtn.textContent = "Copied";
+        setTimeout(() => shareBtn.textContent = "Copy #share Link", 1200);
+      } catch {
+        shareLinkInput.focus();
+        shareLinkInput.select();
+        document.execCommand("copy");
+        shareBtn.textContent = "Copied";
+        setTimeout(() => shareBtn.textContent = "Copy #share Link", 1200);
+      }
+    }
+
+    restartBtn.addEventListener("click", restartGame);
+    shareBtn.addEventListener("click", copyShareLink);
+
+    window.addEventListener("hashchange", () => {
+      loadStateFromHash();
+      render();
+    });
+
+    loadStateFromHash();
+    render();
+  </script>
+</body>
+</html>
