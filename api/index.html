@@ -4,17 +4,18 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Programmer's Picnic API Studio — Champak Roy</title>
-      <script
-      async
-      src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8321261883090494"
-      crossorigin="anonymous"
-    ></script>
+  <script
+    async
+    src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8321261883090494"
+    crossorigin="anonymous"
+  ></script>
 
   <meta
     name="description"
     content="A premium API making and testing tool by Programmer's Picnic and Champak Roy. Build requests, test APIs, inspect responses, save collections, export/import JSON, and copy cURL."
   />
   <meta name="theme-color" content="#d97706" />
+
   <style>
     :root{
       --bg:#0b1220;
@@ -42,6 +43,11 @@
       --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       --sans: Inter, "Segoe UI", Roboto, Arial, sans-serif;
       --top-h: 54vh;
+
+      --method-bg:rgba(245,158,11,.10);
+      --method-line:rgba(245,158,11,.36);
+      --method-glow:rgba(245,158,11,.18);
+      --method-pill:#f59e0b;
     }
 
     body.light{
@@ -65,6 +71,37 @@
       --purple:#7c3aed;
       --shadow:0 18px 42px rgba(217,119,6,.14);
       --shadow-soft:0 12px 24px rgba(217,119,6,.10);
+    }
+
+    body.method-get{
+      --method-bg:rgba(96,165,250,.10);
+      --method-line:rgba(96,165,250,.34);
+      --method-glow:rgba(96,165,250,.18);
+      --method-pill:#60a5fa;
+    }
+    body.method-post{
+      --method-bg:rgba(16,185,129,.10);
+      --method-line:rgba(16,185,129,.34);
+      --method-glow:rgba(16,185,129,.18);
+      --method-pill:#10b981;
+    }
+    body.method-put{
+      --method-bg:rgba(245,158,11,.10);
+      --method-line:rgba(245,158,11,.34);
+      --method-glow:rgba(245,158,11,.18);
+      --method-pill:#f59e0b;
+    }
+    body.method-patch{
+      --method-bg:rgba(167,139,250,.10);
+      --method-line:rgba(167,139,250,.34);
+      --method-glow:rgba(167,139,250,.18);
+      --method-pill:#a78bfa;
+    }
+    body.method-delete{
+      --method-bg:rgba(239,68,68,.10);
+      --method-line:rgba(239,68,68,.34);
+      --method-glow:rgba(239,68,68,.18);
+      --method-pill:#ef4444;
     }
 
     *{box-sizing:border-box}
@@ -100,6 +137,10 @@
       height:100vh;
       position:relative;
       z-index:1;
+      transition:grid-template-columns .22s ease;
+    }
+    .app.sidebar-collapsed{
+      grid-template-columns: 0 1fr;
     }
 
     .sidebar{
@@ -110,6 +151,13 @@
       flex-direction:column;
       min-width:250px;
       overflow:hidden;
+      transition:transform .22s ease, opacity .22s ease;
+    }
+
+    .app.sidebar-collapsed .sidebar{
+      transform:translateX(-100%);
+      opacity:0;
+      pointer-events:none;
     }
 
     .brand{
@@ -118,8 +166,7 @@
       display:flex;
       gap:12px;
       align-items:center;
-      background:
-        linear-gradient(180deg, rgba(245,158,11,.10), rgba(245,158,11,0));
+      background:linear-gradient(180deg, rgba(245,158,11,.10), rgba(245,158,11,0));
     }
 
     .logo{
@@ -173,7 +220,8 @@
         transform .18s ease,
         border-color .18s ease,
         box-shadow .18s ease,
-        background .18s ease;
+        background .18s ease,
+        opacity .18s ease;
       box-shadow:var(--shadow-soft);
       white-space:nowrap;
     }
@@ -346,10 +394,33 @@
       margin-top:4px;
     }
 
+    .top-actions{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:6px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.03);
+      border-radius:18px;
+    }
+
+    .ad-strip{
+      padding:10px 18px 0;
+    }
+
+    .ad-slot{
+      border:1px dashed var(--line-strong);
+      border-radius:16px;
+      padding:12px 14px;
+      color:var(--muted);
+      font-size:12px;
+      background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
+    }
+
     .workspace{
       display:grid;
       grid-template-rows: var(--top-h) 10px 1fr;
-      height:calc(100vh - 76px);
+      height:calc(100vh - 126px);
     }
 
     .request-pane,.response-pane{
@@ -451,11 +522,13 @@
       gap:12px;
       align-items:center;
       padding:12px;
-      border-radius:18px;
-      background:
-        linear-gradient(180deg, rgba(245,158,11,.08), rgba(245,158,11,.03));
-      border:1px solid color-mix(in srgb, var(--accent) 28%, var(--line));
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+      border-radius:22px;
+      background:linear-gradient(180deg, var(--method-bg), rgba(255,255,255,.02));
+      border:1px solid var(--method-line);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.08),
+        0 0 0 6px rgba(255,255,255,.01),
+        0 10px 35px var(--method-glow);
     }
 
     .request-url-wrap{
@@ -508,6 +581,14 @@
       font-weight:800;
       font-size:13px;
       transition:.18s ease;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+
+    .tab .ico{
+      opacity:.9;
+      font-size:14px;
     }
 
     .tab:hover{
@@ -680,6 +761,21 @@
       background:rgba(255,255,255,.03);
     }
 
+    .badge-method{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 12px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:#111;
+      background:var(--method-pill);
+      box-shadow:0 10px 22px var(--method-glow);
+    }
+
     ::-webkit-scrollbar{
       width:10px;
       height:10px;
@@ -718,7 +814,7 @@
 
       .sidebar.open{display:flex}
 
-      .workspace{height:calc(100vh - 78px)}
+      .workspace{height:calc(100vh - 126px)}
       .split{grid-template-columns:1fr}
       .nowrap{flex-wrap:wrap}
 
@@ -741,6 +837,12 @@
 
       .topbar .title{
         font-size:20px;
+      }
+
+      .top-actions{
+        border:none;
+        background:transparent;
+        padding:0;
       }
     }
 
@@ -768,11 +870,15 @@
       .response-tabs{
         width:100%;
       }
+
+      .ad-strip{
+        padding:8px 12px 0;
+      }
     }
   </style>
 </head>
-<body>
-  <div class="app">
+<body class="method-get">
+  <div class="app" id="appShell">
     <aside class="sidebar" id="sidebar">
       <div class="brand">
         <div class="logo">API</div>
@@ -808,17 +914,23 @@
     <main class="main">
       <div class="topbar">
         <div class="left">
-          <button class="btn small icon" id="menuBtn" aria-label="Open menu">☰</button>
+          <button class="btn small icon" id="menuBtn" aria-label="Toggle menu">☰</button>
           <div>
             <div class="title">API Request Builder</div>
             <div class="sub">Create, test, inspect, and save API requests</div>
           </div>
         </div>
 
-        <div class="right">
+        <div class="top-actions">
           <button class="btn small" id="copyCurlBtn">Copy cURL</button>
           <button class="btn small" id="clearHistoryBtn">Clear History</button>
           <button class="btn primary small" id="sendBtn">Send Request</button>
+        </div>
+      </div>
+
+      <div class="ad-strip">
+        <div class="ad-slot">
+          Ad slot area. Replace this box with your responsive AdSense unit if you want an inline banner below the topbar.
         </div>
       </div>
 
@@ -828,9 +940,12 @@
             <div class="section-head">
               <div>
                 <h2>Request Composer</h2>
-                <div class="mini">Version 1 · Single-file API tool</div>
+                <div class="mini">Version 2 · Cleaner visuals and method-aware styling</div>
               </div>
-              <div class="soft-chip">Programmer’s Picnic · API Studio</div>
+              <div class="row">
+                <span class="badge-method" id="methodBadge">GET</span>
+                <div class="soft-chip">Programmer’s Picnic · API Studio</div>
+              </div>
             </div>
 
             <div class="request-hero">
@@ -852,11 +967,11 @@
             <div style="height:14px"></div>
 
             <div class="tabs" id="requestTabs">
-              <button class="tab active" data-tab="params">Params</button>
-              <button class="tab" data-tab="headers">Headers</button>
-              <button class="tab" data-tab="auth">Auth</button>
-              <button class="tab" data-tab="body">Body</button>
-              <button class="tab" data-tab="notes">Notes</button>
+              <button class="tab active" data-tab="params"><span class="ico">⚙</span><span>Params</span></button>
+              <button class="tab" data-tab="headers"><span class="ico">#</span><span>Headers</span></button>
+              <button class="tab" data-tab="auth"><span class="ico">🔐</span><span>Auth</span></button>
+              <button class="tab" data-tab="body"><span class="ico">{ }</span><span>Body</span></button>
+              <button class="tab" data-tab="notes"><span class="ico">✎</span><span>Notes</span></button>
             </div>
 
             <div class="tab-panel active" data-panel="params">
@@ -1018,10 +1133,12 @@
   <script>
     const els = {
       body: document.body,
+      appShell: document.getElementById('appShell'),
       sidebar: document.getElementById('sidebar'),
       menuBtn: document.getElementById('menuBtn'),
       toggleThemeBtn: document.getElementById('toggleThemeBtn'),
       method: document.getElementById('method'),
+      methodBadge: document.getElementById('methodBadge'),
       url: document.getElementById('url'),
       sendBtn: document.getElementById('sendBtn'),
       sendBtn2: document.getElementById('sendBtn2'),
@@ -1071,7 +1188,8 @@
     const STORAGE_KEYS = {
       theme: 'pp_api_theme',
       saved: 'pp_api_saved_requests_v1',
-      history: 'pp_api_history_v1'
+      history: 'pp_api_history_v1',
+      sidebar: 'pp_api_sidebar_collapsed'
     };
 
     let responseState = {
@@ -1110,6 +1228,13 @@
       return 'm-other';
     }
 
+    function updateMethodTheme() {
+      const method = (els.method.value || 'GET').toLowerCase();
+      els.body.classList.remove('method-get', 'method-post', 'method-put', 'method-patch', 'method-delete');
+      els.body.classList.add(`method-${method}`);
+      els.methodBadge.textContent = method.toUpperCase();
+    }
+
     function loadJSON(key, fallback){
       try{
         const v = JSON.parse(localStorage.getItem(key));
@@ -1134,6 +1259,21 @@
       if(stored) return setTheme(stored);
       const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
       setTheme(prefersLight ? 'light' : 'dark');
+    }
+
+    function setSidebarCollapsed(isCollapsed) {
+      if (window.innerWidth <= 980) {
+        els.sidebar.classList.toggle('open', !isCollapsed);
+        return;
+      }
+      els.appShell.classList.toggle('sidebar-collapsed', isCollapsed);
+      localStorage.setItem(STORAGE_KEYS.sidebar, JSON.stringify(isCollapsed));
+    }
+
+    function initSidebarState() {
+      if (window.innerWidth <= 980) return;
+      const stored = loadJSON(STORAGE_KEYS.sidebar, false);
+      setSidebarCollapsed(!!stored);
     }
 
     function createKVRow(type='normal', data={enabled:true,key:'',value:''}){
@@ -1253,6 +1393,7 @@
       els.apiKeyLocation.value = req.auth?.apiKeyLocation || 'header';
       els.bodyInput.value = req.body || '';
       updateAuthUI();
+      updateMethodTheme();
     }
 
     function getSavedRequests(){
@@ -1379,6 +1520,7 @@
       setKVData(els.paramsList, []);
       setKVData(els.headersList, []);
       updateAuthUI();
+      updateMethodTheme();
     }
 
     function formatBodyAsJson(){
@@ -1601,7 +1743,7 @@
       window.addEventListener('mouseup', () => dragging = false);
       window.addEventListener('mousemove', (e) => {
         if(!dragging) return;
-        const topbarH = document.querySelector('.topbar').offsetHeight;
+        const topbarH = document.querySelector('.topbar').offsetHeight + document.querySelector('.ad-strip').offsetHeight;
         const y = e.clientY - topbarH;
         const h = window.innerHeight - topbarH;
         let pct = (y / h) * 100;
@@ -1611,10 +1753,20 @@
     }
 
     function bindEvents(){
-      els.menuBtn.addEventListener('click', () => els.sidebar.classList.toggle('open'));
+      els.menuBtn.addEventListener('click', () => {
+        if (window.innerWidth <= 980) {
+          els.sidebar.classList.toggle('open');
+        } else {
+          const collapsed = els.appShell.classList.contains('sidebar-collapsed');
+          setSidebarCollapsed(!collapsed);
+        }
+      });
+
       els.toggleThemeBtn.addEventListener('click', () => {
         setTheme(els.body.classList.contains('light') ? 'dark' : 'light');
       });
+
+      els.method.addEventListener('change', updateMethodTheme);
 
       els.addParamBtn.addEventListener('click', () => els.paramsList.appendChild(createKVRow('api')));
       els.addHeaderBtn.addEventListener('click', () => els.headersList.appendChild(createKVRow('api')));
@@ -1656,6 +1808,13 @@
       els.url.addEventListener('keydown', (e) => {
         if(e.key === 'Enter') sendRequest();
       });
+
+      window.addEventListener('resize', () => {
+        if (window.innerWidth > 980) {
+          els.sidebar.classList.remove('open');
+          initSidebarState();
+        }
+      });
     }
 
     function initDemoData(){
@@ -1678,6 +1837,7 @@
 
     function init(){
       initTheme();
+      initSidebarState();
       setupTabs();
       setupResponseModeButtons();
       setupResizer();
@@ -1685,6 +1845,7 @@
       initDemoData();
       addDefaultRows();
       updateAuthUI();
+      updateMethodTheme();
       renderSavedList();
     }
 
