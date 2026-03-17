@@ -297,6 +297,33 @@
       flex:1;
     }
 
+    .group-block{
+      margin-bottom:18px;
+    }
+
+    .group-title{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:0 4px 6px;
+      color:var(--muted);
+      font-size:12px;
+      font-weight:900;
+      text-transform:uppercase;
+      letter-spacing:.10em;
+    }
+
+    .group-count{
+      font-size:11px;
+      padding:4px 8px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.03);
+      text-transform:none;
+      letter-spacing:0;
+    }
+
     .item{
       border:1px solid var(--line);
       background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.015));
@@ -902,6 +929,7 @@
         <h3>Collections</h3>
         <div class="row">
           <button class="btn small" id="saveRequestBtn">Save Current</button>
+          <button class="btn small" id="loadExamplesBtn">Load Examples</button>
           <button class="btn small" id="exportBtn">Export</button>
           <button class="btn small" id="importBtn">Import</button>
           <input id="importFile" type="file" accept=".json,application/json" class="hidden" />
@@ -940,7 +968,7 @@
             <div class="section-head">
               <div>
                 <h2>Request Composer</h2>
-                <div class="mini">Version 2 · Cleaner visuals and method-aware styling</div>
+                <div class="mini">Version 2 · Cleaner visuals and grouped example collections</div>
               </div>
               <div class="row">
                 <span class="badge-method" id="methodBadge">GET</span>
@@ -1165,6 +1193,7 @@
       requestNotes: document.getElementById('requestNotes'),
       saveRequestBtn: document.getElementById('saveRequestBtn'),
       newRequestBtn: document.getElementById('newRequestBtn'),
+      loadExamplesBtn: document.getElementById('loadExamplesBtn'),
       exportBtn: document.getElementById('exportBtn'),
       importBtn: document.getElementById('importBtn'),
       importFile: document.getElementById('importFile'),
@@ -1404,55 +1433,430 @@
       return loadJSON(STORAGE_KEYS.history, []);
     }
 
-    function renderSavedList(){
-      const q = els.searchSaved.value.trim().toLowerCase();
-      const saved = getSavedRequests();
-      const history = getHistory();
+    function exampleGroups() {
+      const now = new Date().toISOString();
 
-      const blocks = [];
+      return [
+        {
+          group: 'Movies & Sci-Fi',
+          requests: [
+            {
+              id: uid(),
+              name: 'SWAPI — Luke Skywalker',
+              notes: 'Movies & Sci-Fi · Fetch a classic Star Wars character.',
+              method: 'GET',
+              url: 'https://swapi.py4e.com/api/people/1/',
+              params: [],
+              headers: [],
+              auth: { type:'none', bearerToken:'', basicUser:'', basicPass:'', apiKeyName:'', apiKeyValue:'', apiKeyLocation:'header' },
+              body: '',
+              savedAt: now
+            },
+            {
+              id: uid(),
+              name: 'SWAPI — Search People',
+              notes: 'Movies & Sci-Fi · Search Star Wars characters.',
+              method: 'GET',
+              url: 'https://swapi.py4e.com/api/people/',
+              params: [{ enabled:true, key:'search', value:'vader' }],
+              headers: [],
+              auth: { type:'none', bearerToken:'', basicUser:'', basicPass:'', apiKeyName:'', apiKeyValue:'', apiKeyLocation:'header' },
+              body: '',
+              savedAt: now
+            },
+            {
+              id: uid(),
+              name: 'SWAPI — Films',
+              notes: 'Movies & Sci-Fi · Get Star Wars films list.',
+              method: 'GET',
+              url: 'https://swapi.py4e.com/api/films/',
+              params: [],
+              headers: [],
+              auth: { type:'none', bearerToken:'', basicUser:'', basicPass:'', apiKeyName:'', apiKeyValue:'', apiKeyLocation:'header' },
+              body: '',
+              savedAt: now
+            }
+          ]
+        },
 
-      if(saved.length){
-        blocks.push(`<div class="side-section" style="padding:0;border:none;margin-bottom:4px;"><h3 style="padding:0 4px;">Saved Requests</h3></div>`);
-        saved
-          .filter(item => [item.name, item.url, item.method, item.notes].join(' ').toLowerCase().includes(q))
-          .forEach(item => {
-            blocks.push(`
-              <div class="item" data-type="saved" data-id="${item.id}">
-                <div class="top">
-                  <span class="pill ${methodClass(item.method)}">${item.method}</span>
-                  <button class="btn small danger delete-saved" data-id="${item.id}">Delete</button>
-                </div>
-                <div class="name">${escapeHtml(item.name || 'Untitled Request')}</div>
-                <div class="meta">${escapeHtml(item.url || 'No URL')}</div>
-              </div>
-            `);
-          });
+        {
+          group: 'Weather',
+          requests: [
+            {
+              id: uid(),
+              name: 'Open-Meteo — Current Weather',
+              notes: 'Weather · Current weather without API key.',
+              method: 'GET',
+              url: 'https://api.open-meteo.com/v1/forecast',
+              params: [
+                { enabled:true, key:'latitude', value:'25.3176' },
+                { enabled:true, key:'longitude', value:'82.9739' },
+                { enabled:true, key:'current', value:'temperature_2m,wind_speed_10m' }
+              ],
+              headers: [],
+              auth: { type:'none', bearerToken:'', basicUser:'', basicPass:'', apiKeyName:'', apiKeyValue:'', apiKeyLocation:'header' },
+              body: '',
+              savedAt: now
+            }
+          ]
+        },
+
+        {
+          group: 'Animals',
+          requests: [
+            {
+              id: uid(),
+              name: 'PokéAPI — Pikachu',
+              notes: 'Animals · Fetch Pokémon data.',
+              method: 'GET',
+              url: 'https://pokeapi.co/api/v2/pokemon/pikachu',
+              params: [],
+              headers: [],
+              auth: { type:'none', bearerToken:'', basicUser:'', basicPass:'', apiKeyName:'', apiKeyValue:'', apiKeyLocation:'header' },
+              body: '',
+              savedAt: now
+            },
+            {
+              id: uid(),
+              name: 'Dog API — Random Image',
+              notes: 'Animals · Simple public image API example.',
+              method: 'GET',
+              url: 'https://dog.ceo/api/breeds/image/random',
+              params: [],
+              headers: [],
+              auth: { type:'none', bearerToken:'', basicUser:'', basicPass:'', apiKeyName:'', apiKeyValue:'', apiKeyLocation:'header' },
+              body: '',
+              savedAt: now
+            },
+            {
+              id: uid(),
+              name: 'Cat Facts — Random Fact',
+              notes: 'Animals · Fun public text API example.',
+              method: 'GET',
+              url: 'https://catfact.ninja/fact',
+              params: [],
+              headers: [],
+              auth: { type:'none', bearerToken:'', basicUser:'', basicPass:'', apiKeyName:'', apiKeyValue:'', apiKeyLocation:'header' },
+              body: '',
+              savedAt: now
+            }
+          ]
+        },
+
+        {
+          group: 'Testing & Auth',
+          requests: [
+            {
+              id: uid(),
+              name: 'HTTPBin — GET Echo',
+              notes: 'Testing & Auth · Useful for testing params and headers.',
+              method: 'GET',
+              url: 'https://httpbin.org/get',
+              params: [
+                { enabled:true, key:'tool', value:'pp-api-studio' },
+                { enabled:true, key:'mode', value:'demo' }
+              ],
+              headers: [
+                { enabled:true, key:'Accept', value:'application/json' }
+              ],
+              auth: { type:'none', bearerToken:'', basicUser:'', basicPass:'', apiKeyName:'', apiKeyValue:'', apiKeyLocation:'header' },
+              body: '',
+              savedAt: now
+            },
+            {
+              id: uid(),
+              name: 'HTTPBin — Custom Header Echo',
+              notes: 'Testing & Auth · Inspect sent headers.',
+              method: 'GET',
+              url: 'https://httpbin.org/headers',
+              params: [],
+              headers: [
+                { enabled:true, key:'X-App-Name', value:'ProgrammersPicnicAPIStudio' },
+                { enabled:true, key:'X-Creator', value:'Champak Roy' }
+              ],
+              auth: { type:'none', bearerToken:'', basicUser:'', basicPass:'', apiKeyName:'', apiKeyValue:'', apiKeyLocation:'header' },
+              body: '',
+              savedAt: now
+            },
+            {
+              id: uid(),
+              name: 'HTTPBin — Bearer Token Test',
+              notes: 'Testing & Auth · Switch auth to Bearer and inspect authorization flow.',
+              method: 'GET',
+              url: 'https://httpbin.org/bearer',
+              params: [],
+              headers: [],
+              auth: { type:'bearer', bearerToken:'sample-token-123', basicUser:'', basicPass:'', apiKeyName:'', apiKeyValue:'', apiKeyLocation:'header' },
+              body: '',
+              savedAt: now
+            },
+            {
+              id: uid(),
+              name: 'HTTPBin — Basic Auth Test',
+              notes: 'Testing & Auth · Sample basic auth request.',
+              method: 'GET',
+              url: 'https://httpbin.org/basic-auth/user/pass',
+              params: [],
+              headers: [],
+              auth: { type:'basic', bearerToken:'', basicUser:'user', basicPass:'pass', apiKeyName:'', apiKeyValue:'', apiKeyLocation:'header' },
+              body: '',
+              savedAt: now
+            }
+          ]
+        },
+
+        {
+          group: 'JSON CRUD',
+          requests: [
+            {
+              id: uid(),
+              name: 'JSONPlaceholder — Get Posts',
+              notes: 'JSON CRUD · Simple GET request with query params.',
+              method: 'GET',
+              url: 'https://jsonplaceholder.typicode.com/posts',
+              params: [{ enabled:true, key:'_limit', value:'5' }],
+              headers: [],
+              auth: { type:'none', bearerToken:'', basicUser:'', basicPass:'', apiKeyName:'', apiKeyValue:'', apiKeyLocation:'header' },
+              body: '',
+              savedAt: now
+            },
+            {
+              id: uid(),
+              name: 'JSONPlaceholder — Create Post',
+              notes: 'JSON CRUD · POST JSON body example.',
+              method: 'POST',
+              url: 'https://jsonplaceholder.typicode.com/posts',
+              params: [],
+              headers: [{ enabled:true, key:'Content-Type', value:'application/json' }],
+              auth: { type:'none', bearerToken:'', basicUser:'', basicPass:'', apiKeyName:'', apiKeyValue:'', apiKeyLocation:'header' },
+              body: JSON.stringify({
+                title: "Programmer's Picnic",
+                body: "Testing POST from API Studio",
+                userId: 1
+              }, null, 2),
+              savedAt: now
+            },
+            {
+              id: uid(),
+              name: 'JSONPlaceholder — Update Post',
+              notes: 'JSON CRUD · PUT request sample.',
+              method: 'PUT',
+              url: 'https://jsonplaceholder.typicode.com/posts/1',
+              params: [],
+              headers: [{ enabled:true, key:'Content-Type', value:'application/json' }],
+              auth: { type:'none', bearerToken:'', basicUser:'', basicPass:'', apiKeyName:'', apiKeyValue:'', apiKeyLocation:'header' },
+              body: JSON.stringify({
+                id: 1,
+                title: "Updated Title",
+                body: "Updated body from API Studio",
+                userId: 1
+              }, null, 2),
+              savedAt: now
+            },
+            {
+              id: uid(),
+              name: 'JSONPlaceholder — Patch Post',
+              notes: 'JSON CRUD · PATCH request sample.',
+              method: 'PATCH',
+              url: 'https://jsonplaceholder.typicode.com/posts/1',
+              params: [],
+              headers: [{ enabled:true, key:'Content-Type', value:'application/json' }],
+              auth: { type:'none', bearerToken:'', basicUser:'', basicPass:'', apiKeyName:'', apiKeyValue:'', apiKeyLocation:'header' },
+              body: JSON.stringify({
+                title: "Patched Title"
+              }, null, 2),
+              savedAt: now
+            },
+            {
+              id: uid(),
+              name: 'JSONPlaceholder — Delete Post',
+              notes: 'JSON CRUD · DELETE request sample.',
+              method: 'DELETE',
+              url: 'https://jsonplaceholder.typicode.com/posts/1',
+              params: [],
+              headers: [],
+              auth: { type:'none', bearerToken:'', basicUser:'', basicPass:'', apiKeyName:'', apiKeyValue:'', apiKeyLocation:'header' },
+              body: '',
+              savedAt: now
+            }
+          ]
+        },
+
+        {
+          group: 'Search & Prediction',
+          requests: [
+            {
+              id: uid(),
+              name: 'Agify — Predict Age',
+              notes: 'Search & Prediction · Query-based public API example.',
+              method: 'GET',
+              url: 'https://api.agify.io',
+              params: [{ enabled:true, key:'name', value:'champak' }],
+              headers: [],
+              auth: { type:'none', bearerToken:'', basicUser:'', basicPass:'', apiKeyName:'', apiKeyValue:'', apiKeyLocation:'header' },
+              body: '',
+              savedAt: now
+            },
+            {
+              id: uid(),
+              name: 'Genderize — Predict Gender',
+              notes: 'Search & Prediction · Another query param example.',
+              method: 'GET',
+              url: 'https://api.genderize.io',
+              params: [{ enabled:true, key:'name', value:'anita' }],
+              headers: [],
+              auth: { type:'none', bearerToken:'', basicUser:'', basicPass:'', apiKeyName:'', apiKeyValue:'', apiKeyLocation:'header' },
+              body: '',
+              savedAt: now
+            },
+            {
+              id: uid(),
+              name: 'Universities — India Search',
+              notes: 'Search & Prediction · Search universities by country.',
+              method: 'GET',
+              url: 'https://universities.hipolabs.com/search',
+              params: [{ enabled:true, key:'country', value:'India' }],
+              headers: [],
+              auth: { type:'none', bearerToken:'', basicUser:'', basicPass:'', apiKeyName:'', apiKeyValue:'', apiKeyLocation:'header' },
+              body: '',
+              savedAt: now
+            }
+          ]
+        },
+
+        {
+          group: 'Login & Forms',
+          requests: [
+            {
+              id: uid(),
+              name: 'ReqRes — Login Sample',
+              notes: 'Login & Forms · Login-style POST request example.',
+              method: 'POST',
+              url: 'https://reqres.in/api/login',
+              params: [],
+              headers: [{ enabled:true, key:'Content-Type', value:'application/json' }],
+              auth: { type:'none', bearerToken:'', basicUser:'', basicPass:'', apiKeyName:'', apiKeyValue:'', apiKeyLocation:'header' },
+              body: JSON.stringify({
+                email: 'eve.holt@reqres.in',
+                password: 'cityslicka'
+              }, null, 2),
+              savedAt: now
+            }
+          ]
+        }
+      ];
+    }
+
+    function flattenExampleGroups() {
+      return exampleGroups().flatMap(group => group.requests);
+    }
+
+    function loadExamplesIntoSaved({ replace = false } = {}) {
+      const examples = flattenExampleGroups();
+      const saved = replace ? [] : getSavedRequests();
+
+      const existingKeys = new Set(
+        saved.map(item => `${item.method}__${item.url}__${item.name}`)
+      );
+
+      const incoming = examples.filter(
+        item => !existingKeys.has(`${item.method}__${item.url}__${item.name}`)
+      );
+
+      const merged = replace ? examples : [...incoming, ...saved];
+      saveJSON(STORAGE_KEYS.saved, merged);
+      renderSavedList();
+
+      if (incoming.length || replace) {
+        applyRequestState(merged[0]);
       }
 
-      if(history.length){
-        blocks.push(`<div class="side-section" style="padding:8px 0 0;border:none;margin-top:8px;"><h3 style="padding:0 4px;">Recent History</h3></div>`);
-        history
-          .filter(item => [item.name, item.url, item.method, item.notes].join(' ').toLowerCase().includes(q))
-          .forEach(item => {
-            blocks.push(`
-              <div class="item" data-type="history" data-id="${item.id}">
-                <div class="top">
-                  <span class="pill ${methodClass(item.method)}">${item.method}</span>
-                  <span class="mini">${new Date(item.savedAt || Date.now()).toLocaleString()}</span>
-                </div>
-                <div class="name">${escapeHtml(item.name || 'Untitled Request')}</div>
-                <div class="meta">${escapeHtml(item.url || 'No URL')}</div>
-              </div>
-            `);
-          });
+      alert(replace
+        ? 'Examples loaded.'
+        : `${incoming.length} example request(s) added.`);
+    }
+
+    function getGroupedItemsForDisplay(saved, history, query) {
+      const q = query.trim().toLowerCase();
+
+      const groups = exampleGroups().map(group => ({
+        title: group.group,
+        type: 'saved',
+        items: saved.filter(item =>
+          item.notes?.startsWith(group.group + ' ·') &&
+          [item.name, item.url, item.method, item.notes].join(' ').toLowerCase().includes(q)
+        )
+      })).filter(group => group.items.length);
+
+      const ungroupedSaved = saved.filter(item => {
+        const grouped = exampleGroups().some(group => item.notes?.startsWith(group.group + ' ·'));
+        return !grouped &&
+          [item.name, item.url, item.method, item.notes].join(' ').toLowerCase().includes(q);
+      });
+
+      if (ungroupedSaved.length) {
+        groups.unshift({
+          title: 'Saved Requests',
+          type: 'saved',
+          items: ungroupedSaved
+        });
       }
 
-      els.savedList.innerHTML = blocks.length ? blocks.join('') : `
-        <div class="center-empty">
-          No saved requests yet.<br><br>
-          Save your current request to build a reusable collection.
+      const filteredHistory = history.filter(item =>
+        [item.name, item.url, item.method, item.notes].join(' ').toLowerCase().includes(q)
+      );
+
+      if (filteredHistory.length) {
+        groups.push({
+          title: 'Recent History',
+          type: 'history',
+          items: filteredHistory
+        });
+      }
+
+      return groups;
+    }
+
+    function renderItemCard(item, type) {
+      const right = type === 'saved'
+        ? `<button class="btn small danger delete-saved" data-id="${item.id}">Delete</button>`
+        : `<span class="mini">${new Date(item.savedAt || Date.now()).toLocaleString()}</span>`;
+
+      return `
+        <div class="item" data-type="${type}" data-id="${item.id}">
+          <div class="top">
+            <span class="pill ${methodClass(item.method)}">${item.method}</span>
+            ${right}
+          </div>
+          <div class="name">${escapeHtml(item.name || 'Untitled Request')}</div>
+          <div class="meta">${escapeHtml(item.url || 'No URL')}</div>
         </div>
       `;
+    }
+
+    function renderSavedList(){
+      const saved = getSavedRequests();
+      const history = getHistory();
+      const groups = getGroupedItemsForDisplay(saved, history, els.searchSaved.value);
+
+      if (!groups.length) {
+        els.savedList.innerHTML = `
+          <div class="center-empty">
+            No saved requests yet.<br><br>
+            Save your current request or load examples to build a reusable collection.
+          </div>
+        `;
+      } else {
+        els.savedList.innerHTML = groups.map(group => `
+          <div class="group-block">
+            <div class="group-title">
+              <span>${escapeHtml(group.title)}</span>
+              <span class="group-count">${group.items.length}</span>
+            </div>
+            ${group.items.map(item => renderItemCard(item, group.type)).join('')}
+          </div>
+        `).join('');
+      }
 
       [...els.savedList.querySelectorAll('.item[data-type]')].forEach(node => {
         node.addEventListener('click', (e) => {
@@ -1787,6 +2191,10 @@
       els.copyCurlBtn.addEventListener('click', copyCurl);
       els.saveRequestBtn.addEventListener('click', saveCurrentRequest);
       els.newRequestBtn.addEventListener('click', clearForm);
+      els.loadExamplesBtn.addEventListener('click', () => {
+        const replace = confirm('Press OK to replace saved requests with examples.\nPress Cancel to only add missing examples.');
+        loadExamplesIntoSaved({ replace });
+      });
       els.exportBtn.addEventListener('click', exportSaved);
       els.importBtn.addEventListener('click', () => els.importFile.click());
 
@@ -1819,19 +2227,7 @@
 
     function initDemoData(){
       if(!getSavedRequests().length){
-        const demo = {
-          id: uid(),
-          name: 'JSON Placeholder — Get Posts',
-          notes: 'Demo request to test the tool quickly.',
-          method: 'GET',
-          url: 'https://jsonplaceholder.typicode.com/posts',
-          params: [{enabled:true,key:'_limit',value:'5'}],
-          headers: [],
-          auth: { type:'none', bearerToken:'', basicUser:'', basicPass:'', apiKeyName:'', apiKeyValue:'', apiKeyLocation:'header' },
-          body: '',
-          savedAt: new Date().toISOString()
-        };
-        saveJSON(STORAGE_KEYS.saved, [demo]);
+        saveJSON(STORAGE_KEYS.saved, flattenExampleGroups());
       }
     }
 
