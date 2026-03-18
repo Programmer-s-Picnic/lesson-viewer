@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Face Recognition Hub</title>
+  <meta name="description" content="Hub page for browser-based face capture and face recognition. Open capture.html to collect training images and recognize.html to run live recognition." />
+  <meta name="theme-color" content="#f59e0b" />
+  <style>
+    :root{
+      --bg:#fff7e6;
+      --bg2:#fff1d6;
+      --card:rgba(255,255,255,.88);
+      --ink:#1f2937;
+      --muted:#6b7280;
+      --brand:#d97706;
+      --brand2:#f59e0b;
+      --border:#eadcc5;
+      --shadow:0 18px 40px rgba(31,41,55,.14);
+      --r:20px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      color:var(--ink);
+      background:
+        radial-gradient(900px 520px at 15% 10%, rgba(245,158,11,.22), transparent 60%),
+        radial-gradient(900px 520px at 85% 0%, rgba(217,119,6,.18), transparent 60%),
+        linear-gradient(180deg,var(--bg),var(--bg2));
+    }
+    a{color:inherit}
+    .wrap{max-width:1150px;margin:auto;padding:14px}
+    .top{
+      position:sticky; top:0; z-index:10;
+      display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+      padding:10px 12px; border-radius:999px;
+      background:rgba(255,247,230,.74); border:1px solid rgba(234,220,197,.95);
+      box-shadow:0 10px 24px rgba(31,41,55,.10); backdrop-filter: blur(10px);
+    }
+    .brand{display:flex;align-items:center;gap:10px}
+    .logo{width:38px;height:38px;border-radius:14px;background:linear-gradient(135deg,var(--brand),var(--brand2));box-shadow:0 12px 26px rgba(217,119,6,.28)}
+    h1,h2,h3,p{margin:0}
+    .hero{
+      display:grid; grid-template-columns:1.15fr .85fr; gap:16px; align-items:stretch;
+      margin-top:14px;
+    }
+    .card{
+      background:var(--card);
+      border:1px solid rgba(234,220,197,.95);
+      border-radius:var(--r);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .card-h{
+      padding:14px 16px 10px;
+      border-bottom:1px solid rgba(234,220,197,.8);
+      display:flex; align-items:flex-start; justify-content:space-between; gap:10px; flex-wrap:wrap;
+    }
+    .card-b{padding:16px}
+    .hero-copy{
+      padding:24px;
+      min-height:100%;
+      display:flex;flex-direction:column;justify-content:center;
+    }
+    .eyebrow{
+      display:inline-flex;align-items:center;gap:8px;
+      width:max-content;
+      padding:7px 12px;border-radius:999px;
+      background:rgba(245,158,11,.16);border:1px solid rgba(217,119,6,.22);color:#92400e;
+      font-size:12px;font-weight:700;
+    }
+    .headline{font-size:clamp(28px,4vw,46px);line-height:1.05;font-weight:900;margin-top:14px}
+    .lead{margin-top:12px;color:var(--muted);font-size:15px;line-height:1.65;max-width:62ch}
+    .cta-row,.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .cta-row{margin-top:18px}
+    .btn{
+      display:inline-flex;align-items:center;justify-content:center;gap:8px;
+      text-decoration:none;
+      border-radius:14px;border:1px solid rgba(234,220,197,.95);
+      background:#fff;padding:12px 14px;font-size:14px;font-weight:700;cursor:pointer;
+      box-shadow:0 10px 22px rgba(31,41,55,.08);
+    }
+    .btn.primary{
+      background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;border-color:rgba(217,119,6,.35);
+      box-shadow:0 14px 30px rgba(217,119,6,.22);
+    }
+    .pill{
+      font-size:12px;padding:6px 10px;border-radius:999px;white-space:nowrap;
+      background:rgba(245,158,11,.16);border:1px solid rgba(217,119,6,.22);color:#92400e;
+    }
+    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px}
+    .stat{padding:14px;border-radius:16px;background:rgba(255,255,255,.82);border:1px solid rgba(234,220,197,.95)}
+    .stat b{display:block;font-size:22px}
+    .stat span{display:block;color:var(--muted);font-size:12px;margin-top:4px}
+    .mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .tool-card{padding:16px;border-radius:18px;background:#fff;border:1px solid rgba(234,220,197,.95);box-shadow:0 10px 24px rgba(31,41,55,.07)}
+    .tool-card h3{font-size:18px;margin-bottom:8px}
+    .tool-card p{font-size:14px;line-height:1.6;color:var(--muted)}
+    .tool-card .row{margin-top:12px}
+    .section{margin-top:16px}
+    .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+    .step{padding:16px;border-radius:18px;background:#fff;border:1px solid rgba(234,220,197,.95)}
+    .step-num{
+      width:34px;height:34px;border-radius:12px;display:grid;place-items:center;
+      background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;font-weight:800;margin-bottom:10px;
+      box-shadow:0 12px 24px rgba(217,119,6,.22);
+    }
+    .step p{margin-top:6px;color:var(--muted);font-size:14px;line-height:1.55}
+    .list{display:grid;gap:10px}
+    .item{padding:12px 14px;border-radius:16px;background:#fff;border:1px solid rgba(234,220,197,.95)}
+    .item code{font-family:var(--mono);font-size:12px;background:#fff7e8;padding:2px 6px;border-radius:8px}
+    .footer-note{padding:14px 16px;font-size:13px;color:var(--muted);line-height:1.65}
+    @media (max-width:980px){
+      .hero{grid-template-columns:1fr}
+      .steps{grid-template-columns:1fr 1fr}
+    }
+    @media (max-width:700px){
+      .mini-grid,.stats,.steps{grid-template-columns:1fr}
+      .hero-copy{padding:18px}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1 style="font-size:15px;line-height:1.15">Face Recognition Hub</h1>
+          <p style="font-size:12px;color:var(--muted);margin-top:2px">Start here, then open capture or recognition</p>
+        </div>
+      </div>
+      <div class="row">
+        <a class="btn" href="#workflow">How it works</a>
+        <a class="btn primary" href="recognize.html">Open Recognition</a>
+      </div>
+    </div>
+
+    <section class="hero">
+      <div class="card">
+        <div class="hero-copy">
+          <span class="eyebrow">Browser-only workflow</span>
+          <div class="headline">Capture training faces, export JSON, then run live recognition.</div>
+          <p class="lead">
+            This hub explains the full flow and links to the two working tools. Use <b>capture.html</b> to save face crops for each person and export <b>faces.json</b>. Use <b>recognize.html</b> to load the training set and identify faces from the camera feed.
+          </p>
+          <div class="cta-row">
+            <a class="btn primary" href="capture.html">Open Capture Tool</a>
+            <a class="btn" href="recognize.html">Open Recognition Tool</a>
+          </div>
+          <div class="stats">
+            <div class="stat"><b>1</b><span>Capture several face images per person</span></div>
+            <div class="stat"><b>2</b><span>Export and place <code>data/faces.json</code></span></div>
+            <div class="stat"><b>3</b><span>Run recognition with camera access</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h">
+          <div>
+            <h2 style="font-size:18px">Quick links</h2>
+            <p style="font-size:13px;color:var(--muted);margin-top:4px">Use these two pages directly.</p>
+          </div>
+          <span class="pill">Hub index</span>
+        </div>
+        <div class="card-b mini-grid">
+          <div class="tool-card">
+            <h3>capture.html</h3>
+            <p>Collect face crops, organize them by person name, store them locally, and export a grouped JSON file for training.</p>
+            <div class="row">
+              <a class="btn primary" href="capture.html">Open</a>
+            </div>
+          </div>
+          <div class="tool-card">
+            <h3>recognize.html</h3>
+            <p>Load the model and the training data, start the camera, draw face boxes, and attempt live identification.</p>
+            <div class="row">
+              <a class="btn primary" href="recognize.html">Open</a>
+            </div>
+          </div>
+        </div>
+        <div class="footer-note">
+          Keep <b>index.html</b> as the landing page. That avoids having two nearly duplicate recognition pages and makes the entry point much clearer.
+        </div>
+      </div>
+    </section>
+
+    <section class="section card" id="workflow">
+      <div class="card-h">
+        <div>
+          <h2 style="font-size:20px">Recommended workflow</h2>
+          <p style="font-size:13px;color:var(--muted);margin-top:4px">Follow this order to reduce setup mistakes.</p>
+        </div>
+        <span class="pill">4 steps</span>
+      </div>
+      <div class="card-b">
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <h3 style="font-size:16px">Open capture.html</h3>
+            <p>Enter a person name, start the camera, and save several clear face crops for that person.</p>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <h3 style="font-size:16px">Export training data</h3>
+            <p>Use the export option to create <code>faces.json</code>. Download the saved training images as well.</p>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <h3 style="font-size:16px">Place files correctly</h3>
+            <p>Put the images in <code>images/faces/</code> and the exported JSON in <code>data/faces.json</code>.</p>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <h3 style="font-size:16px">Open recognize.html</h3>
+            <p>Reload training if needed, start the camera, and verify that labels appear instead of only Unknown.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="card">
+        <div class="card-h">
+          <div>
+            <h2 style="font-size:20px">Help</h2>
+            <p style="font-size:13px;color:var(--muted);margin-top:4px">What each page is for.</p>
+          </div>
+        </div>
+        <div class="card-b list">
+          <div class="item"><b>capture.html</b> is the data collection tool. Use it before recognition.</div>
+          <div class="item"><b>recognize.html</b> is the live recognition tool. Use it after training files are ready.</div>
+          <div class="item"><b>index.html</b> is now the hub and should remain the main entry page.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h">
+          <div>
+            <h2 style="font-size:20px">Common checks</h2>
+            <p style="font-size:13px;color:var(--muted);margin-top:4px">Things to verify when labels do not appear.</p>
+          </div>
+        </div>
+        <div class="card-b list">
+          <div class="item">Make sure camera access is allowed and the page is served over a secure context.</div>
+          <div class="item">Check that <code>data/faces.json</code> exists and its image paths match the actual files.</div>
+          <div class="item">Use 3 to 5 clear face images per person with decent lighting and visible facial features.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section card">
+      <div class="card-h">
+        <div>
+          <h2 style="font-size:20px">Folder expectations</h2>
+          <p style="font-size:13px;color:var(--muted);margin-top:4px">The recognition page expects these paths.</p>
+        </div>
+      </div>
+      <div class="card-b list">
+        <div class="item"><code>index.html</code> → this hub page</div>
+        <div class="item"><code>capture.html</code> → training image capture page</div>
+        <div class="item"><code>recognize.html</code> → live recognition page</div>
+        <div class="item"><code>data/faces.json</code> → grouped training metadata</div>
+        <div class="item"><code>images/faces/...</code> → saved face crops referenced by the JSON file</div>
+      </div>
+      <div class="footer-note">
+        You can later add preview cards, embedded screenshots, or a small setup validator here, but this version already works well as a clean entry hub.
+      </div>
+    </section>
+  </div>
+</body>
+</html>

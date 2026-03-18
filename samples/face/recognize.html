@@ -1,0 +1,758 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Face Recognition (Multi-Image)</title>
+    <meta name="theme-color" content="#f59e0b" />
+    <style>
+      :root {
+        --bg: #fff7e6;
+        --bg2: #fff1d6;
+        --card: rgba(255, 255, 255, 0.88);
+        --ink: #1f2937;
+        --muted: #6b7280;
+        --brand: #d97706;
+        --brand2: #f59e0b;
+        --border: #eadcc5;
+        --r: 18px;
+        --shadow: 0 18px 40px rgba(31, 41, 55, 0.14);
+        --mono:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: system-ui;
+        color: var(--ink);
+        background:
+          radial-gradient(
+            900px 520px at 15% 10%,
+            rgba(245, 158, 11, 0.22),
+            transparent 60%
+          ),
+          radial-gradient(
+            900px 520px at 85% 0%,
+            rgba(217, 119, 6, 0.18),
+            transparent 60%
+          ),
+          var(--bg);
+      }
+      .wrap {
+        max-width: 1100px;
+        margin: auto;
+        padding: 14px;
+      }
+      .top {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+        padding: 10px 12px;
+        border-radius: 999px;
+        background: rgba(255, 247, 230, 0.74);
+        border: 1px solid rgba(234, 220, 197, 0.95);
+        box-shadow: 0 10px 24px rgba(31, 41, 55, 0.1);
+        backdrop-filter: blur(10px);
+      }
+      .title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .logo {
+        width: 34px;
+        height: 34px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--brand), var(--brand2));
+        box-shadow: 0 12px 26px rgba(217, 119, 6, 0.28);
+      }
+      h1 {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.1;
+      }
+      .sub {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+      .pill {
+        font-size: 12px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(245, 158, 11, 0.16);
+        border: 1px solid rgba(217, 119, 6, 0.22);
+        color: #92400e;
+        white-space: nowrap;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 14px;
+        margin-top: 12px;
+      }
+      @media (max-width: 980px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid rgba(234, 220, 197, 0.95);
+        border-radius: var(--r);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+      .card-h {
+        padding: 12px 12px 10px 12px;
+        border-bottom: 1px solid rgba(234, 220, 197, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .card-b {
+        padding: 12px;
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .btn {
+        border-radius: 12px;
+        border: 1px solid rgba(234, 220, 197, 0.95);
+        background: #fff;
+        padding: 10px 12px;
+        font-size: 13px;
+        cursor: pointer;
+        box-shadow: 0 10px 22px rgba(31, 41, 55, 0.08);
+        user-select: none;
+      }
+      .btn.primary {
+        background: linear-gradient(135deg, var(--brand), var(--brand2));
+        color: #fff;
+        border-color: rgba(217, 119, 6, 0.35);
+        box-shadow: 0 14px 30px rgba(217, 119, 6, 0.22);
+      }
+      .btn:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+      .btn.danger {
+        background: rgba(239, 68, 68, 0.1);
+        border-color: rgba(239, 68, 68, 0.25);
+        color: #991b1b;
+      }
+
+      .stage {
+        position: relative;
+        background: #0b1220;
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid rgba(234, 220, 197, 0.65);
+      }
+      video {
+        width: 100%;
+        height: auto;
+        display: block;
+        transform: scaleX(-1);
+      }
+      canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+      }
+      .hud {
+        position: absolute;
+        left: 10px;
+        top: 10px;
+        background: rgba(255, 255, 255, 0.14);
+        border: 1px solid rgba(245, 158, 11, 0.22);
+        backdrop-filter: blur(10px);
+        padding: 8px 10px;
+        border-radius: 14px;
+        color: #fff;
+        font-size: 12px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .hud b {
+        font-family: var(--mono);
+        font-weight: 800;
+      }
+      .logs {
+        height: 340px;
+        overflow: auto;
+        background: rgba(255, 255, 255, 0.7);
+        border: 1px solid rgba(234, 220, 197, 0.95);
+        border-radius: 14px;
+        padding: 10px;
+        font-family: var(--mono);
+        font-size: 12px;
+        color: #111827;
+        white-space: pre-wrap;
+      }
+      .hint {
+        margin-top: 10px;
+        padding: 10px 12px;
+        border-radius: 14px;
+        border: 1px solid rgba(245, 158, 11, 0.35);
+        background: rgba(245, 158, 11, 0.14);
+        color: #7c2d12;
+        font-size: 12px;
+      }
+      .field {
+        margin-top: 12px;
+      }
+      .field label {
+        display: block;
+        font-size: 12px;
+        color: var(--muted);
+        margin-bottom: 6px;
+        font-weight: 700;
+      }
+      .textbox {
+        width: 100%;
+        min-height: 72px;
+        resize: vertical;
+        padding: 12px;
+        border-radius: 14px;
+        border: 1px solid rgba(234, 220, 197, 0.95);
+        background: rgba(255, 255, 255, 0.88);
+        color: var(--ink);
+        font: 600 14px/1.45 system-ui;
+        box-shadow: inset 0 1px 2px rgba(31, 41, 55, 0.06);
+      }
+    </style>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1/dist/face-api.js"
+    ></script>
+  </head>
+
+  <body>
+    <div class="wrap">
+      <div class="top">
+        <div class="title">
+          <div class="logo" aria-hidden="true"></div>
+          <div>
+            <h1>Face Recognition</h1>
+            <div class="sub">
+              Step 1: detect + draw rectangles • Step 2: label using
+              data/faces.json
+            </div>
+          </div>
+        </div>
+        <span class="pill" id="status">Loading…</span>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <div class="card-h">
+            <div class="sub" style="margin: 0">
+              Camera runs even if training fails (rectangles will still draw).
+            </div>
+            <div class="row">
+              <button class="btn primary" id="btnStartCam" disabled>
+                Start Camera
+              </button>
+              <button class="btn" id="btnStopCam" disabled>Stop</button>
+              <button class="btn" id="btnSwitch" disabled>Switch Cam</button>
+            </div>
+          </div>
+
+          <div class="card-b">
+            <div class="row" style="margin-bottom: 10px">
+              <button class="btn" id="btnReloadTraining" disabled>
+                Reload Training
+              </button>
+              <button class="btn" id="btnReloadJson" disabled>
+                Reload faces.json
+              </button>
+              <button class="btn danger" id="btnClearLogs">Clear Logs</button>
+            </div>
+
+            <div class="stage">
+              <video id="video" playsinline muted></video>
+              <canvas id="canvas"></canvas>
+              <div class="hud">
+                <span>Faces: <b id="faces">0</b></span>
+                <span>Mode: <b id="mode">detect</b></span>
+                <span>Cam: <b id="cam">user</b></span>
+                <span>People: <b id="people">0</b></span>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="detectedNames">Detected name(s)</label>
+              <textarea
+                id="detectedNames"
+                class="textbox"
+                placeholder="Recognized names will appear here"
+              ></textarea>
+            </div>
+
+            <div class="hint">
+              If you see rectangles but all labels are <b>Unknown</b>, it means
+              training images didn’t load / no face found in them. Use
+              <b>Reload Training</b> after fixing
+              <code>data/faces.json</code> and <code>images/faces/</code>.
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h">
+            <div>
+              <div style="font-weight: 900; font-size: 13px">
+                Errors & Debug
+              </div>
+              <div class="sub">
+                Everything is shown here (404 images, no-face images, JSON parse
+                issues).
+              </div>
+            </div>
+            <span class="pill" id="readyPill">—</span>
+          </div>
+          <div class="card-b">
+            <div class="logs" id="logs"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (() => {
+        const MODEL_URL =
+          "https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/model/";
+        const FACES_JSON = "data/faces.json";
+
+        const $ = (id) => document.getElementById(id);
+
+        const statusEl = $("status");
+        const readyPill = $("readyPill");
+
+        const btnStartCam = $("btnStartCam");
+        const btnStopCam = $("btnStopCam");
+        const btnSwitch = $("btnSwitch");
+        const btnReloadTraining = $("btnReloadTraining");
+        const btnReloadJson = $("btnReloadJson");
+        const btnClearLogs = $("btnClearLogs");
+
+        const video = $("video");
+        const canvas = $("canvas");
+        const ctx = canvas.getContext("2d");
+
+        const facesEl = $("faces");
+        const modeEl = $("mode");
+        const camEl = $("cam");
+        const peopleEl = $("people");
+        const logsEl = $("logs");
+        const detectedNamesEl = $("detectedNames");
+
+        let stream = null;
+        let running = false;
+        let facing = "user";
+
+        let people = null;
+        let matcher = null;
+
+        let lastDetections = [];
+        let detectBusy = false;
+        let lastDetectAt = 0;
+
+        function log(msg, level = "info") {
+          const t = new Date().toLocaleTimeString();
+          const prefix = level === "error" ? "✗" : level === "warn" ? "!" : "•";
+          logsEl.textContent = `${prefix} [${t}] ${msg}\n` + logsEl.textContent;
+        }
+        function setStatus(t) {
+          statusEl.textContent = t;
+        }
+        function setReady(t) {
+          readyPill.textContent = t;
+        }
+
+        function resizeCanvas() {
+          const w = video.videoWidth,
+            h = video.videoHeight;
+          if (!w || !h) return;
+          if (canvas.width !== w) canvas.width = w;
+          if (canvas.height !== h) canvas.height = h;
+        }
+
+        async function loadModels() {
+          setStatus("Loading models…");
+          setReady("models…");
+          for (let i = 0; i < 80; i++) {
+            if (window.faceapi) break;
+            await new Promise((r) => setTimeout(r, 50));
+          }
+          if (!window.faceapi)
+            throw new Error("face-api failed to load (CDN blocked/offline).");
+
+          await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+          await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+          await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+
+          setStatus("Models loaded ✓");
+          setReady("models ✓");
+          log("Models loaded.");
+        }
+
+        async function loadFacesJson() {
+          setStatus("Loading faces.json…");
+          setReady("faces.json…");
+          try {
+            const res = await fetch(FACES_JSON, { cache: "no-store" });
+            if (!res.ok) throw new Error(`faces.json HTTP ${res.status}`);
+            const data = await res.json();
+
+            if (!Array.isArray(data))
+              throw new Error("faces.json must be an array");
+            for (const p of data) {
+              if (!p || typeof p.name !== "string" || !Array.isArray(p.files)) {
+                throw new Error(
+                  "faces.json items must be: { name: string, files: string[] }",
+                );
+              }
+            }
+
+            people = data;
+            peopleEl.textContent = String(people.length);
+            setStatus("faces.json loaded ✓");
+            setReady(`faces.json ✓ (${people.length})`);
+            log(`faces.json loaded (${people.length} people).`);
+            return true;
+          } catch (e) {
+            people = null;
+            peopleEl.textContent = "0";
+            setStatus("faces.json failed ✗");
+            setReady("faces.json ✗");
+            log(`faces.json error: ${e?.message || e}`, "error");
+            return false;
+          }
+        }
+
+        async function buildMatcher() {
+          matcher = null;
+          modeEl.textContent = "detect";
+          setStatus("Building training…");
+          setReady("training…");
+
+          if (!people) {
+            log("No people loaded. Load faces.json first.", "warn");
+            setStatus("Training skipped (no faces.json)");
+            setReady("training ✗");
+            return false;
+          }
+
+          const labeled = [];
+          let used = 0;
+          let totalFiles = 0;
+
+          for (const person of people) {
+            const descs = [];
+            for (const file of person.files) {
+              totalFiles++;
+              try {
+                const r = await fetch(file, { cache: "no-store" });
+                if (!r.ok) {
+                  log(
+                    `Training image missing (HTTP ${r.status}): ${file}`,
+                    "error",
+                  );
+                  continue;
+                }
+                const blob = await r.blob();
+                const url = URL.createObjectURL(blob);
+                const img = await faceapi.fetchImage(url);
+                URL.revokeObjectURL(url);
+
+                const det = await faceapi
+                  .detectSingleFace(
+                    img,
+                    new faceapi.TinyFaceDetectorOptions({
+                      inputSize: 320,
+                      scoreThreshold: 0.2,
+                    }),
+                  )
+                  .withFaceLandmarks()
+                  .withFaceDescriptor();
+
+                if (det?.descriptor) {
+                  descs.push(det.descriptor);
+                  used++;
+                  log(`OK: ${person.name} ← ${file}`);
+                } else {
+                  log(`No face found in training image: ${file}`, "warn");
+                }
+              } catch (e) {
+                log(
+                  `Training image failed: ${file} (${e?.message || e})`,
+                  "error",
+                );
+              }
+            }
+            if (descs.length) {
+              labeled.push(
+                new faceapi.LabeledFaceDescriptors(person.name, descs),
+              );
+            } else {
+              log(`No usable images for "${person.name}"`, "warn");
+            }
+          }
+
+          if (!labeled.length) {
+            setStatus("No usable training faces ✗ (rectangles still work)");
+            setReady(`training ✗ (0/${totalFiles})`);
+            log(
+              "No usable training faces. Fix faces.json paths and images.",
+              "error",
+            );
+            matcher = null;
+            modeEl.textContent = "detect";
+            return false;
+          }
+
+          matcher = new faceapi.FaceMatcher(labeled, 0.55);
+          modeEl.textContent = "recognize";
+          setStatus(
+            `Training ready ✓ (${labeled.length} people, ${used} photos)`,
+          );
+          setReady(`training ✓ (${labeled.length}/${people.length})`);
+          log(`Training ready (${labeled.length} labeled, ${used} photos).`);
+          return true;
+        }
+
+        async function startCamera() {
+          if (running) return;
+             facesEl.textContent = "0";
+         detectedNamesEl.value = "";
+          setStatus("Requesting camera…");
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: { facingMode: facing },
+              audio: false,
+            });
+            video.srcObject = stream;
+
+            await new Promise((r) =>
+              video.addEventListener("loadedmetadata", r, { once: true }),
+            );
+            await video.play();
+            resizeCanvas();
+
+            running = true;
+            btnStartCam.disabled = true;
+            btnStopCam.disabled = false;
+            btnSwitch.disabled = false;
+
+            camEl.textContent = facing;
+            setStatus("Camera running ✓");
+            log(`Camera started (${facing}).`);
+
+            loop();
+          } catch (e) {
+            setStatus("Camera blocked ✗");
+            log(`Camera error: ${e?.message || e}`, "error");
+            alert(
+              "Camera did not start. Use HTTPS (GitHub Pages) or allow permissions.\n\n" +
+                (e?.message || e),
+            );
+          }
+        }
+
+        function stopCamera() {
+          running = false;
+          if (stream) {
+            stream.getTracks().forEach((t) => t.stop());
+            stream = null;
+          }
+          video.srcObject = null;
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+          btnStartCam.disabled = false;
+          btnStopCam.disabled = true;
+          btnSwitch.disabled = true;
+
+         // facesEl.textContent = "0";
+         // detectedNamesEl.value = "";
+          setStatus("Stopped");
+          log("Camera stopped.");
+        }
+
+        async function switchCam() {
+          facing = facing === "user" ? "environment" : "user";
+          camEl.textContent = facing;
+          if (running) {
+            stopCamera();
+            await new Promise((r) => setTimeout(r, 150));
+            await startCamera();
+          }
+        }
+
+        async function detectFrame() {
+          if (detectBusy) return;
+          if (!video.videoWidth) return;
+          const now = performance.now();
+          if (now - lastDetectAt < 120) return;
+          lastDetectAt = now;
+
+          detectBusy = true;
+          try {
+            const dets = await faceapi
+              .detectAllFaces(
+                video,
+                new faceapi.TinyFaceDetectorOptions({
+                  inputSize: 320,
+                  scoreThreshold: 0.2,
+                }),
+              )
+              .withFaceLandmarks()
+              .withFaceDescriptors();
+
+            lastDetections = dets || [];
+            facesEl.textContent = String(lastDetections.length);
+          } catch (e) {
+            log(`Detect error: ${e?.message || e}`, "warn");
+          } finally {
+            detectBusy = false;
+          }
+        }
+
+        function draw() {
+          resizeCanvas();
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          const detectedNames = [];
+
+          // ---- draw mirrored boxes (match mirrored video) ----
+          ctx.save();
+          ctx.translate(canvas.width, 0);
+          ctx.scale(-1, 1);
+
+          for (const d of lastDetections) {
+            const b = d.detection.box;
+
+            ctx.strokeStyle = "red";
+            ctx.lineWidth = 4;
+            ctx.strokeRect(b.x, b.y, b.width, b.height);
+          }
+
+          ctx.restore();
+
+          // ---- draw labels NOT mirrored (so text reads normally) ----
+          for (const d of lastDetections) {
+            const b = d.detection.box;
+
+            let label = "Detected";
+            if (matcher && d.descriptor) {
+              const best = matcher.findBestMatch(d.descriptor);
+              label =
+                best && best.label
+                  ? `${best.label} (${best.distance.toFixed(2)})`
+                  : "Unknown";
+            } else if (people && !matcher) {
+              label = "Unknown (no training)";
+            }
+
+            const detectedName = label.replace(/\s*\([^)]*\)\s*$/, "");
+            if (
+              detectedName &&
+              detectedName !== "Detected" &&
+              detectedName !== "Unknown" &&
+              detectedName !== "Unknown (no training)"
+            ) {
+              if (!detectedNames.includes(detectedName)) {
+                detectedNames.push(detectedName);
+              }
+            }
+
+            ctx.font = "14px system-ui";
+            const pad = 6;
+            const tw = ctx.measureText(label).width + pad * 2;
+            const y = Math.max(0, b.y - 24);
+
+            ctx.fillStyle = "rgba(0,0,0,.65)";
+            ctx.fillRect(b.x, y, tw, 22);
+            ctx.fillStyle = "#fff";
+            ctx.fillText(label, b.x + pad, y + 15);
+          }
+
+          detectedNamesEl.value = detectedNames.join("\n");
+        }
+
+        async function loop() {
+          if (!running) return;
+          await detectFrame();
+          draw();
+          requestAnimationFrame(loop);
+        }
+
+        btnStartCam.addEventListener("click", startCamera);
+        btnStopCam.addEventListener("click", stopCamera);
+        btnSwitch.addEventListener("click", switchCam);
+
+        btnClearLogs.addEventListener("click", () => {
+          logsEl.textContent = "";
+        });
+
+        btnReloadJson.addEventListener("click", async () => {
+          await loadFacesJson();
+        });
+
+        btnReloadTraining.addEventListener("click", async () => {
+          if (!people) {
+            await loadFacesJson();
+          }
+          await buildMatcher();
+        });
+
+        (async () => {
+          try {
+            if (!navigator.mediaDevices?.getUserMedia) {
+              setStatus("Browser unsupported ✗");
+              setReady("unsupported");
+              log("Browser lacks camera support.", "error");
+              return;
+            }
+
+            await loadModels();
+
+            btnStartCam.disabled = false;
+            btnReloadJson.disabled = false;
+            btnReloadTraining.disabled = false;
+
+            await loadFacesJson();
+            await buildMatcher();
+
+            setStatus("Ready ✓");
+          } catch (e) {
+            setStatus("Init failed ✗");
+            setReady("init ✗");
+            log(`Init error: ${e?.message || e}`, "error");
+            alert("Init failed: " + (e?.message || e));
+          }
+        })();
+      })();
+    </script>
+  </body>
+</html>
