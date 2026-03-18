@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pyodide Matplotlib Plotter – Programmer's Picnic</title>
+
+    <!-- Pyodide -->
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+
+    <style>
+        body {
+            background: #fff7e6;
+            font-family: system-ui, sans-serif;
+            color: #3a2a1a;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: #fffaf0;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #f3c26b;
+            /* box-shadow: 30px 40px 15px lightcoral; */
+        }
+
+        h1 {
+            text-align: center;
+            color: #c67600;
+        }
+
+        .inputtext,
+        button {
+            padding: 10px 12px;
+            width: 100%;
+            margin: 8px 0;
+            border-radius: 8px;
+            border: 1px solid #e2a75a;
+            font-size: 1rem;
+        }
+
+        button {
+            background: #ffca7a;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        #plot-area {
+            text-align: center;
+            margin-top: 20px;
+            /* box-shadow: 30px 40px 15px orange; */
+        }
+
+        #status {
+            color: #c67600;
+            text-align: center;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>📊 Matplotlib Plotter (Pyodide)</h1>
+
+        <label><strong>Graph Color:</strong></label>
+        <input type="color" value="#FF0000" id="graphcolor" placeholder="Example: My Graph Color">
+        <br>
+        <label for="graphgrid"><strong>Show Grid:</strong></label>
+        <input type="checkbox" value="True" id="graphgrid" placeholder="Example: My Graph Color">
+
+        <br>
+        <label><strong>Graph Name:</strong></label>
+        <input class="inputtext" value="My Graph" id="graphname" placeholder="Example: My Graph">
+
+
+        <label><strong>X Label:</strong></label>
+        <input class="inputtext" value="X Label" id="xlabel" placeholder="Example: My Graph">
+
+
+        <label><strong>Y Label:</strong></label>
+        <input class="inputtext" value="Y Label" id="ylabel" placeholder="Example: My Graph">
+
+
+
+
+
+        <p>Enter comma-separated X and Y values:</p>
+
+        <label><strong>X values:</strong></label>
+        <input class="inputtext" value="1,2,3,4,5,6" id="xvalues" placeholder="Example: 1,2,3,4,5">
+
+        <label><strong>Y values:</strong></label>
+        <input class="inputtext" value="6,5,4,3,2,1" id="yvalues" placeholder="Example: 2,4,6,8,10">
+
+
+        <div id="status"></div>
+
+        <div id="plot-area"></div>
+
+
+        <button class="inputtext" onclick="plotGraph(1)">Plot Graph</button>
+        <button class="inputtext" onclick="plotGraph(2)">Scatter Graph</button>
+        <button class="inputtext" onclick="plotGraph(3)">Scatter and Line Graph</button>
+        <button class="inputtext" onclick="plotGraph(4)">PIE and Line Graph</button>
+
+    </div>
+
+    <script>
+        let pyodideReady = false;
+        let pyodide;
+
+        async function loadPyodideAndPackages() {
+            pyodide = await loadPyodide();
+            await pyodide.loadPackage(["micropip"]);
+
+            // Install matplotlib
+            await pyodide.runPythonAsync(`
+import micropip
+await micropip.install("matplotlib")
+        `);
+
+            pyodideReady = true;
+            document.getElementById("status").innerHTML = "Pyodide Loaded ✔️";
+        }
+
+        loadPyodideAndPackages();
+
+
+        async function plotGraph(command) {
+            /*
+            command=1 then plot
+            command=2 then scatter
+            
+            */
+            if (!pyodideReady) {
+                alert("Pyodide is still loading… please wait.");
+                return;
+            }
+
+            let xInput = document.getElementById("xvalues").value.trim();
+            let yInput = document.getElementById("yvalues").value.trim();
+
+            if (!xInput || !yInput) {
+                alert("Please enter BOTH X and Y values.");
+                return;
+            }
+
+            document.getElementById("status").innerHTML = "Plotting…";
+
+            try {
+
+                const result = await pyodide.runPythonAsync(`
+import matplotlib.pyplot as plt
+import io, base64
+command=${command}
+
+plt.figure(figsize=(7,4))
+
+if command==2:
+    plt.scatter([${txtxvalues.value}], [${txtyvalues.value}], color="${txtgraphcolor.value}", marker="o")
+if command==1:
+    plt.plot([${txtxvalues.value}], [${txtyvalues.value}], color="${txtgraphcolor.value}", marker="o")
+
+if command==3:
+    plt.plot([${txtxvalues.value}], [${txtyvalues.value}], color="${txtgraphcolor.value}", marker="o")
+    # plt.scatter([${txtxvalues.value}], [${txtyvalues.value}], color="${txtgraphcolor.value}", marker="o")
+
+if command==4:
+    plt.pie([${txtxvalues.value}])
+    # plt.plot([${txtxvalues.value}], [${txtyvalues.value}], color="${txtgraphcolor.value}", marker="o")
+
+plt.title("${txtgraphname.value}")
+plt.xlabel("${txtxlabel.value}")
+plt.ylabel("${txtylabel.value}")
+plt.grid(${(txtshowgrid.checked) ? "True" : "False"})
+
+buf = io.BytesIO()
+plt.savefig(buf, format="png")
+buf.seek(0)
+img_base64 = base64.b64encode(buf.read()).decode("utf-8")
+img_base64
+            `);
+
+                document.getElementById("plot-area").innerHTML =
+                    `<img src="data:image/png;base64,${result}" style="max-width:100%">`;
+
+                document.getElementById("status").innerHTML = "Plot Complete ✔️";
+
+            } catch (err) {
+                document.getElementById("status").innerHTML = "<span style='color:red'>Error plotting graph.</span>";
+                console.error(err);
+            }
+        }
+
+
+        const txtgraphname = document.getElementById("graphname");
+        const txtgraphcolor = document.getElementById("graphcolor");
+
+        const txtxvalues = document.getElementById("xvalues");
+        const txtyvalues = document.getElementById("yvalues");
+
+        const txtxlabel = document.getElementById("xlabel");
+
+
+        const txtylabel = document.getElementById("ylabel");
+        const txtshowgrid = document.getElementById("graphgrid"); 
+    </script>
+
+</body>
+
+</html>
