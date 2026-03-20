@@ -905,6 +905,392 @@
           }
         });
 
+
+
+        var notificationsUrl = "https://editor.learnwithchampak.live/notifications.json";
+        var notificationStorageKey = "pp_editor_notifications_seen_v1";
+        var notificationPermissionAskedKey = "pp_editor_notifications_permission_asked_v1";
+        var notificationState = {
+          items: [],
+          seen: loadArray(notificationStorageKey),
+          initialized: false,
+          lastSignature: "",
+          timer: null,
+        };
+
+        var notifyBtn = document.getElementById("btnNotifications");
+        var notifyBadge = document.getElementById("notifyBadge");
+        var notifyPanel = document.getElementById("notifyPanel");
+        var notifyBackdrop = document.getElementById("notifyBackdrop");
+        var notifyClose = document.getElementById("notifyClose");
+        var notifyList = document.getElementById("notifyList");
+        var notifyStatus = document.getElementById("notifyStatus");
+        var notifyRefreshBtn = document.getElementById("notifyRefreshBtn");
+        var notifyMarkAllBtn = document.getElementById("notifyMarkAllBtn");
+        var notifyBrowserBtn = document.getElementById("notifyBrowserBtn");
+        var notifyToastStack = document.getElementById("notifyToastStack");
+
+        function saveNotificationSeen() {
+          saveArray(notificationStorageKey, notificationState.seen.slice(-300));
+        }
+
+        function normalizeNotifications(payload) {
+          var list = [];
+          if (Array.isArray(payload)) {
+            list = payload;
+          } else if (payload && Array.isArray(payload.notifications)) {
+            list = payload.notifications;
+          } else if (payload && Array.isArray(payload.items)) {
+            list = payload.items;
+          } else if (payload && Array.isArray(payload.data)) {
+            list = payload.data;
+          }
+
+          return list
+            .map(function (item, index) {
+              var title = String(
+                item && (item.title || item.name || item.heading || item.label || "Update"),
+              ).trim();
+              var message = String(
+                item &&
+                  (item.message || item.body || item.text || item.description || item.summary || ""),
+              ).trim();
+              var url = String(item && (item.url || item.link || item.href || "") || "").trim();
+              var createdAt =
+                String(
+                  item &&
+                    (item.createdAt || item.updatedAt || item.date || item.time || item.timestamp || ""),
+                ).trim() || "";
+              var important =
+                Boolean(item && (item.important || item.priority === "high" || item.level === "high"));
+              var id = String(
+                item &&
+                  (item.id || item.slug || item.key || item.uuid || item.guid || url || ""),
+              ).trim();
+              if (!id) {
+                id = [title, message, createdAt, index].join("|");
+              }
+              return {
+                id: id,
+                title: title,
+                message: message,
+                url: url,
+                createdAt: createdAt,
+                important: important,
+              };
+            })
+            .filter(function (item) {
+              return item.title || item.message;
+            })
+            .sort(function (a, b) {
+              var ta = a.createdAt ? Date.parse(a.createdAt) : 0;
+              var tb = b.createdAt ? Date.parse(b.createdAt) : 0;
+              return (isNaN(tb) ? 0 : tb) - (isNaN(ta) ? 0 : ta);
+            });
+        }
+
+        function isNotificationSeen(id) {
+          return notificationState.seen.indexOf(id) !== -1;
+        }
+
+        function getUnreadNotifications() {
+          return notificationState.items.filter(function (item) {
+            return !isNotificationSeen(item.id);
+          });
+        }
+
+        function updateNotificationBadge() {
+          if (!notifyBadge || !notifyBtn) return;
+          var unread = getUnreadNotifications().length;
+          notifyBadge.textContent = unread > 99 ? "99+" : String(unread);
+          notifyBadge.classList.toggle("hidden", unread === 0);
+          notifyBtn.setAttribute("aria-label", unread ? unread + " unread notifications" : "Open notifications");
+        }
+
+        function formatNotificationTime(value) {
+          if (!value) return "Latest";
+          var date = new Date(value);
+          if (isNaN(date.getTime())) return value;
+          var diff = Date.now() - date.getTime();
+          var minute = 60 * 1000;
+          var hour = 60 * minute;
+          var day = 24 * hour;
+          if (diff < hour) {
+            return Math.max(1, Math.round(diff / minute)) + " min ago";
+          }
+          if (diff < day) {
+            return Math.max(1, Math.round(diff / hour)) + " hr ago";
+          }
+          return date.toLocaleString(undefined, {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+          });
+        }
+
+        function renderNotifications() {
+          if (!notifyList) return;
+          updateNotificationBadge();
+
+          if (!notificationState.items.length) {
+            notifyList.innerHTML =
+              '<div class="notify-empty"><strong>No notifications yet.</strong><br />Add items to <code>notifications.json</code> and they will appear here.</div>';
+            return;
+          }
+
+          notifyList.innerHTML = notificationState.items
+            .map(function (item) {
+              var unread = !isNotificationSeen(item.id);
+              var attrs = item.url
+                ? 'href="' + escapeHtml(item.url) + '" target="_blank" rel="noopener"'
+                : 'href="#" data-notification-id="' + escapeHtml(item.id) + '"';
+              return (
+                '<a class="notify-item ' +
+                (unread ? 'unread' : '') +
+                '" ' +
+                attrs +
+                '>' +
+                '<div class="notify-item-head">' +
+                '<div>' +
+                '<h4 class="notify-item-title">' +
+                escapeHtml(item.title || 'Update') +
+                '</h4>' +
+                '</div>' +
+                (unread ? '<span class="notify-dot" aria-hidden="true"></span>' : '') +
+                '</div>' +
+                '<p class="notify-item-message">' +
+                escapeHtml(item.message || 'Open for details.') +
+                '</p>' +
+                '<div class="notify-item-meta">' +
+                '<span>' +
+                escapeHtml(formatNotificationTime(item.createdAt)) +
+                '</span>' +
+                (item.important ? '<span class="notify-tag">Important</span>' : '') +
+                (item.url ? '<span>Open link ↗</span>' : '') +
+                '</div>' +
+                '</a>'
+              );
+            })
+            .join('');
+
+          Array.prototype.forEach.call(
+            notifyList.querySelectorAll('[data-notification-id]'),
+            function (node) {
+              node.addEventListener('click', function (event) {
+                event.preventDefault();
+                markNotificationRead(node.getAttribute('data-notification-id'));
+              });
+            },
+          );
+        }
+
+        function setNotificationStatus(text, isError) {
+          if (!notifyStatus) return;
+          notifyStatus.textContent = text;
+          notifyStatus.style.color = isError ? '#b91c1c' : '';
+        }
+
+        function markNotificationRead(id) {
+          if (!id || isNotificationSeen(id)) return;
+          notificationState.seen.push(id);
+          saveNotificationSeen();
+          renderNotifications();
+        }
+
+        function markAllNotificationsRead() {
+          notificationState.items.forEach(function (item) {
+            if (!isNotificationSeen(item.id)) {
+              notificationState.seen.push(item.id);
+            }
+          });
+          saveNotificationSeen();
+          renderNotifications();
+        }
+
+        function openNotifications() {
+          if (!notifyPanel) return;
+          notifyPanel.classList.remove('hidden');
+          notifyPanel.setAttribute('aria-hidden', 'false');
+          if (notifyBtn) notifyBtn.setAttribute('aria-expanded', 'true');
+          markAllNotificationsRead();
+        }
+
+        function closeNotifications() {
+          if (!notifyPanel) return;
+          notifyPanel.classList.add('hidden');
+          notifyPanel.setAttribute('aria-hidden', 'true');
+          if (notifyBtn) notifyBtn.setAttribute('aria-expanded', 'false');
+        }
+
+        function showNotificationToast(item) {
+          if (!notifyToastStack || !item) return;
+          var toast = document.createElement('div');
+          toast.className = 'notify-toast';
+          var inner =
+            '<strong>' +
+            escapeHtml(item.title || 'New notification') +
+            '</strong><div>' +
+            escapeHtml(item.message || '') +
+            '</div>' +
+            (item.url
+              ? '<div style="margin-top:8px;"><a href="' +
+                escapeHtml(item.url) +
+                '" target="_blank" rel="noopener">Open update ↗</a></div>'
+              : '');
+          toast.innerHTML = inner;
+          notifyToastStack.appendChild(toast);
+          setTimeout(function () {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(8px)';
+            setTimeout(function () {
+              if (toast.parentNode) toast.parentNode.removeChild(toast);
+            }, 220);
+          }, 5200);
+        }
+
+        function maybeShowBrowserNotification(item) {
+          if (!("Notification" in window) || Notification.permission !== 'granted') return;
+          try {
+            var notice = new Notification(item.title || 'Programmer\'s Picnic', {
+              body: item.message || 'New update available.',
+              icon: '/icons/icon-192.png',
+              badge: '/icons/icon-192.png',
+              tag: item.id,
+            });
+            notice.onclick = function () {
+              window.focus();
+              if (item.url) window.open(item.url, '_blank', 'noopener');
+              notice.close();
+            };
+          } catch (error) {
+            console.warn('Browser notification failed', error);
+          }
+        }
+
+        function requestBrowserNotificationPermission() {
+          if (!("Notification" in window)) {
+            setNotificationStatus('This browser does not support system notifications.', true);
+            return;
+          }
+          localStorage.setItem(notificationPermissionAskedKey, '1');
+          Notification.requestPermission().then(function (permission) {
+            if (permission === 'granted') {
+              setNotificationStatus('Browser alerts enabled. New pulled updates will alert you here.', false);
+            } else if (permission === 'denied') {
+              setNotificationStatus('Browser alerts are blocked. You can still read updates in the panel.', true);
+            } else {
+              setNotificationStatus('Browser alert permission was dismissed.', false);
+            }
+          });
+        }
+
+        function notificationSignature(items) {
+          return items
+            .slice(0, 20)
+            .map(function (item) {
+              return [item.id, item.createdAt, item.title].join('|');
+            })
+            .join('||');
+        }
+
+        function handleIncomingNotifications(items) {
+          var previousUnreadIds = getUnreadNotifications().map(function (item) {
+            return item.id;
+          });
+          notificationState.items = items;
+          renderNotifications();
+
+          if (!notificationState.initialized) {
+            notificationState.initialized = true;
+            return;
+          }
+
+          var newUnread = getUnreadNotifications().filter(function (item) {
+            return previousUnreadIds.indexOf(item.id) === -1;
+          });
+
+          if (!newUnread.length) return;
+
+          newUnread.slice(0, 2).forEach(function (item) {
+            showNotificationToast(item);
+            maybeShowBrowserNotification(item);
+          });
+        }
+
+        function fetchNotifications(options) {
+          options = options || {};
+          if (!options.silent) {
+            setNotificationStatus('Checking for updates…', false);
+          }
+
+          return fetch(notificationsUrl + '?ts=' + Date.now(), {
+            cache: 'no-store',
+          })
+            .then(function (response) {
+              if (!response.ok) {
+                throw new Error('HTTP ' + response.status);
+              }
+              return response.json();
+            })
+            .then(function (payload) {
+              var items = normalizeNotifications(payload);
+              var signature = notificationSignature(items);
+              notificationState.lastSignature = signature;
+              handleIncomingNotifications(items);
+              setNotificationStatus(
+                items.length
+                  ? 'Auto-refreshing every 60 seconds from notifications.json.'
+                  : 'notifications.json is reachable, but no active items were found.',
+                false,
+              );
+            })
+            .catch(function (error) {
+              console.error('Notification fetch failed:', error);
+              setNotificationStatus(
+                'Could not load notifications.json right now. Pull-to-refresh is available via the Refresh button.',
+                true,
+              );
+            });
+        }
+
+        function initNotifications() {
+          if (!notifyBtn || !notifyPanel || !notifyList) return;
+
+          notifyBtn.addEventListener('click', function () {
+            if (notifyPanel.classList.contains('hidden')) openNotifications();
+            else closeNotifications();
+          });
+
+          if (notifyBackdrop) notifyBackdrop.addEventListener('click', closeNotifications);
+          if (notifyClose) notifyClose.addEventListener('click', closeNotifications);
+          if (notifyRefreshBtn) notifyRefreshBtn.addEventListener('click', function () {
+            fetchNotifications();
+          });
+          if (notifyMarkAllBtn) notifyMarkAllBtn.addEventListener('click', markAllNotificationsRead);
+          if (notifyBrowserBtn) {
+            notifyBrowserBtn.addEventListener('click', requestBrowserNotificationPermission);
+            if (!("Notification" in window)) {
+              notifyBrowserBtn.disabled = true;
+              notifyBrowserBtn.textContent = 'Browser alerts unavailable';
+            } else if (Notification.permission === 'granted') {
+              notifyBrowserBtn.textContent = '🔔 Browser alerts enabled';
+            }
+          }
+
+          document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && notifyPanel && !notifyPanel.classList.contains('hidden')) {
+              closeNotifications();
+            }
+          });
+
+          fetchNotifications();
+          notificationState.timer = window.setInterval(function () {
+            fetchNotifications({ silent: true });
+          }, 60000);
+        }
+
         (function init() {
           var hashedTool = getToolFromHash();
           if (hashedTool && getById(hashedTool)) {
@@ -915,6 +1301,7 @@
           renderQuickLinks();
           renderTools();
           updateViewer();
+          initNotifications();
         })();
       })();
     
