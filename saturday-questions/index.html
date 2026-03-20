@@ -615,6 +615,37 @@
         padding: 10px;
         margin: 10px 0 0;
         box-shadow: 0 10px 26px rgba(217, 119, 6, 0.08);
+        position: relative;
+        overflow: hidden;
+        transform-origin: center top;
+        animation: replyCardIn 0.5s ease both;
+        transition:
+          transform 0.22s ease,
+          box-shadow 0.22s ease,
+          border-color 0.22s ease;
+      }
+
+      .reply::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          110deg,
+          transparent 0%,
+          transparent 38%,
+          rgba(255, 255, 255, 0.38) 50%,
+          transparent 62%,
+          transparent 100%
+        );
+        transform: translateX(-135%);
+        pointer-events: none;
+        animation: replyShine 4.8s ease-in-out infinite;
+      }
+
+      .reply:hover {
+        transform: translateY(-3px) scale(1.005);
+        border-color: rgba(217, 119, 6, 0.36);
+        box-shadow: 0 16px 34px rgba(217, 119, 6, 0.16);
       }
 
       .reply.newest {
@@ -698,6 +729,7 @@
         background: linear-gradient(145deg, #f59e0b, #d97706);
         border: 1px solid rgba(217, 119, 6, 0.35);
         box-shadow: 0 8px 18px rgba(217, 119, 6, 0.22);
+        animation: replyAvatarFloat 3.2s ease-in-out infinite;
       }
 
       .reply-name-wrap {
@@ -801,6 +833,44 @@
         border-radius: 14px;
         border: 1px dashed var(--line);
         background: rgba(255, 255, 255, 0.72);
+      }
+
+      @keyframes replyCardIn {
+        from {
+          opacity: 0;
+          transform: translateY(16px) scale(0.985);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      @keyframes replyShine {
+        0%, 70%, 100% {
+          transform: translateX(-135%);
+        }
+        82% {
+          transform: translateX(135%);
+        }
+      }
+
+      @keyframes replyAvatarFloat {
+        0%, 100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-2px);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .reply,
+        .reply::before,
+        .reply-avatar {
+          animation: none !important;
+          transition: none !important;
+        }
       }
 
       .toast {
@@ -1855,11 +1925,12 @@ As an Amazon Associate I earn from qualifying purchases.
             : bb.localeCompare(aa);
         });
 
-        list.forEach((r) => {
+        list.forEach((r, index) => {
           const box = document.createElement("div");
           const isNewest =
             newestKey && String(r.created_at || "") === newestKey;
           box.className = "reply" + (isNewest ? " newest" : "");
+          box.style.animationDelay = `${Math.min(index * 70, 420)}ms`;
 
           const top = document.createElement("div");
           top.className = "reply-top";
