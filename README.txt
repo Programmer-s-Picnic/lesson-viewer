@@ -1,10 +1,15 @@
-Files included:
+Programmer's Picnic Editor Hub — Separated Build
+
+Files created:
+- index.html
+- assets/css/styles.css
+- assets/js/hub.js
 - pwa.js
 - service-worker.js
 - manifest.webmanifest
-- icons/icon-192.png
-- icons/icon-512.png
-- INTEGRATION.txt
+- app.js
 
-Put these files at the root of editor.learnwithchampak.live.
-Then add the snippets from INTEGRATION.txt into your existing index.html.
+Notes:
+- The large inline CSS from index.html was moved to assets/css/styles.css.
+- The large inline hub logic from index.html was moved to assets/js/hub.js.
+- pwa.js, manifest.webmanifest, and app.js are included unchanged except service-worker.js was updated to precache the new CSS/JS files.

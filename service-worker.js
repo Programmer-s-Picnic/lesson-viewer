@@ -1,9 +1,11 @@
-const CACHE_NAME = "pp-editor-hub-v1";
+const CACHE_NAME = "pp-editor-hub-v2";
 const OFFLINE_FALLBACK = "/index.html";
 
 const PRE_CACHE = [
   "/",
   "/index.html",
+  "/assets/css/styles.css",
+  "/assets/js/hub.js",
   "/pwa.js",
   "/manifest.webmanifest"
 ];
@@ -30,11 +32,16 @@ self.addEventListener("fetch", (event) => {
   const request = event.request;
   if (request.method !== "GET") return;
 
+  const url = new URL(request.url);
+  const isSameOrigin = url.origin === self.location.origin;
+
   event.respondWith(
     fetch(request)
       .then((response) => {
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+        if (isSameOrigin && response && response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+        }
         return response;
       })
       .catch(async () => {
