@@ -32,3 +32,9 @@ Behavior:
 - opens a notification drawer
 - optional browser alerts when permission is granted
 - marks all unread items as read when the drawer is opened
+
+
+Badge support added:
+- Installed app icon/taskbar/dock badge sync where the platform supports the Badging API
+- Browser tab title count fallback like (3) Programmer's Picnic Editor Hub
+- In-app notification badge remains unchanged

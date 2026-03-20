@@ -43,3 +43,19 @@ self.addEventListener("fetch", (event) => {
       })
   );
 });
+
+
+self.addEventListener("message", (event) => {
+  const data = event.data || {};
+  if (data.type !== "PP_SET_BADGE") return;
+
+  const count = Number(data.count) || 0;
+  try {
+    if ("navigator" in self && "setAppBadge" in navigator && "clearAppBadge" in navigator) {
+      const badgeOp = count > 0 ? navigator.setAppBadge(count) : navigator.clearAppBadge();
+      event.waitUntil(Promise.resolve(badgeOp).catch(() => {}));
+    }
+  } catch (error) {
+    console.warn("Service worker badge update failed:", error);
+  }
+});

@@ -999,12 +999,44 @@
           });
         }
 
+        function syncInstalledAppBadge(count) {
+          try {
+            if (window.__ppBadgeSyncTimer) {
+              window.clearTimeout(window.__ppBadgeSyncTimer);
+            }
+            window.__ppBadgeSyncTimer = window.setTimeout(function () {
+              if ('setAppBadge' in navigator && 'clearAppBadge' in navigator) {
+                var action = count > 0 ? navigator.setAppBadge(count) : navigator.clearAppBadge();
+                Promise.resolve(action).catch(function (error) {
+                  console.warn('App badge update failed:', error);
+                });
+              }
+
+              if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({
+                  type: 'PP_SET_BADGE',
+                  count: count,
+                });
+              }
+            }, 0);
+          } catch (error) {
+            console.warn('Badge sync skipped:', error);
+          }
+        }
+
+        function updateDocumentNotificationState(count) {
+          var cleanTitle = document.title.replace(/^\(\d+\)\s*/, '');
+          document.title = count > 0 ? '(' + count + ') ' + cleanTitle : cleanTitle;
+        }
+
         function updateNotificationBadge() {
           if (!notifyBadge || !notifyBtn) return;
           var unread = getUnreadNotifications().length;
           notifyBadge.textContent = unread > 99 ? "99+" : String(unread);
           notifyBadge.classList.toggle("hidden", unread === 0);
           notifyBtn.setAttribute("aria-label", unread ? unread + " unread notifications" : "Open notifications");
+          updateDocumentNotificationState(unread);
+          syncInstalledAppBadge(unread);
         }
 
         function formatNotificationTime(value) {
