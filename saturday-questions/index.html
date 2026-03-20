@@ -664,6 +664,135 @@
         margin: 0;
       }
 
+      .reply-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .reply-person {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .reply-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        flex: 0 0 40px;
+        font-weight: 950;
+        font-size: 12px;
+        color: #111;
+        background: linear-gradient(
+          145deg,
+          rgba(255, 159, 28, 0.28),
+          rgba(255, 183, 77, 0.16)
+        );
+        border: 1px solid rgba(255, 159, 28, 0.28);
+      }
+
+      .reply-name-wrap {
+        min-width: 0;
+      }
+
+      .reply-student {
+        font-weight: 950;
+        color: #111;
+        font-size: 14px;
+        display: block;
+      }
+
+      .reply-subline {
+        color: var(--muted);
+        font-size: 11px;
+        margin-top: 2px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .reply-date {
+        white-space: nowrap;
+        text-align: right;
+        font-size: 11px;
+      }
+
+      .reply-meta-row {
+        margin-top: 8px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .reply-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 9px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.92);
+        font-size: 11px;
+        font-weight: 900;
+        color: #38414b;
+      }
+
+      .reply-msg {
+        margin-top: 10px;
+        color: var(--ink);
+        font-size: 13px;
+        line-height: 1.55;
+        white-space: pre-wrap;
+      }
+
+      .reply-answer-card {
+        margin-top: 10px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.86);
+      }
+
+      .reply-answer-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 8px;
+      }
+
+      .reply-answer-title {
+        font-weight: 950;
+        color: #111;
+      }
+
+      .reply-answer-sub {
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 3px;
+        word-break: break-all;
+      }
+
+      .reply-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+      }
+
+      .reply-empty {
+        padding: 12px;
+        border-radius: 14px;
+        border: 1px dashed var(--line);
+        background: rgba(255, 255, 255, 0.72);
+      }
+
       .toast {
         position: fixed;
         left: 50%;
@@ -1542,12 +1671,152 @@ As an Amazon Associate I earn from qualifying purchases.
         return REPLIES.filter((r) => String(r.q_id || "") === String(activeId));
       }
 
+      function isProbablyUrl(value) {
+        const s = String(value || "").trim();
+        return /^https?:\/\//i.test(s);
+      }
+
+      function getHostLabel(value) {
+        try {
+          return new URL(String(value)).host.replace(/^www\./i, "");
+        } catch {
+          return "";
+        }
+      }
+
+      function formatReplyDate(value) {
+        const raw = String(value || "").trim();
+        if (!raw) return "Date not given";
+
+        const parsed = new Date(raw);
+        if (!Number.isNaN(parsed.getTime())) {
+          return parsed.toLocaleString(undefined, {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+          });
+        }
+        return raw;
+      }
+
+      function getInitials(name) {
+        const parts = String(name || "Student")
+          .trim()
+          .split(/\s+/)
+          .filter(Boolean)
+          .slice(0, 2);
+
+        if (!parts.length) return "ST";
+        return parts.map((p) => p[0].toUpperCase()).join("");
+      }
+
+      function buildReplyPill(label) {
+        const span = document.createElement("span");
+        span.className = "reply-pill";
+        span.textContent = label;
+        return span;
+      }
+
+      function buildTextBlock(title, value) {
+        const txt = String(value || "").trim();
+        if (!txt) return null;
+
+        const wrap = document.createElement("div");
+        wrap.className = "reply-answer-card";
+
+        const head = document.createElement("div");
+        head.className = "reply-answer-head";
+        head.innerHTML = `<div><div class="reply-answer-title"></div></div>`;
+        head.querySelector(".reply-answer-title").textContent = title;
+
+        const pre = document.createElement("pre");
+        pre.className = "codeblock";
+        pre.textContent = txt;
+
+        const actions = document.createElement("div");
+        actions.className = "reply-actions";
+
+        const copyBtn = document.createElement("button");
+        copyBtn.type = "button";
+        copyBtn.className = "chip";
+        copyBtn.textContent = "Copy";
+        copyBtn.addEventListener("click", async () => {
+          await copyText(txt);
+          toast(title + " copied!");
+        });
+
+        actions.appendChild(copyBtn);
+        wrap.appendChild(head);
+        wrap.appendChild(pre);
+        wrap.appendChild(actions);
+        return wrap;
+      }
+
+      function buildLinkBlock(title, url) {
+        const link = String(url || "").trim();
+        if (!link) return null;
+
+        const wrap = document.createElement("div");
+        wrap.className = "reply-answer-card";
+
+        const head = document.createElement("div");
+        head.className = "reply-answer-head";
+
+        const left = document.createElement("div");
+        left.innerHTML = `
+          <div class="reply-answer-title"></div>
+          <div class="reply-answer-sub"></div>
+        `;
+        left.querySelector(".reply-answer-title").textContent = title;
+        left.querySelector(".reply-answer-sub").textContent =
+          getHostLabel(link) || link;
+
+        const openBtn = document.createElement("a");
+        openBtn.className = "btn";
+        openBtn.target = "saturday-question";
+        openBtn.rel = "noopener noreferrer";
+        openBtn.href = link;
+        openBtn.textContent = "Open answer";
+
+        head.appendChild(left);
+        head.appendChild(openBtn);
+        wrap.appendChild(head);
+
+        const actions = document.createElement("div");
+        actions.className = "reply-actions";
+
+        const copyBtn = document.createElement("button");
+        copyBtn.type = "button";
+        copyBtn.className = "chip";
+        copyBtn.textContent = "Copy link";
+        copyBtn.addEventListener("click", async () => {
+          await copyText(link);
+          toast("Answer link copied!");
+        });
+
+        actions.appendChild(copyBtn);
+        wrap.appendChild(actions);
+        return wrap;
+      }
+
+      function buildReplyAttachment(title, value) {
+        const txt = String(value || "").trim();
+        if (!txt) return null;
+        return isProbablyUrl(txt)
+          ? buildLinkBlock(title, txt)
+          : buildTextBlock(title, txt);
+      }
+
       function renderReplies() {
         clearEl(els.repliesList);
 
         if (!activeId) {
           safeText(els.repliesBadge, formatRepliesBadge(0));
-          els.repliesList.textContent = UI.replies_empty || "No replies yet.";
+          els.repliesList.innerHTML = `<div class="reply-empty">${escapeHTML(
+            UI.replies_empty || "No replies yet.",
+          )}</div>`;
           return;
         }
 
@@ -1555,7 +1824,9 @@ As an Amazon Associate I earn from qualifying purchases.
         safeText(els.repliesBadge, formatRepliesBadge(raw.length));
 
         if (!raw.length) {
-          els.repliesList.textContent = UI.replies_empty || "No replies yet.";
+          els.repliesList.innerHTML = `<div class="reply-empty">${escapeHTML(
+            UI.replies_empty || "No replies yet.",
+          )}</div>`;
           return;
         }
 
@@ -1580,58 +1851,91 @@ As an Amazon Associate I earn from qualifying purchases.
             newestKey && String(r.created_at || "") === newestKey;
           box.className = "reply" + (isNewest ? " newest" : "");
 
-          const head = document.createElement("div");
-          head.className = "reply-head";
+          const top = document.createElement("div");
+          top.className = "reply-top";
 
-          const left = document.createElement("div");
-          left.innerHTML = `<span class="reply-student"></span>`;
-          left.querySelector(".reply-student").textContent = String(
-            r.student || "Student",
+          const person = document.createElement("div");
+          person.className = "reply-person";
+
+          const avatar = document.createElement("div");
+          avatar.className = "reply-avatar";
+          avatar.textContent = getInitials(r.student || "Student");
+
+          const nameWrap = document.createElement("div");
+          nameWrap.className = "reply-name-wrap";
+
+          const name = document.createElement("span");
+          name.className = "reply-student";
+          name.textContent = String(r.student || "Student");
+
+          const sub = document.createElement("div");
+          sub.className = "reply-subline";
+          sub.appendChild(
+            buildReplyPill(
+              String(r.q_id || activeId || "").trim() || "Question reply",
+            ),
           );
 
-          const right = document.createElement("div");
-          right.textContent = String(r.created_at || "");
+          const date = document.createElement("div");
+          date.className = "reply-date";
+          date.textContent = formatReplyDate(r.created_at || "");
+          date.title = String(r.created_at || "");
 
-          head.appendChild(left);
-          head.appendChild(right);
+          person.appendChild(avatar);
+          nameWrap.appendChild(name);
+          nameWrap.appendChild(sub);
+          person.appendChild(nameWrap);
+          top.appendChild(person);
+          top.appendChild(date);
 
-          const msg = document.createElement("div");
-          msg.className = "reply-msg";
-          msg.textContent = String(r.message || "");
+          const metaRow = document.createElement("div");
+          metaRow.className = "reply-meta-row";
 
-          const codeWrap = document.createElement("div");
-          codeWrap.className = "reply-code";
+          const messageText = String(r.message || "").trim();
+          const codeValue = String(r.code || "").trim();
+          const answerValue = String(r.answer || r.answer_text || "").trim();
+          const outputValue = String(r.output || "").trim();
+          const explanationValue = String(r.explanation || "").trim();
 
-          const pre = document.createElement("pre");
-          pre.className = "codeblock";
+          if (messageText) metaRow.appendChild(buildReplyPill("Has note"));
+          if (codeValue) {
+            metaRow.appendChild(
+              buildReplyPill(isProbablyUrl(codeValue) ? "Answer link" : "Code"),
+            );
+          }
+          if (answerValue) metaRow.appendChild(buildReplyPill("Answer text"));
+          if (outputValue) metaRow.appendChild(buildReplyPill("Output"));
+          if (explanationValue)
+            metaRow.appendChild(buildReplyPill("Explanation"));
 
-          const codeUrl = String(r.code || "").trim();
-          if (codeUrl) {
-            pre.innerHTML = `<a class="btn" target="saturday-question" rel="noopener noreferrer" href="${escapeHTML(
-              codeUrl,
-            )}">Answer</a>`;
-          } else {
-            pre.textContent = "";
+          if (!metaRow.childNodes.length) {
+            metaRow.appendChild(buildReplyPill("Reply"));
           }
 
-          codeWrap.appendChild(pre);
+          box.appendChild(top);
+          box.appendChild(metaRow);
+
+          if (messageText) {
+            const msg = document.createElement("div");
+            msg.className = "reply-msg";
+            msg.textContent = messageText;
+            box.appendChild(msg);
+          }
 
           const teacherOnly = !!UI.replies_code_teacher_only;
-          const hasCode = codeUrl.length > 0;
 
-          if (hasCode) {
-            if (!teacherOnly) {
-              codeWrap.style.display = "block";
-            } else {
-              codeWrap.style.display = teacherMode ? "block" : "none";
+          const appendIfVisible = (node) => {
+            if (!node) return;
+            if (teacherOnly && !teacherMode) {
+              node.style.display = "none";
             }
-          } else {
-            codeWrap.style.display = "none";
-          }
+            box.appendChild(node);
+          };
 
-          box.appendChild(head);
-          box.appendChild(msg);
-          box.appendChild(codeWrap);
+          appendIfVisible(buildReplyAttachment("Answer", codeValue));
+          appendIfVisible(buildReplyAttachment("Answer text", answerValue));
+          appendIfVisible(buildReplyAttachment("Output", outputValue));
+          appendIfVisible(buildReplyAttachment("Explanation", explanationValue));
 
           els.repliesList.appendChild(box);
         });
