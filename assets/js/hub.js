@@ -1273,8 +1273,8 @@
               handleIncomingNotifications(items);
               setNotificationStatus(
                 items.length
-                  ? 'Auto-refreshing every 60 seconds from notifications.json.'
-                  : 'notifications.json is reachable, but no active items were found.',
+                  ? 'Auto-refreshing.'
+                  : '',
                 false,
               );
             })
