@@ -1,0 +1,1354 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Snakes and Ladders — Extra Moves Edition</title>
+    <style>
+      :root {
+        --bg: #0f172a;
+        --panel: #111827;
+        --panel2: #1f2937;
+        --line: #334155;
+        --text: #e5e7eb;
+        --muted: #94a3b8;
+        --accent: #f59e0b;
+        --good: #22c55e;
+        --bad: #ef4444;
+        --info: #38bdf8;
+        --cellA: #172554;
+        --cellB: #1e293b;
+        --snake: #ef4444;
+        --ladder: #22c55e;
+        --p1: #f97316;
+        --p2: #3b82f6;
+        --p3: #a855f7;
+        --p4: #14b8a6;
+        --shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
+        --radius: 18px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family:
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial,
+          sans-serif;
+        background:
+          radial-gradient(
+            circle at top,
+            rgba(245, 158, 11, 0.15),
+            transparent 32%
+          ),
+          linear-gradient(180deg, #0b1020, #101827 40%, #0f172a);
+        color: var(--text);
+      }
+
+      .wrap {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 18px;
+      }
+
+      .titlebar {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+      }
+
+      .brand {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .brand h1 {
+        margin: 0;
+        font-size: clamp(1.35rem, 2.4vw, 2rem);
+        line-height: 1.1;
+      }
+
+      .brand p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      .app {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 18px;
+      }
+
+      .card {
+        background: linear-gradient(
+          180deg,
+          rgba(17, 24, 39, 0.95),
+          rgba(15, 23, 42, 0.96)
+        );
+        border: 1px solid rgba(148, 163, 184, 0.14);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+      }
+
+      .board-card {
+        padding: 14px;
+        overflow: hidden;
+      }
+
+      .side {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+
+      .section {
+        padding: 16px;
+      }
+
+      .section h2 {
+        margin: 0 0 12px;
+        font-size: 1.05rem;
+      }
+
+      .setup-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      label {
+        display: block;
+        font-size: 0.92rem;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+
+      select,
+      input,
+      button {
+        font: inherit;
+      }
+
+      select,
+      input[type="text"] {
+        width: 100%;
+        padding: 10px 12px;
+        background: #0b1220;
+        color: var(--text);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        outline: none;
+      }
+
+      button {
+        border: 0;
+        border-radius: 12px;
+        padding: 10px 14px;
+        cursor: pointer;
+        font-weight: 700;
+        transition:
+          transform 0.12s ease,
+          opacity 0.12s ease,
+          filter 0.12s ease;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+      }
+      button:active {
+        transform: translateY(0);
+      }
+      button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .btn-primary {
+        background: linear-gradient(180deg, #f59e0b, #d97706);
+        color: white;
+      }
+
+      .btn-secondary {
+        background: #1e293b;
+        color: var(--text);
+        border: 1px solid #334155;
+      }
+
+      .btn-good {
+        background: linear-gradient(180deg, #22c55e, #16a34a);
+        color: white;
+      }
+
+      .btn-bad {
+        background: linear-gradient(180deg, #ef4444, #dc2626);
+        color: white;
+      }
+
+      .btn-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .board-wrap {
+        position: relative;
+        width: min(92vw, 820px);
+        aspect-ratio: 1/1;
+        margin: 0 auto;
+        border-radius: 20px;
+        overflow: hidden;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        background: #0b1220;
+      }
+
+      .board {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        grid-template-columns: repeat(10, 1fr);
+        grid-template-rows: repeat(10, 1fr);
+      }
+
+      .cell {
+        position: relative;
+        border: 1px solid rgba(148, 163, 184, 0.12);
+        padding: 4px;
+        overflow: hidden;
+      }
+
+      .cell:nth-child(odd) {
+        background: rgba(30, 41, 59, 0.72);
+      }
+      .cell:nth-child(even) {
+        background: rgba(23, 37, 84, 0.62);
+      }
+
+      .cell-number {
+        position: absolute;
+        top: 4px;
+        left: 5px;
+        font-size: 0.72rem;
+        color: #cbd5e1;
+        font-weight: 700;
+        opacity: 0.92;
+        z-index: 2;
+        text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
+      }
+
+      .cell-mark {
+        position: absolute;
+        bottom: 4px;
+        right: 6px;
+        font-size: 0.68rem;
+        font-weight: 800;
+        opacity: 0.9;
+        z-index: 2;
+        padding: 2px 5px;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.72);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .cell-mark.snake {
+        color: #fecaca;
+        border-color: rgba(239, 68, 68, 0.35);
+      }
+      .cell-mark.ladder {
+        color: #bbf7d0;
+        border-color: rgba(34, 197, 94, 0.35);
+      }
+
+      .token-layer,
+      .path-layer {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      .token {
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: 2px solid rgba(255, 255, 255, 0.85);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+        transition:
+          left 0.4s ease,
+          top 0.4s ease,
+          transform 0.2s ease;
+        z-index: 4;
+      }
+
+      .token.p1 {
+        background: var(--p1);
+      }
+      .token.p2 {
+        background: var(--p2);
+      }
+      .token.p3 {
+        background: var(--p3);
+      }
+      .token.p4 {
+        background: var(--p4);
+      }
+
+      .players {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .player-card {
+        background: rgba(15, 23, 42, 0.78);
+        border: 1px solid rgba(148, 163, 184, 0.15);
+        border-radius: 14px;
+        padding: 12px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .player-card.active {
+        outline: 2px solid rgba(245, 158, 11, 0.7);
+        box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.14);
+      }
+
+      .player-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 8px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.82rem;
+        padding: 5px 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+
+      .meta {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        font-size: 0.9rem;
+        color: #dbeafe;
+      }
+
+      .meta div {
+        background: rgba(255, 255, 255, 0.04);
+        border-radius: 10px;
+        padding: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+      }
+
+      .dice-box {
+        display: grid;
+        grid-template-columns: 100px 1fr;
+        gap: 14px;
+        align-items: center;
+      }
+
+      .die {
+        width: 100px;
+        height: 100px;
+        border-radius: 22px;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(180deg, #fff, #e5e7eb);
+        color: #111827;
+        font-size: 2.3rem;
+        font-weight: 900;
+        box-shadow:
+          inset 0 2px 0 rgba(255, 255, 255, 0.75),
+          0 10px 20px rgba(0, 0, 0, 0.22);
+      }
+
+      .status {
+        padding: 12px 14px;
+        background: rgba(56, 189, 248, 0.08);
+        border: 1px solid rgba(56, 189, 248, 0.22);
+        border-radius: 14px;
+        color: #dbeafe;
+        min-height: 58px;
+        display: flex;
+        align-items: center;
+      }
+
+      .history {
+        max-height: 260px;
+        overflow: auto;
+        border-radius: 14px;
+        border: 1px solid rgba(148, 163, 184, 0.12);
+        background: rgba(2, 6, 23, 0.45);
+      }
+
+      .log-item {
+        padding: 10px 12px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+        font-size: 0.92rem;
+        color: #cbd5e1;
+      }
+
+      .log-item:last-child {
+        border-bottom: 0;
+      }
+
+      .helper {
+        color: var(--muted);
+        font-size: 0.88rem;
+        line-height: 1.5;
+      }
+
+      .pill {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        color: #e2e8f0;
+      }
+
+      .overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(2, 6, 23, 0.75);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        z-index: 50;
+      }
+
+      .overlay.show {
+        display: flex;
+      }
+
+      .modal {
+        width: min(560px, 100%);
+        background: linear-gradient(180deg, #111827, #0f172a);
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        border-radius: 22px;
+        padding: 18px;
+        box-shadow: var(--shadow);
+      }
+
+      .modal h3 {
+        margin: 0 0 8px;
+        font-size: 1.2rem;
+      }
+
+      .modal p {
+        margin: 0 0 14px;
+        color: #cbd5e1;
+        line-height: 1.5;
+      }
+
+      .rule-list {
+        margin: 0;
+        padding-left: 18px;
+        color: #cbd5e1;
+        line-height: 1.6;
+      }
+
+      .footer-note {
+        text-align: center;
+        color: var(--muted);
+        font-size: 0.84rem;
+        margin-top: 10px;
+      }
+
+      @media (max-width: 1100px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
+        .board-wrap {
+          width: min(96vw, 760px);
+        }
+      }
+
+      @media (max-width: 700px) {
+        .setup-grid,
+        .players {
+          grid-template-columns: 1fr;
+        }
+        .dice-box {
+          grid-template-columns: 1fr;
+        }
+        .die {
+          width: 86px;
+          height: 86px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="titlebar">
+        <div class="brand">
+          <h1>Snakes and Ladders — Extra Moves Edition</h1>
+          <p>
+            Up to 4 players. Every player has 10 extra moves to escape snakes or
+            take ladders. All 10 must be used before winning.
+          </p>
+        </div>
+        <div class="btn-row">
+          <button class="btn-secondary" id="rulesBtn">Rules</button>
+          <button class="btn-secondary" id="newGameTopBtn">New Game</button>
+        </div>
+      </div>
+
+      <div class="app">
+        <div class="card board-card">
+          <div class="board-wrap" id="boardWrap">
+            <svg
+              class="path-layer"
+              id="pathLayer"
+              viewBox="0 0 1000 1000"
+              preserveAspectRatio="none"
+            ></svg>
+            <div class="board" id="board"></div>
+            <div class="token-layer" id="tokenLayer"></div>
+          </div>
+          <div class="footer-note">
+            Exact roll needed for square 100. Landing on 100 does not win unless
+            all 10 extra moves are already used.
+          </div>
+        </div>
+
+        <div class="side">
+          <div class="card section">
+            <h2>Game Setup</h2>
+            <div class="setup-grid">
+              <div>
+                <label for="humanCount">Number of human players</label>
+                <select id="humanCount">
+                  <option value="1">1 Human + 3 Computer</option>
+                  <option value="2">2 Humans + 2 Computer</option>
+                  <option value="3">3 Humans + 1 Computer</option>
+                  <option value="4">4 Humans</option>
+                </select>
+              </div>
+              <div>
+                <label for="botMode">Computer strategy</label>
+                <select id="botMode">
+                  <option value="smart">Smart</option>
+                  <option value="greedy">Greedy</option>
+                  <option value="careful">Careful</option>
+                </select>
+              </div>
+            </div>
+            <div class="btn-row" style="margin-top: 12px">
+              <button class="btn-primary" id="startBtn">Start New Game</button>
+              <button class="btn-secondary" id="resetBtn">
+                Reset Positions
+              </button>
+            </div>
+            <p class="helper" style="margin: 12px 0 0">
+              Human seats are filled first. Remaining seats are computer
+              players. A player can spend an extra move when landing on a snake
+              head or ladder base.
+            </p>
+          </div>
+
+          <div class="card section">
+            <h2>Turn Control</h2>
+            <div class="dice-box">
+              <div class="die" id="dieFace">🎲</div>
+              <div class="status" id="statusBox">
+                Start a new game to begin.
+              </div>
+            </div>
+            <div class="btn-row" style="margin-top: 14px">
+              <button class="btn-primary" id="rollBtn" disabled>
+                Roll Dice
+              </button>
+              <button class="btn-secondary" id="autoBtn" disabled>
+                Auto Play Turn
+              </button>
+            </div>
+          </div>
+
+          <div class="card section">
+            <h2>Players</h2>
+            <div class="players" id="playersPanel"></div>
+          </div>
+
+          <div class="card section">
+            <h2>Move History</h2>
+            <div class="history" id="history"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay" id="choiceOverlay">
+      <div class="modal">
+        <h3 id="choiceTitle">Special Move</h3>
+        <p id="choiceText"></p>
+        <div class="btn-row">
+          <button class="btn-good" id="useExtraBtn">Use 1 Extra Move</button>
+          <button class="btn-secondary" id="skipExtraBtn">
+            Do Normal Move
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay" id="messageOverlay">
+      <div class="modal">
+        <h3 id="messageTitle">Game Message</h3>
+        <p id="messageText"></p>
+        <div class="btn-row">
+          <button class="btn-primary" id="closeMessageBtn">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay" id="rulesOverlay">
+      <div class="modal">
+        <h3>Rules</h3>
+        <ul class="rule-list">
+          <li>Standard board from 1 to 100.</li>
+          <li>Each player starts with <strong>10 extra moves</strong>.</li>
+          <li>
+            If you land on a snake head, you may spend 1 extra move to escape
+            and stay there. Otherwise you slide down.
+          </li>
+          <li>
+            If you land on a ladder base, you may spend 1 extra move to climb
+            it. Otherwise you stay where you landed.
+          </li>
+          <li>You need an <strong>exact roll</strong> to land on 100.</li>
+          <li>
+            You can reach square 100 before winning, but you
+            <strong>cannot win</strong> until your extra moves left becomes 0.
+          </li>
+          <li>
+            If fewer than 4 humans are selected, computer players fill the empty
+            seats.
+          </li>
+        </ul>
+        <div class="btn-row" style="margin-top: 16px">
+          <button class="btn-primary" id="closeRulesBtn">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const snakes = {
+        99: 78,
+        95: 56,
+        92: 48,
+        83: 19,
+        73: 51,
+        69: 33,
+        64: 36,
+        59: 17,
+        52: 11,
+        46: 5,
+      };
+
+      const ladders = {
+        2: 38,
+        7: 14,
+        8: 31,
+        15: 26,
+        21: 42,
+        28: 84,
+        36: 44,
+        51: 67,
+        71: 91,
+        78: 98,
+      };
+
+      const playerColors = ["p1", "p2", "p3", "p4"];
+      const playerNames = ["Player 1", "Player 2", "Player 3", "Player 4"];
+      const boardEl = document.getElementById("board");
+      const tokenLayer = document.getElementById("tokenLayer");
+      const pathLayer = document.getElementById("pathLayer");
+      const playersPanel = document.getElementById("playersPanel");
+      const historyEl = document.getElementById("history");
+      const dieFace = document.getElementById("dieFace");
+      const statusBox = document.getElementById("statusBox");
+
+      const humanCountEl = document.getElementById("humanCount");
+      const botModeEl = document.getElementById("botMode");
+      const startBtn = document.getElementById("startBtn");
+      const resetBtn = document.getElementById("resetBtn");
+      const newGameTopBtn = document.getElementById("newGameTopBtn");
+      const rollBtn = document.getElementById("rollBtn");
+      const autoBtn = document.getElementById("autoBtn");
+
+      const choiceOverlay = document.getElementById("choiceOverlay");
+      const choiceTitle = document.getElementById("choiceTitle");
+      const choiceText = document.getElementById("choiceText");
+      const useExtraBtn = document.getElementById("useExtraBtn");
+      const skipExtraBtn = document.getElementById("skipExtraBtn");
+
+      const messageOverlay = document.getElementById("messageOverlay");
+      const messageTitle = document.getElementById("messageTitle");
+      const messageText = document.getElementById("messageText");
+      const closeMessageBtn = document.getElementById("closeMessageBtn");
+
+      const rulesBtn = document.getElementById("rulesBtn");
+      const rulesOverlay = document.getElementById("rulesOverlay");
+      const closeRulesBtn = document.getElementById("closeRulesBtn");
+
+      let cells = {};
+      let players = [];
+      let currentPlayerIndex = 0;
+      let gameStarted = false;
+      let gameOver = false;
+      let waitingForChoice = false;
+      let pendingChoiceResolver = null;
+
+      buildBoard();
+      drawPaths();
+      renderTokens();
+
+      startBtn.addEventListener("click", startGame);
+      resetBtn.addEventListener("click", resetPositionsOnly);
+      newGameTopBtn.addEventListener("click", startGame);
+      rollBtn.addEventListener("click", handleRollClick);
+      autoBtn.addEventListener("click", autoPlayCurrentTurn);
+      rulesBtn.addEventListener("click", () =>
+        rulesOverlay.classList.add("show"),
+      );
+      closeRulesBtn.addEventListener("click", () =>
+        rulesOverlay.classList.remove("show"),
+      );
+      closeMessageBtn.addEventListener("click", () =>
+        messageOverlay.classList.remove("show"),
+      );
+
+      useExtraBtn.addEventListener("click", () => resolveChoice(true));
+      skipExtraBtn.addEventListener("click", () => resolveChoice(false));
+
+      function buildBoard() {
+        boardEl.innerHTML = "";
+        cells = {};
+
+        for (let row = 9; row >= 0; row--) {
+          const from = row * 10 + 1;
+          const to = row * 10 + 10;
+          const nums = [];
+
+          if ((9 - row) % 2 === 0) {
+            for (let n = from; n <= to; n++) nums.push(n);
+          } else {
+            for (let n = to; n >= from; n--) nums.push(n);
+          }
+
+          for (const n of nums) {
+            const cell = document.createElement("div");
+            cell.className = "cell";
+            cell.dataset.num = n;
+
+            const num = document.createElement("div");
+            num.className = "cell-number";
+            num.textContent = n;
+            cell.appendChild(num);
+
+            if (snakes[n]) {
+              const mark = document.createElement("div");
+              mark.className = "cell-mark snake";
+              mark.textContent = "S";
+              cell.appendChild(mark);
+            }
+
+            if (ladders[n]) {
+              const mark = document.createElement("div");
+              mark.className = "cell-mark ladder";
+              mark.textContent = "L";
+              cell.appendChild(mark);
+            }
+
+            boardEl.appendChild(cell);
+            cells[n] = cell;
+          }
+        }
+      }
+
+      function getCellCenter(square) {
+        const cell = cells[square];
+        if (!cell) return { x: 0, y: 0 };
+        const boardRect = boardEl.getBoundingClientRect();
+        const rect = cell.getBoundingClientRect();
+        return {
+          x:
+            ((rect.left - boardRect.left + rect.width / 2) / boardRect.width) *
+            1000,
+          y:
+            ((rect.top - boardRect.top + rect.height / 2) / boardRect.height) *
+            1000,
+        };
+      }
+
+      function drawPaths() {
+        pathLayer.innerHTML = "";
+        setTimeout(() => {
+          Object.entries(snakes).forEach(([start, end]) => {
+            const a = getCellCenter(+start);
+            const b = getCellCenter(+end);
+            const path = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "path",
+            );
+            const cx1 = a.x + 50;
+            const cy1 = a.y + 80;
+            const cx2 = b.x - 70;
+            const cy2 = b.y - 60;
+            path.setAttribute(
+              "d",
+              `M ${a.x} ${a.y} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${b.x} ${b.y}`,
+            );
+            path.setAttribute("fill", "none");
+            path.setAttribute("stroke", "#ef4444");
+            path.setAttribute("stroke-width", "12");
+            path.setAttribute("stroke-linecap", "round");
+            path.setAttribute("opacity", "0.8");
+            pathLayer.appendChild(path);
+          });
+
+          Object.entries(ladders).forEach(([start, end]) => {
+            const a = getCellCenter(+start);
+            const b = getCellCenter(+end);
+            const dx = b.x - a.x;
+            const dy = b.y - a.y;
+            const len = Math.hypot(dx, dy) || 1;
+            const offX = (dy / len) * 12;
+            const offY = (-dx / len) * 12;
+
+            const rail1 = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "line",
+            );
+            rail1.setAttribute("x1", a.x - offX);
+            rail1.setAttribute("y1", a.y - offY);
+            rail1.setAttribute("x2", b.x - offX);
+            rail1.setAttribute("y2", b.y - offY);
+            rail1.setAttribute("stroke", "#22c55e");
+            rail1.setAttribute("stroke-width", "7");
+            rail1.setAttribute("stroke-linecap", "round");
+            rail1.setAttribute("opacity", "0.82");
+
+            const rail2 = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "line",
+            );
+            rail2.setAttribute("x1", a.x + offX);
+            rail2.setAttribute("y1", a.y + offY);
+            rail2.setAttribute("x2", b.x + offX);
+            rail2.setAttribute("y2", b.y + offY);
+            rail2.setAttribute("stroke", "#22c55e");
+            rail2.setAttribute("stroke-width", "7");
+            rail2.setAttribute("stroke-linecap", "round");
+            rail2.setAttribute("opacity", "0.82");
+
+            pathLayer.appendChild(rail1);
+            pathLayer.appendChild(rail2);
+
+            const rungCount = Math.max(4, Math.floor(len / 75));
+            for (let i = 1; i < rungCount; i++) {
+              const t = i / rungCount;
+              const x = a.x + dx * t;
+              const y = a.y + dy * t;
+              const rung = document.createElementNS(
+                "http://www.w3.org/2000/svg",
+                "line",
+              );
+              rung.setAttribute("x1", x - offX);
+              rung.setAttribute("y1", y - offY);
+              rung.setAttribute("x2", x + offX);
+              rung.setAttribute("y2", y + offY);
+              rung.setAttribute("stroke", "#86efac");
+              rung.setAttribute("stroke-width", "5");
+              rung.setAttribute("stroke-linecap", "round");
+              rung.setAttribute("opacity", "0.9");
+              pathLayer.appendChild(rung);
+            }
+          });
+        }, 50);
+      }
+
+      window.addEventListener("resize", () => {
+        drawPaths();
+        renderTokens();
+      });
+
+      function startGame() {
+        const humanCount = +humanCountEl.value;
+        players = [];
+
+        for (let i = 0; i < 4; i++) {
+          players.push({
+            id: i + 1,
+            name:
+              i < humanCount
+                ? playerNames[i]
+                : `Computer ${i - humanCount + 1}`,
+            isHuman: i < humanCount,
+            position: 1,
+            extraMovesLeft: 10,
+            finished: false,
+            colorClass: playerColors[i],
+          });
+        }
+
+        currentPlayerIndex = 0;
+        gameStarted = true;
+        gameOver = false;
+        waitingForChoice = false;
+        pendingChoiceResolver = null;
+
+        historyEl.innerHTML = "";
+        addLog("A new game has started.");
+        updateStatus(`${players[0].name}'s turn. Roll the die.`);
+        renderPlayers();
+        renderTokens();
+        enableControlsForCurrentPlayer();
+        dieFace.textContent = "🎲";
+      }
+
+      function resetPositionsOnly() {
+        if (!players.length) {
+          showMessage("Nothing to reset", "Start a game first.");
+          return;
+        }
+
+        players.forEach((p) => {
+          p.position = 1;
+          p.extraMovesLeft = 10;
+          p.finished = false;
+        });
+
+        currentPlayerIndex = 0;
+        gameOver = false;
+        waitingForChoice = false;
+        pendingChoiceResolver = null;
+        historyEl.innerHTML = "";
+        addLog("Positions reset. Same player setup kept.");
+        renderPlayers();
+        renderTokens();
+        updateStatus(`${players[0].name}'s turn. Roll the die.`);
+        enableControlsForCurrentPlayer();
+        dieFace.textContent = "🎲";
+      }
+
+      function renderPlayers() {
+        playersPanel.innerHTML = "";
+        players.forEach((player, index) => {
+          const card = document.createElement("div");
+          card.className =
+            "player-card" +
+            (index === currentPlayerIndex && gameStarted && !gameOver
+              ? " active"
+              : "");
+
+          card.innerHTML = `
+          <div class="player-top">
+            <strong>${escapeHtml(player.name)}</strong>
+            <span class="badge">
+              <span class="dot" style="background:var(--${player.colorClass})"></span>
+              ${player.isHuman ? "Human" : "Computer"}
+            </span>
+          </div>
+          <div class="meta">
+            <div><span class="pill">Square</span><br><strong>${player.position}</strong></div>
+            <div><span class="pill">Extra left</span><br><strong>${player.extraMovesLeft}</strong></div>
+          </div>
+        `;
+
+          playersPanel.appendChild(card);
+        });
+      }
+
+      function renderTokens() {
+        tokenLayer.innerHTML = "";
+
+        players.forEach((player, idx) => {
+          const token = document.createElement("div");
+          token.className = `token ${player.colorClass}`;
+
+          const pos = getTokenPosition(player.position, idx);
+          token.style.left = pos.left + "px";
+          token.style.top = pos.top + "px";
+
+          tokenLayer.appendChild(token);
+        });
+      }
+
+      function getTokenPosition(square, playerIndex) {
+        const cell = cells[square];
+        if (!cell) return { left: 0, top: 0 };
+        const boardRect = boardEl.getBoundingClientRect();
+        const rect = cell.getBoundingClientRect();
+
+        const slotOffsets = [
+          { x: 0.28, y: 0.3 },
+          { x: 0.7, y: 0.3 },
+          { x: 0.28, y: 0.72 },
+          { x: 0.7, y: 0.72 },
+        ];
+
+        const offset = slotOffsets[playerIndex % 4];
+        const size = 20;
+
+        return {
+          left: rect.left - boardRect.left + rect.width * offset.x - size / 2,
+          top: rect.top - boardRect.top + rect.height * offset.y - size / 2,
+        };
+      }
+
+      function addLog(text) {
+        const item = document.createElement("div");
+        item.className = "log-item";
+        item.textContent = text;
+        historyEl.prepend(item);
+      }
+
+      function updateStatus(text) {
+        statusBox.textContent = text;
+      }
+
+      function escapeHtml(str) {
+        return String(str)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;");
+      }
+
+      function enableControlsForCurrentPlayer() {
+        if (!gameStarted || gameOver || waitingForChoice) {
+          rollBtn.disabled = true;
+          autoBtn.disabled = true;
+          return;
+        }
+
+        const current = players[currentPlayerIndex];
+        if (!current) {
+          rollBtn.disabled = true;
+          autoBtn.disabled = true;
+          return;
+        }
+
+        rollBtn.disabled = !current.isHuman;
+        autoBtn.disabled = current.isHuman ? false : true;
+      }
+
+      function randomDie() {
+        return Math.floor(Math.random() * 6) + 1;
+      }
+
+      async function animateDie() {
+        rollBtn.disabled = true;
+        autoBtn.disabled = true;
+
+        for (let i = 0; i < 10; i++) {
+          dieFace.textContent = randomDie();
+          await wait(70);
+        }
+      }
+
+      function wait(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+      }
+
+      async function handleRollClick() {
+        const current = players[currentPlayerIndex];
+        if (!current || !current.isHuman || gameOver || waitingForChoice)
+          return;
+        await playTurn(current, false);
+      }
+
+      async function autoPlayCurrentTurn() {
+        const current = players[currentPlayerIndex];
+        if (!current || gameOver || waitingForChoice) return;
+        await playTurn(current, true);
+      }
+
+      async function playTurn(player, forcedAuto) {
+        if (gameOver) return;
+
+        const playerAtTurnStart = players[currentPlayerIndex];
+        if (player !== playerAtTurnStart) return;
+
+        rollBtn.disabled = true;
+        autoBtn.disabled = true;
+
+        updateStatus(`${player.name} is rolling...`);
+        await animateDie();
+        const roll = randomDie();
+        dieFace.textContent = roll;
+
+        addLog(`${player.name} rolled ${roll}.`);
+
+        let target = player.position + roll;
+
+        if (target > 100) {
+          updateStatus(
+            `${player.name} needed an exact roll. Stayed on ${player.position}.`,
+          );
+          addLog(
+            `${player.name} overshot 100 and stays on ${player.position}.`,
+          );
+          await wait(500);
+          endTurn();
+          return;
+        }
+
+        player.position = target;
+        renderPlayers();
+        renderTokens();
+        updateStatus(`${player.name} moved to ${player.position}.`);
+        await wait(500);
+
+        if (snakes[player.position]) {
+          await resolveSnake(player, forcedAuto);
+        } else if (ladders[player.position]) {
+          await resolveLadder(player, forcedAuto);
+        }
+
+        renderPlayers();
+        renderTokens();
+
+        if (player.position === 100) {
+          if (player.extraMovesLeft === 0) {
+            player.finished = true;
+            gameOver = true;
+            renderPlayers();
+            updateStatus(`${player.name} wins the game!`);
+            addLog(
+              `${player.name} wins by reaching 100 with all extra moves used.`,
+            );
+            showMessage("We have a winner", `${player.name} has won the game.`);
+            enableControlsForCurrentPlayer();
+            return;
+          } else {
+            updateStatus(
+              `${player.name} reached 100 but still has ${player.extraMovesLeft} extra move(s) left.`,
+            );
+            addLog(
+              `${player.name} reached 100 but cannot win yet because ${player.extraMovesLeft} extra move(s) remain.`,
+            );
+            await wait(700);
+          }
+        }
+
+        endTurn();
+      }
+
+      async function resolveSnake(player, forcedAuto) {
+        const from = player.position;
+        const to = snakes[from];
+
+        if (player.extraMovesLeft <= 0) {
+          player.position = to;
+          renderTokens();
+          updateStatus(
+            `${player.name} had no extra moves left and slid down the snake to ${to}.`,
+          );
+          addLog(
+            `${player.name} landed on a snake at ${from} and slid to ${to}.`,
+          );
+          await wait(600);
+          return;
+        }
+
+        let useExtra;
+        if (player.isHuman && !forcedAuto) {
+          useExtra = await askChoice(
+            "Snake Encounter",
+            `${player.name} landed on a snake at ${from}. Use 1 extra move to escape and stay on ${from}? Otherwise slide to ${to}.`,
+          );
+        } else {
+          useExtra = decideBotSnake(player, from, to);
+          await wait(400);
+        }
+
+        if (useExtra) {
+          player.extraMovesLeft--;
+          updateStatus(
+            `${player.name} used 1 extra move and escaped the snake on ${from}.`,
+          );
+          addLog(
+            `${player.name} used an extra move to escape the snake at ${from}. ${player.extraMovesLeft} extra move(s) left.`,
+          );
+        } else {
+          player.position = to;
+          renderTokens();
+          updateStatus(`${player.name} slid down the snake to ${to}.`);
+          addLog(
+            `${player.name} did not use an extra move and slid from ${from} to ${to}.`,
+          );
+        }
+
+        await wait(600);
+      }
+
+      async function resolveLadder(player, forcedAuto) {
+        const from = player.position;
+        const to = ladders[from];
+
+        if (player.extraMovesLeft <= 0) {
+          updateStatus(
+            `${player.name} landed on ladder ${from}, but had no extra moves left, so stayed there.`,
+          );
+          addLog(
+            `${player.name} landed on ladder ${from} but could not climb because no extra moves remained.`,
+          );
+          await wait(500);
+          return;
+        }
+
+        let useExtra;
+        if (player.isHuman && !forcedAuto) {
+          useExtra = await askChoice(
+            "Ladder Opportunity",
+            `${player.name} landed on a ladder at ${from}. Use 1 extra move to climb to ${to}? Otherwise stay on ${from}.`,
+          );
+        } else {
+          useExtra = decideBotLadder(player, from, to);
+          await wait(400);
+        }
+
+        if (useExtra) {
+          player.extraMovesLeft--;
+          player.position = to;
+          renderTokens();
+          updateStatus(
+            `${player.name} used 1 extra move and climbed the ladder to ${to}.`,
+          );
+          addLog(
+            `${player.name} used an extra move to climb from ${from} to ${to}. ${player.extraMovesLeft} extra move(s) left.`,
+          );
+        } else {
+          updateStatus(
+            `${player.name} chose not to use an extra move and stayed on ${from}.`,
+          );
+          addLog(`${player.name} did not use an extra move on ladder ${from}.`);
+        }
+
+        await wait(600);
+      }
+
+      function decideBotSnake(player, from, to) {
+        const mode = botModeEl.value;
+        const loss = from - to;
+
+        if (mode === "greedy") return true;
+
+        if (mode === "careful") {
+          if (player.extraMovesLeft <= 2) return loss >= 30;
+          return loss >= 18;
+        }
+
+        // smart
+        if (player.position >= 85) return true;
+        if (loss >= 20) return true;
+        if (player.extraMovesLeft > 6) return true;
+        if (player.position === 100 && player.extraMovesLeft > 0) return true;
+        return false;
+      }
+
+      function decideBotLadder(player, from, to) {
+        const mode = botModeEl.value;
+        const gain = to - from;
+
+        if (mode === "greedy") return true;
+
+        if (mode === "careful") {
+          if (player.position < 70) return gain >= 15;
+          if (player.extraMovesLeft <= 2) return gain >= 20;
+          return gain >= 10;
+        }
+
+        // smart
+        if (player.extraMovesLeft > 0 && player.position >= 90) {
+          return true;
+        }
+        if (gain >= 12) return true;
+        if (player.extraMovesLeft > 5) return true;
+        return false;
+      }
+
+      function askChoice(title, text) {
+        waitingForChoice = true;
+        choiceTitle.textContent = title;
+        choiceText.textContent = text;
+        choiceOverlay.classList.add("show");
+        enableControlsForCurrentPlayer();
+
+        return new Promise((resolve) => {
+          pendingChoiceResolver = resolve;
+        });
+      }
+
+      function resolveChoice(value) {
+        if (!waitingForChoice || !pendingChoiceResolver) return;
+        choiceOverlay.classList.remove("show");
+        waitingForChoice = false;
+        const resolver = pendingChoiceResolver;
+        pendingChoiceResolver = null;
+        resolver(value);
+        enableControlsForCurrentPlayer();
+      }
+
+      function endTurn() {
+        if (gameOver) {
+          enableControlsForCurrentPlayer();
+          return;
+        }
+
+        currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+        renderPlayers();
+
+        const next = players[currentPlayerIndex];
+        updateStatus(`${next.name}'s turn.`);
+        addLog(`Now it is ${next.name}'s turn.`);
+        enableControlsForCurrentPlayer();
+
+        if (!next.isHuman) {
+          setTimeout(() => {
+            autoPlayCurrentTurn();
+          }, 700);
+        }
+      }
+
+      function showMessage(title, text) {
+        messageTitle.textContent = title;
+        messageText.textContent = text;
+        messageOverlay.classList.add("show");
+      }
+
+      // Auto-start a 1-human game for convenience.
+      startGame();
+    </script>
+  </body>
+</html>
