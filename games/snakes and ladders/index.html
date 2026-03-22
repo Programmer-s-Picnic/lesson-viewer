@@ -91,7 +91,7 @@
 
       .app {
         display: grid;
-        grid-template-columns: minmax(0, 1.12fr) minmax(340px, 0.88fr);
+        grid-template-columns: minmax(0, 1.08fr) minmax(360px, 0.92fr);
         gap: 18px;
         align-items: start;
       }
@@ -108,8 +108,11 @@
       }
 
       .board-card {
-        padding: 14px;
-        overflow: hidden;
+        padding: 12px;
+        overflow: visible;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
       }
 
       .side {
@@ -230,20 +233,22 @@
       .board-wrap {
         position: relative;
         width: min(92vw, 860px);
+        height: min(92vw, 860px);
         aspect-ratio: 1 / 1;
         margin: 0 auto;
         border-radius: 20px;
         overflow: hidden;
         border: 1px solid rgba(148, 163, 184, 0.18);
         background: #0b1220;
+        flex: 0 0 auto;
       }
 
       .board {
         position: absolute;
         inset: 0;
         display: grid;
-        grid-template-columns: repeat(10, 1fr);
-        grid-template-rows: repeat(10, 1fr);
+        grid-template-columns: repeat(10, minmax(0, 1fr));
+        grid-template-rows: repeat(10, minmax(0, 1fr));
       }
 
       .cell {
@@ -251,6 +256,8 @@
         border: 1px solid rgba(148, 163, 184, 0.12);
         padding: 4px;
         overflow: hidden;
+        min-width: 0;
+        min-height: 0;
       }
 
       .cell:nth-child(odd) {
@@ -535,51 +542,63 @@
         max-width: none;
         width: 100%;
         min-height: 100vh;
-        padding: 14px;
+        padding: 10px 12px;
       }
 
       body.is-fullscreen .app,
       #gameShell:fullscreen .app {
-        grid-template-columns: minmax(0, 1.25fr) minmax(380px, 0.75fr);
-        gap: 16px;
-        min-height: calc(100vh - 102px);
+        grid-template-columns: minmax(0, 1fr) minmax(340px, 420px);
+        gap: 14px;
+        align-items: start;
+        min-height: calc(100vh - 82px);
       }
 
       body.is-fullscreen .board-card,
       #gameShell:fullscreen .board-card {
         display: flex;
-        flex-direction: column;
+        align-items: center;
         justify-content: center;
+        overflow: visible;
+        min-height: calc(100vh - 110px);
+        padding: 8px;
       }
 
       body.is-fullscreen .board-wrap,
       #gameShell:fullscreen .board-wrap {
-        width: min(calc(100vh - 170px), 100%, 980px);
+        width: min(calc(100vh - 130px), calc(100vw - 470px), 980px);
+        height: min(calc(100vh - 130px), calc(100vw - 470px), 980px);
         max-width: 100%;
+        max-height: 100%;
+        margin: 0 auto;
       }
 
       body.is-fullscreen .side,
       #gameShell:fullscreen .side {
-        max-height: calc(100vh - 110px);
+        max-height: calc(100vh - 96px);
         overflow: auto;
         padding-right: 4px;
       }
 
       body.is-fullscreen .history,
       #gameShell:fullscreen .history {
-        max-height: 280px;
+        max-height: 220px;
       }
 
       body.is-fullscreen .die,
       #gameShell:fullscreen .die {
-        width: 112px;
-        height: 112px;
-        font-size: 2.6rem;
+        width: 96px;
+        height: 96px;
+        font-size: 2.3rem;
       }
 
       @media (max-width: 1180px) {
         .app {
           grid-template-columns: 1fr;
+        }
+
+        .board-wrap {
+          width: min(96vw, 760px);
+          height: min(96vw, 760px);
         }
 
         body.is-fullscreen .app,
@@ -588,14 +607,21 @@
           min-height: auto;
         }
 
+        body.is-fullscreen .board-card,
+        #gameShell:fullscreen .board-card {
+          min-height: auto;
+        }
+
+        body.is-fullscreen .board-wrap,
+        #gameShell:fullscreen .board-wrap {
+          width: min(calc(100vw - 32px), calc(100vh - 120px), 900px);
+          height: min(calc(100vw - 32px), calc(100vh - 120px), 900px);
+        }
+
         body.is-fullscreen .side,
         #gameShell:fullscreen .side {
           max-height: none;
           overflow: visible;
-        }
-
-        .board-wrap {
-          width: min(96vw, 760px);
         }
       }
 
@@ -622,6 +648,11 @@
 
         .btn-row button {
           flex: 1 1 auto;
+        }
+
+        .board-wrap {
+          width: min(calc(100vw - 26px), 680px);
+          height: min(calc(100vw - 26px), 680px);
         }
 
         .footer-note {
@@ -732,9 +763,7 @@
               </div>
 
               <div class="btn-row" style="margin-top: 12px">
-                <button class="btn-primary" id="startBtn">
-                  Start New Game
-                </button>
+                <button class="btn-primary" id="startBtn">Start New Game</button>
                 <button class="btn-secondary" id="resetBtn">
                   Reset Positions
                 </button>
@@ -883,12 +912,7 @@
       };
 
       const playerColors = ["p1", "p2", "p3", "p4"];
-      const defaultHumanNames = [
-        "Player 1",
-        "Player 2",
-        "Player 3",
-        "Player 4",
-      ];
+      const defaultHumanNames = ["Player 1", "Player 2", "Player 3", "Player 4"];
 
       const boardEl = document.getElementById("board");
       const tokenLayer = document.getElementById("tokenLayer");
@@ -958,15 +982,9 @@
       shareBtn.addEventListener("click", shareCurrentGame);
       fullscreenBtn.addEventListener("click", toggleFullscreen);
 
-      rulesBtn.addEventListener("click", () =>
-        rulesOverlay.classList.add("show"),
-      );
-      closeRulesBtn.addEventListener("click", () =>
-        rulesOverlay.classList.remove("show"),
-      );
-      closeMessageBtn.addEventListener("click", () =>
-        messageOverlay.classList.remove("show"),
-      );
+      rulesBtn.addEventListener("click", () => rulesOverlay.classList.add("show"));
+      closeRulesBtn.addEventListener("click", () => rulesOverlay.classList.remove("show"));
+      closeMessageBtn.addEventListener("click", () => messageOverlay.classList.remove("show"));
 
       useExtraBtn.addEventListener("click", () => resolveChoice(true));
       skipExtraBtn.addEventListener("click", () => resolveChoice(false));
@@ -1036,9 +1054,7 @@
       }
 
       function cleanName(name) {
-        const value = String(name || "")
-          .trim()
-          .replace(/\s+/g, " ");
+        const value = String(name || "").trim().replace(/\s+/g, " ");
         return value.slice(0, 24);
       }
 
@@ -1049,12 +1065,8 @@
         const rect = cell.getBoundingClientRect();
 
         return {
-          x:
-            ((rect.left - boardRect.left + rect.width / 2) / boardRect.width) *
-            1000,
-          y:
-            ((rect.top - boardRect.top + rect.height / 2) / boardRect.height) *
-            1000,
+          x: ((rect.left - boardRect.left + rect.width / 2) / boardRect.width) * 1000,
+          y: ((rect.top - boardRect.top + rect.height / 2) / boardRect.height) * 1000,
         };
       }
 
@@ -1064,17 +1076,14 @@
           Object.entries(snakes).forEach(([start, end]) => {
             const a = getCellCenter(+start);
             const b = getCellCenter(+end);
-            const path = document.createElementNS(
-              "http://www.w3.org/2000/svg",
-              "path",
-            );
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
             const cx1 = a.x + 50;
             const cy1 = a.y + 80;
             const cx2 = b.x - 70;
             const cy2 = b.y - 60;
             path.setAttribute(
               "d",
-              `M ${a.x} ${a.y} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${b.x} ${b.y}`,
+              `M ${a.x} ${a.y} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${b.x} ${b.y}`
             );
             path.setAttribute("fill", "none");
             path.setAttribute("stroke", "#ef4444");
@@ -1093,10 +1102,7 @@
             const offX = (dy / len) * 12;
             const offY = (-dx / len) * 12;
 
-            const rail1 = document.createElementNS(
-              "http://www.w3.org/2000/svg",
-              "line",
-            );
+            const rail1 = document.createElementNS("http://www.w3.org/2000/svg", "line");
             rail1.setAttribute("x1", a.x - offX);
             rail1.setAttribute("y1", a.y - offY);
             rail1.setAttribute("x2", b.x - offX);
@@ -1106,10 +1112,7 @@
             rail1.setAttribute("stroke-linecap", "round");
             rail1.setAttribute("opacity", "0.82");
 
-            const rail2 = document.createElementNS(
-              "http://www.w3.org/2000/svg",
-              "line",
-            );
+            const rail2 = document.createElementNS("http://www.w3.org/2000/svg", "line");
             rail2.setAttribute("x1", a.x + offX);
             rail2.setAttribute("y1", a.y + offY);
             rail2.setAttribute("x2", b.x + offX);
@@ -1127,10 +1130,7 @@
               const t = i / rungCount;
               const x = a.x + dx * t;
               const y = a.y + dy * t;
-              const rung = document.createElementNS(
-                "http://www.w3.org/2000/svg",
-                "line",
-              );
+              const rung = document.createElementNS("http://www.w3.org/2000/svg", "line");
               rung.setAttribute("x1", x - offX);
               rung.setAttribute("y1", y - offY);
               rung.setAttribute("x2", x + offX);
@@ -1194,9 +1194,7 @@
 
         historyEl.innerHTML = "";
         addLog("A new game has started.");
-        updateStatus(
-          `${players[0].name}'s turn. Roll the die or use an extra move.`,
-        );
+        updateStatus(`${players[0].name}'s turn. Roll the die or use an extra move.`);
         renderPlayers();
         renderTokens();
         enableControlsForCurrentPlayer();
@@ -1226,9 +1224,7 @@
         addLog("Positions reset. Same player setup kept.");
         renderPlayers();
         renderTokens();
-        updateStatus(
-          `${players[0].name}'s turn. Roll the die or use an extra move.`,
-        );
+        updateStatus(`${players[0].name}'s turn. Roll the die or use an extra move.`);
         enableControlsForCurrentPlayer();
         dieFace.textContent = "🎲";
         syncHashSilently();
@@ -1240,9 +1236,7 @@
           const card = document.createElement("div");
           card.className =
             "player-card" +
-            (index === currentPlayerIndex && gameStarted && !gameOver
-              ? " active"
-              : "");
+            (index === currentPlayerIndex && gameStarted && !gameOver ? " active" : "");
 
           card.innerHTML = `
             <div class="player-top">
@@ -1295,10 +1289,8 @@
         const offset = slotOffsets[playerIndex % 4];
 
         return {
-          left:
-            rect.left - boardRect.left + rect.width * offset.x - tokenSize / 2,
-          top:
-            rect.top - boardRect.top + rect.height * offset.y - tokenSize / 2,
+          left: rect.left - boardRect.left + rect.width * offset.x - tokenSize / 2,
+          top: rect.top - boardRect.top + rect.height * offset.y - tokenSize / 2,
         };
       }
 
@@ -1340,9 +1332,7 @@
         rollBtn.disabled = !current.isHuman;
         autoBtn.disabled = current.isHuman ? false : true;
         useMoveBtn.disabled =
-          !current.isHuman ||
-          current.extraMovesLeft <= 0 ||
-          current.position >= 100;
+          !current.isHuman || current.extraMovesLeft <= 0 || current.position >= 100;
       }
 
       function randomDie() {
@@ -1363,14 +1353,7 @@
 
       async function handleRollClick() {
         const current = players[currentPlayerIndex];
-        if (
-          !current ||
-          !current.isHuman ||
-          gameOver ||
-          waitingForChoice ||
-          turnInProgress
-        )
-          return;
+        if (!current || !current.isHuman || gameOver || waitingForChoice || turnInProgress) return;
         await playTurn(current, false);
       }
 
@@ -1382,14 +1365,7 @@
 
       async function useExtraMoveNow() {
         const player = players[currentPlayerIndex];
-        if (
-          !player ||
-          !player.isHuman ||
-          gameOver ||
-          waitingForChoice ||
-          turnInProgress
-        )
-          return;
+        if (!player || !player.isHuman || gameOver || waitingForChoice || turnInProgress) return;
         if (player.extraMovesLeft <= 0) return;
         if (player.position >= 100) return;
 
@@ -1411,12 +1387,8 @@
         dieFace.textContent = "+1";
         renderPlayers();
         renderTokens();
-        addLog(
-          `${player.name} used 1 extra move to go from ${from} to ${target}.`,
-        );
-        updateStatus(
-          `${player.name} used an extra move and moved to ${target}.`,
-        );
+        addLog(`${player.name} used 1 extra move to go from ${from} to ${target}.`);
+        updateStatus(`${player.name} used an extra move and moved to ${target}.`);
         await wait(450);
 
         if (snakes[player.position]) {
@@ -1461,12 +1433,8 @@
         let target = player.position + roll;
 
         if (target > 100) {
-          updateStatus(
-            `${player.name} needed an exact roll. Stayed on ${player.position}.`,
-          );
-          addLog(
-            `${player.name} overshot 100 and stays on ${player.position}.`,
-          );
+          updateStatus(`${player.name} needed an exact roll. Stayed on ${player.position}.`);
+          addLog(`${player.name} overshot 100 and stays on ${player.position}.`);
           await wait(500);
           turnInProgress = false;
           endTurn();
@@ -1509,19 +1477,17 @@
           gameOver = true;
           renderPlayers();
           updateStatus(`${player.name} wins the game!`);
-          addLog(
-            `${player.name} wins by reaching 100 with all extra moves used.`,
-          );
+          addLog(`${player.name} wins by reaching 100 with all extra moves used.`);
           showMessage("We have a winner", `${player.name} has won the game.`);
           syncHashSilently();
           return true;
         }
 
         updateStatus(
-          `${player.name} reached 100 but still has ${player.extraMovesLeft} extra move(s) left.`,
+          `${player.name} reached 100 but still has ${player.extraMovesLeft} extra move(s) left.`
         );
         addLog(
-          `${player.name} reached 100 but cannot win yet because ${player.extraMovesLeft} extra move(s) remain.`,
+          `${player.name} reached 100 but cannot win yet because ${player.extraMovesLeft} extra move(s) remain.`
         );
         await wait(700);
         return false;
@@ -1534,12 +1500,8 @@
         if (player.extraMovesLeft <= 0) {
           player.position = to;
           renderTokens();
-          updateStatus(
-            `${player.name} had no extra moves left and slid down the snake to ${to}.`,
-          );
-          addLog(
-            `${player.name} landed on a snake at ${from} and slid to ${to}.`,
-          );
+          updateStatus(`${player.name} had no extra moves left and slid down the snake to ${to}.`);
+          addLog(`${player.name} landed on a snake at ${from} and slid to ${to}.`);
           await wait(600);
           return;
         }
@@ -1548,7 +1510,7 @@
         if (player.isHuman && !forcedAuto) {
           useExtra = await askChoice(
             "Snake Encounter",
-            `${player.name} landed on a snake at ${from}. Use 1 extra move to escape and stay on ${from}? Otherwise slide to ${to}.`,
+            `${player.name} landed on a snake at ${from}. Use 1 extra move to escape and stay on ${from}? Otherwise slide to ${to}.`
           );
         } else {
           useExtra = decideBotSnake(player, from, to);
@@ -1557,19 +1519,15 @@
 
         if (useExtra) {
           player.extraMovesLeft--;
-          updateStatus(
-            `${player.name} used 1 extra move and escaped the snake on ${from}.`,
-          );
+          updateStatus(`${player.name} used 1 extra move and escaped the snake on ${from}.`);
           addLog(
-            `${player.name} used an extra move to escape the snake at ${from}. ${player.extraMovesLeft} extra move(s) left.`,
+            `${player.name} used an extra move to escape the snake at ${from}. ${player.extraMovesLeft} extra move(s) left.`
           );
         } else {
           player.position = to;
           renderTokens();
           updateStatus(`${player.name} slid down the snake to ${to}.`);
-          addLog(
-            `${player.name} did not use an extra move and slid from ${from} to ${to}.`,
-          );
+          addLog(`${player.name} did not use an extra move and slid from ${from} to ${to}.`);
         }
 
         await wait(600);
@@ -1581,10 +1539,10 @@
 
         if (player.extraMovesLeft <= 0) {
           updateStatus(
-            `${player.name} landed on ladder ${from}, but had no extra moves left, so stayed there.`,
+            `${player.name} landed on ladder ${from}, but had no extra moves left, so stayed there.`
           );
           addLog(
-            `${player.name} landed on ladder ${from} but could not climb because no extra moves remained.`,
+            `${player.name} landed on ladder ${from} but could not climb because no extra moves remained.`
           );
           await wait(500);
           return;
@@ -1594,7 +1552,7 @@
         if (player.isHuman && !forcedAuto) {
           useExtra = await askChoice(
             "Ladder Opportunity",
-            `${player.name} landed on a ladder at ${from}. Use 1 extra move to climb to ${to}? Otherwise stay on ${from}.`,
+            `${player.name} landed on a ladder at ${from}. Use 1 extra move to climb to ${to}? Otherwise stay on ${from}.`
           );
         } else {
           useExtra = decideBotLadder(player, from, to);
@@ -1605,16 +1563,12 @@
           player.extraMovesLeft--;
           player.position = to;
           renderTokens();
-          updateStatus(
-            `${player.name} used 1 extra move and climbed the ladder to ${to}.`,
-          );
+          updateStatus(`${player.name} used 1 extra move and climbed the ladder to ${to}.`);
           addLog(
-            `${player.name} used an extra move to climb from ${from} to ${to}. ${player.extraMovesLeft} extra move(s) left.`,
+            `${player.name} used an extra move to climb from ${from} to ${to}. ${player.extraMovesLeft} extra move(s) left.`
           );
         } else {
-          updateStatus(
-            `${player.name} chose not to use an extra move and stayed on ${from}.`,
-          );
+          updateStatus(`${player.name} chose not to use an extra move and stayed on ${from}.`);
           addLog(`${player.name} did not use an extra move on ladder ${from}.`);
         }
 
@@ -1657,8 +1611,7 @@
       }
 
       function shouldBotUseExtraNow(player) {
-        if (!player || player.extraMovesLeft <= 0 || player.position >= 100)
-          return false;
+        if (!player || player.extraMovesLeft <= 0 || player.position >= 100) return false;
 
         const target = player.position + 1;
         if (target > 100) return false;
@@ -1695,14 +1648,7 @@
 
       async function maybeBotExtraBeforeRoll() {
         const player = players[currentPlayerIndex];
-        if (
-          !player ||
-          player.isHuman ||
-          gameOver ||
-          waitingForChoice ||
-          turnInProgress
-        )
-          return false;
+        if (!player || player.isHuman || gameOver || waitingForChoice || turnInProgress) return false;
         if (!shouldBotUseExtraNow(player)) return false;
 
         turnInProgress = true;
@@ -1715,9 +1661,7 @@
         dieFace.textContent = "+1";
         renderPlayers();
         renderTokens();
-        addLog(
-          `${player.name} used 1 extra move before rolling and moved to ${to}.`,
-        );
+        addLog(`${player.name} used 1 extra move before rolling and moved to ${to}.`);
         updateStatus(`${player.name} used an extra move and moved to ${to}.`);
         await wait(450);
 
@@ -1800,21 +1744,16 @@
       }
 
       function applyState(state) {
-        if (!state || !Array.isArray(state.players) || !state.players.length)
-          return false;
+        if (!state || !Array.isArray(state.players) || !state.players.length) return false;
 
         clearPendingAsync();
 
-        humanCountEl.value = String(
-          Math.max(1, Math.min(4, Number(state.humanCount) || 1)),
-        );
+        humanCountEl.value = String(Math.max(1, Math.min(4, Number(state.humanCount) || 1)));
         botModeEl.value = ["smart", "greedy", "careful"].includes(state.botMode)
           ? state.botMode
           : "smart";
 
-        const configuredNames = Array.isArray(state.configuredNames)
-          ? state.configuredNames
-          : [];
+        const configuredNames = Array.isArray(state.configuredNames) ? state.configuredNames : [];
         nameInputs.forEach((input, i) => {
           input.value = cleanName(configuredNames[i] || "");
         });
@@ -1822,15 +1761,10 @@
 
         players = state.players.slice(0, 4).map((p, i) => ({
           id: i + 1,
-          name:
-            cleanName(p.name) ||
-            (p.isHuman ? defaultHumanNames[i] : `Computer ${i + 1}`),
+          name: cleanName(p.name) || (p.isHuman ? defaultHumanNames[i] : `Computer ${i + 1}`),
           isHuman: !!p.isHuman,
           position: Math.max(1, Math.min(100, Number(p.position) || 1)),
-          extraMovesLeft: Math.max(
-            0,
-            Math.min(10, Number(p.extraMovesLeft) || 0),
-          ),
+          extraMovesLeft: Math.max(0, Math.min(10, Number(p.extraMovesLeft) || 0)),
           finished: !!p.finished,
           colorClass: playerColors[i],
         }));
@@ -1854,29 +1788,23 @@
         turnInProgress = false;
         currentPlayerIndex = Math.max(
           0,
-          Math.min(players.length - 1, Number(state.currentPlayerIndex) || 0),
+          Math.min(players.length - 1, Number(state.currentPlayerIndex) || 0)
         );
         dieFace.textContent = state.dieFace || "🎲";
 
         historyEl.innerHTML = "";
         const logs = Array.isArray(state.logs) ? state.logs : [];
-        logs
-          .slice()
-          .reverse()
-          .forEach((line) => addLog(line));
+        logs.slice().reverse().forEach((line) => addLog(line));
 
         renderPlayers();
         renderTokens();
 
         if (gameOver) {
           const winner =
-            players.find((p) => p.position === 100 && p.extraMovesLeft === 0) ||
-            players[0];
+            players.find((p) => p.position === 100 && p.extraMovesLeft === 0) || players[0];
           updateStatus(`${winner.name} has already won this shared game.`);
         } else if (gameStarted) {
-          updateStatus(
-            `${players[currentPlayerIndex].name}'s turn. Roll the die or use an extra move.`,
-          );
+          updateStatus(`${players[currentPlayerIndex].name}'s turn. Roll the die or use an extra move.`);
         } else {
           updateStatus("Shared setup loaded. Start a new game to begin.");
         }
@@ -1906,11 +1834,7 @@
       }
 
       async function shareCurrentGame() {
-        const url =
-          location.origin +
-          location.pathname +
-          "#" +
-          encodeState(getSerializableState());
+        const url = location.origin + location.pathname + "#" + encodeState(getSerializableState());
         const text = "Snakes and Ladders — Extra Moves Edition";
 
         try {
@@ -1923,20 +1847,14 @@
             addLog("Game link shared.");
           } else if (navigator.clipboard) {
             await navigator.clipboard.writeText(url);
-            showMessage(
-              "Share link copied",
-              "The current game link has been copied to your clipboard.",
-            );
+            showMessage("Share link copied", "The current game link has been copied to your clipboard.");
           } else {
             prompt("Copy this game link:", url);
           }
         } catch (err) {
           if (navigator.clipboard) {
             await navigator.clipboard.writeText(url);
-            showMessage(
-              "Share link copied",
-              "The current game link has been copied to your clipboard.",
-            );
+            showMessage("Share link copied", "The current game link has been copied to your clipboard.");
           }
         }
       }
@@ -1958,13 +1876,9 @@
 
       function syncFullscreenLabel() {
         const full =
-          !!document.fullscreenElement ||
-          document.body.classList.contains("is-fullscreen");
+          !!document.fullscreenElement || document.body.classList.contains("is-fullscreen");
         fullscreenBtn.textContent = full ? "Exit Full Screen" : "Full Screen";
-        document.body.classList.toggle(
-          "is-fullscreen",
-          full && !document.fullscreenElement,
-        );
+        document.body.classList.toggle("is-fullscreen", full && !document.fullscreenElement);
         setTimeout(() => {
           drawPaths();
           renderTokens();
