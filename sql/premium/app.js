@@ -26,6 +26,7 @@
   var metaRows = document.getElementById("metaRows");
   var metaRowsInline = document.getElementById("metaRowsInline");
   var resultDiv = document.getElementById("result");
+  var resultBox = document.querySelector(".result");
   var errorDiv = document.getElementById("error");
 
   var historyList = document.getElementById("historyList");
@@ -142,7 +143,23 @@
     errorDiv.style.display = "none";
     metaRows.textContent = "";
     if (metaRowsInline) metaRowsInline.textContent = "";
+    if (resultBox) {
+      resultBox.classList.remove("flash-success", "flash-error", "result-animate");
+    }
   }
+
+
+  function flashResultState(kind) {
+    if (!resultBox) return;
+
+    resultBox.classList.remove("flash-success", "flash-error", "result-animate");
+
+    void resultBox.offsetWidth;
+
+    resultBox.classList.add("result-animate");
+    resultBox.classList.add(kind === "error" ? "flash-error" : "flash-success");
+  }
+
 
   function showInfo(msg) {
     metaMsg.innerHTML =
@@ -994,6 +1011,7 @@
 
         var ms1 = Math.round(performance.now() - start);
         showExecutionSummary(true, "Query executed successfully.", ms1);
+        flashResultState("success");
         saveHistory("success", sql, ms1);
         renderHistory();
         renderSchemaExplorer();
@@ -1012,11 +1030,13 @@
 
       var ms2 = Math.round(performance.now() - start);
       showExecutionSummary(true, "Statement executed.", ms2);
+      flashResultState("success");
       saveHistory("success", sql, ms2);
       renderHistory();
       renderSchemaExplorer();
     } catch (e) {
       showErr(e && e.message ? e.message : String(e));
+      flashResultState("error");
       saveHistory("fail", sql, 0, e && e.message ? e.message : String(e));
       renderHistory();
     }
