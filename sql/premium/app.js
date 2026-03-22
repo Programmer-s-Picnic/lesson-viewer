@@ -1633,3 +1633,20 @@
     }
   });
 })();
+
+
+
+document.addEventListener("click", function (e) {
+  var btn = e.target.closest(".toggle-section-btn");
+  if (!btn) return;
+
+  var targetId = btn.getAttribute("data-target");
+  var target = targetId ? document.getElementById(targetId) : null;
+  if (!target) return;
+
+  var willHide = !target.classList.contains("is-hidden");
+  target.classList.toggle("is-hidden", willHide);
+  btn.textContent = willHide ? "Show" : "Hide";
+  btn.setAttribute("aria-expanded", String(!willHide));
+});
+
