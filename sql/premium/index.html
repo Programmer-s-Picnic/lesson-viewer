@@ -1,145 +1,736 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Programmer's Picnic — SQL in Browser</title>
+  <head>
+    <meta charset="UTF-8" />
+    <title>SQL in Browser — SQLite Demo (VS Code Style)</title>
+    <script
+      async
+      src="https://pagead2.googlesyndication.com/pagead/js?client=ca-pub-8321261883090494"
+      crossorigin="anonymous"
+    ></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <link rel="stylesheet" href="styles.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='24' fill='%232d2d2d'/%3E%3Ctext x='64' y='82' font-size='64' text-anchor='middle'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E"
+    />
 
-  <script async
-    src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8321261883090494"
-    crossorigin="anonymous"></script>
-</head>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
 
-<body class="theme-dark">
+  <body class="theme-dark">
+    <div class="vs-titlebar">
+      <div class="title">Programmer’s Picnic — SQL in Browser (SQLite)</div>
+      <div class="right">
+        <button
+          id="shareBtn"
+          class="btn-ghost"
+          type="button"
+          title="Share this SQL playground"
+        >
+          🔗 Share
+        </button>
 
-  <!-- TOP BAR -->
-  <div class="vs-titlebar">
-    <div class="title">Programmer’s Picnic — SQL in Browser</div>
-    <div class="right">
-      <button id="shareBtn" class="btn-ghost">🔗 Share</button>
-      <button id="themeToggleBtn" class="btn-ghost">🌙 Dark</button>
+        <button
+          id="themeToggleBtn"
+          class="btn-ghost"
+          type="button"
+          title="Toggle theme"
+        >
+          🌙 Dark
+        </button>
 
-      <div class="pill">
-        <span class="dot" id="statusDot"></span>
-        <span id="statusText">Loading SQLite…</span>
+        <div class="pill" title="SQLite readiness">
+          <span class="dot" id="statusDot"></span>
+          <span id="statusText">Loading SQLite…</span>
+        </div>
+        <div class="pill" title="Result export works after a SELECT">
+          📦 Export: <span id="csvHint">Run a SELECT</span>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- MAIN SHELL -->
-  <div class="vs-shell">
-
-    <!-- SIDEBAR -->
-    <aside class="vs-sidebar">
-      <div class="vs-sidehead">
-        <div class="label">EXPLORER</div>
-        <span class="pill">🟠 Programmer’s Picnic</span>
+    <div class="vs-shell">
+      <div class="vs-activity">
+        <button
+          class="vs-actbtn active"
+          title="Explorer"
+          aria-label="Explorer"
+          type="button"
+        >
+          📁
+        </button>
+        <button
+          class="vs-actbtn"
+          id="activityRunBtn"
+          title="Run SQL"
+          aria-label="Run SQL"
+          type="button"
+        >
+          ▶
+        </button>
+        <button
+          class="vs-actbtn"
+          id="activityHistoryBtn"
+          title="Show Success History"
+          aria-label="Show query history"
+          type="button"
+        >
+          🕘
+        </button>
+        <button
+          class="vs-actbtn"
+          id="activityHelpBtn"
+          title="Toggle Help"
+          aria-label="Toggle help"
+          type="button"
+        >
+          ❓
+        </button>
       </div>
 
-      <div class="vs-sidebody">
-        <button id="runBtn" class="btn">Run SQL</button>
-        <button id="resetBtn" class="btn-outline">Reset DB</button>
-      </div>
-    </aside>
-
-    <!-- MAIN -->
-    <main class="vs-main">
-
-      <!-- INTRO + DATABASE SECTION -->
-      <section class="info-panels">
-
-        <!-- INTRO -->
-        <div class="info-card">
-          <div class="info-card-head">
-            <h2>SQL Introduction</h2>
-            <button class="btn-ghost toggle-section-btn"
-              data-target="introBody">Hide</button>
-          </div>
-
-          <div id="introBody" class="info-card-body">
-            <p>
-              SQL (Structured Query Language) is used to manage and manipulate
-              data inside databases. Almost every modern application depends
-              on SQL to store users, transactions, logs, and analytics.
-            </p>
-
-            <p>
-              Learning SQL is important because it allows you to retrieve,
-              filter, update, and analyze data efficiently. It is used in
-              web development, apps, finance, healthcare, and large-scale systems.
-            </p>
-          </div>
+      <aside class="vs-sidebar">
+        <div class="vs-sidehead">
+          <div class="label">EXPLORER</div>
+          <span class="pill">🟠 Programmer’s Picnic</span>
         </div>
 
-        <!-- DATABASES -->
-        <div class="info-card">
-          <div class="info-card-head">
-            <h2>Famous SQL Databases</h2>
-            <button class="btn-ghost toggle-section-btn"
-              data-target="dbBody">Hide</button>
+        <div class="vs-sidebody">
+          <div class="block">
+            <div class="blockhead">
+              <b>RUN</b>
+              <span class="hint">Ctrl/⌘ + Enter</span>
+            </div>
+            <div class="blockbody">
+              <div class="row">
+                <button id="runBtn" class="btn" disabled>Run SQL</button>
+                <button id="resetBtn" class="btn-outline" disabled>
+                  Reset DB
+                </button>
+                <button id="copySqlBtn" class="btn-ghost" disabled>
+                  Copy SQL
+                </button>
+                <button id="shareSqlBtn" class="btn-ghost" disabled>
+                  Share
+                </button>
+              </div>
+              <div class="row mt10">
+                <button id="downloadCsvBtn" class="btn-outline" disabled>
+                  Result CSV
+                </button>
+                <button id="downloadJsonBtn" class="btn-outline" disabled>
+                  Result JSON
+                </button>
+                <button id="copyCsvBtn" class="btn-ghost" disabled>
+                  Copy CSV
+                </button>
+              </div>
+            </div>
           </div>
 
-          <div id="dbBody" class="info-card-body">
-            <ul class="info-list">
-              <li><a href="https://www.mysql.com" target="_blank">MySQL</a></li>
-              <li><a href="https://www.postgresql.org" target="_blank">PostgreSQL</a></li>
-              <li><a href="https://www.sqlite.org" target="_blank">SQLite</a></li>
-              <li><a href="https://www.microsoft.com/en-us/sql-server" target="_blank">Microsoft SQL Server</a></li>
-              <li><a href="https://www.oracle.com/database" target="_blank">Oracle Database</a></li>
-              <li><a href="https://mariadb.org" target="_blank">MariaDB</a></li>
-            </ul>
-
-            <p style="margin-top:10px;">
-              These databases power real-world systems like banking apps,
-              e-commerce platforms, CRMs, ERPs, and analytics dashboards.
-            </p>
-          </div>
-        </div>
-
-      </section>
-
-      <!-- SQL EDITOR -->
-      <section class="split">
-
-        <div class="pane">
-          <div class="panehead">
-            <h2>EDITOR</h2>
+          <div class="block">
+            <div class="blockhead">
+              <b>LOAD DB FILE</b>
+              <span class="hint">.db / .sqlite</span>
+            </div>
+            <div class="blockbody">
+              <input
+                id="sqliteFile"
+                type="file"
+                accept=".db,.sqlite,.sqlite3,application/x-sqlite3"
+              />
+              <div class="row mt10">
+                <button id="loadDbBtn" class="btn-outline" disabled>
+                  Load DB file
+                </button>
+                <button id="useSampleBtn" class="btn-ghost" disabled>
+                  Use Sample DB
+                </button>
+              </div>
+              <div class="hint mt10">
+                Loads only on this device (in-browser).
+              </div>
+            </div>
           </div>
 
-          <div style="padding:12px;">
-            <textarea id="sqlInput">
-SELECT * FROM birthdays;
-            </textarea>
-
-            <div class="result">
-              <div class="meta">
-                <span id="metaRows"></span>
+          <div class="block">
+            <div class="blockhead">
+              <b>LOAD CSV / JSON</b>
+              <span class="hint">Create table</span>
+            </div>
+            <div class="blockbody">
+              <div class="mini-grid">
+                <input
+                  id="dataFile"
+                  type="file"
+                  accept=".csv,.json,text/csv,application/json"
+                />
+                <input
+                  id="importTableName"
+                  type="text"
+                  placeholder="Optional table name (else file name is used)"
+                  autocomplete="off"
+                />
               </div>
 
-              <div id="result"></div>
-            </div>
+              <div class="row mt10">
+                <button id="loadCsvBtn" class="btn-outline" disabled>
+                  Load CSV
+                </button>
+                <button id="loadJsonBtn" class="btn-outline" disabled>
+                  Load JSON
+                </button>
+                <button id="exportDbBtn" class="btn-ghost" disabled>
+                  Export DB
+                </button>
+              </div>
 
-            <div id="error" class="errorbox"></div>
+              <div class="hint mt10">
+                CSV: first row becomes column names. JSON: array of objects or
+                array of arrays.
+              </div>
+            </div>
+          </div>
+
+          <div class="block">
+            <div class="blockhead">
+              <b>SCHEMA</b>
+              <span class="hint">Tables / Views</span>
+            </div>
+            <div class="blockbody">
+              <div id="schemaList" class="helpresults"></div>
+            </div>
+          </div>
+
+          <div class="block">
+            <div class="blockhead">
+              <b>HELP</b>
+              <span class="hint">Search</span>
+            </div>
+            <div class="blockbody">
+              <button id="toggleHelpBtn" class="btn-ghost" type="button">
+                Help
+              </button>
+              <div class="mt10">
+                <input
+                  id="helpSearch"
+                  type="text"
+                  placeholder="Search SQL help… (e.g., having, except)"
+                  autocomplete="off"
+                />
+              </div>
+              <div
+                class="helpresults"
+                id="helpResults"
+                style="margin-top: 10px"
+              ></div>
+              <div class="helpbox" id="helpBox" style="display: none"></div>
+            </div>
+          </div>
+
+          <div class="block">
+            <div class="blockhead">
+              <b>HISTORY</b>
+              <span class="hint">Export / Import</span>
+            </div>
+            <div class="blockbody">
+              <div class="row">
+                <button id="exportHistoryBtn" class="btn-outline" disabled>
+                  Export
+                </button>
+                <button id="importHistoryBtn" class="btn-outline" disabled>
+                  Import
+                </button>
+                <button id="clearHistoryBtn" class="btn-ghost" disabled>
+                  Clear
+                </button>
+                <input
+                  id="importFile"
+                  type="file"
+                  accept="application/json,.json"
+                  style="display: none"
+                />
+              </div>
+              <div class="hint mt10">
+                Stored in localStorage on this device.
+              </div>
+            </div>
           </div>
         </div>
+      </aside>
 
-      </section>
+      <main class="vs-main">
+        <div class="vs-toolbar">
+          <span class="pill">SQL Editor</span>
+          <span class="hint"
+            >Tip: <code class="inline">PRAGMA table_info(table)</code>,
+            <code class="inline">EXCEPT</code> (Oracle MINUS), RIGHT/FULL JOIN
+            are emulated.</span
+          >
+          <div class="spacer"></div>
+          <span class="hint" id="metaMsg" aria-live="polite"
+            >Ready when SQLite loads.</span
+          >
+          <span class="hint" id="metaRows"></span>
+        </div>
 
-      <!-- STATUS -->
-      <div class="vs-statusbar">
-        <span id="ppStatusMirror">Ready</span>
-      </div>
+        <section class="info-panels">
+          <div class="info-card">
+            <div class="info-card-head">
+              <h2>SQL Introduction</h2>
+              <button
+                class="btn-ghost toggle-section-btn"
+                type="button"
+                data-target="sqlIntroBody"
+                aria-expanded="true"
+              >
+                Hide
+              </button>
+            </div>
+            <div class="info-card-body" id="sqlIntroBody">
+              <p>
+                SQL stands for Structured Query Language. It is the standard
+                language used to store, read, filter, update, and organize data
+                inside relational databases. Whenever software needs reliable
+                records such as users, orders, payments, attendance, reports, or
+                inventory, SQL is often working behind the scenes.
+              </p>
+              <p>
+                SQL is important because it helps software handle data clearly
+                and efficiently. It is used for simple tasks like finding a
+                customer by name and also for bigger jobs like analytics,
+                dashboards, reporting, and large business systems. Learning SQL
+                gives developers, analysts, testers, and students a practical
+                skill that is useful across web development, apps, finance,
+                education, healthcare, and more.
+              </p>
+            </div>
+          </div>
 
-    </main>
-  </div>
+          <div class="info-card">
+            <div class="info-card-head">
+              <h2>Famous SQL Databases and SQL-based Software</h2>
+              <button
+                class="btn-ghost toggle-section-btn"
+                type="button"
+                data-target="sqlDbBody"
+                aria-expanded="true"
+              >
+                Hide
+              </button>
+            </div>
+            <div class="info-card-body" id="sqlDbBody">
+              <p>
+                Popular SQL databases include <b>MySQL</b>, <b>PostgreSQL</b>,
+                <b>SQLite</b>, <b>Microsoft SQL Server</b>,
+                <b>Oracle Database</b>, and <b>MariaDB</b>. These systems power
+                websites, enterprise tools, mobile apps, reporting systems, and
+                educational projects.
+              </p>
+              <p>
+                Many famous software products depend on SQL at the end, even if
+                users never see it directly. Examples include e-commerce
+                systems, banking software, ERP tools, CRM platforms, hospital
+                systems, school management portals, content management systems,
+                analytics dashboards, and many backend services that support
+                websites and apps. In short, SQL often sits at the core of real
+                software because most serious applications depend on structured,
+                searchable, updateable data.
+              </p>
+              <ul class="info-list">
+                <li>MySQL</li>
+                <li>PostgreSQL</li>
+                <li>SQLite</li>
+                <li>Microsoft SQL Server</li>
+                <li>Oracle Database</li>
+                <li>MariaDB</li>
+              </ul>
+            </div>
+          </div>
+        </section>
 
-  <!-- SQL.js -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+        <section class="split">
+          <div class="pane">
+            <div class="panehead">
+              <h2>EDITOR</h2>
+              <div class="row"></div>
+            </div>
 
-  <!-- YOUR APP -->
-  <script src="app.js"></script>
+            <div class="editor-scroll">
+              <div class="samples" aria-label="Sample queries">
+                <button
+                  class="chip"
+                  data-sql="SELECT name, type FROM sqlite_master WHERE type IN ('table','view') ORDER BY type, name;"
+                >
+                  Show tables
+                </button>
+                <button class="chip" data-sql="PRAGMA table_info(birthdays);">
+                  Describe birthdays
+                </button>
+                <button class="chip" data-sql="PRAGMA foreign_keys;">
+                  FK status
+                </button>
+                <button class="chip" data-sql="SELECT * FROM employees;">
+                  Employees (FK)
+                </button>
+                <button class="chip" data-sql="SELECT * FROM birthdays;">
+                  Birthdays
+                </button>
+                <button
+                  class="chip"
+                  data-sql="INSERT INTO birthdays (name, birthday) VALUES ('New Friend', '2000-01-01'); SELECT * FROM birthdays;"
+                >
+                  Insert sample row
+                </button>
+                <button
+                  class="chip"
+                  data-sql="UPDATE birthdays SET name='Updated Friend' WHERE name='New Friend'; SELECT * FROM birthdays;"
+                >
+                  Update sample row
+                </button>
+                <button
+                  class="chip"
+                  data-sql="DELETE FROM birthdays WHERE name='Updated Friend'; SELECT * FROM birthdays;"
+                >
+                  Delete sample row
+                </button>
 
-</body>
+                <button
+                  class="chip h"
+                  data-sql="-- KEYS: Composite Primary Key
+SELECT * FROM Student ORDER BY Course, RollNo;"
+                >
+                  🔑 Student (Composite PK)
+                </button>
+                <button class="chip" data-sql="PRAGMA table_info(Student);">
+                  Describe Student
+                </button>
+                <button
+                  class="chip"
+                  data-sql="-- Try PK violation: (RollNo,Course) must be unique
+INSERT INTO Student VALUES (1,'Test',20,'MBBS');"
+                >
+                  Try PK violation
+                </button>
+
+                <button
+                  class="chip h"
+                  data-sql="-- Candidate keys: PK + UNIQUE + composite UNIQUE
+SELECT * FROM Ticket;"
+                >
+                  🎫 Ticket (PK + UNIQUE)
+                </button>
+                <button class="chip" data-sql="PRAGMA table_info(Ticket);">
+                  Describe Ticket
+                </button>
+                <button
+                  class="chip"
+                  data-sql="-- Violate UNIQUE PNRNo
+INSERT INTO Ticket VALUES('T2','P1','New Ashish','2023-01-01','123','S2',2);"
+                >
+                  Violate UNIQUE (PNR)
+                </button>
+                <button
+                  class="chip"
+                  data-sql="-- Violate composite UNIQUE(DateOfJourney,TrainNo,CoachNo,BerthNo)
+INSERT INTO Ticket VALUES('T3','P3','Someone','2023-01-01','123','S1',1);"
+                >
+                  Violate UNIQUE (Composite)
+                </button>
+
+                <button
+                  class="chip h"
+                  data-sql="-- FOREIGN KEY demo
+SELECT * FROM Publications;"
+                >
+                  🧾 Publications
+                </button>
+                <button class="chip" data-sql="SELECT * FROM Subscribers;">
+                  Subscribers
+                </button>
+                <button
+                  class="chip"
+                  data-sql="-- This should FAIL (FK): non-existent publication
+INSERT INTO Subscribers VALUES('NonExistent Patrika','Mahesh');"
+                >
+                  Try FK fail
+                </button>
+
+                <button
+                  class="chip h"
+                  data-sql="-- SETS: UNION
+SELECT name FROM Cricketers UNION SELECT name FROM Footballers ORDER BY name;"
+                >
+                  🧩 UNION
+                </button>
+                <button
+                  class="chip"
+                  data-sql="-- SETS: UNION ALL
+SELECT name FROM Cricketers UNION ALL SELECT name FROM Footballers ORDER BY name;"
+                >
+                  UNION ALL
+                </button>
+                <button
+                  class="chip"
+                  data-sql="-- SETS: INTERSECT
+SELECT name FROM Cricketers INTERSECT SELECT name FROM Footballers ORDER BY name;"
+                >
+                  INTERSECT
+                </button>
+                <button
+                  class="chip"
+                  data-sql="-- SETS: EXCEPT (Oracle MINUS)
+SELECT name FROM Cricketers EXCEPT SELECT name FROM Footballers ORDER BY name;"
+                >
+                  EXCEPT (MINUS)
+                </button>
+
+                <button
+                  class="chip"
+                  data-sql="-- Players who play only one game:
+-- (Cricketers ∪ Footballers) − (Cricketers ∩ Footballers)
+SELECT name FROM (
+  SELECT name FROM Cricketers
+  UNION
+  SELECT name FROM Footballers
+)
+EXCEPT
+SELECT name FROM (
+  SELECT name FROM Cricketers
+  INTERSECT
+  SELECT name FROM Footballers
+)
+ORDER BY name;"
+                >
+                  Only one game
+                </button>
+
+                <button
+                  class="chip h"
+                  data-sql="-- INNER JOIN
+SELECT * FROM Cricketers C INNER JOIN Footballers F ON C.name=F.name;"
+                >
+                  🔗 INNER JOIN
+                </button>
+                <button
+                  class="chip"
+                  data-sql="-- LEFT JOIN
+SELECT * FROM Cricketers C LEFT JOIN Footballers F ON C.name=F.name ORDER BY C.name;"
+                >
+                  LEFT JOIN
+                </button>
+                <button
+                  class="chip"
+                  data-sql="-- RIGHT JOIN emulation in SQLite:
+-- swap tables in LEFT JOIN
+SELECT * FROM Footballers F LEFT JOIN Cricketers C ON C.name=F.name ORDER BY F.name;"
+                >
+                  RIGHT JOIN (emulated)
+                </button>
+                <button
+                  class="chip"
+                  data-sql="-- FULL OUTER JOIN emulation in SQLite:
+SELECT C.name AS name, C.runs, F.goals
+FROM Cricketers C LEFT JOIN Footballers F ON C.name=F.name
+UNION
+SELECT F.name AS name, C.runs, F.goals
+FROM Footballers F LEFT JOIN Cricketers C ON C.name=F.name
+ORDER BY name;"
+                >
+                  FULL JOIN (emulated)
+                </button>
+
+                <button
+                  class="chip h"
+                  data-sql="-- Aggregates
+SELECT * FROM Cricket_Scores;"
+                >
+                  📊 Cricket_Scores
+                </button>
+                <button
+                  class="chip"
+                  data-sql="SELECT MAX(score) AS max_score FROM Cricket_Scores;"
+                >
+                  MAX
+                </button>
+                <button
+                  class="chip"
+                  data-sql="SELECT MIN(score) AS min_score FROM Cricket_Scores;"
+                >
+                  MIN
+                </button>
+                <button
+                  class="chip"
+                  data-sql="SELECT SUM(score) AS total FROM Cricket_Scores;"
+                >
+                  SUM
+                </button>
+                <button
+                  class="chip"
+                  data-sql="SELECT AVG(score) AS average FROM Cricket_Scores;"
+                >
+                  AVG
+                </button>
+                <button
+                  class="chip"
+                  data-sql="SELECT COUNT(score) AS count_score FROM Cricket_Scores;"
+                >
+                  COUNT
+                </button>
+
+                <button
+                  class="chip"
+                  data-sql="-- Need GROUP BY when mixing normal columns + aggregates
+SELECT batsman, MAX(score) AS max_score
+FROM Cricket_Scores
+GROUP BY batsman
+ORDER BY max_score DESC;"
+                >
+                  GROUP BY
+                </button>
+
+                <button
+                  class="chip"
+                  data-sql="-- Multiple aggregates per group
+SELECT batsman,
+       MAX(score) AS max_score,
+       MIN(score) AS min_score,
+       AVG(score) AS avg_score,
+       SUM(score) AS sum_score,
+       COUNT(score) AS count_score
+FROM Cricket_Scores
+GROUP BY batsman
+ORDER BY batsman;"
+                >
+                  Multi-aggregates
+                </button>
+
+                <button
+                  class="chip"
+                  data-sql="-- HAVING filters groups (aggregate conditions)
+SELECT batsman, MAX(score) AS max_score
+FROM Cricket_Scores
+GROUP BY batsman
+HAVING MAX(score) >= 110
+ORDER BY max_score DESC;"
+                >
+                  HAVING
+                </button>
+
+                <button
+                  class="chip"
+                  data-sql="-- Highest scores by MatchType
+SELECT MatchType, MAX(score) AS best
+FROM Cricket_Scores
+GROUP BY MatchType
+ORDER BY best DESC;"
+                >
+                  Max by MatchType
+                </button>
+
+                <button
+                  class="chip h"
+                  data-sql="-- Trains + Stops
+SELECT * FROM trains;"
+                >
+                  🚆 Trains
+                </button>
+                <button
+                  class="chip"
+                  data-sql="SELECT * FROM stops ORDER BY trainno, stopno;"
+                >
+                  Stops
+                </button>
+                <button
+                  class="chip"
+                  data-sql="-- Find trains that go from Itarsi to Jalgaon (source stop before dest stop)
+SELECT Train.TrainNo, Train.TrainName, Source.station AS FromStation, Dest.station AS ToStation
+FROM stops AS Source
+INNER JOIN stops AS Dest
+  ON Source.trainno = Dest.trainno
+INNER JOIN trains AS Train
+  ON Train.TrainNo = Source.trainno
+WHERE Source.station='Itarsi'
+  AND Dest.station='Jalgaon'
+  AND Source.stopno < Dest.stopno
+ORDER BY Train.TrainNo;"
+                >
+                  Find trains: Itarsi → Jalgaon
+                </button>
+              </div>
+
+              <textarea id="sqlInput" aria-label="SQL editor">
+SELECT * FROM birthdays;</textarea
+              >
+
+              <div class="result" aria-live="polite">
+                <div class="meta">
+                  <div class="left">
+                    <span class="muted small">Results:</span>
+                    <span class="muted small" id="metaRowsInline"></span>
+                  </div>
+                </div>
+                <div class="tablewrap" id="result"></div>
+              </div>
+
+              <div class="errorbox" id="error"></div>
+
+              <div class="hint mt10">
+                ✅ Can work offline after the app files load successfully in
+                your browser cache. Query history is saved in localStorage on
+                this device.
+              </div>
+            </div>
+          </div>
+
+          <div class="pane">
+            <div class="panehead">
+              <h2>QUERY HISTORY</h2>
+              <div class="hint" id="histCount"></div>
+            </div>
+
+            <div class="history-pane-body">
+              <div class="history">
+                <div class="tabs" role="tablist" aria-label="History tabs">
+                  <button
+                    class="tab on"
+                    id="tabSuccess"
+                    type="button"
+                    role="tab"
+                    aria-selected="true"
+                  >
+                    Success
+                  </button>
+                  <button
+                    class="tab"
+                    id="tabFail"
+                    type="button"
+                    role="tab"
+                    aria-selected="false"
+                  >
+                    Failed
+                  </button>
+                </div>
+              </div>
+
+              <div class="histlist" id="historyList"></div>
+            </div>
+          </div>
+        </section>
+
+        <div class="vs-statusbar">
+          <span class="dot" id="ppDotMirror"></span>
+          <span id="ppStatusMirror" aria-live="polite">Ready.</span>
+          <span class="right">Programmer’s Picnic</span>
+        </div>
+      </main>
+    </div>
+
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+    <script src="app.js"></script>
+  </body>
 </html>
