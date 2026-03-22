@@ -192,9 +192,9 @@
       }
 
       .vs-sidebar {
-        width: 320px;
-        min-width: 260px;
-        max-width: 420px;
+        width: 340px;
+        min-width: 280px;
+        max-width: 460px;
         background: var(--panel);
         border-right: 1px solid var(--border);
         display: flex;
@@ -285,7 +285,7 @@
         flex: 1;
         min-height: 0;
         display: grid;
-        grid-template-columns: 1.15fr 0.85fr;
+        grid-template-columns: 1.12fr 0.88fr;
         gap: 12px;
         padding: 12px;
         overflow: hidden;
@@ -387,6 +387,7 @@
 
       input[type="text"],
       input[type="file"] {
+        width: 100%;
         padding: 10px 12px;
         border-radius: 12px;
         border: 1px solid var(--soft-border);
@@ -436,6 +437,10 @@
         gap: 10px;
         align-items: center;
         flex-wrap: wrap;
+      }
+
+      .grow {
+        flex: 1;
       }
 
       .mt10 {
@@ -683,6 +688,11 @@
         font-weight: 1000;
       }
 
+      .mini-grid {
+        display: grid;
+        gap: 10px;
+      }
+
       .vs-statusbar {
         height: 30px;
         background: var(--status-bg);
@@ -744,8 +754,8 @@
           <span class="dot" id="statusDot"></span>
           <span id="statusText">Loading SQLite…</span>
         </div>
-        <div class="pill" title="CSV tools work after a SELECT">
-          📄 CSV: <span id="csvHint">Run a SELECT</span>
+        <div class="pill" title="Result export works after a SELECT">
+          📦 Export: <span id="csvHint">Run a SELECT</span>
         </div>
       </div>
     </div>
@@ -816,7 +826,10 @@
               </div>
               <div class="row mt10">
                 <button id="downloadCsvBtn" class="btn-outline" disabled>
-                  Download CSV
+                  Result CSV
+                </button>
+                <button id="downloadJsonBtn" class="btn-outline" disabled>
+                  Result JSON
                 </button>
                 <button id="copyCsvBtn" class="btn-ghost" disabled>
                   Copy CSV
@@ -846,6 +859,45 @@
               </div>
               <div class="hint mt10">
                 Loads only on this device (in-browser).
+              </div>
+            </div>
+          </div>
+
+          <div class="block">
+            <div class="blockhead">
+              <b>LOAD CSV / JSON</b>
+              <span class="hint">Create table</span>
+            </div>
+            <div class="blockbody">
+              <div class="mini-grid">
+                <input
+                  id="dataFile"
+                  type="file"
+                  accept=".csv,.json,text/csv,application/json"
+                />
+                <input
+                  id="importTableName"
+                  type="text"
+                  placeholder="Optional table name (else file name is used)"
+                  autocomplete="off"
+                />
+              </div>
+
+              <div class="row mt10">
+                <button id="loadCsvBtn" class="btn-outline" disabled>
+                  Load CSV
+                </button>
+                <button id="loadJsonBtn" class="btn-outline" disabled>
+                  Load JSON
+                </button>
+                <button id="exportDbBtn" class="btn-ghost" disabled>
+                  Export DB
+                </button>
+              </div>
+
+              <div class="hint mt10">
+                CSV: first row becomes column names. JSON: array of objects or
+                array of arrays.
               </div>
             </div>
           </div>
@@ -1336,6 +1388,7 @@ SELECT * FROM birthdays;</textarea
         var copySqlBtn = document.getElementById("copySqlBtn");
         var shareSqlBtn = document.getElementById("shareSqlBtn");
         var downloadCsvBtn = document.getElementById("downloadCsvBtn");
+        var downloadJsonBtn = document.getElementById("downloadJsonBtn");
         var copyCsvBtn = document.getElementById("copyCsvBtn");
 
         var metaMsg = document.getElementById("metaMsg");
@@ -1357,6 +1410,12 @@ SELECT * FROM birthdays;</textarea
         var sqliteFile = document.getElementById("sqliteFile");
         var loadDbBtn = document.getElementById("loadDbBtn");
         var useSampleBtn = document.getElementById("useSampleBtn");
+
+        var dataFile = document.getElementById("dataFile");
+        var importTableName = document.getElementById("importTableName");
+        var loadCsvBtn = document.getElementById("loadCsvBtn");
+        var loadJsonBtn = document.getElementById("loadJsonBtn");
+        var exportDbBtn = document.getElementById("exportDbBtn");
 
         var toggleHelpBtn = document.getElementById("toggleHelpBtn");
         var helpSearch = document.getElementById("helpSearch");
@@ -1407,6 +1466,9 @@ SELECT * FROM birthdays;</textarea
         function enableDbLoadUI(ready) {
           loadDbBtn.disabled = !ready;
           useSampleBtn.disabled = !ready;
+          loadCsvBtn.disabled = !ready;
+          loadJsonBtn.disabled = !ready;
+          exportDbBtn.disabled = !ready;
         }
 
         function setStatus(ready) {
@@ -1421,6 +1483,7 @@ SELECT * FROM birthdays;</textarea
             copySqlBtn.disabled = false;
             shareSqlBtn.disabled = false;
             downloadCsvBtn.disabled = !lastSelectResult;
+            downloadJsonBtn.disabled = !lastSelectResult;
             copyCsvBtn.disabled = !lastSelectResult;
             enableDbLoadUI(true);
             mirrorStatus("SQLite ready", true);
@@ -1435,6 +1498,7 @@ SELECT * FROM birthdays;</textarea
             copySqlBtn.disabled = true;
             shareSqlBtn.disabled = true;
             downloadCsvBtn.disabled = true;
+            downloadJsonBtn.disabled = true;
             copyCsvBtn.disabled = true;
             enableDbLoadUI(false);
             mirrorStatus("Loading SQLite…", false);
@@ -1519,6 +1583,439 @@ SELECT * FROM birthdays;</textarea
           applyTheme(saved);
         }
 
+        function quoteIdent(name) {
+          return '"' + String(name).replaceAll('"', '""') + '"';
+        }
+
+        function makeSafeTableName(raw) {
+          var s = String(raw || "")
+            .trim()
+            .replace(/\.[^.]+$/, "")
+            .replace(/[^A-Za-z0-9_]+/g, "_")
+            .replace(/^_+/, "")
+            .replace(/_+/g, "_");
+
+          if (!s) s = "imported_data";
+          if (/^[0-9]/.test(s)) s = "t_" + s;
+          return s;
+        }
+
+        function getImportTableName(fileName) {
+          var fromInput = (importTableName.value || "").trim();
+          if (fromInput) return makeSafeTableName(fromInput);
+          return makeSafeTableName(fileName || "imported_data");
+        }
+
+        function isNumericLike(v) {
+          if (v === null || v === undefined || v === "") return false;
+          return /^-?\d+(\.\d+)?$/.test(String(v).trim());
+        }
+
+        function isIntegerLike(v) {
+          if (v === null || v === undefined || v === "") return false;
+          return /^-?\d+$/.test(String(v).trim());
+        }
+
+        function isBooleanLike(v) {
+          if (typeof v === "boolean") return true;
+          var s = String(v || "")
+            .trim()
+            .toLowerCase();
+          return s === "true" || s === "false";
+        }
+
+        function normalizeCell(v) {
+          if (v === undefined) return null;
+          if (v === null) return null;
+
+          if (typeof v === "boolean") return v ? 1 : 0;
+          if (typeof v === "number") return Number.isFinite(v) ? v : null;
+
+          var s = String(v).trim();
+          if (s === "") return null;
+          if (isBooleanLike(s)) return s.toLowerCase() === "true" ? 1 : 0;
+          if (isIntegerLike(s)) return parseInt(s, 10);
+          if (isNumericLike(s)) return parseFloat(s);
+          return String(v);
+        }
+
+        function inferColumnType(values) {
+          var hasText = false;
+          var hasReal = false;
+          var hasInteger = false;
+
+          for (var i = 0; i < values.length; i++) {
+            var v = values[i];
+            if (v === null || v === undefined || v === "") continue;
+
+            if (typeof v === "number") {
+              if (Number.isInteger(v)) hasInteger = true;
+              else hasReal = true;
+              continue;
+            }
+
+            if (typeof v === "boolean") {
+              hasInteger = true;
+              continue;
+            }
+
+            var s = String(v).trim();
+            if (s === "") continue;
+
+            if (isBooleanLike(s)) {
+              hasInteger = true;
+            } else if (isIntegerLike(s)) {
+              hasInteger = true;
+            } else if (isNumericLike(s)) {
+              hasReal = true;
+            } else {
+              hasText = true;
+            }
+          }
+
+          if (hasText) return "TEXT";
+          if (hasReal) return "REAL";
+          if (hasInteger) return "INTEGER";
+          return "TEXT";
+        }
+
+        function arrayOfObjectsToTableSpec(rows) {
+          if (!Array.isArray(rows) || !rows.length) {
+            throw new Error("JSON array is empty.");
+          }
+
+          var allKeys = [];
+          var seen = Object.create(null);
+
+          rows.forEach(function (row) {
+            if (!row || Array.isArray(row) || typeof row !== "object") {
+              throw new Error("Expected an array of objects.");
+            }
+            Object.keys(row).forEach(function (k) {
+              var safe = makeSafeTableName(k);
+              if (!seen[safe]) {
+                seen[safe] = true;
+                allKeys.push({ original: k, safe: safe });
+              }
+            });
+          });
+
+          var headers = allKeys.map(function (x) {
+            return x.safe;
+          });
+
+          var values = rows.map(function (row) {
+            return allKeys.map(function (k) {
+              return row[k.original];
+            });
+          });
+
+          return { headers: headers, rows: values };
+        }
+
+        function arrayOfArraysToTableSpec(data) {
+          if (!Array.isArray(data) || !data.length) {
+            throw new Error("JSON array is empty.");
+          }
+
+          var first = data[0];
+          if (!Array.isArray(first)) {
+            throw new Error("Expected an array of arrays.");
+          }
+
+          var headers = first.map(function (h, idx) {
+            var raw = String(h || "").trim() || "col_" + (idx + 1);
+            return makeSafeTableName(raw);
+          });
+
+          var rows = data.slice(1).map(function (row) {
+            var arr = Array.isArray(row) ? row : [];
+            return headers.map(function (_, i) {
+              return arr[i];
+            });
+          });
+
+          return { headers: headers, rows: rows };
+        }
+
+        function createOrReplaceTable(tableName, headers, rows) {
+          if (!db) throw new Error("Database not ready.");
+
+          if (!headers || !headers.length) {
+            throw new Error("No columns found.");
+          }
+
+          var safeHeaders = headers.map(function (h, idx) {
+            var s = makeSafeTableName(h || "col_" + (idx + 1));
+            return s || "col_" + (idx + 1);
+          });
+
+          var perColValues = safeHeaders.map(function (_, colIdx) {
+            return rows.map(function (row) {
+              return row[colIdx];
+            });
+          });
+
+          var colDefs = safeHeaders.map(function (col, idx) {
+            return quoteIdent(col) + " " + inferColumnType(perColValues[idx]);
+          });
+
+          db.run("DROP TABLE IF EXISTS " + quoteIdent(tableName) + ";");
+          db.run(
+            "CREATE TABLE " +
+              quoteIdent(tableName) +
+              " (" +
+              colDefs.join(", ") +
+              ");",
+          );
+
+          if (!rows.length) return;
+
+          var placeholders = safeHeaders.map(function () {
+            return "?";
+          });
+          var insertSql =
+            "INSERT INTO " +
+            quoteIdent(tableName) +
+            " (" +
+            safeHeaders.map(quoteIdent).join(", ") +
+            ") VALUES (" +
+            placeholders.join(", ") +
+            ");";
+
+          var stmt = db.prepare(insertSql);
+          try {
+            rows.forEach(function (row) {
+              var vals = safeHeaders.map(function (_, i) {
+                return normalizeCell(row[i]);
+              });
+              stmt.run(vals);
+            });
+          } finally {
+            stmt.free();
+          }
+        }
+
+        function parseCSV(text) {
+          var rows = [];
+          var row = [];
+          var cell = "";
+          var i = 0;
+          var inQuotes = false;
+
+          while (i < text.length) {
+            var ch = text[i];
+            var next = text[i + 1];
+
+            if (inQuotes) {
+              if (ch === '"' && next === '"') {
+                cell += '"';
+                i += 2;
+                continue;
+              }
+              if (ch === '"') {
+                inQuotes = false;
+                i++;
+                continue;
+              }
+              cell += ch;
+              i++;
+              continue;
+            }
+
+            if (ch === '"') {
+              inQuotes = true;
+              i++;
+              continue;
+            }
+
+            if (ch === ",") {
+              row.push(cell);
+              cell = "";
+              i++;
+              continue;
+            }
+
+            if (ch === "\r") {
+              i++;
+              continue;
+            }
+
+            if (ch === "\n") {
+              row.push(cell);
+              rows.push(row);
+              row = [];
+              cell = "";
+              i++;
+              continue;
+            }
+
+            cell += ch;
+            i++;
+          }
+
+          row.push(cell);
+          if (!(row.length === 1 && row[0] === "" && rows.length > 0)) {
+            rows.push(row);
+          }
+
+          rows = rows.filter(function (r) {
+            return !(r.length === 1 && String(r[0]).trim() === "");
+          });
+
+          if (!rows.length) throw new Error("CSV is empty.");
+
+          var headers = rows[0].map(function (h, idx) {
+            var raw = String(h || "").trim() || "col_" + (idx + 1);
+            return makeSafeTableName(raw);
+          });
+
+          var dataRows = rows.slice(1).map(function (r) {
+            return headers.map(function (_, i2) {
+              return r[i2] === undefined ? null : r[i2];
+            });
+          });
+
+          return { headers: headers, rows: dataRows };
+        }
+
+        function readTextFile(file, callback) {
+          var reader = new FileReader();
+          reader.onload = function () {
+            callback(null, reader.result || "");
+          };
+          reader.onerror = function () {
+            callback(new Error("Could not read file."));
+          };
+          reader.readAsText(file);
+        }
+
+        function loadCSVFileIntoDB(file) {
+          if (!file) {
+            showErr("Please choose a CSV file first.");
+            return;
+          }
+
+          readTextFile(file, function (err, text) {
+            if (err) {
+              showErr(err.message);
+              return;
+            }
+
+            try {
+              var parsed = parseCSV(text);
+              var tableName = getImportTableName(file.name);
+              createOrReplaceTable(tableName, parsed.headers, parsed.rows);
+              renderSchemaExplorer();
+              sqlInput.value =
+                "SELECT * FROM " + quoteIdent(tableName) + " LIMIT 100;";
+              runSQL();
+              showOk(
+                "CSV loaded into table " +
+                  tableName +
+                  " (" +
+                  parsed.rows.length +
+                  " row(s)) ✅",
+              );
+            } catch (e) {
+              showErr(
+                "CSV import failed.\n\n" +
+                  (e && e.message ? e.message : String(e)),
+              );
+            }
+          });
+        }
+
+        function loadJSONFileIntoDB(file) {
+          if (!file) {
+            showErr("Please choose a JSON file first.");
+            return;
+          }
+
+          readTextFile(file, function (err, text) {
+            if (err) {
+              showErr(err.message);
+              return;
+            }
+
+            try {
+              var parsedJson = JSON.parse(text);
+              var spec;
+
+              if (Array.isArray(parsedJson) && parsedJson.length) {
+                if (
+                  parsedJson[0] &&
+                  typeof parsedJson[0] === "object" &&
+                  !Array.isArray(parsedJson[0])
+                ) {
+                  spec = arrayOfObjectsToTableSpec(parsedJson);
+                } else if (Array.isArray(parsedJson[0])) {
+                  spec = arrayOfArraysToTableSpec(parsedJson);
+                } else {
+                  throw new Error(
+                    "JSON must be an array of objects or array of arrays.",
+                  );
+                }
+              } else if (
+                parsedJson &&
+                typeof parsedJson === "object" &&
+                Array.isArray(parsedJson.rows) &&
+                Array.isArray(parsedJson.columns)
+              ) {
+                spec = {
+                  headers: parsedJson.columns,
+                  rows: parsedJson.rows,
+                };
+              } else {
+                throw new Error(
+                  "JSON must be an array of objects, array of arrays, or {columns, rows}.",
+                );
+              }
+
+              var tableName = getImportTableName(file.name);
+              createOrReplaceTable(tableName, spec.headers, spec.rows);
+              renderSchemaExplorer();
+              sqlInput.value =
+                "SELECT * FROM " + quoteIdent(tableName) + " LIMIT 100;";
+              runSQL();
+              showOk(
+                "JSON loaded into table " +
+                  tableName +
+                  " (" +
+                  spec.rows.length +
+                  " row(s)) ✅",
+              );
+            } catch (e) {
+              showErr(
+                "JSON import failed.\n\n" +
+                  (e && e.message ? e.message : String(e)),
+              );
+            }
+          });
+        }
+
+        function exportCurrentDB() {
+          if (!db) return;
+          try {
+            var data = db.export();
+            var blob = new Blob([data], {
+              type: "application/x-sqlite3",
+            });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement("a");
+            a.href = url;
+            a.download = "programmers-picnic.sqlite";
+            a.click();
+            URL.revokeObjectURL(url);
+            showOk("Database exported ✅");
+          } catch (e) {
+            showErr(
+              "DB export failed.\n\n" +
+                (e && e.message ? e.message : String(e)),
+            );
+          }
+        }
+
         function loadSQLiteArrayBuffer(arrayBuffer) {
           if (!SQLlib) return;
           try {
@@ -1534,6 +2031,7 @@ SELECT * FROM birthdays;</textarea
 
             lastSelectResult = null;
             downloadCsvBtn.disabled = true;
+            downloadJsonBtn.disabled = true;
             copyCsvBtn.disabled = true;
             csvHint.textContent = "Run a SELECT";
 
@@ -1783,32 +2281,6 @@ SELECT * FROM birthdays;</textarea
           );
         }
 
-        function renderTable(columns, values) {
-          var html = "<table><thead><tr>";
-          for (var i = 0; i < columns.length; i++) {
-            html += "<th>" + escapeHtml(columns[i]) + "</th>";
-          }
-          html += "</tr></thead><tbody>";
-
-          if (!values || values.length === 0) {
-            html +=
-              '<tr><td colspan="' +
-              Math.max(columns.length, 1) +
-              '" class="muted small">No rows.</td></tr>';
-          } else {
-            for (var r = 0; r < values.length; r++) {
-              html += "<tr>";
-              for (var c = 0; c < columns.length; c++) {
-                var v = values[r][c];
-                html += "<td>" + escapeHtml(v === null ? "NULL" : v) + "</td>";
-              }
-              html += "</tr>";
-            }
-          }
-          html += "</tbody></table>";
-          resultDiv.innerHTML = html;
-        }
-
         function renderResultSets(resultSets) {
           if (!resultSets || !resultSets.length) {
             resultDiv.innerHTML =
@@ -1862,6 +2334,13 @@ SELECT * FROM birthdays;</textarea
           resultDiv.innerHTML = html;
         }
 
+        function setResultExportState(enabled) {
+          downloadCsvBtn.disabled = !enabled;
+          downloadJsonBtn.disabled = !enabled;
+          copyCsvBtn.disabled = !enabled;
+          csvHint.textContent = enabled ? "Ready" : "Run a SELECT";
+        }
+
         function runSQL() {
           clearOutput();
           if (!db) return;
@@ -1895,9 +2374,7 @@ SELECT * FROM birthdays;</textarea
               if (metaRowsInline)
                 metaRowsInline.textContent = rowCount + " row(s)";
 
-              downloadCsvBtn.disabled = false;
-              copyCsvBtn.disabled = false;
-              csvHint.textContent = "Ready";
+              setResultExportState(true);
 
               var ms1 = Math.round(performance.now() - start);
               showExecutionSummary(true, "Query executed successfully.", ms1);
@@ -1910,9 +2387,7 @@ SELECT * FROM birthdays;</textarea
             db.run(sql);
 
             lastSelectResult = null;
-            downloadCsvBtn.disabled = true;
-            copyCsvBtn.disabled = true;
-            csvHint.textContent = "Run a SELECT";
+            setResultExportState(false);
             metaRows.textContent = "";
             if (metaRowsInline) metaRowsInline.textContent = "";
 
@@ -2066,6 +2541,16 @@ SELECT * FROM birthdays;</textarea
           return lines.join("\n");
         }
 
+        function toResultObjects(columns, values) {
+          return (values || []).map(function (row) {
+            var obj = {};
+            columns.forEach(function (col, idx) {
+              obj[col] = row[idx];
+            });
+            return obj;
+          });
+        }
+
         function downloadCSV() {
           if (!lastSelectResult) return;
           var csv = toCSV(lastSelectResult.columns, lastSelectResult.values);
@@ -2074,6 +2559,23 @@ SELECT * FROM birthdays;</textarea
           var a = document.createElement("a");
           a.href = url;
           a.download = "result.csv";
+          a.click();
+          URL.revokeObjectURL(url);
+        }
+
+        function downloadJSON() {
+          if (!lastSelectResult) return;
+          var rows = toResultObjects(
+            lastSelectResult.columns,
+            lastSelectResult.values,
+          );
+          var blob = new Blob([JSON.stringify(rows, null, 2)], {
+            type: "application/json;charset=utf-8",
+          });
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement("a");
+          a.href = url;
+          a.download = "result.json";
           a.click();
           URL.revokeObjectURL(url);
         }
@@ -2179,8 +2681,9 @@ SELECT * FROM birthdays;</textarea
               .map(function (row) {
                 var name = String(row[0] || "");
                 var type = String(row[1] || "");
-                var selectSql = "SELECT * FROM " + name + ";";
-                var describeSql = "PRAGMA table_info(" + name + ");";
+                var selectSql = "SELECT * FROM " + quoteIdent(name) + ";";
+                var describeSql =
+                  "PRAGMA table_info(" + quoteIdent(name) + ");";
 
                 return (
                   '<div class="helpitem">' +
@@ -2399,9 +2902,7 @@ SELECT * FROM birthdays;</textarea
           } catch (e) {}
           createFreshDB();
           lastSelectResult = null;
-          downloadCsvBtn.disabled = true;
-          copyCsvBtn.disabled = true;
-          csvHint.textContent = "Run a SELECT";
+          setResultExportState(false);
           renderSchemaExplorer();
           showOk("Database reset (tables + sample rows recreated).");
         };
@@ -2430,9 +2931,7 @@ SELECT * FROM birthdays;</textarea
             }
             createFreshDB();
             lastSelectResult = null;
-            downloadCsvBtn.disabled = true;
-            copyCsvBtn.disabled = true;
-            csvHint.textContent = "Run a SELECT";
+            setResultExportState(false);
             renderSchemaExplorer();
             showOk("Switched back to Sample DB ✅");
             runSQL();
@@ -2443,6 +2942,28 @@ SELECT * FROM birthdays;</textarea
             );
           }
         };
+
+        loadCsvBtn.onclick = function () {
+          if (!db) return;
+          var file = dataFile && dataFile.files ? dataFile.files[0] : null;
+          if (!file) {
+            showErr("Please choose a CSV file first.");
+            return;
+          }
+          loadCSVFileIntoDB(file);
+        };
+
+        loadJsonBtn.onclick = function () {
+          if (!db) return;
+          var file = dataFile && dataFile.files ? dataFile.files[0] : null;
+          if (!file) {
+            showErr("Please choose a JSON file first.");
+            return;
+          }
+          loadJSONFileIntoDB(file);
+        };
+
+        exportDbBtn.onclick = exportCurrentDB;
 
         copySqlBtn.onclick = function () {
           navigator.clipboard
@@ -2456,6 +2977,7 @@ SELECT * FROM birthdays;</textarea
         };
 
         downloadCsvBtn.onclick = downloadCSV;
+        downloadJsonBtn.onclick = downloadJSON;
         copyCsvBtn.onclick = copyCSV;
 
         tabSuccess.onclick = function () {
