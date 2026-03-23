@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Man Goat Tiger Grass Puzzle</title>
+<style>
+:root{
+  --saffron:#d97706;
+  --bg:#fff8ef;
+  --panel:#ffffff;
+  --line:#f1c27d;
+  --river1:#93c5fd;
+  --river2:#60a5fa;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  background:linear-gradient(180deg,#fffaf3 0%,#fff3df 100%);
+  color:#2b2b2b;
+  text-align:center;
+}
+h1{
+  margin:14px 0 8px;
+  color:var(--saffron);
+}
+.subtitle{
+  margin:0 12px 14px;
+  color:#7c5a24;
+  font-size:14px;
+}
+.scene{
+  display:grid;
+  grid-template-columns:1fr 240px 1fr;
+  gap:14px;
+  align-items:stretch;
+  padding:14px;
+  max-width:1100px;
+  margin:0 auto;
+}
+.bank{
+  min-height:320px;
+  background:rgba(255,255,255,.9);
+  border:2px dashed var(--line);
+  border-radius:18px;
+  padding:14px;
+  box-shadow:0 10px 30px rgba(0,0,0,.05);
+}
+.bank h3{
+  margin-top:0;
+  color:#9a6708;
+}
+.items{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  justify-content:center;
+  align-items:flex-start;
+}
+.river{
+  border-radius:20px;
+  min-height:320px;
+  background:linear-gradient(180deg,var(--river1),var(--river2));
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:space-between;
+  padding:18px 10px;
+  box-shadow:inset 0 0 20px rgba(255,255,255,.25);
+}
+.riverTitle{
+  color:#083b78;
+  font-weight:700;
+  letter-spacing:.4px;
+}
+.boatWrap{
+  flex:1;
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.boat{
+  width:180px;
+  max-width:90%;
+  background:#7c4a17;
+  color:#fff7ed;
+  border-radius:999px 999px 18px 18px;
+  padding:14px 12px 10px;
+  box-shadow:0 12px 22px rgba(0,0,0,.2);
+  border:3px solid rgba(255,255,255,.25);
+}
+.boat h4{
+  margin:0 0 8px;
+  font-size:15px;
+}
+.boatPassengers{
+  font-size:14px;
+  line-height:1.5;
+  min-height:44px;
+}
+.item{
+  min-width:110px;
+  padding:12px 14px;
+  border-radius:14px;
+  background:#fde68a;
+  border:1px solid rgba(0,0,0,.06);
+  cursor:pointer;
+  user-select:none;
+  font-weight:700;
+  box-shadow:0 8px 18px rgba(0,0,0,.06);
+  transition:transform .15s ease, box-shadow .15s ease, background .15s ease;
+}
+.item:hover{
+  transform:translateY(-2px);
+  box-shadow:0 12px 24px rgba(0,0,0,.09);
+}
+.item.selected{
+  background:#fbbf24;
+  outline:3px solid rgba(217,119,6,.18);
+}
+.item.locked{
+  opacity:.55;
+  cursor:not-allowed;
+}
+.controls{
+  margin:4px auto 0;
+  padding:0 14px 18px;
+}
+button{
+  padding:11px 16px;
+  margin:5px;
+  border:none;
+  border-radius:12px;
+  background:var(--saffron);
+  color:white;
+  cursor:pointer;
+  font-weight:700;
+  box-shadow:0 8px 18px rgba(217,119,6,.22);
+}
+button:hover{
+  filter:brightness(1.03);
+}
+.status{
+  max-width:980px;
+  margin:0 auto 18px;
+  padding:0 14px;
+}
+.log{
+  margin-top:10px;
+  min-height:26px;
+  font-size:15px;
+  color:#5b4a2f;
+}
+.win{
+  color:#0f8a38;
+  font-weight:800;
+}
+.rules{
+  max-width:980px;
+  margin:0 auto 18px;
+  text-align:left;
+  background:rgba(255,255,255,.75);
+  border:1px solid rgba(217,119,6,.15);
+  border-radius:16px;
+  padding:14px 16px;
+  color:#5c4930;
+}
+.rules strong{
+  color:#9a6708;
+}
+@media (max-width:900px){
+  .scene{
+    grid-template-columns:1fr;
+  }
+  .river{
+    min-height:160px;
+  }
+}
+</style>
+</head>
+<body>
+
+<h1>Man, Goat, Tiger, Grass Puzzle</h1>
+<p class="subtitle">Click one item on the same bank as the man. The man always rows the boat and may take one selected item with him.</p>
+
+<div class="scene">
+  <section class="bank">
+    <h3>Left Bank</h3>
+    <div class="items" id="leftItems"></div>
+  </section>
+
+  <section class="river">
+    <div class="riverTitle">River</div>
+    <div class="boatWrap">
+      <div class="boat">
+        <h4 id="boatSideLabel">Boat: Left Bank</h4>
+        <div class="boatPassengers" id="boatPassengers"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bank">
+    <h3>Right Bank</h3>
+    <div class="items" id="rightItems"></div>
+  </section>
+</div>
+
+<div class="controls">
+  <button onclick="moveBoat()">Move</button>
+  <button onclick="undoMove()">Undo</button>
+  <button onclick="resetGame()">Reset</button>
+  <button onclick="autoPlay()">Auto Play</button>
+</div>
+
+<div class="status">
+  <div class="log" id="log"></div>
+</div>
+
+<div class="rules">
+  <strong>Rules:</strong> The man must always be in the boat. He may take only one item with him. Never leave the goat alone with the grass, and never leave the tiger alone with the goat, unless the man is present on that bank.
+</div>
+
+<script>
+const LABELS = {
+  man: "👨 Man",
+  goat: "🐐 Goat",
+  tiger: "🐯 Tiger",
+  grass: "🌿 Grass"
+};
+
+let state;
+
+function initialState(){
+  return {
+    left: ["man","goat","tiger","grass"],
+    right: [],
+    boat: "left",
+    selected: null,
+    history: [],
+    autoplay: false
+  };
+}
+
+function clone(obj){
+  return JSON.parse(JSON.stringify(obj));
+}
+
+function getManSide(s){
+  return s.left.includes("man") ? "left" : "right";
+}
+
+function render(){
+  renderBank("left");
+  renderBank("right");
+
+  const boatSide = getManSide(state);
+  document.getElementById("boatSideLabel").textContent =
+    "Boat: " + (boatSide === "left" ? "Left Bank" : "Right Bank");
+
+  const passengers = ["man"];
+  if(state.selected) passengers.push(state.selected);
+  document.getElementById("boatPassengers").innerHTML =
+    passengers.map(x => LABELS[x]).join("<br>");
+
+  checkWin();
+}
+
+function renderBank(side){
+  const host = document.getElementById(side + "Items");
+  host.innerHTML = "";
+
+  const manSide = getManSide(state);
+
+  state[side].forEach(item => {
+    const div = document.createElement("div");
+    div.className = "item";
+    div.textContent = LABELS[item];
+
+    if(item === state.selected) div.classList.add("selected");
+
+    const selectable =
+      item !== "man" &&
+      side === manSide;
+
+    if(!selectable) div.classList.add("locked");
+
+    div.onclick = () => {
+      if(!selectable) return;
+      state.selected = state.selected === item ? null : item;
+      render();
+    };
+
+    host.appendChild(div);
+  });
+}
+
+function moveBoat(){
+  const from = getManSide(state);
+  const to = from === "left" ? "right" : "left";
+
+  const next = clone(state);
+
+  // move man
+  next[from] = next[from].filter(x => x !== "man");
+  next[to].push("man");
+
+  // move selected passenger if any
+  if(next.selected){
+    const passenger = next.selected;
+    if(!next[from].includes(passenger)){
+      log("❌ Selected item is not on the same side as the man.");
+      return;
+    }
+    next[from] = next[from].filter(x => x !== passenger);
+    next[to].push(passenger);
+  }
+
+  next.selected = null;
+
+  if(!isValid(next)){
+    log("❌ Invalid move. Someone gets eaten.");
+    return;
+  }
+
+  state.history.push(clone(state));
+  state = next;
+  log("✅ Boat crossed.");
+  render();
+}
+
+function isUnsafe(bank){
+  const hasMan = bank.includes("man");
+  if(hasMan) return false;
+  if(bank.includes("goat") && bank.includes("grass")) return true;
+  if(bank.includes("tiger") && bank.includes("goat")) return true;
+  return false;
+}
+
+function isValid(s){
+  return !isUnsafe(s.left) && !isUnsafe(s.right);
+}
+
+function undoMove(){
+  if(!state.history.length){
+    log("Nothing to undo.");
+    return;
+  }
+  state = state.history.pop();
+  log("↩️ Last move undone.");
+  render();
+}
+
+function resetGame(){
+  state = initialState();
+  log("Game reset.");
+  render();
+}
+
+function checkWin(){
+  if(state.right.length === 4){
+    document.getElementById("log").innerHTML =
+      "<span class='win'>🎉 Solved! Everyone reached the right bank safely.</span>";
+  }
+}
+
+function log(message){
+  document.getElementById("log").textContent = message;
+}
+
+function sleep(ms){
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function autoPlay(){
+  resetGame();
+
+  const steps = [
+    "goat",
+    null,
+    "tiger",
+    "goat",
+    "grass",
+    null,
+    "goat"
+  ];
+
+  for(const step of steps){
+    state.selected = step;
+    render();
+    await sleep(700);
+    moveBoat();
+    await sleep(700);
+  }
+}
+
+resetGame();
+</script>
+</body>
+</html>
