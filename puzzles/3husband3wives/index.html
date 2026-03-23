@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>3 Husbands and Wives River Crossing</title>
+  <style>
+    :root{
+      --bg:#fff8ef;
+      --bg2:#fff2dc;
+      --panel:#ffffff;
+      --ink:#1f2937;
+      --muted:#6b7280;
+      --brand:#d97706;
+      --brand2:#f59e0b;
+      --line:rgba(217,119,6,.18);
+      --good:#15803d;
+      --bad:#b91c1c;
+      --river1:#93c5fd;
+      --river2:#60a5fa;
+    }
+
+    *{ box-sizing:border-box; }
+
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      color:var(--ink);
+      background:
+        radial-gradient(circle at top right, rgba(245,158,11,.10), transparent 24%),
+        linear-gradient(180deg, var(--bg), var(--bg2));
+    }
+
+    .wrap{
+      max-width:1200px;
+      margin:0 auto;
+      padding:18px;
+    }
+
+    h1{
+      margin:0 0 8px;
+      text-align:center;
+      color:var(--brand);
+      font-size:clamp(28px,4vw,42px);
+    }
+
+    .subtitle{
+      text-align:center;
+      color:var(--muted);
+      max-width:860px;
+      margin:0 auto 18px;
+      line-height:1.5;
+    }
+
+    .layout{
+      display:grid;
+      grid-template-columns:1fr 260px 1fr;
+      gap:16px;
+      align-items:stretch;
+    }
+
+    .bank{
+      background:rgba(255,255,255,.92);
+      border:1px solid var(--line);
+      border-radius:22px;
+      padding:16px;
+      box-shadow:0 14px 40px rgba(0,0,0,.06);
+      min-height:360px;
+    }
+
+    .bank h2{
+      margin:0 0 12px;
+      color:#9a6708;
+      font-size:22px;
+      text-align:center;
+    }
+
+    .people{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
+      gap:12px;
+    }
+
+    .person{
+      border:1px solid rgba(0,0,0,.06);
+      background:#fff7ed;
+      border-radius:16px;
+      padding:12px 10px;
+      text-align:center;
+      font-weight:700;
+      cursor:pointer;
+      transition:transform .15s ease, box-shadow .15s ease, background .15s ease;
+      user-select:none;
+      box-shadow:0 8px 18px rgba(0,0,0,.05);
+    }
+
+    .person:hover{
+      transform:translateY(-2px);
+      box-shadow:0 12px 24px rgba(0,0,0,.08);
+    }
+
+    .person.selected{
+      background:#fde68a;
+      outline:3px solid rgba(245,158,11,.22);
+    }
+
+    .person.locked{
+      opacity:.55;
+      cursor:not-allowed;
+      background:#f9fafb;
+    }
+
+    .emoji{
+      font-size:28px;
+      display:block;
+      margin-bottom:6px;
+    }
+
+    .meta{
+      font-size:12px;
+      color:var(--muted);
+      margin-top:4px;
+      font-weight:600;
+    }
+
+    .river{
+      border-radius:24px;
+      background:linear-gradient(180deg,var(--river1),var(--river2));
+      box-shadow:inset 0 0 28px rgba(255,255,255,.28);
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:space-between;
+      padding:18px 12px;
+      min-height:360px;
+    }
+
+    .riverTitle{
+      color:#0f3f79;
+      font-weight:800;
+      letter-spacing:.4px;
+    }
+
+    .boatWrap{
+      width:100%;
+      flex:1;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .boat{
+      width:200px;
+      max-width:100%;
+      background:#7c4a17;
+      color:#fff7ed;
+      border-radius:999px 999px 18px 18px;
+      border:3px solid rgba(255,255,255,.22);
+      padding:14px 12px 10px;
+      box-shadow:0 14px 24px rgba(0,0,0,.22);
+      text-align:center;
+    }
+
+    .boat h3{
+      margin:0 0 8px;
+      font-size:16px;
+    }
+
+    .boatPassengers{
+      min-height:88px;
+      font-size:14px;
+      line-height:1.55;
+    }
+
+    .controls{
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:center;
+      gap:10px;
+      margin:18px 0 8px;
+    }
+
+    button{
+      border:none;
+      border-radius:14px;
+      padding:12px 16px;
+      font-weight:800;
+      cursor:pointer;
+      background:var(--brand);
+      color:#fff;
+      box-shadow:0 10px 22px rgba(217,119,6,.24);
+    }
+
+    button:hover{
+      filter:brightness(1.03);
+    }
+
+    .status{
+      max-width:1000px;
+      margin:0 auto;
+      background:rgba(255,255,255,.8);
+      border:1px solid var(--line);
+      border-radius:18px;
+      padding:14px 16px;
+      box-shadow:0 10px 25px rgba(0,0,0,.04);
+    }
+
+    .message{
+      min-height:24px;
+      font-weight:700;
+      color:#5b4630;
+      text-align:center;
+    }
+
+    .message.good{ color:var(--good); }
+    .message.bad{ color:var(--bad); }
+
+    .info{
+      margin-top:10px;
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+      color:#5b4630;
+      font-size:14px;
+    }
+
+    .card{
+      background:#fff;
+      border:1px solid rgba(0,0,0,.06);
+      border-radius:14px;
+      padding:12px 14px;
+    }
+
+    .card strong{
+      color:#9a6708;
+    }
+
+    .steps{
+      margin-top:6px;
+      line-height:1.7;
+      max-height:240px;
+      overflow:auto;
+      white-space:pre-line;
+    }
+
+    @media (max-width: 900px){
+      .layout{
+        grid-template-columns:1fr;
+      }
+      .river{
+        min-height:180px;
+      }
+      .info{
+        grid-template-columns:1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>3 Husbands and Wives River Crossing</h1>
+    <p class="subtitle">
+      Rule: No wife may stay on a bank with another husband unless her own husband is also on that bank.
+      The boat carries at most 3 people and needs at least 1 person to move.
+    </p>
+
+    <div class="layout">
+      <section class="bank">
+        <h2>Left Bank</h2>
+        <div class="people" id="leftBank"></div>
+      </section>
+
+      <section class="river">
+        <div class="riverTitle">River</div>
+        <div class="boatWrap">
+          <div class="boat">
+            <h3 id="boatTitle">Boat: Left Bank</h3>
+            <div class="boatPassengers" id="boatPassengers">No one selected</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="bank">
+        <h2>Right Bank</h2>
+        <div class="people" id="rightBank"></div>
+      </section>
+    </div>
+
+    <div class="controls">
+      <button onclick="crossRiver()">Move Boat</button>
+      <button onclick="undoMove()">Undo</button>
+      <button onclick="resetGame()">Reset</button>
+      <button onclick="autoSolve()">Auto Solve</button>
+    </div>
+
+    <div class="status">
+      <div class="message" id="message">Select 1 to 3 people from the bank where the boat is.</div>
+      <div class="info">
+        <div class="card">
+          <strong>Rules</strong>
+          <div class="steps">
+1. Boat capacity = 3
+2. At least 1 person must be in the boat
+3. A wife cannot stay with another husband unless her own husband is present
+          </div>
+        </div>
+        <div class="card">
+          <strong>Move Log</strong>
+          <div class="steps" id="log">No moves yet.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const MAX_BOAT_CAPACITY = 3;
+
+    const PEOPLE = [
+      { id: "H1", name: "Husband 1", spouse: "W1", type: "H", emoji: "🤵" },
+      { id: "W1", name: "Wife 1",    spouse: "H1", type: "W", emoji: "👰" },
+      { id: "H2", name: "Husband 2", spouse: "W2", type: "H", emoji: "🤵" },
+      { id: "W2", name: "Wife 2",    spouse: "H2", type: "W", emoji: "👰" },
+      { id: "H3", name: "Husband 3", spouse: "W3", type: "H", emoji: "🤵" },
+      { id: "W3", name: "Wife 3",    spouse: "H3", type: "W", emoji: "👰" }
+    ];
+
+    const personMap = Object.fromEntries(PEOPLE.map(p => [p.id, p]));
+
+    let state;
+
+    function initialState(){
+      return {
+        left: ["H1","W1","H2","W2","H3","W3"],
+        right: [],
+        boat: "left",
+        selected: [],
+        history: [],
+        log: []
+      };
+    }
+
+    function clone(x){
+      return JSON.parse(JSON.stringify(x));
+    }
+
+    function setMessage(text, type = ""){
+      const el = document.getElementById("message");
+      el.textContent = text;
+      el.className = "message" + (type ? " " + type : "");
+    }
+
+    function updateLog(){
+      const el = document.getElementById("log");
+      el.textContent = state.log.length ? state.log.join("\n") : "No moves yet.";
+    }
+
+    function render(){
+      renderBank("left");
+      renderBank("right");
+
+      document.getElementById("boatTitle").textContent =
+        "Boat: " + (state.boat === "left" ? "Left Bank" : "Right Bank");
+
+      const passengerText = state.selected.length
+        ? state.selected.map(id => `${personMap[id].emoji} ${personMap[id].id}`).join("<br>")
+        : "No one selected";
+
+      document.getElementById("boatPassengers").innerHTML = passengerText;
+
+      if(state.right.length === PEOPLE.length){
+        setMessage("Solved. Everyone crossed safely.", "good");
+      }
+
+      updateLog();
+    }
+
+    function renderBank(side){
+      const host = document.getElementById(side === "left" ? "leftBank" : "rightBank");
+      host.innerHTML = "";
+
+      state[side].forEach(id => {
+        const p = personMap[id];
+        const div = document.createElement("div");
+        div.className = "person";
+
+        const onBoatSide = side === state.boat;
+        if(!onBoatSide) div.classList.add("locked");
+        if(state.selected.includes(id)) div.classList.add("selected");
+
+        div.innerHTML = `
+          <span class="emoji">${p.emoji}</span>
+          <div>${p.id}</div>
+          <div class="meta">${p.name}</div>
+        `;
+
+        div.onclick = () => toggleSelect(id, side);
+        host.appendChild(div);
+      });
+    }
+
+    function toggleSelect(id, side){
+      if(side !== state.boat){
+        setMessage("Select only from the bank where the boat is.", "bad");
+        return;
+      }
+
+      const idx = state.selected.indexOf(id);
+      if(idx >= 0){
+        state.selected.splice(idx, 1);
+      } else {
+        if(state.selected.length >= MAX_BOAT_CAPACITY){
+          setMessage(`Boat can carry at most ${MAX_BOAT_CAPACITY} people.`, "bad");
+          return;
+        }
+        state.selected.push(id);
+      }
+      render();
+    }
+
+    function isBankSafe(bank){
+      const ids = new Set(bank);
+
+      for(const wife of PEOPLE.filter(p => p.type === "W")){
+        const wifeHere = ids.has(wife.id);
+        const ownHusbandHere = ids.has(wife.spouse);
+
+        if(!wifeHere || ownHusbandHere) continue;
+
+        for(const otherHusband of PEOPLE.filter(p => p.type === "H" && p.id !== wife.spouse)){
+          if(ids.has(otherHusband.id)) return false;
+        }
+      }
+
+      return true;
+    }
+
+    function isValidState(s){
+      return isBankSafe(s.left) && isBankSafe(s.right);
+    }
+
+    function crossRiver(){
+      if(state.selected.length < 1){
+        setMessage("Select at least 1 person to move the boat.", "bad");
+        return;
+      }
+
+      const from = state.boat;
+      const to = from === "left" ? "right" : "left";
+      const next = clone(state);
+
+      next.history.push(clone({
+        left: state.left,
+        right: state.right,
+        boat: state.boat,
+        selected: state.selected,
+        log: state.log
+      }));
+
+      for(const id of state.selected){
+        const idx = next[from].indexOf(id);
+        if(idx === -1){
+          setMessage("Selected person is not on the boat side.", "bad");
+          return;
+        }
+        next[from].splice(idx, 1);
+        next[to].push(id);
+      }
+
+      next.boat = to;
+      next.log.push(`${state.selected.join(" + ")} crossed to ${to}`);
+      next.selected = [];
+
+      if(!isValidState(next)){
+        setMessage("Invalid move. A wife is left with another husband without her own husband.", "bad");
+        return;
+      }
+
+      state = next;
+      setMessage("Move completed.", "good");
+      render();
+    }
+
+    function undoMove(){
+      if(!state.history.length){
+        setMessage("Nothing to undo.", "bad");
+        return;
+      }
+
+      const prev = state.history.pop();
+      state = {
+        left: prev.left,
+        right: prev.right,
+        boat: prev.boat,
+        selected: [],
+        history: state.history,
+        log: prev.log
+      };
+
+      setMessage("Last move undone.", "good");
+      render();
+    }
+
+    function resetGame(){
+      state = initialState();
+      setMessage("Game reset.");
+      render();
+    }
+
+    function sleep(ms){
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // Valid solution for capacity 3
+    async function autoSolve(){
+      resetGame();
+
+      const solution = [
+        ["W1","W2","W3"],
+        ["W1"],
+        ["H1","H2","H3"],
+        ["W2","W3"],
+        ["W1","W2","W3"]
+      ];
+
+      for(const step of solution){
+        state.selected = [...step];
+        render();
+        await sleep(650);
+        crossRiver();
+        await sleep(650);
+      }
+    }
+
+    resetGame();
+  </script>
+</body>
+</html>
