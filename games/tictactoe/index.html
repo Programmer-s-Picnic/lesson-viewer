@@ -3,523 +3,678 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Tic Tac Toe with #share</title>
+  <title>Tic Tac Toe via Hash Share</title>
   <meta name="theme-color" content="#d97706" />
   <style>
     :root{
-      --bg:#fff8ef;
+      --bg:#fff8eb;
       --panel:#ffffff;
-      --panel2:#fff3df;
-      --text:#1f2937;
+      --ink:#1f2937;
       --muted:#6b7280;
-      --line:#f0c78a;
-      --accent:#d97706;
-      --accent2:#f59e0b;
-      --win:#166534;
+      --line:#f3d9a4;
+      --brand:#d97706;
+      --brand2:#f59e0b;
+      --good:#166534;
+      --bad:#b91c1c;
       --shadow:0 20px 50px rgba(217,119,6,.12);
-      --radius:24px;
+      --radius:22px;
     }
 
     *{box-sizing:border-box}
+    html,body{margin:0;padding:0}
     body{
-      margin:0;
-      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-      color:var(--text);
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
       background:
-        radial-gradient(circle at top left, rgba(245,158,11,.16), transparent 30%),
-        radial-gradient(circle at bottom right, rgba(217,119,6,.12), transparent 28%),
-        linear-gradient(180deg,#fffaf3, #fff3e0 100%);
+        radial-gradient(circle at top left, #fff3d6 0%, #fff8eb 35%, #fffdf7 100%);
+      color:var(--ink);
       min-height:100vh;
-      display:grid;
-      place-items:center;
-      padding:24px;
     }
 
-    .app{
-      width:min(100%, 760px);
-      background:rgba(255,255,255,.82);
-      backdrop-filter: blur(10px);
-      border:1px solid rgba(217,119,6,.14);
-      border-radius:32px;
-      box-shadow:var(--shadow);
-      overflow:hidden;
+    .wrap{
+      max-width:980px;
+      margin:0 auto;
+      padding:24px 16px 50px;
     }
 
     .hero{
-      padding:26px 26px 12px;
-      background:linear-gradient(135deg, rgba(245,158,11,.12), rgba(255,255,255,.5));
-      border-bottom:1px solid rgba(217,119,6,.12);
+      background:linear-gradient(135deg, rgba(217,119,6,.08), rgba(245,158,11,.12));
+      border:1px solid rgba(217,119,6,.15);
+      border-radius:28px;
+      padding:24px;
+      box-shadow:var(--shadow);
+      margin-bottom:20px;
     }
 
     .eyebrow{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding:8px 12px;
+      display:inline-block;
+      padding:6px 12px;
       border-radius:999px;
-      background:var(--panel2);
-      border:1px solid var(--line);
-      color:var(--accent);
       font-size:12px;
-      font-weight:800;
-      letter-spacing:.08em;
-      text-transform:uppercase;
+      font-weight:700;
+      letter-spacing:.04em;
+      color:#92400e;
+      background:#ffedd5;
+      border:1px solid #fed7aa;
+      margin-bottom:12px;
     }
 
     h1{
-      margin:14px 0 8px;
-      font-size:clamp(28px,5vw,44px);
-      line-height:1.05;
+      margin:0 0 10px;
+      font-size:clamp(28px,4vw,44px);
+      line-height:1.1;
     }
 
     .sub{
       margin:0;
       color:var(--muted);
-      font-size:15px;
+      max-width:780px;
+      line-height:1.6;
     }
 
-    .main{
+    .grid{
       display:grid;
-      grid-template-columns: 1.1fr .9fr;
+      grid-template-columns: 1.05fr .95fr;
       gap:20px;
-      padding:22px;
+      align-items:start;
     }
 
-    @media (max-width: 760px){
-      .main{ grid-template-columns:1fr; }
+    @media (max-width: 860px){
+      .grid{grid-template-columns:1fr}
     }
 
     .card{
       background:var(--panel);
-      border:1px solid rgba(217,119,6,.12);
+      border:1px solid rgba(217,119,6,.14);
       border-radius:var(--radius);
-      box-shadow:0 12px 30px rgba(15,23,42,.05);
+      box-shadow:var(--shadow);
+      overflow:hidden;
     }
 
-    .board-wrap{
+    .cardHead{
+      padding:16px 18px;
+      border-bottom:1px solid var(--line);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+
+    .cardHead h2{
+      margin:0;
+      font-size:18px;
+    }
+
+    .cardBody{
       padding:18px;
     }
 
+    .boardWrap{
+      display:grid;
+      place-items:center;
+      padding:10px 0 6px;
+    }
+
     .board{
+      width:min(92vw, 420px);
+      aspect-ratio:1/1;
       display:grid;
       grid-template-columns:repeat(3,1fr);
-      gap:12px;
-      aspect-ratio:1/1;
+      gap:10px;
     }
 
     .cell{
       border:none;
       border-radius:22px;
-      background:linear-gradient(180deg,#fff,#fff7ed);
-      border:1px solid rgba(217,119,6,.18);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 10px 18px rgba(217,119,6,.08);
-      font-size:clamp(40px,8vw,72px);
-      font-weight:900;
-      color:var(--accent);
+      background:linear-gradient(180deg, #fffaf1, #fff1d6);
+      box-shadow: inset 0 0 0 1px rgba(217,119,6,.18), 0 10px 20px rgba(217,119,6,.08);
+      font-size:clamp(42px,8vw,72px);
+      font-weight:800;
+      color:#92400e;
       cursor:pointer;
-      transition:transform .12s ease, box-shadow .12s ease, background .12s ease;
+      transition:transform .12s ease, box-shadow .15s ease, background .2s ease;
     }
 
-    .cell:hover:not(:disabled){
-      transform:translateY(-2px);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.95), 0 16px 24px rgba(217,119,6,.14);
-      background:linear-gradient(180deg,#fff,#ffedd5);
+    .cell:hover{
+      transform:translateY(-1px);
+      box-shadow: inset 0 0 0 1px rgba(217,119,6,.22), 0 16px 30px rgba(217,119,6,.12);
+      background:linear-gradient(180deg, #fff8ea, #ffe8be);
     }
 
     .cell:disabled{
       cursor:not-allowed;
+      opacity:.92;
     }
 
     .cell.win{
-      color:var(--win);
-      background:linear-gradient(180deg,#f0fdf4,#dcfce7);
-      border-color:rgba(22,101,52,.24);
-    }
-
-    .side{
-      padding:18px;
-      display:flex;
-      flex-direction:column;
-      gap:16px;
+      background:linear-gradient(180deg, #dcfce7, #bbf7d0);
+      color:#166534;
+      box-shadow: inset 0 0 0 1px rgba(22,101,52,.18), 0 14px 28px rgba(22,101,52,.12);
     }
 
     .status{
-      padding:18px;
-      border-radius:22px;
-      background:linear-gradient(180deg,#fff,#fff7ed);
-      border:1px solid rgba(217,119,6,.15);
-    }
-
-    .label{
-      font-size:12px;
-      font-weight:800;
-      letter-spacing:.08em;
-      text-transform:uppercase;
-      color:var(--muted);
-      margin-bottom:8px;
-    }
-
-    .big{
-      font-size:24px;
-      font-weight:900;
-      line-height:1.15;
-    }
-
-    .turn-badges{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:10px;
-    }
-
-    .badge{
-      padding:14px;
+      margin-top:16px;
+      padding:14px 16px;
       border-radius:18px;
-      border:1px solid rgba(217,119,6,.12);
-      background:#fff;
-      text-align:center;
-      font-weight:800;
+      background:#fffbf3;
+      border:1px solid var(--line);
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:center;
+      flex-wrap:wrap;
     }
 
-    .badge.active{
-      background:linear-gradient(180deg,#fff7ed,#ffedd5);
-      border-color:rgba(217,119,6,.28);
-      color:var(--accent);
-      box-shadow:0 10px 20px rgba(217,119,6,.10);
+    .statusText{
+      font-weight:700;
     }
 
-    .actions{
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 12px;
+      border-radius:999px;
+      background:#fff7ed;
+      border:1px solid #fed7aa;
+      color:#9a3412;
+      font-size:13px;
+      font-weight:700;
+    }
+
+    .row{
       display:grid;
       grid-template-columns:1fr 1fr;
       gap:12px;
     }
 
-    .btn{
-      appearance:none;
-      border:none;
-      border-radius:18px;
-      padding:14px 16px;
-      font-size:15px;
-      font-weight:800;
-      cursor:pointer;
-      transition:transform .12s ease, opacity .12s ease, box-shadow .12s ease;
+    @media (max-width:560px){
+      .row{grid-template-columns:1fr}
     }
 
-    .btn:hover{
+    label{
+      display:block;
+      font-size:13px;
+      font-weight:700;
+      margin-bottom:8px;
+      color:#7c2d12;
+    }
+
+    input, textarea{
+      width:100%;
+      border:1px solid #f3d9a4;
+      background:#fffdf8;
+      color:var(--ink);
+      border-radius:16px;
+      padding:12px 14px;
+      font:inherit;
+      outline:none;
+    }
+
+    input:focus, textarea:focus{
+      border-color:#f59e0b;
+      box-shadow:0 0 0 4px rgba(245,158,11,.14);
+    }
+
+    .btns{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    button.btn, a.btn{
+      appearance:none;
+      border:none;
+      text-decoration:none;
+      cursor:pointer;
+      padding:12px 16px;
+      border-radius:16px;
+      font:inherit;
+      font-weight:800;
+      transition:transform .12s ease, opacity .15s ease, box-shadow .15s ease;
+    }
+
+    button.btn:hover, a.btn:hover{
       transform:translateY(-1px);
     }
 
-    .btn:active{
-      transform:translateY(0);
-    }
-
-    .btn-primary{
-      background:linear-gradient(135deg,var(--accent),var(--accent2));
+    .primary{
+      background:linear-gradient(135deg, var(--brand), var(--brand2));
       color:white;
-      box-shadow:0 14px 24px rgba(217,119,6,.22);
+      box-shadow:0 14px 28px rgba(217,119,6,.22);
     }
 
-    .btn-secondary{
-      background:#fff;
-      color:var(--text);
-      border:1px solid rgba(217,119,6,.18);
+    .soft{
+      background:#fff7ed;
+      color:#9a3412;
+      border:1px solid #fed7aa;
     }
 
-    .mini{
-      padding:14px 16px;
-      border-radius:20px;
+    .ghost{
       background:#fff;
-      border:1px dashed rgba(217,119,6,.22);
+      color:#92400e;
+      border:1px solid #f3d9a4;
+    }
+
+    .muted{
       color:var(--muted);
       font-size:14px;
-      line-height:1.5;
+      line-height:1.6;
     }
 
-    .share-link{
-      margin-top:8px;
-      display:block;
-      width:100%;
-      padding:12px 14px;
-      border-radius:14px;
-      border:1px solid rgba(217,119,6,.18);
-      background:#fffaf5;
-      color:#7c2d12;
+    .log{
+      background:#0f172a;
+      color:#e5e7eb;
+      padding:14px;
+      border-radius:18px;
+      overflow:auto;
+      font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-size:13px;
-      word-break:break-all;
+      line-height:1.55;
+      white-space:pre-wrap;
+      word-break:break-word;
     }
 
-    .foot{
-      padding:0 22px 22px;
+    .tiny{
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    .footer{
+      margin-top:22px;
+      text-align:center;
       color:var(--muted);
       font-size:13px;
     }
+
+    .success{color:var(--good);font-weight:700}
+    .danger{color:var(--bad);font-weight:700}
   </style>
 </head>
 <body>
-  <div class="app">
-    <div class="hero">
-      <div class="eyebrow">Programmer’s Picnic • Tic Tac Toe</div>
-      <h1>Tic Tac Toe with #share</h1>
+  <div class="wrap">
+    <section class="hero">
+      <div class="eyebrow">Programmer's Picnic • Share by #</div>
+      <h1>Tic Tac Toe Online via URL Hash</h1>
       <p class="sub">
-        Make moves, copy the link, and share the exact board state through the URL hash.
+        Make a move, then send the updated link. The game state is stored in the URL hash, so both players can continue the same match by sharing the latest link.
       </p>
-    </div>
+    </section>
 
-    <div class="main">
-      <section class="card board-wrap">
-        <div class="board" id="board"></div>
+    <div class="grid">
+      <section class="card">
+        <div class="cardHead">
+          <h2>Game Board</h2>
+          <div class="pill" id="turnPill">Turn: X</div>
+        </div>
+        <div class="cardBody">
+          <div class="boardWrap">
+            <div class="board" id="board"></div>
+          </div>
+
+          <div class="status">
+            <div class="statusText" id="statusText">Loading game...</div>
+            <div class="btns">
+              <button class="btn soft" id="resetBtn">New Game</button>
+              <button class="btn ghost" id="undoBtn">Undo</button>
+            </div>
+          </div>
+        </div>
       </section>
 
-      <aside class="card side">
-        <div class="status">
-          <div class="label">Game Status</div>
-          <div class="big" id="statusText">Player X to move</div>
+      <aside class="card">
+        <div class="cardHead">
+          <h2>Share Controls</h2>
         </div>
+        <div class="cardBody">
+          <div class="row">
+            <div>
+              <label for="xName">Player X Name</label>
+              <input id="xName" type="text" placeholder="Player X" maxlength="30" />
+            </div>
+            <div>
+              <label for="oName">Player O Name</label>
+              <input id="oName" type="text" placeholder="Player O" maxlength="30" />
+            </div>
+          </div>
 
-        <div class="turn-badges">
-          <div class="badge active" id="badgeX">Player X</div>
-          <div class="badge" id="badgeO">Player O</div>
-        </div>
+          <div style="height:12px"></div>
 
-        <div class="actions">
-          <button class="btn btn-primary" id="restartBtn">Restart</button>
-          <button class="btn btn-secondary" id="shareBtn">Copy #share Link</button>
-        </div>
+          <label for="shareLink">Current Game Link</label>
+          <textarea id="shareLink" rows="5" readonly></textarea>
 
-        <div class="mini">
-          <strong>How it works:</strong><br />
-          The board, turn, result, and winning cells are encoded into the URL hash.
-          Open or send the link and the same position appears automatically.
-          <input class="share-link" id="shareLink" readonly />
+          <div style="height:12px"></div>
+
+          <div class="btns">
+            <button class="btn primary" id="copyBtn">Copy Link</button>
+            <button class="btn soft" id="shareBtn">Share Current Position</button>
+            <button class="btn ghost" id="openFreshBtn">Fresh Link</button>
+          </div>
+
+          <div style="height:16px"></div>
+
+          <p class="muted">
+            Suggested flow: Player X makes a move, taps <b>Share Current Position</b>, sends it on WhatsApp, and Player O opens that link to continue.
+          </p>
+
+          <div style="height:12px"></div>
+
+          <label>Move History</label>
+          <div class="log" id="moveLog">No moves yet.</div>
+
+          <div style="height:12px"></div>
+          <div class="tiny">
+            State stored in hash format only. No server, login, or database required.
+          </div>
         </div>
       </aside>
     </div>
 
-    <div class="foot">
-      Tip: after every move, the URL hash updates automatically.
+    <div class="footer">
+      Built as a static shareable Tic Tac Toe game using URL hash.
     </div>
   </div>
 
   <script>
-    const boardEl = document.getElementById("board");
-    const statusText = document.getElementById("statusText");
-    const badgeX = document.getElementById("badgeX");
-    const badgeO = document.getElementById("badgeO");
-    const restartBtn = document.getElementById("restartBtn");
-    const shareBtn = document.getElementById("shareBtn");
-    const shareLinkInput = document.getElementById("shareLink");
+    (function(){
+      "use strict";
 
-    const WIN_LINES = [
-      [0,1,2],[3,4,5],[6,7,8],
-      [0,3,6],[1,4,7],[2,5,8],
-      [0,4,8],[2,4,6]
-    ];
+      const boardEl = document.getElementById("board");
+      const statusText = document.getElementById("statusText");
+      const turnPill = document.getElementById("turnPill");
+      const resetBtn = document.getElementById("resetBtn");
+      const undoBtn = document.getElementById("undoBtn");
+      const copyBtn = document.getElementById("copyBtn");
+      const shareBtn = document.getElementById("shareBtn");
+      const openFreshBtn = document.getElementById("openFreshBtn");
+      const shareLink = document.getElementById("shareLink");
+      const xNameInput = document.getElementById("xName");
+      const oNameInput = document.getElementById("oName");
+      const moveLog = document.getElementById("moveLog");
 
-    let state = createFreshState();
+      const WIN_LINES = [
+        [0,1,2],[3,4,5],[6,7,8],
+        [0,3,6],[1,4,7],[2,5,8],
+        [0,4,8],[2,4,6]
+      ];
 
-    function createFreshState() {
-      return {
-        board: Array(9).fill(""),
-        turn: "X",
-        winner: "",
-        draw: false,
-        winLine: []
-      };
-    }
+      function defaultState(){
+        return {
+          v: 1,
+          board: ["","","","","","","","",""],
+          turn: "X",
+          xName: "Player X",
+          oName: "Player O",
+          winner: "",
+          winningLine: [],
+          draw: false,
+          history: []
+        };
+      }
 
-    function getWinner(board) {
-      for (const line of WIN_LINES) {
-        const [a,b,c] = line;
-        if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-          return { winner: board[a], line };
+      function encodeState(state){
+        const json = JSON.stringify(state);
+        return "#" + encodeURIComponent(btoa(unescape(encodeURIComponent(json))));
+      }
+
+      function decodeState(hash){
+        try{
+          if(!hash || hash === "#") return defaultState();
+          const raw = hash.slice(1);
+          const json = decodeURIComponent(escape(atob(decodeURIComponent(raw))));
+          const parsed = JSON.parse(json);
+
+          if(!parsed || !Array.isArray(parsed.board) || parsed.board.length !== 9){
+            return defaultState();
+          }
+
+          return {
+            v: 1,
+            board: parsed.board.map(v => (v === "X" || v === "O") ? v : ""),
+            turn: parsed.turn === "O" ? "O" : "X",
+            xName: safeName(parsed.xName, "Player X"),
+            oName: safeName(parsed.oName, "Player O"),
+            winner: parsed.winner === "X" || parsed.winner === "O" ? parsed.winner : "",
+            winningLine: Array.isArray(parsed.winningLine) ? parsed.winningLine.filter(n => Number.isInteger(n) && n >= 0 && n < 9) : [],
+            draw: !!parsed.draw,
+            history: Array.isArray(parsed.history) ? parsed.history.slice(0, 9) : []
+          };
+        }catch(e){
+          return defaultState();
         }
       }
-      return null;
-    }
 
-    function evaluateState() {
-      const result = getWinner(state.board);
+      function safeName(value, fallback){
+        const s = String(value || "").trim();
+        return s ? s.slice(0,30) : fallback;
+      }
 
-      if (result) {
+      function playerLabel(symbol, state){
+        return symbol === "X" ? state.xName : state.oName;
+      }
+
+      function checkWinner(board){
+        for(const line of WIN_LINES){
+          const [a,b,c] = line;
+          if(board[a] && board[a] === board[b] && board[a] === board[c]){
+            return { winner: board[a], winningLine: line, draw: false };
+          }
+        }
+        if(board.every(Boolean)){
+          return { winner: "", winningLine: [], draw: true };
+        }
+        return { winner: "", winningLine: [], draw: false };
+      }
+
+      function getState(){
+        return decodeState(location.hash);
+      }
+
+      function setState(state, replace){
+        const hash = encodeState(state);
+        if(replace){
+          history.replaceState(null, "", location.pathname + location.search + hash);
+        }else{
+          location.hash = hash;
+        }
+        render();
+      }
+
+      function buildCells(state){
+        boardEl.innerHTML = "";
+        state.board.forEach((value, index) => {
+          const btn = document.createElement("button");
+          btn.className = "cell";
+          if(state.winningLine.includes(index)) btn.classList.add("win");
+          btn.type = "button";
+          btn.textContent = value;
+          btn.disabled = !!value || !!state.winner || state.draw;
+          btn.setAttribute("aria-label", "Cell " + (index + 1));
+          btn.addEventListener("click", () => makeMove(index));
+          boardEl.appendChild(btn);
+        });
+      }
+
+      function makeMove(index){
+        const state = getState();
+        if(state.board[index] || state.winner || state.draw) return;
+
+        state.board[index] = state.turn;
+        state.history.push({
+          player: state.turn,
+          index,
+          stamp: new Date().toISOString()
+        });
+
+        const result = checkWinner(state.board);
         state.winner = result.winner;
-        state.draw = false;
-        state.winLine = result.line;
-        return;
+        state.winningLine = result.winningLine;
+        state.draw = result.draw;
+
+        if(!state.winner && !state.draw){
+          state.turn = state.turn === "X" ? "O" : "X";
+        }
+
+        setState(state, false);
       }
 
-      if (state.board.every(Boolean)) {
+      function renderStatus(state){
+        if(state.winner){
+          const winnerName = playerLabel(state.winner, state);
+          statusText.innerHTML = '<span class="success">' + escapeHtml(winnerName) + " (" + state.winner + ')</span> wins!';
+          turnPill.textContent = "Winner: " + state.winner;
+          return;
+        }
+        if(state.draw){
+          statusText.innerHTML = '<span class="danger">Draw game.</span> Start a new match or undo the last move.';
+          turnPill.textContent = "Draw";
+          return;
+        }
+        const currentName = playerLabel(state.turn, state);
+        statusText.textContent = currentName + " (" + state.turn + ") to play";
+        turnPill.textContent = "Turn: " + state.turn;
+      }
+
+      function renderLink(state){
+        const full = location.origin + location.pathname + location.search + encodeState(state);
+        shareLink.value = full;
+      }
+
+      function renderInputs(state){
+        if(document.activeElement !== xNameInput) xNameInput.value = state.xName;
+        if(document.activeElement !== oNameInput) oNameInput.value = state.oName;
+      }
+
+      function renderHistory(state){
+        if(!state.history.length){
+          moveLog.textContent = "No moves yet.";
+          return;
+        }
+        const lines = state.history.map((m, i) => {
+          const row = Math.floor(m.index / 3) + 1;
+          const col = (m.index % 3) + 1;
+          const name = m.player === "X" ? state.xName : state.oName;
+          return (i + 1) + ". " + name + " (" + m.player + ") → row " + row + ", col " + col;
+        });
+        moveLog.textContent = lines.join("\\n");
+      }
+
+      function render(){
+        const state = getState();
+        buildCells(state);
+        renderStatus(state);
+        renderInputs(state);
+        renderLink(state);
+        renderHistory(state);
+      }
+
+      function updateNames(){
+        const state = getState();
+        state.xName = safeName(xNameInput.value, "Player X");
+        state.oName = safeName(oNameInput.value, "Player O");
+        setState(state, true);
+      }
+
+      function newGame(){
+        const current = getState();
+        const fresh = defaultState();
+        fresh.xName = current.xName || "Player X";
+        fresh.oName = current.oName || "Player O";
+        setState(fresh, false);
+      }
+
+      function undo(){
+        const state = getState();
+        if(!state.history.length) return;
+
+        const last = state.history.pop();
+        state.board[last.index] = "";
+        state.turn = last.player;
         state.winner = "";
-        state.draw = true;
-        state.winLine = [];
-        return;
+        state.winningLine = [];
+        state.draw = false;
+
+        const result = checkWinner(state.board);
+        state.winner = result.winner;
+        state.winningLine = result.winningLine;
+        state.draw = result.draw;
+
+        setState(state, false);
       }
 
-      state.winner = "";
-      state.draw = false;
-      state.winLine = [];
-    }
-
-    function render() {
-      boardEl.innerHTML = "";
-
-      state.board.forEach((value, index) => {
-        const btn = document.createElement("button");
-        btn.className = "cell";
-        if (state.winLine.includes(index)) btn.classList.add("win");
-        btn.textContent = value;
-        btn.disabled = !!value || !!state.winner || state.draw;
-        btn.addEventListener("click", () => handleMove(index));
-        boardEl.appendChild(btn);
-      });
-
-      if (state.winner) {
-        statusText.textContent = `Player ${state.winner} wins`;
-      } else if (state.draw) {
-        statusText.textContent = "It’s a draw";
-      } else {
-        statusText.textContent = `Player ${state.turn} to move`;
+      async function copyCurrentLink(){
+        try{
+          await navigator.clipboard.writeText(shareLink.value);
+          copyBtn.textContent = "Copied!";
+          setTimeout(() => copyBtn.textContent = "Copy Link", 1200);
+        }catch(e){
+          shareLink.select();
+          document.execCommand("copy");
+          copyBtn.textContent = "Copied!";
+          setTimeout(() => copyBtn.textContent = "Copy Link", 1200);
+        }
       }
 
-      badgeX.classList.toggle("active", !state.winner && !state.draw && state.turn === "X");
-      badgeO.classList.toggle("active", !state.winner && !state.draw && state.turn === "O");
+      async function shareCurrent(){
+        const url = shareLink.value;
+        const state = getState();
+        const text =
+          "Tic Tac Toe move shared\\n" +
+          state.xName + " (X) vs " + state.oName + " (O)\\n" +
+          (state.winner
+            ? ("Winner: " + playerLabel(state.winner, state) + " (" + state.winner + ")")
+            : state.draw
+              ? "Current status: Draw"
+              : ("Next turn: " + playerLabel(state.turn, state) + " (" + state.turn + ")")
+          ) +
+          "\\n\\nOpen this link:";
 
-      shareLinkInput.value = window.location.href;
-    }
+        if(navigator.share){
+          try{
+            await navigator.share({
+              title: "Tic Tac Toe via Hash",
+              text,
+              url
+            });
+            return;
+          }catch(e){}
+        }
 
-    function handleMove(index) {
-      if (state.board[index] || state.winner || state.draw) return;
-
-      state.board[index] = state.turn;
-      evaluateState();
-
-      if (!state.winner && !state.draw) {
-        state.turn = state.turn === "X" ? "O" : "X";
+        window.open(
+          "https://wa.me/?text=" + encodeURIComponent(text + "\\n" + url),
+          "_blank"
+        );
       }
 
-      writeHashFromState();
-      render();
-    }
-
-    function restartGame() {
-      state = createFreshState();
-      writeHashFromState();
-      render();
-    }
-
-    function serializeState() {
-      return {
-        b: state.board.map(v => v || "-").join(""),
-        t: state.turn,
-        w: state.winner || "-",
-        d: state.draw ? 1 : 0,
-        l: state.winLine.length ? state.winLine.join(",") : "-"
-      };
-    }
-
-    function deserializeState(obj) {
-      const next = createFreshState();
-
-      if (!obj || typeof obj !== "object") return next;
-
-      const b = String(obj.b || "---------").slice(0, 9).padEnd(9, "-");
-      next.board = [...b].map(ch => (ch === "X" || ch === "O") ? ch : "");
-
-      next.turn = obj.t === "O" ? "O" : "X";
-      next.winner = obj.w === "X" || obj.w === "O" ? obj.w : "";
-      next.draw = Number(obj.d) === 1;
-
-      if (typeof obj.l === "string" && obj.l !== "-") {
-        next.winLine = obj.l
-          .split(",")
-          .map(n => Number(n))
-          .filter(n => Number.isInteger(n) && n >= 0 && n <= 8);
+      function openFresh(){
+        const clean = location.origin + location.pathname + location.search;
+        window.open(clean, "_blank");
       }
 
-      // Re-evaluate to keep it trustworthy
-      const result = getWinner(next.board);
-      if (result) {
-        next.winner = result.winner;
-        next.draw = false;
-        next.winLine = result.line;
-      } else if (next.board.every(Boolean)) {
-        next.winner = "";
-        next.draw = true;
-        next.winLine = [];
-      } else {
-        next.winner = "";
-        next.draw = false;
-        next.winLine = [];
+      function escapeHtml(str){
+        return String(str)
+          .replaceAll("&","&amp;")
+          .replaceAll("<","&lt;")
+          .replaceAll(">","&gt;")
+          .replaceAll('"',"&quot;")
+          .replaceAll("'","&#39;");
       }
 
-      // Fix turn if needed
-      const xCount = next.board.filter(v => v === "X").length;
-      const oCount = next.board.filter(v => v === "O").length;
+      xNameInput.addEventListener("input", updateNames);
+      oNameInput.addEventListener("input", updateNames);
+      resetBtn.addEventListener("click", newGame);
+      undoBtn.addEventListener("click", undo);
+      copyBtn.addEventListener("click", copyCurrentLink);
+      shareBtn.addEventListener("click", shareCurrent);
+      openFreshBtn.addEventListener("click", openFresh);
+      window.addEventListener("hashchange", render);
 
-      if (!next.winner && !next.draw) {
-        next.turn = xCount <= oCount ? "X" : "O";
+      if(!location.hash){
+        setState(defaultState(), true);
+      }else{
+        render();
       }
-
-      return next;
-    }
-
-    function encodeState(obj) {
-      return btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
-    }
-
-    function decodeState(str) {
-      return JSON.parse(decodeURIComponent(escape(atob(str))));
-    }
-
-    function writeHashFromState() {
-      const encoded = encodeState(serializeState());
-      const newHash = `#share=${encoded}`;
-      history.replaceState(null, "", newHash);
-      shareLinkInput.value = window.location.href;
-    }
-
-    function loadStateFromHash() {
-      const hash = window.location.hash || "";
-      const match = hash.match(/#share=([^&]+)/);
-
-      if (!match) {
-        state = createFreshState();
-        writeHashFromState();
-        return;
-      }
-
-      try {
-        const decoded = decodeState(match[1]);
-        state = deserializeState(decoded);
-      } catch (err) {
-        state = createFreshState();
-        writeHashFromState();
-      }
-    }
-
-    async function copyShareLink() {
-      const url = window.location.href;
-      try {
-        await navigator.clipboard.writeText(url);
-        shareBtn.textContent = "Copied";
-        setTimeout(() => shareBtn.textContent = "Copy #share Link", 1200);
-      } catch {
-        shareLinkInput.focus();
-        shareLinkInput.select();
-        document.execCommand("copy");
-        shareBtn.textContent = "Copied";
-        setTimeout(() => shareBtn.textContent = "Copy #share Link", 1200);
-      }
-    }
-
-    restartBtn.addEventListener("click", restartGame);
-    shareBtn.addEventListener("click", copyShareLink);
-
-    window.addEventListener("hashchange", () => {
-      loadStateFromHash();
-      render();
-    });
-
-    loadStateFromHash();
-    render();
+    })();
   </script>
 </body>
 </html>
