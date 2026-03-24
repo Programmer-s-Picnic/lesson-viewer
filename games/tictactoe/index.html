@@ -3,14 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Programmer's Picnic — Tic Tac Toe Share T-T-T</title>
-  <script async="" crossorigin="anonymous" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8321261883090494"></script>
+  <title>Programmer's Picnic — Tic Tac Toe Share V4</title>
   <meta name="theme-color" content="#d97706" />
   <style>
     :root{
       --bg:#fff8eb;
       --bg2:#fffdf8;
-      --panel:rgba(255,255,255,.94);
+      --panel:rgba(255,255,255,.95);
       --ink:#1f2937;
       --muted:#6b7280;
       --brand:#d97706;
@@ -33,12 +32,11 @@
       min-height:100vh;
       font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
       color:var(--ink);
-      background:
-        radial-gradient(circle at top left,#fff3d1 0%,#fff8eb 38%,#fffdf8 100%);
+      background:radial-gradient(circle at top left,#fff3d1 0%,#fff8eb 38%,#fffdf8 100%);
     }
 
     .wrap{
-      max-width:1200px;
+      max-width:1260px;
       margin:0 auto;
       padding:22px 16px 42px;
     }
@@ -74,20 +72,25 @@
 
     .sub{
       margin:0;
-      max-width:860px;
+      max-width:900px;
       color:var(--muted);
       line-height:1.65;
     }
 
     .layout{
       display:grid;
-      grid-template-columns:minmax(320px,1.06fr) minmax(320px,.94fr);
+      grid-template-columns:minmax(320px,1.05fr) minmax(320px,.95fr);
       gap:18px;
       align-items:start;
     }
 
-    @media (max-width:950px){
+    @media (max-width:980px){
       .layout{grid-template-columns:1fr}
+    }
+
+    .stack{
+      display:grid;
+      gap:18px;
     }
 
     .card{
@@ -217,7 +220,7 @@
 
     .roundBar{
       display:grid;
-      grid-template-columns:1fr auto auto;
+      grid-template-columns:1fr auto auto auto;
       gap:12px;
       align-items:center;
       margin-bottom:14px;
@@ -227,7 +230,11 @@
       background:#fffaf3;
     }
 
-    @media (max-width:640px){
+    @media (max-width:760px){
+      .roundBar{grid-template-columns:1fr 1fr}
+    }
+
+    @media (max-width:520px){
       .roundBar{grid-template-columns:1fr}
     }
 
@@ -235,14 +242,25 @@
       display:grid;
       place-items:center;
       padding:4px 0 8px;
+      position:relative;
     }
 
     .board{
-      width:min(92vw,430px);
+      width:min(92vw,460px);
       aspect-ratio:1/1;
       display:grid;
-      grid-template-columns:repeat(3,1fr);
       gap:12px;
+      position:relative;
+      z-index:2;
+    }
+
+    .board.size3{
+      grid-template-columns:repeat(3,1fr);
+    }
+
+    .board.size5{
+      grid-template-columns:repeat(5,1fr);
+      width:min(94vw,560px);
     }
 
     .cell{
@@ -252,13 +270,23 @@
       box-shadow:
         inset 0 0 0 1px rgba(217,119,6,.18),
         0 12px 24px rgba(217,119,6,.10);
-      font-size:clamp(44px,8vw,78px);
       font-weight:900;
       color:#92400e;
       cursor:pointer;
       transition:transform .12s ease, box-shadow .15s ease, background .18s ease;
       position:relative;
       overflow:hidden;
+      min-height:88px;
+    }
+
+    .board.size3 .cell{
+      font-size:clamp(44px,8vw,78px);
+    }
+
+    .board.size5 .cell{
+      font-size:clamp(24px,4.2vw,42px);
+      min-height:72px;
+      border-radius:20px;
     }
 
     .cell:hover:not(:disabled){
@@ -292,10 +320,37 @@
       pointer-events:none;
     }
 
+    .board.size5 .cell.last::after{
+      border-radius:20px;
+    }
+
     @keyframes popWin{
       0%{transform:scale(.9)}
       55%{transform:scale(1.06)}
       100%{transform:scale(1)}
+    }
+
+    .confetti{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      overflow:hidden;
+      border-radius:30px;
+      z-index:1;
+    }
+
+    .confetti span{
+      position:absolute;
+      width:10px;
+      height:18px;
+      border-radius:4px;
+      opacity:.9;
+      animation:fall 1.7s linear forwards;
+    }
+
+    @keyframes fall{
+      0%{transform:translateY(-30px) rotate(0deg)}
+      100%{transform:translateY(420px) rotate(520deg);opacity:0}
     }
 
     .status{
@@ -338,10 +393,6 @@
       gap:12px;
     }
 
-    @media (max-width:580px){
-      .grid2{grid-template-columns:1fr}
-    }
-
     .grid3{
       display:grid;
       grid-template-columns:repeat(3,1fr);
@@ -350,6 +401,10 @@
 
     @media (max-width:760px){
       .grid3{grid-template-columns:1fr}
+    }
+
+    @media (max-width:580px){
+      .grid2{grid-template-columns:1fr}
     }
 
     label{
@@ -563,197 +618,335 @@
       border:1px solid #bfdbfe;
       color:var(--blue);
     }
+
+    details.helpBox{
+      border:1px solid var(--line);
+      border-radius:18px;
+      background:#fffaf2;
+      padding:0;
+      overflow:hidden;
+    }
+
+    details.helpBox summary{
+      list-style:none;
+      cursor:pointer;
+      padding:16px 18px;
+      font-weight:900;
+      color:#92400e;
+      user-select:none;
+      background:#fff7ed;
+      border-bottom:1px solid transparent;
+    }
+
+    details.helpBox[open] summary{
+      border-bottom-color:var(--line);
+    }
+
+    .helpContent{
+      padding:16px 18px;
+      color:var(--ink);
+      line-height:1.65;
+    }
+
+    .helpContent h3{
+      margin:0 0 8px;
+      font-size:16px;
+      color:#7c2d12;
+    }
+
+    .helpContent p{
+      margin:0 0 12px;
+      color:var(--muted);
+    }
+
+    .noteList{
+      display:grid;
+      gap:10px;
+    }
+
+    .noteItem{
+      border:1px solid rgba(255,255,255,.08);
+      background:#111827;
+      color:#e5e7eb;
+      border-radius:14px;
+      padding:10px 12px;
+      font-size:13px;
+      line-height:1.5;
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
     <section class="hero">
-      <div class="badge">Programmer's Picnic • Tic Tac Toe • Share by # • T-T-T</div>
-      <h1>Tic Tac Toe Online Share T-T-T</h1>
+      <div class="badge">Programmer's Picnic • Tic Tac Toe • Share by # • V4</div>
+      <h1>Tic Tac Toe Online Share V4</h1>
       <p class="sub">
-        T-T-T adds score across rounds, player avatars, a move timer, sound effects, and a play again popup. The full game state still lives inside the URL hash, so the latest shared link carries the current match and score.
+        V4 adds 3x3 and 5x5 boards, match modes, replay, a mini shared notes section, optional computer player, confetti, and a help section. The full latest state still travels in the URL hash.
       </p>
     </section>
 
     <div class="layout">
-      <section class="card">
-        <div class="cardHead">
-          <h2>Game Board</h2>
-          <div class="pill" id="rolePill">Role: Spectator</div>
-        </div>
-        <div class="cardBody">
-          <div class="scoreRow">
-            <div class="scoreCard" id="scoreXCard">
-              <div class="scoreTop">
-                <div class="playerTag">
-                  <div class="avatar" id="xAvatarView">❌</div>
-                  <div class="playerMeta">
-                    <div class="name" id="xNameView">Player X</div>
-                    <div class="side">Player X</div>
+      <div class="stack">
+        <section class="card">
+          <div class="cardHead">
+            <h2>Game Board</h2>
+            <div class="pill" id="rolePill">Role: Spectator</div>
+          </div>
+          <div class="cardBody">
+            <div class="scoreRow">
+              <div class="scoreCard" id="scoreXCard">
+                <div class="scoreTop">
+                  <div class="playerTag">
+                    <div class="avatar" id="xAvatarView">❌</div>
+                    <div class="playerMeta">
+                      <div class="name" id="xNameView">Player X</div>
+                      <div class="side">Player X</div>
+                    </div>
                   </div>
+                  <div class="scoreNum" id="xScoreView">0</div>
                 </div>
-                <div class="scoreNum" id="xScoreView">0</div>
+              </div>
+
+              <div class="vsBox" id="seriesBox">VS</div>
+
+              <div class="scoreCard" id="scoreOCard">
+                <div class="scoreTop">
+                  <div class="playerTag">
+                    <div class="avatar" id="oAvatarView">⭕</div>
+                    <div class="playerMeta">
+                      <div class="name" id="oNameView">Player O</div>
+                      <div class="side">Player O</div>
+                    </div>
+                  </div>
+                  <div class="scoreNum" id="oScoreView">0</div>
+                </div>
               </div>
             </div>
 
-            <div class="vsBox">VS</div>
+            <div class="roundBar">
+              <div class="pill" id="turnPill">Turn: X</div>
+              <div class="pill timerPill" id="timerPill">Timer: 20s</div>
+              <div class="pill" id="roundPill">Round: 1</div>
+              <div class="pill" id="boardModePill">Board: 3x3</div>
+            </div>
 
-            <div class="scoreCard" id="scoreOCard">
-              <div class="scoreTop">
-                <div class="playerTag">
-                  <div class="avatar" id="oAvatarView">⭕</div>
-                  <div class="playerMeta">
-                    <div class="name" id="oNameView">Player O</div>
-                    <div class="side">Player O</div>
-                  </div>
-                </div>
-                <div class="scoreNum" id="oScoreView">0</div>
+            <div class="banner" id="banner"></div>
+
+            <div class="boardWrap">
+              <div class="confetti" id="confetti"></div>
+              <div class="board size3" id="board"></div>
+            </div>
+
+            <div class="status">
+              <div class="statusMain">
+                <div class="statusText" id="statusText">Loading...</div>
+                <div class="statusHint" id="statusHint">Please wait.</div>
+              </div>
+              <div class="btnRow">
+                <button class="btn soft" id="undoBtn">Undo</button>
+                <button class="btn ghost" id="replayBtn">Replay Round</button>
+                <button class="btn ghost" id="newRoundBtn">New Round</button>
+                <button class="btn ghost" id="resetMatchBtn">Reset Match</button>
               </div>
             </div>
           </div>
+        </section>
 
-          <div class="roundBar">
-            <div class="pill" id="turnPill">Turn: X</div>
-            <div class="pill timerPill" id="timerPill">Timer: 20s</div>
-            <div class="pill" id="roundPill">Round: 1</div>
+        <section class="card">
+          <div class="cardHead">
+            <h2>Help</h2>
+            <div class="pill">Guide</div>
           </div>
+          <div class="cardBody">
+            <details class="helpBox" open>
+              <summary>How to use this game</summary>
+              <div class="helpContent">
+                <h3>Quick start</h3>
+                <p>Open the page, set player names, and choose whether you want 3x3 or 5x5. Then copy the X link for one player and the O link for the other player.</p>
 
-          <div class="banner" id="banner"></div>
+                <h3>How online sharing works</h3>
+                <p>Every move updates the URL hash. After making a move, the current player shares the updated link. The other player opens that new link and continues.</p>
 
-          <div class="boardWrap">
-            <div class="board" id="board"></div>
+                <h3>Roles</h3>
+                <p>X link lets only X play on X turns. O link lets only O play on O turns. Spectator link is watch-only mode.</p>
+
+                <h3>Board rules</h3>
+                <p>In 3x3, three in a row wins. In 5x5, four in a row wins. The game checks horizontal, vertical, and diagonal lines.</p>
+
+                <h3>Match modes</h3>
+                <p>Free Play keeps going round after round. Best of 3 and Best of 5 stop when a player reaches the required wins.</p>
+
+                <h3>Computer player</h3>
+                <p>If Computer O is enabled, O will automatically make a move after X plays. This works best when O is meant to be controlled by the page instead of a person.</p>
+
+                <h3>Replay</h3>
+                <p>The Replay Round button replays the current round move by move using the saved move history.</p>
+              </div>
+            </details>
           </div>
+        </section>
+      </div>
 
-          <div class="status">
-            <div class="statusMain">
-              <div class="statusText" id="statusText">Loading...</div>
-              <div class="statusHint" id="statusHint">Please wait.</div>
+      <div class="stack">
+        <section class="card">
+          <div class="cardHead">
+            <h2>Players, Match & Share</h2>
+            <div class="pill" id="modePill">Hash Sync On</div>
+          </div>
+          <div class="cardBody">
+            <div class="grid2">
+              <div>
+                <label for="xName">Player X Name</label>
+                <input id="xName" type="text" maxlength="32" placeholder="Player X">
+              </div>
+              <div>
+                <label for="oName">Player O Name</label>
+                <input id="oName" type="text" maxlength="32" placeholder="Player O">
+              </div>
             </div>
+
+            <div style="height:12px"></div>
+
+            <div class="grid2">
+              <div>
+                <label for="xAvatar">Avatar / Emoji for X</label>
+                <input id="xAvatar" type="text" maxlength="4" placeholder="❌">
+              </div>
+              <div>
+                <label for="oAvatar">Avatar / Emoji for O</label>
+                <input id="oAvatar" type="text" maxlength="4" placeholder="⭕">
+              </div>
+            </div>
+
+            <div style="height:12px"></div>
+
+            <div class="grid3">
+              <div>
+                <label for="boardSize">Board Mode</label>
+                <select id="boardSize">
+                  <option value="3">3x3</option>
+                  <option value="5">5x5</option>
+                </select>
+              </div>
+              <div>
+                <label for="matchMode">Match Mode</label>
+                <select id="matchMode">
+                  <option value="free">Free Play</option>
+                  <option value="bo3">Best of 3</option>
+                  <option value="bo5">Best of 5</option>
+                </select>
+              </div>
+              <div>
+                <label for="timerSeconds">Turn Timer (seconds)</label>
+                <select id="timerSeconds">
+                  <option value="0">No timer</option>
+                  <option value="10">10</option>
+                  <option value="15">15</option>
+                  <option value="20" selected>20</option>
+                  <option value="30">30</option>
+                  <option value="45">45</option>
+                  <option value="60">60</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="height:12px"></div>
+
+            <div class="grid3">
+              <label class="toggle">
+                <input type="checkbox" id="soundToggle" checked>
+                <span>Sound on</span>
+              </label>
+              <label class="toggle">
+                <input type="checkbox" id="autoNextRound">
+                <span>Auto new round</span>
+              </label>
+              <label class="toggle">
+                <input type="checkbox" id="timerForfeitToggle">
+                <span>Timer loss</span>
+              </label>
+            </div>
+
+            <div style="height:12px"></div>
+
+            <div class="grid3">
+              <label class="toggle">
+                <input type="checkbox" id="confettiToggle" checked>
+                <span>Confetti on win</span>
+              </label>
+              <label class="toggle">
+                <input type="checkbox" id="computerOToggle">
+                <span>Computer O</span>
+              </label>
+              <div>
+                <label for="shareType">Generate Link For</label>
+                <select id="shareType">
+                  <option value="X">Player X link</option>
+                  <option value="O">Player O link</option>
+                  <option value="S">Spectator link</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="height:12px"></div>
+
+            <label for="shareLink">Current Share Link</label>
+            <textarea id="shareLink" readonly></textarea>
+
+            <div style="height:12px"></div>
+
             <div class="btnRow">
-              <button class="btn soft" id="undoBtn">Undo</button>
-              <button class="btn ghost" id="newRoundBtn">New Round</button>
-              <button class="btn ghost" id="resetMatchBtn">Reset Match</button>
+              <button class="btn primary" id="copyBtn">Copy Link</button>
+              <button class="btn soft" id="waBtn">Share on WhatsApp</button>
+              <button class="btn ghost" id="nativeShareBtn">Share</button>
+            </div>
+
+            <div style="height:18px"></div>
+
+            <div class="grid3">
+              <div class="miniCard">
+                <h3>X Link</h3>
+                <p>Send this to the X player.</p>
+                <button class="btn ghost" id="copyXBtn">Copy X Link</button>
+              </div>
+              <div class="miniCard">
+                <h3>O Link</h3>
+                <p>Send this to the O player.</p>
+                <button class="btn ghost" id="copyOBtn">Copy O Link</button>
+              </div>
+              <div class="miniCard">
+                <h3>Spectator Link</h3>
+                <p>Watch-only mode.</p>
+                <button class="btn ghost" id="copySBtn">Copy Spectator Link</button>
+              </div>
+            </div>
+
+            <div style="height:18px"></div>
+
+            <label for="noteInput">Shared Note / Chat Line</label>
+            <div class="btnRow">
+              <input id="noteInput" type="text" maxlength="120" placeholder="Add a short note like 'your turn now'">
+              <button class="btn soft" id="addNoteBtn">Add Note</button>
+            </div>
+
+            <div style="height:10px"></div>
+
+            <div class="noteList" id="noteList">
+              <div class="noteItem">No notes yet.</div>
+            </div>
+
+            <div style="height:18px"></div>
+
+            <label>Move History</label>
+            <div class="log" id="moveLog">No moves yet.</div>
+
+            <div style="height:12px"></div>
+            <div class="tiny">
+              Best use: one device opens the X link, another opens the O link. After each move, share the latest updated link.
             </div>
           </div>
-        </div>
-      </section>
-
-      <aside class="card">
-        <div class="cardHead">
-          <h2>Players & Share</h2>
-          <div class="pill" id="modePill">Hash Sync On</div>
-        </div>
-        <div class="cardBody">
-          <div class="grid2">
-            <div>
-              <label for="xName">Player X Name</label>
-              <input id="xName" type="text" maxlength="32" placeholder="Player X">
-            </div>
-            <div>
-              <label for="oName">Player O Name</label>
-              <input id="oName" type="text" maxlength="32" placeholder="Player O">
-            </div>
-          </div>
-
-          <div style="height:12px"></div>
-
-          <div class="grid2">
-            <div>
-              <label for="xAvatar">Avatar / Emoji for X</label>
-              <input id="xAvatar" type="text" maxlength="4" placeholder="❌">
-            </div>
-            <div>
-              <label for="oAvatar">Avatar / Emoji for O</label>
-              <input id="oAvatar" type="text" maxlength="4" placeholder="⭕">
-            </div>
-          </div>
-
-          <div style="height:12px"></div>
-
-          <div class="grid2">
-            <div>
-              <label for="timerSeconds">Turn Timer (seconds)</label>
-              <select id="timerSeconds">
-                <option value="0">No timer</option>
-                <option value="10">10</option>
-                <option value="15">15</option>
-                <option value="20" selected>20</option>
-                <option value="30">30</option>
-                <option value="45">45</option>
-                <option value="60">60</option>
-              </select>
-            </div>
-            <div>
-              <label for="shareType">Generate Link For</label>
-              <select id="shareType">
-                <option value="X">Player X link</option>
-                <option value="O">Player O link</option>
-                <option value="S">Spectator link</option>
-              </select>
-            </div>
-          </div>
-
-          <div style="height:12px"></div>
-
-          <div class="grid3">
-            <label class="toggle">
-              <input type="checkbox" id="soundToggle" checked>
-              <span>Sound on</span>
-            </label>
-            <label class="toggle">
-              <input type="checkbox" id="autoNextRound">
-              <span>Auto new round</span>
-            </label>
-            <label class="toggle">
-              <input type="checkbox" id="timerForfeitToggle">
-              <span>Timer loss</span>
-            </label>
-          </div>
-
-          <div style="height:12px"></div>
-
-          <label for="shareLink">Current Share Link</label>
-          <textarea id="shareLink" readonly></textarea>
-
-          <div style="height:12px"></div>
-
-          <div class="btnRow">
-            <button class="btn primary" id="copyBtn">Copy Link</button>
-            <button class="btn soft" id="waBtn">Share on WhatsApp</button>
-            <button class="btn ghost" id="nativeShareBtn">Share</button>
-          </div>
-
-          <div style="height:18px"></div>
-
-          <div class="grid3">
-            <div class="miniCard">
-              <h3>X Link</h3>
-              <p>Send this to the X player.</p>
-              <button class="btn ghost" id="copyXBtn">Copy X Link</button>
-            </div>
-            <div class="miniCard">
-              <h3>O Link</h3>
-              <p>Send this to the O player.</p>
-              <button class="btn ghost" id="copyOBtn">Copy O Link</button>
-            </div>
-            <div class="miniCard">
-              <h3>Spectator Link</h3>
-              <p>Watch-only mode.</p>
-              <button class="btn ghost" id="copySBtn">Copy Spectator Link</button>
-            </div>
-          </div>
-
-          <div style="height:18px"></div>
-
-          <label>Move History</label>
-          <div class="log" id="moveLog">No moves yet.</div>
-
-          <div style="height:12px"></div>
-          <div class="tiny">
-            Best use: one device opens the X link, another opens the O link. After each move, share the latest updated link.
-          </div>
-        </div>
-      </aside>
+        </section>
+      </div>
     </div>
 
     <div class="footer">
@@ -777,22 +970,21 @@
     (function () {
       "use strict";
 
-      const WIN_LINES = [
-        [0,1,2],[3,4,5],[6,7,8],
-        [0,3,6],[1,4,7],[2,5,8],
-        [0,4,8],[2,4,6]
-      ];
-
       let tickHandle = null;
+      let replayHandle = null;
+      let aiHandle = null;
 
       const boardEl = document.getElementById("board");
+      const confettiEl = document.getElementById("confetti");
       const rolePill = document.getElementById("rolePill");
       const turnPill = document.getElementById("turnPill");
       const timerPill = document.getElementById("timerPill");
       const roundPill = document.getElementById("roundPill");
+      const boardModePill = document.getElementById("boardModePill");
       const statusText = document.getElementById("statusText");
       const statusHint = document.getElementById("statusHint");
       const banner = document.getElementById("banner");
+      const seriesBox = document.getElementById("seriesBox");
 
       const xScoreView = document.getElementById("xScoreView");
       const oScoreView = document.getElementById("oScoreView");
@@ -807,11 +999,15 @@
       const oNameInput = document.getElementById("oName");
       const xAvatarInput = document.getElementById("xAvatar");
       const oAvatarInput = document.getElementById("oAvatar");
+      const boardSizeSelect = document.getElementById("boardSize");
+      const matchModeSelect = document.getElementById("matchMode");
       const timerSecondsSelect = document.getElementById("timerSeconds");
       const shareType = document.getElementById("shareType");
       const soundToggle = document.getElementById("soundToggle");
       const autoNextRound = document.getElementById("autoNextRound");
       const timerForfeitToggle = document.getElementById("timerForfeitToggle");
+      const confettiToggle = document.getElementById("confettiToggle");
+      const computerOToggle = document.getElementById("computerOToggle");
 
       const shareLink = document.getElementById("shareLink");
       const copyBtn = document.getElementById("copyBtn");
@@ -822,9 +1018,13 @@
       const copySBtn = document.getElementById("copySBtn");
 
       const undoBtn = document.getElementById("undoBtn");
+      const replayBtn = document.getElementById("replayBtn");
       const newRoundBtn = document.getElementById("newRoundBtn");
       const resetMatchBtn = document.getElementById("resetMatchBtn");
       const moveLog = document.getElementById("moveLog");
+      const noteInput = document.getElementById("noteInput");
+      const addNoteBtn = document.getElementById("addNoteBtn");
+      const noteList = document.getElementById("noteList");
 
       const overlay = document.getElementById("overlay");
       const modalIcon = document.getElementById("modalIcon");
@@ -849,8 +1049,10 @@
 
       function defaultState(){
         return {
-          v: 3,
-          board: ["","","","","","","","",""],
+          v: 4,
+          boardSize: 3,
+          winLength: 3,
+          board: new Array(9).fill(""),
           turn: "X",
           xName: "Player X",
           oName: "Player O",
@@ -860,6 +1062,7 @@
           winningLine: [],
           draw: false,
           history: [],
+          replayMoves: [],
           lastMove: -1,
           scoreX: 0,
           scoreO: 0,
@@ -869,8 +1072,25 @@
           soundOn: true,
           autoNextRound: false,
           timerForfeit: false,
-          roundClosed: false
+          roundClosed: false,
+          matchMode: "free",
+          matchWinner: "",
+          confettiOn: true,
+          computerO: false,
+          notes: []
         };
+      }
+
+      function boardCells(size){
+        return size * size;
+      }
+
+      function getWinLength(size){
+        return size === 5 ? 4 : 3;
+      }
+
+      function createEmptyBoard(size){
+        return new Array(boardCells(size)).fill("");
       }
 
       function encodeState(state){
@@ -885,22 +1105,24 @@
           const json = decodeURIComponent(escape(atob(decodeURIComponent(raw))));
           const obj = JSON.parse(json);
 
-          if(!obj || !Array.isArray(obj.board) || obj.board.length !== 9){
-            return defaultState();
-          }
+          const size = obj.boardSize === 5 ? 5 : 3;
+          const total = boardCells(size);
 
           return {
-            v: 3,
-            board: obj.board.map(v => v === "X" || v === "O" ? v : ""),
+            v: 4,
+            boardSize: size,
+            winLength: getWinLength(size),
+            board: Array.isArray(obj.board) ? obj.board.slice(0, total).map(v => v === "X" || v === "O" ? v : "").concat(new Array(Math.max(0, total - obj.board.length)).fill("")).slice(0, total) : createEmptyBoard(size),
             turn: obj.turn === "O" ? "O" : "X",
             xName: safeName(obj.xName, "Player X"),
             oName: safeName(obj.oName, "Player O"),
             xAvatar: safeAvatar(obj.xAvatar, "❌"),
             oAvatar: safeAvatar(obj.oAvatar, "⭕"),
             winner: obj.winner === "X" || obj.winner === "O" ? obj.winner : "",
-            winningLine: Array.isArray(obj.winningLine) ? obj.winningLine.filter(n => Number.isInteger(n) && n >= 0 && n < 9) : [],
+            winningLine: Array.isArray(obj.winningLine) ? obj.winningLine.filter(n => Number.isInteger(n) && n >= 0 && n < total) : [],
             draw: !!obj.draw,
-            history: Array.isArray(obj.history) ? obj.history.slice(0, 99) : [],
+            history: Array.isArray(obj.history) ? obj.history.slice(0, 200) : [],
+            replayMoves: Array.isArray(obj.replayMoves) ? obj.replayMoves.slice(0, 200) : [],
             lastMove: Number.isInteger(obj.lastMove) ? obj.lastMove : -1,
             scoreX: Number.isFinite(obj.scoreX) ? Math.max(0, obj.scoreX) : 0,
             scoreO: Number.isFinite(obj.scoreO) ? Math.max(0, obj.scoreO) : 0,
@@ -910,7 +1132,15 @@
             soundOn: obj.soundOn !== false,
             autoNextRound: !!obj.autoNextRound,
             timerForfeit: !!obj.timerForfeit,
-            roundClosed: !!obj.roundClosed
+            roundClosed: !!obj.roundClosed,
+            matchMode: obj.matchMode === "bo3" || obj.matchMode === "bo5" ? obj.matchMode : "free",
+            matchWinner: obj.matchWinner === "X" || obj.matchWinner === "O" ? obj.matchWinner : "",
+            confettiOn: obj.confettiOn !== false,
+            computerO: !!obj.computerO,
+            notes: Array.isArray(obj.notes) ? obj.notes.slice(0, 10).map(n => ({
+              text: String(n && n.text || "").slice(0,120),
+              by: n && (n.by === "X" || n.by === "O" || n.by === "S") ? n.by : "S"
+            })).filter(n => n.text.trim()) : []
           };
         }catch(e){
           return defaultState();
@@ -953,17 +1183,10 @@
         return symbol === "X" ? state.xAvatar : state.oAvatar;
       }
 
-      function checkResult(board){
-        for(const line of WIN_LINES){
-          const [a,b,c] = line;
-          if(board[a] && board[a] === board[b] && board[a] === board[c]){
-            return { winner: board[a], winningLine: line, draw: false };
-          }
-        }
-        if(board.every(Boolean)){
-          return { winner: "", winningLine: [], draw: true };
-        }
-        return { winner: "", winningLine: [], draw: false };
+      function getTargetWins(matchMode){
+        if(matchMode === "bo3") return 2;
+        if(matchMode === "bo5") return 3;
+        return 0;
       }
 
       function remainingSeconds(state){
@@ -975,14 +1198,67 @@
       function canRoleMove(state){
         const role = getRole();
         if(role !== "X" && role !== "O") return false;
-        if(state.winner || state.draw) return false;
+        if(state.winner || state.draw || state.matchWinner) return false;
+        if(state.computerO && role === "O") return false;
         return state.turn === role;
+      }
+
+      function getLines(size, winLength){
+        const lines = [];
+        const idx = (r,c) => r * size + c;
+
+        for(let r=0; r<size; r++){
+          for(let c=0; c<size; c++){
+            if(c + winLength <= size){
+              const line = [];
+              for(let k=0; k<winLength; k++) line.push(idx(r, c + k));
+              lines.push(line);
+            }
+            if(r + winLength <= size){
+              const line = [];
+              for(let k=0; k<winLength; k++) line.push(idx(r + k, c));
+              lines.push(line);
+            }
+            if(r + winLength <= size && c + winLength <= size){
+              const line = [];
+              for(let k=0; k<winLength; k++) line.push(idx(r + k, c + k));
+              lines.push(line);
+            }
+            if(r + winLength <= size && c - winLength + 1 >= 0){
+              const line = [];
+              for(let k=0; k<winLength; k++) line.push(idx(r + k, c - k));
+              lines.push(line);
+            }
+          }
+        }
+        return lines;
+      }
+
+      function checkResult(board, size, winLength){
+        const lines = getLines(size, winLength);
+        for(const line of lines){
+          const first = board[line[0]];
+          if(!first) continue;
+          let ok = true;
+          for(let i=1; i<line.length; i++){
+            if(board[line[i]] !== first){
+              ok = false;
+              break;
+            }
+          }
+          if(ok){
+            return { winner: first, winningLine: line, draw: false };
+          }
+        }
+        if(board.every(Boolean)){
+          return { winner: "", winningLine: [], draw: true };
+        }
+        return { winner: "", winningLine: [], draw: false };
       }
 
       function beep(freq, duration, type, volume){
         const state = currentState();
         if(!state.soundOn) return;
-
         try{
           const Ctx = window.AudioContext || window.webkitAudioContext;
           if(!Ctx) return;
@@ -1004,8 +1280,26 @@
       function soundDraw(){ beep(320, 100, "square", 0.03); setTimeout(() => beep(280, 140, "square", 0.03), 110); }
       function soundWarn(){ beep(220, 70, "sawtooth", 0.025); }
 
+      function burstConfetti(){
+        const state = currentState();
+        if(!state.confettiOn) return;
+        confettiEl.innerHTML = "";
+        const colors = ["#f59e0b","#ef4444","#22c55e","#3b82f6","#a855f7","#f97316"];
+        for(let i=0; i<36; i++){
+          const s = document.createElement("span");
+          s.style.left = Math.random() * 100 + "%";
+          s.style.top = (-20 - Math.random() * 80) + "px";
+          s.style.background = colors[Math.floor(Math.random() * colors.length)];
+          s.style.transform = "rotate(" + (Math.random()*360) + "deg)";
+          s.style.animationDelay = (Math.random() * 0.25) + "s";
+          confettiEl.appendChild(s);
+        }
+        setTimeout(() => confettiEl.innerHTML = "", 2200);
+      }
+
       function buildBoard(state){
         boardEl.innerHTML = "";
+        boardEl.className = "board size" + state.boardSize;
         const role = getRole();
         const allowMove = canRoleMove(state);
 
@@ -1016,14 +1310,12 @@
           if(state.winningLine.includes(index)) btn.classList.add("win");
           if(state.lastMove === index) btn.classList.add("last");
           btn.textContent = value ? playerAvatar(value, state) : "";
-          btn.disabled = !!value || !allowMove || !!state.winner || state.draw || state.roundClosed;
+          btn.disabled = !!value || !allowMove || !!state.winner || state.draw || state.roundClosed || !!state.matchWinner;
           btn.setAttribute("aria-label", "Cell " + (index + 1));
-
           btn.addEventListener("click", function(){
             if(role === "S") return;
             makeMove(index);
           });
-
           boardEl.appendChild(btn);
         });
       }
@@ -1040,8 +1332,9 @@
 
       function updateHeader(state){
         rolePill.textContent = "Role: " + roleLabel(getRole());
-        turnPill.textContent = state.winner ? ("Winner: " + state.winner) : state.draw ? "Draw" : ("Turn: " + state.turn);
+        turnPill.textContent = state.winner ? ("Winner: " + state.winner) : state.draw ? "Draw" : state.matchWinner ? ("Match: " + state.matchWinner + " won") : ("Turn: " + state.turn);
         roundPill.textContent = "Round: " + state.round;
+        boardModePill.textContent = "Board: " + state.boardSize + "x" + state.boardSize;
 
         xScoreView.textContent = state.scoreX;
         oScoreView.textContent = state.scoreO;
@@ -1050,12 +1343,19 @@
         xAvatarView.textContent = state.xAvatar;
         oAvatarView.textContent = state.oAvatar;
 
-        scoreXCard.classList.toggle("active", !state.winner && !state.draw && state.turn === "X");
-        scoreOCard.classList.toggle("active", !state.winner && !state.draw && state.turn === "O");
+        scoreXCard.classList.toggle("active", !state.winner && !state.draw && !state.matchWinner && state.turn === "X");
+        scoreOCard.classList.toggle("active", !state.winner && !state.draw && !state.matchWinner && state.turn === "O");
+
+        const targetWins = getTargetWins(state.matchMode);
+        if(state.matchMode === "free"){
+          seriesBox.textContent = "FREE";
+        }else{
+          seriesBox.textContent = "First to " + targetWins;
+        }
       }
 
       function updateTimer(state){
-        if(!state.timerSeconds){
+        if(!state.timerSeconds || state.matchWinner){
           timerPill.textContent = "Timer: Off";
           timerPill.classList.remove("warn");
           return;
@@ -1075,6 +1375,15 @@
 
       function updateStatus(state){
         const role = getRole();
+
+        if(state.matchWinner){
+          const nm = playerName(state.matchWinner, state);
+          const av = playerAvatar(state.matchWinner, state);
+          statusText.innerHTML = '<span class="good">' + escapeHtml(av + " " + nm) + "</span> wins the match!";
+          statusHint.textContent = "Reset match to start again, or share this final result.";
+          showBanner(av + " " + nm + " wins the full match", "good");
+          return;
+        }
 
         if(state.winner){
           const nm = playerName(state.winner, state);
@@ -1116,10 +1425,14 @@
         if(document.activeElement !== oNameInput) oNameInput.value = state.oName;
         if(document.activeElement !== xAvatarInput) xAvatarInput.value = state.xAvatar;
         if(document.activeElement !== oAvatarInput) oAvatarInput.value = state.oAvatar;
+        if(document.activeElement !== boardSizeSelect) boardSizeSelect.value = String(state.boardSize);
+        if(document.activeElement !== matchModeSelect) matchModeSelect.value = state.matchMode;
         if(document.activeElement !== timerSecondsSelect) timerSecondsSelect.value = String(state.timerSeconds);
         soundToggle.checked = !!state.soundOn;
         autoNextRound.checked = !!state.autoNextRound;
         timerForfeitToggle.checked = !!state.timerForfeit;
+        confettiToggle.checked = !!state.confettiOn;
+        computerOToggle.checked = !!state.computerO;
       }
 
       function renderHistory(state){
@@ -1127,16 +1440,29 @@
           moveLog.textContent = "No moves yet.";
           return;
         }
-
         const lines = state.history.map((m, i) => {
-          const row = Math.floor(m.index / 3) + 1;
-          const col = (m.index % 3) + 1;
+          const row = Math.floor(m.index / state.boardSize) + 1;
+          const col = (m.index % state.boardSize) + 1;
           const nm = m.player === "X" ? state.xName : state.oName;
           const av = m.player === "X" ? state.xAvatar : state.oAvatar;
           return (i + 1) + ". " + av + " " + nm + " (" + m.player + ") → row " + row + ", col " + col;
         });
-
         moveLog.textContent = lines.join("\n");
+      }
+
+      function renderNotes(state){
+        if(!state.notes.length){
+          noteList.innerHTML = '<div class="noteItem">No notes yet.</div>';
+          return;
+        }
+        noteList.innerHTML = "";
+        state.notes.forEach(n => {
+          const div = document.createElement("div");
+          div.className = "noteItem";
+          const who = n.by === "X" ? state.xAvatar + " " + state.xName : n.by === "O" ? state.oAvatar + " " + state.oName : "👀 Spectator";
+          div.textContent = who + ": " + n.text;
+          noteList.appendChild(div);
+        });
       }
 
       function makeShareUrl(role){
@@ -1162,7 +1488,6 @@
 
       function showRoundModal(state, kind){
         if(overlay.classList.contains("show")) return;
-
         if(kind === "win"){
           modalIcon.textContent = playerAvatar(state.winner, state);
           modalTitle.textContent = playerName(state.winner, state) + " wins!";
@@ -1171,12 +1496,15 @@
           modalIcon.textContent = "🤝";
           modalTitle.textContent = "Draw round";
           modalText.textContent = "Nobody won this round. Start the next round to continue the match.";
+        }else if(kind === "match"){
+          modalIcon.textContent = playerAvatar(state.matchWinner, state);
+          modalTitle.textContent = playerName(state.matchWinner, state) + " wins the match!";
+          modalText.textContent = "The required match wins have been reached.";
         }else{
           modalIcon.textContent = "⏰";
           modalTitle.textContent = "Time up";
           modalText.textContent = "The turn timer ended. The round result has been applied.";
         }
-
         overlay.classList.add("show");
       }
 
@@ -1184,13 +1512,24 @@
         overlay.classList.remove("show");
       }
 
+      function maybeSetMatchWinner(state){
+        const targetWins = getTargetWins(state.matchMode);
+        if(!targetWins) return;
+        if(state.scoreX >= targetWins) state.matchWinner = "X";
+        if(state.scoreO >= targetWins) state.matchWinner = "O";
+      }
+
       function closeRoundIfNeeded(state){
         if(state.roundClosed) return;
 
         if(state.winner){
           state.roundClosed = true;
+          maybeSetMatchWinner(state);
           soundWin();
-          if(state.autoNextRound){
+          if(state.confettiOn) burstConfetti();
+          if(state.matchWinner){
+            showRoundModal(state, "match");
+          }else if(state.autoNextRound){
             setTimeout(() => startNextRound(), 700);
           }else{
             showRoundModal(state, "win");
@@ -1208,20 +1547,22 @@
 
       function makeMove(index){
         const state = currentState();
-        if(state.board[index] || state.winner || state.draw || state.roundClosed) return;
+        if(state.board[index] || state.winner || state.draw || state.roundClosed || state.matchWinner) return;
         if(!canRoleMove(state)) return;
 
         state.board[index] = state.turn;
         state.lastMove = index;
-        state.history.push({
+        const move = {
           player: state.turn,
           index,
           time: new Date().toISOString()
-        });
+        };
+        state.history.push(move);
+        state.replayMoves.push(move);
 
         soundMove();
 
-        const result = checkResult(state.board);
+        const result = checkResult(state.board, state.boardSize, state.winLength);
         state.winner = result.winner;
         state.winningLine = result.winningLine;
         state.draw = result.draw;
@@ -1239,30 +1580,63 @@
       }
 
       function updatePlayersAndSettings(){
-        const state = currentState();
-        state.xName = safeName(xNameInput.value, "Player X");
-        state.oName = safeName(oNameInput.value, "Player O");
-        state.xAvatar = safeAvatar(xAvatarInput.value, "❌");
-        state.oAvatar = safeAvatar(oAvatarInput.value, "⭕");
-        state.timerSeconds = Math.max(0, parseInt(timerSecondsSelect.value, 10) || 0);
-        state.soundOn = !!soundToggle.checked;
-        state.autoNextRound = !!autoNextRound.checked;
-        state.timerForfeit = !!timerForfeitToggle.checked;
-        persist(state, true);
+        const prev = currentState();
+        const newSize = parseInt(boardSizeSelect.value, 10) === 5 ? 5 : 3;
+        const resized = newSize !== prev.boardSize;
+        const newState = {
+          ...prev,
+          xName: safeName(xNameInput.value, "Player X"),
+          oName: safeName(oNameInput.value, "Player O"),
+          xAvatar: safeAvatar(xAvatarInput.value, "❌"),
+          oAvatar: safeAvatar(oAvatarInput.value, "⭕"),
+          timerSeconds: Math.max(0, parseInt(timerSecondsSelect.value, 10) || 0),
+          soundOn: !!soundToggle.checked,
+          autoNextRound: !!autoNextRound.checked,
+          timerForfeit: !!timerForfeitToggle.checked,
+          confettiOn: !!confettiToggle.checked,
+          computerO: !!computerOToggle.checked,
+          matchMode: matchModeSelect.value === "bo3" || matchModeSelect.value === "bo5" ? matchModeSelect.value : "free"
+        };
+
+        if(resized){
+          newState.boardSize = newSize;
+          newState.winLength = getWinLength(newSize);
+          newState.board = createEmptyBoard(newSize);
+          newState.turn = "X";
+          newState.winner = "";
+          newState.winningLine = [];
+          newState.draw = false;
+          newState.history = [];
+          newState.replayMoves = [];
+          newState.lastMove = -1;
+          newState.scoreX = 0;
+          newState.scoreO = 0;
+          newState.round = 1;
+          newState.turnStartedAt = nowMs();
+          newState.roundClosed = false;
+          newState.matchWinner = "";
+          newState.notes = [];
+        } else {
+          maybeSetMatchWinner(newState);
+        }
+
+        persist(newState, true);
       }
 
       function startNextRound(){
         hideRoundModal();
         const prev = currentState();
+        if(prev.matchWinner) return;
         const nextStarter = prev.round % 2 === 1 ? "O" : "X";
         const next = {
           ...prev,
-          board: ["","","","","","","","",""],
+          board: createEmptyBoard(prev.boardSize),
           turn: nextStarter,
           winner: "",
           winningLine: [],
           draw: false,
           history: [],
+          replayMoves: [],
           lastMove: -1,
           round: prev.round + 1,
           turnStartedAt: nowMs(),
@@ -1275,6 +1649,9 @@
         hideRoundModal();
         const prev = currentState();
         const fresh = defaultState();
+        fresh.boardSize = prev.boardSize;
+        fresh.winLength = getWinLength(prev.boardSize);
+        fresh.board = createEmptyBoard(prev.boardSize);
         fresh.xName = prev.xName;
         fresh.oName = prev.oName;
         fresh.xAvatar = prev.xAvatar;
@@ -1283,15 +1660,18 @@
         fresh.soundOn = prev.soundOn;
         fresh.autoNextRound = prev.autoNextRound;
         fresh.timerForfeit = prev.timerForfeit;
+        fresh.matchMode = prev.matchMode;
+        fresh.confettiOn = prev.confettiOn;
+        fresh.computerO = prev.computerO;
         persist(fresh, false);
       }
 
       function undoMove(){
         hideRoundModal();
         const state = currentState();
-        if(!state.history.length || state.roundClosed) return;
-
+        if(!state.history.length || state.roundClosed || state.matchWinner) return;
         const last = state.history.pop();
+        state.replayMoves = state.history.slice();
         state.board[last.index] = "";
         state.lastMove = state.history.length ? state.history[state.history.length - 1].index : -1;
         state.turn = last.player;
@@ -1299,12 +1679,10 @@
         state.winningLine = [];
         state.draw = false;
         state.turnStartedAt = nowMs();
-
-        const result = checkResult(state.board);
+        const result = checkResult(state.board, state.boardSize, state.winLength);
         state.winner = result.winner;
         state.winningLine = result.winningLine;
         state.draw = result.draw;
-
         persist(state, false);
       }
 
@@ -1328,9 +1706,10 @@
         const state = currentState();
         const role = getRole();
         let line = "";
-
-        if(state.winner){
-          line = "Winner: " + playerAvatar(state.winner, state) + " " + playerName(state.winner, state) + " (" + state.winner + ")";
+        if(state.matchWinner){
+          line = "Match winner: " + playerAvatar(state.matchWinner, state) + " " + playerName(state.matchWinner, state) + " (" + state.matchWinner + ")";
+        }else if(state.winner){
+          line = "Round winner: " + playerAvatar(state.winner, state) + " " + playerName(state.winner, state) + " (" + state.winner + ")";
         }else if(state.draw){
           line = "Current status: Draw";
         }else{
@@ -1341,6 +1720,8 @@
           "Tic Tac Toe shared position",
           state.xAvatar + " " + state.xName + " (X) vs " + state.oAvatar + " " + state.oName + " (O)",
           "Opened as: " + roleLabel(role),
+          "Board: " + state.boardSize + "x" + state.boardSize,
+          "Match mode: " + state.matchMode,
           "Score: " + state.scoreX + " - " + state.scoreO,
           "Round: " + state.round,
           line,
@@ -1361,7 +1742,7 @@
         if(navigator.share){
           try{
             await navigator.share({
-              title: "Tic Tac Toe T-T-T",
+              title: "Tic Tac Toe V4",
               text,
               url
             });
@@ -1375,7 +1756,7 @@
         const state = currentState();
         updateTimer(state);
 
-        if(state.timerSeconds && !state.winner && !state.draw && !state.roundClosed){
+        if(state.timerSeconds && !state.winner && !state.draw && !state.roundClosed && !state.matchWinner){
           const left = remainingSeconds(state);
           if(left <= 0){
             if(state.timerForfeit){
@@ -1387,9 +1768,11 @@
               state.roundClosed = true;
               if(winner === "X") state.scoreX += 1;
               if(winner === "O") state.scoreO += 1;
+              maybeSetMatchWinner(state);
               persist(state, false);
               soundWin();
-              showRoundModal(state, "timer");
+              if(state.confettiOn) burstConfetti();
+              showRoundModal(state, state.matchWinner ? "match" : "timer");
             }else{
               state.turn = state.turn === "X" ? "O" : "X";
               state.turnStartedAt = nowMs();
@@ -1404,6 +1787,120 @@
         tickHandle = setInterval(handleTimerTick, 1000);
       }
 
+      function addNote(){
+        const state = currentState();
+        const text = String(noteInput.value || "").trim();
+        if(!text) return;
+        state.notes.unshift({
+          text: text.slice(0,120),
+          by: getRole()
+        });
+        state.notes = state.notes.slice(0,10);
+        noteInput.value = "";
+        persist(state, false);
+      }
+
+      function replayRound(){
+        const state = currentState();
+        const moves = state.replayMoves && state.replayMoves.length ? state.replayMoves.slice() : state.history.slice();
+        if(!moves.length) return;
+
+        if(replayHandle) clearInterval(replayHandle);
+
+        const temp = {
+          ...state,
+          board: createEmptyBoard(state.boardSize),
+          history: [],
+          winner: "",
+          winningLine: [],
+          draw: false,
+          lastMove: -1
+        };
+        persist(temp, false);
+
+        let i = 0;
+        replayHandle = setInterval(() => {
+          const live = currentState();
+          if(i >= moves.length){
+            clearInterval(replayHandle);
+            replayHandle = null;
+            const finalState = { ...state };
+            persist(finalState, false);
+            return;
+          }
+          const m = moves[i];
+          live.board[m.index] = m.player;
+          live.history.push(m);
+          live.lastMove = m.index;
+          const r = checkResult(live.board, live.boardSize, live.winLength);
+          live.winner = r.winner;
+          live.winningLine = r.winningLine;
+          live.draw = r.draw;
+          persist(live, false);
+          i++;
+        }, 700);
+      }
+
+      function computerPick(state){
+        const empties = [];
+        for(let i=0; i<state.board.length; i++){
+          if(!state.board[i]) empties.push(i);
+        }
+        if(!empties.length) return -1;
+
+        for(const idx of empties){
+          const board = state.board.slice();
+          board[idx] = "O";
+          const r = checkResult(board, state.boardSize, state.winLength);
+          if(r.winner === "O") return idx;
+        }
+
+        for(const idx of empties){
+          const board = state.board.slice();
+          board[idx] = "X";
+          const r = checkResult(board, state.boardSize, state.winLength);
+          if(r.winner === "X") return idx;
+        }
+
+        const center = state.boardSize === 3 ? 4 : 12;
+        if(empties.includes(center)) return center;
+
+        return empties[Math.floor(Math.random() * empties.length)];
+      }
+
+      function maybeRunComputer(){
+        if(aiHandle) clearTimeout(aiHandle);
+        const state = currentState();
+        if(!state.computerO) return;
+        if(state.turn !== "O") return;
+        if(state.winner || state.draw || state.roundClosed || state.matchWinner) return;
+
+        aiHandle = setTimeout(() => {
+          const fresh = currentState();
+          if(!(fresh.computerO && fresh.turn === "O" && !fresh.winner && !fresh.draw && !fresh.roundClosed && !fresh.matchWinner)) return;
+          const idx = computerPick(fresh);
+          if(idx >= 0){
+            fresh.board[idx] = "O";
+            fresh.lastMove = idx;
+            const move = { player: "O", index: idx, time: new Date().toISOString() };
+            fresh.history.push(move);
+            fresh.replayMoves.push(move);
+            soundMove();
+            const result = checkResult(fresh.board, fresh.boardSize, fresh.winLength);
+            fresh.winner = result.winner;
+            fresh.winningLine = result.winningLine;
+            fresh.draw = result.draw;
+            if(fresh.winner === "O") fresh.scoreO += 1;
+            if(!fresh.winner && !fresh.draw){
+              fresh.turn = "X";
+              fresh.turnStartedAt = nowMs();
+            }
+            closeRoundIfNeeded(fresh);
+            persist(fresh, false);
+          }
+        }, 500);
+      }
+
       function render(){
         const state = currentState();
         updateHeader(state);
@@ -1412,7 +1909,9 @@
         updateTimer(state);
         renderInputs(state);
         renderHistory(state);
+        renderNotes(state);
         updateShareBox();
+        maybeRunComputer();
       }
 
       function escapeHtml(str){
@@ -1428,10 +1927,14 @@
       oNameInput.addEventListener("input", updatePlayersAndSettings);
       xAvatarInput.addEventListener("input", updatePlayersAndSettings);
       oAvatarInput.addEventListener("input", updatePlayersAndSettings);
+      boardSizeSelect.addEventListener("change", updatePlayersAndSettings);
+      matchModeSelect.addEventListener("change", updatePlayersAndSettings);
       timerSecondsSelect.addEventListener("change", updatePlayersAndSettings);
       soundToggle.addEventListener("change", updatePlayersAndSettings);
       autoNextRound.addEventListener("change", updatePlayersAndSettings);
       timerForfeitToggle.addEventListener("change", updatePlayersAndSettings);
+      confettiToggle.addEventListener("change", updatePlayersAndSettings);
+      computerOToggle.addEventListener("change", updatePlayersAndSettings);
       shareType.addEventListener("change", updateShareBox);
 
       copyBtn.addEventListener("click", () => copyText(shareLink.value, copyBtn));
@@ -1442,8 +1945,17 @@
       nativeShareBtn.addEventListener("click", nativeShare);
 
       undoBtn.addEventListener("click", undoMove);
+      replayBtn.addEventListener("click", replayRound);
       newRoundBtn.addEventListener("click", startNextRound);
       resetMatchBtn.addEventListener("click", resetMatch);
+      addNoteBtn.addEventListener("click", addNote);
+      noteInput.addEventListener("keydown", function(e){
+        if(e.key === "Enter"){
+          e.preventDefault();
+          addNote();
+        }
+      });
+
       playAgainBtn.addEventListener("click", startNextRound);
       closeModalBtn.addEventListener("click", hideRoundModal);
       overlay.addEventListener("click", function(e){
