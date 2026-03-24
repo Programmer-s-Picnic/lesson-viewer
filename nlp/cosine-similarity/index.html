@@ -1,0 +1,612 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Interactive Lesson: Cosine Similarity in Python</title>
+    <meta
+      name="description"
+      content="An interactive Programmer's Picnic lesson on cosine similarity in Python with explanation, examples, challenges, and an embedded Python editor."
+    />
+    <style>
+      :root {
+        --bg: #fff8ef;
+        --panel: #ffffff;
+        --panel2: #fff3df;
+        --text: #1f2937;
+        --muted: #6b7280;
+        --brand: #d97706;
+        --brand2: #f59e0b;
+        --line: #f3d6a5;
+        --good: #166534;
+        --shadow: 0 16px 40px rgba(0, 0, 0, 0.08);
+        --radius: 24px;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        font-family:
+          Inter,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        color: var(--text);
+        background: radial-gradient(
+          circle at top left,
+          #fff6e8 0%,
+          #fff8ef 35%,
+          #fffdf9 100%
+        );
+        line-height: 1.6;
+      }
+      a {
+        color: var(--brand);
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      .wrap {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+      .hero {
+        background: linear-gradient(135deg, #fff7ed, #ffedd5);
+        border: 1px solid var(--line);
+        border-radius: 32px;
+        box-shadow: var(--shadow);
+        padding: 28px;
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 20px;
+        align-items: center;
+        overflow: hidden;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: #fff;
+        color: #92400e;
+        border: 1px solid #f7c98b;
+        padding: 8px 14px;
+        border-radius: 999px;
+        font-weight: 700;
+        font-size: 0.95rem;
+      }
+      h1,
+      h2,
+      h3 {
+        line-height: 1.15;
+        margin: 0 0 12px;
+      }
+      h1 {
+        font-size: clamp(2rem, 4vw, 3.5rem);
+      }
+      h2 {
+        font-size: 1.6rem;
+        color: #9a3412;
+      }
+      h3 {
+        font-size: 1.15rem;
+        color: #7c2d12;
+      }
+      .lead {
+        font-size: 1.08rem;
+        color: #374151;
+        max-width: 60ch;
+      }
+      .hero-card {
+        background: rgba(255, 255, 255, 0.8);
+        border: 1px solid #f8d8ae;
+        border-radius: 24px;
+        padding: 18px;
+        animation: floaty 4s ease-in-out infinite;
+      }
+      @keyframes floaty {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-8px);
+        }
+      }
+      .formula {
+        margin-top: 12px;
+        background: #111827;
+        color: #f9fafb;
+        border-radius: 18px;
+        padding: 18px;
+        font-family: "Courier New", monospace;
+        font-size: 1rem;
+        overflow: auto;
+      }
+      .grid {
+        display: grid;
+        gap: 20px;
+        margin-top: 24px;
+      }
+      .two {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .three {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 22px;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .list {
+        padding-left: 18px;
+        margin: 10px 0 0;
+      }
+      .list li {
+        margin: 8px 0;
+      }
+      .example-box {
+        background: #fffaf3;
+        border-left: 5px solid var(--brand2);
+        padding: 14px 16px;
+        border-radius: 14px;
+        margin-top: 10px;
+      }
+      .steps {
+        counter-reset: item;
+        display: grid;
+        gap: 14px;
+        margin-top: 12px;
+      }
+      .step {
+        display: flex;
+        gap: 14px;
+        align-items: flex-start;
+        background: #fffdf9;
+        border: 1px solid #f2e0be;
+        border-radius: 18px;
+        padding: 14px;
+      }
+      .step::before {
+        counter-increment: item;
+        content: counter(item);
+        flex: 0 0 34px;
+        height: 34px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        font-weight: 800;
+        color: #fff;
+        background: linear-gradient(135deg, var(--brand), var(--brand2));
+      }
+      .editor-wrap {
+        margin-top: 24px;
+      }
+      .toolbar {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+      .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .pill {
+        background: #fff3df;
+        border: 1px solid #f2cf96;
+        border-radius: 999px;
+        padding: 8px 12px;
+        font-weight: 700;
+        color: #92400e;
+      }
+      iframe {
+        width: 100%;
+        height: 720px;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: #fff;
+        box-shadow: var(--shadow);
+      }
+      pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        background: #0f172a;
+        color: #e5e7eb;
+        padding: 16px;
+        border-radius: 18px;
+        overflow: auto;
+        font-size: 0.94rem;
+      }
+      .quiz button,
+      .copy-btn {
+        appearance: none;
+        border: none;
+        cursor: pointer;
+        background: linear-gradient(135deg, var(--brand), var(--brand2));
+        color: #fff;
+        font-weight: 800;
+        padding: 12px 16px;
+        border-radius: 14px;
+        box-shadow: 0 8px 18px rgba(217, 119, 6, 0.22);
+        transition:
+          transform 0.18s ease,
+          box-shadow 0.18s ease;
+      }
+      .quiz button:hover,
+      .copy-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 22px rgba(217, 119, 6, 0.28);
+      }
+      .quiz-options {
+        display: grid;
+        gap: 10px;
+        margin-top: 12px;
+      }
+      .result {
+        margin-top: 12px;
+        font-weight: 700;
+      }
+      .good {
+        color: var(--good);
+      }
+      .warn {
+        color: #b45309;
+      }
+      .table-wrap {
+        overflow: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: #fff;
+        border-radius: 18px;
+        overflow: hidden;
+      }
+      th,
+      td {
+        padding: 12px 14px;
+        border: 1px solid #f2e0be;
+        text-align: left;
+      }
+      th {
+        background: #fff3df;
+        color: #92400e;
+      }
+      footer {
+        padding: 30px 0 50px;
+        color: #6b7280;
+        text-align: center;
+      }
+      @media (max-width: 900px) {
+        .hero,
+        .two,
+        .three {
+          grid-template-columns: 1fr;
+        }
+        iframe {
+          height: 560px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <section class="hero">
+        <div>
+          <div class="badge">Programmer's Picnic • Python Lesson</div>
+          <h1>Cosine Similarity in Python</h1>
+          <p class="lead">
+            Learn what cosine similarity means, how it compares vectors, why it
+            is useful in search and recommendations, and then try the code
+            directly in your embedded Python editor.
+          </p>
+          <div class="formula">cos(θ) = (A · B) / (||A|| × ||B||)</div>
+        </div>
+        <div class="hero-card">
+          <h3>What you will learn</h3>
+          <ul class="list">
+            <li>What vectors are in simple terms</li>
+            <li>Why angle matters more than size</li>
+            <li>How to calculate cosine similarity in Python</li>
+            <li>How it is used in text search, AI, and recommendations</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="grid two">
+        <article class="card">
+          <h2>1. The idea in simple words</h2>
+          <p>
+            Cosine similarity tells us how similar two vectors are by looking at
+            the <b>angle</b> between them. If they point in almost the same
+            direction, the similarity is close to <b>1</b>. If they are
+            unrelated, it is closer to <b>0</b>. If they point in opposite
+            directions, it can be <b>-1</b>.
+          </p>
+          <div class="example-box">
+            Think of two arrows. If both arrows point in nearly the same
+            direction, they are similar. Cosine similarity measures that
+            direction match.
+          </div>
+        </article>
+
+        <article class="card">
+          <h2>2. Why not just compare values?</h2>
+          <p>
+            Sometimes one vector is much bigger than another, but both still
+            point in the same direction. Cosine similarity focuses on direction
+            instead of only size.
+          </p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Vector A</th>
+                  <th>Vector B</th>
+                  <th>Meaning</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>[1, 2]</td>
+                  <td>[2, 4]</td>
+                  <td>Same direction → very similar</td>
+                </tr>
+                <tr>
+                  <td>[1, 0]</td>
+                  <td>[0, 1]</td>
+                  <td>Perpendicular → similarity 0</td>
+                </tr>
+                <tr>
+                  <td>[1, 1]</td>
+                  <td>[-1, -1]</td>
+                  <td>Opposite direction → similarity -1</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <section class="card" style="margin-top: 24px">
+        <h2>3. Step-by-step calculation</h2>
+        <div class="steps">
+          <div class="step">
+            <div>
+              <b>Find the dot product.</b><br /><span class="muted"
+                >Multiply matching values and add them.</span
+              >
+            </div>
+          </div>
+          <div class="step">
+            <div>
+              <b>Find the length of each vector.</b><br /><span class="muted"
+                >This is also called the magnitude or norm.</span
+              >
+            </div>
+          </div>
+          <div class="step">
+            <div>
+              <b>Divide the dot product by the product of the lengths.</b
+              ><br /><span class="muted"
+                >That final number is the cosine similarity.</span
+              >
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid two" style="margin-top: 24px">
+        <article class="card">
+          <h2>4. Python code without libraries</h2>
+          <pre id="code1">
+import math
+
+def cosine_similarity(a, b):
+    dot = sum(x * y for x, y in zip(a, b))
+    norm_a = math.sqrt(sum(x * x for x in a))
+    norm_b = math.sqrt(sum(y * y for y in b))
+
+    if norm_a == 0 or norm_b == 0:
+        return 0
+
+    return dot / (norm_a * norm_b)
+
+v1 = [1, 2, 3]
+v2 = [2, 4, 6]
+v3 = [3, -1, 0]
+
+print("v1 vs v2 =", cosine_similarity(v1, v2))
+print("v1 vs v3 =", cosine_similarity(v1, v3))</pre
+          >
+          <p style="margin-top: 12px">
+            <button class="copy-btn" data-copy="code1">Copy code</button>
+          </p>
+        </article>
+
+        <article class="card">
+          <h2>5. Python code with NumPy</h2>
+          <pre id="code2">
+import numpy as np
+
+def cosine_similarity(a, b):
+    a = np.array(a)
+    b = np.array(b)
+
+    dot = np.dot(a, b)
+    norm_a = np.linalg.norm(a)
+    norm_b = np.linalg.norm(b)
+
+    if norm_a == 0 or norm_b == 0:
+        return 0
+
+    return dot / (norm_a * norm_b)
+
+print(cosine_similarity([1, 2, 3], [2, 4, 6]))</pre
+          >
+          <p style="margin-top: 12px">
+            <button class="copy-btn" data-copy="code2">Copy code</button>
+          </p>
+        </article>
+      </section>
+
+      <section class="card editor-wrap">
+        <div class="toolbar">
+          <div>
+            <h2 style="margin-bottom: 6px">6. Try it in our Python editor</h2>
+            <div class="muted">
+              Paste the sample code into the editor and experiment with your own
+              vectors.
+            </div>
+          </div>
+          <div class="pill-row">
+            <span class="pill">Task 1: Compare [1,2] and [2,4]</span>
+            <span class="pill">Task 2: Compare [1,0] and [0,1]</span>
+            <span class="pill">Task 3: Make your own examples</span>
+          </div>
+        </div>
+        <iframe
+          src="https://editor.learnwithchampak.live/python-starter/editor/super/?tmode=0"
+          title="Programmer's Picnic Python Editor"
+          loading="lazy"
+          allow="clipboard-read; clipboard-write"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads"
+        >
+        </iframe>
+      </section>
+
+      <section class="grid two">
+        <article class="card">
+          <h2>7. Real use cases</h2>
+          <ul class="list">
+            <li><b>Search:</b> Find documents similar to a query.</li>
+            <li>
+              <b>Recommendation systems:</b> Suggest similar products, movies,
+              or songs.
+            </li>
+            <li><b>NLP:</b> Compare sentence or word embeddings.</li>
+            <li>
+              <b>AI applications:</b> Match user input to the closest stored
+              meaning.
+            </li>
+          </ul>
+        </article>
+
+        <article class="card quiz">
+          <h2>8. Quick quiz</h2>
+          <p>
+            <b>Question:</b> If two vectors point in exactly the same direction,
+            cosine similarity is:
+          </p>
+          <div class="quiz-options">
+            <button onclick="checkAnswer('a')">A. 1</button>
+            <button onclick="checkAnswer('b')">B. 0</button>
+            <button onclick="checkAnswer('c')">C. -1</button>
+          </div>
+          <div id="quizResult" class="result muted">Choose an answer.</div>
+        </article>
+      </section>
+
+      <section class="grid three">
+        <article class="card">
+          <h3>Practice 1</h3>
+          <p>
+            Write a function to compare two 2D vectors and print the result
+            rounded to 3 decimal places.
+          </p>
+        </article>
+        <article class="card">
+          <h3>Practice 2</h3>
+          <p>
+            Create a list of vectors and find which one is most similar to a
+            target vector.
+          </p>
+        </article>
+        <article class="card">
+          <h3>Practice 3</h3>
+          <p>
+            Try a zero vector like [0, 0, 0]. Why do we handle it separately?
+          </p>
+        </article>
+      </section>
+
+      <section class="card" style="margin-top: 24px">
+        <h2>9. Mini challenge</h2>
+        <p>
+          Create three vectors representing three students' interests, like
+          coding, math, and design. Then create one target vector and find which
+          student is most similar to the target.
+        </p>
+        <pre id="code3">
+students = {
+    "Aman": [5, 4, 1],
+    "Sara": [2, 5, 5],
+    "Riya": [5, 3, 2]
+}
+
+target = [5, 4, 2]
+
+# Write code here to find the most similar student</pre
+        >
+        <p style="margin-top: 12px">
+          <button class="copy-btn" data-copy="code3">Copy challenge</button>
+        </p>
+      </section>
+
+      <footer>
+        Built for your Python editor workflow • Cosine similarity lesson page
+      </footer>
+    </div>
+
+    <script>
+      function checkAnswer(choice) {
+        const box = document.getElementById("quizResult");
+        if (choice === "a") {
+          box.textContent =
+            "Correct. Same direction means cosine similarity is 1.";
+          box.className = "result good";
+        } else if (choice === "b") {
+          box.textContent = "Not quite. 0 means the vectors are perpendicular.";
+          box.className = "result warn";
+        } else {
+          box.textContent = "Not quite. -1 means opposite direction.";
+          box.className = "result warn";
+        }
+      }
+
+      document.querySelectorAll("[data-copy]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const id = btn.getAttribute("data-copy");
+          const text = document.getElementById(id).innerText;
+          try {
+            await navigator.clipboard.writeText(text);
+            const old = btn.textContent;
+            btn.textContent = "Copied";
+            setTimeout(() => (btn.textContent = old), 1200);
+          } catch (e) {
+            btn.textContent = "Copy failed";
+            setTimeout(() => (btn.textContent = "Copy code"), 1200);
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
