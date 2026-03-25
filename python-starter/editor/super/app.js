@@ -491,8 +491,11 @@ function renderInstalledPkgs() {
 function applyTheme(theme) {
   const t = theme === "light" ? "light" : "dark";
   document.body.setAttribute("data-theme", t);
-  try { localStorage.setItem(K_THEME, t); } catch {}
-  if (ui.themeToggle) ui.themeToggle.textContent = t === "light" ? "☀️ Light" : "🌙 Dark";
+  try {
+    localStorage.setItem(K_THEME, t);
+  } catch {}
+  if (ui.themeToggle)
+    ui.themeToggle.textContent = t === "light" ? "☀️ Light" : "🌙 Dark";
 }
 
 function toggleTheme() {
@@ -506,20 +509,28 @@ function setSidebarWidth(px) {
   ui.sidebar.style.width = w + "px";
   ui.sidebar.style.minWidth = w + "px";
   ui.sidebar.style.maxWidth = w + "px";
-  try { localStorage.setItem(K_SIDEBAR_W, String(w)); } catch {}
+  try {
+    localStorage.setItem(K_SIDEBAR_W, String(w));
+  } catch {}
 }
 
 function setPanelHeight(px) {
   if (!ui.panel) return;
   const h = clamp(px, 180, Math.max(260, window.innerHeight - 140));
   ui.panel.style.height = h + "px";
-  try { localStorage.setItem(K_PANEL_H, String(h)); } catch {}
+  try {
+    localStorage.setItem(K_PANEL_H, String(h));
+  } catch {}
 }
 
 function wireDragResize(handle, onMove, className) {
   if (!handle) return;
   const start = (ev) => {
-    if (window.matchMedia("(max-width: 980px)").matches && handle === ui.sidebarResizer) return;
+    if (
+      window.matchMedia("(max-width: 980px)").matches &&
+      handle === ui.sidebarResizer
+    )
+      return;
     ev.preventDefault();
     document.body.classList.add(className);
     const move = (e) => onMove(e);
@@ -549,18 +560,107 @@ function toggleCommentSelection() {
   const [ls, le] = lineBounds(v, s, t);
   const lines = v.slice(ls, le).split("\n");
   const nonEmpty = lines.filter((line) => line.trim());
-  const uncomment = nonEmpty.length > 0 && nonEmpty.every((line) => /^\s*#/.test(line));
-  const updated = lines.map((line) => {
-    if (!line.trim()) return line;
-    if (uncomment) return line.replace(/^(\s*)# ?/, "$1");
-    return line.replace(/^(\s*)/, "$1# ");
-  }).join("\n");
+  const uncomment =
+    nonEmpty.length > 0 && nonEmpty.every((line) => /^\s*#/.test(line));
+  const updated = lines
+    .map((line) => {
+      if (!line.trim()) return line;
+      if (uncomment) return line.replace(/^(\s*)# ?/, "$1");
+      return line.replace(/^(\s*)/, "$1# ");
+    })
+    .join("\n");
   el.value = v.slice(0, ls) + updated + v.slice(le);
   el.selectionStart = ls;
   el.selectionEnd = ls + updated.length;
   updateGutter();
   autosave();
   toast(uncomment ? "Uncommented" : "Commented");
+}
+
+function getIndentUnit() {
+  const mode = ui.indent.value;
+  return mode === "tab" ? "\t" : " ".repeat(parseInt(mode, 10) || 4);
+}
+
+function handleSmartEnter(e) {
+  if (e.key !== "Enter") return false;
+
+  e.preventDefault();
+
+  const el = ui.code;
+  const value = el.value;
+  const start = el.selectionStart;
+  const end = el.selectionEnd;
+
+  const lineStart = value.lastIndexOf("\n", Math.max(0, start - 1)) + 1;
+  const lineEndIndex = value.indexOf("\n", start);
+  const lineEnd = lineEndIndex === -1 ? value.length : lineEndIndex;
+
+  const beforeCursor = value.slice(lineStart, start);
+  const afterCursor = value.slice(start, lineEnd);
+  const currentLine = value.slice(lineStart, lineEnd);
+
+  const indentMatch = currentLine.match(/^[\t ]*/);
+  const currentIndent = indentMatch ? indentMatch[0] : "";
+  const indentUnit = getIndentUnit();
+
+  let nextIndent = currentIndent;
+
+  if (beforeCursor.trimEnd().endsWith(":")) {
+    nextIndent += indentUnit;
+  }
+
+  const shouldOutdentClosing =
+    /^[\t ]*[\]\)\}]/.test(afterCursor) && nextIndent.length >= indentUnit.length;
+
+  if (shouldOutdentClosing) {
+    if (indentUnit === "\t") {
+      if (nextIndent.endsWith("\t")) nextIndent = nextIndent.slice(0, -1);
+    } else if (nextIndent.endsWith(indentUnit)) {
+      nextIndent = nextIndent.slice(0, -indentUnit.length);
+    }
+  }
+
+  const insertText = "\n" + nextIndent;
+  el.setRangeText(insertText, start, end, "end");
+
+  updateGutter();
+  autosave();
+  return true;
+}
+
+function handleSmartBackspace(e) {
+  if (e.key !== "Backspace") return false;
+
+  const el = ui.code;
+  const start = el.selectionStart;
+  const end = el.selectionEnd;
+  if (start !== end) return false;
+
+  const value = el.value;
+  const lineStart = value.lastIndexOf("\n", Math.max(0, start - 1)) + 1;
+  const beforeCursor = value.slice(lineStart, start);
+
+  if (!/^[\t ]+$/.test(beforeCursor)) return false;
+
+  const indentUnit = getIndentUnit();
+
+  if (indentUnit === "\t") {
+    if (!beforeCursor.endsWith("\t")) return false;
+    e.preventDefault();
+    el.setRangeText("", start - 1, start, "end");
+    updateGutter();
+    autosave();
+    return true;
+  }
+
+  const spaces = indentUnit.length;
+  const removeCount = beforeCursor.length % spaces || spaces;
+  e.preventDefault();
+  el.setRangeText("", start - removeCount, start, "end");
+  updateGutter();
+  autosave();
+  return true;
 }
 
 // ----- Output renderer (stdout + plots) -----
@@ -627,7 +727,10 @@ function renderOut(stdoutText, plots = []) {
       img.decoding = "async";
       img.tabIndex = 0;
       img.setAttribute("role", "button");
-      img.setAttribute("aria-label", `Plot ${i + 1}. Double-click to toggle fullscreen.`);
+      img.setAttribute(
+        "aria-label",
+        `Plot ${i + 1}. Double-click to toggle fullscreen.`,
+      );
       img.setAttribute("aria-expanded", "false");
       img.addEventListener("dblclick", () => togglePlotFullscreen(img));
       img.addEventListener("keydown", (e) => {
@@ -905,9 +1008,8 @@ function classPolicy() {
     disable_open: classroomMode,
     disable_eval_exec: false,
     block_imports: classroomMode && !pkgOK,
-    allow_imports: classroomMode && !pkgOK
-      ? ["math", "random", "re", "statistics"]
-      : [],
+    allow_imports:
+      classroomMode && !pkgOK ? ["math", "random", "re", "statistics"] : [],
     allow_micropip: pkgOK,
   };
 }
@@ -1008,7 +1110,10 @@ async function run() {
     }
 
     if (ui.timer.checked) {
-      renderOut((r.stdout || "") + `\n✓ Done (${Math.round(t1 - t0)} ms)\n`, plots);
+      renderOut(
+        (r.stdout || "") + `\n✓ Done (${Math.round(t1 - t0)} ms)\n`,
+        plots,
+      );
     } else {
       renderOut((r.stdout || "") + "\n✓ Done\n", plots);
     }
@@ -1440,7 +1545,7 @@ btn.clearStdin.onclick = () => {
 
 btn.copyOut.onclick = async () => {
   // Copy stdout (text) + stderr (text). Plots are images so we only copy text.
-  const stdoutText = _lastStdout || (ui.out.textContent || "");
+  const stdoutText = _lastStdout || ui.out.textContent || "";
   const t = stdoutText + "\n" + (ui.err.textContent || "");
   try {
     await navigator.clipboard.writeText(t);
@@ -1487,11 +1592,21 @@ ui.code.addEventListener("keydown", (e) => {
     run();
     return;
   }
+
   if ((e.ctrlKey || e.metaKey) && e.key === "/") {
     e.preventDefault();
     toggleCommentSelection();
     return;
   }
+
+  if (handleSmartEnter(e)) {
+    return;
+  }
+
+  if (handleSmartBackspace(e)) {
+    return;
+  }
+
   if (e.key === "Tab") {
     e.preventDefault();
     const mode = ui.indent.value;
@@ -1577,15 +1692,23 @@ ui.runAll.onclick = async () => {
 
 if (ui.themeToggle) ui.themeToggle.addEventListener("click", toggleTheme);
 
-wireDragResize(ui.sidebarResizer, (e) => {
-  setSidebarWidth(e.clientX - 50);
-}, "pp-resizing-col");
+wireDragResize(
+  ui.sidebarResizer,
+  (e) => {
+    setSidebarWidth(e.clientX - 50);
+  },
+  "pp-resizing-col",
+);
 
-wireDragResize(ui.panelResizer, (e) => {
-  const rect = ui.panel.parentElement.getBoundingClientRect();
-  const next = rect.bottom - e.clientY - 34;
-  setPanelHeight(next);
-}, "pp-resizing-row");
+wireDragResize(
+  ui.panelResizer,
+  (e) => {
+    const rect = ui.panel.parentElement.getBoundingClientRect();
+    const next = rect.bottom - e.clientY - 34;
+    setPanelHeight(next);
+  },
+  "pp-resizing-row",
+);
 
 window.addEventListener("resize", () => {
   const saved = parseInt(localStorage.getItem(K_PANEL_H) || "0", 10);
