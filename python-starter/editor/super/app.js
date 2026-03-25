@@ -1,4 +1,4 @@
-// Programmer's Picnic — Pyodide Editor (Judge v2 + Matplotlib Lessons)
+// Programmer's Picnic — Pyodide Editor (Judge v2 + Matplotlib Lessons + Voice Commands)
 // Modes:
 //   ?tmode=1 => Teacher mode (Teacher Panel visible)
 //   ?tmode=0 => Student mode (Classroom forced ON, teacher controls hidden)
@@ -75,6 +75,9 @@ const ui = {
   panelResizer: $("ppPanelResizer"),
   sidebar: document.getElementById("vsSidebar"),
   panel: document.querySelector(".vs-panel"),
+
+  voiceBtn: $("ppVoiceBtn"),
+  voiceStatus: $("ppVoiceStatus"),
 };
 
 const btn = {
@@ -210,19 +213,17 @@ async function loadCodeFromURL(url) {
       tabs = payload;
     } else if (payload && typeof payload === "object") {
       if (Array.isArray(payload.tabs)) tabs = payload.tabs;
-      else if (typeof payload.code === "string")
+      else if (typeof payload.code === "string") {
         tabs = [{ name: "main.py", code: payload.code }];
+      }
       currentTabRemote = payload.currentTab ?? payload.current_tab ?? 0;
       stdin = payload.stdin ?? "";
       problem = payload.problem ?? "";
     }
 
-    if (!Array.isArray(tabs) || !tabs.length)
-      throw new Error("Invalid code JSON");
+    if (!Array.isArray(tabs) || !tabs.length) throw new Error("Invalid code JSON");
     tabs = tabs.map((t, i) => ({
-      name: String(
-        t?.name || (i === 0 ? "main.py" : "file" + (i + 1) + ".py"),
-      ),
+      name: String(t?.name || (i === 0 ? "main.py" : "file" + (i + 1) + ".py")),
       code: String(t?.code || ""),
     }));
 
@@ -293,8 +294,6 @@ let PROBLEMS = [];
 
 /* -------------------------
    MATPLOTLIB INTERACTIVE LESSONS
-   - These appear under Examples…
-   - When selected, they can auto-request packages install (matplotlib)
 -------------------------- */
 const EXAMPLES = [
   {
@@ -305,8 +304,6 @@ const EXAMPLES = [
     title: "stdin + sum",
     code: "n=int(input())\nt=0\nfor _ in range(n):\n    t+=int(input())\nprint(t)\n",
   },
-
-  // --- Matplotlib lessons ---
   {
     title: "📈 Matplotlib Lesson 1 — Line Plot",
     needsPkgs: ["matplotlib"],
@@ -494,8 +491,7 @@ function applyTheme(theme) {
   try {
     localStorage.setItem(K_THEME, t);
   } catch {}
-  if (ui.themeToggle)
-    ui.themeToggle.textContent = t === "light" ? "☀️ Light" : "🌙 Dark";
+  if (ui.themeToggle) ui.themeToggle.textContent = t === "light" ? "☀️ Light" : "🌙 Dark";
 }
 
 function toggleTheme() {
@@ -526,11 +522,7 @@ function setPanelHeight(px) {
 function wireDragResize(handle, onMove, className) {
   if (!handle) return;
   const start = (ev) => {
-    if (
-      window.matchMedia("(max-width: 980px)").matches &&
-      handle === ui.sidebarResizer
-    )
-      return;
+    if (window.matchMedia("(max-width: 980px)").matches && handle === ui.sidebarResizer) return;
     ev.preventDefault();
     document.body.classList.add(className);
     const move = (e) => onMove(e);
@@ -560,8 +552,7 @@ function toggleCommentSelection() {
   const [ls, le] = lineBounds(v, s, t);
   const lines = v.slice(ls, le).split("\n");
   const nonEmpty = lines.filter((line) => line.trim());
-  const uncomment =
-    nonEmpty.length > 0 && nonEmpty.every((line) => /^\s*#/.test(line));
+  const uncomment = nonEmpty.length > 0 && nonEmpty.every((line) => /^\s*#/.test(line));
   const updated = lines
     .map((line) => {
       if (!line.trim()) return line;
@@ -663,9 +654,156 @@ function handleSmartBackspace(e) {
   return true;
 }
 
+// ----- Voice commands -----
+let recognition = null;
+let voiceSupported = false;
+let voiceListening = false;
+
+function normalizeSpeech(text) {
+  return String(text || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[.,!?]/g, "")
+    .replace(/\s+/g, " ");
+}
+
+function handleVoiceCommand(text) {
+  const cmd = normalizeSpeech(text);
+  if (!cmd) return;
+
+  if (cmd === "run" || cmd === "run code" || cmd === "execute" || cmd === "start") {
+    toast("Voice: run");
+    run();
+    return;
+  }
+
+  if (cmd === "stop" || cmd === "stop code" || cmd === "halt") {
+    toast("Voice: stop");
+    stop();
+    return;
+  }
+
+  if (cmd === "save" || cmd === "save code") {
+    state.tabs[currentTab].code = ui.code.value;
+    saveState();
+    localStorage.setItem(K_STDIN, ui.stdin.value || "");
+    toast("Voice: saved");
+    return;
+  }
+
+  if (cmd === "format" || cmd === "format code") {
+    basicFormat();
+    toast("Voice: format");
+    return;
+  }
+
+  if (cmd === "new tab") {
+    newTab();
+    toast("Voice: new tab");
+    return;
+  }
+
+  if (cmd === "clear output") {
+    renderOut("", []);
+    ui.err.textContent = "";
+    toast("Voice: cleared output");
+    return;
+  }
+
+  if (cmd === "load starter") {
+    const p = getProblem(currentProblemId);
+    if (!p) {
+      toast("Pick a problem first");
+      return;
+    }
+    ui.code.value = p.starter;
+    updateGutter();
+    autosave();
+    toast("Voice: starter loaded");
+    return;
+  }
+
+  toast("Voice command not recognized: " + cmd);
+}
+
+function updateVoiceUI(stateText, btnText) {
+  if (ui.voiceStatus) ui.voiceStatus.textContent = stateText;
+  if (ui.voiceBtn) ui.voiceBtn.textContent = btnText;
+}
+
+function stopVoiceRecognition() {
+  if (recognition && voiceListening) {
+    try {
+      recognition.stop();
+    } catch {}
+  }
+}
+
+function startVoiceRecognition() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (!SpeechRecognition) {
+    voiceSupported = false;
+    updateVoiceUI("Voice: unsupported", "🎤 Voice");
+    toast("Voice recognition not supported in this browser");
+    return;
+  }
+
+  voiceSupported = true;
+
+  if (!recognition) {
+    recognition = new SpeechRecognition();
+    recognition.lang = "en-IN";
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 3;
+
+    recognition.onstart = () => {
+      voiceListening = true;
+      updateVoiceUI("Voice: listening", "🛑 Stop Voice");
+      toast("Voice listening");
+    };
+
+    recognition.onend = () => {
+      voiceListening = false;
+      updateVoiceUI("Voice: ready", "🎤 Voice");
+    };
+
+    recognition.onerror = (e) => {
+      updateVoiceUI("Voice: error", "🎤 Voice");
+      toast("Voice error: " + (e.error || "unknown"));
+    };
+
+    recognition.onresult = (event) => {
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        if (!result.isFinal) continue;
+        const transcript = result[0]?.transcript || "";
+        handleVoiceCommand(transcript);
+      }
+    };
+  }
+
+  try {
+    recognition.start();
+  } catch {
+    // ignore duplicate start errors
+  }
+}
+
+function toggleVoiceRecognition() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!voiceSupported && !SpeechRecognition) {
+    startVoiceRecognition();
+    return;
+  }
+  if (voiceListening) stopVoiceRecognition();
+  else startVoiceRecognition();
+}
+
 // ----- Output renderer (stdout + plots) -----
 let _lastStdout = "";
-let _lastPlots = []; // array of data:image/png;base64,...
+let _lastPlots = [];
 let _activePlotFullscreen = null;
 
 function togglePlotFullscreen(img) {
@@ -727,10 +865,7 @@ function renderOut(stdoutText, plots = []) {
       img.decoding = "async";
       img.tabIndex = 0;
       img.setAttribute("role", "button");
-      img.setAttribute(
-        "aria-label",
-        `Plot ${i + 1}. Double-click to toggle fullscreen.`,
-      );
+      img.setAttribute("aria-label", `Plot ${i + 1}. Double-click to toggle fullscreen.`);
       img.setAttribute("aria-expanded", "false");
       img.addEventListener("dblclick", () => togglePlotFullscreen(img));
       img.addEventListener("keydown", (e) => {
@@ -852,10 +987,7 @@ ui.stuRoll.addEventListener("input", saveStudent);
 // ----- Tabs -----
 function saveState() {
   try {
-    localStorage.setItem(
-      K_STATE,
-      JSON.stringify({ tabs: state.tabs, currentTab }),
-    );
+    localStorage.setItem(K_STATE, JSON.stringify({ tabs: state.tabs, currentTab }));
   } catch {}
 }
 function renderTabs() {
@@ -916,10 +1048,7 @@ function updateGutter() {
   ui.gutter.textContent = s.trimEnd();
   ui.gutter.scrollTop = ui.code.scrollTop;
 }
-ui.code.addEventListener(
-  "scroll",
-  () => (ui.gutter.scrollTop = ui.code.scrollTop),
-);
+ui.code.addEventListener("scroll", () => (ui.gutter.scrollTop = ui.code.scrollTop));
 ui.code.addEventListener("input", () => {
   updateGutter();
   autosave();
@@ -985,8 +1114,7 @@ function showProblem(id) {
 
 // ----- Attempt limit -----
 const attKey = (pid) => `pp_attempts_${pid}_v1`;
-const attUsed = (pid) =>
-  parseInt(localStorage.getItem(attKey(pid)) || "0", 10) || 0;
+const attUsed = (pid) => parseInt(localStorage.getItem(attKey(pid)) || "0", 10) || 0;
 const attInc = (pid) => {
   const u = attUsed(pid) + 1;
   localStorage.setItem(attKey(pid), String(u));
@@ -1008,8 +1136,7 @@ function classPolicy() {
     disable_open: classroomMode,
     disable_eval_exec: false,
     block_imports: classroomMode && !pkgOK,
-    allow_imports:
-      classroomMode && !pkgOK ? ["math", "random", "re", "statistics"] : [],
+    allow_imports: classroomMode && !pkgOK ? ["math", "random", "re", "statistics"] : [],
     allow_micropip: pkgOK,
   };
 }
@@ -1032,7 +1159,7 @@ function makeWorker(force = false) {
       return;
     }
     if (msg.type === "PKG_LIST") {
-      renderOut(msg.text || "", []); // show list in stdout box
+      renderOut(msg.text || "", []);
       return;
     }
     if (msg.type === "INSTALLED") {
@@ -1042,7 +1169,6 @@ function makeWorker(force = false) {
       } catch {}
       packagesInstalled = true;
 
-      // Update installed packages UI list (best-effort)
       try {
         const prev = new Set(loadInstalledPkgs());
         (msg.pkgs || []).forEach((p) => prev.add(String(p)));
@@ -1110,10 +1236,7 @@ async function run() {
     }
 
     if (ui.timer.checked) {
-      renderOut(
-        (r.stdout || "") + `\n✓ Done (${Math.round(t1 - t0)} ms)\n`,
-        plots,
-      );
+      renderOut((r.stdout || "") + `\n✓ Done (${Math.round(t1 - t0)} ms)\n`, plots);
     } else {
       renderOut((r.stdout || "") + "\n✓ Done\n", plots);
     }
@@ -1161,8 +1284,6 @@ async function runJudge(testList, label) {
     const name = t.hidden ? `Hidden #${i + 1}` : `Test #${i + 1}`;
     try {
       const r = await runInWorker(code, t.input);
-
-      // IMPORTANT: judge compares stdout only (plots ignored)
       const got = normalizeOut(r.stdout || "");
       const exp = normalizeOut(t.output);
       const ok = r.ok === true && got === exp;
@@ -1187,9 +1308,7 @@ async function runJudge(testList, label) {
         input: t.input,
         expected: t.output,
         got: "",
-        error: isTimeout
-          ? "Timeout (infinite loop?)"
-          : err?.message || String(err),
+        error: isTimeout ? "Timeout (infinite loop?)" : err?.message || String(err),
         stderr: "",
       });
     }
@@ -1239,7 +1358,6 @@ async function runJudge(testList, label) {
   ui.judgeTableWrap.innerHTML = "";
   ui.judgeTableWrap.appendChild(table);
 
-  // XP
   if (pass === total) {
     const gained = 25 + total * 5;
     setXP(getXP() + gained);
@@ -1251,11 +1369,8 @@ async function runJudge(testList, label) {
     toast(`Keep going! +${gained} XP`);
   }
 
-  // Record submission (students always; teachers only when classroom on)
   if (STUDENT_LOCKED || (TEACHER_UI && classroomMode)) {
-    const usedNow = attemptLimitOn
-      ? attInc(currentProblemId)
-      : attUsed(currentProblemId);
+    const usedNow = attemptLimitOn ? attInc(currentProblemId) : attUsed(currentProblemId);
     addSub({
       name: (ui.stuName.value || "").trim() || "Unknown",
       roll: (ui.stuRoll.value || "").trim() || "NA",
@@ -1270,9 +1385,7 @@ async function runJudge(testList, label) {
       code,
     });
     if (STUDENT_LOCKED && attemptLimitOn) {
-      toast(
-        `Submitted. Attempts left: ${Math.max(0, attemptLimitMax - usedNow)}`,
-      );
+      toast(`Submitted. Attempts left: ${Math.max(0, attemptLimitMax - usedNow)}`);
     }
   }
 
@@ -1373,8 +1486,7 @@ async function share() {
     .replaceAll("=", "");
 
   location.hash = "#pp=" + b64;
-  const url =
-    location.origin + location.pathname + location.search + "#pp=" + b64;
+  const url = location.origin + location.pathname + location.search + "#pp=" + b64;
 
   if (navigator.share) {
     try {
@@ -1391,7 +1503,7 @@ async function share() {
     openShareModal(url, "Select the link and press Ctrl+C if Copy is blocked.");
   }
 }
-// Strict loader: ONLY accepts #pp=...
+
 function loadFromHash() {
   const h = location.hash || "";
   if (!h.startsWith("#pp=")) return;
@@ -1426,12 +1538,10 @@ function applyModeUI() {
       ? "Student (tmode=0)"
       : "Practice";
 
-  // Fix: HTML uses visibility:hidden sometimes; enforce visibility here too.
   ui.teacherBtn.style.display = TEACHER_UI ? "inline-flex" : "none";
   ui.teacherBtn.style.visibility = TEACHER_UI ? "visible" : "hidden";
   ui.teacherPanel.style.display = TEACHER_UI ? "block" : "none";
 
-  // share always available
   btn.share.style.display = "inline-flex";
 
   ui.packagesCard.style.display = allowPackages ? "block" : "none";
@@ -1544,8 +1654,7 @@ btn.clearStdin.onclick = () => {
 };
 
 btn.copyOut.onclick = async () => {
-  // Copy stdout (text) + stderr (text). Plots are images so we only copy text.
-  const stdoutText = _lastStdout || ui.out.textContent || "";
+  const stdoutText = _lastStdout || (ui.out.textContent || "");
   const t = stdoutText + "\n" + (ui.err.textContent || "");
   try {
     await navigator.clipboard.writeText(t);
@@ -1560,7 +1669,6 @@ btn.clearOut.onclick = () => {
   toast("Cleared");
 };
 
-// Examples (Matplotlib lessons included)
 ui.example.onchange = () => {
   const i = parseInt(ui.example.value, 10);
   if (Number.isFinite(i) && EXAMPLES[i]) {
@@ -1571,13 +1679,11 @@ ui.example.onchange = () => {
     autosave();
     toast("Example loaded");
 
-    // If this example needs packages, auto-fill and auto-install.
     if (ex.needsPkgs && Array.isArray(ex.needsPkgs) && ex.needsPkgs.length) {
       ui.pkgs.value = ex.needsPkgs.join(", ");
       if (!allowPackages) {
         toast("This lesson needs packages, but packages are disabled.");
       } else {
-        // try auto install (no confirm/prompt)
         toast("Installing: " + ui.pkgs.value);
         installPkgs();
       }
@@ -1592,20 +1698,13 @@ ui.code.addEventListener("keydown", (e) => {
     run();
     return;
   }
-
   if ((e.ctrlKey || e.metaKey) && e.key === "/") {
     e.preventDefault();
     toggleCommentSelection();
     return;
   }
-
-  if (handleSmartEnter(e)) {
-    return;
-  }
-
-  if (handleSmartBackspace(e)) {
-    return;
-  }
+  if (handleSmartEnter(e)) return;
+  if (handleSmartBackspace(e)) return;
 
   if (e.key === "Tab") {
     e.preventDefault();
@@ -1638,7 +1737,6 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") closeFullscreenPlot();
 });
 
-// problems
 ui.problemSel.onchange = () => {
   if (STUDENT_LOCKED && lockProblem) return toast("Problem locked");
   showProblem(ui.problemSel.value);
@@ -1691,6 +1789,7 @@ ui.runAll.onclick = async () => {
 };
 
 if (ui.themeToggle) ui.themeToggle.addEventListener("click", toggleTheme);
+if (ui.voiceBtn) ui.voiceBtn.addEventListener("click", toggleVoiceRecognition);
 
 wireDragResize(
   ui.sidebarResizer,
@@ -1728,7 +1827,6 @@ async function init() {
   const savedPanelH = parseInt(localStorage.getItem(K_PANEL_H) || "0", 10);
   if (savedPanelH) setPanelHeight(savedPanelH);
 
-  // Optional URL loaders
   const codeFile = URLP.get("codefile");
   const codeURL = URLP.get("code");
 
@@ -1738,9 +1836,7 @@ async function init() {
       const fname =
         (String(codeFile).split("/").pop() || "main.py").replace(/\?.*$/, "") ||
         "main.py";
-      state.tabs = [
-        { name: fname.endsWith(".py") ? fname : "main.py", code: txt },
-      ];
+      state.tabs = [{ name: fname.endsWith(".py") ? fname : "main.py", code: txt }];
       currentTab = 0;
       ui.code.value = state.tabs[0].code || "";
       saveState();
@@ -1767,28 +1863,21 @@ async function init() {
       toast("Code JSON invalid/unreachable");
     }
   } else {
-    // strict share loader
     loadFromHash();
   }
 
-  // stdin
   ui.stdin.value = localStorage.getItem(K_STDIN) || "";
   ui.stdin.addEventListener("input", () =>
     localStorage.setItem(K_STDIN, ui.stdin.value || ""),
   );
 
   loadStudent();
-
   renderTabs();
 
-  // Load local + optional remote problems
   const custom = loadCustomProblems();
   const remoteURL = URLP.get("problems");
-  const remote = remoteURL
-    ? await loadProblemsFromURL(remoteURL)
-    : loadRemoteCache();
+  const remote = remoteURL ? await loadProblemsFromURL(remoteURL) : loadRemoteCache();
 
-  // Merge (defaults first, then custom, then remote). Dedupe by id.
   const byId = new Map();
   [...DEFAULT_PROBLEMS, ...custom, ...remote].forEach((p) => {
     byId.set(p.id, p);
@@ -1801,14 +1890,15 @@ async function init() {
   updateGutter();
   btn.stop.disabled = true;
 
-  // output init
   renderOut("", []);
 
-  // mode UI
   applyModeUI();
   wireTeacherPanel();
 
-  // problem
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  voiceSupported = !!SpeechRecognition;
+  updateVoiceUI(voiceSupported ? "Voice: ready" : "Voice: unsupported", "🎤 Voice");
+
   const pid = currentProblemId || pickToday();
   ui.problemSel.value = pid;
   showProblem(pid);
