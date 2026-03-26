@@ -47,6 +47,13 @@ const ui = {
   xp: $("ppXP"),
   streak: $("ppStreak"),
   timeout: $("ppTimeout"),
+  projectTitle: $("ppProjectTitle"),
+  projectDescription: $("ppProjectDescription"),
+  projectTags: $("ppProjectTags"),
+  projectAuthor: $("ppProjectAuthor"),
+  projectTitleDisplay: $("ppProjectTitleDisplay"),
+  projectMetaLine: $("ppProjectMetaLine"),
+  projectTagsDisplay: $("ppProjectTagsDisplay"),
 
   teacherBtn: $("ppTeacherBtn"),
   teacherPanel: $("ppTeacherPanel"),
@@ -197,6 +204,7 @@ async function loadCodeFromURL(url) {
     let currentTabRemote = 0;
     let stdin = "";
     let problem = "";
+    let project = defaultProjectMeta();
 
     if (Array.isArray(payload)) {
       tabs = payload;
@@ -206,6 +214,12 @@ async function loadCodeFromURL(url) {
       currentTabRemote = payload.currentTab ?? payload.current_tab ?? 0;
       stdin = payload.stdin ?? "";
       problem = payload.problem ?? "";
+      project = normalizeProjectMeta(payload.project || payload.meta || {
+        title: payload.title,
+        description: payload.description,
+        tags: payload.tags,
+        author: payload.author,
+      });
     }
 
     if (!Array.isArray(tabs) || !tabs.length) throw new Error("Invalid code JSON");
@@ -219,6 +233,7 @@ async function loadCodeFromURL(url) {
       currentTab: currentTabRemote,
       stdin: String(stdin || ""),
       problem: String(problem || ""),
+      project,
     };
   } catch {
     return null;
@@ -352,6 +367,34 @@ function saveInt(k, v) {
   try {
     localStorage.setItem(k, String(v));
   } catch {}
+}
+
+
+function splitProjectTags(value) {
+  return String(value || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 12);
+}
+
+function normalizeProjectMeta(meta) {
+  const m = meta && typeof meta === "object" ? meta : {};
+  return {
+    title: String(m.title || "").trim(),
+    description: String(m.description || "").trim(),
+    tags: splitProjectTags(Array.isArray(m.tags) ? m.tags.join(", ") : (m.tags || "")),
+    author: String(m.author || "").trim(),
+  };
+}
+
+function defaultProjectMeta() {
+  return {
+    title: "",
+    description: "",
+    tags: [],
+    author: "",
+  };
 }
 
 function normalizeOut(s) {
@@ -881,11 +924,18 @@ function loadState() {
   try {
     const raw = localStorage.getItem(K_STATE);
     const p = raw ? JSON.parse(raw) : null;
-    if (p && Array.isArray(p.tabs) && p.tabs.length) return p;
+    if (p && Array.isArray(p.tabs) && p.tabs.length) {
+      return {
+        tabs: p.tabs,
+        currentTab: Number.isFinite(parseInt(p.currentTab, 10)) ? parseInt(p.currentTab, 10) : 0,
+        project: normalizeProjectMeta(p.project),
+      };
+    }
   } catch {}
-  return { tabs: structuredClone(DEFAULT_TABS), currentTab: 0 };
+  return { tabs: structuredClone(DEFAULT_TABS), currentTab: 0, project: defaultProjectMeta() };
 }
 let state = loadState();
+state.project = normalizeProjectMeta(state.project);
 let currentTab = clamp(state.currentTab || 0, 0, state.tabs.length - 1);
 let currentProblemId = null;
 let currentStarter = null;
@@ -977,9 +1027,70 @@ ui.stuRoll.addEventListener("input", saveStudent);
 // ----- Tabs -----
 function saveState() {
   try {
-    localStorage.setItem(K_STATE, JSON.stringify({ tabs: state.tabs, currentTab }));
+    localStorage.setItem(
+      K_STATE,
+      JSON.stringify({
+        tabs: state.tabs,
+        currentTab,
+        project: normalizeProjectMeta(state.project),
+      }),
+    );
   } catch {}
 }
+
+function updateProjectMetaTitle() {
+  const title = state.project.title || "Untitled project";
+  document.title = `${title} — Programmer's Picnic Python Editor`;
+  if (ui.projectTitleDisplay) ui.projectTitleDisplay.textContent = title;
+  const author = state.project.author || "—";
+  const tagsText = state.project.tags.length ? state.project.tags.join(", ") : "—";
+  if (ui.projectMetaLine) {
+    ui.projectMetaLine.textContent = `Author: ${author} • Tags: ${tagsText}`;
+  }
+  if (ui.projectTagsDisplay) {
+    ui.projectTagsDisplay.innerHTML = state.project.tags.length
+      ? state.project.tags.map((tag) => `<span class="pp-project-chip">${esc(tag)}</span>`).join("")
+      : `<span class="vs-small">No tags yet</span>`;
+  }
+}
+
+function syncProjectMetaInputs() {
+  if (ui.projectTitle) ui.projectTitle.value = state.project.title || "";
+  if (ui.projectDescription) ui.projectDescription.value = state.project.description || "";
+  if (ui.projectTags) ui.projectTags.value = state.project.tags.join(", ");
+  if (ui.projectAuthor) ui.projectAuthor.value = state.project.author || "";
+  updateProjectMetaTitle();
+}
+
+function readProjectMetaFromInputs() {
+  state.project = normalizeProjectMeta({
+    title: ui.projectTitle?.value || "",
+    description: ui.projectDescription?.value || "",
+    tags: ui.projectTags?.value || "",
+    author: ui.projectAuthor?.value || "",
+  });
+  updateProjectMetaTitle();
+}
+
+function wireProjectMeta() {
+  [ui.projectTitle, ui.projectDescription, ui.projectTags, ui.projectAuthor].forEach((el) => {
+    el?.addEventListener("input", () => {
+      readProjectMetaFromInputs();
+      saveState();
+    });
+  });
+  syncProjectMetaInputs();
+}
+
+function highlightProjectMetaFromShare() {
+  const els = [ui.projectTitle, ui.projectDescription, ui.projectTags, ui.projectAuthor].filter(Boolean);
+  els.forEach((el) => el.classList.add("pp-project-highlight"));
+  clearTimeout(highlightProjectMetaFromShare._t);
+  highlightProjectMetaFromShare._t = setTimeout(() => {
+    els.forEach((el) => el.classList.remove("pp-project-highlight"));
+  }, 2600);
+}
+
 function renderTabs() {
   ui.tabs.innerHTML = "";
   state.tabs.forEach((t, i) => {
@@ -1454,11 +1565,14 @@ shareUI?.copy?.addEventListener("click", async () => {
 async function share() {
   state.tabs[currentTab].code = ui.code.value;
 
+  readProjectMetaFromInputs();
+
   const payload = {
     tabs: state.tabs,
     currentTab,
     stdin: ui.stdin.value || "",
     problem: currentProblemId || "",
+    project: normalizeProjectMeta(state.project),
   };
 
   const json = JSON.stringify(payload);
@@ -1472,7 +1586,7 @@ async function share() {
 
   if (navigator.share) {
     try {
-      await navigator.share({ title: document.title, url });
+      await navigator.share({ title: state.project.title || document.title, text: state.project.description || "", url });
       toast("Shared");
       return;
     } catch {}
@@ -1505,6 +1619,14 @@ function loadFromHash() {
       currentTab = clamp(payload.currentTab || 0, 0, state.tabs.length - 1);
       ui.stdin.value = payload.stdin || "";
       ui.code.value = state.tabs[currentTab].code || "";
+      state.project = normalizeProjectMeta(payload.project || payload.meta || {
+        title: payload.title,
+        description: payload.description,
+        tags: payload.tags,
+        author: payload.author,
+      });
+      syncProjectMetaInputs();
+      highlightProjectMetaFromShare();
       saveState();
       localStorage.setItem(K_STDIN, ui.stdin.value || "");
     }
@@ -1824,6 +1946,8 @@ async function init() {
       state.tabs = [{ name: fname.endsWith(".py") ? fname : "main.py", code: txt }];
       currentTab = 0;
       ui.code.value = state.tabs[0].code || "";
+      state.project = normalizeProjectMeta({ ...state.project, title: state.project.title || fname.replace(/\.py$/i, "") });
+      syncProjectMetaInputs();
       saveState();
       toast("Loaded codefile");
     } else {
@@ -1842,6 +1966,9 @@ async function init() {
       ui.stdin.value = remoteCode.stdin || "";
       localStorage.setItem(K_STDIN, ui.stdin.value || "");
       if (remoteCode.problem) currentProblemId = remoteCode.problem;
+      state.project = normalizeProjectMeta(remoteCode.project);
+      syncProjectMetaInputs();
+      highlightProjectMetaFromShare();
       saveState();
       toast("Loaded code JSON");
     } else {
@@ -1857,6 +1984,7 @@ async function init() {
   );
 
   loadStudent();
+  wireProjectMeta();
   renderTabs();
 
   const custom = loadCustomProblems();
