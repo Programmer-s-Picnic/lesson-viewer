@@ -1,18 +1,9 @@
-// Programmer's Picnic — Pyodide Editor (Judge v2 + Matplotlib Lessons)
-// Modes:
-//   ?tmode=1 => Teacher mode (Teacher Panel visible)
-//   ?tmode=0 => Student mode (Classroom forced ON, teacher controls hidden)
-// Share button is enabled in both modes.
-//
-// Strict share:
-//   - Share writes ONLY: #pp=<base64url>
-//   - Loader accepts ONLY: #pp=<base64url>
-
+// Programmer's Picnic — Pyodide Editor (Judge v2 + Matplotlib Lessons + Voice Commands + Voice Log)
 const $ = (id) => document.getElementById(id);
 
 // ----- URL mode -----
 const URLP = new URLSearchParams(location.search);
-const TM = URLP.get("tmode"); // "1" | "0" | null
+const TM = URLP.get("tmode");
 const TEACHER_UI = TM === "1";
 const STUDENT_LOCKED = TM === "0";
 
@@ -75,6 +66,11 @@ const ui = {
   panelResizer: $("ppPanelResizer"),
   sidebar: document.getElementById("vsSidebar"),
   panel: document.querySelector(".vs-panel"),
+
+  voiceBtn: $("ppVoiceBtn"),
+  voiceStatus: $("ppVoiceStatus"),
+  voiceLog: $("ppVoiceLog"),
+  voiceClear: $("ppVoiceClear"),
 };
 
 const btn = {
@@ -109,18 +105,18 @@ const K_ALLOW_PKGS = "pp_allow_packages_v2";
 
 const K_STU_NAME = "pp_student_name_v2";
 const K_STU_ROLL = "pp_student_roll_v2";
-
-// Installed packages UI list (local display)
 const K_INSTALLED_PKGS = "pp_installed_pkgs_v1";
 const K_THEME = "pp_theme_v1";
 const K_SIDEBAR_W = "pp_sidebar_width_v1";
 const K_PANEL_H = "pp_panel_height_v1";
+const K_VOICE_LOG = "pp_voice_log_v1";
 
-// ---- Custom Problems Store (builder exports + optional remote JSON) ----
 const K_PROBLEMS_LOCAL = "pp_problems_custom_v1";
 const K_PROBLEMS_REMOTE_CACHE = "pp_problems_remote_cache_v1";
 const K_PROBLEMS_REMOTE_URL = "pp_problems_remote_url_v1";
+const K_SUBS = "pp_class_submissions_v1";
 
+// ----- Problem loaders -----
 function loadCustomProblems() {
   try {
     const raw = localStorage.getItem(K_PROBLEMS_LOCAL);
@@ -197,10 +193,6 @@ async function loadCodeFromURL(url) {
     if (!res.ok) throw new Error("HTTP " + res.status);
     const payload = await res.json();
 
-    // Accepted formats:
-    // 1) { tabs:[{name,code}], currentTab, stdin, problem }
-    // 2) { code:"print(...)" }  -> becomes one tab main.py
-    // 3) [{name,code}, ...] -> tabs array
     let tabs = null;
     let currentTabRemote = 0;
     let stdin = "";
@@ -210,19 +202,15 @@ async function loadCodeFromURL(url) {
       tabs = payload;
     } else if (payload && typeof payload === "object") {
       if (Array.isArray(payload.tabs)) tabs = payload.tabs;
-      else if (typeof payload.code === "string")
-        tabs = [{ name: "main.py", code: payload.code }];
+      else if (typeof payload.code === "string") tabs = [{ name: "main.py", code: payload.code }];
       currentTabRemote = payload.currentTab ?? payload.current_tab ?? 0;
       stdin = payload.stdin ?? "";
       problem = payload.problem ?? "";
     }
 
-    if (!Array.isArray(tabs) || !tabs.length)
-      throw new Error("Invalid code JSON");
+    if (!Array.isArray(tabs) || !tabs.length) throw new Error("Invalid code JSON");
     tabs = tabs.map((t, i) => ({
-      name: String(
-        t?.name || (i === 0 ? "main.py" : "file" + (i + 1) + ".py"),
-      ),
+      name: String(t?.name || (i === 0 ? "main.py" : "file" + (i + 1) + ".py")),
       code: String(t?.code || ""),
     }));
 
@@ -243,15 +231,11 @@ async function loadTextFileFromURL(url) {
   try {
     const res = await fetch(u, { cache: "no-store" });
     if (!res.ok) throw new Error("HTTP " + res.status);
-    const txt = await res.text();
-    return String(txt ?? "");
+    return String(await res.text());
   } catch {
     return null;
   }
 }
-
-// Single submissions store
-const K_SUBS = "pp_class_submissions_v1";
 
 // ----- Judge timeout -----
 const JUDGE_TIMEOUT_MS = 2500;
@@ -291,11 +275,7 @@ const DEFAULT_PROBLEMS = [
 
 let PROBLEMS = [];
 
-/* -------------------------
-   MATPLOTLIB INTERACTIVE LESSONS
-   - These appear under Examples…
-   - When selected, they can auto-request packages install (matplotlib)
--------------------------- */
+// ----- Examples -----
 const EXAMPLES = [
   {
     title: "Hello + loops",
@@ -305,14 +285,10 @@ const EXAMPLES = [
     title: "stdin + sum",
     code: "n=int(input())\nt=0\nfor _ in range(n):\n    t+=int(input())\nprint(t)\n",
   },
-
-  // --- Matplotlib lessons ---
   {
     title: "📈 Matplotlib Lesson 1 — Line Plot",
     needsPkgs: ["matplotlib"],
     code:
-      `# Matplotlib Lesson 1: Line Plot\n` +
-      `# Goal: Plot y = x^2\n\n` +
       `import matplotlib.pyplot as plt\n\n` +
       `x = [0,1,2,3,4,5]\n` +
       `y = [i*i for i in x]\n\n` +
@@ -321,80 +297,8 @@ const EXAMPLES = [
       `plt.title("y = x^2")\n` +
       `plt.xlabel("x")\n` +
       `plt.ylabel("y")\n` +
-      `plt.grid(True)\n\n` +
+      `plt.grid(True)\n` +
       `print("✅ Plot created. See image below.")\n` +
-      `plt.show()\n`,
-  },
-  {
-    title: "📊 Matplotlib Lesson 2 — Bar Chart",
-    needsPkgs: ["matplotlib"],
-    code:
-      `# Matplotlib Lesson 2: Bar Chart\n` +
-      `# Goal: Plot student marks\n\n` +
-      `import matplotlib.pyplot as plt\n\n` +
-      `names = ["A", "B", "C", "D"]\n` +
-      `marks = [72, 88, 64, 91]\n\n` +
-      `plt.figure()\n` +
-      `plt.bar(names, marks)\n` +
-      `plt.title("Marks")\n` +
-      `plt.xlabel("Student")\n` +
-      `plt.ylabel("Marks")\n\n` +
-      `print("✅ Bar chart created. See image below.")\n` +
-      `plt.show()\n`,
-  },
-  {
-    title: "🟣 Matplotlib Lesson 3 — Scatter + Labels",
-    needsPkgs: ["matplotlib"],
-    code:
-      `# Matplotlib Lesson 3: Scatter + Labels\n` +
-      `# Goal: Plot points and annotate them\n\n` +
-      `import matplotlib.pyplot as plt\n\n` +
-      `pts = [(1,2), (2,1), (3,4), (4,3)]\n` +
-      `x = [p[0] for p in pts]\n` +
-      `y = [p[1] for p in pts]\n\n` +
-      `plt.figure()\n` +
-      `plt.scatter(x, y)\n` +
-      `for i,(a,b) in enumerate(pts, start=1):\n` +
-      `    plt.text(a+0.05, b+0.05, f"P{i}")\n` +
-      `plt.title("Scatter + Labels")\n` +
-      `plt.grid(True)\n\n` +
-      `print("✅ Scatter plot created. See image below.")\n` +
-      `plt.show()\n`,
-  },
-  {
-    title: "📉 Matplotlib Lesson 4 — Histogram",
-    needsPkgs: ["matplotlib"],
-    code:
-      `# Matplotlib Lesson 4: Histogram\n` +
-      `# Goal: Frequency distribution\n\n` +
-      `import matplotlib.pyplot as plt\n\n` +
-      `data = [12, 15, 12, 20, 22, 15, 14, 14, 14, 18, 19, 20, 21, 22, 23]\n\n` +
-      `plt.figure()\n` +
-      `plt.hist(data, bins=6)\n` +
-      `plt.title("Histogram")\n` +
-      `plt.xlabel("Value")\n` +
-      `plt.ylabel("Frequency")\n\n` +
-      `print("✅ Histogram created. See image below.")\n` +
-      `plt.show()\n`,
-  },
-  {
-    title: "🌊 Matplotlib Lesson 5 — Multiple Plots (sin & cos)",
-    needsPkgs: ["matplotlib"],
-    code:
-      `# Matplotlib Lesson 5: Multiple Plots\n` +
-      `# Goal: Plot sin(x) and cos(x)\n\n` +
-      `import math\n` +
-      `import matplotlib.pyplot as plt\n\n` +
-      `x = [i*0.2 for i in range(0, 50)]\n` +
-      `sinx = [math.sin(v) for v in x]\n` +
-      `cosx = [math.cos(v) for v in x]\n\n` +
-      `plt.figure()\n` +
-      `plt.plot(x, sinx, label="sin(x)")\n` +
-      `plt.plot(x, cosx, label="cos(x)")\n` +
-      `plt.title("sin(x) & cos(x)")\n` +
-      `plt.legend()\n` +
-      `plt.grid(True)\n\n` +
-      `print("✅ Two curves plotted. See image below.")\n` +
       `plt.show()\n`,
   },
 ];
@@ -460,7 +364,7 @@ function normalizeOut(s) {
   return s + "\n";
 }
 
-// ----- Installed packages list helpers -----
+// ----- Installed package helpers -----
 function loadInstalledPkgs() {
   try {
     const raw = localStorage.getItem(K_INSTALLED_PKGS);
@@ -487,6 +391,60 @@ function renderInstalledPkgs() {
     .join(" ");
 }
 
+// ----- Voice log helpers -----
+function loadVoiceLog() {
+  try {
+    const raw = localStorage.getItem(K_VOICE_LOG);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveVoiceLog(list) {
+  try {
+    localStorage.setItem(K_VOICE_LOG, JSON.stringify(list));
+  } catch {}
+}
+
+function renderVoiceLog() {
+  if (!ui.voiceLog) return;
+  const list = loadVoiceLog();
+
+  if (!list.length) {
+    ui.voiceLog.innerHTML = `<div class="vs-small">No voice commands yet.</div>`;
+    return;
+  }
+
+  ui.voiceLog.innerHTML = list
+    .map(
+      (item) => `
+        <div class="pp-voice-item">
+          <div class="pp-voice-meta">${esc(item.time || "")}</div>
+          <div><b>Heard:</b> ${esc(item.heard || "")}</div>
+          <div><b>Normalized:</b> ${esc(item.normalized || "")}</div>
+          <div><b>Status:</b> <span class="${item.ok ? "pp-voice-ok" : "pp-voice-bad"}">${esc(item.action || "unknown")}</span></div>
+        </div>
+      `,
+    )
+    .join("");
+}
+
+function addVoiceLog(heard, normalized, action, ok) {
+  const list = loadVoiceLog();
+  list.unshift({
+    time: new Date().toLocaleString(),
+    heard: String(heard || ""),
+    normalized: String(normalized || ""),
+    action: String(action || ""),
+    ok: !!ok,
+  });
+  const trimmed = list.slice(0, 50);
+  saveVoiceLog(trimmed);
+  renderVoiceLog();
+}
+
 // ----- Theme / layout helpers -----
 function applyTheme(theme) {
   const t = theme === "light" ? "light" : "dark";
@@ -494,8 +452,7 @@ function applyTheme(theme) {
   try {
     localStorage.setItem(K_THEME, t);
   } catch {}
-  if (ui.themeToggle)
-    ui.themeToggle.textContent = t === "light" ? "☀️ Light" : "🌙 Dark";
+  if (ui.themeToggle) ui.themeToggle.textContent = t === "light" ? "☀️ Light" : "🌙 Dark";
 }
 
 function toggleTheme() {
@@ -526,11 +483,7 @@ function setPanelHeight(px) {
 function wireDragResize(handle, onMove, className) {
   if (!handle) return;
   const start = (ev) => {
-    if (
-      window.matchMedia("(max-width: 980px)").matches &&
-      handle === ui.sidebarResizer
-    )
-      return;
+    if (window.matchMedia("(max-width: 980px)").matches && handle === ui.sidebarResizer) return;
     ev.preventDefault();
     document.body.classList.add(className);
     const move = (e) => onMove(e);
@@ -560,8 +513,7 @@ function toggleCommentSelection() {
   const [ls, le] = lineBounds(v, s, t);
   const lines = v.slice(ls, le).split("\n");
   const nonEmpty = lines.filter((line) => line.trim());
-  const uncomment =
-    nonEmpty.length > 0 && nonEmpty.every((line) => /^\s*#/.test(line));
+  const uncomment = nonEmpty.length > 0 && nonEmpty.every((line) => /^\s*#/.test(line));
   const updated = lines
     .map((line) => {
       if (!line.trim()) return line;
@@ -584,7 +536,6 @@ function getIndentUnit() {
 
 function handleSmartEnter(e) {
   if (e.key !== "Enter") return false;
-
   e.preventDefault();
 
   const el = ui.code;
@@ -621,9 +572,7 @@ function handleSmartEnter(e) {
     }
   }
 
-  const insertText = "\n" + nextIndent;
-  el.setRangeText(insertText, start, end, "end");
-
+  el.setRangeText("\n" + nextIndent, start, end, "end");
   updateGutter();
   autosave();
   return true;
@@ -663,9 +612,188 @@ function handleSmartBackspace(e) {
   return true;
 }
 
-// ----- Output renderer (stdout + plots) -----
+// ----- Voice commands -----
+let recognition = null;
+let voiceSupported = false;
+let voiceListening = false;
+
+function normalizeSpeech(text) {
+  return String(text || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[.,!?]/g, "")
+    .replace(/\s+/g, " ");
+}
+
+function updateVoiceUI(stateText, btnText) {
+  if (ui.voiceStatus) ui.voiceStatus.textContent = stateText;
+  if (ui.voiceBtn) ui.voiceBtn.textContent = btnText;
+}
+
+function handleVoiceCommand(text) {
+  const raw = String(text || "").trim();
+  const cmd = normalizeSpeech(raw);
+
+  if (!cmd) {
+    addVoiceLog(raw, cmd, "empty", false);
+    return;
+  }
+
+  const runWords = new Set(["run", "ran", "one", "start", "execute", "play"]);
+  const stopWords = new Set(["stop", "halt", "cancel"]);
+  const saveWords = new Set(["save"]);
+  const formatWords = new Set(["format"]);
+  const clearWords = new Set(["clear output"]);
+  const newTabWords = new Set(["new tab"]);
+  const starterWords = new Set(["load starter"]);
+
+  if (
+    runWords.has(cmd) ||
+    cmd.startsWith("run ") ||
+    cmd === "run code" ||
+    cmd === "execute code" ||
+    cmd === "start code"
+  ) {
+    addVoiceLog(raw, cmd, "run", true);
+    toast("Voice: run");
+    run();
+    return;
+  }
+
+  if (stopWords.has(cmd) || cmd === "stop code") {
+    addVoiceLog(raw, cmd, "stop", true);
+    toast("Voice: stop");
+    stop();
+    return;
+  }
+
+  if (saveWords.has(cmd) || cmd === "save code") {
+    state.tabs[currentTab].code = ui.code.value;
+    saveState();
+    localStorage.setItem(K_STDIN, ui.stdin.value || "");
+    addVoiceLog(raw, cmd, "save", true);
+    toast("Voice: saved");
+    return;
+  }
+
+  if (formatWords.has(cmd) || cmd === "format code") {
+    basicFormat();
+    addVoiceLog(raw, cmd, "format", true);
+    toast("Voice: format");
+    return;
+  }
+
+  if (newTabWords.has(cmd)) {
+    newTab();
+    addVoiceLog(raw, cmd, "new tab", true);
+    toast("Voice: new tab");
+    return;
+  }
+
+  if (clearWords.has(cmd)) {
+    renderOut("", []);
+    ui.err.textContent = "";
+    addVoiceLog(raw, cmd, "clear output", true);
+    toast("Voice: cleared output");
+    return;
+  }
+
+  if (starterWords.has(cmd)) {
+    const p = getProblem(currentProblemId);
+    if (!p) {
+      addVoiceLog(raw, cmd, "load starter failed", false);
+      toast("Pick a problem first");
+      return;
+    }
+    ui.code.value = p.starter;
+    updateGutter();
+    autosave();
+    addVoiceLog(raw, cmd, "load starter", true);
+    toast("Voice: starter loaded");
+    return;
+  }
+
+  addVoiceLog(raw, cmd, "not recognized", false);
+  toast("Voice command not recognized: " + cmd);
+}
+
+function stopVoiceRecognition() {
+  if (recognition && voiceListening) {
+    try {
+      recognition.stop();
+    } catch {}
+  }
+}
+
+function startVoiceRecognition() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (!SpeechRecognition) {
+    voiceSupported = false;
+    updateVoiceUI("Voice: unsupported", "🎤 Voice");
+    toast("Voice recognition not supported in this browser");
+    return;
+  }
+
+  voiceSupported = true;
+
+  if (!recognition) {
+    recognition = new SpeechRecognition();
+    recognition.lang = "en-IN";
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 3;
+
+    recognition.onstart = () => {
+      voiceListening = true;
+      updateVoiceUI("Voice: listening", "🛑 Stop Voice");
+      toast("Voice listening");
+    };
+
+    recognition.onend = () => {
+      voiceListening = false;
+      updateVoiceUI("Voice: ready", "🎤 Voice");
+    };
+
+    recognition.onerror = (e) => {
+      updateVoiceUI("Voice: error", "🎤 Voice");
+      toast("Voice error: " + (e.error || "unknown"));
+    };
+
+    recognition.onresult = (event) => {
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        if (!result.isFinal) continue;
+
+        const all = [];
+        for (let j = 0; j < result.length; j++) {
+          all.push(result[j].transcript || "");
+        }
+
+        const transcript = all[0] || "";
+        handleVoiceCommand(transcript);
+      }
+    };
+  }
+
+  try {
+    recognition.start();
+  } catch {}
+}
+
+function toggleVoiceRecognition() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!voiceSupported && !SpeechRecognition) {
+    startVoiceRecognition();
+    return;
+  }
+  if (voiceListening) stopVoiceRecognition();
+  else startVoiceRecognition();
+}
+
+// ----- Output renderer -----
 let _lastStdout = "";
-let _lastPlots = []; // array of data:image/png;base64,...
+let _lastPlots = [];
 let _activePlotFullscreen = null;
 
 function togglePlotFullscreen(img) {
@@ -727,10 +855,7 @@ function renderOut(stdoutText, plots = []) {
       img.decoding = "async";
       img.tabIndex = 0;
       img.setAttribute("role", "button");
-      img.setAttribute(
-        "aria-label",
-        `Plot ${i + 1}. Double-click to toggle fullscreen.`,
-      );
+      img.setAttribute("aria-label", `Plot ${i + 1}. Double-click to toggle fullscreen.`);
       img.setAttribute("aria-expanded", "false");
       img.addEventListener("dblclick", () => togglePlotFullscreen(img));
       img.addEventListener("keydown", (e) => {
@@ -765,7 +890,7 @@ let currentTab = clamp(state.currentTab || 0, 0, state.tabs.length - 1);
 let currentProblemId = null;
 let currentStarter = null;
 
-// ----- Classroom/teacher flags -----
+// ----- Classroom flags -----
 let classroomMode = loadBool(K_CLASS, false);
 let examMode = loadBool(K_EXAM, false);
 let lockProblem = loadBool(K_LOCK, false);
@@ -852,10 +977,7 @@ ui.stuRoll.addEventListener("input", saveStudent);
 // ----- Tabs -----
 function saveState() {
   try {
-    localStorage.setItem(
-      K_STATE,
-      JSON.stringify({ tabs: state.tabs, currentTab }),
-    );
+    localStorage.setItem(K_STATE, JSON.stringify({ tabs: state.tabs, currentTab }));
   } catch {}
 }
 function renderTabs() {
@@ -884,8 +1006,7 @@ function switchTab(i) {
 function newTab() {
   state.tabs[currentTab].code = ui.code.value;
   const names = new Set(state.tabs.map((t) => t.name));
-  let n = 1,
-    name = `untitled${n}.py`;
+  let n = 1, name = `untitled${n}.py`;
   while (names.has(name)) {
     n++;
     name = `untitled${n}.py`;
@@ -916,10 +1037,7 @@ function updateGutter() {
   ui.gutter.textContent = s.trimEnd();
   ui.gutter.scrollTop = ui.code.scrollTop;
 }
-ui.code.addEventListener(
-  "scroll",
-  () => (ui.gutter.scrollTop = ui.code.scrollTop),
-);
+ui.code.addEventListener("scroll", () => (ui.gutter.scrollTop = ui.code.scrollTop));
 ui.code.addEventListener("input", () => {
   updateGutter();
   autosave();
@@ -985,8 +1103,7 @@ function showProblem(id) {
 
 // ----- Attempt limit -----
 const attKey = (pid) => `pp_attempts_${pid}_v1`;
-const attUsed = (pid) =>
-  parseInt(localStorage.getItem(attKey(pid)) || "0", 10) || 0;
+const attUsed = (pid) => parseInt(localStorage.getItem(attKey(pid)) || "0", 10) || 0;
 const attInc = (pid) => {
   const u = attUsed(pid) + 1;
   localStorage.setItem(attKey(pid), String(u));
@@ -1008,15 +1125,12 @@ function classPolicy() {
     disable_open: classroomMode,
     disable_eval_exec: false,
     block_imports: classroomMode && !pkgOK,
-    allow_imports:
-      classroomMode && !pkgOK ? ["math", "random", "re", "statistics"] : [],
+    allow_imports: classroomMode && !pkgOK ? ["math", "random", "re", "statistics"] : [],
     allow_micropip: pkgOK,
   };
 }
 function makeWorker(force = false) {
-  if (worker && !force && packagesInstalled) {
-    return;
-  }
+  if (worker && !force && packagesInstalled) return;
   if (worker) worker.terminate();
   worker = new Worker("./judge-worker.js");
   worker.onmessage = (ev) => {
@@ -1032,17 +1146,14 @@ function makeWorker(force = false) {
       return;
     }
     if (msg.type === "PKG_LIST") {
-      renderOut(msg.text || "", []); // show list in stdout box
+      renderOut(msg.text || "", []);
       return;
     }
     if (msg.type === "INSTALLED") {
       installBusy = false;
-      try {
-        btn.install.disabled = false;
-      } catch {}
+      try { btn.install.disabled = false; } catch {}
       packagesInstalled = true;
 
-      // Update installed packages UI list (best-effort)
       try {
         const prev = new Set(loadInstalledPkgs());
         (msg.pkgs || []).forEach((p) => prev.add(String(p)));
@@ -1057,9 +1168,7 @@ function makeWorker(force = false) {
     }
     if (msg.type === "ERR") {
       installBusy = false;
-      try {
-        btn.install.disabled = false;
-      } catch {}
+      try { btn.install.disabled = false; } catch {}
       clearTimeout(runTimer);
       pendingReject?.(new Error(msg.message || "Worker error"));
       pendingResolve = pendingReject = null;
@@ -1110,10 +1219,7 @@ async function run() {
     }
 
     if (ui.timer.checked) {
-      renderOut(
-        (r.stdout || "") + `\n✓ Done (${Math.round(t1 - t0)} ms)\n`,
-        plots,
-      );
+      renderOut((r.stdout || "") + `\n✓ Done (${Math.round(t1 - t0)} ms)\n`, plots);
     } else {
       renderOut((r.stdout || "") + "\n✓ Done\n", plots);
     }
@@ -1162,7 +1268,6 @@ async function runJudge(testList, label) {
     try {
       const r = await runInWorker(code, t.input);
 
-      // IMPORTANT: judge compares stdout only (plots ignored)
       const got = normalizeOut(r.stdout || "");
       const exp = normalizeOut(t.output);
       const ok = r.ok === true && got === exp;
@@ -1187,9 +1292,7 @@ async function runJudge(testList, label) {
         input: t.input,
         expected: t.output,
         got: "",
-        error: isTimeout
-          ? "Timeout (infinite loop?)"
-          : err?.message || String(err),
+        error: isTimeout ? "Timeout (infinite loop?)" : err?.message || String(err),
         stderr: "",
       });
     }
@@ -1239,7 +1342,6 @@ async function runJudge(testList, label) {
   ui.judgeTableWrap.innerHTML = "";
   ui.judgeTableWrap.appendChild(table);
 
-  // XP
   if (pass === total) {
     const gained = 25 + total * 5;
     setXP(getXP() + gained);
@@ -1251,11 +1353,8 @@ async function runJudge(testList, label) {
     toast(`Keep going! +${gained} XP`);
   }
 
-  // Record submission (students always; teachers only when classroom on)
   if (STUDENT_LOCKED || (TEACHER_UI && classroomMode)) {
-    const usedNow = attemptLimitOn
-      ? attInc(currentProblemId)
-      : attUsed(currentProblemId);
+    const usedNow = attemptLimitOn ? attInc(currentProblemId) : attUsed(currentProblemId);
     addSub({
       name: (ui.stuName.value || "").trim() || "Unknown",
       roll: (ui.stuRoll.value || "").trim() || "NA",
@@ -1270,9 +1369,7 @@ async function runJudge(testList, label) {
       code,
     });
     if (STUDENT_LOCKED && attemptLimitOn) {
-      toast(
-        `Submitted. Attempts left: ${Math.max(0, attemptLimitMax - usedNow)}`,
-      );
+      toast(`Submitted. Attempts left: ${Math.max(0, attemptLimitMax - usedNow)}`);
     }
   }
 
@@ -1293,9 +1390,7 @@ function installPkgs() {
     .filter(Boolean);
 
   installBusy = true;
-  try {
-    btn.install.disabled = true;
-  } catch {}
+  try { btn.install.disabled = true; } catch {}
 
   renderOut("— Installing —\n", []);
   ui.err.textContent = "";
@@ -1355,7 +1450,7 @@ shareUI?.copy?.addEventListener("click", async () => {
   }
 });
 
-// ----- Share (STRICT: only #pp=...) -----
+// ----- Share -----
 async function share() {
   state.tabs[currentTab].code = ui.code.value;
 
@@ -1373,8 +1468,7 @@ async function share() {
     .replaceAll("=", "");
 
   location.hash = "#pp=" + b64;
-  const url =
-    location.origin + location.pathname + location.search + "#pp=" + b64;
+  const url = location.origin + location.pathname + location.search + "#pp=" + b64;
 
   if (navigator.share) {
     try {
@@ -1391,7 +1485,7 @@ async function share() {
     openShareModal(url, "Select the link and press Ctrl+C if Copy is blocked.");
   }
 }
-// Strict loader: ONLY accepts #pp=...
+
 function loadFromHash() {
   const h = location.hash || "";
   if (!h.startsWith("#pp=")) return;
@@ -1426,17 +1520,14 @@ function applyModeUI() {
       ? "Student (tmode=0)"
       : "Practice";
 
-  // Fix: HTML uses visibility:hidden sometimes; enforce visibility here too.
   ui.teacherBtn.style.display = TEACHER_UI ? "inline-flex" : "none";
   ui.teacherBtn.style.visibility = TEACHER_UI ? "visible" : "hidden";
   ui.teacherPanel.style.display = TEACHER_UI ? "block" : "none";
 
-  // share always available
   btn.share.style.display = "inline-flex";
 
   ui.packagesCard.style.display = allowPackages ? "block" : "none";
   ui.runSamples.disabled = !!examMode;
-
   ui.problemSel.disabled = STUDENT_LOCKED && lockProblem;
 
   if (TEACHER_UI) {
@@ -1495,9 +1586,7 @@ function wireTeacherPanel() {
   });
   ui.exportSubs.addEventListener("click", () => {
     const list = loadSubs();
-    const blob = new Blob([JSON.stringify(list, null, 2)], {
-      type: "application/json",
-    });
+    const blob = new Blob([JSON.stringify(list, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
     const ts = new Date().toISOString().replaceAll(":", "-");
     a.href = URL.createObjectURL(blob);
@@ -1544,8 +1633,7 @@ btn.clearStdin.onclick = () => {
 };
 
 btn.copyOut.onclick = async () => {
-  // Copy stdout (text) + stderr (text). Plots are images so we only copy text.
-  const stdoutText = _lastStdout || ui.out.textContent || "";
+  const stdoutText = _lastStdout || (ui.out.textContent || "");
   const t = stdoutText + "\n" + (ui.err.textContent || "");
   try {
     await navigator.clipboard.writeText(t);
@@ -1560,24 +1648,20 @@ btn.clearOut.onclick = () => {
   toast("Cleared");
 };
 
-// Examples (Matplotlib lessons included)
 ui.example.onchange = () => {
   const i = parseInt(ui.example.value, 10);
   if (Number.isFinite(i) && EXAMPLES[i]) {
     const ex = EXAMPLES[i];
-
     ui.code.value = ex.code;
     updateGutter();
     autosave();
     toast("Example loaded");
 
-    // If this example needs packages, auto-fill and auto-install.
     if (ex.needsPkgs && Array.isArray(ex.needsPkgs) && ex.needsPkgs.length) {
       ui.pkgs.value = ex.needsPkgs.join(", ");
       if (!allowPackages) {
         toast("This lesson needs packages, but packages are disabled.");
       } else {
-        // try auto install (no confirm/prompt)
         toast("Installing: " + ui.pkgs.value);
         installPkgs();
       }
@@ -1599,21 +1683,16 @@ ui.code.addEventListener("keydown", (e) => {
     return;
   }
 
-  if (handleSmartEnter(e)) {
-    return;
-  }
-
-  if (handleSmartBackspace(e)) {
-    return;
-  }
+  if (handleSmartEnter(e)) return;
+  if (handleSmartBackspace(e)) return;
 
   if (e.key === "Tab") {
     e.preventDefault();
     const mode = ui.indent.value;
     const ins = mode === "tab" ? "\t" : " ".repeat(parseInt(mode, 10) || 4);
     const el = ui.code;
-    const s = el.selectionStart,
-      t = el.selectionEnd;
+    const s = el.selectionStart;
+    const t = el.selectionEnd;
 
     if (s !== t) {
       const v = el.value;
@@ -1638,7 +1717,6 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") closeFullscreenPlot();
 });
 
-// problems
 ui.problemSel.onchange = () => {
   if (STUDENT_LOCKED && lockProblem) return toast("Problem locked");
   showProblem(ui.problemSel.value);
@@ -1691,12 +1769,18 @@ ui.runAll.onclick = async () => {
 };
 
 if (ui.themeToggle) ui.themeToggle.addEventListener("click", toggleTheme);
+if (ui.voiceBtn) ui.voiceBtn.addEventListener("click", toggleVoiceRecognition);
+if (ui.voiceClear) {
+  ui.voiceClear.addEventListener("click", () => {
+    saveVoiceLog([]);
+    renderVoiceLog();
+    toast("Voice log cleared");
+  });
+}
 
 wireDragResize(
   ui.sidebarResizer,
-  (e) => {
-    setSidebarWidth(e.clientX - 50);
-  },
+  (e) => setSidebarWidth(e.clientX - 50),
   "pp-resizing-col",
 );
 
@@ -1721,6 +1805,7 @@ async function init() {
   setStreak(getStreak());
   updateSubCount();
   renderInstalledPkgs();
+  renderVoiceLog();
 
   applyTheme(localStorage.getItem(K_THEME) || "dark");
   const savedSidebarW = parseInt(localStorage.getItem(K_SIDEBAR_W) || "0", 10);
@@ -1728,7 +1813,6 @@ async function init() {
   const savedPanelH = parseInt(localStorage.getItem(K_PANEL_H) || "0", 10);
   if (savedPanelH) setPanelHeight(savedPanelH);
 
-  // Optional URL loaders
   const codeFile = URLP.get("codefile");
   const codeURL = URLP.get("code");
 
@@ -1736,11 +1820,8 @@ async function init() {
     const txt = await loadTextFileFromURL(codeFile);
     if (typeof txt === "string") {
       const fname =
-        (String(codeFile).split("/").pop() || "main.py").replace(/\?.*$/, "") ||
-        "main.py";
-      state.tabs = [
-        { name: fname.endsWith(".py") ? fname : "main.py", code: txt },
-      ];
+        (String(codeFile).split("/").pop() || "main.py").replace(/\?.*$/, "") || "main.py";
+      state.tabs = [{ name: fname.endsWith(".py") ? fname : "main.py", code: txt }];
       currentTab = 0;
       ui.code.value = state.tabs[0].code || "";
       saveState();
@@ -1767,32 +1848,23 @@ async function init() {
       toast("Code JSON invalid/unreachable");
     }
   } else {
-    // strict share loader
     loadFromHash();
   }
 
-  // stdin
   ui.stdin.value = localStorage.getItem(K_STDIN) || "";
   ui.stdin.addEventListener("input", () =>
     localStorage.setItem(K_STDIN, ui.stdin.value || ""),
   );
 
   loadStudent();
-
   renderTabs();
 
-  // Load local + optional remote problems
   const custom = loadCustomProblems();
   const remoteURL = URLP.get("problems");
-  const remote = remoteURL
-    ? await loadProblemsFromURL(remoteURL)
-    : loadRemoteCache();
+  const remote = remoteURL ? await loadProblemsFromURL(remoteURL) : loadRemoteCache();
 
-  // Merge (defaults first, then custom, then remote). Dedupe by id.
   const byId = new Map();
-  [...DEFAULT_PROBLEMS, ...custom, ...remote].forEach((p) => {
-    byId.set(p.id, p);
-  });
+  [...DEFAULT_PROBLEMS, ...custom, ...remote].forEach((p) => byId.set(p.id, p));
   PROBLEMS = Array.from(byId.values());
 
   renderProblems();
@@ -1801,14 +1873,15 @@ async function init() {
   updateGutter();
   btn.stop.disabled = true;
 
-  // output init
   renderOut("", []);
 
-  // mode UI
   applyModeUI();
   wireTeacherPanel();
 
-  // problem
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  voiceSupported = !!SpeechRecognition;
+  updateVoiceUI(voiceSupported ? "Voice: ready" : "Voice: unsupported", "🎤 Voice");
+
   const pid = currentProblemId || pickToday();
   ui.problemSel.value = pid;
   showProblem(pid);
