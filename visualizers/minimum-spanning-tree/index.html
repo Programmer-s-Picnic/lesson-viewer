@@ -3,188 +3,259 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MST Demo — Kruskal's and Prim's</title>
+  <title>MST Demo V2 — Kruskal's and Prim's</title>
   <style>
     :root{
-      --bg:#0f172a;
-      --panel:#111827;
-      --panel2:#1f2937;
-      --line:#334155;
-      --text:#e5e7eb;
-      --muted:#94a3b8;
+      --bg:#0b1020;
+      --panel:#11172a;
+      --panel2:#182033;
+      --line:#2a3653;
+      --text:#ecf2ff;
+      --muted:#9eb0d1;
       --brand:#f59e0b;
       --brand2:#d97706;
       --good:#22c55e;
       --bad:#ef4444;
       --blue:#38bdf8;
+      --violet:#a78bfa;
     }
     *{box-sizing:border-box}
     body{
       margin:0;
       font-family:Arial,Helvetica,sans-serif;
-      background:linear-gradient(180deg,#020617,#0f172a);
+      background:
+        radial-gradient(circle at top, rgba(245,158,11,.08), transparent 35%),
+        linear-gradient(180deg,#060914,#0b1020);
       color:var(--text);
     }
     .wrap{
-      max-width:1200px;
+      max-width:1400px;
       margin:0 auto;
-      padding:20px;
+      padding:18px;
     }
     h1,h2,h3{margin:0 0 10px}
-    .sub{color:var(--muted); margin-bottom:18px; line-height:1.5}
-    .grid{
+    .sub{
+      color:var(--muted);
+      line-height:1.5;
+      margin-bottom:16px;
+    }
+    .layout{
       display:grid;
-      grid-template-columns:360px 1fr;
-      gap:18px;
+      grid-template-columns:360px 1fr 360px;
+      gap:16px;
+      align-items:start;
     }
     .card{
-      background:rgba(17,24,39,.92);
+      background:rgba(17,23,42,.95);
       border:1px solid var(--line);
-      border-radius:18px;
+      border-radius:20px;
       padding:16px;
-      box-shadow:0 12px 30px rgba(0,0,0,.25);
+      box-shadow:0 14px 34px rgba(0,0,0,.25);
     }
     label{
       display:block;
-      font-size:13px;
       color:var(--muted);
+      font-size:13px;
       margin:10px 0 6px;
     }
     input, textarea, select, button{
       width:100%;
       border-radius:12px;
       border:1px solid var(--line);
-      background:#0b1220;
+      background:#0c1326;
       color:var(--text);
       padding:10px 12px;
       font-size:14px;
     }
-    textarea{min-height:120px; resize:vertical; font-family:monospace}
+    textarea{
+      min-height:120px;
+      resize:vertical;
+      font-family:Consolas, Monaco, monospace;
+      line-height:1.45;
+    }
     button{
       cursor:pointer;
-      background:linear-gradient(180deg,var(--brand),var(--brand2));
-      color:#111827;
       font-weight:700;
       border:none;
+      background:linear-gradient(180deg,var(--brand),var(--brand2));
+      color:#1b1303;
     }
     button.secondary{
       background:#172033;
       color:var(--text);
       border:1px solid var(--line);
     }
-    button.good{ background:linear-gradient(180deg,#34d399,#16a34a); color:#052e16;}
-    button.blue{ background:linear-gradient(180deg,#67e8f9,#0284c7); color:#082f49;}
-    .row{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:10px;
-      margin-top:10px;
+    button.blue{
+      background:linear-gradient(180deg,#67e8f9,#0284c7);
+      color:#082f49;
     }
-    .row3{
-      display:grid;
-      grid-template-columns:1fr 1fr 1fr;
-      gap:10px;
-      margin-top:10px;
+    button.good{
+      background:linear-gradient(180deg,#34d399,#16a34a);
+      color:#052e16;
     }
-    .hint{
-      color:var(--muted);
-      font-size:12px;
-      line-height:1.45;
-      margin-top:8px;
+    button.violet{
+      background:linear-gradient(180deg,#c4b5fd,#7c3aed);
+      color:#24123f;
     }
-    .canvasWrap{
-      overflow:auto;
-      background:#020617;
-      border-radius:18px;
-      border:1px solid var(--line);
+    button:disabled{
+      opacity:.55;
+      cursor:not-allowed;
+    }
+    .row{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;}
+    .row3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-top:10px;}
+    .row4{display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; margin-top:10px;}
+    .small{font-size:12px; color:var(--muted); line-height:1.5;}
+    .mono{
+      font-family:Consolas, Monaco, monospace;
+      font-size:13px;
+      line-height:1.5;
+      white-space:pre-wrap;
+      word-break:break-word;
+    }
+    .status{
+      margin-top:12px;
       padding:12px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:#121a2d;
+      font-weight:700;
+    }
+    .ok{ background:#052e16; border-color:#14532d; color:#bbf7d0; }
+    .err{ background:#450a0a; border-color:#7f1d1d; color:#fecaca; }
+    .info{ background:#082f49; border-color:#0c4a6e; color:#bae6fd; }
+
+    .canvasWrap{
+      background:#050915;
+      border:1px solid var(--line);
+      border-radius:20px;
+      padding:12px;
+      overflow:auto;
     }
     canvas{
       display:block;
       width:100%;
       max-width:100%;
-      background:radial-gradient(circle at top,#0b1220,#020617);
+      background:
+        radial-gradient(circle at top, rgba(56,189,248,.06), transparent 28%),
+        linear-gradient(180deg,#08101f,#040814);
       border-radius:14px;
     }
-    .results{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:18px;
-      margin-top:18px;
+    .legend{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top:10px;
     }
-    .tag{
-      display:inline-block;
+    .pill{
+      font-size:12px;
       padding:6px 10px;
       border-radius:999px;
-      font-size:12px;
-      background:#1e293b;
-      color:#cbd5e1;
+      background:#141d31;
       border:1px solid var(--line);
-      margin:0 8px 8px 0;
+      color:#d9e4ff;
     }
-    .mono{
-      font-family:Consolas, Monaco, monospace;
-      white-space:pre-wrap;
-      line-height:1.5;
-      font-size:13px;
+    .steps{
+      max-height:320px;
+      overflow:auto;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:#0b1326;
+      padding:10px;
     }
-    .status{
-      margin-top:10px;
-      padding:10px 12px;
+    .stepItem{
+      padding:10px;
       border-radius:12px;
+      margin-bottom:8px;
+      border:1px solid #22304f;
+      background:#111a30;
+    }
+    .stepItem.active{
+      border-color:#7dd3fc;
+      background:#0d2138;
+      box-shadow:0 0 0 1px rgba(125,211,252,.25) inset;
+    }
+    .stepItem.done{
+      border-color:#14532d;
+      background:#0c1f16;
+    }
+    .stepEdge{
       font-weight:700;
-      background:#172033;
-      border:1px solid var(--line);
+      color:#fff;
     }
-    .ok{ color:#bbf7d0; border-color:#14532d; background:#052e16; }
-    .err{ color:#fecaca; border-color:#7f1d1d; background:#450a0a; }
-    .toolbarNote{
-      margin-top:10px;
-      color:#cbd5e1;
-      font-size:13px;
-      line-height:1.5;
-    }
-    .small{
+    .stepMeta{
       font-size:12px;
       color:var(--muted);
+      margin-top:5px;
     }
-    @media (max-width: 980px){
-      .grid{grid-template-columns:1fr}
-      .results{grid-template-columns:1fr}
+    .teach{
+      border:1px solid var(--line);
+      background:#0b1326;
+      border-radius:14px;
+      padding:12px;
+      margin-top:12px;
+    }
+    .teach b{color:#fff}
+    .resultBox{
+      margin-top:12px;
+      border:1px solid var(--line);
+      background:#0b1326;
+      border-radius:14px;
+      padding:12px;
+    }
+    .sectionTop{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:8px;
+    }
+    .algoBadge{
+      font-size:12px;
+      padding:6px 10px;
+      border-radius:999px;
+      background:rgba(245,158,11,.12);
+      border:1px solid rgba(245,158,11,.28);
+      color:#fde68a;
+      white-space:nowrap;
+    }
+    @media (max-width:1150px){
+      .layout{grid-template-columns:1fr}
     }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <h1>MST Demonstration — Kruskal's and Prim's</h1>
+    <h1>MST Demonstration V2 — Kruskal's and Prim's</h1>
     <div class="sub">
-      Build a weighted graph, solve the Minimum Spanning Tree yourself, check your answer, or let the app solve automatically.
+      This version is built for teaching. The user can create a graph, solve it manually, check the answer,
+      or run step-by-step visualization for <b>Kruskal's</b> and <b>Prim's</b>.
       <br>
-      <b>Note:</b> Prim’s and Kruskal’s are for <b>Minimum Spanning Tree</b>, not shortest path.
+      <b>Important:</b> Kruskal's and Prim's find a <b>Minimum Spanning Tree</b>, not a shortest path.
     </div>
 
-    <div class="grid">
+    <div class="layout">
+      <!-- LEFT -->
       <div class="card">
-        <h2>Controls</h2>
+        <h2>Graph Controls</h2>
 
         <label>Number of Nodes</label>
-        <input id="nodeCount" type="number" min="2" max="10" value="6">
+        <input id="nodeCount" type="number" min="2" max="10" value="6" />
 
-        <label>Random Edge Density (0.2 to 1)</label>
-        <input id="density" type="number" min="0.2" max="1" step="0.1" value="0.6">
+        <label>Random Edge Density</label>
+        <input id="density" type="number" min="0.2" max="1" step="0.1" value="0.6" />
 
-        <label>Random Weight Range</label>
+        <label>Weight Range</label>
         <div class="row">
-          <input id="minW" type="number" value="1" min="1">
-          <input id="maxW" type="number" value="20" min="1">
+          <input id="minW" type="number" min="1" value="1" />
+          <input id="maxW" type="number" min="1" value="20" />
         </div>
 
         <div class="row">
-          <button id="randomBtn">Generate Random Graph</button>
+          <button id="randomBtn">Generate Random</button>
           <button id="clearBtn" class="secondary">Clear Graph</button>
         </div>
 
-        <label>Or Enter Edges Manually</label>
+        <label>Manual Edge Entry</label>
         <textarea id="edgeInput" placeholder="Example:
 A B 4
 A C 3
@@ -193,9 +264,10 @@ B D 2
 C D 4
 C E 5
 D E 1"></textarea>
-        <div class="hint">
+
+        <div class="small">
           One edge per line: <span class="mono">Node1 Node2 Weight</span><br>
-          Example node names: A, B, C or 1, 2, 3
+          Example: <span class="mono">A B 7</span>
         </div>
 
         <div class="row">
@@ -204,50 +276,93 @@ D E 1"></textarea>
         </div>
 
         <label>Your MST Answer</label>
-        <textarea id="answerInput" placeholder="Enter the edges you think are in the MST.
+        <textarea id="answerInput" placeholder="Enter your MST edges here.
 Example:
-A C 3
 B C 1
+D E 1
 B D 2
-D E 1"></textarea>
-        <div class="hint">
-          Order does not matter. Enter the MST edges and then click <b>Check Answer</b>.
-        </div>
+A C 3"></textarea>
 
-        <div class="row3">
+        <div class="row">
           <button id="checkBtn" class="good">Check Answer</button>
-          <button id="autoKBtn">Auto Solve: Kruskal</button>
-          <button id="autoPBtn">Auto Solve: Prim</button>
+          <button id="showMstBtn" class="secondary">Show Correct MST</button>
         </div>
 
         <div id="status" class="status">Ready.</div>
 
-        <div class="toolbarNote">
-          <div class="tag">White edges = graph</div>
-          <div class="tag">Green edges = selected MST</div>
-          <div class="tag">Blue edge = last considered edge</div>
+        <div class="teach">
+          <b>How manual mode works</b><br>
+          1. Build or load a graph.<br>
+          2. Enter the MST edges in the answer box.<br>
+          3. Click <b>Check Answer</b>.<br>
+          4. If your tree has the same minimum cost, it is accepted.
         </div>
       </div>
 
+      <!-- CENTER -->
       <div class="card">
-        <h2>Graph</h2>
+        <div class="sectionTop">
+          <h2>Graph View</h2>
+          <div class="algoBadge" id="topAlgoBadge">Mode: none</div>
+        </div>
+
         <div class="canvasWrap">
-          <canvas id="graphCanvas" width="760" height="520"></canvas>
+          <canvas id="graphCanvas" width="820" height="560"></canvas>
         </div>
-        <div class="small" style="margin-top:10px;">
-          Click near two nodes to quickly add an edge. You will be asked for the weight.
-        </div>
-      </div>
-    </div>
 
-    <div class="results">
-      <div class="card">
-        <h3>Kruskal's Result</h3>
-        <div id="kruskalOut" class="mono">No result yet.</div>
+        <div class="legend">
+          <span class="pill">White = graph edge</span>
+          <span class="pill">Green = MST edge chosen</span>
+          <span class="pill">Blue = current edge</span>
+          <span class="pill">Red = rejected edge</span>
+          <span class="pill">Orange node = graph node</span>
+        </div>
+
+        <div class="teach">
+          <b>Quick add:</b> Click one node, then click another node to add an edge. The app will ask for the weight.
+        </div>
+
+        <div class="resultBox">
+          <h3>Current Output</h3>
+          <div id="resultOut" class="mono">No result yet.</div>
+        </div>
       </div>
+
+      <!-- RIGHT -->
       <div class="card">
-        <h3>Prim's Result</h3>
-        <div id="primOut" class="mono">No result yet.</div>
+        <h2>Teaching Mode</h2>
+
+        <label>Algorithm</label>
+        <select id="algoSelect">
+          <option value="kruskal">Kruskal's</option>
+          <option value="prim">Prim's</option>
+        </select>
+
+        <label>Prim's Start Node</label>
+        <select id="primStart"></select>
+
+        <div class="row">
+          <button id="prepareBtn" class="violet">Prepare Steps</button>
+          <button id="nextBtn" class="secondary">Next Step</button>
+        </div>
+
+        <div class="row">
+          <button id="autoBtn">Auto Play</button>
+          <button id="resetStepsBtn" class="secondary">Reset Steps</button>
+        </div>
+
+        <div class="teach" id="teachBox">
+          <b>Explanation</b><br>
+          Prepare a graph first, then choose an algorithm and step through it.
+        </div>
+
+        <label>Step List</label>
+        <div id="stepsBox" class="steps"></div>
+
+        <div class="resultBox">
+          <h3>Algorithm Result</h3>
+          <div id="algoResult" class="mono">No algorithm prepared yet.</div>
+        </div>
       </div>
     </div>
   </div>
@@ -263,18 +378,32 @@ D E 1"></textarea>
     const edgeInputEl = document.getElementById("edgeInput");
     const answerInputEl = document.getElementById("answerInput");
     const statusEl = document.getElementById("status");
-    const kruskalOut = document.getElementById("kruskalOut");
-    const primOut = document.getElementById("primOut");
+    const resultOut = document.getElementById("resultOut");
+    const stepsBox = document.getElementById("stepsBox");
+    const algoResult = document.getElementById("algoResult");
+    const teachBox = document.getElementById("teachBox");
+    const algoSelect = document.getElementById("algoSelect");
+    const primStartEl = document.getElementById("primStart");
+    const topAlgoBadge = document.getElementById("topAlgoBadge");
 
     let nodes = [];
     let edges = [];
+
     let selectedMST = [];
-    let highlightedEdgeKey = null;
+    let currentEdgeKey = null;
+    let rejectedEdgeKey = null;
+
+    let teachingSteps = [];
+    let currentStepIndex = -1;
+    let autoTimer = null;
+
+    let pendingNode = null;
 
     function setStatus(msg, type="") {
       statusEl.className = "status";
       if (type === "ok") statusEl.classList.add("ok");
-      if (type === "err") statusEl.classList.add("err");
+      else if (type === "err") statusEl.classList.add("err");
+      else if (type === "info") statusEl.classList.add("info");
       statusEl.textContent = msg;
     }
 
@@ -282,159 +411,150 @@ D E 1"></textarea>
       return String.fromCharCode(65 + i);
     }
 
-    function normalizeEdge(a, b, w) {
-      const u = String(a);
-      const v = String(b);
-      return (u < v) ? {u, v, w:Number(w)} : {u:v, v:u, w:Number(w)};
+    function normalizeEdge(a,b,w){
+      a = String(a); b = String(b);
+      return a < b ? {u:a,v:b,w:Number(w)} : {u:b,v:a,w:Number(w)};
     }
 
-    function edgeKey(a, b, w) {
-      const e = normalizeEdge(a, b, w);
+    function edgeKey(a,b,w){
+      const e = normalizeEdge(a,b,w);
       return `${e.u}|${e.v}|${e.w}`;
     }
 
-    function edgePairKey(a, b) {
-      const u = String(a), v = String(b);
-      return (u < v) ? `${u}|${v}` : `${v}|${u}`;
+    function edgePairKey(a,b){
+      a = String(a); b = String(b);
+      return a < b ? `${a}|${b}` : `${b}|${a}`;
     }
 
-    function uniqueEdges(list) {
+    function uniqueEdges(list){
       const seen = new Set();
       const out = [];
-      for (const e of list) {
-        const k = edgeKey(e.u, e.v, e.w);
-        if (!seen.has(k)) {
+      for (const e of list){
+        const k = edgeKey(e.u,e.v,e.w);
+        if (!seen.has(k)){
           seen.add(k);
-          out.push(normalizeEdge(e.u, e.v, e.w));
+          out.push(normalizeEdge(e.u,e.v,e.w));
         }
       }
       return out;
     }
 
-    function buildNodes(n) {
+    function buildNodes(labels){
       nodes = [];
-      const cx = canvas.width / 2;
-      const cy = canvas.height / 2;
-      const r = Math.min(canvas.width, canvas.height) * 0.36;
-      for (let i = 0; i < n; i++) {
-        const angle = (Math.PI * 2 * i / n) - Math.PI / 2;
+      const cx = canvas.width/2;
+      const cy = canvas.height/2;
+      const r = Math.min(canvas.width, canvas.height) * 0.37;
+      const n = labels.length;
+      for(let i=0;i<n;i++){
+        const angle = (Math.PI*2*i/n) - Math.PI/2;
         nodes.push({
-          id: nodeLabel(i),
-          x: cx + Math.cos(angle) * r,
-          y: cy + Math.sin(angle) * r
+          id: labels[i],
+          x: cx + Math.cos(angle)*r,
+          y: cy + Math.sin(angle)*r
         });
+      }
+      refreshPrimStartOptions();
+    }
+
+    function refreshPrimStartOptions(){
+      primStartEl.innerHTML = "";
+      for(const n of nodes){
+        const opt = document.createElement("option");
+        opt.value = n.id;
+        opt.textContent = n.id;
+        primStartEl.appendChild(opt);
       }
     }
 
-    function clearGraph() {
-      const n = Number(nodeCountEl.value) || 6;
-      buildNodes(n);
+    function getNodeById(id){
+      return nodes.find(n => n.id === id);
+    }
+
+    function getLabels(){
+      return nodes.map(n => n.id);
+    }
+
+    function clearGraph(){
+      const n = Math.max(2, Math.min(10, Number(nodeCountEl.value) || 6));
+      const labels = Array.from({length:n}, (_,i)=>nodeLabel(i));
+      buildNodes(labels);
       edges = [];
-      selectedMST = [];
-      highlightedEdgeKey = null;
-      kruskalOut.textContent = "No result yet.";
-      primOut.textContent = "No result yet.";
+      resetTeaching();
+      resultOut.textContent = "No result yet.";
+      algoResult.textContent = "No algorithm prepared yet.";
       draw();
+      topAlgoBadge.textContent = "Mode: none";
       setStatus("Graph cleared.");
     }
 
-    function parseEdgeLines(text) {
-      const lines = text.split(/\n+/).map(s => s.trim()).filter(Boolean);
+    function parseEdgeLines(text){
+      const lines = text.split(/\n+/).map(x=>x.trim()).filter(Boolean);
       const out = [];
-      for (const line of lines) {
+      for(const line of lines){
         const parts = line.split(/\s+/);
-        if (parts.length !== 3) {
-          throw new Error(`Invalid line: "${line}"`);
-        }
-        const [a, b, w] = parts;
-        const weight = Number(w);
-        if (!isFinite(weight)) throw new Error(`Invalid weight in line: "${line}"`);
-        if (a === b) throw new Error(`Self-edge not allowed: "${line}"`);
-        out.push(normalizeEdge(a, b, weight));
+        if(parts.length !== 3) throw new Error(`Invalid line: "${line}"`);
+        const [a,b,w] = parts;
+        const wt = Number(w);
+        if(!isFinite(wt)) throw new Error(`Invalid weight in line: "${line}"`);
+        if(a===b) throw new Error(`Self-loop not allowed: "${line}"`);
+        out.push(normalizeEdge(a,b,wt));
       }
       return uniqueEdges(out);
     }
 
-    function graphNodesFromEdges(edgeList) {
-      const set = new Set();
-      edgeList.forEach(e => {
-        set.add(e.u);
-        set.add(e.v);
-      });
-      return [...set].sort();
-    }
-
-    function loadUserGraph() {
-      try {
+    function loadUserGraph(){
+      try{
         const parsed = parseEdgeLines(edgeInputEl.value);
-        if (!parsed.length) {
+        if(!parsed.length){
           setStatus("Please enter at least one edge.", "err");
           return;
         }
-        const labels = graphNodesFromEdges(parsed);
-        if (labels.length < 2) {
+        const labels = [...new Set(parsed.flatMap(e => [e.u,e.v]))].sort();
+        if(labels.length < 2){
           setStatus("Need at least 2 nodes.", "err");
           return;
         }
-        if (labels.length > 12) {
-          setStatus("Please keep manual graph to 12 nodes or fewer.", "err");
+        if(labels.length > 12){
+          setStatus("Please keep user graph to 12 nodes or fewer.", "err");
           return;
         }
-
-        nodes = [];
-        const cx = canvas.width / 2;
-        const cy = canvas.height / 2;
-        const r = Math.min(canvas.width, canvas.height) * 0.36;
-        for (let i = 0; i < labels.length; i++) {
-          const angle = (Math.PI * 2 * i / labels.length) - Math.PI / 2;
-          nodes.push({
-            id: labels[i],
-            x: cx + Math.cos(angle) * r,
-            y: cy + Math.sin(angle) * r
-          });
-        }
-
+        buildNodes(labels);
         edges = parsed;
-        selectedMST = [];
-        highlightedEdgeKey = null;
+        resetTeaching();
+        resultOut.textContent = formatGraphSummary();
+        algoResult.textContent = "No algorithm prepared yet.";
         draw();
-        kruskalOut.textContent = "No result yet.";
-        primOut.textContent = "No result yet.";
         setStatus("User graph loaded.", "ok");
-      } catch (err) {
+      }catch(err){
         setStatus(err.message, "err");
       }
     }
 
-    function randomInt(a, b) {
-      return Math.floor(Math.random() * (b - a + 1)) + a;
+    function randomInt(a,b){
+      return Math.floor(Math.random()*(b-a+1))+a;
     }
 
-    function generateRandomGraph() {
+    function generateRandomGraph(){
       const n = Math.max(2, Math.min(10, Number(nodeCountEl.value) || 6));
       const density = Math.max(0.2, Math.min(1, Number(densityEl.value) || 0.6));
       let minW = Number(minWEl.value) || 1;
       let maxW = Number(maxWEl.value) || 20;
-      if (minW > maxW) [minW, maxW] = [maxW, minW];
+      if(minW > maxW) [minW, maxW] = [maxW, minW];
 
-      buildNodes(n);
+      const labels = Array.from({length:n}, (_,i)=>nodeLabel(i));
+      buildNodes(labels);
       edges = [];
-      selectedMST = [];
-      highlightedEdgeKey = null;
 
-      // Force connectivity with a chain
-      for (let i = 0; i < n - 1; i++) {
-        edges.push(normalizeEdge(nodeLabel(i), nodeLabel(i + 1), randomInt(minW, maxW)));
+      for(let i=0;i<n-1;i++){
+        edges.push(normalizeEdge(labels[i], labels[i+1], randomInt(minW,maxW)));
       }
 
-      // Add extra edges
-      for (let i = 0; i < n; i++) {
-        for (let j = i + 1; j < n; j++) {
-          if (Math.random() < density) {
-            const key = edgePairKey(nodeLabel(i), nodeLabel(j));
-            const already = edges.some(e => edgePairKey(e.u, e.v) === key);
-            if (!already) {
-              edges.push(normalizeEdge(nodeLabel(i), nodeLabel(j), randomInt(minW, maxW)));
+      for(let i=0;i<n;i++){
+        for(let j=i+1;j<n;j++){
+          if(Math.random() < density){
+            const exists = edges.some(e => edgePairKey(e.u,e.v) === edgePairKey(labels[i],labels[j]));
+            if(!exists){
+              edges.push(normalizeEdge(labels[i], labels[j], randomInt(minW,maxW)));
             }
           }
         }
@@ -442,61 +562,111 @@ D E 1"></textarea>
 
       edges = uniqueEdges(edges);
       edgeInputEl.value = edges.map(e => `${e.u} ${e.v} ${e.w}`).join("\n");
+      resetTeaching();
+      resultOut.textContent = formatGraphSummary();
+      algoResult.textContent = "No algorithm prepared yet.";
       draw();
-      kruskalOut.textContent = "No result yet.";
-      primOut.textContent = "No result yet.";
       setStatus("Random connected graph generated.", "ok");
     }
 
-    function getNodeById(id) {
-      return nodes.find(n => n.id === id);
+    function loadSample(){
+      edgeInputEl.value = `A B 4
+A C 3
+B C 1
+B D 2
+C D 4
+C E 5
+D E 1
+D F 6
+E F 2`;
+      loadUserGraph();
     }
 
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    function isConnected(){
+      const labels = getLabels();
+      if(!labels.length) return true;
+      const adj = new Map(labels.map(x => [x,[]]));
+      for(const e of edges){
+        adj.get(e.u)?.push(e.v);
+        adj.get(e.v)?.push(e.u);
+      }
+      const seen = new Set();
+      const stack = [labels[0]];
+      while(stack.length){
+        const cur = stack.pop();
+        if(seen.has(cur)) continue;
+        seen.add(cur);
+        for(const nx of adj.get(cur) || []){
+          if(!seen.has(nx)) stack.push(nx);
+        }
+      }
+      return seen.size === labels.length;
+    }
 
-      // edges
-      for (const e of edges) {
+    function formatGraphSummary(){
+      const labels = getLabels();
+      return `Nodes: ${labels.join(", ")}
+Edges: ${edges.length}
+Connected: ${isConnected() ? "Yes" : "No"}
+
+Edge list:
+${edges.map(e => `${e.u} - ${e.v} : ${e.w}`).join("\n")}`;
+    }
+
+    function draw(){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+
+      for(const e of edges){
         const a = getNodeById(e.u);
         const b = getNodeById(e.v);
-        if (!a || !b) continue;
+        if(!a || !b) continue;
 
-        const key = edgeKey(e.u, e.v, e.w);
-        const inMST = selectedMST.some(x => edgeKey(x.u, x.v, x.w) === key);
+        const k = edgeKey(e.u,e.v,e.w);
+        const inMst = selectedMST.some(x => edgeKey(x.u,x.v,x.w) === k);
 
-        ctx.lineWidth = inMST ? 5 : 2;
-        ctx.strokeStyle = inMST ? "#22c55e" : (highlightedEdgeKey === key ? "#38bdf8" : "#cbd5e1");
+        let stroke = "#d7e3ff";
+        let width = 2;
+        if(inMst){
+          stroke = "#22c55e";
+          width = 5;
+        }else if(currentEdgeKey === k){
+          stroke = "#38bdf8";
+          width = 4;
+        }else if(rejectedEdgeKey === k){
+          stroke = "#ef4444";
+          width = 4;
+        }
+
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = width;
         ctx.beginPath();
-        ctx.moveTo(a.x, a.y);
-        ctx.lineTo(b.x, b.y);
+        ctx.moveTo(a.x,a.y);
+        ctx.lineTo(b.x,b.y);
         ctx.stroke();
 
-        const mx = (a.x + b.x) / 2;
-        const my = (a.y + b.y) / 2;
-        ctx.fillStyle = "#0b1220";
+        const mx = (a.x+b.x)/2;
+        const my = (a.y+b.y)/2;
+
+        ctx.fillStyle = "#0a1328";
         ctx.strokeStyle = "#334155";
         ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.roundRect(mx - 14, my - 12, 28, 24, 8);
-        ctx.fill();
-        ctx.stroke();
+        roundRect(ctx, mx-15, my-12, 30, 24, 8, true, true);
 
-        ctx.fillStyle = "#f8fafc";
+        ctx.fillStyle = "#fff";
         ctx.font = "bold 13px Arial";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText(e.w, mx, my);
+        ctx.fillText(String(e.w), mx, my);
       }
 
-      // nodes
-      for (const n of nodes) {
+      for(const n of nodes){
         ctx.fillStyle = "#f59e0b";
         ctx.beginPath();
-        ctx.arc(n.x, n.y, 20, 0, Math.PI * 2);
+        ctx.arc(n.x,n.y,21,0,Math.PI*2);
         ctx.fill();
 
-        ctx.lineWidth = 2;
         ctx.strokeStyle = "#fff7ed";
+        ctx.lineWidth = 2;
         ctx.stroke();
 
         ctx.fillStyle = "#111827";
@@ -505,285 +675,424 @@ D E 1"></textarea>
         ctx.textBaseline = "middle";
         ctx.fillText(n.id, n.x, n.y);
       }
-    }
 
-    function isConnected(graphEdges, labels) {
-      if (!labels.length) return true;
-      const adj = new Map();
-      labels.forEach(x => adj.set(x, []));
-      graphEdges.forEach(e => {
-        adj.get(e.u)?.push(e.v);
-        adj.get(e.v)?.push(e.u);
-      });
-
-      const seen = new Set();
-      const stack = [labels[0]];
-      while (stack.length) {
-        const cur = stack.pop();
-        if (seen.has(cur)) continue;
-        seen.add(cur);
-        for (const nx of adj.get(cur) || []) {
-          if (!seen.has(nx)) stack.push(nx);
-        }
+      if(pendingNode){
+        ctx.strokeStyle = "#a78bfa";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(pendingNode.x,pendingNode.y,28,0,Math.PI*2);
+        ctx.stroke();
       }
-      return seen.size === labels.length;
     }
 
-    function kruskalMST(graphEdges, labels) {
+    function roundRect(ctx, x, y, w, h, r, fill, stroke){
+      if(w < 2*r) r = w/2;
+      if(h < 2*r) r = h/2;
+      ctx.beginPath();
+      ctx.moveTo(x+r, y);
+      ctx.arcTo(x+w, y, x+w, y+h, r);
+      ctx.arcTo(x+w, y+h, x, y+h, r);
+      ctx.arcTo(x, y+h, x, y, r);
+      ctx.arcTo(x, y, x+w, y, r);
+      ctx.closePath();
+      if(fill) ctx.fill();
+      if(stroke) ctx.stroke();
+    }
+
+    // ---------- Kruskal ----------
+    function kruskalSteps(){
+      const labels = getLabels();
       const parent = new Map();
       const rank = new Map();
+      labels.forEach(x => { parent.set(x,x); rank.set(x,0); });
 
-      for (const x of labels) {
-        parent.set(x, x);
-        rank.set(x, 0);
-      }
-
-      function find(x) {
-        if (parent.get(x) !== x) parent.set(x, find(parent.get(x)));
+      function find(x){
+        if(parent.get(x) !== x) parent.set(x, find(parent.get(x)));
         return parent.get(x);
       }
-
-      function union(a, b) {
+      function union(a,b){
         let ra = find(a), rb = find(b);
-        if (ra === rb) return false;
+        if(ra === rb) return false;
         const rka = rank.get(ra), rkb = rank.get(rb);
-        if (rka < rkb) parent.set(ra, rb);
-        else if (rka > rkb) parent.set(rb, ra);
-        else {
+        if(rka < rkb) parent.set(ra, rb);
+        else if(rka > rkb) parent.set(rb, ra);
+        else{
           parent.set(rb, ra);
-          rank.set(ra, rka + 1);
+          rank.set(ra, rka+1);
         }
         return true;
       }
 
-      const sorted = [...graphEdges].sort((a, b) => a.w - b.w || edgePairKey(a.u, a.v).localeCompare(edgePairKey(b.u, b.v)));
+      const sorted = [...edges].sort((a,b) => a.w - b.w || edgePairKey(a.u,a.v).localeCompare(edgePairKey(b.u,b.v)));
+      const steps = [];
       const mst = [];
-      let cost = 0;
+      let total = 0;
 
-      for (const e of sorted) {
-        if (union(e.u, e.v)) {
+      for(const e of sorted){
+        const same = find(e.u) === find(e.v);
+        if(same){
+          steps.push({
+            algo:"kruskal",
+            edge:e,
+            action:"reject",
+            reason:`${e.u} and ${e.v} are already connected, so this edge makes a cycle.`,
+            mst:[...mst],
+            total
+          });
+        }else{
+          union(e.u,e.v);
           mst.push(e);
-          cost += e.w;
+          total += e.w;
+          steps.push({
+            algo:"kruskal",
+            edge:e,
+            action:"accept",
+            reason:`${e.u} and ${e.v} are in different sets, so accept this edge.`,
+            mst:[...mst],
+            total
+          });
         }
       }
 
-      return {
-        mst,
-        cost,
-        connected: mst.length === labels.length - 1
-      };
+      const connected = mst.length === labels.length - 1;
+      return {steps, mst, total, connected};
     }
 
-    function primMST(graphEdges, labels, start = labels[0]) {
-      const adj = new Map();
-      labels.forEach(x => adj.set(x, []));
-      for (const e of graphEdges) {
+    // ---------- Prim ----------
+    function primSteps(start){
+      const labels = getLabels();
+      const adj = new Map(labels.map(x => [x,[]]));
+      for(const e of edges){
         adj.get(e.u).push({to:e.v, w:e.w, u:e.u, v:e.v});
         adj.get(e.v).push({to:e.u, w:e.w, u:e.u, v:e.v});
       }
 
       const visited = new Set([start]);
       const mst = [];
-      let cost = 0;
+      let total = 0;
+      const steps = [{
+        algo:"prim",
+        edge:null,
+        action:"start",
+        reason:`Start from node ${start}.`,
+        visited:[...visited],
+        mst:[...mst],
+        total
+      }];
 
-      while (visited.size < labels.length) {
+      while(visited.size < labels.length){
         let best = null;
-        for (const u of visited) {
-          for (const ed of adj.get(u) || []) {
-            if (visited.has(ed.to)) continue;
-            const candidate = normalizeEdge(ed.u, ed.v, ed.w);
-            if (!best || candidate.w < best.w ||
-              (candidate.w === best.w && edgePairKey(candidate.u, candidate.v) < edgePairKey(best.u, best.v))) {
-              best = candidate;
+        let fromNode = null;
+
+        for(const u of visited){
+          for(const ed of adj.get(u) || []){
+            if(visited.has(ed.to)) continue;
+            const cand = normalizeEdge(ed.u, ed.v, ed.w);
+            if(!best || cand.w < best.w ||
+              (cand.w === best.w && edgePairKey(cand.u,cand.v) < edgePairKey(best.u,best.v))){
+              best = cand;
+              fromNode = u;
             }
           }
         }
-        if (!best) break;
+
+        if(!best) break;
+
         mst.push(best);
-        cost += best.w;
+        total += best.w;
         visited.add(best.u);
         visited.add(best.v);
+
+        steps.push({
+          algo:"prim",
+          edge:best,
+          action:"accept",
+          reason:`Choose the minimum edge leaving the visited set. This adds a new node to the tree.`,
+          visited:[...visited].sort(),
+          fromNode,
+          mst:[...mst],
+          total
+        });
       }
 
-      return {
-        mst,
-        cost,
-        connected: mst.length === labels.length - 1
-      };
+      const connected = mst.length === labels.length - 1;
+      return {steps, mst, total, connected, start};
     }
 
-    function formatMST(title, result) {
-      if (!result.connected) {
-        return `${title}\nGraph is not connected, so MST does not exist.`;
+    function formatMSTResult(title, res){
+      if(!res.connected){
+        return `${title}
+Graph is not connected, so MST does not exist.`;
       }
       return `${title}
-Total Cost = ${result.cost}
+Total Cost = ${res.total}
 Edges:
-${result.mst.map(e => `${e.u} - ${e.v} : ${e.w}`).join("\n")}`;
+${res.mst.map(e => `${e.u} - ${e.v} : ${e.w}`).join("\n")}`;
     }
 
-    async function animateMST(edgeList) {
+    function resetTeaching(){
+      if(autoTimer){
+        clearInterval(autoTimer);
+        autoTimer = null;
+      }
+      teachingSteps = [];
+      currentStepIndex = -1;
       selectedMST = [];
-      highlightedEdgeKey = null;
-      draw();
-
-      for (const e of edgeList) {
-        highlightedEdgeKey = edgeKey(e.u, e.v, e.w);
-        draw();
-        await wait(450);
-        selectedMST.push(e);
-        draw();
-        await wait(350);
-      }
-      highlightedEdgeKey = null;
+      currentEdgeKey = null;
+      rejectedEdgeKey = null;
+      pendingNode = null;
+      stepsBox.innerHTML = "";
+      teachBox.innerHTML = `<b>Explanation</b><br>Prepare a graph first, then choose an algorithm and step through it.`;
       draw();
     }
 
-    function wait(ms) {
-      return new Promise(resolve => setTimeout(resolve, ms));
-    }
-
-    function getCurrentLabels() {
-      return nodes.map(n => n.id);
-    }
-
-    async function doAutoKruskal() {
-      const labels = getCurrentLabels();
-      if (!labels.length || !edges.length) {
+    function prepareSteps(){
+      if(!edges.length || !nodes.length){
         setStatus("Create or load a graph first.", "err");
         return;
       }
-      const connected = isConnected(edges, labels);
-      const res = kruskalMST(edges, labels);
-      kruskalOut.textContent = formatMST("Kruskal's Algorithm", res);
-      const primRes = primMST(edges, labels);
-      primOut.textContent = formatMST("Prim's Algorithm", primRes);
-
-      if (!connected) {
+      if(!isConnected()){
         setStatus("Graph is not connected. MST does not exist.", "err");
-        selectedMST = [];
+      }
+
+      resetTeaching();
+
+      const algo = algoSelect.value;
+      let pack;
+
+      if(algo === "kruskal"){
+        pack = kruskalSteps();
+        topAlgoBadge.textContent = "Mode: Kruskal's";
+        algoResult.textContent = formatMSTResult("Kruskal's Algorithm", pack);
+      }else{
+        const start = primStartEl.value || getLabels()[0];
+        pack = primSteps(start);
+        topAlgoBadge.textContent = `Mode: Prim's from ${start}`;
+        algoResult.textContent = formatMSTResult(`Prim's Algorithm (start ${start})`, pack);
+      }
+
+      teachingSteps = pack.steps;
+      renderSteps();
+      applyStep(-1);
+      setStatus("Steps prepared. Use Next Step or Auto Play.", "ok");
+    }
+
+    function renderSteps(){
+      stepsBox.innerHTML = "";
+      if(!teachingSteps.length){
+        stepsBox.innerHTML = `<div class="small">No steps prepared yet.</div>`;
+        return;
+      }
+
+      teachingSteps.forEach((s, i) => {
+        const div = document.createElement("div");
+        div.className = "stepItem";
+        if(i < currentStepIndex) div.classList.add("done");
+        if(i === currentStepIndex) div.classList.add("active");
+
+        let title = "";
+        if(s.action === "start"){
+          title = `Step ${i+1}: Start at ${s.visited.join(", ")}`;
+        }else{
+          title = `Step ${i+1}: <span class="stepEdge">${s.edge.u} - ${s.edge.v} : ${s.edge.w}</span> → ${s.action.toUpperCase()}`;
+        }
+
+        div.innerHTML = `${title}<div class="stepMeta">${s.reason}</div>`;
+        stepsBox.appendChild(div);
+      });
+    }
+
+    function applyStep(index){
+      selectedMST = [];
+      currentEdgeKey = null;
+      rejectedEdgeKey = null;
+
+      if(index < 0){
+        teachBox.innerHTML = `<b>Explanation</b><br>Step through the algorithm to see how edges are selected.`;
+        renderSteps();
         draw();
         return;
       }
-      setStatus("Animating Kruskal's MST...", "ok");
-      await animateMST(res.mst);
-      setStatus("Kruskal's MST completed.", "ok");
+
+      const upto = teachingSteps.slice(0, index+1);
+      for(const s of upto){
+        if(s.mst) selectedMST = [...s.mst];
+      }
+
+      const step = teachingSteps[index];
+      if(step.edge){
+        const k = edgeKey(step.edge.u, step.edge.v, step.edge.w);
+        if(step.action === "accept") currentEdgeKey = k;
+        if(step.action === "reject") rejectedEdgeKey = k;
+      }
+
+      if(step.algo === "kruskal"){
+        teachBox.innerHTML = `<b>Kruskal's step</b><br>${step.reason}`;
+        resultOut.textContent = `Current selected edges:
+${selectedMST.length ? selectedMST.map(e => `${e.u} - ${e.v} : ${e.w}`).join("\n") : "(none)"}
+
+Current cost = ${selectedMST.reduce((s,e)=>s+e.w,0)}`;
+      }else{
+        if(step.action === "start"){
+          teachBox.innerHTML = `<b>Prim's step</b><br>${step.reason}`;
+        }else{
+          teachBox.innerHTML = `<b>Prim's step</b><br>${step.reason}<br>Visited nodes: ${(step.visited || []).join(", ")}`;
+        }
+        resultOut.textContent = `Current selected edges:
+${selectedMST.length ? selectedMST.map(e => `${e.u} - ${e.v} : ${e.w}`).join("\n") : "(none)"}
+
+Current cost = ${selectedMST.reduce((s,e)=>s+e.w,0)}`;
+      }
+
+      renderSteps();
+      draw();
     }
 
-    async function doAutoPrim() {
-      const labels = getCurrentLabels();
-      if (!labels.length || !edges.length) {
+    function nextStep(){
+      if(!teachingSteps.length){
+        setStatus("Prepare steps first.", "err");
+        return;
+      }
+      if(currentStepIndex >= teachingSteps.length - 1){
+        setStatus("All steps finished.", "ok");
+        return;
+      }
+      currentStepIndex++;
+      applyStep(currentStepIndex);
+      setStatus(`Showing step ${currentStepIndex + 1} of ${teachingSteps.length}.`, "info");
+    }
+
+    function autoPlay(){
+      if(!teachingSteps.length){
+        setStatus("Prepare steps first.", "err");
+        return;
+      }
+      if(autoTimer){
+        clearInterval(autoTimer);
+        autoTimer = null;
+        setStatus("Auto play stopped.", "info");
+        return;
+      }
+
+      autoTimer = setInterval(() => {
+        if(currentStepIndex >= teachingSteps.length - 1){
+          clearInterval(autoTimer);
+          autoTimer = null;
+          setStatus("Auto play finished.", "ok");
+          return;
+        }
+        nextStep();
+      }, 1000);
+
+      setStatus("Auto play started.", "ok");
+    }
+
+    function resetStepsView(){
+      if(autoTimer){
+        clearInterval(autoTimer);
+        autoTimer = null;
+      }
+      currentStepIndex = -1;
+      selectedMST = [];
+      currentEdgeKey = null;
+      rejectedEdgeKey = null;
+      renderSteps();
+      applyStep(-1);
+      setStatus("Steps reset.", "info");
+    }
+
+    function showCorrectMST(){
+      if(!edges.length){
         setStatus("Create or load a graph first.", "err");
         return;
       }
-      const connected = isConnected(edges, labels);
-      const res = primMST(edges, labels);
-      const krRes = kruskalMST(edges, labels);
-      kruskalOut.textContent = formatMST("Kruskal's Algorithm", krRes);
-      primOut.textContent = formatMST("Prim's Algorithm", res);
-
-      if (!connected) {
-        setStatus("Graph is not connected. MST does not exist.", "err");
-        selectedMST = [];
-        draw();
-        return;
-      }
-      setStatus("Animating Prim's MST...", "ok");
-      await animateMST(res.mst);
-      setStatus("Prim's MST completed.", "ok");
+      const res = kruskalSteps();
+      selectedMST = [...res.mst];
+      currentEdgeKey = null;
+      rejectedEdgeKey = null;
+      draw();
+      resultOut.textContent = formatMSTResult("Correct MST (via Kruskal's)", res);
+      setStatus("Correct MST shown.", "ok");
     }
 
-    function parseUserAnswer() {
-      return parseEdgeLines(answerInputEl.value);
-    }
-
-    function compareMSTAnswers(userEdges, correctEdges) {
-      if (userEdges.length !== correctEdges.length) return false;
-      const a = new Set(userEdges.map(e => edgeKey(e.u, e.v, e.w)));
-      const b = new Set(correctEdges.map(e => edgeKey(e.u, e.v, e.w)));
-      if (a.size !== b.size) return false;
-      for (const k of a) if (!b.has(k)) return false;
-      return true;
-    }
-
-    function sumCost(edgeList) {
-      return edgeList.reduce((s, e) => s + Number(e.w), 0);
-    }
-
-    async function checkAnswer() {
-      try {
-        const labels = getCurrentLabels();
-        if (!labels.length || !edges.length) {
+    function compareAnswer(){
+      try{
+        if(!edges.length){
           setStatus("Create or load a graph first.", "err");
           return;
         }
-        if (!isConnected(edges, labels)) {
+        if(!isConnected()){
           setStatus("Graph is not connected. MST does not exist.", "err");
           return;
         }
 
-        const userEdges = parseUserAnswer();
-        const correct = kruskalMST(edges, labels).mst;
-
-        if (userEdges.length !== labels.length - 1) {
+        const userEdges = parseEdgeLines(answerInputEl.value);
+        const labels = getLabels();
+        if(userEdges.length !== labels.length - 1){
           setStatus(`An MST for ${labels.length} nodes must have exactly ${labels.length - 1} edges.`, "err");
           return;
         }
 
-        const userLabels = new Set(labels);
-        for (const e of userEdges) {
-          if (!userLabels.has(e.u) || !userLabels.has(e.v)) {
-            setStatus(`Unknown node in your answer: ${e.u}-${e.v}`, "err");
-            return;
-          }
-          const found = edges.some(x => edgeKey(x.u, x.v, x.w) === edgeKey(e.u, e.v, e.w));
-          if (!found) {
+        const graphEdgeSet = new Set(edges.map(e => edgeKey(e.u,e.v,e.w)));
+        for(const e of userEdges){
+          if(!graphEdgeSet.has(edgeKey(e.u,e.v,e.w))){
             setStatus(`Edge not present in graph: ${e.u} ${e.v} ${e.w}`, "err");
             return;
           }
         }
 
-        selectedMST = userEdges;
-        draw();
-
-        const correctCost = sumCost(correct);
-        const userCost = sumCost(userEdges);
-
-        if (compareMSTAnswers(userEdges, correct)) {
-          setStatus(`Correct! Your MST cost is ${userCost}.`, "ok");
-        } else if (userCost === correctCost) {
-          setStatus(`Valid alternative MST! Your cost matches the minimum cost ${correctCost}.`, "ok");
-        } else {
-          setStatus(`Not correct. Your cost = ${userCost}, minimum cost = ${correctCost}.`, "err");
+        // Check connectivity of user's chosen edges
+        const adj = new Map(labels.map(x => [x,[]]));
+        for(const e of userEdges){
+          adj.get(e.u).push(e.v);
+          adj.get(e.v).push(e.u);
+        }
+        const seen = new Set();
+        const stack = [labels[0]];
+        while(stack.length){
+          const cur = stack.pop();
+          if(seen.has(cur)) continue;
+          seen.add(cur);
+          for(const nx of adj.get(cur) || []){
+            if(!seen.has(nx)) stack.push(nx);
+          }
+        }
+        if(seen.size !== labels.length){
+          setStatus("Your selected edges do not connect all nodes.", "err");
+          return;
         }
 
-        kruskalOut.textContent = formatMST("Kruskal's Algorithm", kruskalMST(edges, labels));
-        primOut.textContent = formatMST("Prim's Algorithm", primMST(edges, labels));
-      } catch (err) {
+        selectedMST = [...userEdges];
+        currentEdgeKey = null;
+        rejectedEdgeKey = null;
+        draw();
+
+        const correct = kruskalSteps();
+        const userCost = userEdges.reduce((s,e)=>s+e.w,0);
+        const correctCost = correct.total;
+
+        resultOut.textContent = `Your selected edges:
+${userEdges.map(e => `${e.u} - ${e.v} : ${e.w}`).join("\n")}
+
+Your cost = ${userCost}
+Minimum cost = ${correctCost}`;
+
+        if(userCost === correctCost){
+          setStatus("Correct. Your MST has minimum cost.", "ok");
+        }else{
+          setStatus(`Not correct. Your cost is ${userCost}, but minimum cost is ${correctCost}.`, "err");
+        }
+      }catch(err){
         setStatus(err.message, "err");
       }
     }
 
-    function loadSample() {
-      const sample = `A B 4
-A C 3
-B C 1
-B D 2
-C D 4
-C E 5
-D E 1`;
-      edgeInputEl.value = sample;
-      loadUserGraph();
-    }
-
-    // Click-to-add edge
-    let pendingNode = null;
-
-    function findNodeAt(x, y) {
-      for (const n of nodes) {
+    // Canvas click-to-add
+    function findNodeAt(x,y){
+      for(const n of nodes){
         const dx = x - n.x;
         const dy = y - n.y;
-        if (Math.sqrt(dx*dx + dy*dy) <= 22) return n;
+        if(Math.sqrt(dx*dx + dy*dy) <= 22) return n;
       }
       return null;
     }
@@ -795,50 +1104,65 @@ D E 1`;
       const x = (ev.clientX - rect.left) * sx;
       const y = (ev.clientY - rect.top) * sy;
 
-      const n = findNodeAt(x, y);
-      if (!n) return;
+      const n = findNodeAt(x,y);
+      if(!n) return;
 
-      if (!pendingNode) {
+      if(!pendingNode){
         pendingNode = n;
-        setStatus(`Selected ${n.id}. Click another node to add an edge.`, "ok");
+        draw();
+        setStatus(`Selected ${n.id}. Click another node to create an edge.`, "info");
         return;
       }
 
-      if (pendingNode.id === n.id) {
+      if(pendingNode.id === n.id){
         pendingNode = null;
+        draw();
         setStatus("Cancelled edge creation.");
         return;
       }
 
       const w = prompt(`Enter weight for edge ${pendingNode.id} - ${n.id}:`, "1");
-      if (w !== null) {
+      if(w !== null){
         const num = Number(w);
-        if (isFinite(num)) {
-          const newEdge = normalizeEdge(pendingNode.id, n.id, num);
-          const exists = edges.some(e => edgePairKey(e.u, e.v) === edgePairKey(newEdge.u, newEdge.v));
-          if (exists) {
-            setStatus("That edge already exists. Edit the text area if you want to change the weight.", "err");
-          } else {
-            edges.push(newEdge);
-            edges = uniqueEdges(edges);
-            edgeInputEl.value = edges.map(e => `${e.u} ${e.v} ${e.w}`).join("\n");
-            draw();
-            setStatus(`Added edge ${newEdge.u}-${newEdge.v} (${newEdge.w}).`, "ok");
-          }
-        } else {
+        if(!isFinite(num)){
+          pendingNode = null;
+          draw();
           setStatus("Invalid weight.", "err");
+          return;
         }
+
+        const newEdge = normalizeEdge(pendingNode.id, n.id, num);
+        const exists = edges.some(e => edgePairKey(e.u,e.v) === edgePairKey(newEdge.u,newEdge.v));
+        if(exists){
+          pendingNode = null;
+          draw();
+          setStatus("That edge already exists. Edit the text area to change the weight.", "err");
+          return;
+        }
+
+        edges.push(newEdge);
+        edges = uniqueEdges(edges);
+        edgeInputEl.value = edges.map(e => `${e.u} ${e.v} ${e.w}`).join("\n");
+        pendingNode = null;
+        draw();
+        resultOut.textContent = formatGraphSummary();
+        setStatus(`Added edge ${newEdge.u} - ${newEdge.v} : ${newEdge.w}`, "ok");
+      }else{
+        pendingNode = null;
+        draw();
       }
-      pendingNode = null;
     });
 
     document.getElementById("randomBtn").addEventListener("click", generateRandomGraph);
     document.getElementById("clearBtn").addEventListener("click", clearGraph);
     document.getElementById("loadBtn").addEventListener("click", loadUserGraph);
     document.getElementById("sampleBtn").addEventListener("click", loadSample);
-    document.getElementById("autoKBtn").addEventListener("click", doAutoKruskal);
-    document.getElementById("autoPBtn").addEventListener("click", doAutoPrim);
-    document.getElementById("checkBtn").addEventListener("click", checkAnswer);
+    document.getElementById("checkBtn").addEventListener("click", compareAnswer);
+    document.getElementById("showMstBtn").addEventListener("click", showCorrectMST);
+    document.getElementById("prepareBtn").addEventListener("click", prepareSteps);
+    document.getElementById("nextBtn").addEventListener("click", nextStep);
+    document.getElementById("autoBtn").addEventListener("click", autoPlay);
+    document.getElementById("resetStepsBtn").addEventListener("click", resetStepsView);
 
     clearGraph();
   </script>
