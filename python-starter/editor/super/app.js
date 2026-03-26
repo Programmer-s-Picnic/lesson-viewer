@@ -47,13 +47,6 @@ const ui = {
   xp: $("ppXP"),
   streak: $("ppStreak"),
   timeout: $("ppTimeout"),
-  projectTitle: $("ppProjectTitle"),
-  projectDescription: $("ppProjectDescription"),
-  projectTags: $("ppProjectTags"),
-  projectAuthor: $("ppProjectAuthor"),
-  projectTitleDisplay: $("ppProjectTitleDisplay"),
-  projectMetaLine: $("ppProjectMetaLine"),
-  projectTagsDisplay: $("ppProjectTagsDisplay"),
 
   teacherBtn: $("ppTeacherBtn"),
   teacherPanel: $("ppTeacherPanel"),
@@ -78,6 +71,12 @@ const ui = {
   voiceStatus: $("ppVoiceStatus"),
   voiceLog: $("ppVoiceLog"),
   voiceClear: $("ppVoiceClear"),
+
+  projectTitle: $("ppTitle"),
+  projectDescription: $("ppDesc"),
+  projectTags: $("ppTags"),
+  projectAuthor: $("ppAuthor"),
+  projectSummary: $("ppProjectSummary"),
 };
 
 const btn = {
@@ -122,11 +121,92 @@ const K_PROBLEMS_LOCAL = "pp_problems_custom_v1";
 const K_PROBLEMS_REMOTE_CACHE = "pp_problems_remote_cache_v1";
 const K_PROBLEMS_REMOTE_URL = "pp_problems_remote_url_v1";
 const K_SUBS = "pp_class_submissions_v1";
+const K_STORAGE_META = "pp_storage_meta_v1";
+const STORAGE_VERSION = 2;
+
+const STORAGE_KEYS = [
+  K_STATE, K_STDIN, K_XP, K_STREAK, K_LASTDAY,
+  K_CLASS, K_EXAM, K_LOCK, K_ATT_ON, K_ATT_MAX, K_ALLOW_PKGS,
+  K_STU_NAME, K_STU_ROLL, K_INSTALLED_PKGS, K_THEME, K_SIDEBAR_W, K_PANEL_H, K_VOICE_LOG,
+  K_PROBLEMS_LOCAL, K_PROBLEMS_REMOTE_CACHE, K_PROBLEMS_REMOTE_URL, K_SUBS,
+];
+
+function safeLSGet(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+function safeLSSet(key, value) {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+function safeLSRemove(key) {
+  try {
+    localStorage.removeItem(key);
+  } catch {}
+}
+function readStorageMeta() {
+  try {
+    const raw = safeLSGet(K_STORAGE_META);
+    const meta = raw ? JSON.parse(raw) : null;
+    return meta && Number.isFinite(meta.version) ? meta : { version: 0 };
+  } catch {
+    return { version: 0 };
+  }
+}
+function writeStorageMeta(version = STORAGE_VERSION) {
+  safeLSSet(K_STORAGE_META, JSON.stringify({ version }));
+}
+function migrateStorageIfNeeded() {
+  const meta = readStorageMeta();
+  let version = Number(meta.version) || 0;
+
+  if (version < 1) version = 1;
+
+  if (version < STORAGE_VERSION) {
+    const rawState = safeLSGet(K_STATE);
+    if (rawState) {
+      try {
+        const parsed = JSON.parse(rawState);
+        const tabs = Array.isArray(parsed?.tabs) && parsed.tabs.length
+          ? parsed.tabs.map((tab, idx) => ({
+              name: String(tab?.name || `untitled${idx + 1}.py`),
+              code: String(tab?.code || ""),
+            }))
+          : [{ name: "main.py", code: 'print("Namaste Champak 👋")\n' }];
+        const currentTabSafe = Math.max(0, Math.min((parsed?.currentTab ?? 0), tabs.length - 1));
+        safeLSSet(K_STATE, JSON.stringify({ tabs, currentTab: currentTabSafe }));
+      } catch {
+        safeLSRemove(K_STATE);
+      }
+    }
+
+    for (const key of [K_INSTALLED_PKGS, K_VOICE_LOG, K_SUBS, K_PROBLEMS_LOCAL, K_PROBLEMS_REMOTE_CACHE]) {
+      const raw = safeLSGet(key);
+      if (!raw) continue;
+      try {
+        JSON.parse(raw);
+      } catch {
+        safeLSRemove(key);
+      }
+    }
+  }
+
+  writeStorageMeta(STORAGE_VERSION);
+}
+
+migrateStorageIfNeeded();
 
 // ----- Problem loaders -----
 function loadCustomProblems() {
   try {
-    const raw = localStorage.getItem(K_PROBLEMS_LOCAL);
+    const raw = safeLSGet(K_PROBLEMS_LOCAL);
     const arr = raw ? JSON.parse(raw) : [];
     return Array.isArray(arr) ? arr : [];
   } catch {
@@ -135,13 +215,13 @@ function loadCustomProblems() {
 }
 function saveCustomProblems(arr) {
   try {
-    localStorage.setItem(K_PROBLEMS_LOCAL, JSON.stringify(arr));
+    safeLSSet(K_PROBLEMS_LOCAL, JSON.stringify(arr));
   } catch {}
 }
 
 function loadRemoteCache() {
   try {
-    const raw = localStorage.getItem(K_PROBLEMS_REMOTE_CACHE);
+    const raw = safeLSGet(K_PROBLEMS_REMOTE_CACHE);
     const arr = raw ? JSON.parse(raw) : [];
     return Array.isArray(arr) ? arr : [];
   } catch {
@@ -150,8 +230,8 @@ function loadRemoteCache() {
 }
 function saveRemoteCache(url, arr) {
   try {
-    localStorage.setItem(K_PROBLEMS_REMOTE_URL, url || "");
-    localStorage.setItem(K_PROBLEMS_REMOTE_CACHE, JSON.stringify(arr || []));
+    safeLSSet(K_PROBLEMS_REMOTE_URL, url || "");
+    safeLSSet(K_PROBLEMS_REMOTE_CACHE, JSON.stringify(arr || []));
   } catch {}
 }
 
@@ -186,7 +266,7 @@ async function loadProblemsFromURL(url) {
     saveRemoteCache(u, cleaned);
     return cleaned;
   } catch {
-    const cachedURL = localStorage.getItem(K_PROBLEMS_REMOTE_URL) || "";
+    const cachedURL = safeLSGet(K_PROBLEMS_REMOTE_URL) || "";
     if (cachedURL === u) return loadRemoteCache();
     return [];
   }
@@ -204,7 +284,6 @@ async function loadCodeFromURL(url) {
     let currentTabRemote = 0;
     let stdin = "";
     let problem = "";
-    let project = defaultProjectMeta();
 
     if (Array.isArray(payload)) {
       tabs = payload;
@@ -214,12 +293,6 @@ async function loadCodeFromURL(url) {
       currentTabRemote = payload.currentTab ?? payload.current_tab ?? 0;
       stdin = payload.stdin ?? "";
       problem = payload.problem ?? "";
-      project = normalizeProjectMeta(payload.project || payload.meta || {
-        title: payload.title,
-        description: payload.description,
-        tags: payload.tags,
-        author: payload.author,
-      });
     }
 
     if (!Array.isArray(tabs) || !tabs.length) throw new Error("Invalid code JSON");
@@ -233,7 +306,6 @@ async function loadCodeFromURL(url) {
       currentTab: currentTabRemote,
       stdin: String(stdin || ""),
       problem: String(problem || ""),
-      project,
     };
   } catch {
     return null;
@@ -343,58 +415,18 @@ function setProgress(p) {
 }
 
 function loadBool(k, d) {
-  try {
-    const v = localStorage.getItem(k);
-    return v == null ? d : v === "1";
-  } catch {
-    return d;
-  }
+  const v = safeLSGet(k);
+  return v == null ? d : v === "1";
 }
 function saveBool(k, v) {
-  try {
-    localStorage.setItem(k, v ? "1" : "0");
-  } catch {}
+  safeLSSet(k, v ? "1" : "0");
 }
 function loadInt(k, d) {
-  try {
-    const v = parseInt(localStorage.getItem(k) || "", 10);
-    return Number.isFinite(v) ? v : d;
-  } catch {
-    return d;
-  }
+  const v = parseInt(safeLSGet(k) || "", 10);
+  return Number.isFinite(v) ? v : d;
 }
 function saveInt(k, v) {
-  try {
-    localStorage.setItem(k, String(v));
-  } catch {}
-}
-
-
-function splitProjectTags(value) {
-  return String(value || "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .slice(0, 12);
-}
-
-function normalizeProjectMeta(meta) {
-  const m = meta && typeof meta === "object" ? meta : {};
-  return {
-    title: String(m.title || "").trim(),
-    description: String(m.description || "").trim(),
-    tags: splitProjectTags(Array.isArray(m.tags) ? m.tags.join(", ") : (m.tags || "")),
-    author: String(m.author || "").trim(),
-  };
-}
-
-function defaultProjectMeta() {
-  return {
-    title: "",
-    description: "",
-    tags: [],
-    author: "",
-  };
+  safeLSSet(k, String(v));
 }
 
 function normalizeOut(s) {
@@ -410,7 +442,7 @@ function normalizeOut(s) {
 // ----- Installed package helpers -----
 function loadInstalledPkgs() {
   try {
-    const raw = localStorage.getItem(K_INSTALLED_PKGS);
+    const raw = safeLSGet(K_INSTALLED_PKGS);
     const arr = raw ? JSON.parse(raw) : [];
     return Array.isArray(arr) ? arr : [];
   } catch {
@@ -419,7 +451,7 @@ function loadInstalledPkgs() {
 }
 function saveInstalledPkgs(arr) {
   try {
-    localStorage.setItem(K_INSTALLED_PKGS, JSON.stringify(arr || []));
+    safeLSSet(K_INSTALLED_PKGS, JSON.stringify(arr || []));
   } catch {}
 }
 function renderInstalledPkgs() {
@@ -437,7 +469,7 @@ function renderInstalledPkgs() {
 // ----- Voice log helpers -----
 function loadVoiceLog() {
   try {
-    const raw = localStorage.getItem(K_VOICE_LOG);
+    const raw = safeLSGet(K_VOICE_LOG);
     const arr = raw ? JSON.parse(raw) : [];
     return Array.isArray(arr) ? arr : [];
   } catch {
@@ -447,7 +479,7 @@ function loadVoiceLog() {
 
 function saveVoiceLog(list) {
   try {
-    localStorage.setItem(K_VOICE_LOG, JSON.stringify(list));
+    safeLSSet(K_VOICE_LOG, JSON.stringify(list));
   } catch {}
 }
 
@@ -493,7 +525,7 @@ function applyTheme(theme) {
   const t = theme === "light" ? "light" : "dark";
   document.body.setAttribute("data-theme", t);
   try {
-    localStorage.setItem(K_THEME, t);
+    safeLSSet(K_THEME, t);
   } catch {}
   if (ui.themeToggle) ui.themeToggle.textContent = t === "light" ? "☀️ Light" : "🌙 Dark";
 }
@@ -510,7 +542,7 @@ function setSidebarWidth(px) {
   ui.sidebar.style.minWidth = w + "px";
   ui.sidebar.style.maxWidth = w + "px";
   try {
-    localStorage.setItem(K_SIDEBAR_W, String(w));
+    safeLSSet(K_SIDEBAR_W, String(w));
   } catch {}
 }
 
@@ -519,7 +551,7 @@ function setPanelHeight(px) {
   const h = clamp(px, 180, Math.max(260, window.innerHeight - 140));
   ui.panel.style.height = h + "px";
   try {
-    localStorage.setItem(K_PANEL_H, String(h));
+    safeLSSet(K_PANEL_H, String(h));
   } catch {}
 }
 
@@ -713,7 +745,7 @@ function handleVoiceCommand(text) {
   if (saveWords.has(cmd) || cmd === "save code") {
     state.tabs[currentTab].code = ui.code.value;
     saveState();
-    localStorage.setItem(K_STDIN, ui.stdin.value || "");
+    safeLSSet(K_STDIN, ui.stdin.value || "");
     addVoiceLog(raw, cmd, "save", true);
     toast("Voice: saved");
     return;
@@ -919,23 +951,85 @@ function renderOut(stdoutText, plots = []) {
   ui.out.scrollTop = ui.out.scrollHeight;
 }
 
+
+const DEFAULT_PROJECT_META = Object.freeze({
+  title: "",
+  description: "",
+  tags: "",
+  author: "",
+});
+
+function normalizeProjectMeta(meta) {
+  const src = meta && typeof meta === "object" ? meta : {};
+  return {
+    title: (src.title ?? "").toString(),
+    description: (src.description ?? "").toString(),
+    tags: (src.tags ?? "").toString(),
+    author: (src.author ?? "").toString(),
+  };
+}
+
+function ensureEditorStateShape(p) {
+  const shaped = (p && typeof p === "object") ? p : {};
+  const tabs = Array.isArray(shaped.tabs) && shaped.tabs.length
+    ? shaped.tabs
+    : structuredClone(DEFAULT_TABS);
+
+  return {
+    tabs,
+    currentTab: clamp(parseInt(shaped.currentTab, 10) || 0, 0, tabs.length - 1),
+    projectMeta: normalizeProjectMeta(shaped.projectMeta),
+  };
+}
+
+function renderProjectSummary() {
+  if (!ui.projectSummary) return;
+  const meta = normalizeProjectMeta(state.projectMeta);
+  const parts = [];
+
+  if (meta.title) parts.push(`<div class="pp-project-line"><b>Title:</b> ${escapeHtml(meta.title)}</div>`);
+  if (meta.author) parts.push(`<div class="pp-project-line"><b>Author:</b> ${escapeHtml(meta.author)}</div>`);
+  if (meta.tags) parts.push(`<div class="pp-project-line"><b>Tags:</b> ${escapeHtml(meta.tags)}</div>`);
+  if (meta.description) parts.push(`<div class="pp-project-line"><b>Description:</b> ${escapeHtml(meta.description).replace(/\n/g, "<br>")}</div>`);
+
+  ui.projectSummary.innerHTML = `<b>Project summary</b>${
+    parts.length
+      ? parts.join("")
+      : '<div class="pp-project-line">No project metadata added yet.</div>'
+  }`;
+}
+
+function syncProjectMetaInputs() {
+  const meta = normalizeProjectMeta(state.projectMeta);
+  state.projectMeta = meta;
+
+  if (ui.projectTitle) ui.projectTitle.value = meta.title;
+  if (ui.projectDescription) ui.projectDescription.value = meta.description;
+  if (ui.projectTags) ui.projectTags.value = meta.tags;
+  if (ui.projectAuthor) ui.projectAuthor.value = meta.author;
+
+  renderProjectSummary();
+}
+
+function highlightProjectMeta() {
+  [ui.projectTitle, ui.projectDescription, ui.projectTags, ui.projectAuthor].forEach((el) => {
+    if (!el) return;
+    el.classList.add("pp-project-meta-highlight");
+    setTimeout(() => el.classList.remove("pp-project-meta-highlight"), 2200);
+  });
+}
+
 // ----- State -----
 function loadState() {
   try {
-    const raw = localStorage.getItem(K_STATE);
+    const raw = safeLSGet(K_STATE);
     const p = raw ? JSON.parse(raw) : null;
-    if (p && Array.isArray(p.tabs) && p.tabs.length) {
-      return {
-        tabs: p.tabs,
-        currentTab: Number.isFinite(parseInt(p.currentTab, 10)) ? parseInt(p.currentTab, 10) : 0,
-        project: normalizeProjectMeta(p.project),
-      };
-    }
+    if (p && Array.isArray(p.tabs) && p.tabs.length) return ensureEditorStateShape(p);
   } catch {}
-  return { tabs: structuredClone(DEFAULT_TABS), currentTab: 0, project: defaultProjectMeta() };
+  return ensureEditorStateShape({ tabs: structuredClone(DEFAULT_TABS), currentTab: 0 });
 }
 let state = loadState();
-state.project = normalizeProjectMeta(state.project);
+state.projectMeta = normalizeProjectMeta(state.projectMeta);
 let currentTab = clamp(state.currentTab || 0, 0, state.tabs.length - 1);
 let currentProblemId = null;
 let currentStarter = null;
@@ -956,14 +1050,14 @@ if (STUDENT_LOCKED) {
 // ----- Submissions -----
 function loadSubs() {
   try {
-    return JSON.parse(localStorage.getItem(K_SUBS) || "[]");
+    return JSON.parse(safeLSGet(K_SUBS) || "[]");
   } catch {
     return [];
   }
 }
 function saveSubs(list) {
   try {
-    localStorage.setItem(K_SUBS, JSON.stringify(list));
+    safeLSSet(K_SUBS, JSON.stringify(list));
   } catch {}
 }
 function addSub(entry) {
@@ -988,109 +1082,74 @@ function dayKey(d = new Date()) {
   return `${y}-${m}-${da}`;
 }
 function getXP() {
-  return parseInt(localStorage.getItem(K_XP) || "0", 10) || 0;
+  return parseInt(safeLSGet(K_XP) || "0", 10) || 0;
 }
 function setXP(v) {
-  localStorage.setItem(K_XP, String(v));
+  safeLSSet(K_XP, String(v));
   ui.xp.textContent = String(v);
 }
 function getStreak() {
-  return parseInt(localStorage.getItem(K_STREAK) || "0", 10) || 0;
+  return parseInt(safeLSGet(K_STREAK) || "0", 10) || 0;
 }
 function setStreak(v) {
-  localStorage.setItem(K_STREAK, String(v));
+  safeLSSet(K_STREAK, String(v));
   ui.streak.textContent = String(v);
 }
 function updateStreakOnSolve() {
   const today = dayKey();
-  const last = localStorage.getItem(K_LASTDAY) || "";
+  const last = safeLSGet(K_LASTDAY) || "";
   if (last === today) return;
   const y = new Date();
   y.setDate(y.getDate() - 1);
   const streak = last === dayKey(y) ? getStreak() + 1 : 1;
-  localStorage.setItem(K_LASTDAY, today);
+  safeLSSet(K_LASTDAY, today);
   setStreak(streak);
 }
 
 // ----- Student details -----
 function loadStudent() {
-  ui.stuName.value = localStorage.getItem(K_STU_NAME) || "";
-  ui.stuRoll.value = localStorage.getItem(K_STU_ROLL) || "";
+  ui.stuName.value = safeLSGet(K_STU_NAME) || "";
+  ui.stuRoll.value = safeLSGet(K_STU_ROLL) || "";
 }
 function saveStudent() {
-  localStorage.setItem(K_STU_NAME, ui.stuName.value || "");
-  localStorage.setItem(K_STU_ROLL, ui.stuRoll.value || "");
+  safeLSSet(K_STU_NAME, ui.stuName.value || "");
+  safeLSSet(K_STU_ROLL, ui.stuRoll.value || "");
 }
 ui.stuName.addEventListener("input", saveStudent);
 ui.stuRoll.addEventListener("input", saveStudent);
 
-// ----- Tabs -----
-function saveState() {
-  try {
-    localStorage.setItem(
-      K_STATE,
-      JSON.stringify({
-        tabs: state.tabs,
-        currentTab,
-        project: normalizeProjectMeta(state.project),
-      }),
-    );
-  } catch {}
-}
+function bindProjectMetaInputs() {
+  const map = {
+    title: ui.projectTitle,
+    description: ui.projectDescription,
+    tags: ui.projectTags,
+    author: ui.projectAuthor,
+  };
 
-function updateProjectMetaTitle() {
-  const title = state.project.title || "Untitled project";
-  document.title = `${title} — Programmer's Picnic Python Editor`;
-  if (ui.projectTitleDisplay) ui.projectTitleDisplay.textContent = title;
-  const author = state.project.author || "—";
-  const tagsText = state.project.tags.length ? state.project.tags.join(", ") : "—";
-  if (ui.projectMetaLine) {
-    ui.projectMetaLine.textContent = `Author: ${author} • Tags: ${tagsText}`;
-  }
-  if (ui.projectTagsDisplay) {
-    ui.projectTagsDisplay.innerHTML = state.project.tags.length
-      ? state.project.tags.map((tag) => `<span class="pp-project-chip">${esc(tag)}</span>`).join("")
-      : `<span class="vs-small">No tags yet</span>`;
-  }
-}
-
-function syncProjectMetaInputs() {
-  if (ui.projectTitle) ui.projectTitle.value = state.project.title || "";
-  if (ui.projectDescription) ui.projectDescription.value = state.project.description || "";
-  if (ui.projectTags) ui.projectTags.value = state.project.tags.join(", ");
-  if (ui.projectAuthor) ui.projectAuthor.value = state.project.author || "";
-  updateProjectMetaTitle();
-}
-
-function readProjectMetaFromInputs() {
-  state.project = normalizeProjectMeta({
-    title: ui.projectTitle?.value || "",
-    description: ui.projectDescription?.value || "",
-    tags: ui.projectTags?.value || "",
-    author: ui.projectAuthor?.value || "",
-  });
-  updateProjectMetaTitle();
-}
-
-function wireProjectMeta() {
-  [ui.projectTitle, ui.projectDescription, ui.projectTags, ui.projectAuthor].forEach((el) => {
-    el?.addEventListener("input", () => {
-      readProjectMetaFromInputs();
+  Object.entries(map).forEach(([key, el]) => {
+    if (!el) return;
+    el.addEventListener("input", () => {
+      state.projectMeta = state.projectMeta || normalizeProjectMeta();
+      state.projectMeta[key] = el.value || "";
+      renderProjectSummary();
       saveState();
     });
   });
-  syncProjectMetaInputs();
 }
 
-function highlightProjectMetaFromShare() {
-  const els = [ui.projectTitle, ui.projectDescription, ui.projectTags, ui.projectAuthor].filter(Boolean);
-  els.forEach((el) => el.classList.add("pp-project-highlight"));
-  clearTimeout(highlightProjectMetaFromShare._t);
-  highlightProjectMetaFromShare._t = setTimeout(() => {
-    els.forEach((el) => el.classList.remove("pp-project-highlight"));
-  }, 2600);
-}
+bindProjectMetaInputs();
+syncProjectMetaInputs();
 
+// ----- Tabs -----
+function saveState() {
+  try {
+    safeLSSet(K_STATE, JSON.stringify({
+      tabs: state.tabs,
+      currentTab,
+      projectMeta: normalizeProjectMeta(state.projectMeta),
+    }));
+  } catch {}
+}
 function renderTabs() {
   ui.tabs.innerHTML = "";
   state.tabs.forEach((t, i) => {
@@ -1214,10 +1273,10 @@ function showProblem(id) {
 
 // ----- Attempt limit -----
 const attKey = (pid) => `pp_attempts_${pid}_v1`;
-const attUsed = (pid) => parseInt(localStorage.getItem(attKey(pid)) || "0", 10) || 0;
+const attUsed = (pid) => parseInt(safeLSGet(attKey(pid)) || "0", 10) || 0;
 const attInc = (pid) => {
   const u = attUsed(pid) + 1;
-  localStorage.setItem(attKey(pid), String(u));
+  safeLSSet(attKey(pid), String(u));
   return u;
 };
 const canAttempt = (pid) => !attemptLimitOn || attUsed(pid) < attemptLimitMax;
@@ -1227,8 +1286,28 @@ let worker = null,
   pendingResolve = null,
   pendingReject = null,
   runTimer = null;
-let packagesInstalled = false;
 let installBusy = false;
+
+const workerState = {
+  initPolicyKey: "",
+  micropipReady: false,
+};
+
+function getPolicyKey(policy = classPolicy()) {
+  const allow = Array.isArray(policy.allow_imports) ? [...policy.allow_imports].sort() : [];
+  return JSON.stringify({
+    disable_open: !!policy.disable_open,
+    disable_eval_exec: !!policy.disable_eval_exec,
+    block_imports: !!policy.block_imports,
+    allow_imports: allow,
+    allow_micropip: !!policy.allow_micropip,
+  });
+}
+
+function resetWorkerState() {
+  workerState.initPolicyKey = "";
+  workerState.micropipReady = false;
+}
 
 function classPolicy() {
   const pkgOK = !!allowPackages;
@@ -1241,12 +1320,22 @@ function classPolicy() {
   };
 }
 function makeWorker(force = false) {
-  if (worker && !force && packagesInstalled) return;
+  const policy = classPolicy();
+  const policyKey = getPolicyKey(policy);
+  const needsFreshWorker = !worker || force || workerState.initPolicyKey !== policyKey;
+
+  if (!needsFreshWorker) return;
+
   if (worker) worker.terminate();
+  resetWorkerState();
+
   worker = new Worker("./judge-worker.js");
+  workerState.initPolicyKey = policyKey;
+
   worker.onmessage = (ev) => {
     const msg = ev.data || {};
     if (msg.type === "READY") {
+      workerState.micropipReady = !!policy.allow_micropip;
       setStatus("Judge worker ready.", "ok");
       return;
     }
@@ -1263,16 +1352,16 @@ function makeWorker(force = false) {
     if (msg.type === "INSTALLED") {
       installBusy = false;
       try { btn.install.disabled = false; } catch {}
-      packagesInstalled = true;
+      workerState.micropipReady = true;
 
       try {
         const prev = new Set(loadInstalledPkgs());
-        (msg.pkgs || []).forEach((p) => prev.add(String(p)));
+        (msg.pkgs || []).forEach((pkg) => prev.add(String(pkg)));
         saveInstalledPkgs(Array.from(prev).sort());
         renderInstalledPkgs();
       } catch {}
 
-      renderOut("Installed: " + (msg.pkgs || []).join(", ") + "\n", []);
+      renderOut(`Installed: ${(msg.pkgs || []).join(", ")}\n`, []);
       setStatus("Installed.", "ok");
       toast("Installed");
       return;
@@ -1285,7 +1374,8 @@ function makeWorker(force = false) {
       pendingResolve = pendingReject = null;
     }
   };
-  worker.postMessage({ type: "INIT", policy: classPolicy() });
+
+  worker.postMessage({ type: "INIT", policy });
 }
 
 function runInWorker(code, stdin) {
@@ -1296,6 +1386,7 @@ function runInWorker(code, stdin) {
     runTimer = setTimeout(() => {
       worker.terminate();
       worker = null;
+      resetWorkerState();
       makeWorker(true);
       reject(new Error("TIMEOUT"));
     }, JUDGE_TIMEOUT_MS);
@@ -1348,6 +1439,7 @@ async function run() {
 function stop() {
   if (worker) worker.terminate();
   worker = null;
+  resetWorkerState();
   makeWorker(true);
   setStatus("Stopped.", "warn");
   toast("Stopped");
@@ -1565,14 +1657,12 @@ shareUI?.copy?.addEventListener("click", async () => {
 async function share() {
   state.tabs[currentTab].code = ui.code.value;
 
-  readProjectMetaFromInputs();
-
   const payload = {
     tabs: state.tabs,
     currentTab,
     stdin: ui.stdin.value || "",
     problem: currentProblemId || "",
-    project: normalizeProjectMeta(state.project),
+    projectMeta: normalizeProjectMeta(state.projectMeta),
   };
 
   const json = JSON.stringify(payload);
@@ -1586,7 +1676,7 @@ async function share() {
 
   if (navigator.share) {
     try {
-      await navigator.share({ title: state.project.title || document.title, text: state.project.description || "", url });
+      await navigator.share({ title: document.title, url });
       toast("Shared");
       return;
     } catch {}
@@ -1619,16 +1709,11 @@ function loadFromHash() {
       currentTab = clamp(payload.currentTab || 0, 0, state.tabs.length - 1);
       ui.stdin.value = payload.stdin || "";
       ui.code.value = state.tabs[currentTab].code || "";
-      state.project = normalizeProjectMeta(payload.project || payload.meta || {
-        title: payload.title,
-        description: payload.description,
-        tags: payload.tags,
-        author: payload.author,
-      });
+      state.projectMeta = normalizeProjectMeta(payload.projectMeta);
       syncProjectMetaInputs();
-      highlightProjectMetaFromShare();
+      highlightProjectMeta();
       saveState();
-      localStorage.setItem(K_STDIN, ui.stdin.value || "");
+      safeLSSet(K_STDIN, ui.stdin.value || "");
     }
     if (payload?.problem) currentProblemId = payload.problem;
   } catch {}
@@ -1673,14 +1758,14 @@ function wireTeacherPanel() {
     saveBool(K_CLASS, classroomMode);
     applyModeUI();
     makeWorker(true);
-    toast(classroomMode ? "Classroom forced" : "Classroom off");
+    toast(classroomMode ? "Restricted classroom mode on" : "Restricted classroom mode off");
   });
   ui.examMode.addEventListener("change", () => {
     examMode = ui.examMode.checked;
     saveBool(K_EXAM, examMode);
     applyModeUI();
     showProblem(currentProblemId);
-    toast(examMode ? "Exam Mode ON" : "Exam Mode OFF");
+    toast(examMode ? "Exam mode on (best-effort restrictions)" : "Exam mode off");
   });
   ui.lockProblem.addEventListener("change", () => {
     lockProblem = ui.lockProblem.checked;
@@ -1732,7 +1817,7 @@ btn.format.onclick = basicFormat;
 btn.save.onclick = () => {
   state.tabs[currentTab].code = ui.code.value;
   saveState();
-  localStorage.setItem(K_STDIN, ui.stdin.value || "");
+  safeLSSet(K_STDIN, ui.stdin.value || "");
   toast("Saved");
 };
 btn.share.onclick = share;
@@ -1745,7 +1830,7 @@ btn.list.onclick = listPkgs;
 
 btn.sample.onclick = () => {
   ui.stdin.value = "5\n10\n20\n30\n40\n50\n";
-  localStorage.setItem(K_STDIN, ui.stdin.value || "");
+  safeLSSet(K_STDIN, ui.stdin.value || "");
   toast("stdin sample");
 };
 btn.clearStdin.onclick = () => {
@@ -1929,10 +2014,10 @@ async function init() {
   renderInstalledPkgs();
   renderVoiceLog();
 
-  applyTheme(localStorage.getItem(K_THEME) || "dark");
-  const savedSidebarW = parseInt(localStorage.getItem(K_SIDEBAR_W) || "0", 10);
+  applyTheme(safeLSGet(K_THEME) || "dark");
+  const savedSidebarW = parseInt(safeLSGet(K_SIDEBAR_W) || "0", 10);
   if (savedSidebarW) setSidebarWidth(savedSidebarW);
-  const savedPanelH = parseInt(localStorage.getItem(K_PANEL_H) || "0", 10);
+  const savedPanelH = parseInt(safeLSGet(K_PANEL_H) || "0", 10);
   if (savedPanelH) setPanelHeight(savedPanelH);
 
   const codeFile = URLP.get("codefile");
@@ -1946,8 +2031,6 @@ async function init() {
       state.tabs = [{ name: fname.endsWith(".py") ? fname : "main.py", code: txt }];
       currentTab = 0;
       ui.code.value = state.tabs[0].code || "";
-      state.project = normalizeProjectMeta({ ...state.project, title: state.project.title || fname.replace(/\.py$/i, "") });
-      syncProjectMetaInputs();
       saveState();
       toast("Loaded codefile");
     } else {
@@ -1964,11 +2047,8 @@ async function init() {
       );
       ui.code.value = state.tabs[currentTab].code || "";
       ui.stdin.value = remoteCode.stdin || "";
-      localStorage.setItem(K_STDIN, ui.stdin.value || "");
+      safeLSSet(K_STDIN, ui.stdin.value || "");
       if (remoteCode.problem) currentProblemId = remoteCode.problem;
-      state.project = normalizeProjectMeta(remoteCode.project);
-      syncProjectMetaInputs();
-      highlightProjectMetaFromShare();
       saveState();
       toast("Loaded code JSON");
     } else {
@@ -1978,13 +2058,12 @@ async function init() {
     loadFromHash();
   }
 
-  ui.stdin.value = localStorage.getItem(K_STDIN) || "";
+  ui.stdin.value = safeLSGet(K_STDIN) || "";
   ui.stdin.addEventListener("input", () =>
     localStorage.setItem(K_STDIN, ui.stdin.value || ""),
   );
 
   loadStudent();
-  wireProjectMeta();
   renderTabs();
 
   const custom = loadCustomProblems();

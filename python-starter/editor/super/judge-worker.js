@@ -4,6 +4,7 @@
    - Matplotlib support:
        After exec, if matplotlib figures exist, render them to PNG (base64)
        and return as result.plots = ["data:image/png;base64,...", ...]
+       Plot output is capped so one run cannot consume excessive browser memory.
 */
 importScripts("https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js");
 
@@ -12,6 +13,9 @@ let ready = false;
 let installPromise = null; // mutex for INSTALL
 
 const MAX_OUT_CHARS = 50000;
+const MAX_PLOTS = 4;
+const MAX_PLOT_BYTES = 1_500_000;
+const MAX_TOTAL_PLOT_BYTES = 5_000_000;
 
 function clampOut(s) {
   s = (s ?? "").toString();
@@ -59,6 +63,7 @@ _pp_refresh_persist_paths()
 def _pp_collect_matplotlib_plots():
     \"\"\"Return list of data URLs for any open matplotlib figures.\"\"\"
     plots = []
+    total_bytes = 0
     try:
         import matplotlib
         # Agg backend works in worker/headless
@@ -69,13 +74,19 @@ def _pp_collect_matplotlib_plots():
         import matplotlib.pyplot as plt
         from io import BytesIO
 
-        fignums = list(plt.get_fignums())
+        fignums = list(plt.get_fignums())[:4]
         for num in fignums:
             fig = plt.figure(num)
             bio = BytesIO()
             try:
                 fig.savefig(bio, format="png", bbox_inches="tight", dpi=130)
-                b64 = base64.b64encode(bio.getvalue()).decode("ascii")
+                raw = bio.getvalue()
+                if len(raw) > 1500000:
+                    continue
+                if total_bytes + len(raw) > 5000000:
+                    break
+                total_bytes += len(raw)
+                b64 = base64.b64encode(raw).decode("ascii")
                 plots.append("data:image/png;base64," + b64)
             finally:
                 bio.close()
@@ -119,7 +130,7 @@ def _pp_run_capture(user_code: str, stdin_text: str, policy_json: str):
     _orig_import = getattr(builtins, "__import__", None)
     _orig_input = getattr(builtins, "input", None)
 
-    # POLICY hardening (best-effort)
+    # POLICY hardening (best-effort, not a hardened secure sandbox)
     if policy.get("disable_open", False):
         def _no_open(*a, **k):
             raise PermissionError("open() disabled in Classroom Mode")
@@ -215,8 +226,8 @@ RES = _pp_run_capture(U_CODE, U_STDIN, U_POLICY_JSON)
       obj.stderr = clampOut(obj.stderr);
       obj.error  = clampOut(obj.error);
 
-      // plots are big; keep as-is (browser may manage memory)
       if (!Array.isArray(obj.plots)) obj.plots = [];
+      if (obj.plots.length > MAX_PLOTS) obj.plots = obj.plots.slice(0, MAX_PLOTS);
 
       postMessage({ type: "RUN_RESULT", result: obj });
       return;
