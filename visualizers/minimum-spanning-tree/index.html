@@ -1,14 +1,16 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark" data-design="classic">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MST Demo V2 — Kruskal's and Prim's</title>
+  <title>MST Demo V3 — Kruskal's and Prim's</title>
   <style>
     :root{
       --bg:#0b1020;
+      --bg2:#060914;
       --panel:#11172a;
       --panel2:#182033;
+      --panel3:#0b1326;
       --line:#2a3653;
       --text:#ecf2ff;
       --muted:#9eb0d1;
@@ -18,25 +20,120 @@
       --bad:#ef4444;
       --blue:#38bdf8;
       --violet:#a78bfa;
+      --node:#f59e0b;
+      --nodeText:#111827;
+      --canvas1:#08101f;
+      --canvas2:#040814;
+      --whiteEdge:#d7e3ff;
+      --shadow:0 14px 34px rgba(0,0,0,.25);
+      --radius:20px;
+      --pillBg:#141d31;
+      --inputBg:#0c1326;
+      --statusBg:#121a2d;
     }
+
+    html[data-theme="light"]{
+      --bg:#fffaf0;
+      --bg2:#fff7e6;
+      --panel:#ffffff;
+      --panel2:#fff8eb;
+      --panel3:#fffdf7;
+      --line:#e6d3aa;
+      --text:#1f2937;
+      --muted:#6b7280;
+      --brand:#f59e0b;
+      --brand2:#d97706;
+      --good:#16a34a;
+      --bad:#dc2626;
+      --blue:#0284c7;
+      --violet:#7c3aed;
+      --node:#f59e0b;
+      --nodeText:#111827;
+      --canvas1:#fffdf7;
+      --canvas2:#fff7e6;
+      --whiteEdge:#475569;
+      --shadow:0 10px 28px rgba(140,110,40,.12);
+      --pillBg:#fff7e6;
+      --inputBg:#ffffff;
+      --statusBg:#fff8eb;
+    }
+
+    html[data-design="glass"]{
+      --panel:rgba(255,255,255,.10);
+      --panel2:rgba(255,255,255,.08);
+      --panel3:rgba(255,255,255,.08);
+      --line:rgba(255,255,255,.18);
+      --shadow:0 18px 40px rgba(0,0,0,.22);
+      --pillBg:rgba(255,255,255,.08);
+      --inputBg:rgba(255,255,255,.08);
+      --statusBg:rgba(255,255,255,.08);
+    }
+
+    html[data-theme="light"][data-design="glass"]{
+      --panel:rgba(255,255,255,.72);
+      --panel2:rgba(255,250,240,.75);
+      --panel3:rgba(255,255,255,.82);
+      --line:rgba(160,120,45,.18);
+      --pillBg:rgba(255,250,240,.88);
+      --inputBg:rgba(255,255,255,.92);
+      --statusBg:rgba(255,250,240,.92);
+      --shadow:0 16px 36px rgba(140,110,40,.14);
+    }
+
+    html[data-design="warm"]{
+      --brand:#ea580c;
+      --brand2:#c2410c;
+      --node:#fb923c;
+      --bg:#1c0f08;
+      --bg2:#140b06;
+      --panel:#2a170d;
+      --panel2:#341d11;
+      --panel3:#24140c;
+      --line:#6b3f24;
+      --text:#fff7ed;
+      --muted:#fdba74;
+      --whiteEdge:#fed7aa;
+      --pillBg:#2b180e;
+      --inputBg:#24140c;
+      --statusBg:#24140c;
+      --shadow:0 16px 36px rgba(0,0,0,.32);
+    }
+
+    html[data-theme="light"][data-design="warm"]{
+      --bg:#fff7ed;
+      --bg2:#ffedd5;
+      --panel:#ffffff;
+      --panel2:#fff7ed;
+      --panel3:#fffaf5;
+      --line:#fdba74;
+      --text:#431407;
+      --muted:#9a3412;
+      --whiteEdge:#7c2d12;
+      --pillBg:#fff1df;
+      --inputBg:#ffffff;
+      --statusBg:#fff7ed;
+      --shadow:0 12px 30px rgba(194,65,12,.12);
+    }
+
     *{box-sizing:border-box}
     body{
       margin:0;
       font-family:Arial,Helvetica,sans-serif;
       background:
-        radial-gradient(circle at top, rgba(245,158,11,.08), transparent 35%),
-        linear-gradient(180deg,#060914,#0b1020);
+        radial-gradient(circle at top, color-mix(in srgb, var(--brand) 12%, transparent), transparent 35%),
+        linear-gradient(180deg,var(--bg2),var(--bg));
       color:var(--text);
+      transition:background .25s ease,color .25s ease;
     }
     .wrap{
-      max-width:1400px;
+      max-width:1450px;
       margin:0 auto;
       padding:18px;
     }
     h1,h2,h3{margin:0 0 10px}
     .sub{
       color:var(--muted);
-      line-height:1.5;
+      line-height:1.55;
       margin-bottom:16px;
     }
     .layout{
@@ -46,11 +143,14 @@
       align-items:start;
     }
     .card{
-      background:rgba(17,23,42,.95);
+      background:var(--panel);
       border:1px solid var(--line);
-      border-radius:20px;
+      border-radius:var(--radius);
       padding:16px;
-      box-shadow:0 14px 34px rgba(0,0,0,.25);
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(10px);
+      -webkit-backdrop-filter:blur(10px);
+      transition:background .25s ease,border-color .25s ease,box-shadow .25s ease;
     }
     label{
       display:block;
@@ -62,10 +162,11 @@
       width:100%;
       border-radius:12px;
       border:1px solid var(--line);
-      background:#0c1326;
+      background:var(--inputBg);
       color:var(--text);
       padding:10px 12px;
       font-size:14px;
+      transition:background .2s ease,border-color .2s ease,color .2s ease,transform .08s ease;
     }
     textarea{
       min-height:120px;
@@ -80,8 +181,9 @@
       background:linear-gradient(180deg,var(--brand),var(--brand2));
       color:#1b1303;
     }
+    button:hover{ transform:translateY(-1px); }
     button.secondary{
-      background:#172033;
+      background:var(--panel2);
       color:var(--text);
       border:1px solid var(--line);
     }
@@ -100,11 +202,11 @@
     button:disabled{
       opacity:.55;
       cursor:not-allowed;
+      transform:none;
     }
-    .row{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;}
-    .row3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-top:10px;}
-    .row4{display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; margin-top:10px;}
-    .small{font-size:12px; color:var(--muted); line-height:1.5;}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
+    .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;}
+    .small{font-size:12px;color:var(--muted);line-height:1.5;}
     .mono{
       font-family:Consolas, Monaco, monospace;
       font-size:13px;
@@ -117,27 +219,28 @@
       padding:12px;
       border-radius:12px;
       border:1px solid var(--line);
-      background:#121a2d;
+      background:var(--statusBg);
       font-weight:700;
     }
-    .ok{ background:#052e16; border-color:#14532d; color:#bbf7d0; }
-    .err{ background:#450a0a; border-color:#7f1d1d; color:#fecaca; }
-    .info{ background:#082f49; border-color:#0c4a6e; color:#bae6fd; }
+    .ok{ background:color-mix(in srgb, var(--good) 18%, var(--statusBg)); border-color:color-mix(in srgb, var(--good) 40%, var(--line)); color:color-mix(in srgb, var(--good) 85%, white); }
+    .err{ background:color-mix(in srgb, var(--bad) 15%, var(--statusBg)); border-color:color-mix(in srgb, var(--bad) 40%, var(--line)); color:color-mix(in srgb, var(--bad) 80%, white); }
+    .info{ background:color-mix(in srgb, var(--blue) 12%, var(--statusBg)); border-color:color-mix(in srgb, var(--blue) 40%, var(--line)); color:color-mix(in srgb, var(--blue) 80%, white); }
 
     .canvasWrap{
-      background:#050915;
+      background:linear-gradient(180deg,var(--canvas1),var(--canvas2));
       border:1px solid var(--line);
       border-radius:20px;
       padding:12px;
       overflow:auto;
+      transition:background .25s ease,border-color .25s ease;
     }
     canvas{
       display:block;
       width:100%;
       max-width:100%;
       background:
-        radial-gradient(circle at top, rgba(56,189,248,.06), transparent 28%),
-        linear-gradient(180deg,#08101f,#040814);
+        radial-gradient(circle at top, color-mix(in srgb, var(--blue) 10%, transparent), transparent 28%),
+        linear-gradient(180deg,var(--canvas1),var(--canvas2));
       border-radius:14px;
     }
     .legend{
@@ -150,37 +253,37 @@
       font-size:12px;
       padding:6px 10px;
       border-radius:999px;
-      background:#141d31;
+      background:var(--pillBg);
       border:1px solid var(--line);
-      color:#d9e4ff;
+      color:var(--text);
+      transition:background .25s ease,border-color .25s ease,color .25s ease;
     }
     .steps{
       max-height:320px;
       overflow:auto;
       border:1px solid var(--line);
       border-radius:14px;
-      background:#0b1326;
+      background:var(--panel3);
       padding:10px;
     }
     .stepItem{
       padding:10px;
       border-radius:12px;
       margin-bottom:8px;
-      border:1px solid #22304f;
-      background:#111a30;
+      border:1px solid var(--line);
+      background:var(--panel2);
     }
     .stepItem.active{
-      border-color:#7dd3fc;
-      background:#0d2138;
-      box-shadow:0 0 0 1px rgba(125,211,252,.25) inset;
+      border-color:color-mix(in srgb, var(--blue) 55%, var(--line));
+      box-shadow:0 0 0 1px color-mix(in srgb, var(--blue) 28%, transparent) inset;
     }
     .stepItem.done{
-      border-color:#14532d;
-      background:#0c1f16;
+      border-color:color-mix(in srgb, var(--good) 40%, var(--line));
+      background:color-mix(in srgb, var(--good) 10%, var(--panel2));
     }
     .stepEdge{
       font-weight:700;
-      color:#fff;
+      color:var(--text);
     }
     .stepMeta{
       font-size:12px;
@@ -189,16 +292,16 @@
     }
     .teach{
       border:1px solid var(--line);
-      background:#0b1326;
+      background:var(--panel3);
       border-radius:14px;
       padding:12px;
       margin-top:12px;
     }
-    .teach b{color:#fff}
+    .teach b{color:var(--text)}
     .resultBox{
       margin-top:12px;
       border:1px solid var(--line);
-      background:#0b1326;
+      background:var(--panel3);
       border-radius:14px;
       padding:12px;
     }
@@ -208,33 +311,62 @@
       justify-content:space-between;
       gap:12px;
       margin-bottom:8px;
+      flex-wrap:wrap;
     }
     .algoBadge{
       font-size:12px;
       padding:6px 10px;
       border-radius:999px;
-      background:rgba(245,158,11,.12);
-      border:1px solid rgba(245,158,11,.28);
-      color:#fde68a;
+      background:color-mix(in srgb, var(--brand) 12%, transparent);
+      border:1px solid color-mix(in srgb, var(--brand) 28%, var(--line));
+      color:color-mix(in srgb, var(--brand) 68%, var(--text));
       white-space:nowrap;
+    }
+    .topControls{
+      display:grid;
+      grid-template-columns:180px 180px;
+      gap:10px;
     }
     @media (max-width:1150px){
       .layout{grid-template-columns:1fr}
+      .topControls{grid-template-columns:1fr 1fr}
+    }
+    @media (max-width:700px){
+      .topControls{grid-template-columns:1fr}
     }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <h1>MST Demonstration V2 — Kruskal's and Prim's</h1>
-    <div class="sub">
-      This version is built for teaching. The user can create a graph, solve it manually, check the answer,
-      or run step-by-step visualization for <b>Kruskal's</b> and <b>Prim's</b>.
-      <br>
-      <b>Important:</b> Kruskal's and Prim's find a <b>Minimum Spanning Tree</b>, not a shortest path.
+    <div class="sectionTop">
+      <div>
+        <h1>MST Demonstration V3 — Kruskal's and Prim's</h1>
+        <div class="sub">
+          This version includes <b>theme toggle</b> and <b>design toggle</b> along with full MST teaching features.
+          <br>
+          <b>Important:</b> Kruskal's and Prim's find a <b>Minimum Spanning Tree</b>, not a shortest path.
+        </div>
+      </div>
+      <div class="topControls">
+        <div>
+          <label>Theme</label>
+          <select id="themeSelect">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+          </select>
+        </div>
+        <div>
+          <label>Design</label>
+          <select id="designSelect">
+            <option value="classic">Classic</option>
+            <option value="glass">Glass</option>
+            <option value="warm">Warm</option>
+          </select>
+        </div>
+      </div>
     </div>
 
     <div class="layout">
-      <!-- LEFT -->
       <div class="card">
         <h2>Graph Controls</h2>
 
@@ -299,7 +431,6 @@ A C 3"></textarea>
         </div>
       </div>
 
-      <!-- CENTER -->
       <div class="card">
         <div class="sectionTop">
           <h2>Graph View</h2>
@@ -328,7 +459,6 @@ A C 3"></textarea>
         </div>
       </div>
 
-      <!-- RIGHT -->
       <div class="card">
         <h2>Teaching Mode</h2>
 
@@ -385,6 +515,8 @@ A C 3"></textarea>
     const algoSelect = document.getElementById("algoSelect");
     const primStartEl = document.getElementById("primStart");
     const topAlgoBadge = document.getElementById("topAlgoBadge");
+    const themeSelect = document.getElementById("themeSelect");
+    const designSelect = document.getElementById("designSelect");
 
     let nodes = [];
     let edges = [];
@@ -398,6 +530,31 @@ A C 3"></textarea>
     let autoTimer = null;
 
     let pendingNode = null;
+
+    function setTheme(theme){
+      document.documentElement.setAttribute("data-theme", theme);
+      localStorage.setItem("mst_theme", theme);
+      themeSelect.value = theme;
+      draw();
+    }
+
+    function setDesign(design){
+      document.documentElement.setAttribute("data-design", design);
+      localStorage.setItem("mst_design", design);
+      designSelect.value = design;
+      draw();
+    }
+
+    function initAppearance(){
+      const savedTheme = localStorage.getItem("mst_theme") || "dark";
+      const savedDesign = localStorage.getItem("mst_design") || "classic";
+      setTheme(savedTheme);
+      setDesign(savedDesign);
+    }
+
+    function cssVar(name){
+      return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    }
 
     function setStatus(msg, type="") {
       statusEl.className = "status";
@@ -429,9 +586,9 @@ A C 3"></textarea>
     function uniqueEdges(list){
       const seen = new Set();
       const out = [];
-      for (const e of list){
+      for(const e of list){
         const k = edgeKey(e.u,e.v,e.w);
-        if (!seen.has(k)){
+        if(!seen.has(k)){
           seen.add(k);
           out.push(normalizeEdge(e.u,e.v,e.w));
         }
@@ -613,78 +770,6 @@ Edge list:
 ${edges.map(e => `${e.u} - ${e.v} : ${e.w}`).join("\n")}`;
     }
 
-    function draw(){
-      ctx.clearRect(0,0,canvas.width,canvas.height);
-
-      for(const e of edges){
-        const a = getNodeById(e.u);
-        const b = getNodeById(e.v);
-        if(!a || !b) continue;
-
-        const k = edgeKey(e.u,e.v,e.w);
-        const inMst = selectedMST.some(x => edgeKey(x.u,x.v,x.w) === k);
-
-        let stroke = "#d7e3ff";
-        let width = 2;
-        if(inMst){
-          stroke = "#22c55e";
-          width = 5;
-        }else if(currentEdgeKey === k){
-          stroke = "#38bdf8";
-          width = 4;
-        }else if(rejectedEdgeKey === k){
-          stroke = "#ef4444";
-          width = 4;
-        }
-
-        ctx.strokeStyle = stroke;
-        ctx.lineWidth = width;
-        ctx.beginPath();
-        ctx.moveTo(a.x,a.y);
-        ctx.lineTo(b.x,b.y);
-        ctx.stroke();
-
-        const mx = (a.x+b.x)/2;
-        const my = (a.y+b.y)/2;
-
-        ctx.fillStyle = "#0a1328";
-        ctx.strokeStyle = "#334155";
-        ctx.lineWidth = 1;
-        roundRect(ctx, mx-15, my-12, 30, 24, 8, true, true);
-
-        ctx.fillStyle = "#fff";
-        ctx.font = "bold 13px Arial";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(String(e.w), mx, my);
-      }
-
-      for(const n of nodes){
-        ctx.fillStyle = "#f59e0b";
-        ctx.beginPath();
-        ctx.arc(n.x,n.y,21,0,Math.PI*2);
-        ctx.fill();
-
-        ctx.strokeStyle = "#fff7ed";
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        ctx.fillStyle = "#111827";
-        ctx.font = "bold 16px Arial";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(n.id, n.x, n.y);
-      }
-
-      if(pendingNode){
-        ctx.strokeStyle = "#a78bfa";
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(pendingNode.x,pendingNode.y,28,0,Math.PI*2);
-        ctx.stroke();
-      }
-    }
-
     function roundRect(ctx, x, y, w, h, r, fill, stroke){
       if(w < 2*r) r = w/2;
       if(h < 2*r) r = h/2;
@@ -699,7 +784,89 @@ ${edges.map(e => `${e.u} - ${e.v} : ${e.w}`).join("\n")}`;
       if(stroke) ctx.stroke();
     }
 
-    // ---------- Kruskal ----------
+    function draw(){
+      const edgeBase = cssVar("--whiteEdge");
+      const good = cssVar("--good");
+      const blue = cssVar("--blue");
+      const bad = cssVar("--bad");
+      const nodeColor = cssVar("--node");
+      const nodeText = cssVar("--nodeText");
+      const line = cssVar("--line");
+      const panel3 = cssVar("--panel3");
+      const text = cssVar("--text");
+      const violet = cssVar("--violet");
+
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+
+      for(const e of edges){
+        const a = getNodeById(e.u);
+        const b = getNodeById(e.v);
+        if(!a || !b) continue;
+
+        const k = edgeKey(e.u,e.v,e.w);
+        const inMst = selectedMST.some(x => edgeKey(x.u,x.v,x.w) === k);
+
+        let stroke = edgeBase;
+        let width = 2;
+        if(inMst){
+          stroke = good;
+          width = 5;
+        }else if(currentEdgeKey === k){
+          stroke = blue;
+          width = 4;
+        }else if(rejectedEdgeKey === k){
+          stroke = bad;
+          width = 4;
+        }
+
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = width;
+        ctx.beginPath();
+        ctx.moveTo(a.x,a.y);
+        ctx.lineTo(b.x,b.y);
+        ctx.stroke();
+
+        const mx = (a.x+b.x)/2;
+        const my = (a.y+b.y)/2;
+
+        ctx.fillStyle = panel3;
+        ctx.strokeStyle = line;
+        ctx.lineWidth = 1;
+        roundRect(ctx, mx-15, my-12, 30, 24, 8, true, true);
+
+        ctx.fillStyle = text;
+        ctx.font = "bold 13px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(String(e.w), mx, my);
+      }
+
+      for(const n of nodes){
+        ctx.fillStyle = nodeColor;
+        ctx.beginPath();
+        ctx.arc(n.x,n.y,21,0,Math.PI*2);
+        ctx.fill();
+
+        ctx.strokeStyle = "#fff7ed";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.fillStyle = nodeText;
+        ctx.font = "bold 16px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(n.id, n.x, n.y);
+      }
+
+      if(pendingNode){
+        ctx.strokeStyle = violet;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(pendingNode.x,pendingNode.y,28,0,Math.PI*2);
+        ctx.stroke();
+      }
+    }
+
     function kruskalSteps(){
       const labels = getLabels();
       const parent = new Map();
@@ -758,7 +925,6 @@ ${edges.map(e => `${e.u} - ${e.v} : ${e.w}`).join("\n")}`;
       return {steps, mst, total, connected};
     }
 
-    // ---------- Prim ----------
     function primSteps(start){
       const labels = getLabels();
       const adj = new Map(labels.map(x => [x,[]]));
@@ -1041,7 +1207,6 @@ Current cost = ${selectedMST.reduce((s,e)=>s+e.w,0)}`;
           }
         }
 
-        // Check connectivity of user's chosen edges
         const adj = new Map(labels.map(x => [x,[]]));
         for(const e of userEdges){
           adj.get(e.u).push(e.v);
@@ -1087,7 +1252,6 @@ Minimum cost = ${correctCost}`;
       }
     }
 
-    // Canvas click-to-add
     function findNodeAt(x,y){
       for(const n of nodes){
         const dx = x - n.x;
@@ -1153,6 +1317,9 @@ Minimum cost = ${correctCost}`;
       }
     });
 
+    themeSelect.addEventListener("change", () => setTheme(themeSelect.value));
+    designSelect.addEventListener("change", () => setDesign(designSelect.value));
+
     document.getElementById("randomBtn").addEventListener("click", generateRandomGraph);
     document.getElementById("clearBtn").addEventListener("click", clearGraph);
     document.getElementById("loadBtn").addEventListener("click", loadUserGraph);
@@ -1164,6 +1331,7 @@ Minimum cost = ${correctCost}`;
     document.getElementById("autoBtn").addEventListener("click", autoPlay);
     document.getElementById("resetStepsBtn").addEventListener("click", resetStepsView);
 
+    initAppearance();
     clearGraph();
   </script>
 </body>
