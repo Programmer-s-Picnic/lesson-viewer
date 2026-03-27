@@ -1,1463 +1,1986 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Shortest Path Visualizer</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Programmer's Picnic — Python Editor</title>
+
+    <script
+      async
+      src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8321261883090494"
+      crossorigin="anonymous"
+    ></script>
+
+    <meta
+      name="description"
+      content="Programmer's Picnic Python editor with a VS Code inspired interface, Python career opportunities, voice commands, and real-world software built using Python."
+    />
+
     <style>
       :root {
-        --bg: #fffaf0;
-        --bg-grad-1: #fff7e6;
-        --bg-grad-2: #fffaf0;
-        --bg-grad-3: #fef3c7;
-        --panel: rgba(255, 255, 255, 0.88);
-        --panel-solid: #ffffff;
-        --border: #e8dcc0;
-        --text: #2f2418;
-        --muted: #6b5a46;
-        --accent: #d97706;
-        --accent-2: #f59e0b;
-        --wall: #2f2418;
-        --start: #16a34a;
-        --end: #dc2626;
-        --visited: #fde68a;
-        --path: #f59e0b;
-        --grid: #f3e8d2;
-        --empty: #fffdf8;
-        --explorer: #2563eb;
-        --explorer-ring: rgba(37, 99, 235, 0.18);
-        --shadow: 0 10px 30px rgba(120, 80, 20, 0.12);
-        --radius-xl: 24px;
-        --radius-lg: 18px;
-        --radius-md: 14px;
-        --radius-sm: 12px;
-        --backdrop: blur(10px);
-      }
+        --bg: #1e1e1e;
+        --panel: #252526;
+        --panel2: #2d2d2d;
+        --top: #323233;
+        --border: #3a3a3a;
+        --muted: #9aa0a6;
+        --text: #e6e6e6;
+        --accent: #3794ff;
+        --good: #2ea043;
+        --bad: #f85149;
+        --warn: #d29922;
+        --surface: rgba(255, 255, 255, 0.04);
+        --surface2: rgba(255, 255, 255, 0.06);
 
-      body.dark-theme {
-        --bg: #0f172a;
-        --bg-grad-1: #111827;
-        --bg-grad-2: #0f172a;
-        --bg-grad-3: #1e293b;
-        --panel: rgba(17, 24, 39, 0.88);
-        --panel-solid: #111827;
-        --border: #334155;
-        --text: #f8fafc;
-        --muted: #cbd5e1;
-        --accent: #f59e0b;
-        --accent-2: #fbbf24;
-        --wall: #94a3b8;
-        --start: #22c55e;
-        --end: #ef4444;
-        --visited: #334155;
-        --path: #f59e0b;
-        --grid: #243041;
-        --empty: #0b1220;
-        --explorer: #60a5fa;
-        --explorer-ring: rgba(96, 165, 250, 0.2);
-        --shadow: 0 14px 40px rgba(0, 0, 0, 0.35);
-      }
-
-      body.sharp-design {
-        --radius-xl: 8px;
-        --radius-lg: 6px;
-        --radius-md: 4px;
-        --radius-sm: 3px;
-        --backdrop: blur(0px);
+        --r: 12px;
+        --mono:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        --sans: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       }
 
       * {
         box-sizing: border-box;
       }
-
       html,
       body {
-        margin: 0;
-        padding: 0;
-        font-family: Arial, Helvetica, sans-serif;
-        background: radial-gradient(
-          circle at top left,
-          var(--bg-grad-1) 0%,
-          var(--bg-grad-2) 45%,
-          var(--bg-grad-3) 100%
-        );
-        color: var(--text);
         min-height: 100%;
       }
 
       body {
-        transition:
-          background 0.25s ease,
-          color 0.25s ease;
+        margin: 0;
+        font-family: var(--sans);
+        background: var(--bg);
+        color: var(--text);
+        overflow: auto;
       }
 
-      .app {
-        max-width: 1440px;
+      body[data-theme="light"] {
+        --bg: #fff8ef;
+        --panel: #fffdf8;
+        --panel2: #fff6e8;
+        --top: #ffe8c7;
+        --border: #e9d3b2;
+        --muted: #7a6c5b;
+        --text: #2f2416;
+        --accent: #d97706;
+        --good: #15803d;
+        --bad: #dc2626;
+        --warn: #b45309;
+        --surface: rgba(255, 255, 255, 0.82);
+        --surface2: rgba(255, 247, 234, 0.92);
+      }
+
+      body[data-theme="light"] .vs-activity {
+        background: #fff1db;
+      }
+      body[data-theme="light"] .vs-statusbar {
+        background: #fff1db;
+        color: var(--text);
+      }
+      body[data-theme="light"] .vs-topbar .title,
+      body[data-theme="light"] .vs-blockhead b,
+      body[data-theme="light"] .vs-badge {
+        color: var(--text);
+      }
+      body[data-theme="light"] .vs-btn,
+      body[data-theme="light"] .vs-select,
+      body[data-theme="light"] .vs-input,
+      body[data-theme="light"] #ppStdin,
+      body[data-theme="light"] #ppOut,
+      body[data-theme="light"] #ppErr,
+      body[data-theme="light"] #ppShareInput,
+      body[data-theme="light"] #ppStuName,
+      body[data-theme="light"] #ppStuRoll,
+      body[data-theme="light"] #ppPkgs,
+      body[data-theme="light"] #ppAttemptLimit,
+      body[data-theme="light"] #ppVoiceLog {
+        background: rgba(255, 255, 255, 0.92);
+        color: var(--text);
+        border-color: var(--border);
+      }
+      body[data-theme="light"] #ppCode {
+        color: #241a0f;
+      }
+      body[data-theme="light"] #ppGutter {
+        color: #9b8570;
+        background: rgba(0, 0, 0, 0.03);
+      }
+      body[data-theme="light"] .pp-plot-img {
+        background: #fffaf2;
+      }
+
+      .pp-page {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .pp-band {
+        padding: 18px 18px 14px;
+        border-bottom: 1px solid var(--border);
+        background:
+          radial-gradient(
+            circle at top right,
+            rgba(55, 148, 255, 0.1),
+            transparent 35%
+          ),
+          linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0.03),
+            rgba(255, 255, 255, 0.01)
+          );
+      }
+
+      .pp-band.bottom {
+        border-top: 1px solid var(--border);
+        border-bottom: none;
+      }
+
+      .pp-band.hidden {
+        display: none;
+      }
+
+      .pp-band-inner {
+        max-width: 1600px;
         margin: 0 auto;
-        padding: 18px;
-        transition:
-          max-width 0.2s ease,
-          padding 0.2s ease;
       }
 
-      body.fullscreen-mode .app {
-        max-width: 100%;
+      .pp-band-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 8px;
+      }
+
+      .pp-band-title {
+        margin: 0 0 6px;
+        font-size: 24px;
+        line-height: 1.15;
+        letter-spacing: 0.01em;
+      }
+
+      .pp-band-sub {
+        margin: 0 0 14px;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.55;
+      }
+
+      .pp-band-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .pp-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(220px, 1fr));
+        gap: 12px;
+      }
+
+      .pp-card {
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: var(--surface);
+        border-radius: 16px;
+        padding: 14px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.1);
+      }
+
+      .pp-card h3 {
+        margin: 0 0 8px;
+        font-size: 15px;
+        line-height: 1.3;
+      }
+
+      .pp-card p {
+        margin: 0 0 10px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .pp-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .pp-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.05);
+        white-space: nowrap;
+      }
+
+      .pp-editor-host {
+        flex: 1;
+        min-height: 820px;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .pp-section-toggles {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .pp-toggle-state {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .vs-topbar {
+        height: 38px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 12px;
+        background: var(--top);
+        border-bottom: 1px solid var(--border);
+        user-select: none;
+      }
+      .vs-topbar .title {
+        font-size: 13px;
+        color: #d7d7d7;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .vs-topbar .pill {
+        margin-left: auto;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        font-size: 12px;
+        color: var(--muted);
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .vs-shell {
+        height: calc(100vh - 38px);
+        min-height: 780px;
+        display: flex;
+      }
+
+      .vs-activity {
+        width: 50px;
+        background: #1b1b1b;
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        padding: 10px 6px;
+        gap: 8px;
+      }
+      .vs-actbtn {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        border: 1px solid transparent;
+        background: transparent;
+        color: #cfcfcf;
+        display: grid;
+        place-items: center;
+        cursor: pointer;
+        font-size: 18px;
+      }
+      .vs-actbtn:hover {
+        background: rgba(255, 255, 255, 0.04);
+        border-color: rgba(255, 255, 255, 0.08);
+      }
+      .vs-actbtn.active {
+        background: rgba(55, 148, 255, 0.14);
+        border-color: rgba(55, 148, 255, 0.35);
+        color: #ffffff;
+      }
+
+      .vs-sidebar {
+        width: 280px;
+        min-width: 240px;
+        max-width: 360px;
+        background: var(--panel);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .vs-sidehead {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .vs-sidehead .label {
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        color: #cfcfcf;
+        opacity: 0.9;
+      }
+      .vs-sidebody {
+        overflow: auto;
+        padding: 10px 10px 18px;
+      }
+      .vs-block {
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        background: rgba(0, 0, 0, 0.1);
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 10px;
+      }
+      .vs-blockhead {
+        padding: 10px 10px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        background: rgba(255, 255, 255, 0.02);
+      }
+      .vs-blockhead b {
+        font-size: 12px;
+        color: #d7d7d7;
+        letter-spacing: 0.02em;
+      }
+      .vs-blockbody {
         padding: 10px;
       }
 
-      .topbar {
-        background: var(--panel);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-xl);
-        box-shadow: var(--shadow);
-        padding: 18px;
-        margin-bottom: 18px;
-        backdrop-filter: var(--backdrop);
-      }
-
-      .title {
+      .vs-main {
+        flex: 1;
         display: flex;
-        gap: 14px;
-        align-items: center;
+        flex-direction: column;
+        min-width: 0;
+      }
+
+      .vs-editorbar {
+        background: var(--panel2);
+        border-bottom: 1px solid var(--border);
+        padding: 10px 10px;
+        display: flex;
+        gap: 8px;
         flex-wrap: wrap;
-        margin-bottom: 14px;
+        align-items: center;
       }
-
-      .logo {
-        width: 52px;
-        height: 52px;
-        border-radius: calc(var(--radius-lg) - 2px);
-        background: linear-gradient(135deg, var(--accent), var(--accent-2));
-        display: grid;
-        place-items: center;
-        color: white;
-        font-weight: 700;
-        font-size: 20px;
-        box-shadow: var(--shadow);
-      }
-
-      h1 {
-        margin: 0;
-        font-size: 28px;
-      }
-
-      .subtitle {
-        color: var(--muted);
-        margin-top: 4px;
-        font-size: 14px;
-      }
-
-      .quick-toggles,
-      .controls {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-        gap: 12px;
-        margin-bottom: 12px;
-      }
-
-      .controls {
-        margin-bottom: 0;
-      }
-
-      .card {
-        background: var(--panel-solid);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        padding: 14px;
-      }
-
-      .card h3 {
-        margin: 0 0 10px 0;
-        font-size: 15px;
-      }
-
-      label {
-        display: block;
-        font-size: 13px;
-        color: var(--muted);
-        margin-bottom: 6px;
-        font-weight: 700;
-      }
-
-      input[type="number"],
-      select,
-      input[type="range"],
-      button {
-        width: 100%;
-      }
-
-      input[type="number"],
-      select,
-      button {
-        border: 1px solid var(--border);
-        border-radius: var(--radius-sm);
-        padding: 11px 12px;
-        font-size: 14px;
-        background: var(--panel-solid);
+      .vs-btn {
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.06);
         color: var(--text);
-      }
-
-      button {
+        padding: 8px 10px;
+        border-radius: 10px;
         cursor: pointer;
         font-weight: 700;
-        transition:
-          transform 0.12s ease,
-          box-shadow 0.12s ease,
-          background 0.12s ease;
-      }
-
-      button:hover:not(:disabled) {
-        transform: translateY(-1px);
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-      }
-
-      button.primary {
-        background: linear-gradient(135deg, var(--accent), var(--accent-2));
-        color: white;
-        border: none;
-      }
-
-      button.secondary {
-        background: var(--panel-solid);
-      }
-
-      button.toggle-on,
-      .mode-btn.active {
-        background: linear-gradient(
-          135deg,
-          rgba(245, 158, 11, 0.18),
-          rgba(251, 191, 36, 0.18)
-        );
-        border-color: var(--accent);
-      }
-
-      button:disabled,
-      input:disabled,
-      select:disabled {
-        opacity: 0.55;
-        cursor: not-allowed;
-      }
-
-      .row2 {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
+        font-size: 13px;
+        display: inline-flex;
+        align-items: center;
         gap: 8px;
       }
-
-      .row3 {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 8px;
+      .vs-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+      .vs-btn.primary {
+        background: rgba(55, 148, 255, 0.18);
+        border-color: rgba(55, 148, 255, 0.35);
+      }
+      .vs-btn.primary:hover {
+        background: rgba(55, 148, 255, 0.26);
+      }
+      .vs-btn.danger {
+        background: rgba(248, 81, 73, 0.14);
+        border-color: rgba(248, 81, 73, 0.35);
+      }
+      .vs-btn.ghost {
+        background: transparent;
+        border-color: rgba(255, 255, 255, 0.08);
       }
 
-      .mode-buttons,
-      .toggle-buttons {
-        display: grid;
-        gap: 8px;
+      .vs-select,
+      .vs-input {
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.15);
+        color: var(--text);
+        padding: 8px 10px;
+        border-radius: 10px;
+        font-size: 13px;
+        outline: none;
       }
-
-      .toggle-buttons {
-        grid-template-columns: repeat(2, 1fr);
+      .vs-select {
+        cursor: pointer;
       }
-
-      .mode-buttons.three {
-        grid-template-columns: repeat(3, 1fr);
+      .vs-spacer {
+        flex: 1;
+        min-width: 12px;
       }
-
-      .stats {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      .vs-mini {
+        font-size: 12px;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
         gap: 10px;
-        margin-top: 14px;
+        flex-wrap: wrap;
+      }
+      .vs-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 999px;
+        background: rgba(0, 0, 0, 0.12);
+      }
+      .vs-toggle input {
+        accent-color: var(--accent);
       }
 
-      .stat {
-        background: var(--panel-solid);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-md);
+      #ppTabs {
+        display: flex;
+        gap: 8px;
+        padding: 10px 10px;
+        border-bottom: 1px solid var(--border);
+        background: rgba(0, 0, 0, 0.08);
+        overflow: auto;
+      }
+      .pp-tab {
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text);
+        padding: 6px 10px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 13px;
+        white-space: nowrap;
+      }
+      .pp-tab:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+      .pp-tab.pp-active {
+        background: rgba(55, 148, 255, 0.18);
+        border-color: rgba(55, 148, 255, 0.35);
+      }
+
+      .vs-editorwrap {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .vs-editor {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        background: var(--bg);
+      }
+      #ppGutter {
+        width: 56px;
+        padding: 14px 10px;
+        border-right: 1px solid var(--border);
+        color: #7d7d7d;
+        font-family: var(--mono);
+        font-size: 13px;
+        line-height: 1.45;
+        user-select: none;
+        overflow: hidden;
+        white-space: pre;
+      }
+      #ppCode {
+        flex: 1;
+        min-width: 0;
+        border: none;
+        outline: none;
+        resize: none;
+        padding: 14px 14px;
+        color: var(--text);
+        background: transparent;
+        font-family: var(--mono);
+        font-size: 13.5px;
+        line-height: 1.45;
+      }
+      #ppCode::-webkit-scrollbar,
+      .vs-sidebody::-webkit-scrollbar,
+      .vs-panelbody::-webkit-scrollbar,
+      #ppVoiceLog::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+      }
+      #ppCode::-webkit-scrollbar-thumb,
+      .vs-sidebody::-webkit-scrollbar-thumb,
+      .vs-panelbody::-webkit-scrollbar-thumb,
+      #ppVoiceLog::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.12);
+        border-radius: 999px;
+      }
+
+      .vs-statusbar {
+        height: 34px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 10px;
+        border-top: 1px solid var(--border);
+        background: #1b1b1b;
+        color: #cfcfcf;
+        font-size: 12px;
+      }
+      .pp-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: #7d7d7d;
+        display: inline-block;
+      }
+      .pp-dot.ok {
+        background: var(--good);
+      }
+      .pp-dot.bad {
+        background: var(--bad);
+      }
+      .pp-dot.warn {
+        background: var(--warn);
+      }
+
+      .vs-progress {
+        width: 180px;
+        height: 6px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+        overflow: hidden;
+      }
+      #ppBar {
+        height: 100%;
+        width: 0%;
+        background: var(--accent);
+      }
+
+      .vs-panel {
+        height: 320px;
+        min-height: 220px;
+        max-height: 55vh;
+        border-top: 1px solid var(--border);
+        background: var(--panel);
+        display: flex;
+        flex-direction: column;
+      }
+      .vs-paneltabs {
+        display: flex;
+        gap: 8px;
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.02);
+        flex-wrap: wrap;
+      }
+      .vs-ptab {
+        padding: 7px 10px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text);
+        cursor: pointer;
+        font-weight: 800;
+        font-size: 12.5px;
+      }
+      .vs-ptab.active {
+        background: rgba(55, 148, 255, 0.18);
+        border-color: rgba(55, 148, 255, 0.35);
+      }
+      .vs-panelbody {
+        flex: 1;
+        min-height: 0;
+        overflow: auto;
+        padding: 10px;
+      }
+      .vs-pane {
+        display: none;
+      }
+      .vs-pane.active {
+        display: block;
+      }
+
+      #ppStdin {
+        width: 100%;
+        min-height: 140px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.18);
+        color: var(--text);
+        border-radius: 12px;
+        padding: 12px;
+        font-family: var(--mono);
+        font-size: 13px;
+        outline: none;
+        resize: vertical;
+      }
+
+      #ppOut,
+      #ppErr {
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.18);
+        border-radius: 12px;
+        padding: 12px;
+        font-family: var(--mono);
+        font-size: 13px;
+        min-height: 120px;
+        overflow: auto;
+      }
+      #ppErr {
+        margin-top: 10px;
+      }
+
+      .vs-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .vs-row > * {
+        flex: 0 0 auto;
+      }
+
+      #ppPExamples {
+        white-space: pre-wrap;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.14);
+        padding: 10px;
+        border-radius: 12px;
+        font-family: var(--mono);
+        color: #d7d7d7;
+      }
+      #ppJudgeTableWrap table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        font-family: var(--sans);
+        font-size: 13px;
+      }
+      #ppJudgeTableWrap th,
+      #ppJudgeTableWrap td {
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 8px;
+        vertical-align: top;
+      }
+
+      #ppToast {
+        position: fixed;
+        left: 50%;
+        bottom: 18px;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.78);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        padding: 10px 12px;
+        border-radius: 999px;
+        color: #fff;
+        font-size: 13px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.18s ease;
+        z-index: 50;
+      }
+      #ppToast.show {
+        opacity: 1;
+      }
+
+      #ppShareModal {
+        position: fixed;
+        inset: 0;
+        z-index: 60;
+      }
+      .pp-modal-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+      }
+      .pp-modal-card {
+        position: relative;
+        width: min(620px, calc(100vw - 24px));
+        margin: 7vh auto 0;
+        background: var(--panel);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        overflow: hidden;
+      }
+      .pp-modal-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 12px;
+        background: rgba(255, 255, 255, 0.03);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .pp-modal-body {
         padding: 12px;
       }
-
-      .stat .label {
-        color: var(--muted);
-        font-size: 12px;
-        margin-bottom: 6px;
+      #ppShareInput {
+        width: 100%;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.18);
+        color: var(--text);
+        border-radius: 12px;
+        padding: 10px;
+        outline: none;
       }
 
-      .stat .value {
-        font-size: 18px;
+      #ppStuName,
+      #ppStuRoll,
+      #ppPkgs,
+      #ppAttemptLimit {
+        width: 100%;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.18);
+        color: var(--text);
+        border-radius: 12px;
+        padding: 10px;
+        outline: none;
+      }
+
+      body[data-theme="light"] #ppProjectTitle,
+      body[data-theme="light"] #ppProjectDescription,
+      body[data-theme="light"] #ppProjectTags,
+      body[data-theme="light"] #ppProjectAuthor {
+        background: rgba(255, 255, 255, 0.92);
+        color: var(--text);
+        border-color: var(--border);
+      }
+
+      .pp-projectbar {
+        padding: 10px 12px 12px;
+        border-bottom: 1px solid var(--border);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.03),
+          rgba(255, 255, 255, 0.01)
+        );
+      }
+      .pp-project-grid {
+        display: grid;
+        grid-template-columns: minmax(220px, 1.25fr) minmax(
+            180px,
+            0.9fr
+          ) minmax(180px, 1fr);
+        gap: 10px;
+        align-items: start;
+      }
+      .pp-project-field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .pp-project-field.pp-project-span-2 {
+        grid-column: 1 / span 2;
+      }
+      .pp-project-label {
+        font-size: 12px;
+        color: var(--muted);
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+      }
+      .pp-project-input,
+      .pp-project-textarea {
+        width: 100%;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.18);
+        color: var(--text);
+        border-radius: 12px;
+        padding: 10px 12px;
+        outline: none;
+        font: inherit;
+      }
+      .pp-project-textarea {
+        min-height: 74px;
+        resize: vertical;
+      }
+      .pp-project-summary {
+        margin-top: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        background: rgba(255, 255, 255, 0.04);
+        border-radius: 14px;
+        padding: 10px 12px;
+      }
+      .pp-project-summary-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 6px;
+        flex-wrap: wrap;
+      }
+      .pp-project-summary-title {
+        font-size: 16px;
         font-weight: 700;
+      }
+      .pp-project-summary-meta {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 6px;
+      }
+      .pp-project-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.05);
+        font-size: 12px;
+      }
+      .pp-project-highlight {
+        box-shadow:
+          0 0 0 2px rgba(245, 158, 11, 0.28),
+          0 0 20px rgba(245, 158, 11, 0.18);
+        border-color: rgba(245, 158, 11, 0.9) !important;
+      }
+
+      #ppInstalledPkgs {
+        margin-top: 8px;
+        color: #d7d7d7;
+        font-size: 12px;
+        line-height: 1.6;
         word-break: break-word;
       }
 
-      .board-wrap {
-        background: var(--panel);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-xl);
-        box-shadow: var(--shadow);
-        padding: 18px;
-        overflow: auto;
-        backdrop-filter: var(--backdrop);
+      .vs-small {
+        color: var(--muted);
+        font-size: 12px;
       }
-
-      body.fullscreen-mode .board-wrap {
-        min-height: calc(100vh - 220px);
-      }
-
-      .legend {
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-        margin-bottom: 14px;
-      }
-
-      .legend-item {
-        display: flex;
+      .vs-badge {
+        display: inline-flex;
         align-items: center;
         gap: 8px;
-        background: var(--panel-solid);
-        border: 1px solid var(--border);
+        padding: 6px 10px;
         border-radius: 999px;
-        padding: 8px 12px;
-        font-size: 13px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.12);
+        font-size: 12px;
+        color: #d7d7d7;
+        white-space: nowrap;
       }
 
-      .dot {
-        width: 16px;
-        height: 16px;
-        border-radius: 5px;
-        border: 1px solid rgba(0, 0, 0, 0.08);
-        position: relative;
+      .pp-plots-wrap {
+        margin-top: 10px;
+        display: grid;
+        gap: 10px;
+      }
+      .pp-plot-card {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        overflow: hidden;
+        background: var(--surface);
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+      }
+      .pp-plot-head {
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface2);
+      }
+      .pp-plot-img {
+        width: 100%;
+        display: block;
+        cursor: zoom-in;
+        background: #fff;
+        user-select: none;
+        -webkit-user-drag: none;
+      }
+      .pp-plot-img:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: -2px;
+      }
+      .pp-plot-fullscreen {
+        position: fixed;
+        inset: 0;
+        width: 100vw !important;
+        height: 100vh !important;
+        object-fit: contain;
+        background: #000;
+        z-index: 999999;
+        cursor: zoom-out;
+        padding: 24px;
+        margin: 0 !important;
+        border-radius: 0 !important;
+      }
+      body.pp-plot-has-fullscreen {
         overflow: hidden;
       }
 
-      .dot.explorer {
-        border-radius: 999px;
-        box-shadow: 0 0 0 3px var(--explorer-ring);
-        background: var(--explorer);
+      .pp-resizer-vertical {
+        width: 6px;
+        cursor: col-resize;
+        background: linear-gradient(
+          180deg,
+          transparent,
+          rgba(127, 127, 127, 0.25),
+          transparent
+        );
+        flex: 0 0 6px;
       }
-
-      .grid-host {
-        width: 100%;
+      .pp-resizer-vertical:hover,
+      body.pp-resizing-col .pp-resizer-vertical {
+        background: linear-gradient(
+          180deg,
+          transparent,
+          rgba(55, 148, 255, 0.6),
+          transparent
+        );
+      }
+      .pp-resizer-horizontal {
+        height: 6px;
+        cursor: row-resize;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(127, 127, 127, 0.25),
+          transparent
+        );
+        flex: 0 0 6px;
+      }
+      .pp-resizer-horizontal:hover,
+      body.pp-resizing-row .pp-resizer-horizontal {
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(55, 148, 255, 0.6),
+          transparent
+        );
+      }
+      #ppOut,
+      #ppErr,
+      #ppPExamples,
+      #ppJudgeTableWrap {
+        resize: vertical;
+      }
+      #ppOut,
+      #ppErr,
+      #ppPExamples,
+      #ppJudgeTableWrap,
+      #ppStdin {
         overflow: auto;
-        padding-bottom: 6px;
+      }
+      #ppJudgeTableWrap {
+        min-height: 120px;
       }
 
-      .grid {
-        display: grid;
-        gap: 1px;
-        background: var(--grid);
-        border: 1px solid var(--grid);
-        width: max-content;
-        user-select: none;
-        touch-action: none;
-        margin-inline: auto;
+      #ppVoiceLog {
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.18);
+        border-radius: 12px;
+        padding: 10px;
+        min-height: 140px;
+        max-height: 320px;
+        overflow: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
       }
 
-      .cell {
-        width: 24px;
-        height: 24px;
-        background: var(--empty);
-        transition:
-          background 0.15s ease,
-          transform 0.15s ease,
-          box-shadow 0.15s ease;
-        position: relative;
-      }
-
-      .cell.start {
-        background: var(--start) !important;
-      }
-      .cell.end {
-        background: var(--end) !important;
-      }
-      .cell.wall {
-        background: var(--wall) !important;
-      }
-      .cell.visited {
-        background: var(--visited);
-        animation: popIn 0.18s ease;
-      }
-      .cell.path {
-        background: var(--path) !important;
-        animation: popIn 0.18s ease;
-      }
-      .cell.route-colored {
-        animation: popIn 0.18s ease;
-      }
-      .cell.explorer::after {
-        content: "";
-        position: absolute;
-        inset: 4px;
-        border-radius: 999px;
-        background: var(--explorer);
-        box-shadow: 0 0 0 3px var(--explorer-ring);
-        animation: explorerPulse 0.7s ease-in-out infinite;
-      }
-
-      @keyframes popIn {
-        from {
-          transform: scale(0.65);
-          opacity: 0.7;
-        }
-        to {
-          transform: scale(1);
-          opacity: 1;
-        }
-      }
-
-      @keyframes explorerPulse {
-        0%,
-        100% {
-          transform: scale(0.96);
-        }
-        50% {
-          transform: scale(1.06);
-        }
-      }
-
-      .footer-note {
-        margin-top: 12px;
-        color: var(--muted);
+      .pp-voice-item {
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.04);
+        border-radius: 10px;
+        padding: 8px 10px;
         font-size: 13px;
-        text-align: center;
+        line-height: 1.45;
       }
 
-      @media (max-width: 900px) {
-        .cell {
-          width: 20px;
-          height: 20px;
+      .pp-voice-meta {
+        color: var(--muted);
+        font-size: 11px;
+        margin-bottom: 4px;
+      }
+
+      .pp-voice-ok {
+        color: var(--good);
+        font-weight: 700;
+      }
+
+      .pp-voice-bad {
+        color: var(--bad);
+        font-weight: 700;
+      }
+
+      @media (max-width: 1280px) {
+        .pp-grid {
+          grid-template-columns: repeat(2, minmax(220px, 1fr));
         }
-        h1 {
-          font-size: 22px;
+      }
+      @media (max-width: 980px) {
+        .pp-resizer-vertical {
+          display: none;
         }
-        .row3 {
+        .vs-sidebar {
+          display: none;
+        }
+        .vs-shell {
+          min-height: 760px;
+        }
+      }
+      @media (max-width: 720px) {
+        .pp-band {
+          padding: 16px 12px 12px;
+        }
+        .pp-grid {
           grid-template-columns: 1fr;
+        }
+        .pp-band-title {
+          font-size: 20px;
+        }
+        .vs-panel {
+          height: 360px;
+        }
+        .vs-progress {
+          display: none;
+        }
+      }
+
+      @media (max-width: 980px) {
+        .pp-project-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+        .pp-project-field.pp-project-span-2 {
+          grid-column: 1 / -1;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .pp-project-grid {
+          grid-template-columns: 1fr;
+        }
+        .pp-project-field.pp-project-span-2 {
+          grid-column: auto;
         }
       }
     </style>
   </head>
-  <body class="light-theme soft-design">
-    <div class="app">
-      <div class="topbar">
-        <div class="title">
-          <div class="logo">SP</div>
-          <div>
-            <h1>Shortest Path Visualizer</h1>
-            <div class="subtitle">
-              Visualize BFS, Dijkstra, A*, and Stack Explorer on a grid
+
+  <body>
+    <div class="pp-page">
+      <section class="pp-band top" id="ppTopBand">
+        <div class="pp-band-inner">
+          <div class="pp-band-head">
+            <div>
+              <h1 class="pp-band-title">Python Job Opportunities</h1>
+              <p class="pp-band-sub">
+                Python skills open doors in software engineering, automation,
+                data science, web development, cloud tooling, DevOps, AI,
+                education technology, and product engineering.
+              </p>
             </div>
+            <div class="pp-band-actions">
+              <button class="vs-btn ghost" id="ppHideTopBtn" type="button">
+                Hide top section
+              </button>
+            </div>
+          </div>
+
+          <div class="pp-grid">
+            <article class="pp-card">
+              <h3>Python Backend Developer</h3>
+              <p>
+                Build REST APIs, business logic, admin panels, and server-side
+                workflows for websites and apps.
+              </p>
+              <div class="pp-tags">
+                <span class="pp-tag">Django</span>
+                <span class="pp-tag">Flask</span>
+                <span class="pp-tag">FastAPI</span>
+                <span class="pp-tag">PostgreSQL</span>
+              </div>
+            </article>
+
+            <article class="pp-card">
+              <h3>Data Analyst / Data Scientist</h3>
+              <p>
+                Analyze data, clean datasets, build dashboards, and create
+                statistical or predictive models.
+              </p>
+              <div class="pp-tags">
+                <span class="pp-tag">pandas</span>
+                <span class="pp-tag">NumPy</span>
+                <span class="pp-tag">Matplotlib</span>
+                <span class="pp-tag">scikit-learn</span>
+              </div>
+            </article>
+
+            <article class="pp-card">
+              <h3>Automation Engineer</h3>
+              <p>
+                Automate reports, file systems, browser actions, data
+                processing, email flows, and testing tasks.
+              </p>
+              <div class="pp-tags">
+                <span class="pp-tag">Selenium</span>
+                <span class="pp-tag">openpyxl</span>
+                <span class="pp-tag">requests</span>
+                <span class="pp-tag">BeautifulSoup</span>
+              </div>
+            </article>
+
+            <article class="pp-card">
+              <h3>Machine Learning Engineer</h3>
+              <p>
+                Train models, deploy intelligent systems, and work on
+                recommendation engines, NLP, and computer vision.
+              </p>
+              <div class="pp-tags">
+                <span class="pp-tag">TensorFlow</span>
+                <span class="pp-tag">PyTorch</span>
+                <span class="pp-tag">transformers</span>
+                <span class="pp-tag">opencv-python</span>
+              </div>
+            </article>
+
+            <article class="pp-card">
+              <h3>DevOps / Platform Engineer</h3>
+              <p>
+                Use Python for deployment tooling, CI/CD scripts, cloud
+                automation, monitoring, and infrastructure tasks.
+              </p>
+              <div class="pp-tags">
+                <span class="pp-tag">boto3</span>
+                <span class="pp-tag">Fabric</span>
+                <span class="pp-tag">Ansible</span>
+                <span class="pp-tag">PyYAML</span>
+              </div>
+            </article>
+
+            <article class="pp-card">
+              <h3>QA / Test Engineer</h3>
+              <p>
+                Write automated test suites, API checks, UI regression flows,
+                and performance validation scripts.
+              </p>
+              <div class="pp-tags">
+                <span class="pp-tag">pytest</span>
+                <span class="pp-tag">unittest</span>
+                <span class="pp-tag">Playwright</span>
+                <span class="pp-tag">Selenium</span>
+              </div>
+            </article>
+
+            <article class="pp-card">
+              <h3>Cybersecurity / Scripting Roles</h3>
+              <p>
+                Create analysis tools, automate audits, parse logs, and support
+                defensive security workflows.
+              </p>
+              <div class="pp-tags">
+                <span class="pp-tag">scapy</span>
+                <span class="pp-tag">socket</span>
+                <span class="pp-tag">hashlib</span>
+                <span class="pp-tag">nmap integration</span>
+              </div>
+            </article>
+
+            <article class="pp-card">
+              <h3>Python Trainer / Content Creator</h3>
+              <p>
+                Teach programming, build course platforms, create coding tools,
+                and publish interactive learning material.
+              </p>
+              <div class="pp-tags">
+                <span class="pp-tag">Jupyter</span>
+                <span class="pp-tag">Pyodide</span>
+                <span class="pp-tag">Markdown</span>
+                <span class="pp-tag">edu tools</span>
+              </div>
+            </article>
           </div>
         </div>
+      </section>
 
-        <div class="quick-toggles">
-          <div class="card">
-            <h3>Theme Toggle</h3>
-            <div class="toggle-buttons">
-              <button id="lightThemeBtn" class="toggle-on">Light</button>
-              <button id="darkThemeBtn">Dark</button>
+      <section class="pp-editor-host">
+        <div class="vs-topbar">
+          <div class="title">Programmer's Picnic — Python Editor</div>
+          <div class="pill">
+            <span class="vs-badge">Mode: <b id="ppModeText">—</b></span>
+
+            <div class="pp-section-toggles">
+              <button class="vs-btn ghost" id="ppToggleTopBtn" type="button">
+                Hide Top
+              </button>
+              <button class="vs-btn ghost" id="ppToggleBottomBtn" type="button">
+                Hide Bottom
+              </button>
+              <span class="pp-toggle-state" id="ppSectionsState"
+                >Top: shown • Bottom: shown</span
+              >
             </div>
-          </div>
 
-          <div class="card">
-            <h3>Design Toggle</h3>
-            <div class="toggle-buttons">
-              <button id="softDesignBtn" class="toggle-on">Soft</button>
-              <button id="sharpDesignBtn">Sharp</button>
-            </div>
-          </div>
-
-          <div class="card">
-            <h3>Full Screen</h3>
-            <button id="fullScreenBtn" class="secondary">
-              Enter Full Screen
+            <button
+              class="vs-btn ghost"
+              id="ppThemeToggle"
+              title="Toggle light/dark mode"
+            >
+              🌙 Dark
+            </button>
+            <button
+              class="vs-btn ghost"
+              id="ppTeacherBtn"
+              style="display: none"
+              title="Teacher Panel (tmode=1)"
+            >
+              🎓 Teacher
             </button>
           </div>
         </div>
 
-        <div class="controls">
-          <div class="card">
-            <h3>Algorithm</h3>
-            <label for="algorithm">Choose algorithm</label>
-            <select id="algorithm">
-              <option value="bfs">BFS</option>
-              <option value="dijkstra">Dijkstra</option>
-              <option value="astar">A*</option>
-              <option value="stackExplorer">Stack Explorer</option>
-            </select>
+        <div class="vs-shell">
+          <div class="vs-activity" aria-label="Activity bar">
+            <button
+              class="vs-actbtn active"
+              id="vsActExplorer"
+              title="Explorer"
+            >
+              📁
+            </button>
+            <button class="vs-actbtn" id="vsActRun" title="Run">▶</button>
+            <button class="vs-actbtn" id="vsActProblems" title="Problems">
+              🧩
+            </button>
+            <button class="vs-actbtn" id="vsActPackages" title="Packages">
+              📦
+            </button>
           </div>
 
-          <div class="card">
-            <h3>Grid Size</h3>
-            <div class="row3">
-              <div>
-                <label for="rowsInput">Rows</label>
-                <input
-                  id="rowsInput"
-                  type="number"
-                  min="5"
-                  max="60"
-                  value="25"
-                />
+          <aside class="vs-sidebar" id="vsSidebar">
+            <div class="vs-sidehead">
+              <div class="label">EXPLORER</div>
+            </div>
+
+            <div class="vs-sidebody">
+              <div class="vs-block">
+                <div class="vs-blockhead">
+                  <b>FILES</b>
+                  <div class="vs-small">
+                    <button class="vs-btn ghost" id="ppNewTab" title="New tab">
+                      ➕
+                    </button>
+                    <button
+                      class="vs-btn ghost"
+                      id="ppDelTab"
+                      title="Delete tab"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+                <div class="vs-blockbody">
+                  <div id="ppTabs"></div>
+                  <div class="vs-small" style="margin-top: 8px">
+                    Tip: click a tab to switch files.
+                  </div>
+                </div>
               </div>
-              <div>
-                <label for="colsInput">Columns</label>
-                <input
-                  id="colsInput"
-                  type="number"
-                  min="5"
-                  max="90"
-                  value="45"
-                />
+
+              <div class="vs-block">
+                <div class="vs-blockhead">
+                  <b>STUDENT</b>
+                  <span class="vs-small">Saved locally</span>
+                </div>
+                <div class="vs-blockbody">
+                  <div class="vs-small" style="margin-bottom: 6px">Name</div>
+                  <input id="ppStuName" placeholder="Name" />
+                  <div class="vs-small" style="margin: 10px 0 6px">
+                    Roll / ID
+                  </div>
+                  <input id="ppStuRoll" placeholder="Roll / ID" />
+                </div>
               </div>
-              <div style="display: flex; align-items: end">
-                <button id="applyGridBtn" class="secondary">Apply</button>
+
+              <div class="vs-block" id="ppPackagesCard">
+                <div class="vs-blockhead">
+                  <b>PACKAGES</b>
+                  <div class="vs-row">
+                    <button class="vs-btn" id="ppInstall">Install</button>
+                    <button class="vs-btn ghost" id="ppList">List</button>
+                  </div>
+                </div>
+                <div class="vs-blockbody">
+                  <input id="ppPkgs" placeholder="numpy, pandas, matplotlib" />
+                  <div class="vs-small" style="margin-top: 8px">Installed:</div>
+                  <div id="ppInstalledPkgs">—</div>
+                </div>
+              </div>
+
+              <div class="vs-block">
+                <div class="vs-blockhead">
+                  <b>SHARE</b>
+                  <span class="vs-small">Link-based</span>
+                </div>
+                <div class="vs-blockbody">
+                  <div class="vs-row">
+                    <button class="vs-btn ghost" id="ppFormat">Format</button>
+                    <button class="vs-btn ghost" id="ppSave">Save</button>
+                    <button class="vs-btn primary" id="ppShare">Share</button>
+                  </div>
+                  <div class="vs-small" style="margin-top: 8px">
+                    Share creates a readable URL hash with your title and
+                    project settings.
+                  </div>
+                </div>
+              </div>
+
+              <div class="vs-block" id="ppTeacherPanel" style="display: none">
+                <div class="vs-blockhead">
+                  <b>TEACHER PANEL</b>
+                  <span class="vs-small"
+                    >Submissions: <b id="ppSubCount">0</b></span
+                  >
+                </div>
+                <div class="vs-blockbody">
+                  <div class="vs-row" style="margin-bottom: 10px">
+                    <label class="vs-toggle"
+                      ><input type="checkbox" id="ppForceClass" />
+                      Classroom</label
+                    >
+                    <label class="vs-toggle"
+                      ><input type="checkbox" id="ppExamMode" /> Exam</label
+                    >
+                    <label class="vs-toggle"
+                      ><input type="checkbox" id="ppLockProblem" /> Lock</label
+                    >
+                  </div>
+
+                  <div class="vs-row" style="margin-bottom: 10px">
+                    <label class="vs-toggle"
+                      ><input type="checkbox" id="ppLimitAttemptsOn" />
+                      Attempts</label
+                    >
+                    <label class="vs-toggle"
+                      ><input type="checkbox" id="ppAllowPkgs" />
+                      Packages</label
+                    >
+                  </div>
+
+                  <div class="vs-small" style="margin: 6px 0">
+                    Attempt limit
+                  </div>
+                  <input
+                    id="ppAttemptLimit"
+                    type="number"
+                    min="1"
+                    max="50"
+                    value="5"
+                  />
+
+                  <div class="vs-row" style="margin-top: 10px">
+                    <button class="vs-btn" id="ppExportSubs">Export</button>
+                    <button class="vs-btn danger" id="ppClearSubs">
+                      Clear
+                    </button>
+                  </div>
+
+                  <div class="vs-small" style="margin-top: 10px">
+                    Student link: <span id="ppStudentLink"></span>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+          </aside>
 
-          <div class="card">
-            <h3>Drawing Mode</h3>
-            <div class="mode-buttons three">
-              <button class="mode-btn active" data-mode="wall">Wall</button>
-              <button class="mode-btn" data-mode="start">Start</button>
-              <button class="mode-btn" data-mode="end">End</button>
+          <div
+            id="ppSidebarResizer"
+            class="pp-resizer-vertical"
+            title="Drag to resize sidebar"
+          ></div>
+
+          <main class="vs-main">
+            <div class="vs-editorbar">
+              <button class="vs-btn primary" id="ppRun">▶ Run</button>
+              <button class="vs-btn danger" id="ppStop">⛔ Stop</button>
+              <button
+                class="vs-btn ghost"
+                id="ppVoiceBtn"
+                title="Voice command"
+              >
+                🎤 Voice
+              </button>
+              <span class="vs-small" id="ppVoiceStatus">Voice: off</span>
+
+              <select id="ppExample" class="vs-select" title="Load example">
+                <option value="">Examples…</option>
+              </select>
+
+              <div class="vs-mini">
+                <label class="vs-toggle"
+                  ><input type="checkbox" id="ppTimer" checked /> Timer</label
+                >
+
+                <span class="vs-small">Indent</span>
+                <select
+                  id="ppIndent"
+                  class="vs-select"
+                  style="min-width: 120px"
+                >
+                  <option value="2">2 spaces</option>
+                  <option value="4">4 spaces</option>
+                  <option selected value="tab">Tab</option>
+                </select>
+              </div>
+
+              <div class="vs-spacer"></div>
+
+              <div class="vs-row">
+                <button class="vs-btn ghost" id="ppCopyOut">Copy output</button>
+                <button class="vs-btn ghost" id="ppClearOut">
+                  Clear output
+                </button>
+                <button class="vs-btn ghost" id="ppStdinSample">
+                  stdin sample
+                </button>
+                <button class="vs-btn ghost" id="ppStdinClear">
+                  stdin clear
+                </button>
+              </div>
+            </div>
+
+            <div class="pp-projectbar">
+              <div class="pp-project-grid">
+                <label class="pp-project-field pp-project-span-2">
+                  <span class="pp-project-label">Project title</span>
+                  <input
+                    id="ppProjectTitle"
+                    class="pp-project-input"
+                    type="text"
+                    placeholder="Binary Search Solution"
+                  />
+                </label>
+
+                <label class="pp-project-field">
+                  <span class="pp-project-label">Author</span>
+                  <input
+                    id="ppProjectAuthor"
+                    class="pp-project-input"
+                    type="text"
+                    placeholder="Champak Roy"
+                  />
+                </label>
+
+                <label class="pp-project-field pp-project-span-2">
+                  <span class="pp-project-label">Description</span>
+                  <textarea
+                    id="ppProjectDescription"
+                    class="pp-project-textarea"
+                    placeholder="Add a short description of the project, solution, or lesson."
+                  ></textarea>
+                </label>
+
+                <label class="pp-project-field">
+                  <span class="pp-project-label">Tags</span>
+                  <input
+                    id="ppProjectTags"
+                    class="pp-project-input"
+                    type="text"
+                    placeholder="dsa, binary-search, python"
+                  />
+                </label>
+              </div>
+
+              <div
+                id="ppProjectSummary"
+                class="pp-project-summary"
+                aria-live="polite"
+              >
+                <div class="pp-project-summary-head">
+                  <div>
+                    <div class="vs-small">Project preview</div>
+                    <div
+                      id="ppProjectSummaryTitle"
+                      class="pp-project-summary-title"
+                    >
+                      Untitled project
+                    </div>
+                  </div>
+                  <span class="pp-project-pill"
+                    >Shared title appears in URL</span
+                  >
+                </div>
+                <div id="ppProjectSummaryDescription" class="vs-small">
+                  Add title, description, tags, and author. They will be shared
+                  with the project link.
+                </div>
+                <div class="pp-project-summary-meta">
+                  <span id="ppProjectSummaryAuthor" class="pp-project-pill"
+                    >Author: —</span
+                  >
+                  <span id="ppProjectSummaryTags" class="pp-project-pill"
+                    >Tags: —</span
+                  >
+                </div>
+              </div>
+            </div>
+
+            <section class="vs-editorwrap">
+              <div class="vs-editor">
+                <pre id="ppGutter">1</pre>
+                <textarea id="ppCode" spellcheck="false"></textarea>
+              </div>
+
+              <div
+                id="ppPanelResizer"
+                class="pp-resizer-horizontal"
+                title="Drag to resize output and code panels"
+              ></div>
+
+              <div class="vs-panel">
+                <div class="vs-paneltabs">
+                  <button class="vs-ptab active" data-pane="out">Output</button>
+                  <button class="vs-ptab" data-pane="stdin">stdin</button>
+                  <button class="vs-ptab" data-pane="problems">Problems</button>
+                  <button class="vs-ptab" data-pane="packages">Packages</button>
+                  <button class="vs-ptab" data-pane="teacher">Teacher</button>
+                  <button class="vs-ptab" data-pane="voice">Voice</button>
+
+                  <span class="vs-badge" style="margin-left: auto">
+                    🪙 XP: <b id="ppXP">0</b> &nbsp; 🔥 Streak:
+                    <b id="ppStreak">0</b> &nbsp; ⏱
+                    <b><span id="ppTimeout">2.5</span>s</b>
+                  </span>
+                </div>
+
+                <div class="vs-panelbody">
+                  <div class="vs-pane active" data-pane="out">
+                    <div id="ppOut"></div>
+                    <div id="ppErr"></div>
+                  </div>
+
+                  <div class="vs-pane" data-pane="stdin">
+                    <textarea
+                      id="ppStdin"
+                      spellcheck="false"
+                      placeholder="One value per line"
+                    ></textarea>
+                  </div>
+
+                  <div class="vs-pane" data-pane="problems">
+                    <div class="vs-row" style="margin-bottom: 10px">
+                      <select
+                        id="ppProblem"
+                        class="vs-select"
+                        style="min-width: 260px"
+                      ></select>
+                      <button class="vs-btn" id="ppToday">Today</button>
+
+                      <button class="vs-btn primary" id="ppLoadStarter">
+                        Load starter
+                      </button>
+                      <button class="vs-btn" id="ppResetStarter">Reset</button>
+                      <button class="vs-btn" id="ppHint">Hint</button>
+                    </div>
+
+                    <div style="margin-bottom: 10px">
+                      <h3
+                        id="ppPTitle"
+                        style="margin: 0 0 6px; font-size: 14px; color: #d7d7d7"
+                      >
+                        —
+                      </h3>
+                      <div id="ppPDesc" class="vs-small">Pick a problem.</div>
+                    </div>
+
+                    <pre id="ppPExamples" style="display: none"></pre>
+
+                    <div class="vs-row" style="margin: 10px 0">
+                      <button class="vs-btn" id="ppRunSamples">
+                        Run samples
+                      </button>
+                      <button class="vs-btn primary" id="ppRunAll">
+                        Run all tests
+                      </button>
+                    </div>
+
+                    <div id="ppJudgeSummary" class="vs-small"></div>
+                    <div id="ppJudgeTableWrap"></div>
+                  </div>
+
+                  <div class="vs-pane" data-pane="packages">
+                    <div class="vs-row" style="margin-bottom: 10px">
+                      <input
+                        id="ppPkgs_panel"
+                        class="vs-input"
+                        placeholder="(Use sidebar Packages box)"
+                        style="flex: 1"
+                        disabled
+                      />
+                      <button
+                        class="vs-btn"
+                        onclick="document.getElementById('ppPkgs').focus()"
+                      >
+                        Focus sidebar
+                      </button>
+                    </div>
+                    <div class="vs-small">
+                      Packages are managed from the sidebar. This panel is only
+                      a shortcut.
+                    </div>
+                  </div>
+
+                  <div class="vs-pane" data-pane="teacher">
+                    <div class="vs-small" style="margin-bottom: 10px">
+                      Teacher panel is in the sidebar (visible only with
+                      <b>?tmode=1</b>).
+                    </div>
+                    <button
+                      class="vs-btn"
+                      onclick="
+                        document
+                          .getElementById('vsSidebar')
+                          .scrollTo({ top: 0, behavior: 'smooth' })
+                      "
+                    >
+                      Go to sidebar
+                    </button>
+                  </div>
+
+                  <div class="vs-pane" data-pane="voice">
+                    <div class="vs-row" style="margin-bottom: 10px">
+                      <button class="vs-btn ghost" id="ppVoiceClear">
+                        Clear voice log
+                      </button>
+                    </div>
+                    <div class="vs-small" style="margin-bottom: 10px">
+                      Heard voice commands will appear below.
+                    </div>
+                    <div id="ppVoiceLog"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="vs-statusbar">
+                <span class="pp-dot" id="ppDot"></span>
+                <span id="ppStatus">Ready.</span>
+                <div class="vs-progress"><div id="ppBar"></div></div>
+                <span class="vs-small" style="margin-left: auto"
+                  >Ctrl+Enter to run • Ctrl+/ to comment</span
+                >
+              </div>
+            </section>
+          </main>
+        </div>
+      </section>
+
+      <section class="pp-band bottom" id="ppBottomBand">
+        <div class="pp-band-inner">
+          <div class="pp-band-head">
+            <div>
+              <h2 class="pp-band-title">
+                Software Built Using Python and Its Modules
+              </h2>
+              <p class="pp-band-sub">
+                Python is used in websites, automation tools, AI systems,
+                scientific computing, dashboards, testing systems, and content
+                platforms. Here are common software categories and the modules
+                often used.
+              </p>
+            </div>
+            <div class="pp-band-actions">
+              <button class="vs-btn ghost" id="ppHideBottomBtn" type="button">
+                Hide bottom section
+              </button>
             </div>
           </div>
 
-          <div class="card">
-            <h3>Animation Speed</h3>
-            <label for="speed">Delay: <span id="speedValue">20</span> ms</label>
-            <input id="speed" type="range" min="0" max="100" value="20" />
-          </div>
+          <div class="pp-grid">
+            <article class="pp-card">
+              <h3>Web Applications</h3>
+              <p>
+                Admin dashboards, portals, blogs, course platforms, booking
+                systems, and internal business tools.
+              </p>
+              <div class="pp-tags">
+                <span class="pp-tag">Django</span>
+                <span class="pp-tag">Flask</span>
+                <span class="pp-tag">FastAPI</span>
+                <span class="pp-tag">Jinja2</span>
+              </div>
+            </article>
 
-          <div class="card">
-            <h3>Actions</h3>
-            <div class="row2">
-              <button id="visualizeBtn" class="primary">Visualize</button>
-              <button id="mazeBtn" class="secondary">Random Maze</button>
-            </div>
-            <div class="row2" style="margin-top: 8px">
-              <button id="clearPathBtn" class="secondary">Clear Path</button>
-              <button id="clearBoardBtn" class="secondary">Clear Board</button>
-            </div>
+            <article class="pp-card">
+              <h3>Data Analysis Software</h3>
+              <p>
+                Reporting systems, analytics notebooks, data cleaning pipelines,
+                and business intelligence helpers.
+              </p>
+              <div class="pp-tags">
+                <span class="pp-tag">pandas</span>
+                <span class="pp-tag">NumPy</span>
+                <span class="pp-tag">Matplotlib</span>
+                <span class="pp-tag">Plotly</span>
+              </div>
+            </article>
+
+            <article class="pp-card">
+              <h3>Machine Learning Products</h3>
+              <p>
+                Recommendation systems, fraud detection, classification tools,
+                and prediction engines.
+              </p>
+              <div class="pp-tags">
+                <span class="pp-tag">scikit-learn</span>
+                <span class="pp-tag">TensorFlow</span>
+                <span class="pp-tag">PyTorch</span>
+                <span class="pp-tag">XGBoost</span>
+              </div>
+            </article>
+
+            <article class="pp-card">
+              <h3>Computer Vision Tools</h3>
+              <p>
+                Face detection, OCR support, object tracking, camera apps, and
+                image enhancement utilities.
+              </p>
+              <div class="pp-tags">
+                <span class="pp-tag">OpenCV</span>
+                <span class="pp-tag">Pillow</span>
+                <span class="pp-tag">mediapipe</span>
+                <span class="pp-tag">numpy</span>
+              </div>
+            </article>
+
+            <article class="pp-card">
+              <h3>Automation Utilities</h3>
+              <p>
+                File renamers, Excel processors, PDF tools, email bots, scraper
+                pipelines, and browser automation.
+              </p>
+              <div class="pp-tags">
+                <span class="pp-tag">openpyxl</span>
+                <span class="pp-tag">PyPDF2</span>
+                <span class="pp-tag">requests</span>
+                <span class="pp-tag">BeautifulSoup</span>
+              </div>
+            </article>
+
+            <article class="pp-card">
+              <h3>Scientific and Engineering Software</h3>
+              <p>
+                Simulations, numerical solvers, matrix operations, and
+                research-oriented computational tools.
+              </p>
+              <div class="pp-tags">
+                <span class="pp-tag">SciPy</span>
+                <span class="pp-tag">NumPy</span>
+                <span class="pp-tag">SymPy</span>
+                <span class="pp-tag">matplotlib</span>
+              </div>
+            </article>
+
+            <article class="pp-card">
+              <h3>Testing and QA Platforms</h3>
+              <p>
+                Test runners, regression suites, API validation systems, and
+                browser-based testing frameworks.
+              </p>
+              <div class="pp-tags">
+                <span class="pp-tag">pytest</span>
+                <span class="pp-tag">unittest</span>
+                <span class="pp-tag">Selenium</span>
+                <span class="pp-tag">Playwright</span>
+              </div>
+            </article>
+
+            <article class="pp-card">
+              <h3>Desktop and Learning Tools</h3>
+              <p>
+                Classroom apps, local dashboards, IDE helpers, educational
+                games, and offline utilities.
+              </p>
+              <div class="pp-tags">
+                <span class="pp-tag">Tkinter</span>
+                <span class="pp-tag">PyQt</span>
+                <span class="pp-tag">pygame</span>
+                <span class="pp-tag">Jupyter</span>
+              </div>
+            </article>
           </div>
         </div>
+      </section>
+    </div>
 
-        <div class="stats">
-          <div class="stat">
-            <div class="label">Visited Nodes</div>
-            <div class="value" id="visitedCount">0</div>
-          </div>
-          <div class="stat">
-            <div class="label">Path Length</div>
-            <div class="value" id="pathLength">0</div>
-          </div>
-          <div class="stat">
-            <div class="label">Grid Size</div>
-            <div class="value" id="gridSizeLabel">25 × 45</div>
-          </div>
-          <div class="stat">
-            <div class="label">Current Mode</div>
-            <div class="value" id="currentModeLabel">Wall</div>
-          </div>
-          <div class="stat">
-            <div class="label">Paths Found</div>
-            <div class="value" id="pathsFound">0</div>
-          </div>
-          <div class="stat">
-            <div class="label">Explorer Status</div>
-            <div class="value" id="explorerStatus">Idle</div>
-          </div>
+    <div id="ppToast"></div>
+
+    <div id="ppShareModal" aria-hidden="true" style="display: none">
+      <div class="pp-modal-backdrop" data-close="1"></div>
+      <div
+        class="pp-modal-card"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Share link"
+      >
+        <div class="pp-modal-head">
+          <div style="font-weight: 900">Share link</div>
+          <button class="vs-btn ghost" id="ppShareClose" title="Close">
+            ✖
+          </button>
         </div>
-      </div>
-
-      <div class="board-wrap">
-        <div class="legend">
-          <div class="legend-item">
-            <span class="dot" style="background: var(--start)"></span> Start
+        <div class="pp-modal-body">
+          <div class="vs-small" style="margin-bottom: 8px">
+            Copy and send this link:
           </div>
-          <div class="legend-item">
-            <span class="dot" style="background: var(--end)"></span> End
+          <input id="ppShareInput" readonly />
+          <div
+            style="
+              margin-top: 10px;
+              display: flex;
+              gap: 8px;
+              justify-content: flex-end;
+            "
+          >
+            <button class="vs-btn" id="ppShareCopy">Copy</button>
+            <a
+              class="vs-btn primary"
+              id="ppShareOpen"
+              target="_blank"
+              rel="noopener"
+              >Open</a
+            >
           </div>
-          <div class="legend-item">
-            <span class="dot" style="background: var(--wall)"></span> Wall
-          </div>
-          <div class="legend-item">
-            <span class="dot" style="background: var(--visited)"></span> Done /
-            Visited
-          </div>
-          <div class="legend-item">
-            <span class="dot" style="background: var(--path)"></span> Shortest
-            Path
-          </div>
-          <div class="legend-item">
-            <span class="dot explorer"></span> Explorer
-          </div>
-        </div>
-
-        <div class="grid-host">
-          <div id="grid" class="grid"></div>
-        </div>
-
-        <div class="footer-note">
-          Stack Explorer now colors every route found differently, then
-          highlights the shortest route at the end.
+          <div class="vs-small" id="ppShareHint" style="margin-top: 8px"></div>
         </div>
       </div>
     </div>
 
     <script>
-      let ROWS = 25;
-      let COLS = 45;
-      let CELL_SIZE = 24;
-
-      const ROUTE_COLORS_LIGHT = [
-        "#fca5a5",
-        "#fdba74",
-        "#fde68a",
-        "#86efac",
-        "#93c5fd",
-        "#c4b5fd",
-        "#f9a8d4",
-        "#67e8f9",
-        "#bef264",
-        "#fda4af",
-      ];
-
-      const ROUTE_COLORS_DARK = [
-        "#b91c1c",
-        "#c2410c",
-        "#a16207",
-        "#15803d",
-        "#1d4ed8",
-        "#6d28d9",
-        "#be185d",
-        "#0f766e",
-        "#4d7c0f",
-        "#9f1239",
-      ];
-
-      const gridEl = document.getElementById("grid");
-      const algorithmEl = document.getElementById("algorithm");
-      const rowsInput = document.getElementById("rowsInput");
-      const colsInput = document.getElementById("colsInput");
-      const applyGridBtn = document.getElementById("applyGridBtn");
-      const speedEl = document.getElementById("speed");
-      const speedValueEl = document.getElementById("speedValue");
-      const visualizeBtn = document.getElementById("visualizeBtn");
-      const mazeBtn = document.getElementById("mazeBtn");
-      const clearPathBtn = document.getElementById("clearPathBtn");
-      const clearBoardBtn = document.getElementById("clearBoardBtn");
-      const visitedCountEl = document.getElementById("visitedCount");
-      const pathLengthEl = document.getElementById("pathLength");
-      const gridSizeLabelEl = document.getElementById("gridSizeLabel");
-      const currentModeLabelEl = document.getElementById("currentModeLabel");
-      const modeButtons = [...document.querySelectorAll(".mode-btn")];
-      const pathsFoundEl = document.getElementById("pathsFound");
-      const explorerStatusEl = document.getElementById("explorerStatus");
-
-      const lightThemeBtn = document.getElementById("lightThemeBtn");
-      const darkThemeBtn = document.getElementById("darkThemeBtn");
-      const softDesignBtn = document.getElementById("softDesignBtn");
-      const sharpDesignBtn = document.getElementById("sharpDesignBtn");
-      const fullScreenBtn = document.getElementById("fullScreenBtn");
-
-      let currentMode = "wall";
-      let mouseDown = false;
-      let isAnimating = false;
-
-      let start = { row: 12, col: 8 };
-      let end = { row: 12, col: 36 };
-      let explorerPos = null;
-      let grid = [];
-
-      function currentRoutePalette() {
-        return document.body.classList.contains("dark-theme")
-          ? ROUTE_COLORS_DARK
-          : ROUTE_COLORS_LIGHT;
-      }
-
-      function setDefaultStartEnd() {
-        start = {
-          row: Math.floor(ROWS / 2),
-          col: Math.max(1, Math.floor(COLS * 0.2)),
-        };
-        end = {
-          row: Math.floor(ROWS / 2),
-          col: Math.min(COLS - 2, Math.floor(COLS * 0.8)),
-        };
-        if (start.row === end.row && start.col === end.col) {
-          end.col = Math.min(COLS - 1, start.col + 1);
+      (function () {
+        const tabs = Array.from(document.querySelectorAll(".vs-ptab"));
+        const panes = Array.from(document.querySelectorAll(".vs-pane"));
+        function setPane(name) {
+          tabs.forEach((t) =>
+            t.classList.toggle("active", t.dataset.pane === name),
+          );
+          panes.forEach((p) =>
+            p.classList.toggle("active", p.dataset.pane === name),
+          );
         }
-      }
-
-      function createNode(row, col) {
-        return {
-          row,
-          col,
-          isStart: row === start.row && col === start.col,
-          isEnd: row === end.row && col === end.col,
-          isWall: false,
-          visited: false,
-          path: false,
-          routeColor: "",
-          distance: Infinity,
-          f: Infinity,
-          g: Infinity,
-          previous: null,
-        };
-      }
-
-      function updateGridLabel() {
-        gridSizeLabelEl.textContent = `${ROWS} × ${COLS}`;
-      }
-
-      function setGridColumns() {
-        CELL_SIZE = window.innerWidth <= 900 ? 20 : 24;
-        gridEl.style.gridTemplateColumns = `repeat(${COLS}, ${CELL_SIZE}px)`;
-      }
-
-      function initGrid() {
-        grid = [];
-        gridEl.innerHTML = "";
-        setGridColumns();
-        updateGridLabel();
-        rowsInput.value = ROWS;
-        colsInput.value = COLS;
-
-        for (let r = 0; r < ROWS; r++) {
-          const row = [];
-          for (let c = 0; c < COLS; c++) {
-            const node = createNode(r, c);
-            row.push(node);
-
-            const cell = document.createElement("div");
-            cell.className = "cell";
-            cell.dataset.row = r;
-            cell.dataset.col = c;
-            cell.style.width = `${CELL_SIZE}px`;
-            cell.style.height = `${CELL_SIZE}px`;
-
-            cell.addEventListener("mousedown", handlePointerDown);
-            cell.addEventListener("mouseenter", handlePointerEnter);
-            cell.addEventListener("touchstart", handleTouch, {
-              passive: false,
-            });
-            cell.addEventListener("touchmove", handleTouch, { passive: false });
-
-            gridEl.appendChild(cell);
-          }
-          grid.push(row);
-        }
-
-        explorerPos = null;
-        renderGrid();
-      }
-
-      function applyGridSizeFromInputs() {
-        const newRows = Math.max(
-          5,
-          Math.min(60, Number(rowsInput.value) || 25),
+        tabs.forEach((t) =>
+          t.addEventListener("click", () => setPane(t.dataset.pane)),
         );
-        const newCols = Math.max(
-          5,
-          Math.min(90, Number(colsInput.value) || 45),
-        );
-        ROWS = newRows;
-        COLS = newCols;
-        setDefaultStartEnd();
-        initGrid();
-        resetMetrics();
-      }
+      })();
 
-      function renderGrid() {
-        for (let r = 0; r < ROWS; r++) {
-          for (let c = 0; c < COLS; c++) {
-            const cell = getCellEl(r, c);
-            const node = grid[r][c];
-            cell.className = "cell";
-            cell.style.width = `${CELL_SIZE}px`;
-            cell.style.height = `${CELL_SIZE}px`;
-            cell.style.background = "";
-            cell.style.boxShadow = "";
+      (function () {
+        const actBtns = Array.from(document.querySelectorAll(".vs-actbtn"));
+        const sidebar = document.getElementById("vsSidebar");
 
-            if (node.isWall) cell.classList.add("wall");
-            if (node.visited) cell.classList.add("visited");
+        actBtns.forEach((b) => {
+          b.addEventListener("click", () => {
+            actBtns.forEach((x) => x.classList.remove("active"));
+            b.classList.add("active");
 
-            if (
-              node.routeColor &&
-              !node.isStart &&
-              !node.isEnd &&
-              !node.isWall &&
-              !node.path
-            ) {
-              cell.classList.add("route-colored");
-              cell.style.background = node.routeColor;
+            if (window.matchMedia("(max-width: 980px)").matches) {
+              sidebar.style.display = "flex";
+              sidebar.style.position = "absolute";
+              sidebar.style.left = "50px";
+              sidebar.style.top = "0";
+              sidebar.style.height = "760px";
+              sidebar.style.zIndex = "40";
+              sidebar.style.boxShadow = "0 20px 60px rgba(0,0,0,.55)";
             }
 
-            if (node.path) cell.classList.add("path");
-            if (node.isStart) cell.classList.add("start");
-            if (node.isEnd) cell.classList.add("end");
-
-            if (explorerPos && explorerPos.row === r && explorerPos.col === c) {
-              cell.classList.add("explorer");
+            if (b.id === "vsActRun") {
+              document.querySelector('.vs-ptab[data-pane="out"]')?.click();
+            } else if (b.id === "vsActProblems") {
+              document.querySelector('.vs-ptab[data-pane="problems"]')?.click();
+            } else if (b.id === "vsActPackages") {
+              document.querySelector('.vs-ptab[data-pane="packages"]')?.click();
             }
-          }
-        }
-      }
-
-      function getCellEl(row, col) {
-        return gridEl.querySelector(
-          `.cell[data-row="${row}"][data-col="${col}"]`,
-        );
-      }
-
-      function handlePointerDown(e) {
-        if (isAnimating) return;
-        mouseDown = true;
-        const row = Number(e.target.dataset.row);
-        const col = Number(e.target.dataset.col);
-        applyMode(row, col);
-      }
-
-      function handlePointerEnter(e) {
-        if (!mouseDown || isAnimating) return;
-        const row = Number(e.target.dataset.row);
-        const col = Number(e.target.dataset.col);
-        applyMode(row, col);
-      }
-
-      function handleTouch(e) {
-        if (isAnimating) return;
-        e.preventDefault();
-        const touch = e.touches[0];
-        const el = document.elementFromPoint(touch.clientX, touch.clientY);
-        if (!el || !el.classList.contains("cell")) return;
-
-        const row = Number(el.dataset.row);
-        const col = Number(el.dataset.col);
-        applyMode(row, col);
-      }
-
-      document.addEventListener("mouseup", () => {
-        mouseDown = false;
-      });
-
-      document.addEventListener("touchend", () => {
-        mouseDown = false;
-      });
-
-      function applyMode(row, col) {
-        const node = grid[row][col];
-
-        if (currentMode === "wall") {
-          if (node.isStart || node.isEnd) return;
-          node.isWall = !node.isWall;
-        } else if (currentMode === "start") {
-          if (node.isEnd || node.isWall) return;
-          grid[start.row][start.col].isStart = false;
-          start = { row, col };
-          node.isStart = true;
-        } else if (currentMode === "end") {
-          if (node.isStart || node.isWall) return;
-          grid[end.row][end.col].isEnd = false;
-          end = { row, col };
-          node.isEnd = true;
-        }
-
-        renderGrid();
-      }
-
-      modeButtons.forEach((btn) => {
-        btn.addEventListener("click", () => {
-          modeButtons.forEach((b) => b.classList.remove("active"));
-          btn.classList.add("active");
-          currentMode = btn.dataset.mode;
-          currentModeLabelEl.textContent =
-            currentMode.charAt(0).toUpperCase() + currentMode.slice(1);
-        });
-      });
-
-      speedEl.addEventListener("input", () => {
-        speedValueEl.textContent = speedEl.value;
-      });
-
-      applyGridBtn.addEventListener("click", () => {
-        if (isAnimating) return;
-        applyGridSizeFromInputs();
-      });
-
-      function resetMetrics() {
-        visitedCountEl.textContent = "0";
-        pathLengthEl.textContent = "0";
-        pathsFoundEl.textContent = "0";
-        explorerStatusEl.textContent = "Idle";
-      }
-
-      function clearSearchOnly() {
-        for (let r = 0; r < ROWS; r++) {
-          for (let c = 0; c < COLS; c++) {
-            const node = grid[r][c];
-            node.visited = false;
-            node.path = false;
-            node.routeColor = "";
-            node.distance = Infinity;
-            node.f = Infinity;
-            node.g = Infinity;
-            node.previous = null;
-          }
-        }
-        explorerPos = null;
-        resetMetrics();
-        renderGrid();
-      }
-
-      function clearBoard() {
-        for (let r = 0; r < ROWS; r++) {
-          for (let c = 0; c < COLS; c++) {
-            grid[r][c] = createNode(r, c);
-          }
-        }
-        explorerPos = null;
-        resetMetrics();
-        renderGrid();
-      }
-
-      function neighbors(node) {
-        const dirs = [
-          [-1, 0],
-          [0, 1],
-          [1, 0],
-          [0, -1],
-        ];
-
-        const result = [];
-        for (const [dr, dc] of dirs) {
-          const nr = node.row + dr;
-          const nc = node.col + dc;
-          if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
-            result.push(grid[nr][nc]);
-          }
-        }
-        return result;
-      }
-
-      function heuristic(a, b) {
-        return Math.abs(a.row - b.row) + Math.abs(a.col - b.col);
-      }
-
-      function reconstructPath(endNode) {
-        const path = [];
-        let cur = endNode;
-        while (cur) {
-          path.unshift(cur);
-          cur = cur.previous;
-        }
-        return path;
-      }
-
-      function bfs() {
-        const startNode = grid[start.row][start.col];
-        const endNode = grid[end.row][end.col];
-
-        const queue = [startNode];
-        const visitedOrder = [];
-        const seen = new Set([keyOf(startNode)]);
-
-        while (queue.length) {
-          const node = queue.shift();
-          if (node.isWall) continue;
-
-          visitedOrder.push(node);
-          if (node === endNode) break;
-
-          for (const nb of neighbors(node)) {
-            const key = keyOf(nb);
-            if (nb.isWall || seen.has(key)) continue;
-            seen.add(key);
-            nb.previous = node;
-            queue.push(nb);
-          }
-        }
-
-        const path =
-          endNode.previous || endNode === startNode
-            ? reconstructPath(endNode)
-            : [];
-
-        return { visitedOrder, path };
-      }
-
-      function dijkstra() {
-        const startNode = grid[start.row][start.col];
-        const endNode = grid[end.row][end.col];
-        const unvisited = [];
-        const visitedOrder = [];
-
-        startNode.distance = 0;
-
-        for (let r = 0; r < ROWS; r++) {
-          for (let c = 0; c < COLS; c++) {
-            unvisited.push(grid[r][c]);
-          }
-        }
-
-        while (unvisited.length) {
-          unvisited.sort((a, b) => a.distance - b.distance);
-          const closest = unvisited.shift();
-
-          if (closest.isWall) continue;
-          if (closest.distance === Infinity) break;
-
-          visitedOrder.push(closest);
-          if (closest === endNode) break;
-
-          for (const nb of neighbors(closest)) {
-            if (nb.isWall) continue;
-            const newDist = closest.distance + 1;
-            if (newDist < nb.distance) {
-              nb.distance = newDist;
-              nb.previous = closest;
-            }
-          }
-        }
-
-        const path =
-          endNode.previous || endNode === startNode
-            ? reconstructPath(endNode)
-            : [];
-
-        return { visitedOrder, path };
-      }
-
-      function astar() {
-        const startNode = grid[start.row][start.col];
-        const endNode = grid[end.row][end.col];
-
-        const openSet = [startNode];
-        const closed = new Set();
-        const visitedOrder = [];
-
-        startNode.g = 0;
-        startNode.f = heuristic(startNode, endNode);
-
-        while (openSet.length) {
-          openSet.sort((a, b) => a.f - b.f);
-          const current = openSet.shift();
-          const currentKey = keyOf(current);
-
-          if (closed.has(currentKey)) continue;
-          closed.add(currentKey);
-
-          if (current.isWall) continue;
-
-          visitedOrder.push(current);
-          if (current === endNode) break;
-
-          for (const nb of neighbors(current)) {
-            if (nb.isWall) continue;
-            const nbKey = keyOf(nb);
-            if (closed.has(nbKey)) continue;
-
-            const tentativeG = current.g + 1;
-            if (tentativeG < nb.g) {
-              nb.previous = current;
-              nb.g = tentativeG;
-              nb.f = tentativeG + heuristic(nb, endNode);
-              openSet.push(nb);
-            }
-          }
-        }
-
-        const path =
-          endNode.previous || endNode === startNode
-            ? reconstructPath(endNode)
-            : [];
-
-        return { visitedOrder, path };
-      }
-
-      function keyOf(node) {
-        return `${node.row},${node.col}`;
-      }
-
-      function copyPath(path) {
-        return path.map((n) => ({ row: n.row, col: n.col }));
-      }
-
-      function sortNeighborPreference(list, endNode) {
-        return [...list].sort((a, b) => {
-          const ha = heuristic(a, endNode);
-          const hb = heuristic(b, endNode);
-          if (ha !== hb) return ha - hb;
-          if (a.row !== b.row) return a.row - b.row;
-          return a.col - b.col;
-        });
-      }
-
-      function stackExplorerPrepare() {
-        const startNode = grid[start.row][start.col];
-        const endNode = grid[end.row][end.col];
-
-        const globalDone = new Set([keyOf(startNode)]);
-        startNode.visited = true;
-
-        return {
-          startNode,
-          endNode,
-          stack: [
-            {
-              node: startNode,
-              path: [startNode],
-            },
-          ],
-          allPaths: [],
-          globalDone,
-          finished: false,
-          shortestPath: [],
-        };
-      }
-
-      function stackExplorerStep(state) {
-        if (!state.stack.length) {
-          state.finished = true;
-          if (state.allPaths.length) {
-            state.shortestPath = state.allPaths.reduce(
-              (best, cur) =>
-                !best.length || cur.length < best.length ? cur : best,
-              [],
-            );
-          }
-          return { action: "done" };
-        }
-
-        const top = state.stack[state.stack.length - 1];
-        const current = top.node;
-
-        if (current === state.endNode) {
-          const foundPath = copyPath(top.path);
-          state.allPaths.push(foundPath);
-          state.stack.pop();
-          return {
-            action: "found",
-            node: current,
-            pathsFound: state.allPaths.length,
-            currentPathLength: foundPath.length,
-          };
-        }
-
-        const candidates = sortNeighborPreference(
-          neighbors(current),
-          state.endNode,
-        ).filter((nb) => !nb.isWall && !state.globalDone.has(keyOf(nb)));
-
-        if (candidates.length > 0) {
-          const next = candidates[0];
-          state.globalDone.add(keyOf(next));
-          if (!next.isStart && !next.isEnd) next.visited = true;
-
-          state.stack.push({
-            node: next,
-            path: [...top.path, next],
           });
+        });
 
-          return {
-            action: "forward",
-            from: current,
-            to: next,
-            depth: state.stack.length,
-            visitedCount: state.globalDone.size,
-          };
-        }
+        document.addEventListener("click", (e) => {
+          if (!window.matchMedia("(max-width: 980px)").matches) return;
+          if (!sidebar) return;
+          const insideSidebar = sidebar.contains(e.target);
+          const insideActivity = document
+            .querySelector(".vs-activity")
+            ?.contains(e.target);
+          if (!insideSidebar && !insideActivity) sidebar.style.display = "none";
+        });
+      })();
 
-        state.stack.pop();
-        const backTo = state.stack.length
-          ? state.stack[state.stack.length - 1].node
-          : null;
-        return {
-          action: "backtrack",
-          from: current,
-          to: backTo,
-          depth: state.stack.length,
-          visitedCount: state.globalDone.size,
-        };
-      }
+      (function () {
+        const topBand = document.getElementById("ppTopBand");
+        const bottomBand = document.getElementById("ppBottomBand");
 
-      function sleep(ms) {
-        return new Promise((resolve) => setTimeout(resolve, ms));
-      }
+        const toggleTopBtn = document.getElementById("ppToggleTopBtn");
+        const toggleBottomBtn = document.getElementById("ppToggleBottomBtn");
+        const hideTopBtn = document.getElementById("ppHideTopBtn");
+        const hideBottomBtn = document.getElementById("ppHideBottomBtn");
+        const stateText = document.getElementById("ppSectionsState");
 
-      async function animateResult(visitedOrder, path) {
-        const delay = Number(speedEl.value);
-        let visitedCount = 0;
+        function updateSectionUI() {
+          const topHidden = topBand.classList.contains("hidden");
+          const bottomHidden = bottomBand.classList.contains("hidden");
 
-        for (const node of visitedOrder) {
-          if (!node.isStart && !node.isEnd) {
-            node.visited = true;
-          }
-          visitedCount++;
-          visitedCountEl.textContent = visitedCount;
-          renderGrid();
-          if (delay > 0) await sleep(delay);
-        }
+          toggleTopBtn.textContent = topHidden ? "Show Top" : "Hide Top";
+          toggleBottomBtn.textContent = bottomHidden
+            ? "Show Bottom"
+            : "Hide Bottom";
 
-        let pathCount = 0;
-        for (const node of path) {
-          if (!node.isStart && !node.isEnd) {
-            node.path = true;
-          }
-          pathCount++;
-          pathLengthEl.textContent = Math.max(0, pathCount - 1);
-          renderGrid();
-          if (delay > 0) await sleep(Math.max(10, delay));
-        }
-      }
+          if (hideTopBtn)
+            hideTopBtn.textContent = topHidden
+              ? "Show top section"
+              : "Hide top section";
+          if (hideBottomBtn)
+            hideBottomBtn.textContent = bottomHidden
+              ? "Show bottom section"
+              : "Hide bottom section";
 
-      function colorAllFoundRoutes(paths) {
-        const palette = currentRoutePalette();
-        for (let i = 0; i < paths.length; i++) {
-          const color = palette[i % palette.length];
-          const route = paths[i];
-          for (const p of route) {
-            const node = grid[p.row][p.col];
-            if (!node.isStart && !node.isEnd && !node.isWall) {
-              node.routeColor = color;
-            }
-          }
-        }
-      }
+          stateText.textContent =
+            "Top: " +
+            (topHidden ? "hidden" : "shown") +
+            " • Bottom: " +
+            (bottomHidden ? "hidden" : "shown");
 
-      async function animateAllFoundRoutes(paths) {
-        const delay = Number(speedEl.value);
-        const palette = currentRoutePalette();
-
-        for (let i = 0; i < paths.length; i++) {
-          const route = paths[i];
-          const color = palette[i % palette.length];
-
-          explorerStatusEl.textContent = `Coloring route ${i + 1} of ${paths.length}`;
-
-          for (const p of route) {
-            const node = grid[p.row][p.col];
-            if (!node.isStart && !node.isEnd && !node.isWall) {
-              node.routeColor = color;
-            }
-            renderGrid();
-            if (delay > 0) await sleep(Math.max(5, Math.floor(delay / 2)));
-          }
-        }
-      }
-
-      async function animateStackExplorer() {
-        const delay = Number(speedEl.value);
-        const state = stackExplorerPrepare();
-
-        explorerPos = { ...start };
-        visitedCountEl.textContent = "1";
-        explorerStatusEl.textContent = "Exploring";
-        renderGrid();
-
-        while (!state.finished) {
-          const result = stackExplorerStep(state);
-
-          if (result.action === "forward") {
-            explorerPos = { row: result.to.row, col: result.to.col };
-            visitedCountEl.textContent = result.visitedCount;
-            explorerStatusEl.textContent = `Forward • Stack ${result.depth}`;
-            renderGrid();
-            if (delay > 0) await sleep(Math.max(20, delay));
-          } else if (result.action === "backtrack") {
-            explorerPos = result.to
-              ? { row: result.to.row, col: result.to.col }
-              : { ...start };
-            visitedCountEl.textContent = result.visitedCount;
-            explorerStatusEl.textContent = result.to
-              ? `Backtrack • Stack ${result.depth}`
-              : "Backtrack Complete";
-            renderGrid();
-            if (delay > 0) await sleep(Math.max(20, delay));
-          } else if (result.action === "found") {
-            explorerPos = { row: result.node.row, col: result.node.col };
-            pathsFoundEl.textContent = state.allPaths.length;
-            visitedCountEl.textContent = state.globalDone.size;
-            explorerStatusEl.textContent = `Path Found #${result.pathsFound}`;
-            renderGrid();
-            if (delay > 0) await sleep(Math.max(80, delay * 2));
-          } else if (result.action === "done") {
-            break;
-          }
-        }
-
-        explorerPos = null;
-        renderGrid();
-
-        if (state.allPaths.length) {
-          await animateAllFoundRoutes(state.allPaths);
-        }
-
-        if (state.shortestPath.length) {
-          explorerStatusEl.textContent = `Shortest chosen from ${state.allPaths.length} path(s)`;
-          for (let i = 0; i < state.shortestPath.length; i++) {
-            const p = state.shortestPath[i];
-            const node = grid[p.row][p.col];
-            if (!node.isStart && !node.isEnd) node.path = true;
-            pathLengthEl.textContent = Math.max(0, i);
-            renderGrid();
-            if (delay > 0) await sleep(Math.max(20, delay));
-          }
-        } else {
-          explorerStatusEl.textContent = "No path found";
-        }
-
-        visitedCountEl.textContent = state.globalDone.size;
-        pathsFoundEl.textContent = state.allPaths.length;
-      }
-
-      async function visualize() {
-        if (isAnimating) return;
-        isAnimating = true;
-        toggleControls(true);
-
-        clearSearchOnly();
-
-        const algo = algorithmEl.value;
-
-        if (algo === "stackExplorer") {
-          await animateStackExplorer();
-        } else {
-          let result;
-          if (algo === "bfs") result = bfs();
-          else if (algo === "dijkstra") result = dijkstra();
-          else result = astar();
-
-          explorerStatusEl.textContent = "Standard Search";
-          await animateResult(result.visitedOrder, result.path);
-
-          if (!result.path.length) {
-            explorerStatusEl.textContent = "No path found";
-          } else {
-            explorerStatusEl.textContent = "Shortest path shown";
-          }
-        }
-
-        isAnimating = false;
-        toggleControls(false);
-      }
-
-      function toggleControls(disabled) {
-        visualizeBtn.disabled = disabled;
-        mazeBtn.disabled = disabled;
-        clearPathBtn.disabled = disabled;
-        clearBoardBtn.disabled = disabled;
-        algorithmEl.disabled = disabled;
-        rowsInput.disabled = disabled;
-        colsInput.disabled = disabled;
-        applyGridBtn.disabled = disabled;
-        speedEl.disabled = disabled;
-        modeButtons.forEach((btn) => (btn.disabled = disabled));
-
-        lightThemeBtn.disabled = disabled;
-        darkThemeBtn.disabled = disabled;
-        softDesignBtn.disabled = disabled;
-        sharpDesignBtn.disabled = disabled;
-      }
-
-      function randomMaze() {
-        if (isAnimating) return;
-        clearBoard();
-        for (let r = 0; r < ROWS; r++) {
-          for (let c = 0; c < COLS; c++) {
-            const node = grid[r][c];
-            if (node.isStart || node.isEnd) continue;
-            if (Math.random() < 0.28) {
-              node.isWall = true;
-            }
-          }
-        }
-        renderGrid();
-      }
-
-      function activateButton(activeBtn, group) {
-        group.forEach((btn) => btn.classList.remove("toggle-on"));
-        activeBtn.classList.add("toggle-on");
-      }
-
-      function setTheme(theme) {
-        if (theme === "dark") {
-          document.body.classList.add("dark-theme");
-          activateButton(darkThemeBtn, [lightThemeBtn, darkThemeBtn]);
-        } else {
-          document.body.classList.remove("dark-theme");
-          activateButton(lightThemeBtn, [lightThemeBtn, darkThemeBtn]);
-        }
-        renderGrid();
-      }
-
-      function setDesign(design) {
-        if (design === "sharp") {
-          document.body.classList.add("sharp-design");
-          activateButton(sharpDesignBtn, [softDesignBtn, sharpDesignBtn]);
-        } else {
-          document.body.classList.remove("sharp-design");
-          activateButton(softDesignBtn, [softDesignBtn, sharpDesignBtn]);
-        }
-      }
-
-      async function toggleFullScreen() {
-        if (!document.fullscreenElement) {
           try {
-            await document.documentElement.requestFullscreen();
-          } catch (err) {
-            document.body.classList.toggle("fullscreen-mode");
-            updateFullScreenButton();
-          }
-        } else {
-          try {
-            await document.exitFullscreen();
-          } catch (err) {
-            document.body.classList.toggle("fullscreen-mode");
-            updateFullScreenButton();
-          }
+            localStorage.setItem("pp-top-hidden", topHidden ? "1" : "0");
+            localStorage.setItem("pp-bottom-hidden", bottomHidden ? "1" : "0");
+          } catch (err) {}
         }
-      }
 
-      function updateFullScreenButton() {
-        const isFs =
-          !!document.fullscreenElement ||
-          document.body.classList.contains("fullscreen-mode");
-        fullScreenBtn.textContent = isFs
-          ? "Exit Full Screen"
-          : "Enter Full Screen";
-        fullScreenBtn.classList.toggle("toggle-on", isFs);
-        document.body.classList.toggle("fullscreen-mode", isFs);
-        setGridColumns();
-        renderGrid();
-      }
+        function setTopVisible(show) {
+          topBand.classList.toggle("hidden", !show);
+          updateSectionUI();
+        }
 
-      lightThemeBtn.addEventListener("click", () => setTheme("light"));
-      darkThemeBtn.addEventListener("click", () => setTheme("dark"));
-      softDesignBtn.addEventListener("click", () => setDesign("soft"));
-      sharpDesignBtn.addEventListener("click", () => setDesign("sharp"));
-      fullScreenBtn.addEventListener("click", toggleFullScreen);
+        function setBottomVisible(show) {
+          bottomBand.classList.toggle("hidden", !show);
+          updateSectionUI();
+        }
 
-      visualizeBtn.addEventListener("click", visualize);
-      mazeBtn.addEventListener("click", randomMaze);
-      clearPathBtn.addEventListener("click", clearSearchOnly);
-      clearBoardBtn.addEventListener("click", clearBoard);
+        toggleTopBtn?.addEventListener("click", () => {
+          setTopVisible(topBand.classList.contains("hidden"));
+        });
 
-      document.addEventListener("fullscreenchange", updateFullScreenButton);
+        toggleBottomBtn?.addEventListener("click", () => {
+          setBottomVisible(bottomBand.classList.contains("hidden"));
+        });
 
-      window.addEventListener("resize", () => {
-        setGridColumns();
-        renderGrid();
-      });
+        hideTopBtn?.addEventListener("click", () => {
+          setTopVisible(topBand.classList.contains("hidden"));
+        });
 
-      setDefaultStartEnd();
-      initGrid();
-      setTheme("light");
-      setDesign("soft");
-      updateFullScreenButton();
+        hideBottomBtn?.addEventListener("click", () => {
+          setBottomVisible(bottomBand.classList.contains("hidden"));
+        });
+
+        try {
+          const savedTop = localStorage.getItem("pp-top-hidden");
+          const savedBottom = localStorage.getItem("pp-bottom-hidden");
+
+          if (savedTop === "1") topBand.classList.add("hidden");
+          if (savedBottom === "1") bottomBand.classList.add("hidden");
+        } catch (err) {}
+
+        updateSectionUI();
+      })();
     </script>
+
+    <script type="module" src="./app.js"></script>
   </body>
 </html>
