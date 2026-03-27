@@ -1,0 +1,878 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Programmer's Picnic — Journey Recorder</title>
+  <meta
+    name="description"
+    content="A single-page journey recorder that tracks your live location, draws your route on an OpenStreetMap map, shows distance and speed, and lets you export the journey as JSON."
+  />
+  <meta name="theme-color" content="#f59e0b" />
+
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    crossorigin=""
+  />
+
+  <style>
+    :root{
+      --bg:#fff8eb;
+      --bg2:#fff2cf;
+      --card:rgba(255,255,255,.82);
+      --ink:#1f2937;
+      --muted:#6b7280;
+      --line:#ead7b4;
+      --brand:#d97706;
+      --brand2:#f59e0b;
+      --good:#166534;
+      --bad:#b91c1c;
+      --shadow:0 16px 40px rgba(180, 83, 9, .12);
+      --radius:22px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+
+    body{
+      margin:0;
+      font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color:var(--ink);
+      background:
+        radial-gradient(circle at top left, #fff5d9 0, transparent 30%),
+        radial-gradient(circle at top right, #ffe8b8 0, transparent 25%),
+        linear-gradient(180deg, var(--bg) 0%, #fffdf8 100%);
+    }
+
+    .app{
+      min-height:100%;
+      display:grid;
+      grid-template-columns: 400px 1fr;
+      gap:18px;
+      padding:18px;
+    }
+
+    .panel{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .sidebar{
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+    }
+
+    .brand{
+      padding:18px 18px 10px;
+      border-bottom:1px solid var(--line);
+      background:linear-gradient(135deg, rgba(245,158,11,.12), rgba(217,119,6,.08));
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 12px;
+      border-radius:999px;
+      background:#fff6dd;
+      color:#9a3412;
+      border:1px solid #f3d297;
+      font-size:12px;
+      font-weight:800;
+      letter-spacing:.03em;
+      text-transform:uppercase;
+    }
+
+    h1{
+      margin:12px 0 6px;
+      font-size:28px;
+      line-height:1.08;
+      color:#9a3412;
+    }
+
+    .sub{
+      margin:0;
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.55;
+    }
+
+    .content{
+      padding:16px;
+      overflow:auto;
+    }
+
+    .section{
+      margin-bottom:16px;
+      padding:14px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.72);
+      border-radius:18px;
+    }
+
+    .section h2{
+      margin:0 0 12px;
+      font-size:16px;
+      color:#92400e;
+    }
+
+    .grid2{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+
+    .stat{
+      padding:12px;
+      border-radius:16px;
+      background:#fffaf0;
+      border:1px solid #efdfba;
+    }
+
+    .label{
+      font-size:12px;
+      color:var(--muted);
+      margin-bottom:5px;
+    }
+
+    .value{
+      font-size:20px;
+      font-weight:800;
+      letter-spacing:-.02em;
+    }
+
+    .muted{
+      color:var(--muted);
+      font-size:13px;
+    }
+
+    .row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    button, input, select, textarea{
+      font:inherit;
+    }
+
+    button{
+      appearance:none;
+      border:none;
+      cursor:pointer;
+      border-radius:14px;
+      padding:12px 14px;
+      font-weight:800;
+      transition:transform .15s ease, opacity .15s ease, box-shadow .15s ease;
+    }
+
+    button:hover{ transform:translateY(-1px); }
+    button:active{ transform:translateY(0); }
+
+    .btn-primary{
+      background:linear-gradient(135deg, var(--brand), var(--brand2));
+      color:white;
+      box-shadow:0 10px 20px rgba(217,119,6,.18);
+    }
+
+    .btn-secondary{
+      background:#fff;
+      color:#7c2d12;
+      border:1px solid var(--line);
+    }
+
+    .btn-danger{
+      background:#fff1f2;
+      color:var(--bad);
+      border:1px solid #fecdd3;
+    }
+
+    .btn-good{
+      background:#effcf3;
+      color:var(--good);
+      border:1px solid #bbf7d0;
+    }
+
+    .full{
+      width:100%;
+    }
+
+    .field{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      margin-bottom:10px;
+    }
+
+    .field label{
+      font-size:13px;
+      color:#7c2d12;
+      font-weight:700;
+    }
+
+    .field input, .field textarea, .field select{
+      width:100%;
+      border:1px solid var(--line);
+      background:#fffdf8;
+      border-radius:14px;
+      padding:11px 12px;
+      outline:none;
+    }
+
+    .field textarea{
+      resize:vertical;
+      min-height:84px;
+    }
+
+    .status{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:12px 14px;
+      border-radius:16px;
+      background:#fffaf0;
+      border:1px solid var(--line);
+      margin-bottom:14px;
+    }
+
+    .dot{
+      width:12px;
+      height:12px;
+      border-radius:50%;
+      background:#9ca3af;
+      box-shadow:0 0 0 4px rgba(156,163,175,.18);
+      flex:0 0 auto;
+    }
+
+    .dot.live{
+      background:#22c55e;
+      box-shadow:0 0 0 4px rgba(34,197,94,.18);
+    }
+
+    .dot.warn{
+      background:#f59e0b;
+      box-shadow:0 0 0 4px rgba(245,158,11,.18);
+    }
+
+    .map-wrap{
+      position:relative;
+      min-height:70vh;
+      overflow:hidden;
+    }
+
+    #map{
+      width:100%;
+      height:calc(100vh - 36px);
+      border-radius:var(--radius);
+      border:1px solid var(--line);
+      box-shadow:var(--shadow);
+    }
+
+    .map-topbar{
+      position:absolute;
+      top:14px;
+      left:14px;
+      right:14px;
+      z-index:1000;
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      pointer-events:none;
+    }
+
+    .floating{
+      pointer-events:auto;
+      background:rgba(255,255,255,.88);
+      border:1px solid var(--line);
+      border-radius:18px;
+      box-shadow:var(--shadow);
+      backdrop-filter: blur(10px);
+      padding:10px 12px;
+    }
+
+    .floating strong{
+      color:#9a3412;
+    }
+
+    .log{
+      max-height:220px;
+      overflow:auto;
+      padding:10px;
+      border-radius:14px;
+      background:#111827;
+      color:#e5e7eb;
+      font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size:12px;
+      line-height:1.5;
+      white-space:pre-wrap;
+      border:1px solid #374151;
+    }
+
+    .trip-list{
+      display:grid;
+      gap:8px;
+    }
+
+    .trip-item{
+      padding:10px 12px;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:#fffaf0;
+    }
+
+    .trip-item .small{
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    .hint{
+      font-size:12px;
+      color:var(--muted);
+      margin-top:8px;
+      line-height:1.5;
+    }
+
+    .leaflet-popup-content-wrapper{
+      border-radius:16px;
+    }
+
+    .leaflet-control-attribution{
+      font-size:11px;
+    }
+
+    @media (max-width: 980px){
+      .app{
+        grid-template-columns:1fr;
+      }
+      #map{
+        height:60vh;
+      }
+      .map-wrap{
+        min-height:auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="panel sidebar">
+      <div class="brand">
+        <div class="pill">Programmer's Picnic</div>
+        <h1>Journey Recorder</h1>
+        <p class="sub">
+          Record your live journey, draw the route on the map, calculate distance,
+          and export the trip as JSON.
+        </p>
+      </div>
+
+      <div class="content">
+        <div class="status">
+          <span id="statusDot" class="dot"></span>
+          <div>
+            <strong id="statusText">Ready</strong>
+            <div class="muted" id="statusSub">Grant location permission and press Start Recording.</div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>Trip Details</h2>
+          <div class="field">
+            <label for="tripTitle">Journey Title</label>
+            <input id="tripTitle" type="text" placeholder="Example: Morning Ride to Assi Ghat" />
+          </div>
+          <div class="field">
+            <label for="tripNotes">Notes</label>
+            <textarea id="tripNotes" placeholder="Write anything about this journey..."></textarea>
+          </div>
+          <div class="field">
+            <label for="minDistance">Minimum move before saving next point (meters)</label>
+            <input id="minDistance" type="number" min="1" step="1" value="10" />
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>Live Stats</h2>
+          <div class="grid2">
+            <div class="stat">
+              <div class="label">Recorded Points</div>
+              <div class="value" id="pointsCount">0</div>
+            </div>
+            <div class="stat">
+              <div class="label">Distance</div>
+              <div class="value" id="distanceKm">0.00 km</div>
+            </div>
+            <div class="stat">
+              <div class="label">Current Speed</div>
+              <div class="value" id="speedKmh">0.0 km/h</div>
+            </div>
+            <div class="stat">
+              <div class="label">Elapsed Time</div>
+              <div class="value" id="elapsedTime">00:00:00</div>
+            </div>
+            <div class="stat">
+              <div class="label">Latitude</div>
+              <div class="value" id="latValue">—</div>
+            </div>
+            <div class="stat">
+              <div class="label">Longitude</div>
+              <div class="value" id="lngValue">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>Actions</h2>
+          <div class="row">
+            <button id="startBtn" class="btn-primary">Start Recording</button>
+            <button id="stopBtn" class="btn-secondary">Stop</button>
+            <button id="centerBtn" class="btn-secondary">Center Map</button>
+          </div>
+          <div class="row" style="margin-top:10px">
+            <button id="downloadBtn" class="btn-good">Download JSON</button>
+            <button id="shareBtn" class="btn-secondary">Copy Share Summary</button>
+            <button id="clearBtn" class="btn-danger">Clear Trip</button>
+          </div>
+          <div class="hint">
+            This page needs location permission. On many devices, live tracking works best on HTTPS or localhost.
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>Journey Summary</h2>
+          <div class="trip-list">
+            <div class="trip-item">
+              <strong id="summaryTitle">Untitled Journey</strong>
+              <div class="small" id="summaryTime">Not started</div>
+            </div>
+            <div class="trip-item">
+              <strong>Start Point</strong>
+              <div class="small" id="startPointText">—</div>
+            </div>
+            <div class="trip-item">
+              <strong>Latest Point</strong>
+              <div class="small" id="latestPointText">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>Debug Log</h2>
+          <div id="log" class="log">Journey Recorder loaded.\n</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="map-wrap">
+      <div class="map-topbar">
+        <div class="floating">
+          <strong>Live Route:</strong> <span id="floatingDistance">0.00 km</span>
+        </div>
+        <div class="floating">
+          <strong>Mode:</strong> <span id="floatingMode">Idle</span>
+        </div>
+      </div>
+      <div id="map"></div>
+    </main>
+  </div>
+
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    crossorigin=""
+  ></script>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const map = L.map("map", {
+        zoomControl: true
+      }).setView([25.3176, 82.9739], 13);
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap contributors"
+      }).addTo(map);
+
+      const routeLine = L.polyline([], {
+        weight: 5
+      }).addTo(map);
+
+      const pointsLayer = L.layerGroup().addTo(map);
+
+      let startMarker = null;
+      let currentMarker = null;
+      let watchId = null;
+      let timerId = null;
+      let startedAt = null;
+      let routePoints = [];
+      let totalDistanceM = 0;
+
+      const els = {
+        statusDot: document.getElementById("statusDot"),
+        statusText: document.getElementById("statusText"),
+        statusSub: document.getElementById("statusSub"),
+        pointsCount: document.getElementById("pointsCount"),
+        distanceKm: document.getElementById("distanceKm"),
+        speedKmh: document.getElementById("speedKmh"),
+        elapsedTime: document.getElementById("elapsedTime"),
+        latValue: document.getElementById("latValue"),
+        lngValue: document.getElementById("lngValue"),
+        floatingDistance: document.getElementById("floatingDistance"),
+        floatingMode: document.getElementById("floatingMode"),
+        tripTitle: document.getElementById("tripTitle"),
+        tripNotes: document.getElementById("tripNotes"),
+        minDistance: document.getElementById("minDistance"),
+        summaryTitle: document.getElementById("summaryTitle"),
+        summaryTime: document.getElementById("summaryTime"),
+        startPointText: document.getElementById("startPointText"),
+        latestPointText: document.getElementById("latestPointText"),
+        log: document.getElementById("log"),
+        startBtn: document.getElementById("startBtn"),
+        stopBtn: document.getElementById("stopBtn"),
+        centerBtn: document.getElementById("centerBtn"),
+        downloadBtn: document.getElementById("downloadBtn"),
+        shareBtn: document.getElementById("shareBtn"),
+        clearBtn: document.getElementById("clearBtn")
+      };
+
+      function log(msg) {
+        const now = new Date().toLocaleTimeString();
+        els.log.textContent += `[${now}] ${msg}\n`;
+        els.log.scrollTop = els.log.scrollHeight;
+      }
+
+      function setStatus(mode, text, sub) {
+        els.statusText.textContent = text;
+        els.statusSub.textContent = sub || "";
+        els.floatingMode.textContent = mode;
+
+        els.statusDot.className = "dot";
+        if (mode === "Recording") els.statusDot.classList.add("live");
+        else if (mode === "Waiting" || mode === "Stopped") els.statusDot.classList.add("warn");
+      }
+
+      function formatDuration(ms) {
+        const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+        const h = String(Math.floor(totalSeconds / 3600)).padStart(2, "0");
+        const m = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, "0");
+        const s = String(totalSeconds % 60).padStart(2, "0");
+        return `${h}:${m}:${s}`;
+      }
+
+      function formatCoord(v) {
+        return typeof v === "number" ? v.toFixed(6) : "—";
+      }
+
+      function formatPointText(p) {
+        if (!p) return "—";
+        return `${p.lat.toFixed(6)}, ${p.lng.toFixed(6)} at ${new Date(p.timestamp).toLocaleString()}`;
+      }
+
+      function toRad(deg) {
+        return (deg * Math.PI) / 180;
+      }
+
+      function haversineMeters(a, b) {
+        const R = 6371000;
+        const dLat = toRad(b.lat - a.lat);
+        const dLng = toRad(b.lng - a.lng);
+        const lat1 = toRad(a.lat);
+        const lat2 = toRad(b.lat);
+
+        const x =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.sin(dLng / 2) * Math.sin(dLng / 2) * Math.cos(lat1) * Math.cos(lat2);
+
+        const c = 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+        return R * c;
+      }
+
+      function updateStats(lastPoint, speedKmhOverride = null) {
+        els.pointsCount.textContent = routePoints.length;
+        els.distanceKm.textContent = `${(totalDistanceM / 1000).toFixed(2)} km`;
+        els.floatingDistance.textContent = `${(totalDistanceM / 1000).toFixed(2)} km`;
+        els.latValue.textContent = lastPoint ? formatCoord(lastPoint.lat) : "—";
+        els.lngValue.textContent = lastPoint ? formatCoord(lastPoint.lng) : "—";
+        els.summaryTitle.textContent = els.tripTitle.value.trim() || "Untitled Journey";
+        els.startPointText.textContent = formatPointText(routePoints[0]);
+        els.latestPointText.textContent = formatPointText(routePoints[routePoints.length - 1]);
+
+        if (speedKmhOverride !== null && Number.isFinite(speedKmhOverride)) {
+          els.speedKmh.textContent = `${speedKmhOverride.toFixed(1)} km/h`;
+        }
+      }
+
+      function updateTimer() {
+        if (!startedAt) {
+          els.elapsedTime.textContent = "00:00:00";
+          return;
+        }
+        els.elapsedTime.textContent = formatDuration(Date.now() - startedAt);
+      }
+
+      function addPoint(point) {
+        const last = routePoints[routePoints.length - 1];
+        const minDistance = Math.max(1, Number(els.minDistance.value) || 10);
+
+        if (last) {
+          const segment = haversineMeters(last, point);
+          if (segment < minDistance) {
+            updateCurrentMarker(point);
+            updateStats(point, point.speedKmh);
+            log(`Ignored point: moved only ${segment.toFixed(1)} m (minimum ${minDistance} m).`);
+            return;
+          }
+          totalDistanceM += segment;
+        }
+
+        routePoints.push(point);
+        routeLine.addLatLng([point.lat, point.lng]);
+
+        const pointMarker = L.circleMarker([point.lat, point.lng], {
+          radius: 4,
+          weight: 1,
+          fillOpacity: 0.9
+        });
+        pointMarker.bindPopup(
+          `<strong>Recorded Point</strong><br>Lat: ${point.lat.toFixed(6)}<br>Lng: ${point.lng.toFixed(6)}<br>Time: ${new Date(point.timestamp).toLocaleString()}`
+        );
+        pointsLayer.addLayer(pointMarker);
+
+        if (!startMarker) {
+          startMarker = L.marker([point.lat, point.lng]).addTo(map);
+          startMarker.bindPopup("<strong>Journey Start</strong>");
+          els.summaryTime.textContent = `Started on ${new Date(point.timestamp).toLocaleString()}`;
+        }
+
+        updateCurrentMarker(point);
+        updateStats(point, point.speedKmh);
+
+        if (routePoints.length === 1) {
+          map.setView([point.lat, point.lng], 17);
+        }
+      }
+
+      function updateCurrentMarker(point) {
+        if (!currentMarker) {
+          currentMarker = L.marker([point.lat, point.lng]).addTo(map);
+        } else {
+          currentMarker.setLatLng([point.lat, point.lng]);
+        }
+
+        currentMarker.bindPopup(
+          `<strong>Current Position</strong><br>Lat: ${point.lat.toFixed(6)}<br>Lng: ${point.lng.toFixed(6)}<br>Speed: ${point.speedKmh.toFixed(1)} km/h`
+        );
+      }
+
+      function buildTripData() {
+        const title = els.tripTitle.value.trim() || "Untitled Journey";
+        const notes = els.tripNotes.value.trim();
+
+        return {
+          title,
+          notes,
+          createdAt: new Date().toISOString(),
+          startedAt: startedAt ? new Date(startedAt).toISOString() : null,
+          endedAt: routePoints.length ? new Date(routePoints[routePoints.length - 1].timestamp).toISOString() : null,
+          distanceMeters: Number(totalDistanceM.toFixed(2)),
+          distanceKilometers: Number((totalDistanceM / 1000).toFixed(3)),
+          pointsCount: routePoints.length,
+          points: routePoints.map(p => ({
+            lat: p.lat,
+            lng: p.lng,
+            accuracy: p.accuracy,
+            altitude: p.altitude,
+            heading: p.heading,
+            speedMps: p.speedMps,
+            speedKmh: Number(p.speedKmh.toFixed(2)),
+            timestamp: new Date(p.timestamp).toISOString()
+          }))
+        };
+      }
+
+      function startTimer() {
+        clearInterval(timerId);
+        timerId = setInterval(updateTimer, 1000);
+        updateTimer();
+      }
+
+      function stopTimer() {
+        clearInterval(timerId);
+        timerId = null;
+      }
+
+      function startRecording() {
+        if (!("geolocation" in navigator)) {
+          setStatus("Stopped", "Geolocation not supported", "This browser does not support live location.");
+          log("Geolocation is not available in this browser.");
+          return;
+        }
+
+        if (watchId !== null) {
+          log("Recording is already active.");
+          return;
+        }
+
+        if (!startedAt) startedAt = Date.now();
+
+        setStatus("Waiting", "Waiting for location...", "Please allow location access if asked.");
+        startTimer();
+
+        watchId = navigator.geolocation.watchPosition(
+          position => {
+            const coords = position.coords;
+            const point = {
+              lat: coords.latitude,
+              lng: coords.longitude,
+              accuracy: coords.accuracy ?? null,
+              altitude: coords.altitude ?? null,
+              heading: coords.heading ?? null,
+              speedMps: coords.speed ?? 0,
+              speedKmh: (coords.speed ?? 0) * 3.6,
+              timestamp: position.timestamp || Date.now()
+            };
+
+            setStatus("Recording", "Recording journey", `Accuracy ${Math.round(point.accuracy || 0)} m`);
+            addPoint(point);
+
+            log(
+              `Point saved: ${point.lat.toFixed(6)}, ${point.lng.toFixed(6)} | speed ${point.speedKmh.toFixed(1)} km/h`
+            );
+          },
+          error => {
+            let message = "Unable to fetch location.";
+            if (error.code === 1) message = "Location permission denied.";
+            if (error.code === 2) message = "Location unavailable.";
+            if (error.code === 3) message = "Location request timed out.";
+
+            setStatus("Stopped", message, "Check GPS, browser permission, and HTTPS.");
+            log(`Geolocation error: ${message}`);
+            stopRecording(false);
+          },
+          {
+            enableHighAccuracy: true,
+            maximumAge: 0,
+            timeout: 15000
+          }
+        );
+      }
+
+      function stopRecording(showMessage = true) {
+        if (watchId !== null) {
+          navigator.geolocation.clearWatch(watchId);
+          watchId = null;
+        }
+        stopTimer();
+        if (showMessage) {
+          setStatus("Stopped", "Recording stopped", "You can download or clear the trip.");
+          log("Recording stopped.");
+        }
+      }
+
+      function clearTrip() {
+        stopRecording(false);
+        routePoints = [];
+        totalDistanceM = 0;
+        startedAt = null;
+
+        routeLine.setLatLngs([]);
+        pointsLayer.clearLayers();
+
+        if (startMarker) {
+          map.removeLayer(startMarker);
+          startMarker = null;
+        }
+        if (currentMarker) {
+          map.removeLayer(currentMarker);
+          currentMarker = null;
+        }
+
+        els.pointsCount.textContent = "0";
+        els.distanceKm.textContent = "0.00 km";
+        els.floatingDistance.textContent = "0.00 km";
+        els.speedKmh.textContent = "0.0 km/h";
+        els.elapsedTime.textContent = "00:00:00";
+        els.latValue.textContent = "—";
+        els.lngValue.textContent = "—";
+        els.summaryTime.textContent = "Not started";
+        els.startPointText.textContent = "—";
+        els.latestPointText.textContent = "—";
+
+        setStatus("Ready", "Ready", "Grant location permission and press Start Recording.");
+        log("Trip cleared.");
+      }
+
+      function downloadJSON() {
+        const trip = buildTripData();
+        const blob = new Blob([JSON.stringify(trip, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+
+        const safeTitle = (trip.title || "journey")
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "") || "journey";
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${safeTitle}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        log(`Journey exported as ${a.download}`);
+      }
+
+      async function copySummary() {
+        const trip = buildTripData();
+        const text =
+`Journey: ${trip.title}
+Distance: ${trip.distanceKilometers} km
+Points: ${trip.pointsCount}
+Started: ${trip.startedAt || "Not started"}
+Ended: ${trip.endedAt || "Not ended"}
+Notes: ${trip.notes || "None"}`;
+
+        try {
+          await navigator.clipboard.writeText(text);
+          log("Journey summary copied to clipboard.");
+          alert("Journey summary copied.");
+        } catch (err) {
+          log("Clipboard copy failed.");
+          alert(text);
+        }
+      }
+
+      function centerMap() {
+        if (!routePoints.length) {
+          map.setView([25.3176, 82.9739], 13);
+          log("Centered map to default view.");
+          return;
+        }
+
+        const bounds = L.latLngBounds(routePoints.map(p => [p.lat, p.lng]));
+        map.fitBounds(bounds.pad(0.15));
+        log("Centered map to current route.");
+      }
+
+      els.startBtn.addEventListener("click", startRecording);
+      els.stopBtn.addEventListener("click", () => stopRecording(true));
+      els.clearBtn.addEventListener("click", clearTrip);
+      els.downloadBtn.addEventListener("click", downloadJSON);
+      els.shareBtn.addEventListener("click", copySummary);
+      els.centerBtn.addEventListener("click", centerMap);
+      els.tripTitle.addEventListener("input", () => {
+        els.summaryTitle.textContent = els.tripTitle.value.trim() || "Untitled Journey";
+      });
+
+      setStatus("Ready", "Ready", "Grant location permission and press Start Recording.");
+      updateStats(null, 0);
+      updateTimer();
+      log("Map initialized with OpenStreetMap tiles.");
+    })();
+  </script>
+</body>
+</html>
