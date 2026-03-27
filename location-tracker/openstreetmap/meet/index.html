@@ -1,0 +1,850 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Programmer's Picnic — Share Location & Best Path Finder</title>
+  <meta
+    name="description"
+    content="A single-page HTML app to get your current location, share it, choose a destination, and find the best route on OpenStreetMap."
+  />
+  <meta name="theme-color" content="#f59e0b" />
+
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    crossorigin=""
+  />
+
+  <style>
+    :root{
+      --bg:#fff8eb;
+      --bg2:#fff4d6;
+      --card:rgba(255,255,255,.86);
+      --ink:#1f2937;
+      --muted:#6b7280;
+      --brand:#d97706;
+      --brand2:#f59e0b;
+      --line:#ecd8b5;
+      --good:#166534;
+      --bad:#b91c1c;
+      --shadow:0 16px 40px rgba(180,83,9,.12);
+      --radius:22px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color:var(--ink);
+      background:
+        radial-gradient(circle at top left, #fff5d9 0, transparent 28%),
+        radial-gradient(circle at top right, #ffe7b3 0, transparent 24%),
+        linear-gradient(180deg, var(--bg) 0%, #fffdf8 100%);
+    }
+
+    .app{
+      min-height:100%;
+      display:grid;
+      grid-template-columns:400px 1fr;
+      gap:18px;
+      padding:18px;
+    }
+
+    .panel{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(12px);
+      overflow:hidden;
+    }
+
+    .sidebar{
+      display:flex;
+      flex-direction:column;
+    }
+
+    .head{
+      padding:18px 18px 12px;
+      border-bottom:1px solid var(--line);
+      background:linear-gradient(135deg, rgba(245,158,11,.12), rgba(217,119,6,.08));
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 12px;
+      border-radius:999px;
+      background:#fff7df;
+      color:#9a3412;
+      border:1px solid #f4d69a;
+      font-size:12px;
+      font-weight:800;
+      letter-spacing:.03em;
+      text-transform:uppercase;
+    }
+
+    h1{
+      margin:12px 0 6px;
+      font-size:28px;
+      line-height:1.08;
+      color:#9a3412;
+    }
+
+    .sub{
+      margin:0;
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.55;
+    }
+
+    .content{
+      padding:16px;
+      overflow:auto;
+    }
+
+    .section{
+      margin-bottom:16px;
+      padding:14px;
+      border:1px solid var(--line);
+      border-radius:18px;
+      background:rgba(255,255,255,.76);
+    }
+
+    .section h2{
+      margin:0 0 12px;
+      font-size:16px;
+      color:#92400e;
+    }
+
+    .row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .field{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      margin-bottom:10px;
+    }
+
+    .field label{
+      font-size:13px;
+      font-weight:700;
+      color:#7c2d12;
+    }
+
+    .field input, .field select, .field textarea{
+      width:100%;
+      border:1px solid var(--line);
+      background:#fffdf8;
+      border-radius:14px;
+      padding:11px 12px;
+      outline:none;
+      font:inherit;
+    }
+
+    button{
+      appearance:none;
+      border:none;
+      cursor:pointer;
+      border-radius:14px;
+      padding:12px 14px;
+      font:inherit;
+      font-weight:800;
+      transition:transform .15s ease, box-shadow .15s ease, opacity .15s ease;
+    }
+
+    button:hover{transform:translateY(-1px)}
+    button:active{transform:translateY(0)}
+
+    .btn-primary{
+      background:linear-gradient(135deg, var(--brand), var(--brand2));
+      color:#fff;
+      box-shadow:0 10px 20px rgba(217,119,6,.18);
+    }
+
+    .btn-secondary{
+      background:#fff;
+      color:#7c2d12;
+      border:1px solid var(--line);
+    }
+
+    .btn-good{
+      background:#effcf3;
+      color:var(--good);
+      border:1px solid #bbf7d0;
+    }
+
+    .btn-danger{
+      background:#fff1f2;
+      color:var(--bad);
+      border:1px solid #fecdd3;
+    }
+
+    .full{width:100%}
+
+    .status{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:12px 14px;
+      border-radius:16px;
+      background:#fffaf0;
+      border:1px solid var(--line);
+      margin-bottom:14px;
+    }
+
+    .dot{
+      width:12px;
+      height:12px;
+      border-radius:50%;
+      background:#9ca3af;
+      box-shadow:0 0 0 4px rgba(156,163,175,.18);
+      flex:0 0 auto;
+    }
+
+    .dot.live{
+      background:#22c55e;
+      box-shadow:0 0 0 4px rgba(34,197,94,.18);
+    }
+
+    .dot.warn{
+      background:#f59e0b;
+      box-shadow:0 0 0 4px rgba(245,158,11,.18);
+    }
+
+    .grid2{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+
+    .stat{
+      padding:12px;
+      border-radius:16px;
+      background:#fffaf0;
+      border:1px solid #efdfba;
+    }
+
+    .label{
+      font-size:12px;
+      color:var(--muted);
+      margin-bottom:5px;
+    }
+
+    .value{
+      font-size:18px;
+      font-weight:800;
+      letter-spacing:-.02em;
+      word-break:break-word;
+    }
+
+    .small{
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.5;
+    }
+
+    .instructions{
+      margin:0;
+      padding-left:18px;
+      color:#374151;
+      font-size:14px;
+      line-height:1.6;
+    }
+
+    .log{
+      max-height:180px;
+      overflow:auto;
+      padding:10px;
+      border-radius:14px;
+      background:#111827;
+      color:#e5e7eb;
+      font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size:12px;
+      line-height:1.5;
+      white-space:pre-wrap;
+      border:1px solid #374151;
+    }
+
+    .map-wrap{
+      position:relative;
+      min-height:70vh;
+    }
+
+    #map{
+      width:100%;
+      height:calc(100vh - 36px);
+      border-radius:var(--radius);
+      border:1px solid var(--line);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+
+    .map-top{
+      position:absolute;
+      top:14px;
+      left:14px;
+      right:14px;
+      z-index:1000;
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      pointer-events:none;
+    }
+
+    .floating{
+      pointer-events:auto;
+      background:rgba(255,255,255,.9);
+      border:1px solid var(--line);
+      border-radius:18px;
+      padding:10px 12px;
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(10px);
+      font-size:14px;
+    }
+
+    .floating strong{
+      color:#9a3412;
+    }
+
+    .leaflet-popup-content-wrapper{
+      border-radius:16px;
+    }
+
+    @media (max-width:980px){
+      .app{
+        grid-template-columns:1fr;
+      }
+      #map{
+        height:60vh;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="panel sidebar">
+      <div class="head">
+        <div class="pill">Programmer's Picnic</div>
+        <h1>Share Location & Best Path Finder</h1>
+        <p class="sub">
+          Get your current location, share it, pick a destination, and find the best route on an OpenStreetMap map.
+        </p>
+      </div>
+
+      <div class="content">
+        <div class="status">
+          <span id="statusDot" class="dot"></span>
+          <div>
+            <strong id="statusText">Ready</strong>
+            <div class="small" id="statusSub">Press “Get My Location” to begin.</div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>Step 1 — Get Current Location</h2>
+          <div class="row">
+            <button id="locateBtn" class="btn-primary">Get My Location</button>
+            <button id="watchBtn" class="btn-secondary">Start Live Tracking</button>
+            <button id="stopWatchBtn" class="btn-danger">Stop Tracking</button>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>Step 2 — Choose Destination</h2>
+          <div class="field">
+            <label for="destinationInput">Destination name</label>
+            <input id="destinationInput" type="text" placeholder="Example: Varanasi Railway Station" />
+          </div>
+          <div class="row">
+            <button id="searchBtn" class="btn-secondary">Search Destination</button>
+            <button id="clearRouteBtn" class="btn-danger">Clear Destination / Route</button>
+          </div>
+          <div class="small" style="margin-top:8px;">
+            You can also click anywhere on the map to set the destination.
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>Step 3 — Find and Share</h2>
+          <div class="row">
+            <button id="routeBtn" class="btn-good">Find Best Path</button>
+            <button id="shareBtn" class="btn-secondary">Share My Current Location</button>
+            <button id="copyRouteBtn" class="btn-secondary">Copy Route Summary</button>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>Live Details</h2>
+          <div class="grid2">
+            <div class="stat">
+              <div class="label">Latitude</div>
+              <div class="value" id="latText">—</div>
+            </div>
+            <div class="stat">
+              <div class="label">Longitude</div>
+              <div class="value" id="lngText">—</div>
+            </div>
+            <div class="stat">
+              <div class="label">Destination</div>
+              <div class="value" id="destText">—</div>
+            </div>
+            <div class="stat">
+              <div class="label">Travel Mode</div>
+              <div class="value">Driving</div>
+            </div>
+            <div class="stat">
+              <div class="label">Route Distance</div>
+              <div class="value" id="distanceText">—</div>
+            </div>
+            <div class="stat">
+              <div class="label">Estimated Time</div>
+              <div class="value" id="durationText">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>How to Use</h2>
+          <ol class="instructions">
+            <li>Press <strong>Get My Location</strong>.</li>
+            <li>Search a destination or click on the map.</li>
+            <li>Press <strong>Find Best Path</strong>.</li>
+            <li>Use <strong>Share My Current Location</strong> to share your place.</li>
+          </ol>
+          <div class="small" style="margin-top:8px;">
+            This works best on HTTPS or localhost because browsers protect location access.
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>Debug Log</h2>
+          <div id="log" class="log">App loaded.\n</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="map-wrap">
+      <div class="map-top">
+        <div class="floating">
+          <strong>Mode:</strong> <span id="modeText">Idle</span>
+        </div>
+        <div class="floating">
+          <strong>Best Path:</strong> <span id="topRouteText">Not calculated</span>
+        </div>
+      </div>
+      <div id="map"></div>
+    </main>
+  </div>
+
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    crossorigin=""
+  ></script>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const map = L.map("map").setView([25.3176, 82.9739], 13);
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap contributors"
+      }).addTo(map);
+
+      const els = {
+        statusDot: document.getElementById("statusDot"),
+        statusText: document.getElementById("statusText"),
+        statusSub: document.getElementById("statusSub"),
+        latText: document.getElementById("latText"),
+        lngText: document.getElementById("lngText"),
+        destText: document.getElementById("destText"),
+        distanceText: document.getElementById("distanceText"),
+        durationText: document.getElementById("durationText"),
+        modeText: document.getElementById("modeText"),
+        topRouteText: document.getElementById("topRouteText"),
+        destinationInput: document.getElementById("destinationInput"),
+        locateBtn: document.getElementById("locateBtn"),
+        watchBtn: document.getElementById("watchBtn"),
+        stopWatchBtn: document.getElementById("stopWatchBtn"),
+        searchBtn: document.getElementById("searchBtn"),
+        clearRouteBtn: document.getElementById("clearRouteBtn"),
+        routeBtn: document.getElementById("routeBtn"),
+        shareBtn: document.getElementById("shareBtn"),
+        copyRouteBtn: document.getElementById("copyRouteBtn"),
+        log: document.getElementById("log")
+      };
+
+      let currentLocation = null;
+      let destinationLocation = null;
+      let userMarker = null;
+      let destMarker = null;
+      let routeLine = null;
+      let watchId = null;
+
+      function log(msg) {
+        const t = new Date().toLocaleTimeString();
+        els.log.textContent += `[${t}] ${msg}\n`;
+        els.log.scrollTop = els.log.scrollHeight;
+      }
+
+      function setStatus(mode, text, sub) {
+        els.modeText.textContent = mode;
+        els.statusText.textContent = text;
+        els.statusSub.textContent = sub || "";
+        els.statusDot.className = "dot";
+        if (mode === "Live" || mode === "Ready") els.statusDot.classList.add("live");
+        else if (mode === "Waiting") els.statusDot.classList.add("warn");
+      }
+
+      function formatCoord(v) {
+        return typeof v === "number" ? v.toFixed(6) : "—";
+      }
+
+      function formatDistance(meters) {
+        if (!Number.isFinite(meters)) return "—";
+        if (meters < 1000) return `${Math.round(meters)} m`;
+        return `${(meters / 1000).toFixed(2)} km`;
+      }
+
+      function formatDuration(seconds) {
+        if (!Number.isFinite(seconds)) return "—";
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = Math.floor(seconds % 60);
+        if (h > 0) return `${h}h ${m}m ${s}s`;
+        if (m > 0) return `${m}m ${s}s`;
+        return `${s}s`;
+      }
+
+      function updateUserMarker() {
+        if (!currentLocation) return;
+
+        if (!userMarker) {
+          userMarker = L.marker([currentLocation.lat, currentLocation.lng]).addTo(map);
+        } else {
+          userMarker.setLatLng([currentLocation.lat, currentLocation.lng]);
+        }
+
+        userMarker.bindPopup(
+          `<strong>Your Current Location</strong><br>Lat: ${currentLocation.lat.toFixed(6)}<br>Lng: ${currentLocation.lng.toFixed(6)}`
+        );
+
+        els.latText.textContent = formatCoord(currentLocation.lat);
+        els.lngText.textContent = formatCoord(currentLocation.lng);
+      }
+
+      function updateDestinationMarker() {
+        if (!destinationLocation) return;
+
+        if (!destMarker) {
+          destMarker = L.marker([destinationLocation.lat, destinationLocation.lng]).addTo(map);
+        } else {
+          destMarker.setLatLng([destinationLocation.lat, destinationLocation.lng]);
+        }
+
+        destMarker.bindPopup(
+          `<strong>Destination</strong><br>${destinationLocation.name || "Selected point"}<br>Lat: ${destinationLocation.lat.toFixed(6)}<br>Lng: ${destinationLocation.lng.toFixed(6)}`
+        );
+
+        els.destText.textContent = destinationLocation.name
+          ? destinationLocation.name
+          : `${destinationLocation.lat.toFixed(6)}, ${destinationLocation.lng.toFixed(6)}`;
+      }
+
+      function drawRoute(coords) {
+        if (routeLine) {
+          map.removeLayer(routeLine);
+        }
+
+        routeLine = L.polyline(coords, {
+          weight: 6
+        }).addTo(map);
+
+        map.fitBounds(routeLine.getBounds(), { padding: [30, 30] });
+      }
+
+      function clearRoute() {
+        destinationLocation = null;
+        els.destText.textContent = "—";
+        els.distanceText.textContent = "—";
+        els.durationText.textContent = "—";
+        els.topRouteText.textContent = "Not calculated";
+        els.destinationInput.value = "";
+
+        if (destMarker) {
+          map.removeLayer(destMarker);
+          destMarker = null;
+        }
+
+        if (routeLine) {
+          map.removeLayer(routeLine);
+          routeLine = null;
+        }
+
+        log("Destination and route cleared.");
+      }
+
+      function getMyLocation() {
+        if (!navigator.geolocation) {
+          setStatus("Error", "Geolocation not supported", "This browser does not support location.");
+          log("Geolocation not available.");
+          return;
+        }
+
+        setStatus("Waiting", "Getting your location...", "Please allow location access.");
+
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            currentLocation = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            };
+
+            updateUserMarker();
+            map.setView([currentLocation.lat, currentLocation.lng], 16);
+
+            setStatus("Ready", "Current location found", "You can now share it or find a path.");
+            log(`Current location set: ${currentLocation.lat.toFixed(6)}, ${currentLocation.lng.toFixed(6)}`);
+          },
+          (error) => {
+            let message = "Unable to get location.";
+            if (error.code === 1) message = "Location permission denied.";
+            if (error.code === 2) message = "Location unavailable.";
+            if (error.code === 3) message = "Location request timed out.";
+
+            setStatus("Error", message, "Check GPS, browser permission, and HTTPS.");
+            log(`Location error: ${message}`);
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 0
+          }
+        );
+      }
+
+      function startLiveTracking() {
+        if (!navigator.geolocation) {
+          log("Geolocation not available.");
+          return;
+        }
+
+        if (watchId !== null) {
+          log("Live tracking already started.");
+          return;
+        }
+
+        setStatus("Waiting", "Starting live tracking...", "Waiting for GPS updates.");
+
+        watchId = navigator.geolocation.watchPosition(
+          (position) => {
+            currentLocation = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            };
+
+            updateUserMarker();
+            setStatus("Live", "Live tracking active", "Location is updating continuously.");
+
+            if (!destinationLocation) {
+              map.setView([currentLocation.lat, currentLocation.lng], map.getZoom() < 15 ? 16 : map.getZoom());
+            }
+
+            log(`Live location update: ${currentLocation.lat.toFixed(6)}, ${currentLocation.lng.toFixed(6)}`);
+          },
+          (error) => {
+            let message = "Live tracking failed.";
+            if (error.code === 1) message = "Location permission denied.";
+            if (error.code === 2) message = "Location unavailable.";
+            if (error.code === 3) message = "Location request timed out.";
+
+            setStatus("Error", message, "Tracking stopped.");
+            log(`Tracking error: ${message}`);
+            stopLiveTracking();
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 0
+          }
+        );
+      }
+
+      function stopLiveTracking() {
+        if (watchId !== null) {
+          navigator.geolocation.clearWatch(watchId);
+          watchId = null;
+          setStatus("Ready", "Live tracking stopped", "You can start it again anytime.");
+          log("Live tracking stopped.");
+        }
+      }
+
+      async function searchDestination() {
+        const q = els.destinationInput.value.trim();
+        if (!q) {
+          alert("Please enter a destination name.");
+          return;
+        }
+
+        setStatus("Waiting", "Searching destination...", "Looking up the place on the map.");
+        log(`Searching destination: ${q}`);
+
+        try {
+          const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(q)}`;
+          const res = await fetch(url, {
+            headers: {
+              "Accept": "application/json"
+            }
+          });
+          const data = await res.json();
+
+          if (!Array.isArray(data) || !data.length) {
+            setStatus("Ready", "Destination not found", "Try another name or click the map.");
+            log("No destination found.");
+            return;
+          }
+
+          destinationLocation = {
+            lat: Number(data[0].lat),
+            lng: Number(data[0].lon),
+            name: data[0].display_name
+          };
+
+          updateDestinationMarker();
+          map.setView([destinationLocation.lat, destinationLocation.lng], 15);
+          setStatus("Ready", "Destination found", "Now press Find Best Path.");
+          log(`Destination set: ${destinationLocation.name}`);
+        } catch (err) {
+          setStatus("Error", "Search failed", "Could not search the destination.");
+          log(`Destination search failed: ${err.message}`);
+        }
+      }
+
+      async function findBestRoute() {
+        if (!currentLocation) {
+          alert("Please get your current location first.");
+          return;
+        }
+
+        if (!destinationLocation) {
+          alert("Please search or choose a destination first.");
+          return;
+        }
+
+        setStatus("Waiting", "Finding best path...", "Calculating the route.");
+
+        try {
+          const url =
+            `https://router.project-osrm.org/route/v1/driving/` +
+            `${currentLocation.lng},${currentLocation.lat};${destinationLocation.lng},${destinationLocation.lat}` +
+            `?overview=full&geometries=geojson&steps=true`;
+
+          const res = await fetch(url);
+          const data = await res.json();
+
+          if (!data.routes || !data.routes.length) {
+            setStatus("Ready", "Route not found", "Try another destination.");
+            log("No route found.");
+            return;
+          }
+
+          const route = data.routes[0];
+          const coords = route.geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+
+          drawRoute(coords);
+
+          els.distanceText.textContent = formatDistance(route.distance);
+          els.durationText.textContent = formatDuration(route.duration);
+          els.topRouteText.textContent = `${formatDistance(route.distance)} • ${formatDuration(route.duration)}`;
+
+          setStatus("Ready", "Best path found", "Route displayed on the map.");
+          log(`Route found: ${formatDistance(route.distance)}, ${formatDuration(route.duration)}`);
+        } catch (err) {
+          setStatus("Error", "Route calculation failed", "Could not fetch the path.");
+          log(`Route error: ${err.message}`);
+        }
+      }
+
+      async function shareCurrentLocation() {
+        if (!currentLocation) {
+          alert("Please get your current location first.");
+          return;
+        }
+
+        const osmLink = `https://www.openstreetmap.org/?mlat=${currentLocation.lat}&mlon=${currentLocation.lng}#map=17/${currentLocation.lat}/${currentLocation.lng}`;
+        const text = `Here is my current location:\n${currentLocation.lat.toFixed(6)}, ${currentLocation.lng.toFixed(6)}\n${osmLink}`;
+
+        try {
+          if (navigator.share) {
+            await navigator.share({
+              title: "My Current Location",
+              text
+            });
+            log("Location shared using native share.");
+          } else if (navigator.clipboard) {
+            await navigator.clipboard.writeText(text);
+            alert("Location copied to clipboard.");
+            log("Location copied to clipboard.");
+          } else {
+            prompt("Copy your location:", text);
+          }
+        } catch (err) {
+          log(`Share cancelled or failed: ${err.message}`);
+        }
+      }
+
+      async function copyRouteSummary() {
+        if (!currentLocation) {
+          alert("Please get your current location first.");
+          return;
+        }
+
+        const summary =
+`Current location: ${currentLocation.lat.toFixed(6)}, ${currentLocation.lng.toFixed(6)}
+Destination: ${destinationLocation ? (destinationLocation.name || `${destinationLocation.lat.toFixed(6)}, ${destinationLocation.lng.toFixed(6)}`) : "Not set"}
+Distance: ${els.distanceText.textContent}
+Estimated time: ${els.durationText.textContent}`;
+
+        try {
+          await navigator.clipboard.writeText(summary);
+          alert("Route summary copied.");
+          log("Route summary copied.");
+        } catch (err) {
+          prompt("Copy route summary:", summary);
+        }
+      }
+
+      map.on("click", (e) => {
+        destinationLocation = {
+          lat: e.latlng.lat,
+          lng: e.latlng.lng,
+          name: "Map selected destination"
+        };
+        updateDestinationMarker();
+        log(`Destination set from map click: ${destinationLocation.lat.toFixed(6)}, ${destinationLocation.lng.toFixed(6)}`);
+      });
+
+      els.locateBtn.addEventListener("click", getMyLocation);
+      els.watchBtn.addEventListener("click", startLiveTracking);
+      els.stopWatchBtn.addEventListener("click", stopLiveTracking);
+      els.searchBtn.addEventListener("click", searchDestination);
+      els.routeBtn.addEventListener("click", findBestRoute);
+      els.shareBtn.addEventListener("click", shareCurrentLocation);
+      els.copyRouteBtn.addEventListener("click", copyRouteSummary);
+      els.clearRouteBtn.addEventListener("click", clearRoute);
+
+      setStatus("Ready", "Ready", "Press “Get My Location” to begin.");
+      log("Map initialized.");
+    })();
+  </script>
+</body>
+</html>
