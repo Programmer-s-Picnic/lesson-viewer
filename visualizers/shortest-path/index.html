@@ -92,7 +92,7 @@
       }
 
       .app {
-        max-width: 1440px;
+        max-width: 1400px;
         margin: 0 auto;
         padding: 18px;
         transition:
@@ -113,6 +113,9 @@
         padding: 18px;
         margin-bottom: 18px;
         backdrop-filter: var(--backdrop);
+        transition:
+          border-radius 0.2s ease,
+          background 0.2s ease;
       }
 
       .title {
@@ -147,16 +150,17 @@
         font-size: 14px;
       }
 
-      .quick-toggles,
+      .quick-toggles {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+
       .controls {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
         gap: 12px;
-        margin-bottom: 12px;
-      }
-
-      .controls {
-        margin-bottom: 0;
       }
 
       .card {
@@ -164,6 +168,9 @@
         border: 1px solid var(--border);
         border-radius: var(--radius-lg);
         padding: 14px;
+        transition:
+          border-radius 0.2s ease,
+          background 0.2s ease;
       }
 
       .card h3 {
@@ -179,14 +186,12 @@
         font-weight: 700;
       }
 
-      input[type="number"],
       select,
       input[type="range"],
       button {
         width: 100%;
       }
 
-      input[type="number"],
       select,
       button {
         border: 1px solid var(--border);
@@ -203,7 +208,8 @@
         transition:
           transform 0.12s ease,
           box-shadow 0.12s ease,
-          background 0.12s ease;
+          background 0.12s ease,
+          border-radius 0.2s ease;
       }
 
       button:hover:not(:disabled) {
@@ -231,9 +237,7 @@
         border-color: var(--accent);
       }
 
-      button:disabled,
-      input:disabled,
-      select:disabled {
+      button:disabled {
         opacity: 0.55;
         cursor: not-allowed;
       }
@@ -244,20 +248,11 @@
         gap: 8px;
       }
 
-      .row3 {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 8px;
-      }
-
       .mode-buttons,
       .toggle-buttons {
         display: grid;
-        gap: 8px;
-      }
-
-      .toggle-buttons {
         grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
       }
 
       .mode-buttons.three {
@@ -298,6 +293,9 @@
         padding: 18px;
         overflow: auto;
         backdrop-filter: var(--backdrop);
+        transition:
+          border-radius 0.2s ease,
+          background 0.2s ease;
       }
 
       body.fullscreen-mode .board-wrap {
@@ -337,12 +335,6 @@
         background: var(--explorer);
       }
 
-      .grid-host {
-        width: 100%;
-        overflow: auto;
-        padding-bottom: 6px;
-      }
-
       .grid {
         display: grid;
         gap: 1px;
@@ -366,25 +358,25 @@
       }
 
       .cell.start {
-        background: var(--start) !important;
+        background: var(--start);
       }
       .cell.end {
-        background: var(--end) !important;
+        background: var(--end);
       }
       .cell.wall {
-        background: var(--wall) !important;
+        background: var(--wall);
       }
+
       .cell.visited {
         background: var(--visited);
         animation: popIn 0.18s ease;
       }
+
       .cell.path {
-        background: var(--path) !important;
+        background: var(--path);
         animation: popIn 0.18s ease;
       }
-      .cell.route-colored {
-        animation: popIn 0.18s ease;
-      }
+
       .cell.explorer::after {
         content: "";
         position: absolute;
@@ -430,9 +422,6 @@
         }
         h1 {
           font-size: 22px;
-        }
-        .row3 {
-          grid-template-columns: 1fr;
         }
       }
     </style>
@@ -488,35 +477,6 @@
           </div>
 
           <div class="card">
-            <h3>Grid Size</h3>
-            <div class="row3">
-              <div>
-                <label for="rowsInput">Rows</label>
-                <input
-                  id="rowsInput"
-                  type="number"
-                  min="5"
-                  max="60"
-                  value="25"
-                />
-              </div>
-              <div>
-                <label for="colsInput">Columns</label>
-                <input
-                  id="colsInput"
-                  type="number"
-                  min="5"
-                  max="90"
-                  value="45"
-                />
-              </div>
-              <div style="display: flex; align-items: end">
-                <button id="applyGridBtn" class="secondary">Apply</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="card">
             <h3>Drawing Mode</h3>
             <div class="mode-buttons three">
               <button class="mode-btn active" data-mode="wall">Wall</button>
@@ -555,7 +515,7 @@
           </div>
           <div class="stat">
             <div class="label">Grid Size</div>
-            <div class="value" id="gridSizeLabel">25 × 45</div>
+            <div class="value" id="gridSize">25 × 45</div>
           </div>
           <div class="stat">
             <div class="label">Current Mode</div>
@@ -584,8 +544,7 @@
             <span class="dot" style="background: var(--wall)"></span> Wall
           </div>
           <div class="legend-item">
-            <span class="dot" style="background: var(--visited)"></span> Done /
-            Visited
+            <span class="dot" style="background: var(--visited)"></span> Visited
           </div>
           <div class="legend-item">
             <span class="dot" style="background: var(--path)"></span> Shortest
@@ -596,53 +555,22 @@
           </div>
         </div>
 
-        <div class="grid-host">
-          <div id="grid" class="grid"></div>
-        </div>
+        <div id="grid" class="grid"></div>
 
         <div class="footer-note">
-          Stack Explorer now colors every route found differently, then
-          highlights the shortest route at the end.
+          Drag on the grid to draw walls. Stack Explorer moves one object
+          forward, stacks moves, backtracks on dead ends, stores all successful
+          paths, and then shows the shortest one.
         </div>
       </div>
     </div>
 
     <script>
-      let ROWS = 25;
-      let COLS = 45;
-      let CELL_SIZE = 24;
-
-      const ROUTE_COLORS_LIGHT = [
-        "#fca5a5",
-        "#fdba74",
-        "#fde68a",
-        "#86efac",
-        "#93c5fd",
-        "#c4b5fd",
-        "#f9a8d4",
-        "#67e8f9",
-        "#bef264",
-        "#fda4af",
-      ];
-
-      const ROUTE_COLORS_DARK = [
-        "#b91c1c",
-        "#c2410c",
-        "#a16207",
-        "#15803d",
-        "#1d4ed8",
-        "#6d28d9",
-        "#be185d",
-        "#0f766e",
-        "#4d7c0f",
-        "#9f1239",
-      ];
+      const ROWS = 25;
+      const COLS = 45;
 
       const gridEl = document.getElementById("grid");
       const algorithmEl = document.getElementById("algorithm");
-      const rowsInput = document.getElementById("rowsInput");
-      const colsInput = document.getElementById("colsInput");
-      const applyGridBtn = document.getElementById("applyGridBtn");
       const speedEl = document.getElementById("speed");
       const speedValueEl = document.getElementById("speedValue");
       const visualizeBtn = document.getElementById("visualizeBtn");
@@ -651,7 +579,7 @@
       const clearBoardBtn = document.getElementById("clearBoardBtn");
       const visitedCountEl = document.getElementById("visitedCount");
       const pathLengthEl = document.getElementById("pathLength");
-      const gridSizeLabelEl = document.getElementById("gridSizeLabel");
+      const gridSizeEl = document.getElementById("gridSize");
       const currentModeLabelEl = document.getElementById("currentModeLabel");
       const modeButtons = [...document.querySelectorAll(".mode-btn")];
       const pathsFoundEl = document.getElementById("pathsFound");
@@ -670,27 +598,8 @@
       let start = { row: 12, col: 8 };
       let end = { row: 12, col: 36 };
       let explorerPos = null;
-      let grid = [];
 
-      function currentRoutePalette() {
-        return document.body.classList.contains("dark-theme")
-          ? ROUTE_COLORS_DARK
-          : ROUTE_COLORS_LIGHT;
-      }
-
-      function setDefaultStartEnd() {
-        start = {
-          row: Math.floor(ROWS / 2),
-          col: Math.max(1, Math.floor(COLS * 0.2)),
-        };
-        end = {
-          row: Math.floor(ROWS / 2),
-          col: Math.min(COLS - 2, Math.floor(COLS * 0.8)),
-        };
-        if (start.row === end.row && start.col === end.col) {
-          end.col = Math.min(COLS - 1, start.col + 1);
-        }
-      }
+      gridSizeEl.textContent = `${ROWS} × ${COLS}`;
 
       function createNode(row, col) {
         return {
@@ -701,7 +610,6 @@
           isWall: false,
           visited: false,
           path: false,
-          routeColor: "",
           distance: Infinity,
           f: Infinity,
           g: Infinity,
@@ -709,22 +617,19 @@
         };
       }
 
-      function updateGridLabel() {
-        gridSizeLabelEl.textContent = `${ROWS} × ${COLS}`;
-      }
+      let grid = [];
 
       function setGridColumns() {
-        CELL_SIZE = window.innerWidth <= 900 ? 20 : 24;
-        gridEl.style.gridTemplateColumns = `repeat(${COLS}, ${CELL_SIZE}px)`;
+        gridEl.style.gridTemplateColumns =
+          window.innerWidth <= 900
+            ? `repeat(${COLS}, 20px)`
+            : `repeat(${COLS}, 24px)`;
       }
 
       function initGrid() {
         grid = [];
         gridEl.innerHTML = "";
         setGridColumns();
-        updateGridLabel();
-        rowsInput.value = ROWS;
-        colsInput.value = COLS;
 
         for (let r = 0; r < ROWS; r++) {
           const row = [];
@@ -736,8 +641,6 @@
             cell.className = "cell";
             cell.dataset.row = r;
             cell.dataset.col = c;
-            cell.style.width = `${CELL_SIZE}px`;
-            cell.style.height = `${CELL_SIZE}px`;
 
             cell.addEventListener("mousedown", handlePointerDown);
             cell.addEventListener("mouseenter", handlePointerEnter);
@@ -755,47 +658,15 @@
         renderGrid();
       }
 
-      function applyGridSizeFromInputs() {
-        const newRows = Math.max(
-          5,
-          Math.min(60, Number(rowsInput.value) || 25),
-        );
-        const newCols = Math.max(
-          5,
-          Math.min(90, Number(colsInput.value) || 45),
-        );
-        ROWS = newRows;
-        COLS = newCols;
-        setDefaultStartEnd();
-        initGrid();
-        resetMetrics();
-      }
-
       function renderGrid() {
         for (let r = 0; r < ROWS; r++) {
           for (let c = 0; c < COLS; c++) {
             const cell = getCellEl(r, c);
             const node = grid[r][c];
             cell.className = "cell";
-            cell.style.width = `${CELL_SIZE}px`;
-            cell.style.height = `${CELL_SIZE}px`;
-            cell.style.background = "";
-            cell.style.boxShadow = "";
 
             if (node.isWall) cell.classList.add("wall");
             if (node.visited) cell.classList.add("visited");
-
-            if (
-              node.routeColor &&
-              !node.isStart &&
-              !node.isEnd &&
-              !node.isWall &&
-              !node.path
-            ) {
-              cell.classList.add("route-colored");
-              cell.style.background = node.routeColor;
-            }
-
             if (node.path) cell.classList.add("path");
             if (node.isStart) cell.classList.add("start");
             if (node.isEnd) cell.classList.add("end");
@@ -883,11 +754,6 @@
         speedValueEl.textContent = speedEl.value;
       });
 
-      applyGridBtn.addEventListener("click", () => {
-        if (isAnimating) return;
-        applyGridSizeFromInputs();
-      });
-
       function resetMetrics() {
         visitedCountEl.textContent = "0";
         pathLengthEl.textContent = "0";
@@ -901,7 +767,6 @@
             const node = grid[r][c];
             node.visited = false;
             node.path = false;
-            node.routeColor = "";
             node.distance = Infinity;
             node.f = Infinity;
             node.g = Infinity;
@@ -1100,20 +965,21 @@
         const startNode = grid[start.row][start.col];
         const endNode = grid[end.row][end.col];
 
-        const globalDone = new Set([keyOf(startNode)]);
-        startNode.visited = true;
+        const stack = [
+          {
+            node: startNode,
+            path: [startNode],
+            used: new Set([keyOf(startNode)]),
+          },
+        ];
 
         return {
           startNode,
           endNode,
-          stack: [
-            {
-              node: startNode,
-              path: [startNode],
-            },
-          ],
+          stack,
+          visitedOrder: [],
           allPaths: [],
-          globalDone,
+          uniqueVisited: new Set(),
           finished: false,
           shortestPath: [],
         };
@@ -1134,6 +1000,12 @@
 
         const top = state.stack[state.stack.length - 1];
         const current = top.node;
+        const currentKey = keyOf(current);
+
+        if (!state.uniqueVisited.has(currentKey)) {
+          state.uniqueVisited.add(currentKey);
+          state.visitedOrder.push(current);
+        }
 
         if (current === state.endNode) {
           const foundPath = copyPath(top.path);
@@ -1150,24 +1022,22 @@
         const candidates = sortNeighborPreference(
           neighbors(current),
           state.endNode,
-        ).filter((nb) => !nb.isWall && !state.globalDone.has(keyOf(nb)));
+        ).filter((nb) => !nb.isWall && !top.used.has(keyOf(nb)));
 
         if (candidates.length > 0) {
           const next = candidates[0];
-          state.globalDone.add(keyOf(next));
-          if (!next.isStart && !next.isEnd) next.visited = true;
-
+          const nextUsed = new Set(top.used);
+          nextUsed.add(keyOf(next));
           state.stack.push({
             node: next,
             path: [...top.path, next],
+            used: nextUsed,
           });
-
           return {
             action: "forward",
             from: current,
             to: next,
             depth: state.stack.length,
-            visitedCount: state.globalDone.size,
           };
         }
 
@@ -1180,7 +1050,6 @@
           from: current,
           to: backTo,
           depth: state.stack.length,
-          visitedCount: state.globalDone.size,
         };
       }
 
@@ -1214,47 +1083,11 @@
         }
       }
 
-      function colorAllFoundRoutes(paths) {
-        const palette = currentRoutePalette();
-        for (let i = 0; i < paths.length; i++) {
-          const color = palette[i % palette.length];
-          const route = paths[i];
-          for (const p of route) {
-            const node = grid[p.row][p.col];
-            if (!node.isStart && !node.isEnd && !node.isWall) {
-              node.routeColor = color;
-            }
-          }
-        }
-      }
-
-      async function animateAllFoundRoutes(paths) {
-        const delay = Number(speedEl.value);
-        const palette = currentRoutePalette();
-
-        for (let i = 0; i < paths.length; i++) {
-          const route = paths[i];
-          const color = palette[i % palette.length];
-
-          explorerStatusEl.textContent = `Coloring route ${i + 1} of ${paths.length}`;
-
-          for (const p of route) {
-            const node = grid[p.row][p.col];
-            if (!node.isStart && !node.isEnd && !node.isWall) {
-              node.routeColor = color;
-            }
-            renderGrid();
-            if (delay > 0) await sleep(Math.max(5, Math.floor(delay / 2)));
-          }
-        }
-      }
-
       async function animateStackExplorer() {
         const delay = Number(speedEl.value);
         const state = stackExplorerPrepare();
 
         explorerPos = { ...start };
-        visitedCountEl.textContent = "1";
         explorerStatusEl.textContent = "Exploring";
         renderGrid();
 
@@ -1263,7 +1096,10 @@
 
           if (result.action === "forward") {
             explorerPos = { row: result.to.row, col: result.to.col };
-            visitedCountEl.textContent = result.visitedCount;
+            if (!result.to.isStart && !result.to.isEnd) {
+              result.to.visited = true;
+            }
+            visitedCountEl.textContent = state.uniqueVisited.size;
             explorerStatusEl.textContent = `Forward • Stack ${result.depth}`;
             renderGrid();
             if (delay > 0) await sleep(Math.max(20, delay));
@@ -1271,7 +1107,10 @@
             explorerPos = result.to
               ? { row: result.to.row, col: result.to.col }
               : { ...start };
-            visitedCountEl.textContent = result.visitedCount;
+            if (!result.from.isStart && !result.from.isEnd) {
+              result.from.visited = true;
+            }
+            visitedCountEl.textContent = state.uniqueVisited.size;
             explorerStatusEl.textContent = result.to
               ? `Backtrack • Stack ${result.depth}`
               : "Backtrack Complete";
@@ -1279,8 +1118,11 @@
             if (delay > 0) await sleep(Math.max(20, delay));
           } else if (result.action === "found") {
             explorerPos = { row: result.node.row, col: result.node.col };
+            if (!result.node.isStart && !result.node.isEnd) {
+              result.node.visited = true;
+            }
             pathsFoundEl.textContent = state.allPaths.length;
-            visitedCountEl.textContent = state.globalDone.size;
+            visitedCountEl.textContent = state.uniqueVisited.size;
             explorerStatusEl.textContent = `Path Found #${result.pathsFound}`;
             renderGrid();
             if (delay > 0) await sleep(Math.max(80, delay * 2));
@@ -1291,10 +1133,6 @@
 
         explorerPos = null;
         renderGrid();
-
-        if (state.allPaths.length) {
-          await animateAllFoundRoutes(state.allPaths);
-        }
 
         if (state.shortestPath.length) {
           explorerStatusEl.textContent = `Shortest chosen from ${state.allPaths.length} path(s)`;
@@ -1310,7 +1148,7 @@
           explorerStatusEl.textContent = "No path found";
         }
 
-        visitedCountEl.textContent = state.globalDone.size;
+        visitedCountEl.textContent = state.uniqueVisited.size;
         pathsFoundEl.textContent = state.allPaths.length;
       }
 
@@ -1351,9 +1189,6 @@
         clearPathBtn.disabled = disabled;
         clearBoardBtn.disabled = disabled;
         algorithmEl.disabled = disabled;
-        rowsInput.disabled = disabled;
-        colsInput.disabled = disabled;
-        applyGridBtn.disabled = disabled;
         speedEl.disabled = disabled;
         modeButtons.forEach((btn) => (btn.disabled = disabled));
 
@@ -1391,7 +1226,6 @@
           document.body.classList.remove("dark-theme");
           activateButton(lightThemeBtn, [lightThemeBtn, darkThemeBtn]);
         }
-        renderGrid();
       }
 
       function setDesign(design) {
@@ -1432,7 +1266,6 @@
         fullScreenBtn.classList.toggle("toggle-on", isFs);
         document.body.classList.toggle("fullscreen-mode", isFs);
         setGridColumns();
-        renderGrid();
       }
 
       lightThemeBtn.addEventListener("click", () => setTheme("light"));
@@ -1450,10 +1283,8 @@
 
       window.addEventListener("resize", () => {
         setGridColumns();
-        renderGrid();
       });
 
-      setDefaultStartEnd();
       initGrid();
       setTheme("light");
       setDesign("soft");
