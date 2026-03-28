@@ -1119,6 +1119,8 @@
                 <button class="btn small" id="prettyBtn">Pretty</button>
                 <button class="btn small" id="rawBtn">Raw</button>
                 <button class="btn small" id="respHeadersBtn">Headers</button>
+                <button class="btn small" id="htmlPreviewBtn">HTML Preview</button>
+                <button class="btn small" id="openPreviewBtn">Open Preview</button>
               </div>
             </div>
 
@@ -1146,11 +1148,20 @@
             </div>
 
             <pre id="responseBox" class="codebox hidden"></pre>
+            <div id="htmlPreviewWrap" class="hidden" style="margin-top:12px">
+              <iframe
+                id="htmlPreviewFrame"
+                title="HTML Preview"
+                style="width:100%;min-height:420px;border:1px solid var(--line);border-radius:18px;background:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.05)"
+                sandbox="allow-scripts allow-forms allow-modals allow-popups allow-same-origin allow-downloads"
+                referrerpolicy="no-referrer"
+              ></iframe>
+            </div>
 
             <div style="height:12px"></div>
 
             <div class="footer-note">
-              Note: browsers block some cross-origin requests because of CORS. If an API does not allow browser access, test it through your own backend proxy or a CORS-enabled endpoint.
+              Note: browsers block some cross-origin requests because of CORS. For localhost and private-network APIs from a hosted page, the browser may also block or prompt for access, and your local server may need CORS enabled. The HTML Preview button can render returned HTML, while Open Preview can directly open the current URL, including localhost pages.
             </div>
           </div>
         </section>
@@ -1210,6 +1221,10 @@
       prettyBtn: document.getElementById('prettyBtn'),
       rawBtn: document.getElementById('rawBtn'),
       respHeadersBtn: document.getElementById('respHeadersBtn'),
+      htmlPreviewBtn: document.getElementById('htmlPreviewBtn'),
+      openPreviewBtn: document.getElementById('openPreviewBtn'),
+      htmlPreviewWrap: document.getElementById('htmlPreviewWrap'),
+      htmlPreviewFrame: document.getElementById('htmlPreviewFrame'),
       workspace: document.getElementById('workspace'),
       resizer: document.getElementById('resizer')
     };
@@ -1225,6 +1240,9 @@
       rawText: '',
       prettyText: '',
       headersText: '',
+      htmlText: '',
+      finalUrl: '',
+      contentType: '',
       mode: 'pretty'
     };
 
@@ -1237,6 +1255,21 @@
         .replaceAll('&','&amp;')
         .replaceAll('<','&lt;')
         .replaceAll('>','&gt;');
+    }
+
+    function normalizeUrlInput(value='') {
+      const raw = String(value || '').trim();
+      if (!raw) return '';
+      if (/^[a-zA-Z][a-zA-Z\d+.-]*:\/\//.test(raw)) return raw;
+      if (/^(localhost|127(?:\.\d{1,3}){3}|0\.0\.0\.0)(:\d+)?(\/.*)?$/i.test(raw)) return 'http://' + raw;
+      if (raw.startsWith('/')) return new URL(raw, location.href).toString();
+      return 'https://' + raw;
+    }
+
+    function isHtmlLike(contentType='', text='') {
+      const ct = String(contentType || '').toLowerCase();
+      const sample = String(text || '').trim().slice(0, 300).toLowerCase();
+      return ct.includes('text/html') || ct.includes('application/xhtml+xml') || sample.startsWith('<!doctype html') || sample.startsWith('<html') || sample.includes('<body') || sample.includes('<head');
     }
 
     function bytesToSize(bytes) {
@@ -1940,10 +1973,10 @@
 
     function buildFinalRequest(){
       const method = els.method.value.toUpperCase();
-      const baseUrl = els.url.value.trim();
+      const baseUrl = normalizeUrlInput(els.url.value);
       if(!baseUrl) throw new Error('Please enter a URL.');
 
-      const urlObj = new URL(baseUrl);
+      const urlObj = new URL(baseUrl, location.href);
 
       const params = getKVData(els.paramsList);
       params.forEach(({enabled,key,value}) => {
@@ -2000,6 +2033,20 @@
     function renderResponse(mode='pretty'){
       responseState.mode = mode;
       els.responseEmpty.classList.add('hidden');
+
+      if(mode === 'html'){
+        const html = responseState.htmlText || responseState.rawText || '';
+        if (!html) {
+          els.htmlPreviewFrame.srcdoc = '<!doctype html><html><body style="font-family:system-ui;padding:24px">No HTML content available for preview.</body></html>';
+        } else {
+          els.htmlPreviewFrame.srcdoc = html;
+        }
+        els.htmlPreviewWrap.classList.remove('hidden');
+        els.responseBox.classList.add('hidden');
+        return;
+      }
+
+      els.htmlPreviewWrap.classList.add('hidden');
       els.responseBox.classList.remove('hidden');
 
       if(mode === 'pretty'){
@@ -2042,8 +2089,9 @@
         }
 
         const headersText = JSON.stringify(headersToObject(res.headers), null, 2);
+        const htmlText = isHtmlLike(type, rawText) ? rawText : '';
 
-        responseState = { rawText, prettyText, headersText, mode:'pretty' };
+        responseState = { rawText, prettyText, headersText, htmlText, finalUrl: built.url, contentType: type, mode:'pretty' };
         setResponseMetrics({
           status: `${res.status} ${res.statusText}`,
           time,
@@ -2138,6 +2186,15 @@
       els.prettyBtn.addEventListener('click', () => renderResponse('pretty'));
       els.rawBtn.addEventListener('click', () => renderResponse('raw'));
       els.respHeadersBtn.addEventListener('click', () => renderResponse('headers'));
+      els.htmlPreviewBtn.addEventListener('click', () => renderResponse('html'));
+      els.openPreviewBtn.addEventListener('click', () => {
+        const target = responseState.finalUrl || normalizeUrlInput(els.url.value);
+        if (!target) {
+          alert('Enter a URL first.');
+          return;
+        }
+        window.open(target, '_blank', 'noopener,noreferrer');
+      });
     }
 
     function setupResizer(){
