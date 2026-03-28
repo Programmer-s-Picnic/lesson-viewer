@@ -72,7 +72,7 @@ const ui = {
   voiceLog: $("ppVoiceLog"),
   voiceClear: $("ppVoiceClear"),
   fullscreen: $("ppFullscreen"),
-  editorShell: $("ppEditorShell"),
+  editorShell: document.querySelector(".vs-editorwrap"),
   projectTitle: $("ppProjectTitle"),
   projectDescription: $("ppProjectDescription"),
   projectTags: $("ppProjectTags"),
