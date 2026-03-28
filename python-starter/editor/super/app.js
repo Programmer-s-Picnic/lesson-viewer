@@ -71,6 +71,8 @@ const ui = {
   voiceStatus: $("ppVoiceStatus"),
   voiceLog: $("ppVoiceLog"),
   voiceClear: $("ppVoiceClear"),
+  fullscreen: $("ppFullscreen"),
+  editorShell: $("ppEditorShell"),
   projectTitle: $("ppProjectTitle"),
   projectDescription: $("ppProjectDescription"),
   projectTags: $("ppProjectTags"),
@@ -798,6 +800,46 @@ function toggleVoiceRecognition() {
   }
   if (voiceListening) stopVoiceRecognition();
   else startVoiceRecognition();
+}
+
+
+// ----- Focused fullscreen editor -----
+let fullscreenEditor = false;
+let preFullscreenPane = "out";
+
+function getActivePaneName() {
+  return document.querySelector(".vs-ptab.active")?.dataset?.pane || "out";
+}
+
+function setPaneByName(name) {
+  const tab = document.querySelector(`.vs-ptab[data-pane="${name}"]`);
+  tab?.click();
+}
+
+function syncFullscreenButton() {
+  if (!ui.fullscreen) return;
+  ui.fullscreen.textContent = fullscreenEditor ? "🡼 Exit Full Screen" : "⛶ Full Screen";
+  ui.fullscreen.setAttribute("aria-pressed", fullscreenEditor ? "true" : "false");
+}
+
+function toggleEditorFullscreen(force) {
+  const next = typeof force === "boolean" ? force : !fullscreenEditor;
+  if (!ui.editorShell) return;
+  if (next === fullscreenEditor) return;
+
+  if (next) {
+    preFullscreenPane = getActivePaneName();
+    document.body.classList.add("pp-fullscreen-active");
+    ui.editorShell.classList.add("pp-editor-fullscreen");
+    fullscreenEditor = true;
+    setPaneByName("out");
+  } else {
+    document.body.classList.remove("pp-fullscreen-active");
+    ui.editorShell.classList.remove("pp-editor-fullscreen");
+    fullscreenEditor = false;
+    setPaneByName(preFullscreenPane || "out");
+  }
+  syncFullscreenButton();
 }
 
 // ----- Output renderer -----
@@ -1830,7 +1872,17 @@ ui.code.addEventListener("keydown", (e) => {
 });
 
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") closeFullscreenPlot();
+  if (e.key === "Escape") {
+    if (fullscreenEditor) {
+      toggleEditorFullscreen(false);
+      return;
+    }
+    closeFullscreenPlot();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "f") {
+    e.preventDefault();
+    toggleEditorFullscreen();
+  }
 });
 
 ui.problemSel.onchange = () => {
@@ -1885,6 +1937,7 @@ ui.runAll.onclick = async () => {
 };
 
 if (ui.themeToggle) ui.themeToggle.addEventListener("click", toggleTheme);
+if (ui.fullscreen) ui.fullscreen.addEventListener("click", () => toggleEditorFullscreen());
 if (ui.voiceBtn) ui.voiceBtn.addEventListener("click", toggleVoiceRecognition);
 if (ui.voiceClear) {
   ui.voiceClear.addEventListener("click", () => {
@@ -2006,5 +2059,6 @@ async function init() {
   makeWorker();
   setStatus("Ready.", "ok");
   setProgress(0);
+  syncFullscreenButton();
 }
 init();
