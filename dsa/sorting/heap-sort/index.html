@@ -1,0 +1,744 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Heap Sort - Sorting Platform V2</title>
+  <meta name="theme-color" content="#f59e0b">
+  <style>
+    :root {
+      --bg:#fff7e6;
+      --bg2:#fff2cc;
+      --card:rgba(255,255,255,.84);
+      --ink:#1f2937;
+      --muted:#6b7280;
+      --brand:#d97706;
+      --brand2:#f59e0b;
+      --border:#eadcc5;
+      --ok:#16a34a;
+      --warn:#b45309;
+      --danger:#dc2626;
+      --shadow:0 18px 60px rgba(217,119,6,.14);
+      --radius:24px;
+    }
+    * { box-sizing:border-box; }
+    html,body { margin:0; padding:0; background:
+      radial-gradient(circle at top left, #fff1c2 0%, transparent 35%),
+      radial-gradient(circle at top right, #ffe7b0 0%, transparent 30%),
+      linear-gradient(180deg, #fffaf0 0%, var(--bg) 100%);
+      color:var(--ink); font-family:Inter,system-ui,Arial,sans-serif; }
+    a { color:inherit; text-decoration:none; }
+    .wrap { width:min(1400px, calc(100% - 24px)); margin:0 auto; padding:18px 0 40px; }
+    .topbar {
+      display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap;
+      padding:14px 16px; position:sticky; top:0; z-index:20; backdrop-filter:blur(14px);
+      background:rgba(255,247,230,.78); border:1px solid rgba(234,220,197,.9);
+      border-radius:22px; box-shadow:var(--shadow); margin-top:12px;
+    }
+    .brand { display:flex; align-items:center; gap:12px; font-weight:900; }
+    .logo {
+      width:46px; height:46px; display:grid; place-items:center; border-radius:16px;
+      background:linear-gradient(135deg,var(--brand),var(--brand2)); color:#fff; font-weight:900;
+      box-shadow:0 14px 28px rgba(217,119,6,.28);
+    }
+    .nav { display:flex; flex-wrap:wrap; gap:8px; }
+    .pill {
+      padding:10px 14px; border:1px solid var(--border); border-radius:999px;
+      background:rgba(255,255,255,.7); font-weight:700;
+    }
+    .hero {
+      display:grid; grid-template-columns:1.3fr .7fr; gap:18px; margin-top:18px;
+    }
+    .card {
+      background:var(--card); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow);
+      padding:18px;
+    }
+    .hero h1 { margin:0 0 10px; font-size:clamp(2rem, 4vw, 3.6rem); line-height:1.04; }
+    .subtitle { color:var(--muted); font-size:1.03rem; line-height:1.7; }
+    .badge-row, .stats { display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+    .badge, .stat {
+      padding:10px 14px; border-radius:18px; background:#fff; border:1px solid var(--border); font-weight:700;
+    }
+    .mini-links {
+      display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; margin-top:10px;
+    }
+    .mini-link {
+      padding:12px 14px; border-radius:16px; border:1px solid var(--border);
+      background:#fff; font-weight:700;
+    }
+    .mini-link.active { background:linear-gradient(135deg,#fff1d7,#fff); border-color:#f2c67e; }
+    .grid {
+      display:grid; grid-template-columns:1.15fr .85fr; gap:18px; margin-top:18px;
+    }
+    .control-grid {
+      display:grid; grid-template-columns:1fr auto auto auto auto; gap:10px; align-items:center;
+    }
+    textarea, input, select {
+      width:100%; border:1px solid var(--border); border-radius:18px; padding:14px 16px; font:inherit;
+      background:#fff;
+    }
+    button {
+      border:0; border-radius:18px; padding:13px 16px; font:inherit; font-weight:800; cursor:pointer;
+      background:linear-gradient(135deg,var(--brand),var(--brand2)); color:#fff; box-shadow:0 12px 24px rgba(217,119,6,.22);
+    }
+    button.secondary {
+      background:#fff; color:var(--ink); border:1px solid var(--border); box-shadow:none;
+    }
+    button.ghost {
+      background:rgba(255,255,255,.7); color:var(--ink); border:1px dashed var(--border); box-shadow:none;
+    }
+    .stage {
+      min-height:350px; display:flex; align-items:flex-end; justify-content:center; gap:10px; padding:16px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,242,204,.76)),
+        repeating-linear-gradient(to right, transparent 0 39px, rgba(234,220,197,.25) 39px 40px);
+      border:1px solid var(--border); border-radius:22px; overflow:auto;
+    }
+    .bar-wrap { width:min(62px, 8vw); display:flex; flex-direction:column; align-items:center; gap:8px; }
+    .bar {
+      width:100%; border-radius:18px 18px 8px 8px; min-height:24px;
+      background:linear-gradient(180deg,#fbbf24,#d97706); box-shadow:inset 0 1px 0 rgba(255,255,255,.6);
+      display:flex; align-items:flex-start; justify-content:center; color:#fff; font-weight:800; padding-top:8px;
+      transition:all .28s ease;
+    }
+    .bar.active { outline:4px solid rgba(59,130,246,.18); background:linear-gradient(180deg,#60a5fa,#2563eb); }
+    .bar.swap { background:linear-gradient(180deg,#fb7185,#e11d48); }
+    .bar.sorted { background:linear-gradient(180deg,#34d399,#059669); }
+    .bar.empty { background:linear-gradient(180deg,#f3f4f6,#d1d5db); color:#6b7280; }
+    .bar-label { font-size:.92rem; font-weight:800; }
+    .info {
+      margin-top:12px; padding:14px 16px; border-radius:18px; background:#fff; border:1px solid var(--border);
+      color:#4b5563;
+    }
+    .split {
+      display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:18px;
+    }
+    pre {
+      margin:0; white-space:pre-wrap; word-break:break-word; font-family:ui-monospace,SFMono-Regular,Consolas,monospace;
+      font-size:.94rem; line-height:1.55;
+    }
+    .iframe-wrap {
+      border:1px solid var(--border); border-radius:22px; overflow:hidden; background:#fff; min-height:520px;
+    }
+    iframe { width:100%; height:520px; border:0; }
+    .foot {
+      text-align:center; color:var(--muted); margin-top:22px; padding-bottom:18px;
+    }
+    ul { line-height:1.8; }
+    .section-title { margin:0 0 12px; font-size:1.35rem; }
+    @media (max-width:1100px) {
+      .hero, .grid, .split { grid-template-columns:1fr; }
+      .control-grid { grid-template-columns:1fr 1fr 1fr; }
+    }
+    @media (max-width:700px) {
+      .control-grid { grid-template-columns:1fr 1fr; }
+      .mini-links { grid-template-columns:1fr; }
+      .topbar { border-radius:18px; }
+      .card { border-radius:22px; }
+      .stage { min-height:280px; gap:8px; }
+      .bar-wrap { width:min(44px, 12vw); }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo">PP</div>
+        <div>
+          <div style="font-size:1.12rem">Programmer's Picnic</div>
+          <div style="color:var(--muted); font-size:.92rem">Sorting Algorithms V2 Platform</div>
+        </div>
+      </div>
+      <div class="nav">
+        <a class="pill" href="../">Home</a>
+        <a class="pill" href="#visualizer">Visualizer</a>
+        <a class="pill" href="#code">Python Code</a>
+        <a class="pill" href="#dry-run">Dry Run</a>
+        <a class="pill" href="#editor">Python Editor</a>
+      </div>
+    </div>
+
+    <section class="hero">
+      <div class="card">
+        <div class="badge">Algorithm Page</div>
+        <h1>Heap Sort</h1>
+        <div class="subtitle">Build a max heap so the largest element stays at the root. Swap it to the end, shrink the heap, and heapify again.</div>
+        <div class="badge-row">
+          <div class="badge">Best: O(n log n)</div>
+          <div class="badge">Average: O(n log n)</div>
+          <div class="badge">Worst: O(n log n)</div>
+          <div class="badge">Space: O(1)</div>
+          <div class="badge">Stable: No</div>
+        </div>
+        <div class="stats">
+          <div class="stat">Use a max heap to repeatedly extract the largest value</div>
+          <div class="stat">Interactive demo included</div>
+          <div class="stat">Embedded Python editor included</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="section-title">All algorithms</h3>
+        <div class="mini-links"><a class="mini-link" href="../bubble-sort/">Bubble Sort</a>
+<a class="mini-link" href="../selection-sort/">Selection Sort</a>
+<a class="mini-link" href="../insertion-sort/">Insertion Sort</a>
+<a class="mini-link" href="../merge-sort/">Merge Sort</a>
+<a class="mini-link" href="../quick-sort/">Quick Sort</a>
+<a class="mini-link active" href="../heap-sort/">Heap Sort</a>
+<a class="mini-link" href="../counting-sort/">Counting Sort</a>
+<a class="mini-link" href="../radix-sort/">Radix Sort</a>
+<a class="mini-link" href="../bucket-sort/">Bucket Sort</a>
+<a class="mini-link" href="../tim-sort/">TimSort</a></div>
+      </div>
+    </section>
+
+    <section class="grid" id="visualizer">
+      <div class="card">
+        <h2 class="section-title">Heap Sort Visualizer</h2>
+        <div class="control-grid">
+          <textarea id="arrayInput" rows="2">29, 10, 14, 37, 13, 7, 21</textarea>
+          <button id="playBtn">Play</button>
+          <button class="secondary" id="stepBtn">Step</button>
+          <button class="secondary" id="resetBtn">Reset</button>
+          <button class="ghost" id="shuffleBtn">Shuffle</button>
+        </div>
+        <div style="margin-top:10px; display:grid; grid-template-columns:1fr 180px; gap:10px;">
+          <input id="speedInput" type="range" min="150" max="1600" step="50" value="650">
+          <div class="info" id="speedLabel">Speed: 650 ms</div>
+        </div>
+        <div class="stage" id="stage"></div>
+        <div class="info" id="vizInfo">Press Play to animate Heap Sort.</div>
+      </div>
+
+      <div class="card">
+        <h2 class="section-title">How it works</h2>
+        <ul><li>Build a max heap.</li><li>Swap root with the end.</li><li>Reduce heap size.</li><li>Heapify again and repeat.</li></ul>
+        <div class="info">
+          Try your own input. Use comma-separated numbers such as:
+          <strong>5, 2, 9, 1, 5, 6</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="split" id="code">
+      <div class="card">
+        <h2 class="section-title">Python code</h2>
+        <pre>def heapify(arr, n, i):
+    largest = i
+    left = 2 * i + 1
+    right = 2 * i + 2
+
+    if left &lt; n and arr[left] &gt; arr[largest]:
+        largest = left
+
+    if right &lt; n and arr[right] &gt; arr[largest]:
+        largest = right
+
+    if largest != i:
+        arr[i], arr[largest] = arr[largest], arr[i]
+        heapify(arr, n, largest)
+
+def heap_sort(arr):
+    arr = arr[:]
+    n = len(arr)
+
+    for i in range(n // 2 - 1, -1, -1):
+        heapify(arr, n, i)
+
+    for i in range(n - 1, 0, -1):
+        arr[0], arr[i] = arr[i], arr[0]
+        heapify(arr, i, 0)
+
+    return arr
+
+data = [12, 11, 13, 5, 6, 7]
+print(&quot;Original:&quot;, data)
+print(&quot;Sorted  :&quot;, heap_sort(data))
+</pre>
+      </div>
+      <div class="card" id="dry-run">
+        <h2 class="section-title">Dry run</h2>
+        <div class="subtitle">This section explains the first few major stages of the algorithm using your current input.</div>
+        <div class="info" id="dryRunOutput">Enter data and press Reset or Play to generate the dry run summary.</div>
+      </div>
+    </section>
+
+    <section class="card" id="editor" style="margin-top:18px;">
+      <h2 class="section-title">Embedded Python editor via hash-share method</h2>
+      <div class="subtitle">
+        The iframe below is built from a share-hash payload so the starter code is already loaded in your Python editor.
+      </div>
+      <div class="iframe-wrap" style="margin-top:14px;">
+        <iframe id="pyEditorFrame" loading="lazy" allow="clipboard-write; fullscreen"></iframe>
+      </div>
+      <div class="info" id="editorInfo"></div>
+    </section>
+
+    <div class="foot">Built in single-file pages with index.html only • Programmer's Picnic style</div>
+  </div>
+
+<script>
+
+function parseInput(text) {
+  const cleaned = text.trim();
+  if (!cleaned) return [];
+  return cleaned
+    .split(/[\s,]+/)
+    .map(v => Number(v))
+    .filter(v => !Number.isNaN(v));
+}
+
+function cloneArray(arr) {
+  return arr.slice();
+}
+
+function bubbleSort(arr) {
+  arr = cloneArray(arr);
+  const states = [{ array: cloneArray(arr), info: "Initial array" }];
+  let n = arr.length;
+  for (let i = 0; i < n; i++) {
+    let swapped = false;
+    for (let j = 0; j < n - i - 1; j++) {
+      states.push({ array: cloneArray(arr), active:[j, j + 1], info:`Compare index ${j} and ${j + 1}` });
+      if (arr[j] > arr[j + 1]) {
+        [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
+        swapped = true;
+        states.push({ array: cloneArray(arr), active:[j, j + 1], swapped:[j, j + 1], info:`Swap ${arr[j]} and ${arr[j + 1]}` });
+      }
+    }
+    states.push({ array: cloneArray(arr), sorted: Array.from({length:i+1}, (_,k)=>n-1-k), info:`Pass ${i + 1} complete` });
+    if (!swapped) break;
+  }
+  states.push({ array: cloneArray(arr), sorted: arr.map((_, i) => i), info: "Sorting complete" });
+  return states;
+}
+
+function selectionSort(arr) {
+  arr = cloneArray(arr);
+  const states = [{ array: cloneArray(arr), info:"Initial array" }];
+  for (let i = 0; i < arr.length; i++) {
+    let minIndex = i;
+    states.push({ array: cloneArray(arr), active:[i], info:`Start scanning from index ${i}` });
+    for (let j = i + 1; j < arr.length; j++) {
+      states.push({ array: cloneArray(arr), active:[minIndex, j], info:`Compare current minimum at ${minIndex} with index ${j}` });
+      if (arr[j] < arr[minIndex]) {
+        minIndex = j;
+        states.push({ array: cloneArray(arr), active:[minIndex], info:`New minimum found at index ${minIndex}` });
+      }
+    }
+    [arr[i], arr[minIndex]] = [arr[minIndex], arr[i]];
+    states.push({ array: cloneArray(arr), swapped:[i, minIndex], sorted:Array.from({length:i+1}, (_,k)=>k), info:`Place minimum at position ${i}` });
+  }
+  states.push({ array: cloneArray(arr), sorted: arr.map((_,i)=>i), info:"Sorting complete" });
+  return states;
+}
+
+function insertionSort(arr) {
+  arr = cloneArray(arr);
+  const states = [{ array: cloneArray(arr), info:"Initial array" }];
+  for (let i = 1; i < arr.length; i++) {
+    const key = arr[i];
+    let j = i - 1;
+    states.push({ array: cloneArray(arr), active:[i], info:`Pick key ${key} from index ${i}` });
+    while (j >= 0 && arr[j] > key) {
+      arr[j + 1] = arr[j];
+      states.push({ array: cloneArray(arr), active:[j, j + 1], info:`Shift ${arr[j]} to the right` });
+      j--;
+    }
+    arr[j + 1] = key;
+    states.push({ array: cloneArray(arr), active:[j + 1], sorted:Array.from({length:i+1}, (_,k)=>k), info:`Insert key ${key} at index ${j + 1}` });
+  }
+  states.push({ array: cloneArray(arr), sorted: arr.map((_,i)=>i), info:"Sorting complete" });
+  return states;
+}
+
+function mergeArrays(left, right, offset, states, baseArr) {
+  const merged = [];
+  let i = 0, j = 0;
+  while (i < left.length && j < right.length) {
+    if (left[i] <= right[j]) {
+      merged.push(left[i++]);
+    } else {
+      merged.push(right[j++]);
+    }
+    const temp = baseArr.slice();
+    for (let k = 0; k < merged.length; k++) temp[offset + k] = merged[k];
+    states.push({ array: temp, active:[offset + merged.length - 1], info:`Merge progress at output index ${offset + merged.length - 1}` });
+  }
+  while (i < left.length) merged.push(left[i++]);
+  while (j < right.length) merged.push(right[j++]);
+  return merged;
+}
+
+function mergeSort(arr) {
+  arr = cloneArray(arr);
+  const states = [{ array: cloneArray(arr), info:"Initial array" }];
+  function helper(sub, offset, whole) {
+    if (sub.length <= 1) return sub.slice();
+    const mid = Math.floor(sub.length / 2);
+    const left = helper(sub.slice(0, mid), offset, whole);
+    const right = helper(sub.slice(mid), offset + mid, whole);
+    const merged = mergeArrays(left, right, offset, states, whole);
+    for (let i = 0; i < merged.length; i++) whole[offset + i] = merged[i];
+    states.push({ array: whole.slice(), active:Array.from({length:merged.length}, (_,k)=>offset+k), info:`Merged section ${offset} to ${offset + merged.length - 1}` });
+    return merged;
+  }
+  const whole = arr.slice();
+  helper(arr, 0, whole);
+  states.push({ array: whole.slice(), sorted: whole.map((_,i)=>i), info:"Sorting complete" });
+  return states;
+}
+
+function quickSort(arr) {
+  arr = cloneArray(arr);
+  const states = [{ array: cloneArray(arr), info:"Initial array" }];
+  function partition(low, high) {
+    const pivot = arr[high];
+    let i = low - 1;
+    states.push({ array: cloneArray(arr), active:[high], info:`Pivot chosen: ${pivot} at index ${high}` });
+    for (let j = low; j < high; j++) {
+      states.push({ array: cloneArray(arr), active:[j, high], info:`Compare index ${j} with pivot ${pivot}` });
+      if (arr[j] <= pivot) {
+        i++;
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+        states.push({ array: cloneArray(arr), swapped:[i, j], info:`Swap to move smaller element left of pivot` });
+      }
+    }
+    [arr[i + 1], arr[high]] = [arr[high], arr[i + 1]];
+    states.push({ array: cloneArray(arr), swapped:[i + 1, high], info:`Place pivot at index ${i + 1}` });
+    return i + 1;
+  }
+  function helper(low, high) {
+    if (low < high) {
+      const pi = partition(low, high);
+      helper(low, pi - 1);
+      helper(pi + 1, high);
+    }
+  }
+  helper(0, arr.length - 1);
+  states.push({ array: cloneArray(arr), sorted: arr.map((_,i)=>i), info:"Sorting complete" });
+  return states;
+}
+
+function heapSort(arr) {
+  arr = cloneArray(arr);
+  const states = [{ array: cloneArray(arr), info:"Initial array" }];
+  function heapify(n, i) {
+    let largest = i;
+    const left = 2 * i + 1;
+    const right = 2 * i + 2;
+    if (left < n) states.push({ array: cloneArray(arr), active:[i,left], info:`Compare root ${i} with left child ${left}` });
+    if (right < n) states.push({ array: cloneArray(arr), active:[largest,right], info:`Compare current largest with right child ${right}` });
+    if (left < n && arr[left] > arr[largest]) largest = left;
+    if (right < n && arr[right] > arr[largest]) largest = right;
+    if (largest !== i) {
+      [arr[i], arr[largest]] = [arr[largest], arr[i]];
+      states.push({ array: cloneArray(arr), swapped:[i,largest], info:`Swap to maintain max heap` });
+      heapify(n, largest);
+    }
+  }
+  const n = arr.length;
+  for (let i = Math.floor(n / 2) - 1; i >= 0; i--) heapify(n, i);
+  states.push({ array: cloneArray(arr), info:"Max heap built" });
+  for (let i = n - 1; i > 0; i--) {
+    [arr[0], arr[i]] = [arr[i], arr[0]];
+    states.push({ array: cloneArray(arr), swapped:[0,i], sorted:Array.from({length:n-i}, (_,k)=>n-1-k), info:`Move max element to index ${i}` });
+    heapify(i, 0);
+  }
+  states.push({ array: cloneArray(arr), sorted: arr.map((_,i)=>i), info:"Sorting complete" });
+  return states;
+}
+
+function countingSort(arr) {
+  arr = cloneArray(arr);
+  const states = [{ array: cloneArray(arr), info:"Initial array" }];
+  if (arr.length === 0) return states;
+  const min = Math.min(...arr);
+  const max = Math.max(...arr);
+  const count = Array(max - min + 1).fill(0);
+  for (let value of arr) {
+    count[value - min]++;
+    states.push({ array: cloneArray(arr), info:`Count value ${value}` });
+  }
+  const output = [];
+  for (let i = 0; i < count.length; i++) {
+    while (count[i] > 0) {
+      output.push(i + min);
+      count[i]--;
+      states.push({ array: output.concat(Array(arr.length - output.length).fill(null)), sorted:Array.from({length:output.length}, (_,k)=>k), info:`Write ${i + min} to output` });
+    }
+  }
+  states.push({ array: output, sorted: output.map((_,i)=>i), info:"Sorting complete" });
+  return states;
+}
+
+function radixSort(arr) {
+  arr = cloneArray(arr);
+  const states = [{ array: cloneArray(arr), info:"Initial array" }];
+  if (arr.length === 0) return states;
+  let max = Math.max(...arr);
+  for (let exp = 1; Math.floor(max / exp) > 0; exp *= 10) {
+    const output = Array(arr.length).fill(0);
+    const count = Array(10).fill(0);
+    for (let i = 0; i < arr.length; i++) count[Math.floor(arr[i] / exp) % 10]++;
+    for (let i = 1; i < 10; i++) count[i] += count[i - 1];
+    for (let i = arr.length - 1; i >= 0; i--) {
+      const digit = Math.floor(arr[i] / exp) % 10;
+      output[count[digit] - 1] = arr[i];
+      count[digit]--;
+    }
+    arr = output;
+    states.push({ array: cloneArray(arr), info:`After sorting by digit place ${exp}` });
+  }
+  states.push({ array: cloneArray(arr), sorted: arr.map((_,i)=>i), info:"Sorting complete" });
+  return states;
+}
+
+function bucketSort(arr) {
+  arr = cloneArray(arr);
+  const states = [{ array: cloneArray(arr), info:"Initial array" }];
+  if (arr.length === 0) return states;
+  const min = Math.min(...arr);
+  const max = Math.max(...arr);
+  if (min === max) {
+    states.push({ array: cloneArray(arr), sorted: arr.map((_,i)=>i), info:"All values are equal" });
+    return states;
+  }
+  const bucketCount = arr.length;
+  const buckets = Array.from({ length: bucketCount }, () => []);
+  for (let value of arr) {
+    const index = Math.floor(((value - min) / (max - min)) * (bucketCount - 1));
+    buckets[index].push(value);
+    states.push({ array: cloneArray(arr), info:`Place ${value} into bucket ${index}` });
+  }
+  let result = [];
+  for (let i = 0; i < buckets.length; i++) {
+    buckets[i].sort((a, b) => a - b);
+    result = result.concat(buckets[i]);
+    states.push({ array: result.concat(Array(arr.length - result.length).fill(null)), info:`Bucket ${i} sorted and joined` });
+  }
+  states.push({ array: result, sorted: result.map((_,i)=>i), info:"Sorting complete" });
+  return states;
+}
+
+function timSort(arr) {
+  // Educational approximation: use insertion sort on small runs, then merge runs.
+  arr = cloneArray(arr);
+  const states = [{ array: cloneArray(arr), info:"Initial array" }];
+  const RUN = 4;
+
+  function insertion(left, right) {
+    for (let i = left + 1; i <= right; i++) {
+      const temp = arr[i];
+      let j = i - 1;
+      while (j >= left && arr[j] > temp) {
+        arr[j + 1] = arr[j];
+        states.push({ array: cloneArray(arr), active:[j,j+1], info:`Insertion sort inside run: shift ${arr[j]}` });
+        j--;
+      }
+      arr[j + 1] = temp;
+      states.push({ array: cloneArray(arr), active:[j+1], info:`Insertion sort places ${temp}` });
+    }
+  }
+
+  function merge(left, mid, right) {
+    const leftPart = arr.slice(left, mid + 1);
+    const rightPart = arr.slice(mid + 1, right + 1);
+    let i = 0, j = 0, k = left;
+    while (i < leftPart.length && j < rightPart.length) {
+      if (leftPart[i] <= rightPart[j]) arr[k++] = leftPart[i++];
+      else arr[k++] = rightPart[j++];
+      states.push({ array: cloneArray(arr), active:[k-1], info:`Merge runs into position ${k - 1}` });
+    }
+    while (i < leftPart.length) {
+      arr[k++] = leftPart[i++];
+      states.push({ array: cloneArray(arr), active:[k-1], info:`Append remaining left run value` });
+    }
+    while (j < rightPart.length) {
+      arr[k++] = rightPart[j++];
+      states.push({ array: cloneArray(arr), active:[k-1], info:`Append remaining right run value` });
+    }
+  }
+
+  const n = arr.length;
+  for (let i = 0; i < n; i += RUN) {
+    insertion(i, Math.min(i + RUN - 1, n - 1));
+    states.push({ array: cloneArray(arr), info:`Run ${Math.floor(i / RUN) + 1} prepared` });
+  }
+  for (let size = RUN; size < n; size *= 2) {
+    for (let left = 0; left < n; left += 2 * size) {
+      const mid = Math.min(n - 1, left + size - 1);
+      const right = Math.min(left + 2 * size - 1, n - 1);
+      if (mid < right) merge(left, mid, right);
+    }
+    states.push({ array: cloneArray(arr), info:`Merged runs of size ${size}` });
+  }
+  states.push({ array: cloneArray(arr), sorted: arr.map((_,i)=>i), info:"Sorting complete" });
+  return states;
+}
+
+function buildEditorHash(title, code) {
+  const payload = {
+    title,
+    description: `${title} starter code`,
+    tags: ["sorting", "python", "algorithm"],
+    author: "Programmer's Picnic",
+    tabs: [
+      {
+        id: "main-py",
+        name: "main.py",
+        language: "python",
+        content: code
+      }
+    ],
+    activeTabId: "main-py"
+  };
+  const base64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+  return `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}|${base64}`;
+}
+
+
+const algoName = "Heap Sort";
+const pythonCode = "def heapify(arr, n, i):\n    largest = i\n    left = 2 * i + 1\n    right = 2 * i + 2\n\n    if left < n and arr[left] > arr[largest]:\n        largest = left\n\n    if right < n and arr[right] > arr[largest]:\n        largest = right\n\n    if largest != i:\n        arr[i], arr[largest] = arr[largest], arr[i]\n        heapify(arr, n, largest)\n\ndef heap_sort(arr):\n    arr = arr[:]\n    n = len(arr)\n\n    for i in range(n // 2 - 1, -1, -1):\n        heapify(arr, n, i)\n\n    for i in range(n - 1, 0, -1):\n        arr[0], arr[i] = arr[i], arr[0]\n        heapify(arr, i, 0)\n\n    return arr\n\ndata = [12, 11, 13, 5, 6, 7]\nprint(\"Original:\", data)\nprint(\"Sorted  :\", heap_sort(data))\n";
+const sortFn = window["heapSort"];
+
+const stage = document.getElementById("stage");
+const vizInfo = document.getElementById("vizInfo");
+const dryRunOutput = document.getElementById("dryRunOutput");
+const arrayInput = document.getElementById("arrayInput");
+const playBtn = document.getElementById("playBtn");
+const stepBtn = document.getElementById("stepBtn");
+const resetBtn = document.getElementById("resetBtn");
+const shuffleBtn = document.getElementById("shuffleBtn");
+const speedInput = document.getElementById("speedInput");
+const speedLabel = document.getElementById("speedLabel");
+const pyEditorFrame = document.getElementById("pyEditorFrame");
+const editorInfo = document.getElementById("editorInfo");
+
+let states = [];
+let currentIndex = 0;
+let timer = null;
+
+function renderState(state) {
+  stage.innerHTML = "";
+  const array = state.array || [];
+  const numeric = array.filter(v => typeof v === "number" && !Number.isNaN(v));
+  const maxVal = numeric.length ? Math.max(...numeric.map(v => Math.abs(v))) : 1;
+  array.forEach((value, index) => {
+    const wrap = document.createElement("div");
+    wrap.className = "bar-wrap";
+
+    const bar = document.createElement("div");
+    let classes = ["bar"];
+    if (state.active && state.active.includes(index)) classes.push("active");
+    if (state.swapped && state.swapped.includes(index)) classes.push("swap");
+    if (state.sorted && state.sorted.includes(index)) classes.push("sorted");
+    if (value === null || value === undefined) classes.push("empty");
+    bar.className = classes.join(" ");
+    const displayVal = value === null || value === undefined ? "·" : value;
+    bar.textContent = displayVal;
+    const heightValue = value === null || value === undefined ? 22 : Math.max(28, Math.round((Math.abs(Number(value)) / maxVal) * 240));
+    bar.style.height = heightValue + "px";
+
+    const label = document.createElement("div");
+    label.className = "bar-label";
+    label.textContent = index;
+
+    wrap.appendChild(bar);
+    wrap.appendChild(label);
+    stage.appendChild(wrap);
+  });
+  vizInfo.textContent = `${state.info || "Step ready"} • Step ${currentIndex + 1} of ${states.length}`;
+}
+
+function generate() {
+  const data = parseInput(arrayInput.value);
+  states = sortFn(data);
+  currentIndex = 0;
+  renderState(states[currentIndex] || {array:data, info:"No states"});
+  renderDryRun();
+}
+
+function step() {
+  if (!states.length) generate();
+  if (currentIndex < states.length - 1) {
+    currentIndex++;
+    renderState(states[currentIndex]);
+  } else {
+    stopTimer();
+  }
+}
+
+function stopTimer() {
+  if (timer) {
+    clearInterval(timer);
+    timer = null;
+    playBtn.textContent = "Play";
+  }
+}
+
+function play() {
+  if (timer) {
+    stopTimer();
+    return;
+  }
+  if (!states.length) generate();
+  playBtn.textContent = "Pause";
+  timer = setInterval(() => {
+    if (currentIndex >= states.length - 1) {
+      stopTimer();
+      return;
+    }
+    step();
+  }, Number(speedInput.value));
+}
+
+function renderDryRun() {
+  const lines = [];
+  const sampleStates = states.slice(0, Math.min(states.length, 8));
+  lines.push(`Algorithm: ${algoName}`);
+  lines.push(`Input: [${parseInput(arrayInput.value).join(", ")}]`);
+  lines.push("");
+  sampleStates.forEach((state, i) => {
+    lines.push(`Step ${i + 1}: ${state.info}`);
+    lines.push(`Array  : [${(state.array || []).map(v => v === null ? "·" : v).join(", ")}]`);
+    lines.push("");
+  });
+  lines.push("Final:");
+  const finalState = states[states.length - 1];
+  lines.push(`[${(finalState?.array || []).join(", ")}]`);
+  dryRunOutput.textContent = lines.join("\n");
+}
+
+function shuffleValues() {
+  const arr = parseInput(arrayInput.value);
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  arrayInput.value = arr.join(", ");
+  generate();
+}
+
+speedInput.addEventListener("input", () => {
+  speedLabel.textContent = `Speed: ${speedInput.value} ms`;
+  if (timer) {
+    stopTimer();
+    play();
+  }
+});
+playBtn.addEventListener("click", play);
+stepBtn.addEventListener("click", () => { stopTimer(); step(); });
+resetBtn.addEventListener("click", () => { stopTimer(); generate(); });
+shuffleBtn.addEventListener("click", () => { stopTimer(); shuffleValues(); });
+
+const editorBase = "https://editor.learnwithchampak.live/lesson-viewer/python-starter/editor/super/?tmode=1";
+const hashValue = buildEditorHash(algoName + " Python Demo", pythonCode);
+pyEditorFrame.src = editorBase + "#" + hashValue;
+editorInfo.textContent = "Editor source: " + editorBase + "   |   Hash title: " + hashValue.split("|")[0];
+
+generate();
+</script>
+</body>
+</html>
