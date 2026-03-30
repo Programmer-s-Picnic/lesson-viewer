@@ -1,0 +1,1270 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Docker from Ground Zero — Interactive Lesson</title>
+  <meta name="description" content="An interactive beginner lesson on Docker starting at ground zero. Learn containers, images, Dockerfile, Compose, commands, workflows, and practice with quizzes." />
+  <style>
+    :root{
+      --bg:#fffaf0;
+      --panel:#ffffff;
+      --panel-2:#fff4d6;
+      --text:#1f2937;
+      --muted:#6b7280;
+      --line:#f1d9a6;
+      --brand:#d97706;
+      --brand-2:#f59e0b;
+      --good:#166534;
+      --good-bg:#ecfdf5;
+      --warn:#92400e;
+      --warn-bg:#fff7ed;
+      --code:#111827;
+      --code-bg:#0f172a;
+      --shadow:0 18px 45px rgba(217,119,6,.12);
+      --radius:22px;
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      font-family:Inter,Segoe UI,Roboto,Arial,sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(245,158,11,.16), transparent 26rem),
+        radial-gradient(circle at right, rgba(217,119,6,.10), transparent 22rem),
+        linear-gradient(180deg,#fffdf8,#fff8eb 55%, #fffefb);
+      line-height:1.65;
+    }
+    a{color:var(--brand); text-decoration:none}
+    a:hover{text-decoration:underline}
+    .wrap{max-width:1200px; margin:auto; padding:24px}
+    .hero{
+      display:grid;
+      grid-template-columns:1.2fr .8fr;
+      gap:22px;
+      align-items:stretch;
+      margin-top:8px;
+    }
+    .card{
+      background:rgba(255,255,255,.88);
+      border:1px solid rgba(241,217,166,.95);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(8px);
+    }
+    .hero-main{padding:28px}
+    .hero-side{padding:22px}
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      background:#fff3c4;
+      border:1px solid #f7d98b;
+      color:#8a4b00;
+      border-radius:999px;
+      padding:8px 14px;
+      font-weight:700;
+      font-size:.92rem;
+    }
+    h1{
+      margin:16px 0 12px;
+      font-size:clamp(2rem,4vw,3.4rem);
+      line-height:1.08;
+      letter-spacing:-.03em;
+    }
+    h2{
+      margin:0 0 12px;
+      font-size:clamp(1.4rem,2.4vw,2rem);
+      line-height:1.15;
+      letter-spacing:-.02em;
+    }
+    h3{margin:0 0 10px; font-size:1.15rem}
+    p{margin:.72rem 0}
+    .sub{
+      color:var(--muted);
+      font-size:1.06rem;
+      max-width:70ch;
+    }
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:18px;
+    }
+    .chip{
+      padding:8px 12px;
+      border-radius:999px;
+      background:#fff;
+      border:1px solid var(--line);
+      font-weight:700;
+      font-size:.92rem;
+    }
+    .progress{
+      margin-top:18px;
+      display:grid;
+      gap:12px;
+    }
+    .progress .row{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:14px;
+      font-size:.95rem;
+    }
+    .bar{
+      height:11px;
+      background:#ffefcc;
+      border-radius:999px;
+      overflow:hidden;
+      border:1px solid #f5d188;
+    }
+    .bar > span{
+      display:block;
+      height:100%;
+      width:0%;
+      background:linear-gradient(90deg,var(--brand),var(--brand-2));
+      border-radius:999px;
+      transition:width .35s ease;
+    }
+
+    .layout{
+      display:grid;
+      grid-template-columns:300px 1fr;
+      gap:22px;
+      margin-top:24px;
+    }
+    .sidebar{
+      position:sticky;
+      top:16px;
+      align-self:start;
+      padding:18px;
+    }
+    .navlist{
+      display:grid;
+      gap:10px;
+      margin-top:8px;
+    }
+    .navlist a{
+      padding:10px 12px;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:#fff;
+      font-weight:700;
+      color:var(--text);
+    }
+    .navlist a:hover{
+      background:#fff8ea;
+      text-decoration:none;
+      border-color:#edc970;
+    }
+    .small{
+      font-size:.92rem;
+      color:var(--muted);
+    }
+
+    .main{
+      display:grid;
+      gap:22px;
+    }
+    section.lesson{
+      padding:24px;
+    }
+    .grid-2{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:16px;
+    }
+    .grid-3{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:16px;
+    }
+    .mini{
+      padding:18px;
+      border:1px solid var(--line);
+      border-radius:18px;
+      background:linear-gradient(180deg,#fff,#fffaf1);
+    }
+    .mini strong{display:block; margin-bottom:8px}
+    .callout{
+      padding:16px 18px;
+      border-radius:18px;
+      border:1px solid var(--line);
+      background:var(--warn-bg);
+      color:var(--warn);
+      margin:14px 0 0;
+    }
+    .success{
+      background:var(--good-bg);
+      color:var(--good);
+      border-color:#b7efcf;
+    }
+
+    .diagram{
+      display:grid;
+      gap:12px;
+      margin-top:14px;
+    }
+    .diagram-row{
+      display:grid;
+      grid-template-columns:1fr auto 1fr auto 1fr;
+      gap:12px;
+      align-items:center;
+    }
+    .box{
+      border:1px solid var(--line);
+      background:#fff;
+      border-radius:18px;
+      padding:16px;
+      min-height:96px;
+    }
+    .arrow{
+      font-size:1.7rem;
+      color:var(--brand);
+      font-weight:900;
+    }
+
+    pre{
+      margin:14px 0 0;
+      background:var(--code-bg);
+      color:#e5edf8;
+      border-radius:18px;
+      padding:16px;
+      overflow:auto;
+      border:1px solid #243147;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.03);
+    }
+    code,kbd{
+      font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    }
+    .inline-code{
+      background:#fff0cf;
+      border:1px solid #f4d58c;
+      border-radius:8px;
+      padding:.12rem .42rem;
+      font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+      font-size:.94em;
+    }
+
+    .terminal{
+      margin-top:14px;
+      border-radius:18px;
+      overflow:hidden;
+      border:1px solid #243147;
+      background:#0b1220;
+    }
+    .terminal-top{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:10px 14px;
+      background:#111827;
+      border-bottom:1px solid #243147;
+    }
+    .dot{
+      width:10px; height:10px; border-radius:50%;
+      background:#64748b;
+    }
+    .term-body{
+      padding:16px;
+      color:#dbeafe;
+      min-height:210px;
+      font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+      white-space:pre-wrap;
+    }
+    .term-controls{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:14px;
+    }
+    button, .btn{
+      border:none;
+      background:linear-gradient(180deg,var(--brand-2),var(--brand));
+      color:#fff;
+      padding:11px 15px;
+      border-radius:12px;
+      font-weight:800;
+      cursor:pointer;
+      box-shadow:0 10px 20px rgba(217,119,6,.2);
+    }
+    button.secondary, .btn.secondary{
+      background:#fff;
+      color:var(--text);
+      border:1px solid var(--line);
+      box-shadow:none;
+    }
+    button:hover,.btn:hover{transform:translateY(-1px)}
+    .input, select, textarea{
+      width:100%;
+      border:1px solid var(--line);
+      background:#fff;
+      color:var(--text);
+      border-radius:14px;
+      padding:12px 14px;
+      font:inherit;
+    }
+    textarea{min-height:140px; resize:vertical}
+    .stack{
+      display:grid;
+      gap:12px;
+    }
+
+    .flashcards{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:16px;
+      margin-top:14px;
+    }
+    .flip{
+      perspective:1000px;
+    }
+    .flip-inner{
+      position:relative;
+      width:100%;
+      min-height:170px;
+      transition:transform .6s;
+      transform-style:preserve-3d;
+      cursor:pointer;
+    }
+    .flip.active .flip-inner{
+      transform:rotateY(180deg);
+    }
+    .face{
+      position:absolute;
+      inset:0;
+      backface-visibility:hidden;
+      border-radius:18px;
+      border:1px solid var(--line);
+      background:linear-gradient(180deg,#fff,#fffaf0);
+      padding:18px;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+    }
+    .back{
+      transform:rotateY(180deg);
+      background:linear-gradient(180deg,#fff7e8,#fff);
+    }
+
+    .quiz{
+      display:grid;
+      gap:18px;
+      margin-top:16px;
+    }
+    .q{
+      border:1px solid var(--line);
+      border-radius:18px;
+      padding:16px;
+      background:#fff;
+    }
+    .q .opts{
+      display:grid;
+      gap:10px;
+      margin-top:12px;
+    }
+    .opt{
+      padding:11px 12px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:#fffaf2;
+      cursor:pointer;
+      font-weight:600;
+    }
+    .opt.correct{
+      background:#ecfdf5;
+      border-color:#86efac;
+      color:#166534;
+    }
+    .opt.wrong{
+      background:#fef2f2;
+      border-color:#fca5a5;
+      color:#991b1b;
+    }
+    .hidden{display:none}
+    .score{
+      padding:14px 16px;
+      border-radius:14px;
+      background:#fff7e5;
+      border:1px solid var(--line);
+      font-weight:800;
+    }
+
+    .cmd-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:14px;
+      margin-top:14px;
+    }
+    .cmd{
+      border:1px solid var(--line);
+      background:#fff;
+      border-radius:16px;
+      padding:14px;
+    }
+    .cmd code{display:block; margin-bottom:8px; font-size:1rem; color:#9a3412}
+    .pill{
+      display:inline-block;
+      margin-top:8px;
+      padding:5px 10px;
+      border-radius:999px;
+      background:#fff0cf;
+      border:1px solid #f5d188;
+      font-size:.85rem;
+      font-weight:700;
+    }
+    .footer-note{
+      color:var(--muted);
+      font-size:.92rem;
+      margin-top:16px;
+    }
+    details{
+      border:1px solid var(--line);
+      border-radius:16px;
+      background:#fff;
+      padding:14px 16px;
+    }
+    details + details{margin-top:10px}
+    summary{
+      cursor:pointer;
+      font-weight:800;
+    }
+
+    .checklist{
+      display:grid;
+      gap:10px;
+      margin-top:14px;
+    }
+    .check{
+      display:flex;
+      align-items:flex-start;
+      gap:10px;
+      padding:10px 12px;
+      border-radius:12px;
+      background:#fff;
+      border:1px solid var(--line);
+    }
+    .check input{margin-top:3px}
+
+    @media (max-width:980px){
+      .hero,.layout,.grid-2,.grid-3,.flashcards,.cmd-grid,.diagram-row{
+        grid-template-columns:1fr;
+      }
+      .sidebar{position:relative; top:0}
+      .arrow{display:none}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <div class="card hero-main">
+        <div class="badge">🐳 Interactive Beginner Lesson • Docker from Ground Zero</div>
+        <h1>Learn Docker step by step, from zero to your first real container.</h1>
+        <p class="sub">
+          This page is built for complete beginners. You will learn what Docker is, why it matters,
+          what containers and images are, how to run basic commands, how a Dockerfile works,
+          and how Docker Compose helps with multi-container projects.
+        </p>
+        <div class="chips">
+          <span class="chip">Beginner friendly</span>
+          <span class="chip">Interactive quiz</span>
+          <span class="chip">Command explorer</span>
+          <span class="chip">Dockerfile practice</span>
+          <span class="chip">Compose explained</span>
+        </div>
+      </div>
+
+      <aside class="card hero-side">
+        <h2 style="font-size:1.35rem">Lesson map</h2>
+        <div class="progress">
+          <div class="row"><span>Concepts</span><strong>1</strong></div>
+          <div class="bar"><span data-progress="14"></span></div>
+
+          <div class="row"><span>Commands</span><strong>2</strong></div>
+          <div class="bar"><span data-progress="28"></span></div>
+
+          <div class="row"><span>Dockerfile</span><strong>3</strong></div>
+          <div class="bar"><span data-progress="42"></span></div>
+
+          <div class="row"><span>Compose</span><strong>4</strong></div>
+          <div class="bar"><span data-progress="56"></span></div>
+
+          <div class="row"><span>Workflow</span><strong>5</strong></div>
+          <div class="bar"><span data-progress="72"></span></div>
+
+          <div class="row"><span>Quiz + Practice</span><strong>6</strong></div>
+          <div class="bar"><span data-progress="100"></span></div>
+        </div>
+        <p class="footer-note">
+          Tip: work through the sections in order. Docker makes much more sense when you first understand
+          the big picture, then the commands, then the files.
+        </p>
+      </aside>
+    </header>
+
+    <div class="layout">
+      <nav class="card sidebar">
+        <h3>Jump to section</h3>
+        <div class="navlist">
+          <a href="#zero">1. Ground zero</a>
+          <a href="#mental-model">2. Mental model</a>
+          <a href="#commands">3. Core commands</a>
+          <a href="#dockerfile">4. Dockerfile</a>
+          <a href="#compose">5. Docker Compose</a>
+          <a href="#workflow">6. Real workflow</a>
+          <a href="#mistakes">7. Common mistakes</a>
+          <a href="#quiz">8. Quiz</a>
+          <a href="#practice">9. Practice tasks</a>
+        </div>
+        <p class="small" style="margin-top:14px">
+          Click the flashcards, run the command simulator, and answer the quiz to lock in the ideas.
+        </p>
+      </nav>
+
+      <main class="main">
+        <section id="zero" class="card lesson">
+          <h2>1) Docker at ground zero</h2>
+          <p>
+            Docker helps you package an application together with what it needs to run.
+            Instead of saying, “It works on my machine,” you create a standard package
+            so it behaves much more consistently on another computer or server.
+          </p>
+          <div class="grid-3">
+            <div class="mini">
+              <strong>Without Docker</strong>
+              You install Python, Node, packages, system tools, and environment settings by hand.
+              Different machines often end up slightly different.
+            </div>
+            <div class="mini">
+              <strong>With Docker</strong>
+              You describe the environment once, build an image, and run containers from it.
+              The setup becomes more predictable.
+            </div>
+            <div class="mini">
+              <strong>Big idea</strong>
+              Docker does not magically write your app. It standardizes how your app is packaged and run.
+            </div>
+          </div>
+
+          <div class="callout">
+            Think of Docker as a way to pack your app into a well-defined box so the same app can be run
+            more reliably on other systems.
+          </div>
+
+          <div class="diagram">
+            <div class="diagram-row">
+              <div class="box">
+                <strong>Your code</strong>
+                <div>app.py, package.json, server.js, settings, assets</div>
+              </div>
+              <div class="arrow">→</div>
+              <div class="box">
+                <strong>Docker image</strong>
+                <div>A reusable blueprint that contains your app and runtime setup</div>
+              </div>
+              <div class="arrow">→</div>
+              <div class="box">
+                <strong>Container</strong>
+                <div>A running instance created from the image</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="mental-model" class="card lesson">
+          <h2>2) The mental model you must understand</h2>
+          <p>
+            Many beginners get confused because they mix up <strong>Docker</strong>, <strong>image</strong>,
+            <strong>container</strong>, <strong>Dockerfile</strong>, and <strong>Compose</strong>.
+            Let us make each one crystal clear.
+          </p>
+
+          <div class="flashcards">
+            <div class="flip" onclick="this.classList.toggle('active')">
+              <div class="flip-inner">
+                <div class="face">
+                  <h3>Docker</h3>
+                  <p>The platform and tools you use to build, run, and manage containers.</p>
+                  <p class="small">Click to flip</p>
+                </div>
+                <div class="face back">
+                  <h3>Remember it like this</h3>
+                  <p>Docker is the overall system. It is not the same thing as a single container.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="flip" onclick="this.classList.toggle('active')">
+              <div class="flip-inner">
+                <div class="face">
+                  <h3>Image</h3>
+                  <p>A read-only packaged blueprint from which containers are created.</p>
+                  <p class="small">Click to flip</p>
+                </div>
+                <div class="face back">
+                  <h3>Remember it like this</h3>
+                  <p>An image is like a class blueprint or a recipe. You build it once, then run it many times.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="flip" onclick="this.classList.toggle('active')">
+              <div class="flip-inner">
+                <div class="face">
+                  <h3>Container</h3>
+                  <p>A running or stoppable instance created from an image.</p>
+                  <p class="small">Click to flip</p>
+                </div>
+                <div class="face back">
+                  <h3>Remember it like this</h3>
+                  <p>If image = blueprint, then container = the actual running thing built from that blueprint.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="flip" onclick="this.classList.toggle('active')">
+              <div class="flip-inner">
+                <div class="face">
+                  <h3>Dockerfile</h3>
+                  <p>A text file with instructions for building an image.</p>
+                  <p class="small">Click to flip</p>
+                </div>
+                <div class="face back">
+                  <h3>Remember it like this</h3>
+                  <p>You do not run a Dockerfile. You build an image from it.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="flip" onclick="this.classList.toggle('active')">
+              <div class="flip-inner">
+                <div class="face">
+                  <h3>Compose</h3>
+                  <p>A way to define and run multi-container applications together.</p>
+                  <p class="small">Click to flip</p>
+                </div>
+                <div class="face back">
+                  <h3>Remember it like this</h3>
+                  <p>When your app needs web + database + cache, Compose helps manage them as one setup.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="flip" onclick="this.classList.toggle('active')">
+              <div class="flip-inner">
+                <div class="face">
+                  <h3>Registry</h3>
+                  <p>A place where images are stored and shared, such as Docker Hub.</p>
+                  <p class="small">Click to flip</p>
+                </div>
+                <div class="face back">
+                  <h3>Remember it like this</h3>
+                  <p>You pull images from a registry, and you can push your own images there too.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <pre><code>Quick summary:
+
+Docker      = the platform
+Dockerfile  = instructions to build an image
+Image       = packaged blueprint
+Container   = running instance from an image
+Compose     = tool for multi-container apps</code></pre>
+        </section>
+
+        <section id="commands" class="card lesson">
+          <h2>3) Your first important Docker commands</h2>
+          <p>
+            Before learning everything, learn the command pattern. Most beginner progress starts here.
+          </p>
+
+          <div class="cmd-grid">
+            <div class="cmd">
+              <code>docker --version</code>
+              Checks that Docker is installed and reachable.
+              <div class="pill">First command</div>
+            </div>
+            <div class="cmd">
+              <code>docker pull nginx</code>
+              Downloads the <span class="inline-code">nginx</span> image to your machine.
+              <div class="pill">Get an image</div>
+            </div>
+            <div class="cmd">
+              <code>docker run nginx</code>
+              Creates and starts a container from the <span class="inline-code">nginx</span> image.
+              <div class="pill">Run a container</div>
+            </div>
+            <div class="cmd">
+              <code>docker ps</code>
+              Shows currently running containers.
+              <div class="pill">See running containers</div>
+            </div>
+            <div class="cmd">
+              <code>docker ps -a</code>
+              Shows all containers, including stopped ones.
+              <div class="pill">See all containers</div>
+            </div>
+            <div class="cmd">
+              <code>docker stop CONTAINER_ID</code>
+              Stops a running container.
+              <div class="pill">Stop it</div>
+            </div>
+            <div class="cmd">
+              <code>docker start CONTAINER_ID</code>
+              Starts an existing stopped container again.
+              <div class="pill">Start it again</div>
+            </div>
+            <div class="cmd">
+              <code>docker images</code>
+              Lists downloaded and built images.
+              <div class="pill">See images</div>
+            </div>
+          </div>
+
+          <div class="terminal">
+            <div class="terminal-top">
+              <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+              <strong style="color:#cbd5e1">Beginner Docker Simulator</strong>
+            </div>
+            <div id="termOut" class="term-body">$ Try clicking commands below...</div>
+          </div>
+          <div class="term-controls">
+            <button onclick="runDemo('version')">docker --version</button>
+            <button onclick="runDemo('pull')">docker pull nginx</button>
+            <button onclick="runDemo('run')">docker run nginx</button>
+            <button onclick="runDemo('ps')">docker ps</button>
+            <button onclick="runDemo('psa')">docker ps -a</button>
+            <button onclick="runDemo('stop')">docker stop abc123</button>
+            <button onclick="runDemo('start')">docker start abc123</button>
+            <button class="secondary" onclick="resetTerminal()">Clear</button>
+          </div>
+
+          <div class="callout success">
+            Beginner rule: <strong>pull</strong> gets an image, <strong>run</strong> makes a container from it,
+            <strong>ps</strong> shows containers, and <strong>stop/start</strong> control them.
+          </div>
+        </section>
+
+        <section id="dockerfile" class="card lesson">
+          <h2>4) Dockerfile — the recipe for your image</h2>
+          <p>
+            A Dockerfile is just a plain text file. It tells Docker how to build your image.
+            This is where many real projects begin.
+          </p>
+
+          <div class="grid-2">
+            <div class="mini">
+              <strong>Simple Python example</strong>
+              <pre><code>FROM python:3.13
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+CMD ["python", "app.py"]</code></pre>
+            </div>
+            <div class="mini">
+              <strong>What this means</strong>
+              <p><span class="inline-code">FROM</span> chooses a base image.</p>
+              <p><span class="inline-code">WORKDIR</span> sets the working folder.</p>
+              <p><span class="inline-code">COPY</span> copies files into the image.</p>
+              <p><span class="inline-code">RUN</span> executes commands while building.</p>
+              <p><span class="inline-code">CMD</span> sets the default startup command.</p>
+            </div>
+          </div>
+
+          <div class="stack" style="margin-top:14px">
+            <label for="dockerfileBuilder"><strong>Interactive Dockerfile explainer</strong></label>
+            <textarea id="dockerfileBuilder">FROM node:20
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+EXPOSE 3000
+CMD ["npm", "start"]</textarea>
+            <div>
+              <button onclick="explainDockerfile()">Explain this Dockerfile</button>
+            </div>
+            <div id="dockerfileExplanation" class="mini">
+              Click the button to break the Dockerfile into step-by-step meaning.
+            </div>
+          </div>
+
+          <pre><code>Typical build command:
+docker build -t myapp:1.0 .
+
+Typical run command:
+docker run -p 3000:3000 myapp:1.0</code></pre>
+
+          <details>
+            <summary>What does -t mean in docker build?</summary>
+            <p>
+              It tags the image with a name and optional version, such as <span class="inline-code">myapp:1.0</span>.
+              That makes the image easier to refer to later.
+            </p>
+          </details>
+          <details>
+            <summary>What does -p 3000:3000 mean in docker run?</summary>
+            <p>
+              It maps a port on your machine to a port inside the container.
+              The pattern is usually <strong>host_port:container_port</strong>.
+            </p>
+          </details>
+        </section>
+
+        <section id="compose" class="card lesson">
+          <h2>5) Docker Compose — when one container is not enough</h2>
+          <p>
+            Real apps often need more than one service. A web app may need a backend,
+            a database, and maybe a cache. Running them one by one is painful.
+            Compose lets you define them together in one file.
+          </p>
+
+          <div class="diagram">
+            <div class="diagram-row">
+              <div class="box">
+                <strong>web</strong>
+                <div>Your app service</div>
+              </div>
+              <div class="arrow">↔</div>
+              <div class="box">
+                <strong>db</strong>
+                <div>Database service</div>
+              </div>
+              <div class="arrow">↔</div>
+              <div class="box">
+                <strong>cache</strong>
+                <div>Optional Redis service</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2" style="margin-top:14px">
+            <div class="mini">
+              <strong>Example compose file</strong>
+              <pre><code>services:
+  web:
+    build: .
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: secret</code></pre>
+            </div>
+            <div class="mini">
+              <strong>Why this helps</strong>
+              <p>You keep related services in one place.</p>
+              <p>You can start everything together.</p>
+              <p>You can stop everything together.</p>
+              <p>Your team gets a shared development setup.</p>
+            </div>
+          </div>
+
+          <pre><code>Useful Compose commands:
+docker compose up
+docker compose up --build
+docker compose down
+docker compose ps
+docker compose logs</code></pre>
+
+          <div class="callout">
+            Use plain Docker when learning basics or running one simple container.
+            Use Compose when your app has multiple connected services.
+          </div>
+        </section>
+
+        <section id="workflow" class="card lesson">
+          <h2>6) A real beginner workflow</h2>
+          <p>Here is a simple mental workflow you can follow in small projects.</p>
+
+          <div class="grid-3">
+            <div class="mini">
+              <strong>Step 1: Write the app</strong>
+              Create your app files as usual.
+            </div>
+            <div class="mini">
+              <strong>Step 2: Write the Dockerfile</strong>
+              Describe how your app should be packaged.
+            </div>
+            <div class="mini">
+              <strong>Step 3: Build the image</strong>
+              Use <span class="inline-code">docker build</span>.
+            </div>
+            <div class="mini">
+              <strong>Step 4: Run the container</strong>
+              Use <span class="inline-code">docker run</span> with ports.
+            </div>
+            <div class="mini">
+              <strong>Step 5: Test it</strong>
+              Open the app in the browser or call the API.
+            </div>
+            <div class="mini">
+              <strong>Step 6: Use Compose if needed</strong>
+              Add database and other services later.
+            </div>
+          </div>
+
+          <div class="stack" style="margin-top:16px">
+            <label for="projectType"><strong>Pick a project type</strong></label>
+            <select id="projectType" onchange="showWorkflow()">
+              <option value="python">Python app</option>
+              <option value="node">Node app</option>
+              <option value="static">Static HTML site</option>
+              <option value="fullstack">Full stack app</option>
+            </select>
+            <div id="workflowOutput" class="mini"></div>
+          </div>
+        </section>
+
+        <section id="mistakes" class="card lesson">
+          <h2>7) Common beginner mistakes</h2>
+          <div class="grid-2">
+            <div class="mini">
+              <strong>Mistake: image vs container confusion</strong>
+              People often think they are the same thing. They are not.
+              The image is the blueprint; the container is the running instance.
+            </div>
+            <div class="mini">
+              <strong>Mistake: forgetting ports</strong>
+              Your app may be running inside the container, but you forgot to publish the port.
+            </div>
+            <div class="mini">
+              <strong>Mistake: copying everything too early</strong>
+              Ordering instructions badly can slow rebuilds.
+            </div>
+            <div class="mini">
+              <strong>Mistake: thinking containers are full virtual machines</strong>
+              They are lighter and behave differently.
+            </div>
+            <div class="mini">
+              <strong>Mistake: not checking logs</strong>
+              When something fails, use logs and inspect running containers.
+            </div>
+            <div class="mini">
+              <strong>Mistake: changing files but forgetting rebuild</strong>
+              If your image must be rebuilt, running the old one will not show changes.
+            </div>
+          </div>
+
+          <div class="checklist">
+            <label class="check"><input type="checkbox" /> I understand image vs container.</label>
+            <label class="check"><input type="checkbox" /> I know what a Dockerfile does.</label>
+            <label class="check"><input type="checkbox" /> I know when Compose is useful.</label>
+            <label class="check"><input type="checkbox" /> I know how to view running containers.</label>
+            <label class="check"><input type="checkbox" /> I know why port mapping matters.</label>
+          </div>
+        </section>
+
+        <section id="quiz" class="card lesson">
+          <h2>8) Quick quiz</h2>
+          <p>Try this without looking back first.</p>
+          <div id="scoreBox" class="score">Score: 0 / 5</div>
+
+          <div class="quiz">
+            <div class="q" data-answer="1">
+              <strong>1. What is a container?</strong>
+              <div class="opts">
+                <div class="opt" onclick="pick(this,0)">A file that stores Docker instructions</div>
+                <div class="opt" onclick="pick(this,1)">A running instance created from an image</div>
+                <div class="opt" onclick="pick(this,0)">A website for downloading code</div>
+              </div>
+            </div>
+
+            <div class="q" data-answer="0">
+              <strong>2. Which file is used to define how an image is built?</strong>
+              <div class="opts">
+                <div class="opt" onclick="pick(this,1)">Dockerfile</div>
+                <div class="opt" onclick="pick(this,0)">container.txt</div>
+                <div class="opt" onclick="pick(this,0)">runtime.md</div>
+              </div>
+            </div>
+
+            <div class="q" data-answer="2">
+              <strong>3. Which command shows running containers?</strong>
+              <div class="opts">
+                <div class="opt" onclick="pick(this,0)">docker images</div>
+                <div class="opt" onclick="pick(this,0)">docker build</div>
+                <div class="opt" onclick="pick(this,1)">docker ps</div>
+              </div>
+            </div>
+
+            <div class="q" data-answer="1">
+              <strong>4. What is Compose most useful for?</strong>
+              <div class="opts">
+                <div class="opt" onclick="pick(this,0)">Editing code in the browser</div>
+                <div class="opt" onclick="pick(this,1)">Managing multi-container apps</div>
+                <div class="opt" onclick="pick(this,0)">Compressing images</div>
+              </div>
+            </div>
+
+            <div class="q" data-answer="0">
+              <strong>5. Which command usually creates and starts a new container?</strong>
+              <div class="opts">
+                <div class="opt" onclick="pick(this,1)">docker run</div>
+                <div class="opt" onclick="pick(this,0)">docker ps</div>
+                <div class="opt" onclick="pick(this,0)">docker logs</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="practice" class="card lesson">
+          <h2>9) Practice tasks</h2>
+          <div class="grid-2">
+            <div class="mini">
+              <strong>Task 1</strong>
+              Pull an image like <span class="inline-code">nginx</span>, run it, and list running containers.
+            </div>
+            <div class="mini">
+              <strong>Task 2</strong>
+              Write a tiny Dockerfile for a Python or Node app.
+            </div>
+            <div class="mini">
+              <strong>Task 3</strong>
+              Build your image with a tag such as <span class="inline-code">myapp:1.0</span>.
+            </div>
+            <div class="mini">
+              <strong>Task 4</strong>
+              Run the image with a port mapping and test it in the browser.
+            </div>
+            <div class="mini">
+              <strong>Task 5</strong>
+              Add a database service using Compose.
+            </div>
+            <div class="mini">
+              <strong>Task 6</strong>
+              Explain the difference between image and container in your own words.
+            </div>
+          </div>
+
+          <div class="callout success">
+            If you can explain <strong>image vs container</strong>, write a basic <strong>Dockerfile</strong>,
+            and say when to use <strong>Compose</strong>, you have crossed the beginner barrier.
+          </div>
+
+          <p class="footer-note">
+            End of lesson. You can expand this page further by adding Docker volumes, networks, logs,
+            environment variables, bind mounts, and image publishing.
+          </p>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    // Animate progress bars
+    document.querySelectorAll('[data-progress]').forEach((el, i) => {
+      setTimeout(() => el.style.width = el.dataset.progress + '%', 150 + i * 120);
+    });
+
+    // Terminal simulator
+    const out = document.getElementById('termOut');
+    let running = false;
+    let hasImage = false;
+    let hasContainer = false;
+    let stopped = false;
+
+    function print(text){
+      out.textContent += "\\n" + text;
+      out.scrollTop = out.scrollHeight;
+    }
+
+    function resetTerminal(){
+      running = false;
+      hasImage = false;
+      hasContainer = false;
+      stopped = false;
+      out.textContent = "$ Try clicking commands below...";
+    }
+
+    function runDemo(type){
+      switch(type){
+        case 'version':
+          print("$ docker --version");
+          print("Docker version 27.x.x, build example");
+          break;
+        case 'pull':
+          print("$ docker pull nginx");
+          print("Using default tag: latest");
+          print("latest: Pulling from library/nginx");
+          print("Downloaded newer image for nginx:latest");
+          hasImage = true;
+          break;
+        case 'run':
+          print("$ docker run nginx");
+          if(!hasImage){
+            print("Image not found locally. Pulling nginx automatically...");
+            hasImage = true;
+          }
+          print("Container started from image nginx");
+          hasContainer = true;
+          running = true;
+          stopped = false;
+          break;
+        case 'ps':
+          print("$ docker ps");
+          if(running){
+            print("CONTAINER ID   IMAGE   STATUS");
+            print("abc123         nginx   Up 12 seconds");
+          }else{
+            print("No running containers.");
+          }
+          break;
+        case 'psa':
+          print("$ docker ps -a");
+          if(hasContainer){
+            print("CONTAINER ID   IMAGE   STATUS");
+            print("abc123         nginx   " + (running ? "Up 12 seconds" : "Exited (0) 5 seconds ago"));
+          }else{
+            print("No containers yet.");
+          }
+          break;
+        case 'stop':
+          print("$ docker stop abc123");
+          if(running){
+            running = false;
+            stopped = true;
+            print("abc123");
+            print("Container stopped.");
+          }else{
+            print("Container is not running.");
+          }
+          break;
+        case 'start':
+          print("$ docker start abc123");
+          if(hasContainer){
+            running = true;
+            stopped = false;
+            print("abc123");
+            print("Container started.");
+          }else{
+            print("No such container yet.");
+          }
+          break;
+      }
+    }
+
+    // Dockerfile explainer
+    function explainDockerfile(){
+      const text = document.getElementById('dockerfileBuilder').value.trim();
+      const lines = text.split(/\\n+/).filter(Boolean);
+      const output = document.getElementById('dockerfileExplanation');
+
+      if(!lines.length){
+        output.innerHTML = "Please enter a Dockerfile first.";
+        return;
+      }
+
+      const meanings = {
+        FROM: "Chooses the base image to build on.",
+        WORKDIR: "Sets the working folder inside the image.",
+        COPY: "Copies files from your machine into the image.",
+        ADD: "Adds files, sometimes with extra behavior.",
+        RUN: "Executes a command during image build time.",
+        CMD: "Sets the default command when the container starts.",
+        ENTRYPOINT: "Sets the main startup command for the container.",
+        EXPOSE: "Documents the port the app listens on.",
+        ENV: "Defines environment variables inside the image."
+      };
+
+      let html = "<strong>Step-by-step explanation</strong><ol>";
+      for(const line of lines){
+        const instruction = line.trim().split(/\\s+/)[0].toUpperCase();
+        html += "<li><code>" + escapeHtml(line) + "</code><br>" +
+          (meanings[instruction] || "General Docker instruction.") + "</li>";
+      }
+      html += "</ol>";
+      output.innerHTML = html;
+    }
+
+    function escapeHtml(str){
+      return str
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;");
+    }
+
+    // Workflow selector
+    function showWorkflow(){
+      const val = document.getElementById('projectType').value;
+      const el = document.getElementById('workflowOutput');
+      const map = {
+        python: `
+          <strong>Python app workflow</strong>
+          <ol>
+            <li>Create <code>app.py</code> and <code>requirements.txt</code>.</li>
+            <li>Use a Python base image in your Dockerfile.</li>
+            <li>Install requirements with <code>pip</code>.</li>
+            <li>Copy the app files.</li>
+            <li>Set <code>CMD</code> to run the Python app.</li>
+            <li>Build and run the image.</li>
+          </ol>
+        `,
+        node: `
+          <strong>Node app workflow</strong>
+          <ol>
+            <li>Create your Node app files.</li>
+            <li>Use a Node base image.</li>
+            <li>Copy <code>package.json</code> first.</li>
+            <li>Run <code>npm install</code>.</li>
+            <li>Copy the rest of the source.</li>
+            <li>Start with <code>npm start</code>.</li>
+          </ol>
+        `,
+        static: `
+          <strong>Static HTML site workflow</strong>
+          <ol>
+            <li>Create your HTML, CSS, and JS files.</li>
+            <li>Use a web server image like Nginx.</li>
+            <li>Copy your site into the server's public folder.</li>
+            <li>Run the container with a port mapping.</li>
+            <li>Open the browser and test it.</li>
+          </ol>
+        `,
+        fullstack: `
+          <strong>Full stack workflow</strong>
+          <ol>
+            <li>Create separate services such as frontend, backend, and database.</li>
+            <li>Write Dockerfiles where needed.</li>
+            <li>Use a Compose file to define all services together.</li>
+            <li>Set ports, environment variables, and dependencies.</li>
+            <li>Run the whole stack with <code>docker compose up</code>.</li>
+          </ol>
+        `
+      };
+      el.innerHTML = map[val];
+    }
+    showWorkflow();
+
+    // Quiz
+    let score = 0;
+    const answered = new WeakSet();
+
+    function pick(el, isCorrect){
+      const q = el.closest('.q');
+      if(answered.has(q)) return;
+
+      answered.add(q);
+      const opts = [...q.querySelectorAll('.opt')];
+      opts.forEach(o => o.style.pointerEvents = 'none');
+
+      if(isCorrect){
+        el.classList.add('correct');
+        score++;
+      }else{
+        el.classList.add('wrong');
+        const rightIndex = Number(q.dataset.answer);
+        opts[rightIndex].classList.add('correct');
+      }
+      document.getElementById('scoreBox').textContent = `Score: ${score} / 5`;
+    }
+  </script>
+</body>
+</html>
