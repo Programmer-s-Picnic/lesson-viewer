@@ -4,7 +4,10 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Docker from Ground Zero — Interactive Lesson</title>
-  <meta name="description" content="An interactive beginner lesson on Docker starting at ground zero. Learn containers, images, Dockerfile, Compose, commands, workflows, and practice with quizzes." />
+  <meta
+    name="description"
+    content="An interactive beginner lesson on Docker starting at ground zero. Learn installation, first run, containers, images, Dockerfile, Compose, commands, workflows, and practice with quizzes."
+  />
   <style>
     :root{
       --bg:#fffaf0;
@@ -19,11 +22,14 @@
       --good-bg:#ecfdf5;
       --warn:#92400e;
       --warn-bg:#fff7ed;
+      --bad:#991b1b;
+      --bad-bg:#fef2f2;
       --code:#111827;
       --code-bg:#0f172a;
       --shadow:0 18px 45px rgba(217,119,6,.12);
       --radius:22px;
     }
+
     *{box-sizing:border-box}
     html{scroll-behavior:smooth}
     body{
@@ -36,9 +42,12 @@
         linear-gradient(180deg,#fffdf8,#fff8eb 55%, #fffefb);
       line-height:1.65;
     }
+
     a{color:var(--brand); text-decoration:none}
     a:hover{text-decoration:underline}
-    .wrap{max-width:1200px; margin:auto; padding:24px}
+
+    .wrap{max-width:1240px; margin:auto; padding:24px}
+
     .hero{
       display:grid;
       grid-template-columns:1.2fr .8fr;
@@ -46,15 +55,18 @@
       align-items:stretch;
       margin-top:8px;
     }
+
     .card{
-      background:rgba(255,255,255,.88);
+      background:rgba(255,255,255,.9);
       border:1px solid rgba(241,217,166,.95);
       border-radius:var(--radius);
       box-shadow:var(--shadow);
       backdrop-filter:blur(8px);
     }
+
     .hero-main{padding:28px}
     .hero-side{padding:22px}
+
     .badge{
       display:inline-flex;
       align-items:center;
@@ -67,31 +79,37 @@
       font-weight:700;
       font-size:.92rem;
     }
+
     h1{
       margin:16px 0 12px;
       font-size:clamp(2rem,4vw,3.4rem);
       line-height:1.08;
       letter-spacing:-.03em;
     }
+
     h2{
       margin:0 0 12px;
       font-size:clamp(1.4rem,2.4vw,2rem);
       line-height:1.15;
       letter-spacing:-.02em;
     }
+
     h3{margin:0 0 10px; font-size:1.15rem}
     p{margin:.72rem 0}
+
     .sub{
       color:var(--muted);
       font-size:1.06rem;
-      max-width:70ch;
+      max-width:74ch;
     }
+
     .chips{
       display:flex;
       flex-wrap:wrap;
       gap:10px;
       margin-top:18px;
     }
+
     .chip{
       padding:8px 12px;
       border-radius:999px;
@@ -100,11 +118,13 @@
       font-weight:700;
       font-size:.92rem;
     }
+
     .progress{
       margin-top:18px;
       display:grid;
       gap:12px;
     }
+
     .progress .row{
       display:flex;
       justify-content:space-between;
@@ -112,6 +132,7 @@
       gap:14px;
       font-size:.95rem;
     }
+
     .bar{
       height:11px;
       background:#ffefcc;
@@ -119,32 +140,36 @@
       overflow:hidden;
       border:1px solid #f5d188;
     }
+
     .bar > span{
       display:block;
       height:100%;
       width:0%;
       background:linear-gradient(90deg,var(--brand),var(--brand-2));
       border-radius:999px;
-      transition:width .35s ease;
+      transition:width .4s ease;
     }
 
     .layout{
       display:grid;
-      grid-template-columns:300px 1fr;
+      grid-template-columns:310px 1fr;
       gap:22px;
       margin-top:24px;
     }
+
     .sidebar{
       position:sticky;
       top:16px;
       align-self:start;
       padding:18px;
     }
+
     .navlist{
       display:grid;
       gap:10px;
       margin-top:8px;
     }
+
     .navlist a{
       padding:10px 12px;
       border:1px solid var(--line);
@@ -153,11 +178,13 @@
       font-weight:700;
       color:var(--text);
     }
+
     .navlist a:hover{
       background:#fff8ea;
       text-decoration:none;
       border-color:#edc970;
     }
+
     .small{
       font-size:.92rem;
       color:var(--muted);
@@ -167,26 +194,32 @@
       display:grid;
       gap:22px;
     }
+
     section.lesson{
       padding:24px;
     }
+
     .grid-2{
       display:grid;
       grid-template-columns:repeat(2,minmax(0,1fr));
       gap:16px;
     }
+
     .grid-3{
       display:grid;
       grid-template-columns:repeat(3,minmax(0,1fr));
       gap:16px;
     }
+
     .mini{
       padding:18px;
       border:1px solid var(--line);
       border-radius:18px;
       background:linear-gradient(180deg,#fff,#fffaf1);
     }
+
     .mini strong{display:block; margin-bottom:8px}
+
     .callout{
       padding:16px 18px;
       border-radius:18px;
@@ -195,10 +228,17 @@
       color:var(--warn);
       margin:14px 0 0;
     }
+
     .success{
       background:var(--good-bg);
       color:var(--good);
       border-color:#b7efcf;
+    }
+
+    .danger{
+      background:var(--bad-bg);
+      color:var(--bad);
+      border-color:#fecaca;
     }
 
     .diagram{
@@ -206,12 +246,14 @@
       gap:12px;
       margin-top:14px;
     }
+
     .diagram-row{
       display:grid;
       grid-template-columns:1fr auto 1fr auto 1fr;
       gap:12px;
       align-items:center;
     }
+
     .box{
       border:1px solid var(--line);
       background:#fff;
@@ -219,6 +261,7 @@
       padding:16px;
       min-height:96px;
     }
+
     .arrow{
       font-size:1.7rem;
       color:var(--brand);
@@ -235,9 +278,11 @@
       border:1px solid #243147;
       box-shadow:inset 0 1px 0 rgba(255,255,255,.03);
     }
+
     code,kbd{
       font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
     }
+
     .inline-code{
       background:#fff0cf;
       border:1px solid #f4d58c;
@@ -254,6 +299,7 @@
       border:1px solid #243147;
       background:#0b1220;
     }
+
     .terminal-top{
       display:flex;
       align-items:center;
@@ -262,23 +308,29 @@
       background:#111827;
       border-bottom:1px solid #243147;
     }
+
     .dot{
-      width:10px; height:10px; border-radius:50%;
+      width:10px;
+      height:10px;
+      border-radius:50%;
       background:#64748b;
     }
+
     .term-body{
       padding:16px;
       color:#dbeafe;
-      min-height:210px;
+      min-height:220px;
       font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
       white-space:pre-wrap;
     }
+
     .term-controls{
       display:flex;
       flex-wrap:wrap;
       gap:10px;
       margin-top:14px;
     }
+
     button, .btn{
       border:none;
       background:linear-gradient(180deg,var(--brand-2),var(--brand));
@@ -289,13 +341,16 @@
       cursor:pointer;
       box-shadow:0 10px 20px rgba(217,119,6,.2);
     }
+
     button.secondary, .btn.secondary{
       background:#fff;
       color:var(--text);
       border:1px solid var(--line);
       box-shadow:none;
     }
+
     button:hover,.btn:hover{transform:translateY(-1px)}
+
     .input, select, textarea{
       width:100%;
       border:1px solid var(--line);
@@ -305,7 +360,12 @@
       padding:12px 14px;
       font:inherit;
     }
-    textarea{min-height:140px; resize:vertical}
+
+    textarea{
+      min-height:140px;
+      resize:vertical;
+    }
+
     .stack{
       display:grid;
       gap:12px;
@@ -317,9 +377,11 @@
       gap:16px;
       margin-top:14px;
     }
+
     .flip{
       perspective:1000px;
     }
+
     .flip-inner{
       position:relative;
       width:100%;
@@ -328,9 +390,11 @@
       transform-style:preserve-3d;
       cursor:pointer;
     }
+
     .flip.active .flip-inner{
       transform:rotateY(180deg);
     }
+
     .face{
       position:absolute;
       inset:0;
@@ -343,6 +407,7 @@
       flex-direction:column;
       justify-content:center;
     }
+
     .back{
       transform:rotateY(180deg);
       background:linear-gradient(180deg,#fff7e8,#fff);
@@ -353,17 +418,20 @@
       gap:18px;
       margin-top:16px;
     }
+
     .q{
       border:1px solid var(--line);
       border-radius:18px;
       padding:16px;
       background:#fff;
     }
+
     .q .opts{
       display:grid;
       gap:10px;
       margin-top:12px;
     }
+
     .opt{
       padding:11px 12px;
       border-radius:12px;
@@ -372,17 +440,19 @@
       cursor:pointer;
       font-weight:600;
     }
+
     .opt.correct{
       background:#ecfdf5;
       border-color:#86efac;
       color:#166534;
     }
+
     .opt.wrong{
       background:#fef2f2;
       border-color:#fca5a5;
       color:#991b1b;
     }
-    .hidden{display:none}
+
     .score{
       padding:14px 16px;
       border-radius:14px;
@@ -397,13 +467,21 @@
       gap:14px;
       margin-top:14px;
     }
+
     .cmd{
       border:1px solid var(--line);
       background:#fff;
       border-radius:16px;
       padding:14px;
     }
-    .cmd code{display:block; margin-bottom:8px; font-size:1rem; color:#9a3412}
+
+    .cmd code{
+      display:block;
+      margin-bottom:8px;
+      font-size:1rem;
+      color:#9a3412;
+    }
+
     .pill{
       display:inline-block;
       margin-top:8px;
@@ -414,18 +492,22 @@
       font-size:.85rem;
       font-weight:700;
     }
+
     .footer-note{
       color:var(--muted);
       font-size:.92rem;
       margin-top:16px;
     }
+
     details{
       border:1px solid var(--line);
       border-radius:16px;
       background:#fff;
       padding:14px 16px;
     }
+
     details + details{margin-top:10px}
+
     summary{
       cursor:pointer;
       font-weight:800;
@@ -436,6 +518,7 @@
       gap:10px;
       margin-top:14px;
     }
+
     .check{
       display:flex;
       align-items:flex-start;
@@ -445,10 +528,81 @@
       background:#fff;
       border:1px solid var(--line);
     }
+
     .check input{margin-top:3px}
 
+    .path-tabs{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin:14px 0;
+    }
+
+    .path-tabs button{
+      padding:10px 14px;
+    }
+
+    .path-panel{
+      display:none;
+      border:1px solid var(--line);
+      background:#fff;
+      border-radius:18px;
+      padding:16px;
+    }
+
+    .path-panel.active{display:block}
+
+    .step-list{
+      display:grid;
+      gap:12px;
+      margin-top:12px;
+    }
+
+    .step{
+      border:1px solid var(--line);
+      background:#fffaf3;
+      border-radius:16px;
+      padding:14px;
+    }
+
+    .step strong{
+      display:block;
+      margin-bottom:6px;
+    }
+
+    .two-col{
+      display:grid;
+      grid-template-columns:1.1fr .9fr;
+      gap:16px;
+    }
+
+    .status-grid{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:12px;
+      margin-top:12px;
+    }
+
+    .status{
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:14px;
+      background:#fff;
+      text-align:center;
+      font-weight:700;
+    }
+
+    .hero-note{
+      margin-top:14px;
+      padding:12px 14px;
+      border-radius:14px;
+      background:#fff7e5;
+      border:1px solid var(--line);
+      font-size:.95rem;
+    }
+
     @media (max-width:980px){
-      .hero,.layout,.grid-2,.grid-3,.flashcards,.cmd-grid,.diagram-row{
+      .hero,.layout,.grid-2,.grid-3,.flashcards,.cmd-grid,.diagram-row,.two-col,.status-grid{
         grid-template-columns:1fr;
       }
       .sidebar{position:relative; top:0}
@@ -461,45 +615,56 @@
     <header class="hero">
       <div class="card hero-main">
         <div class="badge">🐳 Interactive Beginner Lesson • Docker from Ground Zero</div>
-        <h1>Learn Docker step by step, from zero to your first real container.</h1>
+        <h1>Learn Docker step by step, from installation to your first real container.</h1>
         <p class="sub">
-          This page is built for complete beginners. You will learn what Docker is, why it matters,
-          what containers and images are, how to run basic commands, how a Dockerfile works,
-          and how Docker Compose helps with multi-container projects.
+          This page is built for complete beginners. It starts with installing Docker, checking that it is running,
+          and launching your very first container. After that, it teaches containers, images, Dockerfile, Compose,
+          core commands, and beginner practice.
         </p>
         <div class="chips">
-          <span class="chip">Beginner friendly</span>
+          <span class="chip">Ground zero</span>
+          <span class="chip">Install + run Docker</span>
           <span class="chip">Interactive quiz</span>
           <span class="chip">Command explorer</span>
           <span class="chip">Dockerfile practice</span>
           <span class="chip">Compose explained</span>
+        </div>
+        <div class="hero-note">
+          Best path for most beginners: install Docker Desktop, open it once, wait until it says Docker is running,
+          then test with <span class="inline-code">docker --version</span> and
+          <span class="inline-code">docker run hello-world</span>.
         </div>
       </div>
 
       <aside class="card hero-side">
         <h2 style="font-size:1.35rem">Lesson map</h2>
         <div class="progress">
-          <div class="row"><span>Concepts</span><strong>1</strong></div>
-          <div class="bar"><span data-progress="14"></span></div>
+          <div class="row"><span>Install Docker</span><strong>1</strong></div>
+          <div class="bar"><span data-progress="10"></span></div>
 
-          <div class="row"><span>Commands</span><strong>2</strong></div>
-          <div class="bar"><span data-progress="28"></span></div>
+          <div class="row"><span>First run</span><strong>2</strong></div>
+          <div class="bar"><span data-progress="20"></span></div>
 
-          <div class="row"><span>Dockerfile</span><strong>3</strong></div>
-          <div class="bar"><span data-progress="42"></span></div>
+          <div class="row"><span>Concepts</span><strong>3</strong></div>
+          <div class="bar"><span data-progress="35"></span></div>
 
-          <div class="row"><span>Compose</span><strong>4</strong></div>
-          <div class="bar"><span data-progress="56"></span></div>
+          <div class="row"><span>Commands</span><strong>4</strong></div>
+          <div class="bar"><span data-progress="50"></span></div>
 
-          <div class="row"><span>Workflow</span><strong>5</strong></div>
-          <div class="bar"><span data-progress="72"></span></div>
+          <div class="row"><span>Dockerfile</span><strong>5</strong></div>
+          <div class="bar"><span data-progress="65"></span></div>
 
-          <div class="row"><span>Quiz + Practice</span><strong>6</strong></div>
+          <div class="row"><span>Compose</span><strong>6</strong></div>
+          <div class="bar"><span data-progress="78"></span></div>
+
+          <div class="row"><span>Workflow</span><strong>7</strong></div>
+          <div class="bar"><span data-progress="88"></span></div>
+
+          <div class="row"><span>Quiz + Practice</span><strong>8</strong></div>
           <div class="bar"><span data-progress="100"></span></div>
         </div>
         <p class="footer-note">
-          Tip: work through the sections in order. Docker makes much more sense when you first understand
-          the big picture, then the commands, then the files.
+          Tip: first get Docker installed and verified. After that, the rest of Docker becomes far easier to understand.
         </p>
       </aside>
     </header>
@@ -508,24 +673,222 @@
       <nav class="card sidebar">
         <h3>Jump to section</h3>
         <div class="navlist">
-          <a href="#zero">1. Ground zero</a>
-          <a href="#mental-model">2. Mental model</a>
-          <a href="#commands">3. Core commands</a>
-          <a href="#dockerfile">4. Dockerfile</a>
-          <a href="#compose">5. Docker Compose</a>
-          <a href="#workflow">6. Real workflow</a>
-          <a href="#mistakes">7. Common mistakes</a>
-          <a href="#quiz">8. Quiz</a>
-          <a href="#practice">9. Practice tasks</a>
+          <a href="#install">1. Install Docker</a>
+          <a href="#first-run">2. Run Docker first time</a>
+          <a href="#zero">3. Ground zero</a>
+          <a href="#mental-model">4. Mental model</a>
+          <a href="#commands">5. Core commands</a>
+          <a href="#dockerfile">6. Dockerfile</a>
+          <a href="#compose">7. Docker Compose</a>
+          <a href="#workflow">8. Real workflow</a>
+          <a href="#mistakes">9. Common mistakes</a>
+          <a href="#quiz">10. Quiz</a>
+          <a href="#practice">11. Practice tasks</a>
         </div>
         <p class="small" style="margin-top:14px">
-          Click the flashcards, run the command simulator, and answer the quiz to lock in the ideas.
+          Start at the top. The install and first-run sections are new and come before the rest of the lesson.
         </p>
       </nav>
 
       <main class="main">
+        <section id="install" class="card lesson">
+          <h2>1) Install Docker</h2>
+          <p>
+            For most beginners, the easiest path is <strong>Docker Desktop</strong>. It gives you Docker,
+            a dashboard, Compose support, and a simple setup experience on Windows, Mac, and Linux.
+          </p>
+
+          <div class="callout success">
+            Beginner recommendation: start with Docker Desktop on a personal laptop or desktop machine.
+          </div>
+
+          <div class="path-tabs">
+            <button onclick="showPath('desktop')">Docker Desktop path</button>
+            <button class="secondary" onclick="showPath('linux-engine')">Linux Docker Engine path</button>
+            <button class="secondary" onclick="showPath('which-one')">Which one should I choose?</button>
+          </div>
+
+          <div id="path-desktop" class="path-panel active">
+            <h3>Install path A: Docker Desktop</h3>
+            <div class="step-list">
+              <div class="step">
+                <strong>Step 1: Go to Docker Desktop</strong>
+                Open the official Docker Desktop download page and choose your operating system.
+              </div>
+              <div class="step">
+                <strong>Step 2: Download and install</strong>
+                Run the installer and follow the setup screens.
+              </div>
+              <div class="step">
+                <strong>Step 3: Open Docker Desktop</strong>
+                Launch Docker Desktop after installation.
+              </div>
+              <div class="step">
+                <strong>Step 4: Wait for Docker to start</strong>
+                Give it a moment. You want Docker Desktop to show that Docker is running.
+              </div>
+              <div class="step">
+                <strong>Step 5: Open a terminal</strong>
+                Use Terminal, PowerShell, Command Prompt, or a Linux terminal.
+              </div>
+              <div class="step">
+                <strong>Step 6: Check the install</strong>
+                Run <span class="inline-code">docker --version</span>.
+              </div>
+            </div>
+
+            <pre><code># Check Docker from a terminal
+docker --version
+
+# Optional: check Compose too
+docker compose version</code></pre>
+          </div>
+
+          <div id="path-linux-engine" class="path-panel">
+            <h3>Install path B: Docker Engine on Linux</h3>
+            <p>
+              This path is more common on servers or on Linux systems where you want a more direct engine install.
+            </p>
+            <div class="step-list">
+              <div class="step">
+                <strong>Step 1: Open the official install page for your Linux distribution</strong>
+                Docker provides distro-specific install pages such as Ubuntu, RHEL, Debian, and others.
+              </div>
+              <div class="step">
+                <strong>Step 2: Follow the official repository-based installation steps</strong>
+                This is the normal recommended approach.
+              </div>
+              <div class="step">
+                <strong>Step 3: Start the Docker service if needed</strong>
+                On many Linux systems, installing Docker does not automatically mean it is running.
+              </div>
+              <div class="step">
+                <strong>Step 4: Verify the install</strong>
+                Run <span class="inline-code">docker --version</span> and then
+                <span class="inline-code">docker run hello-world</span>.
+              </div>
+              <div class="step">
+                <strong>Step 5: Optional Linux post-install step</strong>
+                Configure non-root use if you do not want to type <span class="inline-code">sudo</span> every time.
+              </div>
+            </div>
+
+            <pre><code># Very common verification sequence on Linux
+docker --version
+sudo docker run hello-world</code></pre>
+
+            <div class="callout">
+              On Linux, you may need <span class="inline-code">sudo</span> at first. Later, you can choose to set up
+              Docker for non-root usage.
+            </div>
+          </div>
+
+          <div id="path-which-one" class="path-panel">
+            <h3>Which one should I choose?</h3>
+            <div class="grid-3">
+              <div class="mini">
+                <strong>Choose Docker Desktop if…</strong>
+                You are learning on your own laptop, want the easiest start, and prefer a guided desktop app.
+              </div>
+              <div class="mini">
+                <strong>Choose Docker Engine if…</strong>
+                You are on a Linux server, or want a more direct server-style setup without Docker Desktop.
+              </div>
+              <div class="mini">
+                <strong>Best beginner answer</strong>
+                Start with Docker Desktop unless you clearly need the Linux Engine route.
+              </div>
+            </div>
+          </div>
+
+          <details>
+            <summary>What if Docker installs but commands do not work?</summary>
+            <p>
+              Usually one of these is true: Docker Desktop has not fully started yet, the terminal needs to be reopened,
+              the Docker service is not running, or on Linux you need <span class="inline-code">sudo</span>.
+            </p>
+          </details>
+
+          <details>
+            <summary>Do I need Docker Compose separately?</summary>
+            <p>
+              In the beginner Desktop path, Compose is already included. On Linux engine setups, Compose is commonly installed
+              as a plugin.
+            </p>
+          </details>
+        </section>
+
+        <section id="first-run" class="card lesson">
+          <h2>2) Run Docker for the first time</h2>
+          <p>
+            Once Docker is installed, the next milestone is simple: prove that it is alive and can run a container.
+          </p>
+
+          <div class="two-col">
+            <div class="mini">
+              <strong>Minimal first-run checklist</strong>
+              <ol>
+                <li>Open Docker Desktop or ensure the Docker service is running.</li>
+                <li>Open a terminal.</li>
+                <li>Run <span class="inline-code">docker --version</span>.</li>
+                <li>Run <span class="inline-code">docker run hello-world</span>.</li>
+                <li>If that works, Docker is installed correctly enough to continue learning.</li>
+              </ol>
+            </div>
+
+            <div class="mini">
+              <strong>What hello-world does</strong>
+              <p>
+                It downloads a tiny test image if needed, starts a container from it, and prints a confirmation message.
+              </p>
+              <p>
+                This is the classic first success moment in Docker.
+              </p>
+            </div>
+          </div>
+
+          <pre><code># First checks
+docker --version
+
+# First test container
+docker run hello-world</code></pre>
+
+          <div class="status-grid">
+            <div class="status">1. Docker installed</div>
+            <div class="status">2. Docker started</div>
+            <div class="status">3. hello-world runs</div>
+            <div class="status">4. You are ready</div>
+          </div>
+
+          <div class="terminal">
+            <div class="terminal-top">
+              <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+              <strong style="color:#cbd5e1">First Run Simulator</strong>
+            </div>
+            <div id="firstRunOut" class="term-body">$ Click the buttons below to simulate your first Docker run...</div>
+          </div>
+
+          <div class="term-controls">
+            <button onclick="runFirst('open')">Open Docker Desktop</button>
+            <button onclick="runFirst('version')">docker --version</button>
+            <button onclick="runFirst('hello')">docker run hello-world</button>
+            <button onclick="runFirst('psa')">docker ps -a</button>
+            <button class="secondary" onclick="resetFirstRun()">Clear</button>
+          </div>
+
+          <div class="callout success">
+            If <span class="inline-code">docker run hello-world</span> works, do not rush past that moment.
+            It means the install, engine, image pull, and container start path all worked together.
+          </div>
+
+          <div class="callout danger">
+            If it fails, do not panic. The most common causes are: Docker is not started yet, your terminal needs reopening,
+            the service is stopped, or Linux needs <span class="inline-code">sudo</span>.
+          </div>
+        </section>
+
         <section id="zero" class="card lesson">
-          <h2>1) Docker at ground zero</h2>
+          <h2>3) Docker at ground zero</h2>
           <p>
             Docker helps you package an application together with what it needs to run.
             Instead of saying, “It works on my machine,” you create a standard package
@@ -574,7 +937,7 @@
         </section>
 
         <section id="mental-model" class="card lesson">
-          <h2>2) The mental model you must understand</h2>
+          <h2>4) The mental model you must understand</h2>
           <p>
             Many beginners get confused because they mix up <strong>Docker</strong>, <strong>image</strong>,
             <strong>container</strong>, <strong>Dockerfile</strong>, and <strong>Compose</strong>.
@@ -677,7 +1040,7 @@ Compose     = tool for multi-container apps</code></pre>
         </section>
 
         <section id="commands" class="card lesson">
-          <h2>3) Your first important Docker commands</h2>
+          <h2>5) Your first important Docker commands</h2>
           <p>
             Before learning everything, learn the command pattern. Most beginner progress starts here.
           </p>
@@ -732,6 +1095,7 @@ Compose     = tool for multi-container apps</code></pre>
             </div>
             <div id="termOut" class="term-body">$ Try clicking commands below...</div>
           </div>
+
           <div class="term-controls">
             <button onclick="runDemo('version')">docker --version</button>
             <button onclick="runDemo('pull')">docker pull nginx</button>
@@ -750,7 +1114,7 @@ Compose     = tool for multi-container apps</code></pre>
         </section>
 
         <section id="dockerfile" class="card lesson">
-          <h2>4) Dockerfile — the recipe for your image</h2>
+          <h2>6) Dockerfile — the recipe for your image</h2>
           <p>
             A Dockerfile is just a plain text file. It tells Docker how to build your image.
             This is where many real projects begin.
@@ -816,7 +1180,7 @@ docker run -p 3000:3000 myapp:1.0</code></pre>
         </section>
 
         <section id="compose" class="card lesson">
-          <h2>5) Docker Compose — when one container is not enough</h2>
+          <h2>7) Docker Compose — when one container is not enough</h2>
           <p>
             Real apps often need more than one service. A web app may need a backend,
             a database, and maybe a cache. Running them one by one is painful.
@@ -881,7 +1245,7 @@ docker compose logs</code></pre>
         </section>
 
         <section id="workflow" class="card lesson">
-          <h2>6) A real beginner workflow</h2>
+          <h2>8) A real beginner workflow</h2>
           <p>Here is a simple mental workflow you can follow in small projects.</p>
 
           <div class="grid-3">
@@ -924,7 +1288,7 @@ docker compose logs</code></pre>
         </section>
 
         <section id="mistakes" class="card lesson">
-          <h2>7) Common beginner mistakes</h2>
+          <h2>9) Common beginner mistakes</h2>
           <div class="grid-2">
             <div class="mini">
               <strong>Mistake: image vs container confusion</strong>
@@ -963,7 +1327,7 @@ docker compose logs</code></pre>
         </section>
 
         <section id="quiz" class="card lesson">
-          <h2>8) Quick quiz</h2>
+          <h2>10) Quick quiz</h2>
           <p>Try this without looking back first.</p>
           <div id="scoreBox" class="score">Score: 0 / 5</div>
 
@@ -1016,37 +1380,38 @@ docker compose logs</code></pre>
         </section>
 
         <section id="practice" class="card lesson">
-          <h2>9) Practice tasks</h2>
+          <h2>11) Practice tasks</h2>
           <div class="grid-2">
             <div class="mini">
               <strong>Task 1</strong>
-              Pull an image like <span class="inline-code">nginx</span>, run it, and list running containers.
+              Install Docker, open it, and run <span class="inline-code">docker --version</span>.
             </div>
             <div class="mini">
               <strong>Task 2</strong>
-              Write a tiny Dockerfile for a Python or Node app.
+              Run <span class="inline-code">docker run hello-world</span> and explain what happened.
             </div>
             <div class="mini">
               <strong>Task 3</strong>
-              Build your image with a tag such as <span class="inline-code">myapp:1.0</span>.
+              Pull an image like <span class="inline-code">nginx</span>, run it, and list running containers.
             </div>
             <div class="mini">
               <strong>Task 4</strong>
-              Run the image with a port mapping and test it in the browser.
+              Write a tiny Dockerfile for a Python or Node app.
             </div>
             <div class="mini">
               <strong>Task 5</strong>
-              Add a database service using Compose.
+              Build your image with a tag such as <span class="inline-code">myapp:1.0</span>.
             </div>
             <div class="mini">
               <strong>Task 6</strong>
-              Explain the difference between image and container in your own words.
+              Add a database service using Compose.
             </div>
           </div>
 
           <div class="callout success">
-            If you can explain <strong>image vs container</strong>, write a basic <strong>Dockerfile</strong>,
-            and say when to use <strong>Compose</strong>, you have crossed the beginner barrier.
+            If you can install Docker, run <strong>hello-world</strong>, explain <strong>image vs container</strong>,
+            write a basic <strong>Dockerfile</strong>, and say when to use <strong>Compose</strong>,
+            you have crossed the beginner barrier.
           </div>
 
           <p class="footer-note">
@@ -1064,7 +1429,86 @@ docker compose logs</code></pre>
       setTimeout(() => el.style.width = el.dataset.progress + '%', 150 + i * 120);
     });
 
-    // Terminal simulator
+    // Install path tabs
+    function showPath(name){
+      const panels = document.querySelectorAll('.path-panel');
+      panels.forEach(p => p.classList.remove('active'));
+
+      document.getElementById('path-desktop').classList.toggle('active', name === 'desktop');
+      document.getElementById('path-linux-engine').classList.toggle('active', name === 'linux-engine');
+      document.getElementById('path-which-one').classList.toggle('active', name === 'which-one');
+
+      const buttons = document.querySelectorAll('.path-tabs button');
+      buttons.forEach(btn => btn.classList.add('secondary'));
+
+      if(name === 'desktop') buttons[0].classList.remove('secondary');
+      if(name === 'linux-engine') buttons[1].classList.remove('secondary');
+      if(name === 'which-one') buttons[2].classList.remove('secondary');
+    }
+
+    // First-run simulator
+    const firstOut = document.getElementById('firstRunOut');
+    let desktopOpened = false;
+    let dockerStarted = false;
+    let helloRan = false;
+
+    function firstPrint(text){
+      firstOut.textContent += "\n" + text;
+      firstOut.scrollTop = firstOut.scrollHeight;
+    }
+
+    function resetFirstRun(){
+      desktopOpened = false;
+      dockerStarted = false;
+      helloRan = false;
+      firstOut.textContent = "$ Click the buttons below to simulate your first Docker run...";
+    }
+
+    function runFirst(type){
+      switch(type){
+        case 'open':
+          firstPrint("$ Open Docker Desktop");
+          firstPrint("Docker Desktop launching...");
+          firstPrint("Docker engine is starting...");
+          firstPrint("Docker is now running.");
+          desktopOpened = true;
+          dockerStarted = true;
+          break;
+        case 'version':
+          firstPrint("$ docker --version");
+          if(dockerStarted){
+            firstPrint("Docker version 27.x.x, build example");
+          }else{
+            firstPrint("Cannot connect to the Docker daemon. Is Docker running?");
+          }
+          break;
+        case 'hello':
+          firstPrint("$ docker run hello-world");
+          if(!dockerStarted){
+            firstPrint("Cannot connect to the Docker daemon. Start Docker first.");
+            break;
+          }
+          firstPrint("Unable to find image 'hello-world:latest' locally");
+          firstPrint("latest: Pulling from library/hello-world");
+          firstPrint("Digest: sha256:example");
+          firstPrint("");
+          firstPrint("Hello from Docker!");
+          firstPrint("This message shows that your installation appears to be working correctly.");
+          helloRan = true;
+          break;
+        case 'psa':
+          firstPrint("$ docker ps -a");
+          if(helloRan){
+            firstPrint("CONTAINER ID   IMAGE         STATUS");
+            firstPrint("f1a2b3c4d5     hello-world   Exited (0) 2 seconds ago");
+          }else{
+            firstPrint("No containers yet.");
+          }
+          break;
+      }
+    }
+
+    // Main terminal simulator
     const out = document.getElementById('termOut');
     let running = false;
     let hasImage = false;
@@ -1072,7 +1516,7 @@ docker compose logs</code></pre>
     let stopped = false;
 
     function print(text){
-      out.textContent += "\\n" + text;
+      out.textContent += "\n" + text;
       out.scrollTop = out.scrollHeight;
     }
 
@@ -1154,7 +1598,7 @@ docker compose logs</code></pre>
     // Dockerfile explainer
     function explainDockerfile(){
       const text = document.getElementById('dockerfileBuilder').value.trim();
-      const lines = text.split(/\\n+/).filter(Boolean);
+      const lines = text.split(/\n+/).filter(Boolean);
       const output = document.getElementById('dockerfileExplanation');
 
       if(!lines.length){
@@ -1176,7 +1620,7 @@ docker compose logs</code></pre>
 
       let html = "<strong>Step-by-step explanation</strong><ol>";
       for(const line of lines){
-        const instruction = line.trim().split(/\\s+/)[0].toUpperCase();
+        const instruction = line.trim().split(/\s+/)[0].toUpperCase();
         html += "<li><code>" + escapeHtml(line) + "</code><br>" +
           (meanings[instruction] || "General Docker instruction.") + "</li>";
       }
