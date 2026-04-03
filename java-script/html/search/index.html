@@ -1,0 +1,1341 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Programmer's Picnic — Lesson: Search and Sort an HTML Table with JavaScript</title>
+  <meta
+    name="description"
+    content="A beginner-friendly Programmer's Picnic lesson that teaches how to search all td cells, hide non-matching tr rows, sort table columns, and add copy buttons and speak tags."
+  />
+  <meta name="theme-color" content="#d97706" />
+
+  <script
+    async
+    src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8321261883090494"
+    crossorigin="anonymous"
+  ></script>
+
+  <style>
+    :root {
+      --bg: #fff8eb;
+      --card: #ffffff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --brand: #d97706;
+      --brand-2: #f59e0b;
+      --brand-3: #92400e;
+      --line: #ead7b0;
+      --soft: #fff3cd;
+      --soft-2: #fff7e6;
+      --ok: #166534;
+      --code: #111827;
+      --code-text: #f9fafb;
+      --shadow: 0 12px 34px rgba(0, 0, 0, 0.08);
+      --radius: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top right, rgba(245, 158, 11, 0.12), transparent 20%),
+        linear-gradient(180deg, #fff9ef 0%, #fff8eb 100%);
+      line-height: 1.6;
+    }
+
+    a {
+      color: var(--brand-3);
+    }
+
+    .hero {
+      padding: 34px 20px 28px;
+      background: linear-gradient(135deg, var(--brand), var(--brand-2));
+      color: white;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before,
+    .hero::after {
+      content: "";
+      position: absolute;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.12);
+      pointer-events: none;
+    }
+
+    .hero::before {
+      width: 280px;
+      height: 280px;
+      top: -120px;
+      right: -60px;
+    }
+
+    .hero::after {
+      width: 180px;
+      height: 180px;
+      bottom: -80px;
+      left: -40px;
+    }
+
+    .hero-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    .eyebrow {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.18);
+      font-size: 0.88rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      margin-bottom: 14px;
+    }
+
+    h1, h2, h3 {
+      line-height: 1.2;
+      margin-top: 0;
+    }
+
+    .hero h1 {
+      margin-bottom: 12px;
+      font-size: clamp(1.7rem, 3vw, 2.8rem);
+    }
+
+    .hero p {
+      max-width: 860px;
+      margin: 0 0 10px;
+      font-size: 1.04rem;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .hero-actions a {
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: none;
+      border-radius: 12px;
+      padding: 11px 16px;
+      background: var(--brand);
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(146, 64, 14, 0.18);
+      transition: transform 0.18s ease, filter 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.03);
+      box-shadow: 0 12px 24px rgba(146, 64, 14, 0.24);
+    }
+
+    .btn.secondary {
+      background: rgba(255,255,255,0.18);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.22);
+      box-shadow: none;
+    }
+
+    .page {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px 18px 80px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      gap: 22px;
+      align-items: start;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 18px;
+      background: rgba(255,255,255,0.72);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(234, 215, 176, 0.9);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .sidebar h2 {
+      font-size: 1rem;
+      margin-bottom: 10px;
+    }
+
+    .sidebar ol {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .sidebar li {
+      margin: 8px 0;
+    }
+
+    .sidebar a {
+      text-decoration: none;
+      color: var(--ink);
+    }
+
+    .sidebar a:hover {
+      color: var(--brand-3);
+    }
+
+    .content {
+      display: grid;
+      gap: 22px;
+    }
+
+    .card {
+      background: rgba(255,255,255,0.84);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(234, 215, 176, 0.95);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .card-head {
+      padding: 18px 18px 0;
+    }
+
+    .card-body {
+      padding: 18px;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .tag {
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: var(--soft);
+      border: 1px solid var(--line);
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--brand-3);
+    }
+
+    .checklist {
+      margin: 0;
+      padding-left: 22px;
+    }
+
+    .checklist li {
+      margin: 10px 0;
+    }
+
+    .mini-note,
+    .tip,
+    .success,
+    .warning {
+      border-radius: 14px;
+      padding: 14px 15px;
+      margin-top: 14px;
+    }
+
+    .mini-note,
+    .tip {
+      background: #fffaf0;
+      border: 1px solid var(--line);
+    }
+
+    .success {
+      background: #f0fff4;
+      border: 1px solid #bbf7d0;
+      color: #14532d;
+    }
+
+    .warning {
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      color: #9a3412;
+    }
+
+    .lesson-step {
+      border-top: 1px dashed var(--line);
+      padding-top: 18px;
+      margin-top: 18px;
+    }
+
+    .lesson-step:first-child {
+      border-top: none;
+      padding-top: 0;
+      margin-top: 0;
+    }
+
+    .demo-wrap {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      overflow: hidden;
+      margin-top: 14px;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+      background: #fffdfa;
+    }
+
+    .search-wrap {
+      flex: 1 1 320px;
+      position: relative;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      font-size: 16px;
+      background: #fff;
+      outline: none;
+      color: var(--ink);
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(217,119,6,0.12);
+    }
+
+    .count {
+      padding: 0 16px 14px;
+      color: var(--muted);
+      font-size: 0.98rem;
+    }
+
+    .table-card {
+      background: var(--card);
+      border-top: 1px solid var(--line);
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 14px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: var(--soft);
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+      transition: background 0.2s ease;
+    }
+
+    th:hover {
+      background: #ffe7ae;
+    }
+
+    th.sortable::after {
+      content: " ⇅";
+      font-size: 0.9em;
+      color: var(--muted);
+    }
+
+    th.sorted-asc::after {
+      content: " ↑";
+      color: var(--brand);
+      font-weight: 700;
+    }
+
+    th.sorted-desc::after {
+      content: " ↓";
+      color: var(--brand);
+      font-weight: 700;
+    }
+
+    tbody tr:hover {
+      background: #fffaf0;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    mark {
+      background: #fff176;
+      color: #111827;
+      padding: 1px 3px;
+      border-radius: 4px;
+    }
+
+    .code-card {
+      margin-top: 14px;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid #1f2937;
+      background: var(--code);
+      color: var(--code-text);
+    }
+
+    .code-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 14px;
+      background: rgba(255,255,255,0.06);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .code-label {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #fde68a;
+      letter-spacing: 0.02em;
+    }
+
+    .copy-btn {
+      border: 1px solid rgba(255,255,255,0.16);
+      background: #1f2937;
+      color: #fff;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .copy-btn:hover {
+      background: #374151;
+    }
+
+    pre {
+      margin: 0;
+      padding: 16px;
+      overflow: auto;
+      font-size: 0.92rem;
+      line-height: 1.55;
+      white-space: pre;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    .inline-code {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 8px;
+      background: #fff3cd;
+      border: 1px solid #f5deb0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.95em;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .qa {
+      margin-top: 12px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .qa-item {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fffdfa;
+      overflow: hidden;
+    }
+
+    .qa-item summary {
+      cursor: pointer;
+      padding: 14px 16px;
+      font-weight: 700;
+      list-style: none;
+    }
+
+    .qa-item summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .qa-item .qa-body {
+      padding: 0 16px 16px;
+      color: var(--muted);
+    }
+
+    .footer {
+      margin-top: 22px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .pp-speaking-active {
+      outline: 3px solid rgba(217, 119, 6, 0.24);
+      background: #fff6df !important;
+      border-radius: 12px;
+      transition: background 0.25s ease, outline 0.25s ease;
+    }
+
+    @media (max-width: 940px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: static;
+      }
+    }
+
+    @media (max-width: 700px) {
+      .page {
+        padding-inline: 12px;
+      }
+
+      .card-head,
+      .card-body,
+      .toolbar,
+      .count {
+        padding-left: 14px;
+        padding-right: 14px;
+      }
+
+      .two-col {
+        grid-template-columns: 1fr;
+      }
+
+      th, td {
+        padding: 12px 10px;
+        font-size: 14px;
+      }
+
+      .hero {
+        padding-inline: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero" data-pp-speak-title="true">
+    <div class="hero-inner">
+      <div class="eyebrow">Programmer's Picnic • JavaScript DOM Lesson</div>
+      <h1 id="speak0">Build a Search and Sort Table with JavaScript</h1>
+      <p id="speak1">
+        In this lesson, you will learn how to search through all table cells, hide rows
+        that do not match, highlight matching text, count visible results, clear the
+        search, and sort a table by clicking the headers.
+      </p>
+      <p id="speak2">
+        This lesson is designed for beginners. We will start from the idea, move through
+        the HTML structure, then the JavaScript logic, and finally see a live working demo.
+      </p>
+      <div class="hero-actions">
+        <a class="btn secondary" href="#lesson">Start lesson</a>
+        <a class="btn secondary" href="#live-demo">Jump to live demo</a>
+        <button class="btn" type="button" id="copyFullPageBtn">Copy full page source</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="page">
+    <div class="grid">
+      <aside class="sidebar">
+        <h2 id="speak3">Lesson map</h2>
+        <ol>
+          <li><a href="#lesson">What we are building</a></li>
+          <li><a href="#step-1">Step 1: Table structure</a></li>
+          <li><a href="#step-2">Step 2: Search all td cells</a></li>
+          <li><a href="#step-3">Step 3: Hide non-matching tr rows</a></li>
+          <li><a href="#step-4">Step 4: Sort on header click</a></li>
+          <li><a href="#step-5">Step 5: Add highlights and count</a></li>
+          <li><a href="#live-demo">Live demo</a></li>
+          <li><a href="#complete-code">Complete code</a></li>
+          <li><a href="#practice">Practice tasks</a></li>
+        </ol>
+
+        <div class="mini-note" id="speak4">
+          Tip: the narration system reads elements whose ids begin with
+          <span class="inline-code">speak</span>. This page includes speak tags in all major lesson sections.
+        </div>
+      </aside>
+
+      <section class="content">
+        <article class="card" id="lesson">
+          <div class="card-head">
+            <h2 id="speak5">What are we building?</h2>
+          </div>
+          <div class="card-body">
+            <p id="speak6">
+              We are building an HTML table with three important interactive features.
+              First, when the user types into a search box, the page checks every
+              <span class="inline-code">td</span> in each row. Second, if a row has zero matches,
+              that row's <span class="inline-code">tr</span> becomes hidden. Third, when the user clicks
+              a header, the table sorts itself by that column.
+            </p>
+
+            <div class="tag-row">
+              <div class="tag">querySelector</div>
+              <div class="tag">querySelectorAll</div>
+              <div class="tag">tr and td</div>
+              <div class="tag">DOM manipulation</div>
+              <div class="tag">table sorting</div>
+            </div>
+
+            <div class="success" id="speak7">
+              By the end of this lesson, you will understand how to use
+              <span class="inline-code">row.querySelectorAll("td")</span>,
+              <span class="inline-code">row.style.display = "none"</span>,
+              and header click events for sorting.
+            </div>
+          </div>
+        </article>
+
+        <article class="card" id="step-1">
+          <div class="card-head">
+            <h2 id="speak8">Step 1: Create the table structure</h2>
+          </div>
+          <div class="card-body">
+            <p id="speak9">
+              Every table begins with a
+              <span class="inline-code">&lt;table&gt;</span>.
+              Inside it, we usually keep headings in
+              <span class="inline-code">&lt;thead&gt;</span>
+              and data rows in
+              <span class="inline-code">&lt;tbody&gt;</span>.
+              Each row is a
+              <span class="inline-code">&lt;tr&gt;</span>,
+              and each data cell is a
+              <span class="inline-code">&lt;td&gt;</span>.
+            </p>
+
+            <div class="code-card">
+              <div class="code-toolbar">
+                <div class="code-label">Step 1 code</div>
+                <button class="copy-btn" data-copy-target="code-step1">Copy</button>
+              </div>
+              <pre><code id="code-step1">&lt;table id="myTable"&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt;Name&lt;/th&gt;
+      &lt;th&gt;City&lt;/th&gt;
+      &lt;th&gt;Skill&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;&lt;td&gt;Champak Roy&lt;/td&gt;&lt;td&gt;Varanasi&lt;/td&gt;&lt;td&gt;Java&lt;/td&gt;&lt;/tr&gt;
+    &lt;tr&gt;&lt;td&gt;Riya Sharma&lt;/td&gt;&lt;td&gt;Delhi&lt;/td&gt;&lt;td&gt;Python&lt;/td&gt;&lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;</code></pre>
+            </div>
+
+            <div class="tip" id="speak10">
+              A table is easier to control in JavaScript when the
+              <span class="inline-code">tbody</span> exists, because we can directly collect and reorder its rows.
+            </div>
+          </div>
+        </article>
+
+        <article class="card" id="step-2">
+          <div class="card-head">
+            <h2 id="speak11">Step 2: Search all td cells using querySelectorAll</h2>
+          </div>
+          <div class="card-body">
+            <p id="speak12">
+              The search logic works row by row. First we collect all rows from the
+              table body. Then, for each row, we collect all of its cells with
+              <span class="inline-code">row.querySelectorAll("td")</span>.
+              This gives us a list of the data cells inside that row.
+            </p>
+
+            <div class="code-card">
+              <div class="code-toolbar">
+                <div class="code-label">Step 2 code</div>
+                <button class="copy-btn" data-copy-target="code-step2">Copy</button>
+              </div>
+              <pre><code id="code-step2">const tbody = document.querySelector("#myTable tbody");
+
+function getRows() {
+  return Array.from(tbody.querySelectorAll("tr"));
+}
+
+const rows = getRows();
+
+rows.forEach(row =&gt; {
+  const tds = row.querySelectorAll("td");
+  console.log(tds);
+});</code></pre>
+            </div>
+
+            <div class="mini-note" id="speak13">
+              Here,
+              <span class="inline-code">document.querySelector("#myTable tbody")</span>
+              gets the body of the table, and
+              <span class="inline-code">row.querySelectorAll("td")</span>
+              gets all cells inside one row.
+            </div>
+          </div>
+        </article>
+
+        <article class="card" id="step-3">
+          <div class="card-head">
+            <h2 id="speak14">Step 3: Hide a row when there are zero matches</h2>
+          </div>
+          <div class="card-body">
+            <p id="speak15">
+              This is the main requirement. We take the search text from the input,
+              convert it to lowercase, and compare it with each cell's text. If at least
+              one cell matches, we show the row. If no cell matches, we hide the row.
+            </p>
+
+            <div class="code-card">
+              <div class="code-toolbar">
+                <div class="code-label">Core search logic</div>
+                <button class="copy-btn" data-copy-target="code-step3">Copy</button>
+              </div>
+              <pre><code id="code-step3">function applySearch() {
+  const keyword = searchInput.value.trim().toLowerCase();
+  const rows = getRows();
+
+  rows.forEach(row =&gt; {
+    const tds = row.querySelectorAll("td");
+    let match = false;
+
+    tds.forEach(td =&gt; {
+      const text = td.textContent.toLowerCase();
+
+      if (keyword &amp;&amp; text.includes(keyword)) {
+        match = true;
+      }
+    });
+
+    if (!keyword || match) {
+      row.style.display = "";
+    } else {
+      row.style.display = "none";
+    }
+  });
+}</code></pre>
+            </div>
+
+            <div class="success" id="speak16">
+              Notice the condition:
+              <span class="inline-code">if (!keyword || match)</span>.
+              This means: if the box is empty, show everything. Otherwise, only show matching rows.
+            </div>
+
+            <div class="warning" id="speak17">
+              If you forget to reset hidden rows when the search box becomes empty,
+              some rows may stay hidden. That is why the empty-search condition matters.
+            </div>
+          </div>
+        </article>
+
+        <article class="card" id="step-4">
+          <div class="card-head">
+            <h2 id="speak18">Step 4: Sort the table when a header is clicked</h2>
+          </div>
+          <div class="card-body">
+            <p id="speak19">
+              To sort the table, we add click listeners to the
+              <span class="inline-code">th</span> elements. Each header knows which column it controls through a
+              <span class="inline-code">data-col</span> attribute.
+              When a header is clicked, we collect all rows, compare the values in that column,
+              sort them, and then put them back into the table body in the new order.
+            </p>
+
+            <div class="code-card">
+              <div class="code-toolbar">
+                <div class="code-label">Header click and sorting</div>
+                <button class="copy-btn" data-copy-target="code-step4">Copy</button>
+              </div>
+              <pre><code id="code-step4">headers.forEach(th =&gt; {
+  th.addEventListener("click", function () {
+    const colIndex = Number(th.dataset.col);
+    sortTableByColumn(colIndex);
+  });
+});
+
+function sortTableByColumn(columnIndex) {
+  const rows = getRows();
+  const sameColumn = sortState.column === columnIndex;
+
+  if (sameColumn) {
+    sortState.direction = sortState.direction === "asc" ? "desc" : "asc";
+  } else {
+    sortState.column = columnIndex;
+    sortState.direction = "asc";
+  }
+
+  rows.sort((rowA, rowB) =&gt; {
+    const textA = rowA.children[columnIndex].textContent.trim().toLowerCase();
+    const textB = rowB.children[columnIndex].textContent.trim().toLowerCase();
+    return sortState.direction === "asc"
+      ? textA.localeCompare(textB)
+      : textB.localeCompare(textA);
+  });
+
+  rows.forEach(row =&gt; tbody.appendChild(row));
+}</code></pre>
+            </div>
+
+            <div class="tip" id="speak20">
+              Appending sorted rows back into the same
+              <span class="inline-code">tbody</span>
+              changes the visible order on the page.
+            </div>
+          </div>
+        </article>
+
+        <article class="card" id="step-5">
+          <div class="card-head">
+            <h2 id="speak21">Step 5: Highlight matches and count visible rows</h2>
+          </div>
+          <div class="card-body">
+            <p id="speak22">
+              A good lesson project should feel alive. So we also highlight matching text
+              with the
+              <span class="inline-code">&lt;mark&gt;</span>
+              tag and show a line telling the learner how many rows are currently visible.
+            </p>
+
+            <div class="two-col">
+              <div class="code-card">
+                <div class="code-toolbar">
+                  <div class="code-label">Highlight function</div>
+                  <button class="copy-btn" data-copy-target="code-step5a">Copy</button>
+                </div>
+                <pre><code id="code-step5a">function highlightCell(td, keyword) {
+  if (!keyword) return;
+
+  const safeKeyword = escapeRegExp(keyword);
+  const regex = new RegExp("(" + safeKeyword + ")", "gi");
+  td.innerHTML = td.textContent.replace(regex, "&lt;mark&gt;$1&lt;/mark&gt;");
+}</code></pre>
+              </div>
+
+              <div class="code-card">
+                <div class="code-toolbar">
+                  <div class="code-label">Count function</div>
+                  <button class="copy-btn" data-copy-target="code-step5b">Copy</button>
+                </div>
+                <pre><code id="code-step5b">function updateCount() {
+  const visibleRows = getRows().filter(
+    row =&gt; row.style.display !== "none"
+  ).length;
+
+  if (!searchInput.value.trim()) {
+    countDiv.textContent = "Showing all rows";
+  } else {
+    countDiv.textContent = "Showing " + visibleRows + " matching row(s)";
+  }
+}</code></pre>
+              </div>
+            </div>
+
+            <div class="mini-note" id="speak23">
+              The highlight part is optional, but it improves clarity for learners.
+              The count line gives quick feedback after every search.
+            </div>
+          </div>
+        </article>
+
+        <article class="card" id="live-demo">
+          <div class="card-head">
+            <h2 id="speak24">Live demo</h2>
+          </div>
+          <div class="card-body">
+            <p id="speak25">
+              Try the demo below. Search for a city like Varanasi, a skill like React,
+              or a person name. Then click the column headers to sort the rows.
+            </p>
+
+            <div class="demo-wrap">
+              <div class="toolbar">
+                <div class="search-wrap">
+                  <input id="searchInput" type="text" placeholder="Search anything in the table..." />
+                </div>
+                <button class="btn" id="clearBtn" type="button">Clear</button>
+              </div>
+
+              <div id="count" class="count">Showing all rows</div>
+
+              <div class="table-card">
+                <table id="myTable">
+                  <thead>
+                    <tr>
+                      <th class="sortable" data-col="0">Name</th>
+                      <th class="sortable" data-col="1">City</th>
+                      <th class="sortable" data-col="2">Skill</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>Champak Roy</td><td>Varanasi</td><td>Java</td></tr>
+                    <tr><td>Riya Sharma</td><td>Delhi</td><td>Python</td></tr>
+                    <tr><td>Aman Verma</td><td>Lucknow</td><td>JavaScript</td></tr>
+                    <tr><td>Neha Singh</td><td>Kanpur</td><td>AI/ML</td></tr>
+                    <tr><td>Rahul Gupta</td><td>Noida</td><td>Spring Boot</td></tr>
+                    <tr><td>Anjali Mishra</td><td>Prayagraj</td><td>HTML/CSS</td></tr>
+                    <tr><td>Vivek Patel</td><td>Gorakhpur</td><td>React</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="tip" id="speak26">
+              This demo uses the same logic explained in the lesson. You can reuse the full code
+              in your own projects and then modify the data rows.
+            </div>
+          </div>
+        </article>
+
+        <article class="card" id="complete-code">
+          <div class="card-head">
+            <h2 id="speak27">Complete project code</h2>
+          </div>
+          <div class="card-body">
+            <p id="speak28">
+              This section gives a compact version of the working demo logic. Use the copy button
+              to grab it quickly. The full lesson page source can be copied from the top button.
+            </p>
+
+            <div class="code-card">
+              <div class="code-toolbar">
+                <div class="code-label">Working JavaScript</div>
+                <button class="copy-btn" data-copy-target="code-complete-js">Copy</button>
+              </div>
+              <pre><code id="code-complete-js">(function () {
+  "use strict";
+
+  const table = document.getElementById("myTable");
+  const tbody = table.querySelector("tbody");
+  const searchInput = document.getElementById("searchInput");
+  const clearBtn = document.getElementById("clearBtn");
+  const countDiv = document.getElementById("count");
+  const headers = table.querySelectorAll("th.sortable");
+
+  let sortState = {
+    column: -1,
+    direction: "asc"
+  };
+
+  function escapeRegExp(text) {
+    return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
+  function removeHighlights(td) {
+    td.innerHTML = td.textContent;
+  }
+
+  function highlightCell(td, keyword) {
+    if (!keyword) return;
+    const safeKeyword = escapeRegExp(keyword);
+    const regex = new RegExp("(" + safeKeyword + ")", "gi");
+    td.innerHTML = td.textContent.replace(regex, "&lt;mark&gt;$1&lt;/mark&gt;");
+  }
+
+  function getRows() {
+    return Array.from(tbody.querySelectorAll("tr"));
+  }
+
+  function updateCount() {
+    const visibleRows = getRows().filter(row =&gt; row.style.display !== "none").length;
+    const keyword = searchInput.value.trim();
+
+    if (!keyword) {
+      countDiv.textContent = "Showing all rows";
+    } else {
+      countDiv.textContent = "Showing " + visibleRows + " matching row(s)";
+    }
+  }
+
+  function applySearch() {
+    const keyword = searchInput.value.trim().toLowerCase();
+    const rows = getRows();
+
+    rows.forEach(row =&gt; {
+      const tds = row.querySelectorAll("td");
+      let match = false;
+
+      tds.forEach(td =&gt; {
+        removeHighlights(td);
+
+        const text = td.textContent.toLowerCase();
+        if (keyword &amp;&amp; text.includes(keyword)) {
+          match = true;
+          highlightCell(td, keyword);
+        }
+      });
+
+      if (!keyword || match) {
+        row.style.display = "";
+      } else {
+        row.style.display = "none";
+      }
+    });
+
+    updateCount();
+  }
+
+  function clearSortClasses() {
+    headers.forEach(th =&gt; {
+      th.classList.remove("sorted-asc", "sorted-desc");
+    });
+  }
+
+  function sortTableByColumn(columnIndex) {
+    const rows = getRows();
+    const sameColumn = sortState.column === columnIndex;
+
+    if (sameColumn) {
+      sortState.direction = sortState.direction === "asc" ? "desc" : "asc";
+    } else {
+      sortState.column = columnIndex;
+      sortState.direction = "asc";
+    }
+
+    rows.sort((rowA, rowB) =&gt; {
+      const textA = rowA.children[columnIndex].textContent.trim().toLowerCase();
+      const textB = rowB.children[columnIndex].textContent.trim().toLowerCase();
+
+      const numA = parseFloat(textA);
+      const numB = parseFloat(textB);
+
+      let comparison = 0;
+
+      if (!Number.isNaN(numA) &amp;&amp; !Number.isNaN(numB)) {
+        comparison = numA - numB;
+      } else {
+        comparison = textA.localeCompare(textB);
+      }
+
+      return sortState.direction === "asc" ? comparison : -comparison;
+    });
+
+    rows.forEach(row =&gt; tbody.appendChild(row));
+
+    clearSortClasses();
+
+    const activeHeader = table.querySelector('th[data-col="' + columnIndex + '"]');
+    if (activeHeader) {
+      activeHeader.classList.add(sortState.direction === "asc" ? "sorted-asc" : "sorted-desc");
+    }
+
+    applySearch();
+  }
+
+  searchInput.addEventListener("input", applySearch);
+
+  clearBtn.addEventListener("click", function () {
+    searchInput.value = "";
+    applySearch();
+    searchInput.focus();
+  });
+
+  headers.forEach(th =&gt; {
+    th.addEventListener("click", function () {
+      const colIndex = Number(th.dataset.col);
+      sortTableByColumn(colIndex);
+    });
+  });
+
+  applySearch();
+})();</code></pre>
+            </div>
+          </div>
+        </article>
+
+        <article class="card" id="practice">
+          <div class="card-head">
+            <h2 id="speak29">Practice tasks</h2>
+          </div>
+          <div class="card-body">
+            <ul class="checklist">
+              <li id="speak30">Add one more column called Experience and make sorting work for it.</li>
+              <li id="speak31">Add more rows and test whether the search still checks every td.</li>
+              <li id="speak32">Change the count line so it also shows the total number of rows.</li>
+              <li id="speak33">Add a No results row or message when zero rows are visible.</li>
+              <li id="speak34">Create a second table on the same page and reuse the same idea there.</li>
+            </ul>
+
+            <div class="qa">
+              <details class="qa-item">
+                <summary id="speak35">Why do we use textContent instead of innerHTML for searching?</summary>
+                <div class="qa-body">
+                  Because <span class="inline-code">textContent</span> gives plain text. That makes search cleaner and safer.
+                </div>
+              </details>
+
+              <details class="qa-item">
+                <summary id="speak36">Why does row.style.display become none?</summary>
+                <div class="qa-body">
+                  Because setting <span class="inline-code">display: none</span> hides that row from the page when it has zero matches.
+                </div>
+              </details>
+
+              <details class="qa-item">
+                <summary id="speak37">Why do we call applySearch again after sorting?</summary>
+                <div class="qa-body">
+                  So the current search filter and highlights stay correct even after rows are reordered.
+                </div>
+              </details>
+            </div>
+          </div>
+        </article>
+
+        <div class="footer" id="speak38">
+          Programmer's Picnic lesson page complete. Read, test, copy, and build your own version.
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <textarea id="fullPageSource" style="position:absolute;left:-9999px;top:-9999px;"></textarea>
+
+  <script src="https://programmer-s-picnic.github.io/json-images/find-on-page.js"></script>
+
+  <script>
+    (function () {
+      "use strict";
+
+      const table = document.getElementById("myTable");
+      const tbody = table.querySelector("tbody");
+      const searchInput = document.getElementById("searchInput");
+      const clearBtn = document.getElementById("clearBtn");
+      const countDiv = document.getElementById("count");
+      const headers = table.querySelectorAll("th.sortable");
+      const fullPageSource = document.getElementById("fullPageSource");
+      const copyFullPageBtn = document.getElementById("copyFullPageBtn");
+
+      let sortState = {
+        column: -1,
+        direction: "asc"
+      };
+
+      function escapeRegExp(text) {
+        return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      }
+
+      function removeHighlights(td) {
+        td.innerHTML = td.textContent;
+      }
+
+      function highlightCell(td, keyword) {
+        if (!keyword) return;
+        const safeKeyword = escapeRegExp(keyword);
+        const regex = new RegExp("(" + safeKeyword + ")", "gi");
+        td.innerHTML = td.textContent.replace(regex, "<mark>$1</mark>");
+      }
+
+      function getRows() {
+        return Array.from(tbody.querySelectorAll("tr"));
+      }
+
+      function updateCount() {
+        const visibleRows = getRows().filter(row => row.style.display !== "none").length;
+        const keyword = searchInput.value.trim();
+
+        if (!keyword) {
+          countDiv.textContent = "Showing all rows";
+        } else {
+          countDiv.textContent = "Showing " + visibleRows + " matching row(s)";
+        }
+      }
+
+      function applySearch() {
+        const keyword = searchInput.value.trim().toLowerCase();
+        const rows = getRows();
+
+        rows.forEach(row => {
+          const tds = row.querySelectorAll("td");
+          let match = false;
+
+          tds.forEach(td => {
+            removeHighlights(td);
+
+            const text = td.textContent.toLowerCase();
+            if (keyword && text.includes(keyword)) {
+              match = true;
+              highlightCell(td, keyword);
+            }
+          });
+
+          if (!keyword || match) {
+            row.style.display = "";
+          } else {
+            row.style.display = "none";
+          }
+        });
+
+        updateCount();
+      }
+
+      function clearSortClasses() {
+        headers.forEach(th => {
+          th.classList.remove("sorted-asc", "sorted-desc");
+        });
+      }
+
+      function sortTableByColumn(columnIndex) {
+        const rows = getRows();
+        const sameColumn = sortState.column === columnIndex;
+
+        if (sameColumn) {
+          sortState.direction = sortState.direction === "asc" ? "desc" : "asc";
+        } else {
+          sortState.column = columnIndex;
+          sortState.direction = "asc";
+        }
+
+        rows.sort((rowA, rowB) => {
+          const textA = rowA.children[columnIndex].textContent.trim().toLowerCase();
+          const textB = rowB.children[columnIndex].textContent.trim().toLowerCase();
+
+          const numA = parseFloat(textA);
+          const numB = parseFloat(textB);
+
+          let comparison = 0;
+
+          if (!Number.isNaN(numA) && !Number.isNaN(numB)) {
+            comparison = numA - numB;
+          } else {
+            comparison = textA.localeCompare(textB);
+          }
+
+          return sortState.direction === "asc" ? comparison : -comparison;
+        });
+
+        rows.forEach(row => tbody.appendChild(row));
+
+        clearSortClasses();
+
+        const activeHeader = table.querySelector('th[data-col="' + columnIndex + '"]');
+        if (activeHeader) {
+          activeHeader.classList.add(sortState.direction === "asc" ? "sorted-asc" : "sorted-desc");
+        }
+
+        applySearch();
+      }
+
+      function setButtonCopiedState(button, doneText, originalText) {
+        button.textContent = doneText;
+        setTimeout(() => {
+          button.textContent = originalText;
+        }, 1500);
+      }
+
+      async function copyText(text, button, originalText) {
+        try {
+          await navigator.clipboard.writeText(text);
+          setButtonCopiedState(button, "Copied", originalText);
+        } catch (err) {
+          const helper = document.createElement("textarea");
+          helper.value = text;
+          document.body.appendChild(helper);
+          helper.select();
+          document.execCommand("copy");
+          document.body.removeChild(helper);
+          setButtonCopiedState(button, "Copied", originalText);
+        }
+      }
+
+      document.querySelectorAll(".copy-btn").forEach(button => {
+        button.addEventListener("click", function () {
+          const targetId = this.getAttribute("data-copy-target");
+          const codeEl = document.getElementById(targetId);
+          const originalText = this.textContent;
+          if (codeEl) {
+            copyText(codeEl.textContent, this, originalText);
+          }
+        });
+      });
+
+      copyFullPageBtn.addEventListener("click", function () {
+        const originalText = this.textContent;
+        fullPageSource.value = document.documentElement.outerHTML;
+        copyText(fullPageSource.value, this, originalText);
+      });
+
+      searchInput.addEventListener("input", applySearch);
+
+      clearBtn.addEventListener("click", function () {
+        searchInput.value = "";
+        applySearch();
+        searchInput.focus();
+      });
+
+      headers.forEach(th => {
+        th.addEventListener("click", function () {
+          const colIndex = Number(th.dataset.col);
+          sortTableByColumn(colIndex);
+        });
+      });
+
+      applySearch();
+
+      if (window.PPSpeakV3 && typeof window.PPSpeakV3.init === "function") {
+        window.PPSpeakV3.init({
+          selector: '[id^="speak"]',
+          activeClass: "pp-speaking-active",
+          scrollBehavior: "smooth",
+          scrollBlock: "center",
+          pauseBetween: 700,
+          rate: 1,
+          pitch: 1,
+          volume: 1,
+          voiceName: "",
+          autoInjectStyle: true,
+          autoCreateControls: true,
+          controlsContainerId: "pp-auto-speak-controls-v4",
+          skipHiddenScroll: true,
+          readSpeak0First: true,
+          addTitleButton: true,
+          titleSelector: "[data-pp-speak-title]",
+          miniModeDefault: false,
+          draggable: true,
+          log: false
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
