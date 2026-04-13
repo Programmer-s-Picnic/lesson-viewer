@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Directional Face Counter – Full Crossing</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.9.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface@0.0.7/dist/blazeface.min.js"></script>
+
+    <style>
+      body {
+        background: #fff4d0;
+        font-family: sans-serif;
+        text-align: center;
+        padding: 20px;
+      }
+      #canvas {
+        border: 3px solid #c68a00;
+        border-radius: 12px;
+        margin-top: 20px;
+      }
+      button {
+        padding: 10px 20px;
+        font-size: 18px;
+        margin: 10px;
+        background: #ffa726;
+        border: none;
+        border-radius: 8px;
+      }
+      #counts {
+        margin-top: 20px;
+        font-size: 22px;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>People Direction Counter (Full Line Crossing)</h2>
+
+    <button onclick="startDetector()">Start</button>
+    <button onclick="stopDetector()">Stop</button>
+
+    <br />
+
+    <canvas id="canvas" width="640" height="480"></canvas>
+
+    <div id="counts">
+      Left → Right: <span id="lrCount">0</span><br />
+      Right → Left: <span id="rlCount">0</span>
+    </div>
+
+    <script>
+      let model,
+        video,
+        stream,
+        running = false;
+
+      // NEW: state tracking for full crossing
+      let lastZone = "middle";
+
+      // Counters
+      let leftToRightCount = 0;
+      let rightToLeftCount = 0;
+
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+
+      const centerX = canvas.width / 2;
+      const deadZone = 30; // region where we do NOT count
+
+      function getZone(x) {
+        if (x < centerX - deadZone) return "left";
+        if (x > centerX + deadZone) return "right";
+        return "middle";
+      }
+
+      async function startDetector() {
+        if (running) return;
+        running = true;
+
+        if (!model) model = await blazeface.load();
+
+        video = document.createElement("video");
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+        await video.play();
+
+        requestAnimationFrame(loop);
+      }
+
+      function stopDetector() {
+        running = false;
+        if (stream) stream.getTracks().forEach((t) => t.stop());
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+
+      async function loop() {
+        if (!running) return;
+
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // Red vertical line
+        ctx.strokeStyle = "red";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(centerX, 0);
+        ctx.lineTo(centerX, canvas.height);
+        ctx.stroke();
+
+        const predictions = await model.estimateFaces(video, false);
+
+        if (predictions.length > 0) {
+          const p = predictions[0];
+          const [x, y] = p.topLeft;
+          const [x2, y2] = p.bottomRight;
+
+          const faceX = (x + x2) / 2;
+
+          // Draw box
+          ctx.strokeStyle = "#ff9800";
+          ctx.lineWidth = 3;
+          ctx.strokeRect(x, y, x2 - x, y2 - y);
+
+          // Determine zone
+          const currentZone = getZone(faceX);
+
+          // Full crossing logic
+          if (lastZone === "left" && currentZone === "right") {
+            leftToRightCount++;
+          }
+
+          if (lastZone === "right" && currentZone === "left") {
+            rightToLeftCount++;
+          }
+
+          lastZone = currentZone;
+        }
+
+        // Update UI
+        document.getElementById("lrCount").innerText = leftToRightCount;
+        document.getElementById("rlCount").innerText = rightToLeftCount;
+
+        requestAnimationFrame(loop);
+      }
+    </script>
+  </body>
+</html>
