@@ -473,7 +473,14 @@ For matrix use:
 
         <div>
           <label for="textScale">Math scale</label>
-          <input type="number" id="textScale" value="1" min="0.6" max="2" step="0.1" />
+          <input
+            type="number"
+            id="textScale"
+            value="1"
+            min="0.6"
+            max="2"
+            step="0.1"
+          />
         </div>
       </div>
 
@@ -484,9 +491,7 @@ For matrix use:
         <button id="deleteTextBtn">Delete Selected</button>
       </div>
 
-      <div class="selectedInfo" id="selectedInfo">
-        No text block selected.
-      </div>
+      <div class="selectedInfo" id="selectedInfo">No text block selected.</div>
 
       <div class="mathHint">
         Smart typing:<br />
@@ -504,8 +509,8 @@ For matrix use:
       </div>
 
       <div class="hint">
-        In <b>Move Text</b> mode, drag a text block up/down with the mouse or use
-        the mouse wheel to nudge the selected block vertically.
+        In <b>Move Text</b> mode, drag a text block up/down with the mouse or
+        use the mouse wheel to nudge the selected block vertically.
       </div>
     </div>
 
@@ -606,7 +611,7 @@ For matrix use:
             0,
             0,
             rect.width,
-            rect.height
+            rect.height,
           );
         }
 
@@ -654,7 +659,11 @@ For matrix use:
         textarea.setSelectionRange(pos, pos);
       }
 
-      function replaceSelectedOrInsert(textarea, replacement, fallbackText = "") {
+      function replaceSelectedOrInsert(
+        textarea,
+        replacement,
+        fallbackText = "",
+      ) {
         const start = textarea.selectionStart ?? 0;
         const end = textarea.selectionEnd ?? 0;
 
@@ -672,16 +681,16 @@ For matrix use:
 
       function toSuperscript(str) {
         const map = {
-          "0": "⁰",
-          "1": "¹",
-          "2": "²",
-          "3": "³",
-          "4": "⁴",
-          "5": "⁵",
-          "6": "⁶",
-          "7": "⁷",
-          "8": "⁸",
-          "9": "⁹",
+          0: "⁰",
+          1: "¹",
+          2: "²",
+          3: "³",
+          4: "⁴",
+          5: "⁵",
+          6: "⁶",
+          7: "⁷",
+          8: "⁸",
+          9: "⁹",
           "+": "⁺",
           "-": "⁻",
           "=": "⁼",
@@ -698,16 +707,16 @@ For matrix use:
 
       function toSubscript(str) {
         const map = {
-          "0": "₀",
-          "1": "₁",
-          "2": "₂",
-          "3": "₃",
-          "4": "₄",
-          "5": "₅",
-          "6": "₆",
-          "7": "₇",
-          "8": "₈",
-          "9": "₉",
+          0: "₀",
+          1: "₁",
+          2: "₂",
+          3: "₃",
+          4: "₄",
+          5: "₅",
+          6: "₆",
+          7: "₇",
+          8: "₈",
+          9: "₉",
           "+": "₊",
           "-": "₋",
           "=": "₌",
@@ -772,12 +781,12 @@ For matrix use:
 
         s = s.replace(
           /([A-Za-zΑ-Ωα-ωΣσμπβθλ∆∂∫√xȳŷ̄]+)\^([0-9+\-=()ni]+)/g,
-          (_, base, power) => base + toSuperscript(power)
+          (_, base, power) => base + toSuperscript(power),
         );
 
         s = s.replace(
           /([A-Za-zΑ-Ωα-ωΣσμπβθλ∆∂∫√]+)_([0-9A-Za-z+\-=()]+)/g,
-          (_, base, sub) => base + toSubscript(sub)
+          (_, base, sub) => base + toSubscript(sub),
         );
 
         s = s.replace(/\bR\^2\b/g, "R²");
@@ -804,14 +813,18 @@ For matrix use:
         if (match) {
           const rows = match[1]
             .split(";")
-            .map((row) => row.split(",").map((cell) => convertMathText(cell.trim())));
+            .map((row) =>
+              row.split(",").map((cell) => convertMathText(cell.trim())),
+            );
           return {
             type: "matrix",
             rows,
           };
         }
 
-        match = trimmed.match(/^\[\[sum:\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\]\]$/);
+        match = trimmed.match(
+          /^\[\[sum:\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\]\]$/,
+        );
         if (match) {
           return {
             type: "summation",
@@ -821,7 +834,9 @@ For matrix use:
           };
         }
 
-        match = trimmed.match(/^\[\[int:\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\]\]$/);
+        match = trimmed.match(
+          /^\[\[int:\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\]\]$/,
+        );
         if (match) {
           return {
             type: "integral",
@@ -852,7 +867,10 @@ For matrix use:
 
         boardText.value = convertMathText(raw);
 
-        const lines = raw.replace(/\r\n/g, "\n").split("\n").map(parseStructuredLine);
+        const lines = raw
+          .replace(/\r\n/g, "\n")
+          .split("\n")
+          .map(parseStructuredLine);
 
         const block = {
           id: crypto.randomUUID
@@ -870,7 +888,9 @@ For matrix use:
         };
 
         textBlocks.push(block);
-        selectedTextId = block.id;
+
+        /* FIX: do not keep selection after writing */
+        selectedTextId = null;
         updateSelectedInfo();
         renderScene();
       }
@@ -907,7 +927,10 @@ For matrix use:
 
           rows.forEach((row) => {
             row.forEach((cell, i) => {
-              colWidths[i] = Math.max(colWidths[i], ctx.measureText(cell).width + 20);
+              colWidths[i] = Math.max(
+                colWidths[i],
+                ctx.measureText(cell).width + 20,
+              );
             });
           });
 
@@ -1002,7 +1025,10 @@ For matrix use:
 
           rows.forEach((row) => {
             row.forEach((cell, i) => {
-              colWidths[i] = Math.max(colWidths[i], ctx.measureText(cell).width + 20);
+              colWidths[i] = Math.max(
+                colWidths[i],
+                ctx.measureText(cell).width + 20,
+              );
             });
           });
 
@@ -1084,7 +1110,7 @@ For matrix use:
           setMathFont(block, base * 0.9);
           const limWidth = Math.max(
             ctx.measureText("lim").width,
-            ctx.measureText(item.to).width
+            ctx.measureText(item.to).width,
           );
           ctx.fillText(item.body, x + limWidth + 12, y + base * 0.12);
           ctx.restore();
@@ -1177,7 +1203,10 @@ For matrix use:
         ctx.drawImage(drawLayer, 0, 0, rect.width, rect.height);
 
         for (const block of textBlocks) {
-          drawTextBlock(block, block.id === selectedTextId);
+          drawTextBlock(
+            block,
+            tool === "moveText" && block.id === selectedTextId,
+          );
         }
       }
 
@@ -1247,7 +1276,7 @@ For matrix use:
           block.y += e.deltaY > 0 ? 8 : -8;
           renderScene();
         },
-        { passive: false }
+        { passive: false },
       );
 
       window.addEventListener("pointerup", () => {
@@ -1268,6 +1297,8 @@ For matrix use:
             : nextTool === "eraser"
               ? "cell"
               : "crosshair";
+
+        renderScene();
       }
 
       penBtn.onclick = () => setActiveTool("pen");
