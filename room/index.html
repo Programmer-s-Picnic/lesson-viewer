@@ -3,22 +3,37 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Virtual Classroom Board</title>
+    <title>Virtual Classroom Board — V3 Math Engine</title>
     <script
       async
       src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8321261883090494"
       crossorigin="anonymous"
     ></script>
 
+    <link
+      href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Patrick+Hand&family=Kalam:wght@300;400;700&display=swap"
+      rel="stylesheet"
+    />
+
     <style>
       * {
         box-sizing: border-box;
+      }
+
+      :root {
+        --panel: rgba(255, 255, 255, 0.96);
+        --line: rgba(0, 0, 0, 0.12);
+        --soft: #fff8ef;
+        --soft2: #ffe7bf;
+        --text: #1f2937;
+        --accent: #ff8a00;
       }
 
       body {
         margin: 0;
         font-family: system-ui, sans-serif;
         background: #111;
+        color: var(--text);
       }
 
       .topbar {
@@ -48,6 +63,7 @@
       button.primary {
         border: none;
         background: linear-gradient(145deg, #ffb020, #ff7a18);
+        color: #111;
       }
 
       button.active {
@@ -114,14 +130,16 @@
         position: fixed;
         right: 14px;
         top: 78px;
-        width: 320px;
+        width: 390px;
         z-index: 120;
-        background: rgba(255, 255, 255, 0.95);
+        background: var(--panel);
         backdrop-filter: blur(10px);
         border-radius: 16px;
         padding: 12px;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
         border: 1px solid rgba(0, 0, 0, 0.08);
+        max-height: calc(100vh - 95px);
+        overflow: auto;
       }
 
       .textPanel h3 {
@@ -131,15 +149,82 @@
 
       .textPanel textarea {
         width: 100%;
-        min-height: 130px;
+        min-height: 180px;
         resize: vertical;
         border-radius: 12px;
         border: 1px solid rgba(0, 0, 0, 0.15);
         padding: 10px 12px;
         font:
-          14px/1.5 system-ui,
+          15px/1.55 system-ui,
           sans-serif;
         outline: none;
+      }
+
+      .toolbarRow {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+      }
+
+      .miniBtn {
+        padding: 7px 10px;
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        background: #fff;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .symbolWrap {
+        margin-top: 10px;
+      }
+
+      .symbolWrap label {
+        display: block;
+        font-size: 12px;
+        font-weight: 700;
+        margin-bottom: 6px;
+        color: #333;
+      }
+
+      .symbolBar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .symBtn {
+        min-width: 42px;
+        padding: 8px 10px;
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        background: var(--soft);
+        font-size: 18px;
+        line-height: 1;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: system-ui, sans-serif;
+      }
+
+      .symBtn:hover {
+        background: var(--soft2);
+      }
+
+      .templateBar {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+      }
+
+      .templateBtn {
+        padding: 8px 10px;
+        border-radius: 10px;
+        border: 1px solid rgba(0, 0, 0, 0.12);
+        background: #f8fafc;
+        font-size: 12px;
+        font-weight: 700;
       }
 
       .textGrid {
@@ -179,6 +264,33 @@
         color: #555;
       }
 
+      .mathHint {
+        margin-top: 10px;
+        font-size: 12px;
+        line-height: 1.5;
+        color: #4b5563;
+        background: #fffaf2;
+        border: 1px solid #f3dfb5;
+        padding: 10px 12px;
+        border-radius: 12px;
+      }
+
+      .mathHint code {
+        background: #fff;
+        padding: 2px 5px;
+        border-radius: 6px;
+      }
+
+      .selectedInfo {
+        margin-top: 10px;
+        padding: 10px 12px;
+        border-radius: 12px;
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        font-size: 12px;
+        color: #374151;
+      }
+
       @media (max-width: 900px) {
         .textPanel {
           left: 10px;
@@ -186,29 +298,23 @@
           width: auto;
           top: auto;
           bottom: 10px;
-          max-height: 42vh;
+          max-height: 50vh;
           overflow: auto;
         }
       }
-      /* Hide text panel in fullscreen */
+
       :fullscreen .textPanel {
         display: none;
       }
 
-      /* Safari support */
       :-webkit-full-screen .textPanel {
         display: none;
       }
 
-      /* Older Firefox support */
       :-moz-full-screen .textPanel {
         display: none;
       }
     </style>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Patrick+Hand&family=Kalam:wght@300;400;700&display=swap"
-      rel="stylesheet"
-    />
   </head>
 
   <body>
@@ -229,11 +335,98 @@
 
     <div class="textPanel">
       <h3>Write text on board</h3>
+
       <textarea
         id="boardText"
         placeholder="Type here...
-Each line will be drawn separately on the board."
+
+Examples:
+Sigma x^2
+mu = Sigma x / n
+beta_0 + beta_1 x
+x_bar = Sigma x / n
+
+For stacked fractions use:
+[[frac: numerator | denominator]]
+
+For matrix use:
+[[matrix: a,b ; c,d ]]"
       ></textarea>
+
+      <div class="toolbarRow">
+        <button type="button" class="miniBtn" id="convertMathBtn">
+          Convert Math
+        </button>
+        <button type="button" class="miniBtn" id="insertArrowBtn">
+          Insert →
+        </button>
+        <button type="button" class="miniBtn" id="centerTextBtn">
+          Center Text
+        </button>
+      </div>
+
+      <div class="templateBar">
+        <button type="button" class="templateBtn" id="insertFractionBtn">
+          Fraction
+        </button>
+        <button type="button" class="templateBtn" id="insertMatrixBtn">
+          Matrix
+        </button>
+        <button type="button" class="templateBtn" id="insertSummationBtn">
+          Summation
+        </button>
+        <button type="button" class="templateBtn" id="insertIntegralBtn">
+          Integral
+        </button>
+        <button type="button" class="templateBtn" id="insertLimitBtn">
+          Limit
+        </button>
+      </div>
+
+      <div class="symbolWrap">
+        <label>Math symbols</label>
+        <div class="symbolBar" id="symbolBar">
+          <button type="button" class="symBtn" data-symbol="Σ">Σ</button>
+          <button type="button" class="symBtn" data-symbol="σ">σ</button>
+          <button type="button" class="symBtn" data-symbol="μ">μ</button>
+          <button type="button" class="symBtn" data-symbol="x̄">x̄</button>
+          <button type="button" class="symBtn" data-symbol="ȳ">ȳ</button>
+          <button type="button" class="symBtn" data-symbol="ŷ">ŷ</button>
+          <button type="button" class="symBtn" data-symbol="β">β</button>
+          <button type="button" class="symBtn" data-symbol="α">α</button>
+          <button type="button" class="symBtn" data-symbol="θ">θ</button>
+          <button type="button" class="symBtn" data-symbol="π">π</button>
+          <button type="button" class="symBtn" data-symbol="λ">λ</button>
+          <button type="button" class="symBtn" data-symbol="∑">∑</button>
+          <button type="button" class="symBtn" data-symbol="√">√</button>
+          <button type="button" class="symBtn" data-symbol="±">±</button>
+          <button type="button" class="symBtn" data-symbol="×">×</button>
+          <button type="button" class="symBtn" data-symbol="÷">÷</button>
+          <button type="button" class="symBtn" data-symbol="∞">∞</button>
+          <button type="button" class="symBtn" data-symbol="≤">≤</button>
+          <button type="button" class="symBtn" data-symbol="≥">≥</button>
+          <button type="button" class="symBtn" data-symbol="≠">≠</button>
+          <button type="button" class="symBtn" data-symbol="≈">≈</button>
+          <button type="button" class="symBtn" data-symbol="∫">∫</button>
+          <button type="button" class="symBtn" data-symbol="∆">∆</button>
+          <button type="button" class="symBtn" data-symbol="∂">∂</button>
+          <button type="button" class="symBtn" data-symbol="→">→</button>
+          <button type="button" class="symBtn" data-symbol="←">←</button>
+          <button type="button" class="symBtn" data-symbol="²">²</button>
+          <button type="button" class="symBtn" data-symbol="³">³</button>
+          <button type="button" class="symBtn" data-symbol="ⁿ">ⁿ</button>
+          <button type="button" class="symBtn" data-symbol="₀">₀</button>
+          <button type="button" class="symBtn" data-symbol="₁">₁</button>
+          <button type="button" class="symBtn" data-symbol="₂">₂</button>
+          <button type="button" class="symBtn" data-symbol="ₙ">ₙ</button>
+          <button type="button" class="symBtn" data-symbol="(">(</button>
+          <button type="button" class="symBtn" data-symbol=")">)</button>
+          <button type="button" class="symBtn" data-symbol="[">[</button>
+          <button type="button" class="symBtn" data-symbol="]">]</button>
+          <button type="button" class="symBtn" data-symbol="{">{</button>
+          <button type="button" class="symBtn" data-symbol="}">}</button>
+        </div>
+      </div>
 
       <div class="textGrid">
         <div>
@@ -262,23 +455,57 @@ Each line will be drawn separately on the board."
 
         <div>
           <label for="lineGap">Line gap</label>
-          <input type="number" id="lineGap" value="12" min="0" max="80" />
+          <input type="number" id="lineGap" value="12" min="0" max="120" />
         </div>
 
         <div>
           <label for="textColor">Text color</label>
           <input type="color" id="textColor" value="#111827" />
         </div>
+
+        <div>
+          <label for="textAlign">Text align</label>
+          <select id="textAlign">
+            <option value="left">Left</option>
+            <option value="center">Center</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="textScale">Math scale</label>
+          <input type="number" id="textScale" value="1" min="0.6" max="2" step="0.1" />
+        </div>
       </div>
 
       <div class="textActions">
         <button id="writeTextBtn" class="primary">Write on Board</button>
         <button id="clearTextBtn">Clear Text Box</button>
+        <button id="duplicateTextBtn">Duplicate Selected</button>
+        <button id="deleteTextBtn">Delete Selected</button>
+      </div>
+
+      <div class="selectedInfo" id="selectedInfo">
+        No text block selected.
+      </div>
+
+      <div class="mathHint">
+        Smart typing:<br />
+        <code>Sigma x^2</code> → Σx²<br />
+        <code>beta_0</code> → β₀<br />
+        <code>x_bar</code> → x̄<br />
+        <code>y_hat</code> → ŷ<br /><br />
+
+        Advanced V3 blocks:<br />
+        <code>[[frac: Sigma x | n]]</code><br />
+        <code>[[matrix: a,b ; c,d]]</code><br />
+        <code>[[sum: i=1 | n | x_i]]</code><br />
+        <code>[[int: 0 | 1 | x^2 dx]]</code><br />
+        <code>[[lim: x→0 | sin x / x]]</code>
       </div>
 
       <div class="hint">
-        In <b>Move Text</b> mode, drag a text block up/down with the mouse or
-        use the mouse wheel to nudge the selected block vertically.
+        In <b>Move Text</b> mode, drag a text block up/down with the mouse or use
+        the mouse wheel to nudge the selected block vertically.
       </div>
     </div>
 
@@ -318,8 +545,26 @@ Each line will be drawn separately on the board."
       const textY = document.getElementById("textY");
       const lineGap = document.getElementById("lineGap");
       const textColor = document.getElementById("textColor");
+      const textAlign = document.getElementById("textAlign");
+      const textScale = document.getElementById("textScale");
+
       const writeTextBtn = document.getElementById("writeTextBtn");
       const clearTextBtn = document.getElementById("clearTextBtn");
+      const duplicateTextBtn = document.getElementById("duplicateTextBtn");
+      const deleteTextBtn = document.getElementById("deleteTextBtn");
+
+      const symbolBar = document.getElementById("symbolBar");
+      const convertMathBtn = document.getElementById("convertMathBtn");
+      const insertArrowBtn = document.getElementById("insertArrowBtn");
+      const centerTextBtn = document.getElementById("centerTextBtn");
+
+      const insertFractionBtn = document.getElementById("insertFractionBtn");
+      const insertMatrixBtn = document.getElementById("insertMatrixBtn");
+      const insertSummationBtn = document.getElementById("insertSummationBtn");
+      const insertIntegralBtn = document.getElementById("insertIntegralBtn");
+      const insertLimitBtn = document.getElementById("insertLimitBtn");
+
+      const selectedInfo = document.getElementById("selectedInfo");
 
       let tool = "pen";
       let drawing = false;
@@ -361,7 +606,7 @@ Each line will be drawn separately on the board."
             0,
             0,
             rect.width,
-            rect.height,
+            rect.height
           );
         }
 
@@ -398,61 +643,452 @@ Each line will be drawn separately on the board."
         drawCtx.stroke();
       }
 
+      function insertAtCursor(textarea, text) {
+        const start = textarea.selectionStart ?? textarea.value.length;
+        const end = textarea.selectionEnd ?? textarea.value.length;
+        const before = textarea.value.substring(0, start);
+        const after = textarea.value.substring(end);
+        textarea.value = before + text + after;
+        textarea.focus();
+        const pos = start + text.length;
+        textarea.setSelectionRange(pos, pos);
+      }
+
+      function replaceSelectedOrInsert(textarea, replacement, fallbackText = "") {
+        const start = textarea.selectionStart ?? 0;
+        const end = textarea.selectionEnd ?? 0;
+
+        if (start !== end) {
+          const before = textarea.value.slice(0, start);
+          const after = textarea.value.slice(end);
+          textarea.value = before + replacement + after;
+          textarea.focus();
+          const newPos = start + replacement.length;
+          textarea.setSelectionRange(newPos, newPos);
+        } else {
+          insertAtCursor(textarea, fallbackText || replacement);
+        }
+      }
+
+      function toSuperscript(str) {
+        const map = {
+          "0": "⁰",
+          "1": "¹",
+          "2": "²",
+          "3": "³",
+          "4": "⁴",
+          "5": "⁵",
+          "6": "⁶",
+          "7": "⁷",
+          "8": "⁸",
+          "9": "⁹",
+          "+": "⁺",
+          "-": "⁻",
+          "=": "⁼",
+          "(": "⁽",
+          ")": "⁾",
+          n: "ⁿ",
+          i: "ⁱ",
+        };
+        return String(str)
+          .split("")
+          .map((ch) => map[ch] || ch)
+          .join("");
+      }
+
+      function toSubscript(str) {
+        const map = {
+          "0": "₀",
+          "1": "₁",
+          "2": "₂",
+          "3": "₃",
+          "4": "₄",
+          "5": "₅",
+          "6": "₆",
+          "7": "₇",
+          "8": "₈",
+          "9": "₉",
+          "+": "₊",
+          "-": "₋",
+          "=": "₌",
+          "(": "₍",
+          ")": "₎",
+          a: "ₐ",
+          e: "ₑ",
+          h: "ₕ",
+          i: "ᵢ",
+          j: "ⱼ",
+          k: "ₖ",
+          l: "ₗ",
+          m: "ₘ",
+          n: "ₙ",
+          o: "ₒ",
+          p: "ₚ",
+          r: "ᵣ",
+          s: "ₛ",
+          t: "ₜ",
+          u: "ᵤ",
+          v: "ᵥ",
+          x: "ₓ",
+        };
+        return String(str)
+          .split("")
+          .map((ch) => map[ch] || ch)
+          .join("");
+      }
+
+      function convertMathText(input) {
+        let s = input;
+
+        s = s.replace(/\r\n/g, "\n");
+        s = s.replace(/\bSigma\b/g, "Σ");
+        s = s.replace(/\bsigma\b/g, "σ");
+        s = s.replace(/\bmu\b/g, "μ");
+        s = s.replace(/\btheta\b/g, "θ");
+        s = s.replace(/\bpi\b/g, "π");
+        s = s.replace(/\blambda\b/g, "λ");
+        s = s.replace(/\balpha\b/g, "α");
+        s = s.replace(/\bbeta\b/g, "β");
+        s = s.replace(/\bdelta\b/g, "δ");
+        s = s.replace(/\bDelta\b/g, "∆");
+        s = s.replace(/\binfinity\b/g, "∞");
+        s = s.replace(/\bsqrt\b/g, "√");
+        s = s.replace(/\bint\b/g, "∫");
+        s = s.replace(/\bpartial\b/g, "∂");
+        s = s.replace(/\bsum\b/g, "∑");
+
+        s = s.replace(/<=/g, "≤");
+        s = s.replace(/>=/g, "≥");
+        s = s.replace(/!=/g, "≠");
+        s = s.replace(/~=|~~/g, "≈");
+        s = s.replace(/->/g, "→");
+        s = s.replace(/<-/g, "←");
+
+        s = s.replace(/\bx_bar\b/g, "x̄");
+        s = s.replace(/\by_bar\b/g, "ȳ");
+        s = s.replace(/\by_hat\b/g, "ŷ");
+        s = s.replace(/\bxhat\b/g, "x̂");
+        s = s.replace(/\byhat\b/g, "ŷ");
+
+        s = s.replace(
+          /([A-Za-zΑ-Ωα-ωΣσμπβθλ∆∂∫√xȳŷ̄]+)\^([0-9+\-=()ni]+)/g,
+          (_, base, power) => base + toSuperscript(power)
+        );
+
+        s = s.replace(
+          /([A-Za-zΑ-Ωα-ωΣσμπβθλ∆∂∫√]+)_([0-9A-Za-z+\-=()]+)/g,
+          (_, base, sub) => base + toSubscript(sub)
+        );
+
+        s = s.replace(/\bR\^2\b/g, "R²");
+        s = s.replace(/\bx\^2\b/g, "x²");
+        s = s.replace(/\by\^2\b/g, "y²");
+        s = s.replace(/\bz\^2\b/g, "z²");
+
+        return s;
+      }
+
+      function parseStructuredLine(line) {
+        const trimmed = line.trim();
+
+        let match = trimmed.match(/^\[\[frac:\s*(.*?)\s*\|\s*(.*?)\s*\]\]$/);
+        if (match) {
+          return {
+            type: "fraction",
+            numerator: convertMathText(match[1]),
+            denominator: convertMathText(match[2]),
+          };
+        }
+
+        match = trimmed.match(/^\[\[matrix:\s*(.*?)\s*\]\]$/);
+        if (match) {
+          const rows = match[1]
+            .split(";")
+            .map((row) => row.split(",").map((cell) => convertMathText(cell.trim())));
+          return {
+            type: "matrix",
+            rows,
+          };
+        }
+
+        match = trimmed.match(/^\[\[sum:\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\]\]$/);
+        if (match) {
+          return {
+            type: "summation",
+            lower: convertMathText(match[1]),
+            upper: convertMathText(match[2]),
+            body: convertMathText(match[3]),
+          };
+        }
+
+        match = trimmed.match(/^\[\[int:\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\]\]$/);
+        if (match) {
+          return {
+            type: "integral",
+            lower: convertMathText(match[1]),
+            upper: convertMathText(match[2]),
+            body: convertMathText(match[3]),
+          };
+        }
+
+        match = trimmed.match(/^\[\[lim:\s*(.*?)\s*\|\s*(.*?)\s*\]\]$/);
+        if (match) {
+          return {
+            type: "limit",
+            to: convertMathText(match[1]),
+            body: convertMathText(match[2]),
+          };
+        }
+
+        return {
+          type: "text",
+          value: convertMathText(line),
+        };
+      }
+
       function addTextBlock() {
         const raw = boardText.value;
         if (!raw.trim()) return;
 
-        const lines = raw.replace(/\r\n/g, "\n").split("\n");
-        const startX = Number(textX.value) || 0;
-        const startY = Number(textY.value) || 0;
-        const fontSize = Math.max(12, Number(textSize.value) || 36);
-        const extraGap = Math.max(0, Number(lineGap.value) || 0);
+        boardText.value = convertMathText(raw);
+
+        const lines = raw.replace(/\r\n/g, "\n").split("\n").map(parseStructuredLine);
 
         const block = {
           id: crypto.randomUUID
             ? crypto.randomUUID()
             : String(Date.now() + Math.random()),
           lines,
-          x: startX,
-          y: startY,
-          fontSize,
+          x: Number(textX.value) || 0,
+          y: Number(textY.value) || 0,
+          fontSize: Math.max(12, Number(textSize.value) || 36),
           fontFamily: textFont.value,
           color: textColor.value,
-          lineGap: extraGap,
+          lineGap: Math.max(0, Number(lineGap.value) || 0),
+          align: textAlign.value,
+          scale: Math.max(0.6, Number(textScale.value) || 1),
         };
 
         textBlocks.push(block);
         selectedTextId = block.id;
+        updateSelectedInfo();
         renderScene();
       }
 
-      function drawTextBlock(block, isSelected = false) {
-        const stepY = block.fontSize + block.lineGap;
+      function setMathFont(block, size) {
+        ctx.font = `${size}px ${block.fontFamily}, system-ui, sans-serif`;
+      }
 
+      function getStructuredLineMetrics(block, item) {
+        const base = block.fontSize * block.scale;
+
+        if (item.type === "text") {
+          setMathFont(block, base);
+          const width = ctx.measureText(item.value).width;
+          return { width, height: base + 6 };
+        }
+
+        if (item.type === "fraction") {
+          setMathFont(block, base * 0.9);
+          const nW = ctx.measureText(item.numerator).width;
+          const dW = ctx.measureText(item.denominator).width;
+          const width = Math.max(nW, dW) + 30;
+          const height = base * 2.3;
+          return { width, height };
+        }
+
+        if (item.type === "matrix") {
+          const rows = item.rows;
+          const cellFont = base * 0.82;
+          setMathFont(block, cellFont);
+
+          const cols = Math.max(...rows.map((r) => r.length), 1);
+          const colWidths = Array(cols).fill(0);
+
+          rows.forEach((row) => {
+            row.forEach((cell, i) => {
+              colWidths[i] = Math.max(colWidths[i], ctx.measureText(cell).width + 20);
+            });
+          });
+
+          const width = colWidths.reduce((a, b) => a + b, 0) + 26;
+          const height = rows.length * (cellFont + 12) + 16;
+          return { width, height };
+        }
+
+        if (item.type === "summation") {
+          setMathFont(block, base);
+          const sumW = ctx.measureText("∑").width;
+          setMathFont(block, base * 0.6);
+          const upperW = ctx.measureText(item.upper).width;
+          const lowerW = ctx.measureText(item.lower).width;
+          setMathFont(block, base * 0.9);
+          const bodyW = ctx.measureText(item.body).width;
+          const width = Math.max(sumW, upperW, lowerW) + bodyW + 20;
+          const height = base * 2.2;
+          return { width, height };
+        }
+
+        if (item.type === "integral") {
+          setMathFont(block, base * 1.15);
+          const intW = ctx.measureText("∫").width;
+          setMathFont(block, base * 0.6);
+          const upperW = ctx.measureText(item.upper).width;
+          const lowerW = ctx.measureText(item.lower).width;
+          setMathFont(block, base * 0.9);
+          const bodyW = ctx.measureText(item.body).width;
+          const width = Math.max(intW, upperW, lowerW) + bodyW + 20;
+          const height = base * 2.25;
+          return { width, height };
+        }
+
+        if (item.type === "limit") {
+          setMathFont(block, base * 0.95);
+          const limW = ctx.measureText("lim").width;
+          setMathFont(block, base * 0.55);
+          const toW = ctx.measureText(item.to).width;
+          setMathFont(block, base * 0.9);
+          const bodyW = ctx.measureText(item.body).width;
+          const width = Math.max(limW, toW) + bodyW + 18;
+          const height = base * 1.9;
+          return { width, height };
+        }
+
+        return { width: 0, height: base };
+      }
+
+      function drawStructuredLine(block, item, x, y) {
+        const base = block.fontSize * block.scale;
         ctx.save();
-        ctx.globalCompositeOperation = "source-over";
         ctx.fillStyle = block.color;
-        ctx.textAlign = "left";
+        ctx.strokeStyle = block.color;
         ctx.textBaseline = "alphabetic";
-        ctx.font = `${block.fontSize}px ${block.fontFamily}`;
+        ctx.textAlign = "left";
 
-        let maxWidth = 0;
-        block.lines.forEach((line) => {
-          maxWidth = Math.max(maxWidth, ctx.measureText(line).width);
-        });
+        if (item.type === "text") {
+          setMathFont(block, base);
+          ctx.fillText(item.value, x, y);
+          ctx.restore();
+          return;
+        }
 
-        block.lines.forEach((line, index) => {
-          const y = block.y + index * stepY;
-          ctx.fillText(line, block.x, y);
-        });
+        if (item.type === "fraction") {
+          setMathFont(block, base * 0.9);
+          const nW = ctx.measureText(item.numerator).width;
+          const dW = ctx.measureText(item.denominator).width;
+          const fullW = Math.max(nW, dW) + 30;
+          const centerX = x + fullW / 2;
 
-        if (isSelected) {
-          const top = block.y - block.fontSize;
-          const height = block.lines.length * stepY;
-          ctx.strokeStyle = "rgba(255,140,0,0.95)";
+          ctx.fillText(item.numerator, centerX - nW / 2, y - base * 0.35);
+
+          ctx.lineWidth = Math.max(2, base * 0.05);
+          ctx.beginPath();
+          ctx.moveTo(x + 8, y);
+          ctx.lineTo(x + fullW - 8, y);
+          ctx.stroke();
+
+          ctx.fillText(item.denominator, centerX - dW / 2, y + base * 0.8);
+          ctx.restore();
+          return;
+        }
+
+        if (item.type === "matrix") {
+          const rows = item.rows;
+          const cellFont = base * 0.82;
+          setMathFont(block, cellFont);
+
+          const cols = Math.max(...rows.map((r) => r.length), 1);
+          const colWidths = Array(cols).fill(0);
+
+          rows.forEach((row) => {
+            row.forEach((cell, i) => {
+              colWidths[i] = Math.max(colWidths[i], ctx.measureText(cell).width + 20);
+            });
+          });
+
+          const totalW = colWidths.reduce((a, b) => a + b, 0);
+          const rowStep = cellFont + 12;
+          const startTop = y - cellFont + 4;
+
           ctx.lineWidth = 2;
-          ctx.setLineDash([6, 4]);
-          ctx.strokeRect(block.x - 8, top - 8, maxWidth + 16, height + 16);
+          ctx.beginPath();
+          ctx.moveTo(x + 6, startTop - 6);
+          ctx.lineTo(x, startTop - 6);
+          ctx.lineTo(x, startTop + rows.length * rowStep - 2);
+          ctx.lineTo(x + 6, startTop + rows.length * rowStep - 2);
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.moveTo(x + totalW + 20, startTop - 6);
+          ctx.lineTo(x + totalW + 26, startTop - 6);
+          ctx.lineTo(x + totalW + 26, startTop + rows.length * rowStep - 2);
+          ctx.lineTo(x + totalW + 20, startTop + rows.length * rowStep - 2);
+          ctx.stroke();
+
+          rows.forEach((row, r) => {
+            let cellX = x + 12;
+            row.forEach((cell, c) => {
+              ctx.fillText(cell, cellX, y + r * rowStep);
+              cellX += colWidths[c];
+            });
+          });
+
+          ctx.restore();
+          return;
+        }
+
+        if (item.type === "summation") {
+          setMathFont(block, base * 0.6);
+          const upperW = ctx.measureText(item.upper).width;
+          const lowerW = ctx.measureText(item.lower).width;
+
+          setMathFont(block, base);
+          const sumW = ctx.measureText("∑").width;
+
+          const symbolX = x + Math.max(upperW, lowerW, sumW) / 2 - sumW / 2;
+          ctx.fillText("∑", symbolX, y + base * 0.25);
+
+          setMathFont(block, base * 0.6);
+          ctx.fillText(item.upper, x, y - base * 0.55);
+          ctx.fillText(item.lower, x, y + base * 0.95);
+
+          setMathFont(block, base * 0.9);
+          const leftW = Math.max(upperW, lowerW, sumW);
+          ctx.fillText(item.body, x + leftW + 12, y + base * 0.15);
+          ctx.restore();
+          return;
+        }
+
+        if (item.type === "integral") {
+          setMathFont(block, base * 1.15);
+          const intW = ctx.measureText("∫").width;
+          ctx.fillText("∫", x, y + base * 0.2);
+
+          setMathFont(block, base * 0.6);
+          ctx.fillText(item.upper, x + intW * 0.15, y - base * 0.55);
+          ctx.fillText(item.lower, x + intW * 0.15, y + base * 0.95);
+
+          setMathFont(block, base * 0.9);
+          ctx.fillText(item.body, x + intW + 12, y + base * 0.12);
+          ctx.restore();
+          return;
+        }
+
+        if (item.type === "limit") {
+          setMathFont(block, base * 0.95);
+          ctx.fillText("lim", x, y);
+
+          setMathFont(block, base * 0.55);
+          ctx.fillText(item.to, x, y + base * 0.75);
+
+          setMathFont(block, base * 0.9);
+          const limWidth = Math.max(
+            ctx.measureText("lim").width,
+            ctx.measureText(item.to).width
+          );
+          ctx.fillText(item.body, x + limWidth + 12, y + base * 0.12);
+          ctx.restore();
+          return;
         }
 
         ctx.restore();
@@ -460,20 +1096,63 @@ Each line will be drawn separately on the board."
 
       function getTextBlockBounds(block) {
         ctx.save();
-        ctx.font = `${block.fontSize}px ${block.fontFamily}`;
         let maxWidth = 0;
-        block.lines.forEach((line) => {
-          maxWidth = Math.max(maxWidth, ctx.measureText(line).width);
-        });
+        let totalHeight = 0;
+
+        for (const item of block.lines) {
+          const m = getStructuredLineMetrics(block, item);
+          maxWidth = Math.max(maxWidth, m.width);
+          totalHeight += m.height + block.lineGap;
+        }
+
+        totalHeight = Math.max(0, totalHeight - block.lineGap);
         ctx.restore();
 
-        const stepY = block.fontSize + block.lineGap;
+        let left = block.x - 8;
+        if (block.align === "center") {
+          left = block.x - maxWidth / 2 - 8;
+        }
+
         return {
-          x: block.x - 8,
-          y: block.y - block.fontSize - 8,
+          x: left,
+          y: block.y - block.fontSize - 12,
           w: maxWidth + 16,
-          h: block.lines.length * stepY + 16,
+          h: totalHeight + 24,
         };
+      }
+
+      function drawTextBlock(block, isSelected = false) {
+        ctx.save();
+
+        let cursorY = block.y;
+        let maxWidth = 0;
+        const lineMetrics = block.lines.map((item) => {
+          const m = getStructuredLineMetrics(block, item);
+          maxWidth = Math.max(maxWidth, m.width);
+          return m;
+        });
+
+        block.lines.forEach((item, index) => {
+          const metrics = lineMetrics[index];
+          let drawX = block.x;
+
+          if (block.align === "center") {
+            drawX = block.x - metrics.width / 2;
+          }
+
+          drawStructuredLine(block, item, drawX, cursorY);
+          cursorY += metrics.height + block.lineGap;
+        });
+
+        if (isSelected) {
+          const bounds = getTextBlockBounds(block);
+          ctx.strokeStyle = "rgba(255,140,0,0.95)";
+          ctx.lineWidth = 2;
+          ctx.setLineDash([6, 4]);
+          ctx.strokeRect(bounds.x, bounds.y, bounds.w, bounds.h);
+        }
+
+        ctx.restore();
       }
 
       function hitTestTextBlock(pos) {
@@ -502,6 +1181,19 @@ Each line will be drawn separately on the board."
         }
       }
 
+      function updateSelectedInfo() {
+        const block = textBlocks.find((t) => t.id === selectedTextId);
+        if (!block) {
+          selectedInfo.textContent = "No text block selected.";
+          return;
+        }
+
+        selectedInfo.textContent =
+          `Selected block • Font ${Math.round(block.fontSize)} • ` +
+          `Align ${block.align} • Scale ${block.scale} • ` +
+          `Lines ${block.lines.length}`;
+      }
+
       canvas.addEventListener("pointerdown", (e) => {
         if (calibrate) return;
 
@@ -516,6 +1208,7 @@ Each line will be drawn separately on the board."
           } else {
             selectedTextId = null;
           }
+          updateSelectedInfo();
           renderScene();
           return;
         }
@@ -554,7 +1247,7 @@ Each line will be drawn separately on the board."
           block.y += e.deltaY > 0 ? 8 : -8;
           renderScene();
         },
-        { passive: false },
+        { passive: false }
       );
 
       window.addEventListener("pointerup", () => {
@@ -589,6 +1282,7 @@ Each line will be drawn separately on the board."
         drawCtx.clearRect(0, 0, drawLayer.width, drawLayer.height);
         textBlocks = [];
         selectedTextId = null;
+        updateSelectedInfo();
         renderScene();
       };
 
@@ -638,20 +1332,24 @@ Each line will be drawn separately on the board."
           octx.drawImage(canvas, x, y, boardRect.width, boardRect.height);
 
           const link = document.createElement("a");
-          link.download = "full-classroom-board.png";
+          link.download = "full-classroom-board-v3.png";
           link.href = output.toDataURL("image/png");
           link.click();
         };
         img.src = "classroom.jpg";
       };
 
-      fullscreenBtn.onclick = () => {
-        if (!document.fullscreenElement) {
-          document.documentElement.requestFullscreen();
-          fullscreenBtn.textContent = "Exit Fullscreen";
-        } else {
-          document.exitFullscreen();
-          fullscreenBtn.textContent = "Fullscreen";
+      fullscreenBtn.onclick = async () => {
+        try {
+          if (!document.fullscreenElement) {
+            await document.documentElement.requestFullscreen();
+            fullscreenBtn.textContent = "Exit Fullscreen";
+          } else {
+            await document.exitFullscreen();
+            fullscreenBtn.textContent = "Fullscreen";
+          }
+        } catch (err) {
+          console.error(err);
         }
       };
 
@@ -670,7 +1368,97 @@ Each line will be drawn separately on the board."
         boardText.focus();
       };
 
+      duplicateTextBtn.onclick = () => {
+        const block = textBlocks.find((t) => t.id === selectedTextId);
+        if (!block) return;
+
+        const copy = JSON.parse(JSON.stringify(block));
+        copy.id = crypto.randomUUID
+          ? crypto.randomUUID()
+          : String(Date.now() + Math.random());
+        copy.y += 40;
+        copy.x += block.align === "center" ? 0 : 20;
+        textBlocks.push(copy);
+        selectedTextId = copy.id;
+        updateSelectedInfo();
+        renderScene();
+      };
+
+      deleteTextBtn.onclick = () => {
+        if (!selectedTextId) return;
+        textBlocks = textBlocks.filter((t) => t.id !== selectedTextId);
+        selectedTextId = null;
+        updateSelectedInfo();
+        renderScene();
+      };
+
+      symbolBar.addEventListener("click", (e) => {
+        const btn = e.target.closest(".symBtn");
+        if (!btn) return;
+        insertAtCursor(boardText, btn.dataset.symbol);
+      });
+
+      convertMathBtn.onclick = () => {
+        const start = boardText.selectionStart ?? 0;
+        const end = boardText.selectionEnd ?? 0;
+
+        if (start !== end) {
+          const selected = boardText.value.slice(start, end);
+          const converted = convertMathText(selected);
+          replaceSelectedOrInsert(boardText, converted, converted);
+        } else {
+          boardText.value = convertMathText(boardText.value);
+          boardText.focus();
+        }
+      };
+
+      insertArrowBtn.onclick = () => {
+        insertAtCursor(boardText, " → ");
+      };
+
+      centerTextBtn.onclick = () => {
+        textAlign.value = "center";
+      };
+
+      insertFractionBtn.onclick = () => {
+        insertAtCursor(boardText, "[[frac: numerator | denominator]]");
+      };
+
+      insertMatrixBtn.onclick = () => {
+        insertAtCursor(boardText, "[[matrix: a,b ; c,d ]]");
+      };
+
+      insertSummationBtn.onclick = () => {
+        insertAtCursor(boardText, "[[sum: i=1 | n | x_i]]");
+      };
+
+      insertIntegralBtn.onclick = () => {
+        insertAtCursor(boardText, "[[int: 0 | 1 | x^2 dx]]");
+      };
+
+      insertLimitBtn.onclick = () => {
+        insertAtCursor(boardText, "[[lim: x->0 | sin x / x]]");
+      };
+
+      boardText.addEventListener("keydown", (e) => {
+        if (e.key === "Tab") {
+          e.preventDefault();
+          insertAtCursor(boardText, "    ");
+        }
+
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "m") {
+          e.preventDefault();
+          boardText.value = convertMathText(boardText.value);
+        }
+      });
+
+      boardText.addEventListener("blur", () => {
+        boardText.value = convertMathText(boardText.value);
+      });
+
       setActiveTool("pen");
+      sizeVal.textContent = sizeEl.value;
+      updateSelectedInfo();
     </script>
   </body>
 </html>
