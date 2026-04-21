@@ -18,6 +18,8 @@ const ui = {
   stdin: $("ppStdin"),
   example: $("ppExample"),
   indent: $("ppIndent"),
+  codeFontSize: $("ppCodeFontSize"),
+  outFontSize: $("ppOutFontSize"),
   timer: $("ppTimer"),
   dot: $("ppDot"),
   status: $("ppStatus"),
@@ -123,6 +125,8 @@ const K_STU_NAME = "pp_student_name_v2";
 const K_STU_ROLL = "pp_student_roll_v2";
 const K_INSTALLED_PKGS = "pp_installed_pkgs_v1";
 const K_THEME = "pp_theme_v1";
+const K_CODE_FONT = "pp_code_font_v1";
+const K_OUT_FONT = "pp_out_font_v1";
 const K_SIDEBAR_W = "pp_sidebar_width_v1";
 const K_PANEL_H = "pp_panel_height_v1";
 const K_VOICE_LOG = "pp_voice_log_v1";
@@ -469,6 +473,39 @@ function applyTheme(theme) {
     localStorage.setItem(K_THEME, t);
   } catch {}
   if (ui.themeToggle) ui.themeToggle.textContent = t === "light" ? "☀️ Light" : "🌙 Dark";
+}
+
+function applyFontSizes() {
+  const codeSize = localStorage.getItem(K_CODE_FONT) || "32";
+  const outSize = localStorage.getItem(K_OUT_FONT) || "22";
+
+  if (ui.code) ui.code.style.fontSize = codeSize + "px";
+  if (ui.gutter) ui.gutter.style.fontSize = codeSize + "px";
+  if (ui.out) ui.out.style.fontSize = outSize + "px";
+  if (ui.err) ui.err.style.fontSize = outSize + "px";
+
+  if (ui.codeFontSize) ui.codeFontSize.value = codeSize;
+  if (ui.outFontSize) ui.outFontSize.value = outSize;
+}
+
+function bindFontSizeControls() {
+  if (ui.codeFontSize) {
+    ui.codeFontSize.addEventListener("change", () => {
+      const v = String(ui.codeFontSize.value || "32");
+      localStorage.setItem(K_CODE_FONT, v);
+      if (ui.code) ui.code.style.fontSize = v + "px";
+      if (ui.gutter) ui.gutter.style.fontSize = v + "px";
+    });
+  }
+
+  if (ui.outFontSize) {
+    ui.outFontSize.addEventListener("change", () => {
+      const v = String(ui.outFontSize.value || "22");
+      localStorage.setItem(K_OUT_FONT, v);
+      if (ui.out) ui.out.style.fontSize = v + "px";
+      if (ui.err) ui.err.style.fontSize = v + "px";
+    });
+  }
 }
 
 function toggleTheme() {
@@ -2017,6 +2054,8 @@ async function init() {
   renderVoiceLog();
 
   applyTheme(localStorage.getItem(K_THEME) || "dark");
+  applyFontSizes();
+  bindFontSizeControls();
   const savedSidebarW = parseInt(localStorage.getItem(K_SIDEBAR_W) || "0", 10);
   if (savedSidebarW) setSidebarWidth(savedSidebarW);
   const savedPanelH = parseInt(localStorage.getItem(K_PANEL_H) || "0", 10);
