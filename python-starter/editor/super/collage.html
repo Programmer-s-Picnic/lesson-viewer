@@ -1,0 +1,1343 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Exquisite Collage Creator</title>
+    <meta
+      name="description"
+      content="A beautiful collage creator with layouts, spacing, title, background styling, and PNG export."
+    />
+    <meta name="theme-color" content="#f59e0b" />
+    <style>
+      :root {
+        --bg: #fff8ef;
+        --panel: #ffffffcc;
+        --panel-solid: #ffffff;
+        --text: #2b2112;
+        --muted: #6b5a3d;
+        --line: #efd9b4;
+        --brand: #d97706;
+        --brand2: #f59e0b;
+        --brand3: #fbbf24;
+        --shadow: 0 20px 60px rgba(124, 70, 0, 0.12);
+        --radius: 24px;
+        --preview-bg: #fffaf0;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top left, #fff3d6 0%, transparent 28%),
+          radial-gradient(circle at top right, #ffe7cf 0%, transparent 25%),
+          linear-gradient(135deg, #fff9f2 0%, #fff4e4 48%, #fffaf6 100%);
+        min-height: 100vh;
+      }
+
+      .app {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 18px;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: 1.05fr 0.95fr;
+        gap: 18px;
+        margin-bottom: 18px;
+      }
+
+      .card {
+        background: var(--panel);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(239, 217, 180, 0.9);
+        border-radius: 32px;
+        box-shadow: var(--shadow);
+      }
+
+      .card-inner {
+        padding: 22px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: #fff1d6;
+        border: 1px solid #f4d08c;
+        color: #9a5800;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.2px;
+      }
+
+      h1 {
+        margin: 14px 0 10px;
+        font-size: clamp(30px, 4vw, 54px);
+        line-height: 1.05;
+        letter-spacing: -0.03em;
+      }
+
+      .lead {
+        color: var(--muted);
+        font-size: 15px;
+        line-height: 1.8;
+        max-width: 760px;
+        margin: 0;
+      }
+
+      .dropzone {
+        margin-top: 18px;
+        border: 2px dashed #efc36f;
+        border-radius: 28px;
+        background: linear-gradient(135deg, #fff7e7, #ffffff);
+        padding: 34px 18px;
+        text-align: center;
+        cursor: pointer;
+        transition: 0.25s ease;
+      }
+
+      .dropzone:hover,
+      .dropzone.drag {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+        background: linear-gradient(135deg, #fff1cf, #fff9ee);
+        border-color: #e49b10;
+      }
+
+      .upload-icon {
+        width: 78px;
+        height: 78px;
+        border-radius: 50%;
+        margin: 0 auto 14px;
+        display: grid;
+        place-items: center;
+        font-size: 34px;
+        background: #fff;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+      }
+
+      .drop-title {
+        font-size: 24px;
+        font-weight: 800;
+        margin-bottom: 8px;
+      }
+
+      .drop-sub {
+        font-size: 14px;
+        color: var(--muted);
+        line-height: 1.7;
+      }
+
+      .toolbar {
+        margin-top: 16px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      button,
+      .btn,
+      select,
+      input[type="text"],
+      input[type="color"] {
+        font: inherit;
+      }
+
+      .btn {
+        border: none;
+        background: var(--brand);
+        color: #fff;
+        padding: 12px 16px;
+        border-radius: 18px;
+        cursor: pointer;
+        font-weight: 700;
+        transition: 0.2s ease;
+        box-shadow: 0 8px 22px rgba(217, 119, 6, 0.22);
+      }
+
+      .btn:hover {
+        transform: translateY(-1px);
+        background: #b76405;
+      }
+      .btn.secondary {
+        background: #fff;
+        color: var(--text);
+        border: 1px solid var(--line);
+        box-shadow: none;
+      }
+      .btn.secondary:hover {
+        background: #fff7ea;
+      }
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .controls h2,
+      .preview-card h2,
+      .tips h2 {
+        margin: 0 0 14px;
+        font-size: 20px;
+        letter-spacing: -0.02em;
+      }
+
+      .tabs {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+        margin-bottom: 16px;
+        background: #fff6e8;
+        border-radius: 18px;
+        padding: 8px;
+        border: 1px solid var(--line);
+      }
+
+      .tab-btn {
+        border: none;
+        background: transparent;
+        padding: 10px 12px;
+        border-radius: 14px;
+        cursor: pointer;
+        font-weight: 700;
+        color: #7a5b2f;
+      }
+
+      .tab-btn.active {
+        background: #fff;
+        color: #a45900;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+      }
+
+      .tab-panel {
+        display: none;
+      }
+      .tab-panel.active {
+        display: block;
+      }
+
+      .field {
+        margin-bottom: 16px;
+      }
+
+      .field label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 700;
+        font-size: 14px;
+      }
+
+      .field input[type="text"],
+      .field select {
+        width: 100%;
+        border: 1px solid var(--line);
+        background: #fff;
+        color: var(--text);
+        padding: 12px 14px;
+        border-radius: 16px;
+        outline: none;
+      }
+
+      .field input[type="range"] {
+        width: 100%;
+        accent-color: var(--brand);
+      }
+
+      .chip-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+      }
+
+      .chip {
+        border: 1px solid var(--line);
+        background: #fff;
+        border-radius: 18px;
+        padding: 8px;
+        cursor: pointer;
+        transition: 0.2s ease;
+        text-align: left;
+      }
+
+      .chip:hover {
+        transform: translateY(-1px);
+      }
+      .chip.active {
+        border-color: #e8a11e;
+        box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18);
+        background: #fff8ea;
+      }
+
+      .swatch {
+        height: 42px;
+        border-radius: 12px;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        margin-bottom: 8px;
+      }
+
+      .two-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+
+      .toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px;
+        border-radius: 18px;
+        border: 1px solid var(--line);
+        background: #fff;
+        margin-bottom: 12px;
+      }
+
+      .toggle small {
+        display: block;
+        color: var(--muted);
+        margin-top: 4px;
+        line-height: 1.5;
+      }
+
+      .switch {
+        position: relative;
+        width: 52px;
+        height: 30px;
+        background: #e9d8b1;
+        border-radius: 999px;
+        cursor: pointer;
+        flex: 0 0 auto;
+        transition: 0.2s ease;
+      }
+
+      .switch::after {
+        content: "";
+        position: absolute;
+        top: 4px;
+        left: 4px;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        transition: 0.2s ease;
+      }
+
+      .switch.active {
+        background: linear-gradient(135deg, var(--brand), var(--brand2));
+      }
+
+      .switch.active::after {
+        left: 26px;
+      }
+
+      .workspace {
+        display: grid;
+        grid-template-columns: 1fr 330px;
+        gap: 18px;
+      }
+
+      .preview-wrap {
+        background: linear-gradient(135deg, #f3f4f6, #fcfcfd);
+        border-radius: 28px;
+        padding: 14px;
+        overflow: auto;
+        border: 1px solid #eceef2;
+      }
+
+      .preview-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 14px;
+      }
+
+      #previewStage {
+        margin: 0 auto;
+        width: 900px;
+        min-height: 560px;
+        background: var(--preview-bg);
+        border-radius: 30px;
+        box-shadow: 0 20px 56px rgba(15, 23, 42, 0.14);
+        padding: 22px;
+        overflow: hidden;
+        transition: 0.25s ease;
+        position: relative;
+      }
+
+      .stage-title {
+        text-align: center;
+        font-size: 38px;
+        font-weight: 900;
+        line-height: 1.15;
+        margin: 4px 0 0;
+        letter-spacing: -0.03em;
+      }
+
+      .stage-subtitle {
+        text-align: center;
+        margin: 8px 0 18px;
+        font-size: 14px;
+        color: #586173;
+      }
+
+      .empty-state {
+        min-height: 360px;
+        border: 2px dashed #ebbb5b;
+        border-radius: 24px;
+        display: grid;
+        place-items: center;
+        text-align: center;
+        color: var(--muted);
+        background: rgba(255, 255, 255, 0.48);
+        padding: 30px;
+      }
+
+      .empty-state h3 {
+        margin: 0 0 10px;
+        font-size: 24px;
+        color: var(--text);
+      }
+
+      .collage-grid {
+        display: grid;
+        gap: 14px;
+      }
+
+      .layout-grid2 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .layout-grid3 {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      .layout-grid4 {
+        grid-template-columns: repeat(4, 1fr);
+      }
+      .layout-mosaic {
+        grid-template-columns: repeat(6, 1fr);
+        grid-auto-rows: 120px;
+      }
+      .layout-grid2,
+      .layout-grid3,
+      .layout-grid4 {
+        grid-auto-rows: 160px;
+      }
+
+      .collage-item {
+        position: relative;
+        overflow: hidden;
+        background: #fff;
+        transition: 0.25s ease;
+      }
+
+      .collage-item img {
+        width: 100%;
+        height: 100%;
+        display: block;
+        user-select: none;
+        -webkit-user-drag: none;
+      }
+
+      .polaroid {
+        padding: 10px;
+        padding-bottom: 22px;
+        background: #fff;
+      }
+
+      .span-a {
+        grid-column: span 3;
+        grid-row: span 2;
+      }
+      .span-b {
+        grid-column: span 3;
+        grid-row: span 1;
+      }
+      .span-c {
+        grid-column: span 2;
+        grid-row: span 1;
+      }
+      .span-d {
+        grid-column: span 4;
+        grid-row: span 2;
+      }
+      .span-e {
+        grid-column: span 2;
+        grid-row: span 2;
+      }
+      .span-f {
+        grid-column: span 2;
+        grid-row: span 1;
+      }
+
+      .tips-list {
+        display: grid;
+        gap: 12px;
+      }
+
+      .tip {
+        border-radius: 18px;
+        padding: 14px;
+        line-height: 1.65;
+        font-size: 14px;
+      }
+
+      .tip.a {
+        background: #fff0cf;
+      }
+      .tip.b {
+        background: #fff4e8;
+      }
+      .tip.c {
+        background: #fff0f2;
+      }
+      .tip.d {
+        background: #f8fafc;
+      }
+
+      .images-list {
+        max-height: 430px;
+        overflow: auto;
+        display: grid;
+        gap: 10px;
+        padding-right: 4px;
+      }
+
+      .image-row {
+        display: grid;
+        grid-template-columns: 64px 1fr auto;
+        gap: 10px;
+        align-items: center;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: #fff;
+        padding: 8px;
+      }
+
+      .image-row img {
+        width: 64px;
+        height: 64px;
+        object-fit: cover;
+        border-radius: 12px;
+        display: block;
+      }
+
+      .image-meta {
+        min-width: 0;
+      }
+
+      .image-meta .name {
+        font-size: 14px;
+        font-weight: 700;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .image-meta .pos {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 3px;
+      }
+
+      .row-actions {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+
+      .mini-btn {
+        border: 1px solid var(--line);
+        background: #fff;
+        border-radius: 12px;
+        padding: 8px 10px;
+        cursor: pointer;
+        font-weight: 700;
+      }
+
+      .mini-btn:hover {
+        background: #fff7ea;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      .footer-note {
+        text-align: center;
+        color: var(--muted);
+        font-size: 13px;
+        margin-top: 16px;
+      }
+
+      @media (max-width: 1150px) {
+        .hero,
+        .workspace {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .app {
+          padding: 12px;
+        }
+        .card-inner {
+          padding: 16px;
+        }
+        .tabs {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .chip-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .two-col {
+          grid-template-columns: 1fr;
+        }
+        #previewStage {
+          width: 900px;
+        }
+        .toolbar {
+          gap: 8px;
+        }
+        .btn {
+          padding: 11px 14px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <section class="hero">
+        <div class="card">
+          <div class="card-inner">
+            <div class="badge">✨ Exquisite Collage Creator</div>
+            <h1>Design a gorgeous collage in minutes</h1>
+            <p class="lead">
+              Drop your photos, choose a beautiful layout, fine-tune spacing and
+              styling, add a title, and export a polished collage ready to
+              share.
+            </p>
+
+            <div class="dropzone" id="dropzone">
+              <div class="upload-icon">🖼️</div>
+              <div class="drop-title">Upload your images</div>
+              <div class="drop-sub">
+                Drag and drop images here, click to browse, or paste screenshots
+                directly.<br />
+                Supports multiple images at once.
+              </div>
+              <input
+                id="fileInput"
+                type="file"
+                accept="image/*"
+                multiple
+                class="hidden"
+              />
+            </div>
+
+            <div class="toolbar">
+              <button class="btn" id="addBtn">Add Photos</button>
+              <button class="btn secondary" id="shuffleBtn" disabled>
+                Shuffle
+              </button>
+              <button class="btn secondary" id="clearBtn" disabled>
+                Clear
+              </button>
+              <button class="btn" id="exportBtn" disabled>Export PNG</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card controls">
+          <div class="card-inner">
+            <div class="tabs">
+              <button class="tab-btn active" data-tab="style">Style</button>
+              <button class="tab-btn" data-tab="layout">Layout</button>
+              <button class="tab-btn" data-tab="text">Text</button>
+              <button class="tab-btn" data-tab="images">Images</button>
+            </div>
+
+            <div class="tab-panel active" id="tab-style">
+              <div class="field">
+                <label>Background</label>
+                <div class="chip-grid" id="bgChoices"></div>
+              </div>
+
+              <div class="field">
+                <label
+                  >Corner roundness: <span id="radiusVal">20</span>px</label
+                >
+                <input
+                  type="range"
+                  id="radiusRange"
+                  min="0"
+                  max="40"
+                  value="20"
+                />
+              </div>
+
+              <div class="field">
+                <label>Spacing: <span id="gapVal">14</span>px</label>
+                <input type="range" id="gapRange" min="0" max="36" value="14" />
+              </div>
+
+              <div class="field">
+                <label>Outer padding: <span id="paddingVal">22</span>px</label>
+                <input
+                  type="range"
+                  id="paddingRange"
+                  min="0"
+                  max="40"
+                  value="22"
+                />
+              </div>
+
+              <div class="field">
+                <label>Shadow depth: <span id="shadowVal">18</span></label>
+                <input
+                  type="range"
+                  id="shadowRange"
+                  min="0"
+                  max="32"
+                  value="18"
+                />
+              </div>
+
+              <div class="field">
+                <label
+                  >Border width: <span id="borderWidthVal">0</span>px</label
+                >
+                <input
+                  type="range"
+                  id="borderWidthRange"
+                  min="0"
+                  max="16"
+                  value="0"
+                />
+              </div>
+
+              <div class="two-col">
+                <div class="field">
+                  <label>Image fit</label>
+                  <select id="fitSelect">
+                    <option value="cover">Cover</option>
+                    <option value="contain">Contain</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Border color</label>
+                  <input type="color" id="borderColorInput" value="#ffffff" />
+                </div>
+              </div>
+
+              <div class="toggle">
+                <div>
+                  <strong>Elegant frame</strong>
+                  <small>Adds a soft framed presence to the collage.</small>
+                </div>
+                <div class="switch active" id="frameSwitch"></div>
+              </div>
+
+              <div class="toggle">
+                <div>
+                  <strong>Polaroid mood</strong>
+                  <small>Gives each image a scrapbook-style paper feel.</small>
+                </div>
+                <div class="switch" id="polaroidSwitch"></div>
+              </div>
+            </div>
+
+            <div class="tab-panel" id="tab-layout">
+              <div class="field">
+                <label>Layout</label>
+                <div class="chip-grid" id="layoutChoices"></div>
+              </div>
+
+              <div class="field">
+                <label>Canvas ratio</label>
+                <div class="chip-grid" id="ratioChoices"></div>
+              </div>
+            </div>
+
+            <div class="tab-panel" id="tab-text">
+              <div class="toggle">
+                <div>
+                  <strong>Show title block</strong>
+                  <small>Add a heading and subheading above the collage.</small>
+                </div>
+                <div class="switch active" id="textSwitch"></div>
+              </div>
+
+              <div class="field">
+                <label>Title</label>
+                <input
+                  type="text"
+                  id="titleInput"
+                  value="My Exquisite Collage"
+                />
+              </div>
+
+              <div class="field">
+                <label>Subtitle</label>
+                <input
+                  type="text"
+                  id="subtitleInput"
+                  value="A beautiful set of moments together"
+                />
+              </div>
+            </div>
+
+            <div class="tab-panel" id="tab-images">
+              <div class="images-list" id="imagesList">
+                <div class="tip d">Your uploaded images will appear here.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <div class="card preview-card">
+          <div class="card-inner">
+            <div class="preview-header">
+              <div>
+                <h2>Live Preview</h2>
+                <div class="lead" style="font-size: 14px">
+                  What you see here is what gets exported.
+                </div>
+              </div>
+              <button class="btn" id="exportBtnTop" disabled>Export</button>
+            </div>
+
+            <div class="preview-wrap">
+              <div id="previewStage">
+                <div class="empty-state">
+                  <div>
+                    <h3>Your collage will appear here</h3>
+                    <div>
+                      Upload a few photos and start designing something
+                      memorable.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="footer-note">
+              Tip: use 4 to 8 photos for the most elegant result.
+            </div>
+          </div>
+        </div>
+
+        <div class="card tips">
+          <div class="card-inner">
+            <h2>Creative notes</h2>
+            <div class="tips-list">
+              <div class="tip a">
+                Use 4 to 8 images for the most balanced and beautiful collage.
+              </div>
+              <div class="tip b">
+                Try mosaic layout for celebrations, travel albums, and memory
+                boards.
+              </div>
+              <div class="tip c">
+                Turn on polaroid mood for a warm scrapbook look.
+              </div>
+              <div class="tip d">
+                You can paste screenshots directly into the page with Ctrl+V.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script>
+      const BACKGROUNDS = [
+        { name: "Cream", value: "#fffaf0" },
+        { name: "White", value: "#ffffff" },
+        { name: "Saffron Glow", value: "#fff3e0" },
+        { name: "Soft Rose", value: "#fff1f2" },
+        { name: "Slate", value: "#f8fafc" },
+        { name: "Midnight", value: "#111827" },
+      ];
+
+      const LAYOUTS = [
+        { key: "grid2", label: "2 Columns" },
+        { key: "grid3", label: "3 Columns" },
+        { key: "grid4", label: "4 Columns" },
+        { key: "mosaic", label: "Mosaic" },
+      ];
+
+      const RATIOS = [
+        { key: "square", label: "1:1", value: 1 },
+        { key: "portrait", label: "4:5", value: 4 / 5 },
+        { key: "landscape", label: "16:9", value: 16 / 9 },
+        { key: "story", label: "9:16", value: 9 / 16 },
+        { key: "classic", label: "3:2", value: 3 / 2 },
+      ];
+
+      const state = {
+        items: [],
+        layout: "grid3",
+        ratioKey: "square",
+        gap: 14,
+        padding: 22,
+        radius: 20,
+        shadow: 18,
+        title: "My Exquisite Collage",
+        subtitle: "A beautiful set of moments together",
+        showText: true,
+        bgColor: "#fffaf0",
+        fit: "cover",
+        frame: true,
+        polaroid: false,
+        borderWidth: 0,
+        borderColor: "#ffffff",
+      };
+
+      const fileInput = document.getElementById("fileInput");
+      const dropzone = document.getElementById("dropzone");
+      const addBtn = document.getElementById("addBtn");
+      const shuffleBtn = document.getElementById("shuffleBtn");
+      const clearBtn = document.getElementById("clearBtn");
+      const exportBtn = document.getElementById("exportBtn");
+      const exportBtnTop = document.getElementById("exportBtnTop");
+      const previewStage = document.getElementById("previewStage");
+      const imagesList = document.getElementById("imagesList");
+
+      const radiusRange = document.getElementById("radiusRange");
+      const gapRange = document.getElementById("gapRange");
+      const paddingRange = document.getElementById("paddingRange");
+      const shadowRange = document.getElementById("shadowRange");
+      const borderWidthRange = document.getElementById("borderWidthRange");
+      const fitSelect = document.getElementById("fitSelect");
+      const borderColorInput = document.getElementById("borderColorInput");
+      const titleInput = document.getElementById("titleInput");
+      const subtitleInput = document.getElementById("subtitleInput");
+
+      const radiusVal = document.getElementById("radiusVal");
+      const gapVal = document.getElementById("gapVal");
+      const paddingVal = document.getElementById("paddingVal");
+      const shadowVal = document.getElementById("shadowVal");
+      const borderWidthVal = document.getElementById("borderWidthVal");
+
+      const frameSwitch = document.getElementById("frameSwitch");
+      const polaroidSwitch = document.getElementById("polaroidSwitch");
+      const textSwitch = document.getElementById("textSwitch");
+
+      const bgChoices = document.getElementById("bgChoices");
+      const layoutChoices = document.getElementById("layoutChoices");
+      const ratioChoices = document.getElementById("ratioChoices");
+
+      function uid() {
+        return "id-" + Math.random().toString(36).slice(2) + Date.now();
+      }
+
+      function randomRotation(i) {
+        return (i % 2 === 0 ? -1 : 1) * ((i % 5) + 1) * 0.8;
+      }
+
+      function getRatioValue() {
+        return RATIOS.find((r) => r.key === state.ratioKey).value;
+      }
+
+      function getStageDimensions() {
+        const width = 900;
+        const height = Math.round(width / getRatioValue());
+        return { width, height };
+      }
+
+      function renderChoiceButtons() {
+        bgChoices.innerHTML = BACKGROUNDS.map(
+          (bg) => `
+        <button class="chip ${state.bgColor === bg.value ? "active" : ""}" data-bg="${bg.value}">
+          <div class="swatch" style="background:${bg.value}"></div>
+          <div style="font-size:12px;font-weight:700">${bg.name}</div>
+        </button>
+      `,
+        ).join("");
+
+        layoutChoices.innerHTML = LAYOUTS.map(
+          (item) => `
+        <button class="chip ${state.layout === item.key ? "active" : ""}" data-layout="${item.key}">
+          <div style="font-size:14px;font-weight:800">${item.label}</div>
+          <div style="font-size:12px;color:#7b6b4f;margin-top:4px">Beautiful arrangement</div>
+        </button>
+      `,
+        ).join("");
+
+        ratioChoices.innerHTML = RATIOS.map(
+          (item) => `
+        <button class="chip ${state.ratioKey === item.key ? "active" : ""}" data-ratio="${item.key}">
+          <div style="font-size:14px;font-weight:800">${item.label}</div>
+        </button>
+      `,
+        ).join("");
+
+        bgChoices.querySelectorAll("[data-bg]").forEach((btn) => {
+          btn.onclick = () => {
+            state.bgColor = btn.dataset.bg;
+            renderAll();
+          };
+        });
+
+        layoutChoices.querySelectorAll("[data-layout]").forEach((btn) => {
+          btn.onclick = () => {
+            state.layout = btn.dataset.layout;
+            renderAll();
+          };
+        });
+
+        ratioChoices.querySelectorAll("[data-ratio]").forEach((btn) => {
+          btn.onclick = () => {
+            state.ratioKey = btn.dataset.ratio;
+            renderAll();
+          };
+        });
+      }
+
+      function updateControls() {
+        radiusRange.value = state.radius;
+        gapRange.value = state.gap;
+        paddingRange.value = state.padding;
+        shadowRange.value = state.shadow;
+        borderWidthRange.value = state.borderWidth;
+        fitSelect.value = state.fit;
+        borderColorInput.value = state.borderColor;
+        titleInput.value = state.title;
+        subtitleInput.value = state.subtitle;
+
+        radiusVal.textContent = state.radius;
+        gapVal.textContent = state.gap;
+        paddingVal.textContent = state.padding;
+        shadowVal.textContent = state.shadow;
+        borderWidthVal.textContent = state.borderWidth;
+
+        frameSwitch.classList.toggle("active", state.frame);
+        polaroidSwitch.classList.toggle("active", state.polaroid);
+        textSwitch.classList.toggle("active", state.showText);
+
+        shuffleBtn.disabled = state.items.length < 2;
+        clearBtn.disabled = state.items.length === 0;
+        exportBtn.disabled = state.items.length === 0;
+        exportBtnTop.disabled = state.items.length === 0;
+      }
+
+      function mosaicSpanClass(index) {
+        const list = [
+          "span-a",
+          "span-b",
+          "span-c",
+          "span-d",
+          "span-e",
+          "span-f",
+        ];
+        return list[index % list.length];
+      }
+
+      function renderStage() {
+        const dims = getStageDimensions();
+        previewStage.style.width = dims.width + "px";
+        previewStage.style.minHeight = dims.height + "px";
+        previewStage.style.background = state.bgColor;
+        previewStage.style.padding = state.padding + "px";
+        previewStage.style.boxShadow = `0 ${state.shadow}px ${state.shadow * 2.4}px rgba(15,23,42,.14)`;
+        previewStage.style.border = state.frame
+          ? "1px solid rgba(0,0,0,.05)"
+          : "none";
+
+        const darkBg = state.bgColor.toLowerCase() === "#111827";
+
+        if (!state.items.length) {
+          previewStage.innerHTML = `
+          <div class="empty-state">
+            <div>
+              <h3>Your collage will appear here</h3>
+              <div>Upload a few photos and start designing something memorable.</div>
+            </div>
+          </div>
+        `;
+          return;
+        }
+
+        let html = "";
+        if (state.showText) {
+          html += `
+          <div class="stage-title" style="color:${darkBg ? "#ffffff" : "#111827"}">
+            ${escapeHtml(state.title || "My Exquisite Collage")}
+          </div>
+          ${
+            state.subtitle.trim()
+              ? `<div class="stage-subtitle" style="color:${darkBg ? "rgba(255,255,255,.78)" : "#586173"}">${escapeHtml(state.subtitle)}</div>`
+              : ""
+          }
+        `;
+        }
+
+        html += `<div class="collage-grid layout-${state.layout}" style="gap:${state.gap}px">`;
+
+        state.items.forEach((item, index) => {
+          const extraClass =
+            state.layout === "mosaic" ? mosaicSpanClass(index) : "";
+          const rotate = state.polaroid
+            ? `transform:rotate(${randomRotation(index)}deg);`
+            : "";
+          const borderRadius = state.polaroid
+            ? Math.max(8, state.radius - 8)
+            : state.radius;
+
+          html += `
+          <div class="collage-item ${extraClass} ${state.polaroid ? "polaroid" : ""}"
+               style="
+                 border-radius:${state.radius}px;
+                 box-shadow:0 ${Math.max(4, state.shadow * 0.5)}px ${Math.max(12, state.shadow * 1.5)}px rgba(15,23,42,.12);
+                 border:${state.borderWidth ? state.borderWidth + "px solid " + state.borderColor : "none"};
+                 ${rotate}
+               ">
+            <img
+              src="${item.src}"
+              alt="${escapeHtml(item.name)}"
+              style="object-fit:${state.fit};border-radius:${borderRadius}px;"
+            />
+          </div>
+        `;
+        });
+
+        html += `</div>`;
+        previewStage.innerHTML = html;
+      }
+
+      function renderImagesList() {
+        if (!state.items.length) {
+          imagesList.innerHTML = `<div class="tip d">Your uploaded images will appear here.</div>`;
+          return;
+        }
+
+        imagesList.innerHTML = state.items
+          .map(
+            (item, index) => `
+        <div class="image-row">
+          <img src="${item.src}" alt="${escapeHtml(item.name)}" />
+          <div class="image-meta">
+            <div class="name">${escapeHtml(item.name)}</div>
+            <div class="pos">Position ${index + 1}</div>
+          </div>
+          <div class="row-actions">
+            <button class="mini-btn" ${index === 0 ? "disabled" : ""} onclick="moveItem(${index}, ${index - 1})">↑</button>
+            <button class="mini-btn" ${index === state.items.length - 1 ? "disabled" : ""} onclick="moveItem(${index}, ${index + 1})">↓</button>
+            <button class="mini-btn" onclick="removeItem('${item.id}')">✕</button>
+          </div>
+        </div>
+      `,
+          )
+          .join("");
+      }
+
+      function renderAll() {
+        renderChoiceButtons();
+        updateControls();
+        renderStage();
+        renderImagesList();
+      }
+
+      function escapeHtml(str) {
+        return String(str)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
+      }
+
+      function addFiles(fileList) {
+        const files = Array.from(fileList || []).filter((f) =>
+          f.type.startsWith("image/"),
+        );
+        if (!files.length) return;
+
+        let loaded = 0;
+        const newItems = [];
+
+        files.forEach((file) => {
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            newItems.push({
+              id: uid(),
+              name: file.name,
+              src: e.target.result,
+            });
+            loaded++;
+            if (loaded === files.length) {
+              state.items = state.items.concat(newItems);
+              renderAll();
+            }
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+
+      function removeItem(id) {
+        state.items = state.items.filter((item) => item.id !== id);
+        renderAll();
+      }
+
+      function moveItem(from, to) {
+        if (to < 0 || to >= state.items.length) return;
+        const copy = [...state.items];
+        const [picked] = copy.splice(from, 1);
+        copy.splice(to, 0, picked);
+        state.items = copy;
+        renderAll();
+      }
+
+      window.removeItem = removeItem;
+      window.moveItem = moveItem;
+
+      function shuffleItems() {
+        const copy = [...state.items];
+        for (let i = copy.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [copy[i], copy[j]] = [copy[j], copy[i]];
+        }
+        state.items = copy;
+        renderAll();
+      }
+
+      async function exportPNG() {
+        if (!state.items.length) return;
+        const canvas = await html2canvas(previewStage, {
+          backgroundColor: state.bgColor,
+          scale: 2,
+          useCORS: true,
+        });
+        const link = document.createElement("a");
+        link.download = "collage-" + Date.now() + ".png";
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+      }
+
+      addBtn.onclick = () => fileInput.click();
+      dropzone.onclick = () => fileInput.click();
+      fileInput.onchange = (e) => addFiles(e.target.files);
+      shuffleBtn.onclick = shuffleItems;
+      clearBtn.onclick = () => {
+        state.items = [];
+        renderAll();
+      };
+      exportBtn.onclick = exportPNG;
+      exportBtnTop.onclick = exportPNG;
+
+      dropzone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropzone.classList.add("drag");
+      });
+
+      dropzone.addEventListener("dragleave", () => {
+        dropzone.classList.remove("drag");
+      });
+
+      dropzone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropzone.classList.remove("drag");
+        addFiles(e.dataTransfer.files);
+      });
+
+      window.addEventListener("paste", (e) => {
+        const files = Array.from(e.clipboardData.files || []);
+        if (files.length) addFiles(files);
+      });
+
+      radiusRange.oninput = () => {
+        state.radius = +radiusRange.value;
+        renderAll();
+      };
+
+      gapRange.oninput = () => {
+        state.gap = +gapRange.value;
+        renderAll();
+      };
+
+      paddingRange.oninput = () => {
+        state.padding = +paddingRange.value;
+        renderAll();
+      };
+
+      shadowRange.oninput = () => {
+        state.shadow = +shadowRange.value;
+        renderAll();
+      };
+
+      borderWidthRange.oninput = () => {
+        state.borderWidth = +borderWidthRange.value;
+        renderAll();
+      };
+
+      fitSelect.onchange = () => {
+        state.fit = fitSelect.value;
+        renderAll();
+      };
+
+      borderColorInput.oninput = () => {
+        state.borderColor = borderColorInput.value;
+        renderAll();
+      };
+
+      titleInput.oninput = () => {
+        state.title = titleInput.value;
+        renderAll();
+      };
+
+      subtitleInput.oninput = () => {
+        state.subtitle = subtitleInput.value;
+        renderAll();
+      };
+
+      frameSwitch.onclick = () => {
+        state.frame = !state.frame;
+        renderAll();
+      };
+
+      polaroidSwitch.onclick = () => {
+        state.polaroid = !state.polaroid;
+        renderAll();
+      };
+
+      textSwitch.onclick = () => {
+        state.showText = !state.showText;
+        renderAll();
+      };
+
+      document.querySelectorAll(".tab-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document
+            .querySelectorAll(".tab-btn")
+            .forEach((b) => b.classList.remove("active"));
+          document
+            .querySelectorAll(".tab-panel")
+            .forEach((p) => p.classList.remove("active"));
+          btn.classList.add("active");
+          document
+            .getElementById("tab-" + btn.dataset.tab)
+            .classList.add("active");
+        });
+      });
+
+      renderAll();
+    </script>
+  </body>
+</html>

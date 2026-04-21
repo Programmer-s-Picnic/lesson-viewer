@@ -82,6 +82,11 @@ const ui = {
   projectSummaryDescription: $("ppProjectSummaryDescription"),
   projectSummaryAuthor: $("ppProjectSummaryAuthor"),
   projectSummaryTags: $("ppProjectSummaryTags"),
+  plotModal: document.getElementById("ppPlotModal"),
+  plotModalImg: document.getElementById("ppPlotModalImg"),
+  plotModalTitle: document.getElementById("ppPlotModalTitle"),
+  plotModalDownload: document.getElementById("ppPlotModalDownload"),
+  plotModalClose: document.getElementById("ppPlotModalClose"),
 };
 
 const btn = {
@@ -845,36 +850,72 @@ function toggleEditorFullscreen(force) {
 // ----- Output renderer -----
 let _lastStdout = "";
 let _lastPlots = [];
-let _activePlotFullscreen = null;
+let _activePlotIndex = -1;
 
-function togglePlotFullscreen(img) {
-  if (!img) return;
-  const isActive = img.classList.contains("pp-plot-fullscreen");
-  document.querySelectorAll(".pp-plot-fullscreen").forEach((el) => {
-    el.classList.remove("pp-plot-fullscreen");
-    el.setAttribute("aria-expanded", "false");
+function ensurePlotModal() {
+  if (ui.plotModal && ui.plotModalImg && ui.plotModalTitle && ui.plotModalClose) return;
+
+  const modal = document.createElement("div");
+  modal.id = "ppPlotModal";
+  modal.setAttribute("aria-hidden", "true");
+  modal.style.display = "none";
+  modal.innerHTML = `
+    <div class="pp-modal-backdrop" data-close="1"></div>
+    <div class="pp-modal-card pp-plot-modal-card" role="dialog" aria-modal="true" aria-labelledby="ppPlotModalTitle">
+      <div class="pp-modal-head">
+        <strong id="ppPlotModalTitle">Matplotlib Plot</strong>
+        <div class="vs-row">
+          <a id="ppPlotModalDownload" class="vs-btn ghost" href="#" download="plot.png">Download</a>
+          <button id="ppPlotModalClose" class="vs-btn danger" type="button">Close</button>
+        </div>
+      </div>
+      <div class="pp-modal-body pp-plot-modal-body">
+        <img id="ppPlotModalImg" alt="Selected plot preview" class="pp-plot-modal-img" />
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  ui.plotModal = modal;
+  ui.plotModalImg = document.getElementById("ppPlotModalImg");
+  ui.plotModalTitle = document.getElementById("ppPlotModalTitle");
+  ui.plotModalDownload = document.getElementById("ppPlotModalDownload");
+  ui.plotModalClose = document.getElementById("ppPlotModalClose");
+
+  ui.plotModalClose?.addEventListener("click", closePlotModal);
+  ui.plotModal?.addEventListener("click", (e) => {
+    if (e.target?.dataset?.close) closePlotModal();
   });
-  if (isActive) {
-    _activePlotFullscreen = null;
-    document.body.classList.remove("pp-plot-has-fullscreen");
-    return;
-  }
-  img.classList.add("pp-plot-fullscreen");
-  img.setAttribute("aria-expanded", "true");
-  _activePlotFullscreen = img;
-  document.body.classList.add("pp-plot-has-fullscreen");
 }
 
-function closeFullscreenPlot() {
-  if (!_activePlotFullscreen) return;
-  _activePlotFullscreen.classList.remove("pp-plot-fullscreen");
-  _activePlotFullscreen.setAttribute("aria-expanded", "false");
-  _activePlotFullscreen = null;
-  document.body.classList.remove("pp-plot-has-fullscreen");
+function openPlotModal(src, index = 0) {
+  if (!src) return;
+  ensurePlotModal();
+  if (!ui.plotModal || !ui.plotModalImg) return;
+
+  _activePlotIndex = index;
+  ui.plotModalImg.src = src;
+  ui.plotModalImg.alt = `Matplotlib plot ${index + 1}`;
+  if (ui.plotModalTitle) ui.plotModalTitle.textContent = `Matplotlib Plot #${index + 1}`;
+  if (ui.plotModalDownload) {
+    ui.plotModalDownload.href = src;
+    ui.plotModalDownload.download = `plot-${index + 1}.png`;
+  }
+  ui.plotModal.style.display = "block";
+  ui.plotModal.setAttribute("aria-hidden", "false");
+  document.body.classList.add("pp-plot-modal-open");
+}
+
+function closePlotModal() {
+  if (!ui.plotModal) return;
+  ui.plotModal.style.display = "none";
+  ui.plotModal.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("pp-plot-modal-open");
+  _activePlotIndex = -1;
 }
 
 function renderOut(stdoutText, plots = []) {
-  closeFullscreenPlot();
+  closePlotModal();
   _lastStdout = String(stdoutText || "");
   _lastPlots = Array.isArray(plots) ? plots : [];
 
@@ -896,7 +937,7 @@ function renderOut(stdoutText, plots = []) {
 
       const head = document.createElement("div");
       head.className = "pp-plot-head pp-small";
-      head.textContent = `Plot #${i + 1} • double-click to fullscreen`;
+      head.textContent = `Plot #${i + 1} • click to open modal`;
 
       const img = document.createElement("img");
       img.alt = `plot ${i + 1}`;
@@ -906,13 +947,12 @@ function renderOut(stdoutText, plots = []) {
       img.decoding = "async";
       img.tabIndex = 0;
       img.setAttribute("role", "button");
-      img.setAttribute("aria-label", `Plot ${i + 1}. Double-click to toggle fullscreen.`);
-      img.setAttribute("aria-expanded", "false");
-      img.addEventListener("dblclick", () => togglePlotFullscreen(img));
+      img.setAttribute("aria-label", `Plot ${i + 1}. Click to open in a modal.`);
+      img.addEventListener("click", () => openPlotModal(src, i));
       img.addEventListener("keydown", (e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          togglePlotFullscreen(img);
+          openPlotModal(src, i);
         }
       });
 
@@ -1877,7 +1917,7 @@ document.addEventListener("keydown", (e) => {
       toggleEditorFullscreen(false);
       return;
     }
-    closeFullscreenPlot();
+    closePlotModal();
   }
   if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "f") {
     e.preventDefault();
