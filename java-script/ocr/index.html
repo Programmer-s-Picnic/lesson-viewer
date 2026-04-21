@@ -1,1340 +1,1657 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>OCR Studio V4 Ultra — Programmer's Picnic</title>
-  <meta name="description" content="V4 Ultra OCR Studio with PDF import, automatic region suggestions, line-by-line OCR, webcam, batch OCR, region cards, and export tools." />
-  <meta name="theme-color" content="#f59e0b" />
-
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs" type="module"></script>
-
-  <style>
-    :root{
-      --bg:#fffaf0;
-      --bg2:#fff3d7;
-      --bg3:#fff8e9;
-      --card:#ffffff;
-      --text:#2b2112;
-      --muted:#6b5a3f;
-      --line:#ead7ad;
-      --brand:#d97706;
-      --brand2:#f59e0b;
-      --brand3:#fbbf24;
-      --soft:#fff1c8;
-      --good:#166534;
-      --danger:#991b1b;
-      --info:#1d4ed8;
-      --shadow:0 14px 34px rgba(0,0,0,.10);
-      --radius:22px;
-      --max:1600px;
-    }
-
-    *{box-sizing:border-box}
-    html,body{margin:0;padding:0}
-    body{
-      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-      color:var(--text);
-      background:
-        radial-gradient(circle at top left, #fff7df 0%, #fffaf0 42%, #fff4dc 100%);
-      line-height:1.5;
-    }
-
-    .wrap{
-      max-width:var(--max);
-      margin:0 auto;
-      padding:20px;
-    }
-
-    .hero{
-      background:
-        radial-gradient(circle at top right, rgba(251,191,36,.22), transparent 34%),
-        linear-gradient(135deg, rgba(245,158,11,.16), rgba(217,119,6,.08)),
-        linear-gradient(180deg,#fffaf3,#fff3d7);
-      border:1px solid var(--line);
-      border-radius:30px;
-      padding:28px;
-      box-shadow:var(--shadow);
-      position:relative;
-      overflow:hidden;
-    }
-
-    h1{
-      margin:0 0 8px;
-      font-size:clamp(28px,5vw,48px);
-      line-height:1.05;
-    }
-
-    .sub{
-      margin:0;
-      color:var(--muted);
-      max-width:1100px;
-      font-size:16px;
-    }
-
-    .hero-tags{
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-      margin-top:16px;
-    }
-
-    .tag{
-      padding:8px 12px;
-      border-radius:999px;
-      background:#fff8e5;
-      border:1px solid #f1d18e;
-      font-weight:700;
-      color:#8a4b00;
-      font-size:14px;
-    }
-
-    .layout{
-      display:grid;
-      grid-template-columns:420px 1fr 360px;
-      gap:18px;
-      margin-top:18px;
-      align-items:start;
-    }
-
-    .card{
-      background:var(--card);
-      border:1px solid var(--line);
-      border-radius:var(--radius);
-      box-shadow:var(--shadow);
-      overflow:hidden;
-    }
-
-    .card-head{
-      padding:16px 18px;
-      background:linear-gradient(180deg,#fff8e8,#fff2ce);
-      border-bottom:1px solid var(--line);
-      font-weight:800;
-      color:#7a4400;
-    }
-
-    .card-body{
-      padding:18px;
-    }
-
-    .stack{display:grid;gap:12px}
-    .row{display:grid;gap:10px}
-    .row.two{grid-template-columns:1fr 1fr}
-    .row.three{grid-template-columns:1fr 1fr 1fr}
-
-    label{
-      font-size:14px;
-      font-weight:800;
-      color:#7a4400;
-      display:block;
-      margin-bottom:6px;
-    }
-
-    select,
-    input[type="number"],
-    textarea{
-      width:100%;
-      border:1px solid var(--line);
-      border-radius:14px;
-      padding:12px 14px;
-      background:#fffdf8;
-      color:var(--text);
-      font:inherit;
-      outline:none;
-    }
-
-    input[type="range"]{width:100%}
-
-    textarea{
-      min-height:170px;
-      resize:vertical;
-      line-height:1.6;
-    }
-
-    .check{
-      display:flex;
-      gap:10px;
-      align-items:flex-start;
-      border:1px solid var(--line);
-      border-radius:14px;
-      padding:10px 12px;
-      background:#fffdf7;
-    }
-
-    .check input{
-      margin-top:3px;
-      transform:scale(1.1);
-    }
-
-    .btns{
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-    }
-
-    button{
-      border:none;
-      border-radius:14px;
-      padding:12px 16px;
-      font:inherit;
-      font-weight:800;
-      cursor:pointer;
-      transition:.18s ease;
-    }
-
-    button:hover{transform:translateY(-1px)}
-    button:disabled{opacity:.65;cursor:not-allowed;transform:none}
-
-    .primary{
-      background:linear-gradient(135deg,var(--brand2),var(--brand));
-      color:white;
-      box-shadow:0 10px 22px rgba(217,119,6,.22);
-    }
-
-    .secondary{
-      background:#fff7e1;
-      color:#8a4b00;
-      border:1px solid #efcd88;
-    }
-
-    .danger{
-      background:#fff1f1;
-      color:var(--danger);
-      border:1px solid #efc0c0;
-    }
-
-    .info{
-      background:#eef5ff;
-      color:#1747b3;
-      border:1px solid #bfd2ff;
-    }
-
-    .good{
-      background:#effaf1;
-      color:#166534;
-      border:1px solid #b8e0bf;
-    }
-
-    .drop{
-      border:2px dashed #e0b968;
-      border-radius:18px;
-      background:linear-gradient(180deg,#fffdf7,#fff8e6);
-      min-height:150px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      text-align:center;
-      padding:18px;
-      cursor:pointer;
-      transition:.2s ease;
-      position:relative;
-      overflow:hidden;
-    }
-
-    .drop.drag{
-      border-color:var(--brand);
-      background:linear-gradient(180deg,#fff7df,#fff1c8);
-      transform:translateY(-2px);
-    }
-
-    .drop input{display:none}
-    .drop strong{
-      display:block;
-      font-size:20px;
-      color:#7c3f00;
-    }
-    .drop p{
-      margin:8px 0 0;
-      color:var(--muted);
-    }
-
-    .video-wrap,
-    .pdf-wrap{
-      border:1px solid var(--line);
-      border-radius:16px;
-      overflow:hidden;
-      background:#fffdf8;
-    }
-
-    .video-toolbar,
-    .pdf-toolbar{
-      display:flex;
-      justify-content:space-between;
-      gap:10px;
-      flex-wrap:wrap;
-      align-items:center;
-      padding:10px 12px;
-      background:#fff7e1;
-      border-bottom:1px solid var(--line);
-    }
-
-    video{
-      width:100%;
-      background:#000;
-      aspect-ratio:16/10;
-      object-fit:cover;
-      display:block;
-    }
-
-    .preview-grid{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:14px;
-    }
-
-    .preview-shell{
-      border:1px solid var(--line);
-      border-radius:18px;
-      background:#fffdf8;
-      overflow:hidden;
-    }
-
-    .preview-toolbar{
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-      justify-content:space-between;
-      align-items:center;
-      padding:10px 12px;
-      border-bottom:1px solid var(--line);
-      background:linear-gradient(180deg,#fff8ea,#fff3d5);
-    }
-
-    .preview-box{
-      position:relative;
-      min-height:380px;
-      max-height:62vh;
-      overflow:auto;
-      background:
-        linear-gradient(45deg,#fff 25%,#fff7e7 25%,#fff7e7 50%,#fff 50%,#fff 75%,#fff7e7 75%,#fff7e7 100%);
-      background-size:24px 24px;
-      cursor:crosshair;
-    }
-
-    canvas{
-      display:block;
-      max-width:none;
-      transform-origin:top left;
-    }
-
-    .status{
-      margin-top:12px;
-      border:1px solid var(--line);
-      border-radius:16px;
-      overflow:hidden;
-      background:#fffdf8;
-    }
-
-    .status-top{
-      display:flex;
-      justify-content:space-between;
-      gap:12px;
-      padding:10px 12px;
-      font-size:14px;
-      color:#7a4400;
-      background:#fff6df;
-      border-bottom:1px solid var(--line);
-    }
-
-    .bar{
-      height:14px;
-      background:#f6ead0;
-      position:relative;
-    }
-
-    .bar > div{
-      position:absolute;
-      inset:0 auto 0 0;
-      width:0%;
-      background:linear-gradient(90deg,#fbbf24,#d97706);
-      transition:width .2s ease;
-    }
-
-    .metric{
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-    }
-
-    .pill{
-      background:#fff7e2;
-      border:1px solid #efcf8c;
-      color:#824700;
-      border-radius:999px;
-      padding:8px 12px;
-      font-weight:800;
-      font-size:13px;
-    }
-
-    .small{
-      color:var(--muted);
-      font-size:13px;
-    }
-
-    .list{
-      display:grid;
-      gap:10px;
-    }
-
-    .item{
-      border:1px solid var(--line);
-      border-radius:16px;
-      background:#fffdf8;
-      padding:12px;
-    }
-
-    .item.active{
-      border-color:#d97706;
-      box-shadow:0 0 0 2px rgba(217,119,6,.12);
-      background:#fff8eb;
-    }
-
-    .item-title{
-      font-weight:800;
-      color:#7c3f00;
-      margin-bottom:6px;
-    }
-
-    .thumb{
-      height:74px;
-      border-radius:12px;
-      overflow:hidden;
-      border:1px solid var(--line);
-      background:#fff;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      margin-top:8px;
-    }
-
-    .thumb img{
-      width:100%;
-      height:100%;
-      object-fit:cover;
-      display:block;
-    }
-
-    .result-head{
-      display:flex;
-      flex-wrap:wrap;
-      justify-content:space-between;
-      gap:10px;
-      align-items:center;
-      margin-top:14px;
-      margin-bottom:10px;
-    }
-
-    .crop-hint{
-      margin-top:8px;
-      color:#8a5b08;
-      font-size:13px;
-    }
-
-    .region-list,
-    .results-list{
-      display:grid;
-      gap:10px;
-      max-height:340px;
-      overflow:auto;
-    }
-
-    .region-item,
-    .result-card{
-      border:1px solid var(--line);
-      border-radius:14px;
-      padding:10px;
-      background:#fffdf8;
-    }
-
-    .region-head,
-    .result-card-head{
-      display:flex;
-      justify-content:space-between;
-      gap:10px;
-      align-items:center;
-      font-weight:800;
-      color:#7c3f00;
-      margin-bottom:6px;
-    }
-
-    .mono{
-      font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-      font-size:12px;
-      color:#6b5a3f;
-    }
-
-    .summary-box{
-      border:1px solid var(--line);
-      border-radius:16px;
-      background:#fffdf8;
-      padding:12px;
-    }
-
-    .summary-box strong{
-      color:#7c3f00;
-    }
-
-    .result-card pre{
-      white-space:pre-wrap;
-      word-break:break-word;
-      margin:8px 0 0;
-      font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-      font-size:12px;
-      line-height:1.5;
-      background:#fff9ee;
-      border:1px solid var(--line);
-      border-radius:12px;
-      padding:10px;
-      max-height:220px;
-      overflow:auto;
-    }
-
-    .hidden{display:none !important}
-
-    @media (max-width:1360px){
-      .layout{grid-template-columns:400px 1fr}
-      .side-right{grid-column:1 / -1}
-    }
-
-    @media (max-width:980px){
-      .layout{grid-template-columns:1fr}
-      .row.two,.row.three,.preview-grid{grid-template-columns:1fr}
-    }
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <section class="hero">
-      <h1>OCR Studio V4 Ultra</h1>
-      <p class="sub">
-        A fuller browser OCR studio with image upload, webcam capture, PDF page import, automatic region suggestion,
-        line-by-line OCR, saved crop regions, batch OCR, undo history, and result cards for each OCR target.
-      </p>
-
-      <div class="hero-tags">
-        <span class="tag">PDF Import</span>
-        <span class="tag">Auto Regions</span>
-        <span class="tag">Line by Line</span>
-        <span class="tag">Undo History</span>
-        <span class="tag">Result Cards</span>
-        <span class="tag">Batch OCR</span>
-        <span class="tag">Webcam</span>
-        <span class="tag">English</span>
-        <span class="tag">Hindi</span>
-        <span class="tag">Numbers Focus</span>
-      </div>
-    </section>
-
-    <section class="layout">
-      <div class="card">
-        <div class="card-head">Input, PDF, Camera, and OCR Controls</div>
-        <div class="card-body stack">
-
-          <div id="dropZone" class="drop" role="button" tabindex="0">
-            <input id="fileInput" type="file" accept="image/*" multiple />
-            <div>
-              <strong>Upload or drop one or more images</strong>
-              <p>Use multiple image files or import pages from a PDF below.</p>
-            </div>
-          </div>
-
-          <div class="pdf-wrap">
-            <div class="pdf-toolbar">
-              <strong style="color:#7a4400">PDF Import</strong>
-              <div class="btns">
-                <input id="pdfInput" type="file" accept="application/pdf" />
-                <button id="loadPdfBtn" class="secondary" type="button">Load PDF</button>
-              </div>
-            </div>
-            <div class="card-body stack" style="padding:12px">
-              <div class="row two">
-                <div>
-                  <label for="pdfPageSelect">PDF page</label>
-                  <select id="pdfPageSelect"></select>
-                </div>
-                <div>
-                  <label for="pdfScaleSelect">PDF render scale</label>
-                  <select id="pdfScaleSelect">
-                    <option value="1.5">1.5x</option>
-                    <option value="2" selected>2x</option>
-                    <option value="2.5">2.5x</option>
-                    <option value="3">3x</option>
-                  </select>
-                </div>
-              </div>
-              <div class="btns">
-                <button id="importPdfPageBtn" class="secondary" type="button" disabled>Import selected page</button>
-                <button id="importAllPdfPagesBtn" class="info" type="button" disabled>Import all pages</button>
-              </div>
-              <div id="pdfInfo" class="small">No PDF loaded.</div>
-            </div>
-          </div>
-
-          <div class="video-wrap">
-            <div class="video-toolbar">
-              <strong style="color:#7a4400">Webcam Capture</strong>
-              <div class="btns">
-                <button id="startCameraBtn" class="secondary" type="button">Start camera</button>
-                <button id="captureBtn" class="secondary" type="button" disabled>Capture</button>
-                <button id="stopCameraBtn" class="danger" type="button" disabled>Stop</button>
-              </div>
-            </div>
-            <video id="video" autoplay playsinline muted></video>
-          </div>
-
-          <div class="row two">
-            <div>
-              <label for="langSelect">Recognition mode</label>
-              <select id="langSelect">
-                <option value="eng">English</option>
-                <option value="hin">Hindi</option>
-                <option value="eng+hin" selected>English + Hindi</option>
-                <option value="eng_numbers">English + numbers focus</option>
-                <option value="hin_numbers">Hindi + numbers focus</option>
-              </select>
-            </div>
-
-            <div>
-              <label for="psmSelect">Page layout mode</label>
-              <select id="psmSelect">
-                <option value="6" selected>Uniform text block</option>
-                <option value="7">Single line</option>
-                <option value="8">Single word</option>
-                <option value="11">Sparse text</option>
-                <option value="13">Raw line</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="row three">
-            <div>
-              <label for="scaleRange">Image scale</label>
-              <input id="scaleRange" type="range" min="1" max="4" step="0.25" value="2" />
-              <div class="small">Upscales before OCR.</div>
-            </div>
-            <div>
-              <label for="thresholdRange">Threshold</label>
-              <input id="thresholdRange" type="range" min="60" max="220" step="1" value="155" />
-              <div class="small">Separates text and background.</div>
-            </div>
-            <div>
-              <label for="brightnessRange">Brightness boost</label>
-              <input id="brightnessRange" type="range" min="-80" max="80" step="1" value="0" />
-              <div class="small">Useful for dark scans.</div>
-            </div>
-          </div>
-
-          <div class="row three">
-            <div>
-              <label for="contrastRange">Contrast boost</label>
-              <input id="contrastRange" type="range" min="0.5" max="2.5" step="0.05" value="1.15" />
-              <div class="small">Useful for handwriting.</div>
-            </div>
-            <div>
-              <label for="blurRange">Denoise blur</label>
-              <input id="blurRange" type="range" min="0" max="2" step="0.1" value="0" />
-              <div class="small">Can reduce camera noise.</div>
-            </div>
-            <div>
-              <label for="rotateSelect">Rotate image</label>
-              <select id="rotateSelect">
-                <option value="0" selected>0°</option>
-                <option value="90">90°</option>
-                <option value="180">180°</option>
-                <option value="270">270°</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="check">
-            <input id="grayscaleCheck" type="checkbox" checked />
-            <div>
-              <label for="grayscaleCheck" style="margin:0">Convert to grayscale</label>
-              <div class="small">Usually improves OCR.</div>
-            </div>
-          </div>
-
-          <div class="check">
-            <input id="thresholdCheck" type="checkbox" checked />
-            <div>
-              <label for="thresholdCheck" style="margin:0">Apply threshold</label>
-              <div class="small">Makes text more black-and-white.</div>
-            </div>
-          </div>
-
-          <div class="check">
-            <input id="invertCheck" type="checkbox" />
-            <div>
-              <label for="invertCheck" style="margin:0">Invert colors</label>
-              <div class="small">Useful for light text on dark background.</div>
-            </div>
-          </div>
-
-          <div class="check">
-            <input id="sharpenCheck" type="checkbox" checked />
-            <div>
-              <label for="sharpenCheck" style="margin:0">Sharpen image</label>
-              <div class="small">Useful for slightly blurred writing.</div>
-            </div>
-          </div>
-
-          <div class="check">
-            <input id="numbersOnlyCheck" type="checkbox" />
-            <div>
-              <label for="numbersOnlyCheck" style="margin:0">Numbers-only cleanup</label>
-              <div class="small">Keeps mostly digits and numeric punctuation in final text.</div>
-            </div>
-          </div>
-
-          <div class="check">
-            <input id="cropModeCheck" type="checkbox" />
-            <div>
-              <label for="cropModeCheck" style="margin:0">Enable crop mode on processed preview</label>
-              <div class="small">Drag on the processed preview to define a manual region.</div>
-            </div>
-          </div>
-
-          <div class="btns">
-            <button id="ocrBtn" class="primary" disabled>OCR whole image</button>
-            <button id="ocrActiveCropBtn" class="secondary" type="button" disabled>OCR active crop</button>
-            <button id="ocrRegionsBtn" class="info" type="button" disabled>OCR saved regions</button>
-            <button id="lineByLineBtn" class="good" type="button" disabled>OCR line by line</button>
-            <button id="batchAllImagesBtn" class="info" type="button" disabled>Batch OCR all images</button>
-          </div>
-
-          <div class="btns">
-            <button id="saveRegionBtn" class="secondary" type="button" disabled>Save region</button>
-            <button id="autoSuggestBtn" class="secondary" type="button" disabled>Suggest regions</button>
-            <button id="clearCropBtn" class="secondary" type="button">Clear crop</button>
-            <button id="undoBtn" class="secondary" type="button" disabled>Undo</button>
-            <button id="resetBtn" class="danger" type="button">Reset all</button>
-            <button id="sampleBtn" class="secondary" type="button">Load sample batch</button>
-          </div>
-
-          <div class="status">
-            <div class="status-top">
-              <div id="statusText">Ready</div>
-              <div id="progressText">0%</div>
-            </div>
-            <div class="bar"><div id="progressBar"></div></div>
-          </div>
-
-          <div class="small">
-            For handwriting: crop tightly, use stronger contrast, try single line or raw line, and line-by-line OCR on structured notes.
-          </div>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>OCR Studio — Programmer's Picnic</title>
+    <meta
+      name="description"
+      content=" OCR Studio with PDF import, automatic region suggestions, line-by-line OCR, webcam, batch OCR, region cards, and export tools."
+    />
+    <meta name="theme-color" content="#f59e0b" />
+
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs"
+      type="module"
+    ></script>
+
+    <style>
+      :root {
+        --bg: #fffaf0;
+        --bg2: #fff3d7;
+        --bg3: #fff8e9;
+        --card: #ffffff;
+        --text: #2b2112;
+        --muted: #6b5a3f;
+        --line: #ead7ad;
+        --brand: #d97706;
+        --brand2: #f59e0b;
+        --brand3: #fbbf24;
+        --soft: #fff1c8;
+        --good: #166534;
+        --danger: #991b1b;
+        --info: #1d4ed8;
+        --shadow: 0 14px 34px rgba(0, 0, 0, 0.1);
+        --radius: 22px;
+        --max: 1600px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family:
+          Inter,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial,
+          sans-serif;
+        color: var(--text);
+        background: radial-gradient(
+          circle at top left,
+          #fff7df 0%,
+          #fffaf0 42%,
+          #fff4dc 100%
+        );
+        line-height: 1.5;
+      }
+
+      .wrap {
+        max-width: var(--max);
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      .hero {
+        background:
+          radial-gradient(
+            circle at top right,
+            rgba(251, 191, 36, 0.22),
+            transparent 34%
+          ),
+          linear-gradient(
+            135deg,
+            rgba(245, 158, 11, 0.16),
+            rgba(217, 119, 6, 0.08)
+          ),
+          linear-gradient(180deg, #fffaf3, #fff3d7);
+        border: 1px solid var(--line);
+        border-radius: 30px;
+        padding: 28px;
+        box-shadow: var(--shadow);
+        position: relative;
+        overflow: hidden;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: clamp(28px, 5vw, 48px);
+        line-height: 1.05;
+      }
+
+      .sub {
+        margin: 0;
+        color: var(--muted);
+        max-width: 1100px;
+        font-size: 16px;
+      }
+
+      .hero-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 16px;
+      }
+
+      .tag {
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: #fff8e5;
+        border: 1px solid #f1d18e;
+        font-weight: 700;
+        color: #8a4b00;
+        font-size: 14px;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 420px 1fr 360px;
+        gap: 18px;
+        margin-top: 18px;
+        align-items: start;
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .card-head {
+        padding: 16px 18px;
+        background: linear-gradient(180deg, #fff8e8, #fff2ce);
+        border-bottom: 1px solid var(--line);
+        font-weight: 800;
+        color: #7a4400;
+      }
+
+      .card-body {
+        padding: 18px;
+      }
+
+      .stack {
+        display: grid;
+        gap: 12px;
+      }
+      .row {
+        display: grid;
+        gap: 10px;
+      }
+      .row.two {
+        grid-template-columns: 1fr 1fr;
+      }
+      .row.three {
+        grid-template-columns: 1fr 1fr 1fr;
+      }
+
+      label {
+        font-size: 14px;
+        font-weight: 800;
+        color: #7a4400;
+        display: block;
+        margin-bottom: 6px;
+      }
+
+      select,
+      input[type="number"],
+      textarea {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 12px 14px;
+        background: #fffdf8;
+        color: var(--text);
+        font: inherit;
+        outline: none;
+      }
+
+      input[type="range"] {
+        width: 100%;
+      }
+
+      textarea {
+        min-height: 170px;
+        resize: vertical;
+        line-height: 1.6;
+      }
+
+      .check {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 10px 12px;
+        background: #fffdf7;
+      }
+
+      .check input {
+        margin-top: 3px;
+        transform: scale(1.1);
+      }
+
+      .btns {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      button {
+        border: none;
+        border-radius: 14px;
+        padding: 12px 16px;
+        font: inherit;
+        font-weight: 800;
+        cursor: pointer;
+        transition: 0.18s ease;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+      }
+      button:disabled {
+        opacity: 0.65;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .primary {
+        background: linear-gradient(135deg, var(--brand2), var(--brand));
+        color: white;
+        box-shadow: 0 10px 22px rgba(217, 119, 6, 0.22);
+      }
+
+      .secondary {
+        background: #fff7e1;
+        color: #8a4b00;
+        border: 1px solid #efcd88;
+      }
+
+      .danger {
+        background: #fff1f1;
+        color: var(--danger);
+        border: 1px solid #efc0c0;
+      }
+
+      .info {
+        background: #eef5ff;
+        color: #1747b3;
+        border: 1px solid #bfd2ff;
+      }
+
+      .good {
+        background: #effaf1;
+        color: #166534;
+        border: 1px solid #b8e0bf;
+      }
+
+      .drop {
+        border: 2px dashed #e0b968;
+        border-radius: 18px;
+        background: linear-gradient(180deg, #fffdf7, #fff8e6);
+        min-height: 150px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 18px;
+        cursor: pointer;
+        transition: 0.2s ease;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .drop.drag {
+        border-color: var(--brand);
+        background: linear-gradient(180deg, #fff7df, #fff1c8);
+        transform: translateY(-2px);
+      }
+
+      .drop input {
+        display: none;
+      }
+      .drop strong {
+        display: block;
+        font-size: 20px;
+        color: #7c3f00;
+      }
+      .drop p {
+        margin: 8px 0 0;
+        color: var(--muted);
+      }
+
+      .video-wrap,
+      .pdf-wrap {
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        overflow: hidden;
+        background: #fffdf8;
+      }
+
+      .video-toolbar,
+      .pdf-toolbar {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+        padding: 10px 12px;
+        background: #fff7e1;
+        border-bottom: 1px solid var(--line);
+      }
+
+      video {
+        width: 100%;
+        background: #000;
+        aspect-ratio: 16/10;
+        object-fit: cover;
+        display: block;
+      }
+
+      .preview-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+
+      .preview-shell {
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: #fffdf8;
+        overflow: hidden;
+      }
+
+      .preview-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--line);
+        background: linear-gradient(180deg, #fff8ea, #fff3d5);
+      }
+
+      .preview-box {
+        position: relative;
+        min-height: 380px;
+        max-height: 62vh;
+        overflow: auto;
+        background: linear-gradient(
+          45deg,
+          #fff 25%,
+          #fff7e7 25%,
+          #fff7e7 50%,
+          #fff 50%,
+          #fff 75%,
+          #fff7e7 75%,
+          #fff7e7 100%
+        );
+        background-size: 24px 24px;
+        cursor: crosshair;
+      }
+
+      canvas {
+        display: block;
+        max-width: none;
+        transform-origin: top left;
+      }
+
+      .status {
+        margin-top: 12px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        overflow: hidden;
+        background: #fffdf8;
+      }
+
+      .status-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 12px;
+        font-size: 14px;
+        color: #7a4400;
+        background: #fff6df;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .bar {
+        height: 14px;
+        background: #f6ead0;
+        position: relative;
+      }
+
+      .bar > div {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 0%;
+        background: linear-gradient(90deg, #fbbf24, #d97706);
+        transition: width 0.2s ease;
+      }
+
+      .metric {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .pill {
+        background: #fff7e2;
+        border: 1px solid #efcf8c;
+        color: #824700;
+        border-radius: 999px;
+        padding: 8px 12px;
+        font-weight: 800;
+        font-size: 13px;
+      }
+
+      .small {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .item {
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: #fffdf8;
+        padding: 12px;
+      }
+
+      .item.active {
+        border-color: #d97706;
+        box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.12);
+        background: #fff8eb;
+      }
+
+      .item-title {
+        font-weight: 800;
+        color: #7c3f00;
+        margin-bottom: 6px;
+      }
+
+      .thumb {
+        height: 74px;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        background: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: 8px;
+      }
+
+      .thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      .result-head {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: center;
+        margin-top: 14px;
+        margin-bottom: 10px;
+      }
+
+      .crop-hint {
+        margin-top: 8px;
+        color: #8a5b08;
+        font-size: 13px;
+      }
+
+      .region-list,
+      .results-list {
+        display: grid;
+        gap: 10px;
+        max-height: 340px;
+        overflow: auto;
+      }
+
+      .region-item,
+      .result-card {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 10px;
+        background: #fffdf8;
+      }
+
+      .region-head,
+      .result-card-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: center;
+        font-weight: 800;
+        color: #7c3f00;
+        margin-bottom: 6px;
+      }
+
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 12px;
+        color: #6b5a3f;
+      }
+
+      .summary-box {
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: #fffdf8;
+        padding: 12px;
+      }
+
+      .summary-box strong {
+        color: #7c3f00;
+      }
+
+      .result-card pre {
+        white-space: pre-wrap;
+        word-break: break-word;
+        margin: 8px 0 0;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 12px;
+        line-height: 1.5;
+        background: #fff9ee;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 10px;
+        max-height: 220px;
+        overflow: auto;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      @media (max-width: 1360px) {
+        .layout {
+          grid-template-columns: 400px 1fr;
+        }
+        .side-right {
+          grid-column: 1 / -1;
+        }
+      }
+
+      @media (max-width: 980px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+        .row.two,
+        .row.three,
+        .preview-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <section class="hero">
+        <h1>OCR Studio | Champak Roy</h1>
+        <p class="sub">
+          A fuller browser OCR studio with image upload, webcam capture, PDF
+          page import, automatic region suggestion, line-by-line OCR, saved crop
+          regions, batch OCR, undo history, and result cards for each OCR
+          target.
+        </p>
+
+        <div class="hero-tags">
+          <span class="tag">PDF Import</span>
+          <span class="tag">Auto Regions</span>
+          <span class="tag">Line by Line</span>
+          <span class="tag">Undo History</span>
+          <span class="tag">Result Cards</span>
+          <span class="tag">Batch OCR</span>
+          <span class="tag">Webcam</span>
+          <span class="tag">English</span>
+          <span class="tag">Hindi</span>
+          <span class="tag">Numbers Focus</span>
         </div>
-      </div>
+      </section>
 
-      <div class="card">
-        <div class="card-head">Original Preview, Processed Preview, and Combined Output</div>
-        <div class="card-body">
-          <div class="preview-grid">
-            <div class="preview-shell">
-              <div class="preview-toolbar">
-                <div class="small" id="originalInfo">Original preview</div>
+      <section class="layout">
+        <div class="card">
+          <div class="card-head">Input, PDF, Camera, and OCR Controls</div>
+          <div class="card-body stack">
+            <div id="dropZone" class="drop" role="button" tabindex="0">
+              <input id="fileInput" type="file" accept="image/*" multiple />
+              <div>
+                <strong>Upload or drop one or more images</strong>
+                <p>
+                  Use multiple image files or import pages from a PDF below.
+                </p>
+              </div>
+            </div>
+
+            <div class="pdf-wrap">
+              <div class="pdf-toolbar">
+                <strong style="color: #7a4400">PDF Import</strong>
                 <div class="btns">
-                  <button id="zoomInOriginalBtn" class="secondary" type="button">Zoom +</button>
-                  <button id="zoomOutOriginalBtn" class="secondary" type="button">Zoom −</button>
-                  <button id="fitOriginalBtn" class="secondary" type="button">Fit</button>
+                  <input id="pdfInput" type="file" accept="application/pdf" />
+                  <button id="loadPdfBtn" class="secondary" type="button">
+                    Load PDF
+                  </button>
                 </div>
               </div>
-              <div id="originalBox" class="preview-box">
-                <canvas id="originalCanvas"></canvas>
+              <div class="card-body stack" style="padding: 12px">
+                <div class="row two">
+                  <div>
+                    <label for="pdfPageSelect">PDF page</label>
+                    <select id="pdfPageSelect"></select>
+                  </div>
+                  <div>
+                    <label for="pdfScaleSelect">PDF render scale</label>
+                    <select id="pdfScaleSelect">
+                      <option value="1.5">1.5x</option>
+                      <option value="2" selected>2x</option>
+                      <option value="2.5">2.5x</option>
+                      <option value="3">3x</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="btns">
+                  <button
+                    id="importPdfPageBtn"
+                    class="secondary"
+                    type="button"
+                    disabled
+                  >
+                    Import selected page
+                  </button>
+                  <button
+                    id="importAllPdfPagesBtn"
+                    class="info"
+                    type="button"
+                    disabled
+                  >
+                    Import all pages
+                  </button>
+                </div>
+                <div id="pdfInfo" class="small">No PDF loaded.</div>
               </div>
             </div>
 
-            <div class="preview-shell">
-              <div class="preview-toolbar">
-                <div class="small" id="processedInfo">Processed preview</div>
+            <div class="video-wrap">
+              <div class="video-toolbar">
+                <strong style="color: #7a4400">Webcam Capture</strong>
                 <div class="btns">
-                  <button id="zoomInProcessedBtn" class="secondary" type="button">Zoom +</button>
-                  <button id="zoomOutProcessedBtn" class="secondary" type="button">Zoom −</button>
-                  <button id="fitProcessedBtn" class="secondary" type="button">Fit</button>
-                  <button id="rotateLeftBtn" class="secondary" type="button">Rotate ⟲</button>
-                  <button id="rotateRightBtn" class="secondary" type="button">Rotate ⟳</button>
+                  <button id="startCameraBtn" class="secondary" type="button">
+                    Start camera
+                  </button>
+                  <button
+                    id="captureBtn"
+                    class="secondary"
+                    type="button"
+                    disabled
+                  >
+                    Capture
+                  </button>
+                  <button
+                    id="stopCameraBtn"
+                    class="danger"
+                    type="button"
+                    disabled
+                  >
+                    Stop
+                  </button>
                 </div>
               </div>
-              <div id="processedBox" class="preview-box">
-                <canvas id="processedCanvas"></canvas>
+              <video id="video" autoplay playsinline muted></video>
+            </div>
+
+            <div class="row two">
+              <div>
+                <label for="langSelect">Recognition mode</label>
+                <select id="langSelect">
+                  <option value="eng">English</option>
+                  <option value="hin">Hindi</option>
+                  <option value="eng+hin" selected>English + Hindi</option>
+                  <option value="eng_numbers">English + numbers focus</option>
+                  <option value="hin_numbers">Hindi + numbers focus</option>
+                </select>
+              </div>
+
+              <div>
+                <label for="psmSelect">Page layout mode</label>
+                <select id="psmSelect">
+                  <option value="6" selected>Uniform text block</option>
+                  <option value="7">Single line</option>
+                  <option value="8">Single word</option>
+                  <option value="11">Sparse text</option>
+                  <option value="13">Raw line</option>
+                </select>
               </div>
             </div>
-          </div>
 
-          <div class="crop-hint">
-            Manual crop mode works on the processed preview. Suggested regions appear in blue. Manual crop appears in saffron.
-          </div>
-
-          <div class="result-head">
-            <div class="metric">
-              <span class="pill" id="confidencePill">Confidence: —</span>
-              <span class="pill" id="wordCountPill">Words: 0</span>
-              <span class="pill" id="digitCountPill">Digits: 0</span>
-              <span class="pill" id="sizePill">Area: —</span>
+            <div class="row three">
+              <div>
+                <label for="scaleRange">Image scale</label>
+                <input
+                  id="scaleRange"
+                  type="range"
+                  min="1"
+                  max="4"
+                  step="0.25"
+                  value="2"
+                />
+                <div class="small">Upscales before OCR.</div>
+              </div>
+              <div>
+                <label for="thresholdRange">Threshold</label>
+                <input
+                  id="thresholdRange"
+                  type="range"
+                  min="60"
+                  max="220"
+                  step="1"
+                  value="155"
+                />
+                <div class="small">Separates text and background.</div>
+              </div>
+              <div>
+                <label for="brightnessRange">Brightness boost</label>
+                <input
+                  id="brightnessRange"
+                  type="range"
+                  min="-80"
+                  max="80"
+                  step="1"
+                  value="0"
+                />
+                <div class="small">Useful for dark scans.</div>
+              </div>
             </div>
+
+            <div class="row three">
+              <div>
+                <label for="contrastRange">Contrast boost</label>
+                <input
+                  id="contrastRange"
+                  type="range"
+                  min="0.5"
+                  max="2.5"
+                  step="0.05"
+                  value="1.15"
+                />
+                <div class="small">Useful for handwriting.</div>
+              </div>
+              <div>
+                <label for="blurRange">Denoise blur</label>
+                <input
+                  id="blurRange"
+                  type="range"
+                  min="0"
+                  max="2"
+                  step="0.1"
+                  value="0"
+                />
+                <div class="small">Can reduce camera noise.</div>
+              </div>
+              <div>
+                <label for="rotateSelect">Rotate image</label>
+                <select id="rotateSelect">
+                  <option value="0" selected>0°</option>
+                  <option value="90">90°</option>
+                  <option value="180">180°</option>
+                  <option value="270">270°</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="check">
+              <input id="grayscaleCheck" type="checkbox" checked />
+              <div>
+                <label for="grayscaleCheck" style="margin: 0"
+                  >Convert to grayscale</label
+                >
+                <div class="small">Usually improves OCR.</div>
+              </div>
+            </div>
+
+            <div class="check">
+              <input id="thresholdCheck" type="checkbox" checked />
+              <div>
+                <label for="thresholdCheck" style="margin: 0"
+                  >Apply threshold</label
+                >
+                <div class="small">Makes text more black-and-white.</div>
+              </div>
+            </div>
+
+            <div class="check">
+              <input id="invertCheck" type="checkbox" />
+              <div>
+                <label for="invertCheck" style="margin: 0">Invert colors</label>
+                <div class="small">
+                  Useful for light text on dark background.
+                </div>
+              </div>
+            </div>
+
+            <div class="check">
+              <input id="sharpenCheck" type="checkbox" checked />
+              <div>
+                <label for="sharpenCheck" style="margin: 0"
+                  >Sharpen image</label
+                >
+                <div class="small">Useful for slightly blurred writing.</div>
+              </div>
+            </div>
+
+            <div class="check">
+              <input id="numbersOnlyCheck" type="checkbox" />
+              <div>
+                <label for="numbersOnlyCheck" style="margin: 0"
+                  >Numbers-only cleanup</label
+                >
+                <div class="small">
+                  Keeps mostly digits and numeric punctuation in final text.
+                </div>
+              </div>
+            </div>
+
+            <div class="check">
+              <input id="cropModeCheck" type="checkbox" />
+              <div>
+                <label for="cropModeCheck" style="margin: 0"
+                  >Enable crop mode on processed preview</label
+                >
+                <div class="small">
+                  Drag on the processed preview to define a manual region.
+                </div>
+              </div>
+            </div>
+
             <div class="btns">
-              <button id="copyBtn" class="secondary" type="button">Copy text</button>
-              <button id="downloadTxtBtn" class="secondary" type="button">TXT</button>
-              <button id="downloadJsonBtn" class="secondary" type="button">JSON</button>
-              <button id="downloadCsvBtn" class="secondary" type="button">CSV</button>
+              <button id="ocrBtn" class="primary" disabled>
+                OCR whole image
+              </button>
+              <button
+                id="ocrActiveCropBtn"
+                class="secondary"
+                type="button"
+                disabled
+              >
+                OCR active crop
+              </button>
+              <button id="ocrRegionsBtn" class="info" type="button" disabled>
+                OCR saved regions
+              </button>
+              <button id="lineByLineBtn" class="good" type="button" disabled>
+                OCR line by line
+              </button>
+              <button
+                id="batchAllImagesBtn"
+                class="info"
+                type="button"
+                disabled
+              >
+                Batch OCR all images
+              </button>
+            </div>
+
+            <div class="btns">
+              <button
+                id="saveRegionBtn"
+                class="secondary"
+                type="button"
+                disabled
+              >
+                Save region
+              </button>
+              <button
+                id="autoSuggestBtn"
+                class="secondary"
+                type="button"
+                disabled
+              >
+                Suggest regions
+              </button>
+              <button id="clearCropBtn" class="secondary" type="button">
+                Clear crop
+              </button>
+              <button id="undoBtn" class="secondary" type="button" disabled>
+                Undo
+              </button>
+              <button id="resetBtn" class="danger" type="button">
+                Reset all
+              </button>
+              <button id="sampleBtn" class="secondary" type="button">
+                Load sample batch
+              </button>
+            </div>
+
+            <div class="status">
+              <div class="status-top">
+                <div id="statusText">Ready</div>
+                <div id="progressText">0%</div>
+              </div>
+              <div class="bar"><div id="progressBar"></div></div>
+            </div>
+
+            <div class="small">
+              For handwriting: crop tightly, use stronger contrast, try single
+              line or raw line, and line-by-line OCR on structured notes.
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            Original Preview, Processed Preview, and Combined Output
+          </div>
+          <div class="card-body">
+            <div class="preview-grid">
+              <div class="preview-shell">
+                <div class="preview-toolbar">
+                  <div class="small" id="originalInfo">Original preview</div>
+                  <div class="btns">
+                    <button
+                      id="zoomInOriginalBtn"
+                      class="secondary"
+                      type="button"
+                    >
+                      Zoom +
+                    </button>
+                    <button
+                      id="zoomOutOriginalBtn"
+                      class="secondary"
+                      type="button"
+                    >
+                      Zoom −
+                    </button>
+                    <button id="fitOriginalBtn" class="secondary" type="button">
+                      Fit
+                    </button>
+                  </div>
+                </div>
+                <div id="originalBox" class="preview-box">
+                  <canvas id="originalCanvas"></canvas>
+                </div>
+              </div>
+
+              <div class="preview-shell">
+                <div class="preview-toolbar">
+                  <div class="small" id="processedInfo">Processed preview</div>
+                  <div class="btns">
+                    <button
+                      id="zoomInProcessedBtn"
+                      class="secondary"
+                      type="button"
+                    >
+                      Zoom +
+                    </button>
+                    <button
+                      id="zoomOutProcessedBtn"
+                      class="secondary"
+                      type="button"
+                    >
+                      Zoom −
+                    </button>
+                    <button
+                      id="fitProcessedBtn"
+                      class="secondary"
+                      type="button"
+                    >
+                      Fit
+                    </button>
+                    <button id="rotateLeftBtn" class="secondary" type="button">
+                      Rotate ⟲
+                    </button>
+                    <button id="rotateRightBtn" class="secondary" type="button">
+                      Rotate ⟳
+                    </button>
+                  </div>
+                </div>
+                <div id="processedBox" class="preview-box">
+                  <canvas id="processedCanvas"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <div class="crop-hint">
+              Manual crop mode works on the processed preview. Suggested regions
+              appear in blue. Manual crop appears in saffron.
+            </div>
+
+            <div class="result-head">
+              <div class="metric">
+                <span class="pill" id="confidencePill">Confidence: —</span>
+                <span class="pill" id="wordCountPill">Words: 0</span>
+                <span class="pill" id="digitCountPill">Digits: 0</span>
+                <span class="pill" id="sizePill">Area: —</span>
+              </div>
+              <div class="btns">
+                <button id="copyBtn" class="secondary" type="button">
+                  Copy text
+                </button>
+                <button id="downloadTxtBtn" class="secondary" type="button">
+                  TXT
+                </button>
+                <button id="downloadJsonBtn" class="secondary" type="button">
+                  JSON
+                </button>
+                <button id="downloadCsvBtn" class="secondary" type="button">
+                  CSV
+                </button>
+              </div>
+            </div>
+
+            <label for="resultText">Combined OCR text</label>
+            <textarea
+              id="resultText"
+              placeholder="Combined OCR result will appear here..."
+            ></textarea>
+
+            <div class="summary-box">
+              <strong>Batch summary</strong>
+              <div id="summaryText" class="small" style="margin-top: 6px">
+                No OCR run yet.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="side-right stack">
+          <div class="card">
+            <div class="card-head">Loaded Images</div>
+            <div class="card-body">
+              <div id="imageList" class="list"></div>
             </div>
           </div>
 
-          <label for="resultText">Combined OCR text</label>
-          <textarea id="resultText" placeholder="Combined OCR result will appear here..."></textarea>
+          <div class="card">
+            <div class="card-head">Saved Regions</div>
+            <div class="card-body">
+              <div id="regionList" class="region-list"></div>
+            </div>
+          </div>
 
-          <div class="summary-box">
-            <strong>Batch summary</strong>
-            <div id="summaryText" class="small" style="margin-top:6px">
-              No OCR run yet.
+          <div class="card">
+            <div class="card-head">OCR Result Cards</div>
+            <div class="card-body">
+              <div id="resultsList" class="results-list"></div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
+    </div>
 
-      <div class="side-right stack">
-        <div class="card">
-          <div class="card-head">Loaded Images</div>
-          <div class="card-body">
-            <div id="imageList" class="list"></div>
-          </div>
-        </div>
+    <script type="module">
+      import * as pdfjsLib from "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs";
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs";
 
-        <div class="card">
-          <div class="card-head">Saved Regions</div>
-          <div class="card-body">
-            <div id="regionList" class="region-list"></div>
-          </div>
-        </div>
+      const fileInput = document.getElementById("fileInput");
+      const dropZone = document.getElementById("dropZone");
 
-        <div class="card">
-          <div class="card-head">OCR Result Cards</div>
-          <div class="card-body">
-            <div id="resultsList" class="results-list"></div>
-          </div>
-        </div>
-      </div>
-    </section>
-  </div>
+      const pdfInput = document.getElementById("pdfInput");
+      const loadPdfBtn = document.getElementById("loadPdfBtn");
+      const pdfPageSelect = document.getElementById("pdfPageSelect");
+      const pdfScaleSelect = document.getElementById("pdfScaleSelect");
+      const importPdfPageBtn = document.getElementById("importPdfPageBtn");
+      const importAllPdfPagesBtn = document.getElementById(
+        "importAllPdfPagesBtn",
+      );
+      const pdfInfo = document.getElementById("pdfInfo");
 
-  <script type="module">
-    import * as pdfjsLib from "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs";
-    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs";
+      const startCameraBtn = document.getElementById("startCameraBtn");
+      const captureBtn = document.getElementById("captureBtn");
+      const stopCameraBtn = document.getElementById("stopCameraBtn");
+      const video = document.getElementById("video");
 
-    const fileInput = document.getElementById("fileInput");
-    const dropZone = document.getElementById("dropZone");
+      const ocrBtn = document.getElementById("ocrBtn");
+      const ocrActiveCropBtn = document.getElementById("ocrActiveCropBtn");
+      const ocrRegionsBtn = document.getElementById("ocrRegionsBtn");
+      const lineByLineBtn = document.getElementById("lineByLineBtn");
+      const batchAllImagesBtn = document.getElementById("batchAllImagesBtn");
+      const saveRegionBtn = document.getElementById("saveRegionBtn");
+      const autoSuggestBtn = document.getElementById("autoSuggestBtn");
+      const clearCropBtn = document.getElementById("clearCropBtn");
+      const undoBtn = document.getElementById("undoBtn");
+      const resetBtn = document.getElementById("resetBtn");
+      const sampleBtn = document.getElementById("sampleBtn");
 
-    const pdfInput = document.getElementById("pdfInput");
-    const loadPdfBtn = document.getElementById("loadPdfBtn");
-    const pdfPageSelect = document.getElementById("pdfPageSelect");
-    const pdfScaleSelect = document.getElementById("pdfScaleSelect");
-    const importPdfPageBtn = document.getElementById("importPdfPageBtn");
-    const importAllPdfPagesBtn = document.getElementById("importAllPdfPagesBtn");
-    const pdfInfo = document.getElementById("pdfInfo");
+      const langSelect = document.getElementById("langSelect");
+      const psmSelect = document.getElementById("psmSelect");
+      const scaleRange = document.getElementById("scaleRange");
+      const thresholdRange = document.getElementById("thresholdRange");
+      const brightnessRange = document.getElementById("brightnessRange");
+      const contrastRange = document.getElementById("contrastRange");
+      const blurRange = document.getElementById("blurRange");
+      const rotateSelect = document.getElementById("rotateSelect");
 
-    const startCameraBtn = document.getElementById("startCameraBtn");
-    const captureBtn = document.getElementById("captureBtn");
-    const stopCameraBtn = document.getElementById("stopCameraBtn");
-    const video = document.getElementById("video");
+      const grayscaleCheck = document.getElementById("grayscaleCheck");
+      const thresholdCheck = document.getElementById("thresholdCheck");
+      const invertCheck = document.getElementById("invertCheck");
+      const sharpenCheck = document.getElementById("sharpenCheck");
+      const numbersOnlyCheck = document.getElementById("numbersOnlyCheck");
+      const cropModeCheck = document.getElementById("cropModeCheck");
 
-    const ocrBtn = document.getElementById("ocrBtn");
-    const ocrActiveCropBtn = document.getElementById("ocrActiveCropBtn");
-    const ocrRegionsBtn = document.getElementById("ocrRegionsBtn");
-    const lineByLineBtn = document.getElementById("lineByLineBtn");
-    const batchAllImagesBtn = document.getElementById("batchAllImagesBtn");
-    const saveRegionBtn = document.getElementById("saveRegionBtn");
-    const autoSuggestBtn = document.getElementById("autoSuggestBtn");
-    const clearCropBtn = document.getElementById("clearCropBtn");
-    const undoBtn = document.getElementById("undoBtn");
-    const resetBtn = document.getElementById("resetBtn");
-    const sampleBtn = document.getElementById("sampleBtn");
+      const originalBox = document.getElementById("originalBox");
+      const processedBox = document.getElementById("processedBox");
+      const originalCanvas = document.getElementById("originalCanvas");
+      const processedCanvas = document.getElementById("processedCanvas");
+      const originalCtx = originalCanvas.getContext("2d", {
+        willReadFrequently: true,
+      });
+      const processedCtx = processedCanvas.getContext("2d", {
+        willReadFrequently: true,
+      });
 
-    const langSelect = document.getElementById("langSelect");
-    const psmSelect = document.getElementById("psmSelect");
-    const scaleRange = document.getElementById("scaleRange");
-    const thresholdRange = document.getElementById("thresholdRange");
-    const brightnessRange = document.getElementById("brightnessRange");
-    const contrastRange = document.getElementById("contrastRange");
-    const blurRange = document.getElementById("blurRange");
-    const rotateSelect = document.getElementById("rotateSelect");
+      const originalInfo = document.getElementById("originalInfo");
+      const processedInfo = document.getElementById("processedInfo");
 
-    const grayscaleCheck = document.getElementById("grayscaleCheck");
-    const thresholdCheck = document.getElementById("thresholdCheck");
-    const invertCheck = document.getElementById("invertCheck");
-    const sharpenCheck = document.getElementById("sharpenCheck");
-    const numbersOnlyCheck = document.getElementById("numbersOnlyCheck");
-    const cropModeCheck = document.getElementById("cropModeCheck");
+      const zoomInOriginalBtn = document.getElementById("zoomInOriginalBtn");
+      const zoomOutOriginalBtn = document.getElementById("zoomOutOriginalBtn");
+      const fitOriginalBtn = document.getElementById("fitOriginalBtn");
 
-    const originalBox = document.getElementById("originalBox");
-    const processedBox = document.getElementById("processedBox");
-    const originalCanvas = document.getElementById("originalCanvas");
-    const processedCanvas = document.getElementById("processedCanvas");
-    const originalCtx = originalCanvas.getContext("2d", { willReadFrequently: true });
-    const processedCtx = processedCanvas.getContext("2d", { willReadFrequently: true });
+      const zoomInProcessedBtn = document.getElementById("zoomInProcessedBtn");
+      const zoomOutProcessedBtn = document.getElementById(
+        "zoomOutProcessedBtn",
+      );
+      const fitProcessedBtn = document.getElementById("fitProcessedBtn");
+      const rotateLeftBtn = document.getElementById("rotateLeftBtn");
+      const rotateRightBtn = document.getElementById("rotateRightBtn");
 
-    const originalInfo = document.getElementById("originalInfo");
-    const processedInfo = document.getElementById("processedInfo");
+      const statusText = document.getElementById("statusText");
+      const progressText = document.getElementById("progressText");
+      const progressBar = document.getElementById("progressBar");
 
-    const zoomInOriginalBtn = document.getElementById("zoomInOriginalBtn");
-    const zoomOutOriginalBtn = document.getElementById("zoomOutOriginalBtn");
-    const fitOriginalBtn = document.getElementById("fitOriginalBtn");
+      const confidencePill = document.getElementById("confidencePill");
+      const wordCountPill = document.getElementById("wordCountPill");
+      const digitCountPill = document.getElementById("digitCountPill");
+      const sizePill = document.getElementById("sizePill");
+      const resultText = document.getElementById("resultText");
+      const summaryText = document.getElementById("summaryText");
 
-    const zoomInProcessedBtn = document.getElementById("zoomInProcessedBtn");
-    const zoomOutProcessedBtn = document.getElementById("zoomOutProcessedBtn");
-    const fitProcessedBtn = document.getElementById("fitProcessedBtn");
-    const rotateLeftBtn = document.getElementById("rotateLeftBtn");
-    const rotateRightBtn = document.getElementById("rotateRightBtn");
+      const copyBtn = document.getElementById("copyBtn");
+      const downloadTxtBtn = document.getElementById("downloadTxtBtn");
+      const downloadJsonBtn = document.getElementById("downloadJsonBtn");
+      const downloadCsvBtn = document.getElementById("downloadCsvBtn");
 
-    const statusText = document.getElementById("statusText");
-    const progressText = document.getElementById("progressText");
-    const progressBar = document.getElementById("progressBar");
+      const imageList = document.getElementById("imageList");
+      const regionList = document.getElementById("regionList");
+      const resultsList = document.getElementById("resultsList");
 
-    const confidencePill = document.getElementById("confidencePill");
-    const wordCountPill = document.getElementById("wordCountPill");
-    const digitCountPill = document.getElementById("digitCountPill");
-    const sizePill = document.getElementById("sizePill");
-    const resultText = document.getElementById("resultText");
-    const summaryText = document.getElementById("summaryText");
+      let stream = null;
+      let pdfDoc = null;
+      let pdfFileName = "";
 
-    const copyBtn = document.getElementById("copyBtn");
-    const downloadTxtBtn = document.getElementById("downloadTxtBtn");
-    const downloadJsonBtn = document.getElementById("downloadJsonBtn");
-    const downloadCsvBtn = document.getElementById("downloadCsvBtn");
+      let images = [];
+      let activeImageId = null;
+      let regionCounter = 1;
 
-    const imageList = document.getElementById("imageList");
-    const regionList = document.getElementById("regionList");
-    const resultsList = document.getElementById("resultsList");
+      let originalZoom = 1;
+      let processedZoom = 1;
 
-    let stream = null;
-    let pdfDoc = null;
-    let pdfFileName = "";
+      let cropRect = null;
+      let isDraggingCrop = false;
+      let dragStart = null;
 
-    let images = [];
-    let activeImageId = null;
-    let regionCounter = 1;
+      let batchResults = [];
+      let historyStack = [];
 
-    let originalZoom = 1;
-    let processedZoom = 1;
-
-    let cropRect = null;
-    let isDraggingCrop = false;
-    let dragStart = null;
-
-    let batchResults = [];
-    let historyStack = [];
-
-    function uid(prefix = "id") {
-      return prefix + "-" + Math.random().toString(36).slice(2, 10);
-    }
-
-    function clamp255(v) {
-      return Math.max(0, Math.min(255, Math.round(v)));
-    }
-
-    function escapeHtml(value) {
-      return String(value ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39;");
-    }
-
-    function setStatus(text, percent = 0) {
-      const p = Math.max(0, Math.min(100, Math.round(percent)));
-      statusText.textContent = text;
-      progressText.textContent = p + "%";
-      progressBar.style.width = p + "%";
-    }
-
-    function getActiveImage() {
-      return images.find(x => x.id === activeImageId) || null;
-    }
-
-    function pushHistory(type, payload) {
-      historyStack.push({ type, payload });
-      if (historyStack.length > 100) historyStack.shift();
-      undoBtn.disabled = historyStack.length === 0;
-    }
-
-    function undoLast() {
-      const item = historyStack.pop();
-      if (!item) return;
-
-      if (item.type === "addImage") {
-        images = images.filter(x => x.id !== item.payload.imageId);
-        if (activeImageId === item.payload.imageId) {
-          activeImageId = images[0]?.id || null;
-        }
+      function uid(prefix = "id") {
+        return prefix + "-" + Math.random().toString(36).slice(2, 10);
       }
 
-      if (item.type === "deleteImage") {
-        images.push(item.payload.image);
-        activeImageId = item.payload.image.id;
+      function clamp255(v) {
+        return Math.max(0, Math.min(255, Math.round(v)));
       }
 
-      if (item.type === "addRegion") {
-        const img = images.find(x => x.id === item.payload.imageId);
-        if (img) img.regions = img.regions.filter(r => r.id !== item.payload.region.id);
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
       }
 
-      if (item.type === "deleteRegion") {
-        const img = images.find(x => x.id === item.payload.imageId);
-        if (img) img.regions.push(item.payload.region);
+      function setStatus(text, percent = 0) {
+        const p = Math.max(0, Math.min(100, Math.round(percent)));
+        statusText.textContent = text;
+        progressText.textContent = p + "%";
+        progressBar.style.width = p + "%";
       }
 
-      if (item.type === "bulkReplaceRegions") {
-        const img = images.find(x => x.id === item.payload.imageId);
-        if (img) img.regions = item.payload.previousRegions;
+      function getActiveImage() {
+        return images.find((x) => x.id === activeImageId) || null;
       }
 
-      undoBtn.disabled = historyStack.length === 0;
-      renderImageList();
-      renderRegionList();
-      renderPreviews();
-      refreshButtons();
-    }
-
-    function updateMetrics(text = "", confidence = null) {
-      confidencePill.textContent = "Confidence: " + (confidence == null ? "—" : confidence.toFixed(1) + "%");
-      const words = text.trim() ? text.trim().split(/\s+/).length : 0;
-      const digits = (text.match(/\d/g) || []).length;
-      wordCountPill.textContent = "Words: " + words;
-      digitCountPill.textContent = "Digits: " + digits;
-      const active = getActiveImage();
-      sizePill.textContent = active ? ("Area: " + active.image.naturalWidth + "×" + active.image.naturalHeight) : "Area: —";
-    }
-
-    function refreshButtons() {
-      const active = getActiveImage();
-      ocrBtn.disabled = !active;
-      batchAllImagesBtn.disabled = images.length === 0;
-      lineByLineBtn.disabled = !active;
-      autoSuggestBtn.disabled = !active;
-      saveRegionBtn.disabled = !(active && cropRect && cropRect.w > 5 && cropRect.h > 5);
-      ocrActiveCropBtn.disabled = !(active && cropRect && cropRect.w > 5 && cropRect.h > 5);
-      ocrRegionsBtn.disabled = !(active && active.regions.length > 0);
-      undoBtn.disabled = historyStack.length === 0;
-    }
-
-    function resetAll() {
-      stopCamera();
-      pdfDoc = null;
-      pdfFileName = "";
-      images = [];
-      activeImageId = null;
-      regionCounter = 1;
-      cropRect = null;
-      isDraggingCrop = false;
-      dragStart = null;
-      batchResults = [];
-      historyStack = [];
-      originalZoom = 1;
-      processedZoom = 1;
-
-      originalCanvas.width = 0;
-      originalCanvas.height = 0;
-      processedCanvas.width = 0;
-      processedCanvas.height = 0;
-      originalCtx.clearRect(0, 0, originalCanvas.width, originalCanvas.height);
-      processedCtx.clearRect(0, 0, processedCanvas.width, processedCanvas.height);
-
-      resultText.value = "";
-      summaryText.textContent = "No OCR run yet.";
-      resultsList.innerHTML = "";
-      originalInfo.textContent = "Original preview";
-      processedInfo.textContent = "Processed preview";
-      updateMetrics("", null);
-      setStatus("Ready", 0);
-      pdfInfo.textContent = "No PDF loaded.";
-      pdfPageSelect.innerHTML = "";
-      importPdfPageBtn.disabled = true;
-      importAllPdfPagesBtn.disabled = true;
-
-      fileInput.value = "";
-      pdfInput.value = "";
-
-      renderImageList();
-      renderRegionList();
-      refreshButtons();
-    }
-
-    function getRotatedCanvasFromImage(img, angleDeg) {
-      const angle = ((angleDeg % 360) + 360) % 360;
-      const radians = angle * Math.PI / 180;
-      const needsSwap = angle === 90 || angle === 270;
-      const w = img.naturalWidth;
-      const h = img.naturalHeight;
-
-      const canvas = document.createElement("canvas");
-      canvas.width = needsSwap ? h : w;
-      canvas.height = needsSwap ? w : h;
-
-      const ctx = canvas.getContext("2d", { willReadFrequently: true });
-      ctx.save();
-
-      if (angle === 90) ctx.translate(canvas.width, 0);
-      else if (angle === 180) ctx.translate(canvas.width, canvas.height);
-      else if (angle === 270) ctx.translate(0, canvas.height);
-
-      ctx.rotate(radians);
-      ctx.drawImage(img, 0, 0);
-      ctx.restore();
-
-      return { canvas, ctx };
-    }
-
-    function createOriginalCanvas(img) {
-      const rotation = parseInt(rotateSelect.value, 10) || 0;
-      return getRotatedCanvasFromImage(img, rotation);
-    }
-
-    function applyPreprocessing(canvas, ctx) {
-      let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      if (sharpenCheck.checked) {
-        imgData = sharpenImageData(imgData, canvas.width, canvas.height);
+      function pushHistory(type, payload) {
+        historyStack.push({ type, payload });
+        if (historyStack.length > 100) historyStack.shift();
+        undoBtn.disabled = historyStack.length === 0;
       }
 
-      const data = imgData.data;
-      const doGray = grayscaleCheck.checked;
-      const doThreshold = thresholdCheck.checked;
-      const doInvert = invertCheck.checked;
-      const threshold = parseInt(thresholdRange.value, 10);
-      const brightness = parseInt(brightnessRange.value, 10);
-      const contrastFactor = parseFloat(contrastRange.value);
+      function undoLast() {
+        const item = historyStack.pop();
+        if (!item) return;
 
-      for (let i = 0; i < data.length; i += 4) {
-        let r = data[i];
-        let g = data[i + 1];
-        let b = data[i + 2];
-
-        r += brightness;
-        g += brightness;
-        b += brightness;
-
-        r = ((r - 128) * contrastFactor) + 128;
-        g = ((g - 128) * contrastFactor) + 128;
-        b = ((b - 128) * contrastFactor) + 128;
-
-        if (doGray) {
-          const gray = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
-          r = g = b = gray;
-        }
-
-        if (doThreshold) {
-          const gray2 = Math.round((r + g + b) / 3);
-          const val = gray2 >= threshold ? 255 : 0;
-          r = g = b = val;
-        }
-
-        if (doInvert) {
-          r = 255 - r;
-          g = 255 - g;
-          b = 255 - b;
-        }
-
-        data[i] = clamp255(r);
-        data[i + 1] = clamp255(g);
-        data[i + 2] = clamp255(b);
-      }
-
-      ctx.putImageData(imgData, 0, 0);
-    }
-
-    function createProcessedCanvas(img) {
-      const original = createOriginalCanvas(img);
-      const scale = parseFloat(scaleRange.value) || 1;
-
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.max(1, Math.round(original.canvas.width * scale));
-      canvas.height = Math.max(1, Math.round(original.canvas.height * scale));
-      const ctx = canvas.getContext("2d", { willReadFrequently: true });
-
-      const blurPx = parseFloat(blurRange.value) || 0;
-      if (blurPx > 0) {
-        ctx.filter = `blur(${blurPx}px)`;
-      }
-      ctx.drawImage(original.canvas, 0, 0, canvas.width, canvas.height);
-      ctx.filter = "none";
-
-      applyPreprocessing(canvas, ctx);
-      return { canvas, ctx };
-    }
-
-    function sharpenImageData(imageData, width, height) {
-      const src = imageData.data;
-      const out = new ImageData(width, height);
-      const dst = out.data;
-      const kernel = [0,-1,0,-1,5,-1,0,-1,0];
-
-      for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-          let r = 0, g = 0, b = 0, a = 0;
-          for (let ky = -1; ky <= 1; ky++) {
-            for (let kx = -1; kx <= 1; kx++) {
-              const px = Math.min(width - 1, Math.max(0, x + kx));
-              const py = Math.min(height - 1, Math.max(0, y + ky));
-              const idx = (py * width + px) * 4;
-              const weight = kernel[(ky + 1) * 3 + (kx + 1)];
-              r += src[idx] * weight;
-              g += src[idx + 1] * weight;
-              b += src[idx + 2] * weight;
-              a = src[idx + 3];
-            }
+        if (item.type === "addImage") {
+          images = images.filter((x) => x.id !== item.payload.imageId);
+          if (activeImageId === item.payload.imageId) {
+            activeImageId = images[0]?.id || null;
           }
-          const di = (y * width + x) * 4;
-          dst[di] = clamp255(r);
-          dst[di + 1] = clamp255(g);
-          dst[di + 2] = clamp255(b);
-          dst[di + 3] = a;
         }
+
+        if (item.type === "deleteImage") {
+          images.push(item.payload.image);
+          activeImageId = item.payload.image.id;
+        }
+
+        if (item.type === "addRegion") {
+          const img = images.find((x) => x.id === item.payload.imageId);
+          if (img)
+            img.regions = img.regions.filter(
+              (r) => r.id !== item.payload.region.id,
+            );
+        }
+
+        if (item.type === "deleteRegion") {
+          const img = images.find((x) => x.id === item.payload.imageId);
+          if (img) img.regions.push(item.payload.region);
+        }
+
+        if (item.type === "bulkReplaceRegions") {
+          const img = images.find((x) => x.id === item.payload.imageId);
+          if (img) img.regions = item.payload.previousRegions;
+        }
+
+        undoBtn.disabled = historyStack.length === 0;
+        renderImageList();
+        renderRegionList();
+        renderPreviews();
+        refreshButtons();
       }
-      return out;
-    }
 
-    function drawToCanvas(targetCanvas, targetCtx, sourceCanvas) {
-      targetCanvas.width = sourceCanvas.width;
-      targetCanvas.height = sourceCanvas.height;
-      targetCtx.clearRect(0, 0, sourceCanvas.width, sourceCanvas.height);
-      targetCtx.drawImage(sourceCanvas, 0, 0);
-    }
+      function updateMetrics(text = "", confidence = null) {
+        confidencePill.textContent =
+          "Confidence: " +
+          (confidence == null ? "—" : confidence.toFixed(1) + "%");
+        const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+        const digits = (text.match(/\d/g) || []).length;
+        wordCountPill.textContent = "Words: " + words;
+        digitCountPill.textContent = "Digits: " + digits;
+        const active = getActiveImage();
+        sizePill.textContent = active
+          ? "Area: " +
+            active.image.naturalWidth +
+            "×" +
+            active.image.naturalHeight
+          : "Area: —";
+      }
 
-    function renderPreviews() {
-      const active = getActiveImage();
-      if (!active) {
+      function refreshButtons() {
+        const active = getActiveImage();
+        ocrBtn.disabled = !active;
+        batchAllImagesBtn.disabled = images.length === 0;
+        lineByLineBtn.disabled = !active;
+        autoSuggestBtn.disabled = !active;
+        saveRegionBtn.disabled = !(
+          active &&
+          cropRect &&
+          cropRect.w > 5 &&
+          cropRect.h > 5
+        );
+        ocrActiveCropBtn.disabled = !(
+          active &&
+          cropRect &&
+          cropRect.w > 5 &&
+          cropRect.h > 5
+        );
+        ocrRegionsBtn.disabled = !(active && active.regions.length > 0);
+        undoBtn.disabled = historyStack.length === 0;
+      }
+
+      function resetAll() {
+        stopCamera();
+        pdfDoc = null;
+        pdfFileName = "";
+        images = [];
+        activeImageId = null;
+        regionCounter = 1;
+        cropRect = null;
+        isDraggingCrop = false;
+        dragStart = null;
+        batchResults = [];
+        historyStack = [];
+        originalZoom = 1;
+        processedZoom = 1;
+
         originalCanvas.width = 0;
+        originalCanvas.height = 0;
         processedCanvas.width = 0;
+        processedCanvas.height = 0;
+        originalCtx.clearRect(
+          0,
+          0,
+          originalCanvas.width,
+          originalCanvas.height,
+        );
+        processedCtx.clearRect(
+          0,
+          0,
+          processedCanvas.width,
+          processedCanvas.height,
+        );
+
+        resultText.value = "";
+        summaryText.textContent = "No OCR run yet.";
+        resultsList.innerHTML = "";
         originalInfo.textContent = "Original preview";
         processedInfo.textContent = "Processed preview";
+        updateMetrics("", null);
+        setStatus("Ready", 0);
+        pdfInfo.textContent = "No PDF loaded.";
+        pdfPageSelect.innerHTML = "";
+        importPdfPageBtn.disabled = true;
+        importAllPdfPagesBtn.disabled = true;
+
+        fileInput.value = "";
+        pdfInput.value = "";
+
+        renderImageList();
+        renderRegionList();
         refreshButtons();
-        return;
       }
 
-      const orig = createOriginalCanvas(active.image);
-      drawToCanvas(originalCanvas, originalCtx, orig.canvas);
+      function getRotatedCanvasFromImage(img, angleDeg) {
+        const angle = ((angleDeg % 360) + 360) % 360;
+        const radians = (angle * Math.PI) / 180;
+        const needsSwap = angle === 90 || angle === 270;
+        const w = img.naturalWidth;
+        const h = img.naturalHeight;
 
-      const processed = createProcessedCanvas(active.image);
-      drawToCanvas(processedCanvas, processedCtx, processed.canvas);
-      drawOverlay();
+        const canvas = document.createElement("canvas");
+        canvas.width = needsSwap ? h : w;
+        canvas.height = needsSwap ? w : h;
 
-      originalInfo.textContent = `${active.name} → original ${orig.canvas.width} × ${orig.canvas.height}`;
-      processedInfo.textContent = `${active.name} → processed ${processed.canvas.width} × ${processed.canvas.height}`;
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        ctx.save();
 
-      applyOriginalZoom();
-      applyProcessedZoom();
-      updateMetrics(resultText.value || "", null);
-      refreshButtons();
-    }
+        if (angle === 90) ctx.translate(canvas.width, 0);
+        else if (angle === 180) ctx.translate(canvas.width, canvas.height);
+        else if (angle === 270) ctx.translate(0, canvas.height);
 
-    function applyOriginalZoom() {
-      originalCanvas.style.transform = `scale(${originalZoom})`;
-      originalBox.style.minHeight = Math.max(380, originalCanvas.height * originalZoom) + "px";
-    }
+        ctx.rotate(radians);
+        ctx.drawImage(img, 0, 0);
+        ctx.restore();
 
-    function applyProcessedZoom() {
-      processedCanvas.style.transform = `scale(${processedZoom})`;
-      processedBox.style.minHeight = Math.max(380, processedCanvas.height * processedZoom) + "px";
-    }
-
-    function fitOriginal() {
-      if (!originalCanvas.width) return;
-      const w = originalBox.clientWidth - 20;
-      originalZoom = Math.min(1, w / originalCanvas.width);
-      if (!isFinite(originalZoom) || originalZoom <= 0) originalZoom = 1;
-      applyOriginalZoom();
-      originalBox.scrollTop = 0;
-      originalBox.scrollLeft = 0;
-    }
-
-    function fitProcessed() {
-      if (!processedCanvas.width) return;
-      const w = processedBox.clientWidth - 20;
-      processedZoom = Math.min(1, w / processedCanvas.width);
-      if (!isFinite(processedZoom) || processedZoom <= 0) processedZoom = 1;
-      applyProcessedZoom();
-      processedBox.scrollTop = 0;
-      processedBox.scrollLeft = 0;
-    }
-
-    function makeImageFromCanvas(canvas) {
-      return new Promise((resolve) => {
-        const img = new Image();
-        img.onload = () => resolve(img);
-        img.src = canvas.toDataURL("image/png");
-      });
-    }
-
-    function getCanvasCoordsFromPointer(clientX, clientY) {
-      const rect = processedCanvas.getBoundingClientRect();
-      const x = (clientX - rect.left) / processedZoom;
-      const y = (clientY - rect.top) / processedZoom;
-      return {
-        x: Math.max(0, Math.min(processedCanvas.width, x)),
-        y: Math.max(0, Math.min(processedCanvas.height, y))
-      };
-    }
-
-    function normalizeCropRect(a, b) {
-      const x = Math.min(a.x, b.x);
-      const y = Math.min(a.y, b.y);
-      const w = Math.abs(b.x - a.x);
-      const h = Math.abs(b.y - a.y);
-      return { x, y, w, h };
-    }
-
-    function drawOverlay() {
-      const active = getActiveImage();
-      if (!active || !processedCanvas.width) return;
-
-      const base = createProcessedCanvas(active.image);
-      drawToCanvas(processedCanvas, processedCtx, base.canvas);
-
-      processedCtx.save();
-
-      active.regions.forEach((r) => {
-        const stroke = r.kind === "suggested" ? "rgba(29,78,216,.92)" : "rgba(217,119,6,.92)";
-        const fill = r.kind === "suggested" ? "rgba(29,78,216,.12)" : "rgba(217,119,6,.12)";
-        processedCtx.strokeStyle = stroke;
-        processedCtx.lineWidth = 3;
-        processedCtx.setLineDash([10, 6]);
-        processedCtx.strokeRect(r.x, r.y, r.w, r.h);
-        processedCtx.setLineDash([]);
-        processedCtx.fillStyle = fill;
-        processedCtx.fillRect(r.x, r.y, r.w, r.h);
-        processedCtx.fillStyle = r.kind === "suggested" ? "#1747b3" : "#a04f00";
-        processedCtx.font = "bold 16px Arial";
-        processedCtx.fillText(r.label, r.x + 6, Math.max(18, r.y + 18));
-      });
-
-      if (cropRect && cropRect.w > 2 && cropRect.h > 2) {
-        processedCtx.fillStyle = "rgba(0,0,0,.18)";
-        processedCtx.fillRect(0, 0, processedCanvas.width, processedCanvas.height);
-        processedCtx.clearRect(cropRect.x, cropRect.y, cropRect.w, cropRect.h);
-
-        processedCtx.strokeStyle = "#d97706";
-        processedCtx.lineWidth = 3;
-        processedCtx.setLineDash([10, 6]);
-        processedCtx.strokeRect(cropRect.x, cropRect.y, cropRect.w, cropRect.h);
-        processedCtx.setLineDash([]);
-        processedCtx.fillStyle = "rgba(217,119,6,.12)";
-        processedCtx.fillRect(cropRect.x, cropRect.y, cropRect.w, cropRect.h);
+        return { canvas, ctx };
       }
 
-      processedCtx.restore();
-    }
-
-    function renderImageList() {
-      imageList.innerHTML = "";
-      if (!images.length) {
-        imageList.innerHTML = `<div class="small">No images loaded yet.</div>`;
-        return;
+      function createOriginalCanvas(img) {
+        const rotation = parseInt(rotateSelect.value, 10) || 0;
+        return getRotatedCanvasFromImage(img, rotation);
       }
 
-      images.forEach((item, index) => {
-        const card = document.createElement("div");
-        card.className = "item" + (item.id === activeImageId ? " active" : "");
+      function applyPreprocessing(canvas, ctx) {
+        let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        if (sharpenCheck.checked) {
+          imgData = sharpenImageData(imgData, canvas.width, canvas.height);
+        }
 
-        card.innerHTML = `
+        const data = imgData.data;
+        const doGray = grayscaleCheck.checked;
+        const doThreshold = thresholdCheck.checked;
+        const doInvert = invertCheck.checked;
+        const threshold = parseInt(thresholdRange.value, 10);
+        const brightness = parseInt(brightnessRange.value, 10);
+        const contrastFactor = parseFloat(contrastRange.value);
+
+        for (let i = 0; i < data.length; i += 4) {
+          let r = data[i];
+          let g = data[i + 1];
+          let b = data[i + 2];
+
+          r += brightness;
+          g += brightness;
+          b += brightness;
+
+          r = (r - 128) * contrastFactor + 128;
+          g = (g - 128) * contrastFactor + 128;
+          b = (b - 128) * contrastFactor + 128;
+
+          if (doGray) {
+            const gray = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+            r = g = b = gray;
+          }
+
+          if (doThreshold) {
+            const gray2 = Math.round((r + g + b) / 3);
+            const val = gray2 >= threshold ? 255 : 0;
+            r = g = b = val;
+          }
+
+          if (doInvert) {
+            r = 255 - r;
+            g = 255 - g;
+            b = 255 - b;
+          }
+
+          data[i] = clamp255(r);
+          data[i + 1] = clamp255(g);
+          data[i + 2] = clamp255(b);
+        }
+
+        ctx.putImageData(imgData, 0, 0);
+      }
+
+      function createProcessedCanvas(img) {
+        const original = createOriginalCanvas(img);
+        const scale = parseFloat(scaleRange.value) || 1;
+
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(original.canvas.width * scale));
+        canvas.height = Math.max(1, Math.round(original.canvas.height * scale));
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+
+        const blurPx = parseFloat(blurRange.value) || 0;
+        if (blurPx > 0) {
+          ctx.filter = `blur(${blurPx}px)`;
+        }
+        ctx.drawImage(original.canvas, 0, 0, canvas.width, canvas.height);
+        ctx.filter = "none";
+
+        applyPreprocessing(canvas, ctx);
+        return { canvas, ctx };
+      }
+
+      function sharpenImageData(imageData, width, height) {
+        const src = imageData.data;
+        const out = new ImageData(width, height);
+        const dst = out.data;
+        const kernel = [0, -1, 0, -1, 5, -1, 0, -1, 0];
+
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            let r = 0,
+              g = 0,
+              b = 0,
+              a = 0;
+            for (let ky = -1; ky <= 1; ky++) {
+              for (let kx = -1; kx <= 1; kx++) {
+                const px = Math.min(width - 1, Math.max(0, x + kx));
+                const py = Math.min(height - 1, Math.max(0, y + ky));
+                const idx = (py * width + px) * 4;
+                const weight = kernel[(ky + 1) * 3 + (kx + 1)];
+                r += src[idx] * weight;
+                g += src[idx + 1] * weight;
+                b += src[idx + 2] * weight;
+                a = src[idx + 3];
+              }
+            }
+            const di = (y * width + x) * 4;
+            dst[di] = clamp255(r);
+            dst[di + 1] = clamp255(g);
+            dst[di + 2] = clamp255(b);
+            dst[di + 3] = a;
+          }
+        }
+        return out;
+      }
+
+      function drawToCanvas(targetCanvas, targetCtx, sourceCanvas) {
+        targetCanvas.width = sourceCanvas.width;
+        targetCanvas.height = sourceCanvas.height;
+        targetCtx.clearRect(0, 0, sourceCanvas.width, sourceCanvas.height);
+        targetCtx.drawImage(sourceCanvas, 0, 0);
+      }
+
+      function renderPreviews() {
+        const active = getActiveImage();
+        if (!active) {
+          originalCanvas.width = 0;
+          processedCanvas.width = 0;
+          originalInfo.textContent = "Original preview";
+          processedInfo.textContent = "Processed preview";
+          refreshButtons();
+          return;
+        }
+
+        const orig = createOriginalCanvas(active.image);
+        drawToCanvas(originalCanvas, originalCtx, orig.canvas);
+
+        const processed = createProcessedCanvas(active.image);
+        drawToCanvas(processedCanvas, processedCtx, processed.canvas);
+        drawOverlay();
+
+        originalInfo.textContent = `${active.name} → original ${orig.canvas.width} × ${orig.canvas.height}`;
+        processedInfo.textContent = `${active.name} → processed ${processed.canvas.width} × ${processed.canvas.height}`;
+
+        applyOriginalZoom();
+        applyProcessedZoom();
+        updateMetrics(resultText.value || "", null);
+        refreshButtons();
+      }
+
+      function applyOriginalZoom() {
+        originalCanvas.style.transform = `scale(${originalZoom})`;
+        originalBox.style.minHeight =
+          Math.max(380, originalCanvas.height * originalZoom) + "px";
+      }
+
+      function applyProcessedZoom() {
+        processedCanvas.style.transform = `scale(${processedZoom})`;
+        processedBox.style.minHeight =
+          Math.max(380, processedCanvas.height * processedZoom) + "px";
+      }
+
+      function fitOriginal() {
+        if (!originalCanvas.width) return;
+        const w = originalBox.clientWidth - 20;
+        originalZoom = Math.min(1, w / originalCanvas.width);
+        if (!isFinite(originalZoom) || originalZoom <= 0) originalZoom = 1;
+        applyOriginalZoom();
+        originalBox.scrollTop = 0;
+        originalBox.scrollLeft = 0;
+      }
+
+      function fitProcessed() {
+        if (!processedCanvas.width) return;
+        const w = processedBox.clientWidth - 20;
+        processedZoom = Math.min(1, w / processedCanvas.width);
+        if (!isFinite(processedZoom) || processedZoom <= 0) processedZoom = 1;
+        applyProcessedZoom();
+        processedBox.scrollTop = 0;
+        processedBox.scrollLeft = 0;
+      }
+
+      function makeImageFromCanvas(canvas) {
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.src = canvas.toDataURL("image/png");
+        });
+      }
+
+      function getCanvasCoordsFromPointer(clientX, clientY) {
+        const rect = processedCanvas.getBoundingClientRect();
+        const x = (clientX - rect.left) / processedZoom;
+        const y = (clientY - rect.top) / processedZoom;
+        return {
+          x: Math.max(0, Math.min(processedCanvas.width, x)),
+          y: Math.max(0, Math.min(processedCanvas.height, y)),
+        };
+      }
+
+      function normalizeCropRect(a, b) {
+        const x = Math.min(a.x, b.x);
+        const y = Math.min(a.y, b.y);
+        const w = Math.abs(b.x - a.x);
+        const h = Math.abs(b.y - a.y);
+        return { x, y, w, h };
+      }
+
+      function drawOverlay() {
+        const active = getActiveImage();
+        if (!active || !processedCanvas.width) return;
+
+        const base = createProcessedCanvas(active.image);
+        drawToCanvas(processedCanvas, processedCtx, base.canvas);
+
+        processedCtx.save();
+
+        active.regions.forEach((r) => {
+          const stroke =
+            r.kind === "suggested"
+              ? "rgba(29,78,216,.92)"
+              : "rgba(217,119,6,.92)";
+          const fill =
+            r.kind === "suggested"
+              ? "rgba(29,78,216,.12)"
+              : "rgba(217,119,6,.12)";
+          processedCtx.strokeStyle = stroke;
+          processedCtx.lineWidth = 3;
+          processedCtx.setLineDash([10, 6]);
+          processedCtx.strokeRect(r.x, r.y, r.w, r.h);
+          processedCtx.setLineDash([]);
+          processedCtx.fillStyle = fill;
+          processedCtx.fillRect(r.x, r.y, r.w, r.h);
+          processedCtx.fillStyle =
+            r.kind === "suggested" ? "#1747b3" : "#a04f00";
+          processedCtx.font = "bold 16px Arial";
+          processedCtx.fillText(r.label, r.x + 6, Math.max(18, r.y + 18));
+        });
+
+        if (cropRect && cropRect.w > 2 && cropRect.h > 2) {
+          processedCtx.fillStyle = "rgba(0,0,0,.18)";
+          processedCtx.fillRect(
+            0,
+            0,
+            processedCanvas.width,
+            processedCanvas.height,
+          );
+          processedCtx.clearRect(
+            cropRect.x,
+            cropRect.y,
+            cropRect.w,
+            cropRect.h,
+          );
+
+          processedCtx.strokeStyle = "#d97706";
+          processedCtx.lineWidth = 3;
+          processedCtx.setLineDash([10, 6]);
+          processedCtx.strokeRect(
+            cropRect.x,
+            cropRect.y,
+            cropRect.w,
+            cropRect.h,
+          );
+          processedCtx.setLineDash([]);
+          processedCtx.fillStyle = "rgba(217,119,6,.12)";
+          processedCtx.fillRect(cropRect.x, cropRect.y, cropRect.w, cropRect.h);
+        }
+
+        processedCtx.restore();
+      }
+
+      function renderImageList() {
+        imageList.innerHTML = "";
+        if (!images.length) {
+          imageList.innerHTML = `<div class="small">No images loaded yet.</div>`;
+          return;
+        }
+
+        images.forEach((item, index) => {
+          const card = document.createElement("div");
+          card.className =
+            "item" + (item.id === activeImageId ? " active" : "");
+
+          card.innerHTML = `
           <div class="item-title">${escapeHtml(item.name)}</div>
           <div class="small">Image ${index + 1} • ${item.image.naturalWidth} × ${item.image.naturalHeight} • ${item.regions.length} region(s)</div>
           <div class="thumb"><img alt="" src="${item.thumb || item.image.src}"></div>
@@ -1344,47 +1661,48 @@
           </div>
         `;
 
-        card.querySelector(".use-btn").addEventListener("click", () => {
-          activeImageId = item.id;
-          cropRect = null;
-          renderImageList();
-          renderRegionList();
-          renderPreviews();
+          card.querySelector(".use-btn").addEventListener("click", () => {
+            activeImageId = item.id;
+            cropRect = null;
+            renderImageList();
+            renderRegionList();
+            renderPreviews();
+          });
+
+          card.querySelector(".del-btn").addEventListener("click", () => {
+            pushHistory("deleteImage", { image: item });
+            images = images.filter((x) => x.id !== item.id);
+            if (activeImageId === item.id)
+              activeImageId = images[0]?.id || null;
+            cropRect = null;
+            renderImageList();
+            renderRegionList();
+            renderPreviews();
+            refreshButtons();
+          });
+
+          imageList.appendChild(card);
         });
-
-        card.querySelector(".del-btn").addEventListener("click", () => {
-          pushHistory("deleteImage", { image: item });
-          images = images.filter(x => x.id !== item.id);
-          if (activeImageId === item.id) activeImageId = images[0]?.id || null;
-          cropRect = null;
-          renderImageList();
-          renderRegionList();
-          renderPreviews();
-          refreshButtons();
-        });
-
-        imageList.appendChild(card);
-      });
-    }
-
-    function renderRegionList() {
-      const active = getActiveImage();
-      regionList.innerHTML = "";
-
-      if (!active) {
-        regionList.innerHTML = `<div class="small">Load an image to create regions.</div>`;
-        return;
       }
 
-      if (!active.regions.length) {
-        regionList.innerHTML = `<div class="small">No saved or suggested regions yet.</div>`;
-        return;
-      }
+      function renderRegionList() {
+        const active = getActiveImage();
+        regionList.innerHTML = "";
 
-      active.regions.forEach((r) => {
-        const el = document.createElement("div");
-        el.className = "region-item";
-        el.innerHTML = `
+        if (!active) {
+          regionList.innerHTML = `<div class="small">Load an image to create regions.</div>`;
+          return;
+        }
+
+        if (!active.regions.length) {
+          regionList.innerHTML = `<div class="small">No saved or suggested regions yet.</div>`;
+          return;
+        }
+
+        active.regions.forEach((r) => {
+          const el = document.createElement("div");
+          el.className = "region-item";
+          el.innerHTML = `
           <div class="region-head">
             <span>${escapeHtml(r.label)}</span>
             <div class="btns">
@@ -1396,40 +1714,47 @@
           <div class="mono">x:${Math.round(r.x)} y:${Math.round(r.y)} w:${Math.round(r.w)} h:${Math.round(r.h)}</div>
         `;
 
-        el.querySelector(".view-btn").addEventListener("click", () => {
-          cropRect = { x:r.x, y:r.y, w:r.w, h:r.h };
-          drawOverlay();
-          refreshButtons();
+          el.querySelector(".view-btn").addEventListener("click", () => {
+            cropRect = { x: r.x, y: r.y, w: r.w, h: r.h };
+            drawOverlay();
+            refreshButtons();
+          });
+
+          el.querySelector(".del-btn").addEventListener("click", () => {
+            const img = getActiveImage();
+            if (!img) return;
+            pushHistory("deleteRegion", {
+              imageId: img.id,
+              region: structuredClone(r),
+            });
+            img.regions = img.regions.filter((x) => x.id !== r.id);
+            if (
+              cropRect &&
+              Math.round(cropRect.x) === Math.round(r.x) &&
+              Math.round(cropRect.y) === Math.round(r.y)
+            ) {
+              cropRect = null;
+            }
+            renderRegionList();
+            drawOverlay();
+            refreshButtons();
+          });
+
+          regionList.appendChild(el);
         });
-
-        el.querySelector(".del-btn").addEventListener("click", () => {
-          const img = getActiveImage();
-          if (!img) return;
-          pushHistory("deleteRegion", { imageId: img.id, region: structuredClone(r) });
-          img.regions = img.regions.filter(x => x.id !== r.id);
-          if (cropRect && Math.round(cropRect.x) === Math.round(r.x) && Math.round(cropRect.y) === Math.round(r.y)) {
-            cropRect = null;
-          }
-          renderRegionList();
-          drawOverlay();
-          refreshButtons();
-        });
-
-        regionList.appendChild(el);
-      });
-    }
-
-    function renderResultsList() {
-      resultsList.innerHTML = "";
-      if (!batchResults.length) {
-        resultsList.innerHTML = `<div class="small">No OCR result cards yet.</div>`;
-        return;
       }
 
-      batchResults.forEach((item, idx) => {
-        const card = document.createElement("div");
-        card.className = "result-card";
-        card.innerHTML = `
+      function renderResultsList() {
+        resultsList.innerHTML = "";
+        if (!batchResults.length) {
+          resultsList.innerHTML = `<div class="small">No OCR result cards yet.</div>`;
+          return;
+        }
+
+        batchResults.forEach((item, idx) => {
+          const card = document.createElement("div");
+          card.className = "result-card";
+          card.innerHTML = `
           <div class="result-card-head">
             <span>${escapeHtml(item.imageName)} / ${escapeHtml(item.regionLabel)}</span>
             <span class="small">${item.confidence == null ? "—" : item.confidence.toFixed(1) + "%"}</span>
@@ -1437,912 +1762,1021 @@
           <div class="small">${escapeHtml(item.mode || "ocr")}</div>
           <pre>${escapeHtml(item.text || "")}</pre>
         `;
-        resultsList.appendChild(card);
-      });
-    }
-
-    function updateSummary() {
-      if (!batchResults.length) {
-        summaryText.textContent = "No OCR run yet.";
-        renderResultsList();
-        return;
-      }
-
-      const totalItems = batchResults.length;
-      const totalChars = batchResults.reduce((sum, x) => sum + (x.text ? x.text.length : 0), 0);
-      const validConfs = batchResults.map(x => x.confidence).filter(x => typeof x === "number");
-      const avgConf = validConfs.length ? (validConfs.reduce((a, b) => a + b, 0) / validConfs.length).toFixed(1) : "—";
-
-      summaryText.textContent =
-        `Items OCRed: ${totalItems}. Average confidence: ${avgConf}%. Total characters: ${totalChars}.`;
-      renderResultsList();
-    }
-
-    function addImage(img, name) {
-      const item = {
-        id: uid("img"),
-        name,
-        image: img,
-        thumb: img.src,
-        regions: []
-      };
-      images.push(item);
-      activeImageId = item.id;
-      cropRect = null;
-      pushHistory("addImage", { imageId: item.id });
-
-      renderImageList();
-      renderRegionList();
-      renderPreviews();
-      fitOriginal();
-      fitProcessed();
-      refreshButtons();
-    }
-
-    function handleFiles(fileList) {
-      const files = Array.from(fileList || []).filter(f => f.type.startsWith("image/"));
-      if (!files.length) {
-        alert("Please choose image files.");
-        return;
-      }
-
-      files.forEach(file => {
-        const url = URL.createObjectURL(file);
-        const img = new Image();
-        img.onload = () => {
-          addImage(img, file.name);
-          URL.revokeObjectURL(url);
-        };
-        img.onerror = () => URL.revokeObjectURL(url);
-        img.src = url;
-      });
-    }
-
-    function getOcrLangAndWhitelist() {
-      const mode = langSelect.value;
-
-      if (mode === "eng") return { lang: "eng", whitelist: "" };
-      if (mode === "hin") return { lang: "hin", whitelist: "" };
-      if (mode === "eng+hin") return { lang: "eng+hin", whitelist: "" };
-      if (mode === "eng_numbers") return { lang: "eng", whitelist: "0123456789.,:/-+()% " };
-      if (mode === "hin_numbers") return { lang: "hin", whitelist: "0123456789०१२३४५६७८९.,:/-+()% " };
-
-      return { lang: "eng+hin", whitelist: "" };
-    }
-
-    function postProcessText(text) {
-      let out = text || "";
-      if (numbersOnlyCheck.checked) {
-        out = out.replace(/[^\d०-९.,:/\-+()% \n]/g, "");
-        out = out.replace(/[ \t]+/g, " ");
-        out = out.replace(/\n{3,}/g, "\n\n");
-      }
-      return out.trim();
-    }
-
-    function getActiveProcessedCanvas() {
-      const active = getActiveImage();
-      if (!active) return null;
-      return createProcessedCanvas(active.image).canvas;
-    }
-
-    function cropCanvas(sourceCanvas, rect) {
-      const x = Math.max(0, Math.floor(rect.x));
-      const y = Math.max(0, Math.floor(rect.y));
-      const w = Math.min(sourceCanvas.width - x, Math.floor(rect.w));
-      const h = Math.min(sourceCanvas.height - y, Math.floor(rect.h));
-
-      const c = document.createElement("canvas");
-      c.width = Math.max(1, w);
-      c.height = Math.max(1, h);
-      const ctx = c.getContext("2d");
-      ctx.drawImage(sourceCanvas, x, y, w, h, 0, 0, w, h);
-      return c;
-    }
-
-    async function runOcrOnCanvas(canvas, labelForStatus = "OCR") {
-      const { lang, whitelist } = getOcrLangAndWhitelist();
-
-      const result = await Tesseract.recognize(canvas, lang, {
-        logger: (m) => {
-          const pct = typeof m.progress === "number" ? m.progress * 100 : 0;
-          if (m.status) setStatus(`${labelForStatus}: ${m.status}`, pct);
-        }
-      });
-
-      let text = result?.data?.text || "";
-      const confidence = result?.data?.confidence ?? null;
-
-      text = postProcessText(text);
-
-      if (whitelist) {
-        const safeWhitelist = whitelist.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
-        text = text.replace(new RegExp(`[^${safeWhitelist}\\n]`, "g"), "").trim();
-      }
-
-      return { text, confidence, raw: result?.data || null };
-    }
-
-    function setCombinedTextFromResults() {
-      const combined = batchResults.map(x => `[${x.imageName} / ${x.regionLabel}]\\n${x.text || ""}`).join("\\n\\n").trim();
-      resultText.value = combined;
-      const confs = batchResults.map(x => x.confidence).filter(x => typeof x === "number");
-      const avg = confs.length ? confs.reduce((a,b)=>a+b,0)/confs.length : null;
-      updateMetrics(combined, avg);
-      updateSummary();
-    }
-
-    async function runOCRWholeImage() {
-      const active = getActiveImage();
-      if (!active) return;
-      ocrBtn.disabled = true;
-
-      try {
-        const canvas = getActiveProcessedCanvas();
-        batchResults = [];
-        const out = await runOcrOnCanvas(canvas, "Whole image OCR");
-        batchResults.push({
-          imageId: active.id,
-          imageName: active.name,
-          regionId: null,
-          regionLabel: "whole_image",
-          confidence: out.confidence,
-          text: out.text,
-          mode: "whole_image"
+          resultsList.appendChild(card);
         });
-        setCombinedTextFromResults();
-        setStatus("OCR complete", 100);
-      } catch (err) {
-        console.error(err);
-        setStatus("OCR failed", 0);
-        resultText.value = "OCR failed. Try different settings.";
-        updateMetrics("", null);
-      } finally {
-        ocrBtn.disabled = false;
       }
-    }
 
-    async function runOCRActiveCrop() {
-      const active = getActiveImage();
-      if (!active || !cropRect) return;
-      ocrActiveCropBtn.disabled = true;
-
-      try {
-        const base = getActiveProcessedCanvas();
-        const regionCanvas = cropCanvas(base, cropRect);
-        batchResults = [];
-        const out = await runOcrOnCanvas(regionCanvas, "Active crop OCR");
-        batchResults.push({
-          imageId: active.id,
-          imageName: active.name,
-          regionId: null,
-          regionLabel: "active_crop",
-          confidence: out.confidence,
-          text: out.text,
-          mode: "active_crop"
-        });
-        setCombinedTextFromResults();
-        setStatus("Active crop OCR complete", 100);
-      } catch (err) {
-        console.error(err);
-        setStatus("Active crop OCR failed", 0);
-      } finally {
-        ocrActiveCropBtn.disabled = false;
-      }
-    }
-
-    async function runOCRSavedRegions() {
-      const active = getActiveImage();
-      if (!active || !active.regions.length) return;
-      ocrRegionsBtn.disabled = true;
-
-      try {
-        const base = getActiveProcessedCanvas();
-        batchResults = [];
-
-        for (let i = 0; i < active.regions.length; i++) {
-          const region = active.regions[i];
-          const regionCanvas = cropCanvas(base, region);
-          const out = await runOcrOnCanvas(regionCanvas, `Region ${i + 1}/${active.regions.length}`);
-          batchResults.push({
-            imageId: active.id,
-            imageName: active.name,
-            regionId: region.id,
-            regionLabel: region.label,
-            confidence: out.confidence,
-            text: out.text,
-            mode: region.kind || "region"
-          });
+      function updateSummary() {
+        if (!batchResults.length) {
+          summaryText.textContent = "No OCR run yet.";
+          renderResultsList();
+          return;
         }
 
-        setCombinedTextFromResults();
-        setStatus("Region OCR complete", 100);
-      } catch (err) {
-        console.error(err);
-        setStatus("Region OCR failed", 0);
-      } finally {
-        ocrRegionsBtn.disabled = false;
-      }
-    }
-
-    async function runOCRLineByLine() {
-      const active = getActiveImage();
-      if (!active) return;
-      lineByLineBtn.disabled = true;
-
-      try {
-        const base = getActiveProcessedCanvas();
-        const lines = suggestLineRegions(base);
-        batchResults = [];
-
-        for (let i = 0; i < lines.length; i++) {
-          const region = lines[i];
-          const canvas = cropCanvas(base, region);
-          const prevPsm = psmSelect.value;
-          psmSelect.value = "7";
-          const out = await runOcrOnCanvas(canvas, `Line ${i + 1}/${lines.length}`);
-          psmSelect.value = prevPsm;
-
-          batchResults.push({
-            imageId: active.id,
-            imageName: active.name,
-            regionId: region.id || null,
-            regionLabel: region.label || `Line ${i + 1}`,
-            confidence: out.confidence,
-            text: out.text,
-            mode: "line_by_line"
-          });
-        }
-
-        setCombinedTextFromResults();
-        setStatus("Line-by-line OCR complete", 100);
-      } catch (err) {
-        console.error(err);
-        setStatus("Line-by-line OCR failed", 0);
-      } finally {
-        lineByLineBtn.disabled = false;
-      }
-    }
-
-    async function runBatchAllImages() {
-      if (!images.length) return;
-      batchAllImagesBtn.disabled = true;
-      batchResults = [];
-
-      try {
-        for (let i = 0; i < images.length; i++) {
-          const imgItem = images[i];
-          activeImageId = imgItem.id;
-          renderImageList();
-          renderRegionList();
-          renderPreviews();
-
-          const canvas = getActiveProcessedCanvas();
-          const out = await runOcrOnCanvas(canvas, `Batch image ${i + 1}/${images.length}`);
-
-          batchResults.push({
-            imageId: imgItem.id,
-            imageName: imgItem.name,
-            regionId: null,
-            regionLabel: "whole_image",
-            confidence: out.confidence,
-            text: out.text,
-            mode: "batch_all_images"
-          });
-        }
-
-        setCombinedTextFromResults();
-        setStatus("Batch OCR complete", 100);
-      } catch (err) {
-        console.error(err);
-        setStatus("Batch OCR failed", 0);
-      } finally {
-        batchAllImagesBtn.disabled = false;
-      }
-    }
-
-    function saveCurrentCropAsRegion(kind = "manual", forcedLabel = null) {
-      const active = getActiveImage();
-      if (!active || !cropRect || cropRect.w < 5 || cropRect.h < 5) return;
-
-      const region = {
-        id: uid("region"),
-        label: forcedLabel || (kind === "suggested" ? `Suggested ${regionCounter}` : `Region ${regionCounter}`),
-        x: cropRect.x,
-        y: cropRect.y,
-        w: cropRect.w,
-        h: cropRect.h,
-        kind
-      };
-
-      regionCounter++;
-      active.regions.push(region);
-      pushHistory("addRegion", { imageId: active.id, region: structuredClone(region) });
-
-      cropRect = null;
-      renderRegionList();
-      drawOverlay();
-      refreshButtons();
-      setStatus("Region saved", 0);
-    }
-
-    function clearCrop() {
-      cropRect = null;
-      drawOverlay();
-      refreshButtons();
-    }
-
-    function adjustRotation(delta) {
-      const values = [0, 90, 180, 270];
-      const current = parseInt(rotateSelect.value, 10);
-      let idx = values.indexOf(current);
-      if (idx < 0) idx = 0;
-      idx = (idx + delta + values.length) % values.length;
-      rotateSelect.value = String(values[idx]);
-      cropRect = null;
-      renderPreviews();
-      fitOriginal();
-      fitProcessed();
-    }
-
-    function downloadBlob(filename, content, type) {
-      const blob = new Blob([content], { type });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    }
-
-    async function copyText() {
-      const text = resultText.value || "";
-      if (!text.trim()) return;
-      try {
-        await navigator.clipboard.writeText(text);
-        setStatus("Text copied", 100);
-      } catch {
-        alert("Could not copy text.");
-      }
-    }
-
-    function downloadTxt() {
-      downloadBlob("ocr-result-v4-ultra.txt", resultText.value || "", "text/plain;charset=utf-8");
-    }
-
-    function downloadJson() {
-      const payload = {
-        generatedAt: new Date().toISOString(),
-        settings: {
-          recognitionMode: langSelect.value,
-          psm: psmSelect.value,
-          scale: scaleRange.value,
-          threshold: thresholdRange.value,
-          brightness: brightnessRange.value,
-          contrast: contrastRange.value,
-          blur: blurRange.value,
-          rotate: rotateSelect.value,
-          grayscale: grayscaleCheck.checked,
-          thresholding: thresholdCheck.checked,
-          invert: invertCheck.checked,
-          sharpen: sharpenCheck.checked,
-          numbersOnlyCleanup: numbersOnlyCheck.checked
-        },
-        results: batchResults
-      };
-      downloadBlob("ocr-result-v4-ultra.json", JSON.stringify(payload, null, 2), "application/json;charset=utf-8");
-    }
-
-    function csvEscape(value) {
-      const s = String(value ?? "");
-      return `"${s.replace(/"/g, '""')}"`;
-    }
-
-    function downloadCsv() {
-      const rows = [["imageName","regionLabel","mode","confidence","text"]];
-      batchResults.forEach(item => {
-        rows.push([
-          item.imageName,
-          item.regionLabel,
-          item.mode || "",
-          item.confidence == null ? "" : item.confidence,
-          item.text || ""
-        ]);
-      });
-      const csv = rows.map(r => r.map(csvEscape).join(",")).join("\\n");
-      downloadBlob("ocr-result-v4-ultra.csv", csv, "text/csv;charset=utf-8");
-    }
-
-    async function startCamera() {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" },
-          audio: false
-        });
-        video.srcObject = stream;
-        captureBtn.disabled = false;
-        stopCameraBtn.disabled = false;
-        startCameraBtn.disabled = true;
-        setStatus("Camera started", 0);
-      } catch {
-        alert("Camera could not be started.");
-      }
-    }
-
-    function stopCamera() {
-      if (stream) {
-        stream.getTracks().forEach(t => t.stop());
-        stream = null;
-      }
-      video.srcObject = null;
-      captureBtn.disabled = true;
-      stopCameraBtn.disabled = true;
-      startCameraBtn.disabled = false;
-    }
-
-    async function captureFromCamera() {
-      if (!video.videoWidth || !video.videoHeight) return;
-
-      const canvas = document.createElement("canvas");
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(video, 0, 0);
-
-      const img = await makeImageFromCanvas(canvas);
-      addImage(img, `camera-${images.length + 1}.png`);
-      setStatus("Captured from camera", 0);
-    }
-
-    async function loadPdf() {
-      const file = pdfInput.files?.[0];
-      if (!file) {
-        alert("Choose a PDF first.");
-        return;
-      }
-
-      try {
-        const bytes = await file.arrayBuffer();
-        pdfDoc = await pdfjsLib.getDocument({ data: bytes }).promise;
-        pdfFileName = file.name;
-
-        pdfPageSelect.innerHTML = "";
-        for (let i = 1; i <= pdfDoc.numPages; i++) {
-          const option = document.createElement("option");
-          option.value = String(i);
-          option.textContent = `Page ${i}`;
-          pdfPageSelect.appendChild(option);
-        }
-
-        pdfInfo.textContent = `${file.name} loaded. Pages: ${pdfDoc.numPages}`;
-        importPdfPageBtn.disabled = false;
-        importAllPdfPagesBtn.disabled = false;
-        setStatus("PDF loaded", 0);
-      } catch (err) {
-        console.error(err);
-        alert("Could not load PDF.");
-      }
-    }
-
-    async function renderPdfPageToImage(pageNum) {
-      if (!pdfDoc) return null;
-      const page = await pdfDoc.getPage(pageNum);
-      const scale = parseFloat(pdfScaleSelect.value) || 2;
-      const viewport = page.getViewport({ scale });
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.ceil(viewport.width);
-      canvas.height = Math.ceil(viewport.height);
-      const ctx = canvas.getContext("2d");
-      await page.render({ canvasContext: ctx, viewport }).promise;
-      return makeImageFromCanvas(canvas);
-    }
-
-    async function importSelectedPdfPage() {
-      if (!pdfDoc) return;
-      const pageNum = parseInt(pdfPageSelect.value, 10) || 1;
-      const img = await renderPdfPageToImage(pageNum);
-      if (img) addImage(img, `${pdfFileName}-page-${pageNum}.png`);
-    }
-
-    async function importAllPdfPages() {
-      if (!pdfDoc) return;
-
-      for (let i = 1; i <= pdfDoc.numPages; i++) {
-        setStatus(`Importing PDF page ${i}/${pdfDoc.numPages}`, (i / pdfDoc.numPages) * 100);
-        const img = await renderPdfPageToImage(i);
-        if (img) addImage(img, `${pdfFileName}-page-${i}.png`);
-      }
-
-      setStatus("All PDF pages imported", 100);
-    }
-
-    function suggestLineRegions(canvas) {
-      const ctx = canvas.getContext("2d", { willReadFrequently: true });
-      const { width, height } = canvas;
-      const img = ctx.getImageData(0, 0, width, height).data;
-
-      const rowInk = new Array(height).fill(0);
-      for (let y = 0; y < height; y++) {
-        let count = 0;
-        for (let x = 0; x < width; x++) {
-          const idx = (y * width + x) * 4;
-          const v = img[idx];
-          if (v < 200) count++;
-        }
-        rowInk[y] = count;
-      }
-
-      const minInk = Math.max(10, Math.floor(width * 0.02));
-      const lines = [];
-      let inBand = false;
-      let start = 0;
-
-      for (let y = 0; y < height; y++) {
-        if (!inBand && rowInk[y] >= minInk) {
-          inBand = true;
-          start = y;
-        } else if (inBand && rowInk[y] < minInk) {
-          const end = y - 1;
-          if (end - start > 6) {
-            lines.push({ start, end });
-          }
-          inBand = false;
-        }
-      }
-      if (inBand) {
-        const end = height - 1;
-        if (end - start > 6) lines.push({ start, end });
-      }
-
-      const regions = [];
-      let lineNo = 1;
-      for (const band of lines) {
-        let minX = width, maxX = 0;
-        for (let y = band.start; y <= band.end; y++) {
-          for (let x = 0; x < width; x++) {
-            const idx = (y * width + x) * 4;
-            const v = img[idx];
-            if (v < 200) {
-              if (x < minX) minX = x;
-              if (x > maxX) maxX = x;
-            }
-          }
-        }
-
-        if (maxX > minX) {
-          const pad = 6;
-          regions.push({
-            id: uid("line"),
-            label: `Line ${lineNo++}`,
-            x: Math.max(0, minX - pad),
-            y: Math.max(0, band.start - pad),
-            w: Math.min(width, maxX - minX + (pad * 2)),
-            h: Math.min(height, band.end - band.start + (pad * 2)),
-            kind: "suggested"
-          });
-        }
-      }
-
-      return regions;
-    }
-
-    function suggestBlockRegions(canvas) {
-      const ctx = canvas.getContext("2d", { willReadFrequently: true });
-      const { width, height } = canvas;
-      const data = ctx.getImageData(0, 0, width, height).data;
-
-      const cols = 24;
-      const rows = 24;
-      const cellW = Math.ceil(width / cols);
-      const cellH = Math.ceil(height / rows);
-
-      const grid = [];
-      for (let gy = 0; gy < rows; gy++) {
-        grid[gy] = [];
-        for (let gx = 0; gx < cols; gx++) {
-          let dark = 0;
-          let total = 0;
-
-          const sx = gx * cellW;
-          const sy = gy * cellH;
-          const ex = Math.min(width, sx + cellW);
-          const ey = Math.min(height, sy + cellH);
-
-          for (let y = sy; y < ey; y++) {
-            for (let x = sx; x < ex; x++) {
-              const idx = (y * width + x) * 4;
-              const v = data[idx];
-              if (v < 180) dark++;
-              total++;
-            }
-          }
-
-          grid[gy][gx] = (dark / Math.max(1, total)) > 0.05 ? 1 : 0;
-        }
-      }
-
-      const visited = Array.from({ length: rows }, () => Array(cols).fill(false));
-      const regions = [];
-      let count = 1;
-
-      const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
-
-      for (let gy = 0; gy < rows; gy++) {
-        for (let gx = 0; gx < cols; gx++) {
-          if (!grid[gy][gx] || visited[gy][gx]) continue;
-
-          const queue = [[gx, gy]];
-          visited[gy][gx] = true;
-
-          let minGX = gx, maxGX = gx, minGY = gy, maxGY = gy;
-
-          while (queue.length) {
-            const [cx, cy] = queue.shift();
-            minGX = Math.min(minGX, cx);
-            maxGX = Math.max(maxGX, cx);
-            minGY = Math.min(minGY, cy);
-            maxGY = Math.max(maxGY, cy);
-
-            for (const [dx, dy] of dirs) {
-              const nx = cx + dx;
-              const ny = cy + dy;
-              if (nx < 0 || ny < 0 || nx >= cols || ny >= rows) continue;
-              if (visited[ny][nx] || !grid[ny][nx]) continue;
-              visited[ny][nx] = true;
-              queue.push([nx, ny]);
-            }
-          }
-
-          const x = minGX * cellW;
-          const y = minGY * cellH;
-          const w = Math.min(width - x, (maxGX - minGX + 1) * cellW);
-          const h = Math.min(height - y, (maxGY - minGY + 1) * cellH);
-
-          if (w > 40 && h > 20) {
-            regions.push({
-              id: uid("suggested"),
-              label: `Suggested ${count++}`,
-              x, y, w, h,
-              kind: "suggested"
-            });
-          }
-        }
-      }
-
-      return regions.sort((a,b) => (a.y - b.y) || (a.x - b.x)).slice(0, 18);
-    }
-
-    function autoSuggestRegions() {
-      const active = getActiveImage();
-      if (!active) return;
-
-      const base = getActiveProcessedCanvas();
-      if (!base) return;
-
-      const previousRegions = structuredClone(active.regions);
-      const lines = suggestLineRegions(base);
-      const blocks = suggestBlockRegions(base);
-
-      const merged = [...lines];
-      for (const b of blocks) {
-        const duplicate = merged.some(m =>
-          Math.abs(m.x - b.x) < 20 &&
-          Math.abs(m.y - b.y) < 20 &&
-          Math.abs(m.w - b.w) < 30 &&
-          Math.abs(m.h - b.h) < 20
+        const totalItems = batchResults.length;
+        const totalChars = batchResults.reduce(
+          (sum, x) => sum + (x.text ? x.text.length : 0),
+          0,
         );
-        if (!duplicate) merged.push(b);
+        const validConfs = batchResults
+          .map((x) => x.confidence)
+          .filter((x) => typeof x === "number");
+        const avgConf = validConfs.length
+          ? (validConfs.reduce((a, b) => a + b, 0) / validConfs.length).toFixed(
+              1,
+            )
+          : "—";
+
+        summaryText.textContent = `Items OCRed: ${totalItems}. Average confidence: ${avgConf}%. Total characters: ${totalChars}.`;
+        renderResultsList();
       }
 
-      active.regions = merged.sort((a,b) => (a.y - b.y) || (a.x - b.x));
-      pushHistory("bulkReplaceRegions", { imageId: active.id, previousRegions });
+      function addImage(img, name) {
+        const item = {
+          id: uid("img"),
+          name,
+          image: img,
+          thumb: img.src,
+          regions: [],
+        };
+        images.push(item);
+        activeImageId = item.id;
+        cropRect = null;
+        pushHistory("addImage", { imageId: item.id });
 
-      renderRegionList();
-      drawOverlay();
-      refreshButtons();
-      setStatus(`Suggested ${active.regions.length} regions`, 0);
-    }
-
-    function loadSampleBatch() {
-      function makeCanvas(title, lines, extraFn) {
-        const c = document.createElement("canvas");
-        c.width = 1300;
-        c.height = 820;
-        const ctx = c.getContext("2d");
-
-        ctx.fillStyle = "#fffef8";
-        ctx.fillRect(0, 0, c.width, c.height);
-
-        ctx.fillStyle = "#111";
-        ctx.font = "bold 48px Arial";
-        ctx.fillText(title, 60, 90);
-
-        ctx.font = "36px Arial";
-        let y = 170;
-        for (const line of lines) {
-          ctx.fillText(line, 60, y);
-          y += 62;
-        }
-
-        extraFn?.(ctx);
-        return c;
-      }
-
-      const c1 = makeCanvas(
-        "Invoice Sample 1234567890",
-        [
-          "Order ID: 45892",
-          "Total Amount: 7345.50",
-          "Date: 12/04/2026",
-          "Customer Number: 903145"
-        ],
-        (ctx) => {
-          ctx.font = "italic 34px cursive";
-          ctx.fillText("Pay before Friday please", 60, 470);
-          ctx.font = "30px Arial";
-          ctx.fillText("Line A", 60, 590);
-          ctx.fillText("Line B", 60, 645);
-          ctx.fillText("Line C", 60, 700);
-        }
-      );
-
-      const c2 = makeCanvas(
-        "Hindi OCR Sample",
-        [
-          "नाम: Champak Roy",
-          "कुल राशि: १२३४५.६७",
-          "तारीख: १२/०४/२०२६",
-          "Clear writing gives better results."
-        ],
-        (ctx) => {
-          ctx.font = "36px Arial";
-          ctx.fillText("Mixed English and Hindi sample lines.", 60, 470);
-        }
-      );
-
-      Promise.all([makeImageFromCanvas(c1), makeImageFromCanvas(c2)]).then(([img1, img2]) => {
-        addImage(img1, "sample-english.png");
-        addImage(img2, "sample-mixed.png");
-        activeImageId = images[0]?.id || null;
         renderImageList();
         renderRegionList();
         renderPreviews();
         fitOriginal();
         fitProcessed();
-        setStatus("Sample batch loaded", 0);
-      });
-    }
-
-    dropZone.addEventListener("click", () => fileInput.click());
-    dropZone.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        fileInput.click();
+        refreshButtons();
       }
-    });
 
-    fileInput.addEventListener("change", (e) => handleFiles(e.target.files));
+      function handleFiles(fileList) {
+        const files = Array.from(fileList || []).filter((f) =>
+          f.type.startsWith("image/"),
+        );
+        if (!files.length) {
+          alert("Please choose image files.");
+          return;
+        }
 
-    ["dragenter", "dragover"].forEach(evt => {
-      dropZone.addEventListener(evt, (e) => {
-        e.preventDefault();
-        dropZone.classList.add("drag");
-      });
-    });
-    ["dragleave", "drop"].forEach(evt => {
-      dropZone.addEventListener(evt, (e) => {
-        e.preventDefault();
-        dropZone.classList.remove("drag");
-      });
-    });
-    dropZone.addEventListener("drop", (e) => handleFiles(e.dataTransfer?.files));
+        files.forEach((file) => {
+          const url = URL.createObjectURL(file);
+          const img = new Image();
+          img.onload = () => {
+            addImage(img, file.name);
+            URL.revokeObjectURL(url);
+          };
+          img.onerror = () => URL.revokeObjectURL(url);
+          img.src = url;
+        });
+      }
 
-    loadPdfBtn.addEventListener("click", loadPdf);
-    importPdfPageBtn.addEventListener("click", importSelectedPdfPage);
-    importAllPdfPagesBtn.addEventListener("click", importAllPdfPages);
+      function getOcrLangAndWhitelist() {
+        const mode = langSelect.value;
 
-    startCameraBtn.addEventListener("click", startCamera);
-    captureBtn.addEventListener("click", captureFromCamera);
-    stopCameraBtn.addEventListener("click", stopCamera);
+        if (mode === "eng") return { lang: "eng", whitelist: "" };
+        if (mode === "hin") return { lang: "hin", whitelist: "" };
+        if (mode === "eng+hin") return { lang: "eng+hin", whitelist: "" };
+        if (mode === "eng_numbers")
+          return { lang: "eng", whitelist: "0123456789.,:/-+()% " };
+        if (mode === "hin_numbers")
+          return { lang: "hin", whitelist: "0123456789०१२३४५६७८९.,:/-+()% " };
 
-    [
-      scaleRange, thresholdRange, brightnessRange, contrastRange, blurRange, rotateSelect,
-      grayscaleCheck, thresholdCheck, invertCheck, sharpenCheck
-    ].forEach(el => {
-      el.addEventListener("input", () => { if (getActiveImage()) renderPreviews(); });
-      el.addEventListener("change", () => { if (getActiveImage()) renderPreviews(); });
-    });
+        return { lang: "eng+hin", whitelist: "" };
+      }
 
-    ocrBtn.addEventListener("click", runOCRWholeImage);
-    ocrActiveCropBtn.addEventListener("click", runOCRActiveCrop);
-    ocrRegionsBtn.addEventListener("click", runOCRSavedRegions);
-    lineByLineBtn.addEventListener("click", runOCRLineByLine);
-    batchAllImagesBtn.addEventListener("click", runBatchAllImages);
-    saveRegionBtn.addEventListener("click", () => saveCurrentCropAsRegion("manual"));
-    autoSuggestBtn.addEventListener("click", autoSuggestRegions);
-    clearCropBtn.addEventListener("click", clearCrop);
-    undoBtn.addEventListener("click", undoLast);
-    resetBtn.addEventListener("click", resetAll);
-    sampleBtn.addEventListener("click", loadSampleBatch);
+      function postProcessText(text) {
+        let out = text || "";
+        if (numbersOnlyCheck.checked) {
+          out = out.replace(/[^\d०-९.,:/\-+()% \n]/g, "");
+          out = out.replace(/[ \t]+/g, " ");
+          out = out.replace(/\n{3,}/g, "\n\n");
+        }
+        return out.trim();
+      }
 
-    zoomInOriginalBtn.addEventListener("click", () => { originalZoom = Math.min(6, originalZoom + 0.25); applyOriginalZoom(); });
-    zoomOutOriginalBtn.addEventListener("click", () => { originalZoom = Math.max(0.25, originalZoom - 0.25); applyOriginalZoom(); });
-    fitOriginalBtn.addEventListener("click", fitOriginal);
+      function getActiveProcessedCanvas() {
+        const active = getActiveImage();
+        if (!active) return null;
+        return createProcessedCanvas(active.image).canvas;
+      }
 
-    zoomInProcessedBtn.addEventListener("click", () => { processedZoom = Math.min(6, processedZoom + 0.25); applyProcessedZoom(); });
-    zoomOutProcessedBtn.addEventListener("click", () => { processedZoom = Math.max(0.25, processedZoom - 0.25); applyProcessedZoom(); });
-    fitProcessedBtn.addEventListener("click", fitProcessed);
+      function cropCanvas(sourceCanvas, rect) {
+        const x = Math.max(0, Math.floor(rect.x));
+        const y = Math.max(0, Math.floor(rect.y));
+        const w = Math.min(sourceCanvas.width - x, Math.floor(rect.w));
+        const h = Math.min(sourceCanvas.height - y, Math.floor(rect.h));
 
-    rotateLeftBtn.addEventListener("click", () => adjustRotation(-1));
-    rotateRightBtn.addEventListener("click", () => adjustRotation(1));
+        const c = document.createElement("canvas");
+        c.width = Math.max(1, w);
+        c.height = Math.max(1, h);
+        const ctx = c.getContext("2d");
+        ctx.drawImage(sourceCanvas, x, y, w, h, 0, 0, w, h);
+        return c;
+      }
 
-    copyBtn.addEventListener("click", copyText);
-    downloadTxtBtn.addEventListener("click", downloadTxt);
-    downloadJsonBtn.addEventListener("click", downloadJson);
-    downloadCsvBtn.addEventListener("click", downloadCsv);
+      async function runOcrOnCanvas(canvas, labelForStatus = "OCR") {
+        const { lang, whitelist } = getOcrLangAndWhitelist();
 
-    processedCanvas.addEventListener("mousedown", (e) => {
-      if (!cropModeCheck.checked || !getActiveImage()) return;
-      isDraggingCrop = true;
-      dragStart = getCanvasCoordsFromPointer(e.clientX, e.clientY);
-      cropRect = { x: dragStart.x, y: dragStart.y, w: 0, h: 0 };
-      drawOverlay();
-      refreshButtons();
-      e.preventDefault();
-    });
+        const result = await Tesseract.recognize(canvas, lang, {
+          logger: (m) => {
+            const pct = typeof m.progress === "number" ? m.progress * 100 : 0;
+            if (m.status) setStatus(`${labelForStatus}: ${m.status}`, pct);
+          },
+        });
 
-    processedCanvas.addEventListener("mousemove", (e) => {
-      if (!cropModeCheck.checked || !isDraggingCrop || !dragStart) return;
-      const p = getCanvasCoordsFromPointer(e.clientX, e.clientY);
-      cropRect = normalizeCropRect(dragStart, p);
-      drawOverlay();
-      refreshButtons();
-    });
+        let text = result?.data?.text || "";
+        const confidence = result?.data?.confidence ?? null;
 
-    window.addEventListener("mouseup", () => {
-      if (!cropModeCheck.checked) return;
-      if (isDraggingCrop) {
-        isDraggingCrop = false;
+        text = postProcessText(text);
+
+        if (whitelist) {
+          const safeWhitelist = whitelist.replace(
+            /[-/\\^$*+?.()|[\]{}]/g,
+            "\\$&",
+          );
+          text = text
+            .replace(new RegExp(`[^${safeWhitelist}\\n]`, "g"), "")
+            .trim();
+        }
+
+        return { text, confidence, raw: result?.data || null };
+      }
+
+      function setCombinedTextFromResults() {
+        const combined = batchResults
+          .map((x) => `[${x.imageName} / ${x.regionLabel}]\\n${x.text || ""}`)
+          .join("\\n\\n")
+          .trim();
+        resultText.value = combined;
+        const confs = batchResults
+          .map((x) => x.confidence)
+          .filter((x) => typeof x === "number");
+        const avg = confs.length
+          ? confs.reduce((a, b) => a + b, 0) / confs.length
+          : null;
+        updateMetrics(combined, avg);
+        updateSummary();
+      }
+
+      async function runOCRWholeImage() {
+        const active = getActiveImage();
+        if (!active) return;
+        ocrBtn.disabled = true;
+
+        try {
+          const canvas = getActiveProcessedCanvas();
+          batchResults = [];
+          const out = await runOcrOnCanvas(canvas, "Whole image OCR");
+          batchResults.push({
+            imageId: active.id,
+            imageName: active.name,
+            regionId: null,
+            regionLabel: "whole_image",
+            confidence: out.confidence,
+            text: out.text,
+            mode: "whole_image",
+          });
+          setCombinedTextFromResults();
+          setStatus("OCR complete", 100);
+        } catch (err) {
+          console.error(err);
+          setStatus("OCR failed", 0);
+          resultText.value = "OCR failed. Try different settings.";
+          updateMetrics("", null);
+        } finally {
+          ocrBtn.disabled = false;
+        }
+      }
+
+      async function runOCRActiveCrop() {
+        const active = getActiveImage();
+        if (!active || !cropRect) return;
+        ocrActiveCropBtn.disabled = true;
+
+        try {
+          const base = getActiveProcessedCanvas();
+          const regionCanvas = cropCanvas(base, cropRect);
+          batchResults = [];
+          const out = await runOcrOnCanvas(regionCanvas, "Active crop OCR");
+          batchResults.push({
+            imageId: active.id,
+            imageName: active.name,
+            regionId: null,
+            regionLabel: "active_crop",
+            confidence: out.confidence,
+            text: out.text,
+            mode: "active_crop",
+          });
+          setCombinedTextFromResults();
+          setStatus("Active crop OCR complete", 100);
+        } catch (err) {
+          console.error(err);
+          setStatus("Active crop OCR failed", 0);
+        } finally {
+          ocrActiveCropBtn.disabled = false;
+        }
+      }
+
+      async function runOCRSavedRegions() {
+        const active = getActiveImage();
+        if (!active || !active.regions.length) return;
+        ocrRegionsBtn.disabled = true;
+
+        try {
+          const base = getActiveProcessedCanvas();
+          batchResults = [];
+
+          for (let i = 0; i < active.regions.length; i++) {
+            const region = active.regions[i];
+            const regionCanvas = cropCanvas(base, region);
+            const out = await runOcrOnCanvas(
+              regionCanvas,
+              `Region ${i + 1}/${active.regions.length}`,
+            );
+            batchResults.push({
+              imageId: active.id,
+              imageName: active.name,
+              regionId: region.id,
+              regionLabel: region.label,
+              confidence: out.confidence,
+              text: out.text,
+              mode: region.kind || "region",
+            });
+          }
+
+          setCombinedTextFromResults();
+          setStatus("Region OCR complete", 100);
+        } catch (err) {
+          console.error(err);
+          setStatus("Region OCR failed", 0);
+        } finally {
+          ocrRegionsBtn.disabled = false;
+        }
+      }
+
+      async function runOCRLineByLine() {
+        const active = getActiveImage();
+        if (!active) return;
+        lineByLineBtn.disabled = true;
+
+        try {
+          const base = getActiveProcessedCanvas();
+          const lines = suggestLineRegions(base);
+          batchResults = [];
+
+          for (let i = 0; i < lines.length; i++) {
+            const region = lines[i];
+            const canvas = cropCanvas(base, region);
+            const prevPsm = psmSelect.value;
+            psmSelect.value = "7";
+            const out = await runOcrOnCanvas(
+              canvas,
+              `Line ${i + 1}/${lines.length}`,
+            );
+            psmSelect.value = prevPsm;
+
+            batchResults.push({
+              imageId: active.id,
+              imageName: active.name,
+              regionId: region.id || null,
+              regionLabel: region.label || `Line ${i + 1}`,
+              confidence: out.confidence,
+              text: out.text,
+              mode: "line_by_line",
+            });
+          }
+
+          setCombinedTextFromResults();
+          setStatus("Line-by-line OCR complete", 100);
+        } catch (err) {
+          console.error(err);
+          setStatus("Line-by-line OCR failed", 0);
+        } finally {
+          lineByLineBtn.disabled = false;
+        }
+      }
+
+      async function runBatchAllImages() {
+        if (!images.length) return;
+        batchAllImagesBtn.disabled = true;
+        batchResults = [];
+
+        try {
+          for (let i = 0; i < images.length; i++) {
+            const imgItem = images[i];
+            activeImageId = imgItem.id;
+            renderImageList();
+            renderRegionList();
+            renderPreviews();
+
+            const canvas = getActiveProcessedCanvas();
+            const out = await runOcrOnCanvas(
+              canvas,
+              `Batch image ${i + 1}/${images.length}`,
+            );
+
+            batchResults.push({
+              imageId: imgItem.id,
+              imageName: imgItem.name,
+              regionId: null,
+              regionLabel: "whole_image",
+              confidence: out.confidence,
+              text: out.text,
+              mode: "batch_all_images",
+            });
+          }
+
+          setCombinedTextFromResults();
+          setStatus("Batch OCR complete", 100);
+        } catch (err) {
+          console.error(err);
+          setStatus("Batch OCR failed", 0);
+        } finally {
+          batchAllImagesBtn.disabled = false;
+        }
+      }
+
+      function saveCurrentCropAsRegion(kind = "manual", forcedLabel = null) {
+        const active = getActiveImage();
+        if (!active || !cropRect || cropRect.w < 5 || cropRect.h < 5) return;
+
+        const region = {
+          id: uid("region"),
+          label:
+            forcedLabel ||
+            (kind === "suggested"
+              ? `Suggested ${regionCounter}`
+              : `Region ${regionCounter}`),
+          x: cropRect.x,
+          y: cropRect.y,
+          w: cropRect.w,
+          h: cropRect.h,
+          kind,
+        };
+
+        regionCounter++;
+        active.regions.push(region);
+        pushHistory("addRegion", {
+          imageId: active.id,
+          region: structuredClone(region),
+        });
+
+        cropRect = null;
+        renderRegionList();
+        drawOverlay();
+        refreshButtons();
+        setStatus("Region saved", 0);
+      }
+
+      function clearCrop() {
+        cropRect = null;
         drawOverlay();
         refreshButtons();
       }
-    });
 
-    processedCanvas.addEventListener("touchstart", (e) => {
-      if (!cropModeCheck.checked || !getActiveImage()) return;
-      const t = e.touches[0];
-      if (!t) return;
-      isDraggingCrop = true;
-      dragStart = getCanvasCoordsFromPointer(t.clientX, t.clientY);
-      cropRect = { x: dragStart.x, y: dragStart.y, w: 0, h: 0 };
-      drawOverlay();
-      refreshButtons();
-      e.preventDefault();
-    }, { passive:false });
+      function adjustRotation(delta) {
+        const values = [0, 90, 180, 270];
+        const current = parseInt(rotateSelect.value, 10);
+        let idx = values.indexOf(current);
+        if (idx < 0) idx = 0;
+        idx = (idx + delta + values.length) % values.length;
+        rotateSelect.value = String(values[idx]);
+        cropRect = null;
+        renderPreviews();
+        fitOriginal();
+        fitProcessed();
+      }
 
-    processedCanvas.addEventListener("touchmove", (e) => {
-      if (!cropModeCheck.checked || !isDraggingCrop || !dragStart) return;
-      const t = e.touches[0];
-      if (!t) return;
-      const p = getCanvasCoordsFromPointer(t.clientX, t.clientY);
-      cropRect = normalizeCropRect(dragStart, p);
-      drawOverlay();
-      refreshButtons();
-      e.preventDefault();
-    }, { passive:false });
+      function downloadBlob(filename, content, type) {
+        const blob = new Blob([content], { type });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      }
 
-    window.addEventListener("touchend", () => {
-      if (!cropModeCheck.checked) return;
-      if (isDraggingCrop) {
-        isDraggingCrop = false;
+      async function copyText() {
+        const text = resultText.value || "";
+        if (!text.trim()) return;
+        try {
+          await navigator.clipboard.writeText(text);
+          setStatus("Text copied", 100);
+        } catch {
+          alert("Could not copy text.");
+        }
+      }
+
+      function downloadTxt() {
+        downloadBlob(
+          "ocr-result-v4-ultra.txt",
+          resultText.value || "",
+          "text/plain;charset=utf-8",
+        );
+      }
+
+      function downloadJson() {
+        const payload = {
+          generatedAt: new Date().toISOString(),
+          settings: {
+            recognitionMode: langSelect.value,
+            psm: psmSelect.value,
+            scale: scaleRange.value,
+            threshold: thresholdRange.value,
+            brightness: brightnessRange.value,
+            contrast: contrastRange.value,
+            blur: blurRange.value,
+            rotate: rotateSelect.value,
+            grayscale: grayscaleCheck.checked,
+            thresholding: thresholdCheck.checked,
+            invert: invertCheck.checked,
+            sharpen: sharpenCheck.checked,
+            numbersOnlyCleanup: numbersOnlyCheck.checked,
+          },
+          results: batchResults,
+        };
+        downloadBlob(
+          "ocr-result-v4-ultra.json",
+          JSON.stringify(payload, null, 2),
+          "application/json;charset=utf-8",
+        );
+      }
+
+      function csvEscape(value) {
+        const s = String(value ?? "");
+        return `"${s.replace(/"/g, '""')}"`;
+      }
+
+      function downloadCsv() {
+        const rows = [
+          ["imageName", "regionLabel", "mode", "confidence", "text"],
+        ];
+        batchResults.forEach((item) => {
+          rows.push([
+            item.imageName,
+            item.regionLabel,
+            item.mode || "",
+            item.confidence == null ? "" : item.confidence,
+            item.text || "",
+          ]);
+        });
+        const csv = rows.map((r) => r.map(csvEscape).join(",")).join("\\n");
+        downloadBlob("ocr-result-v4-ultra.csv", csv, "text/csv;charset=utf-8");
+      }
+
+      async function startCamera() {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "environment" },
+            audio: false,
+          });
+          video.srcObject = stream;
+          captureBtn.disabled = false;
+          stopCameraBtn.disabled = false;
+          startCameraBtn.disabled = true;
+          setStatus("Camera started", 0);
+        } catch {
+          alert("Camera could not be started.");
+        }
+      }
+
+      function stopCamera() {
+        if (stream) {
+          stream.getTracks().forEach((t) => t.stop());
+          stream = null;
+        }
+        video.srcObject = null;
+        captureBtn.disabled = true;
+        stopCameraBtn.disabled = true;
+        startCameraBtn.disabled = false;
+      }
+
+      async function captureFromCamera() {
+        if (!video.videoWidth || !video.videoHeight) return;
+
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(video, 0, 0);
+
+        const img = await makeImageFromCanvas(canvas);
+        addImage(img, `camera-${images.length + 1}.png`);
+        setStatus("Captured from camera", 0);
+      }
+
+      async function loadPdf() {
+        const file = pdfInput.files?.[0];
+        if (!file) {
+          alert("Choose a PDF first.");
+          return;
+        }
+
+        try {
+          const bytes = await file.arrayBuffer();
+          pdfDoc = await pdfjsLib.getDocument({ data: bytes }).promise;
+          pdfFileName = file.name;
+
+          pdfPageSelect.innerHTML = "";
+          for (let i = 1; i <= pdfDoc.numPages; i++) {
+            const option = document.createElement("option");
+            option.value = String(i);
+            option.textContent = `Page ${i}`;
+            pdfPageSelect.appendChild(option);
+          }
+
+          pdfInfo.textContent = `${file.name} loaded. Pages: ${pdfDoc.numPages}`;
+          importPdfPageBtn.disabled = false;
+          importAllPdfPagesBtn.disabled = false;
+          setStatus("PDF loaded", 0);
+        } catch (err) {
+          console.error(err);
+          alert("Could not load PDF.");
+        }
+      }
+
+      async function renderPdfPageToImage(pageNum) {
+        if (!pdfDoc) return null;
+        const page = await pdfDoc.getPage(pageNum);
+        const scale = parseFloat(pdfScaleSelect.value) || 2;
+        const viewport = page.getViewport({ scale });
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.ceil(viewport.width);
+        canvas.height = Math.ceil(viewport.height);
+        const ctx = canvas.getContext("2d");
+        await page.render({ canvasContext: ctx, viewport }).promise;
+        return makeImageFromCanvas(canvas);
+      }
+
+      async function importSelectedPdfPage() {
+        if (!pdfDoc) return;
+        const pageNum = parseInt(pdfPageSelect.value, 10) || 1;
+        const img = await renderPdfPageToImage(pageNum);
+        if (img) addImage(img, `${pdfFileName}-page-${pageNum}.png`);
+      }
+
+      async function importAllPdfPages() {
+        if (!pdfDoc) return;
+
+        for (let i = 1; i <= pdfDoc.numPages; i++) {
+          setStatus(
+            `Importing PDF page ${i}/${pdfDoc.numPages}`,
+            (i / pdfDoc.numPages) * 100,
+          );
+          const img = await renderPdfPageToImage(i);
+          if (img) addImage(img, `${pdfFileName}-page-${i}.png`);
+        }
+
+        setStatus("All PDF pages imported", 100);
+      }
+
+      function suggestLineRegions(canvas) {
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        const { width, height } = canvas;
+        const img = ctx.getImageData(0, 0, width, height).data;
+
+        const rowInk = new Array(height).fill(0);
+        for (let y = 0; y < height; y++) {
+          let count = 0;
+          for (let x = 0; x < width; x++) {
+            const idx = (y * width + x) * 4;
+            const v = img[idx];
+            if (v < 200) count++;
+          }
+          rowInk[y] = count;
+        }
+
+        const minInk = Math.max(10, Math.floor(width * 0.02));
+        const lines = [];
+        let inBand = false;
+        let start = 0;
+
+        for (let y = 0; y < height; y++) {
+          if (!inBand && rowInk[y] >= minInk) {
+            inBand = true;
+            start = y;
+          } else if (inBand && rowInk[y] < minInk) {
+            const end = y - 1;
+            if (end - start > 6) {
+              lines.push({ start, end });
+            }
+            inBand = false;
+          }
+        }
+        if (inBand) {
+          const end = height - 1;
+          if (end - start > 6) lines.push({ start, end });
+        }
+
+        const regions = [];
+        let lineNo = 1;
+        for (const band of lines) {
+          let minX = width,
+            maxX = 0;
+          for (let y = band.start; y <= band.end; y++) {
+            for (let x = 0; x < width; x++) {
+              const idx = (y * width + x) * 4;
+              const v = img[idx];
+              if (v < 200) {
+                if (x < minX) minX = x;
+                if (x > maxX) maxX = x;
+              }
+            }
+          }
+
+          if (maxX > minX) {
+            const pad = 6;
+            regions.push({
+              id: uid("line"),
+              label: `Line ${lineNo++}`,
+              x: Math.max(0, minX - pad),
+              y: Math.max(0, band.start - pad),
+              w: Math.min(width, maxX - minX + pad * 2),
+              h: Math.min(height, band.end - band.start + pad * 2),
+              kind: "suggested",
+            });
+          }
+        }
+
+        return regions;
+      }
+
+      function suggestBlockRegions(canvas) {
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        const { width, height } = canvas;
+        const data = ctx.getImageData(0, 0, width, height).data;
+
+        const cols = 24;
+        const rows = 24;
+        const cellW = Math.ceil(width / cols);
+        const cellH = Math.ceil(height / rows);
+
+        const grid = [];
+        for (let gy = 0; gy < rows; gy++) {
+          grid[gy] = [];
+          for (let gx = 0; gx < cols; gx++) {
+            let dark = 0;
+            let total = 0;
+
+            const sx = gx * cellW;
+            const sy = gy * cellH;
+            const ex = Math.min(width, sx + cellW);
+            const ey = Math.min(height, sy + cellH);
+
+            for (let y = sy; y < ey; y++) {
+              for (let x = sx; x < ex; x++) {
+                const idx = (y * width + x) * 4;
+                const v = data[idx];
+                if (v < 180) dark++;
+                total++;
+              }
+            }
+
+            grid[gy][gx] = dark / Math.max(1, total) > 0.05 ? 1 : 0;
+          }
+        }
+
+        const visited = Array.from({ length: rows }, () =>
+          Array(cols).fill(false),
+        );
+        const regions = [];
+        let count = 1;
+
+        const dirs = [
+          [1, 0],
+          [-1, 0],
+          [0, 1],
+          [0, -1],
+        ];
+
+        for (let gy = 0; gy < rows; gy++) {
+          for (let gx = 0; gx < cols; gx++) {
+            if (!grid[gy][gx] || visited[gy][gx]) continue;
+
+            const queue = [[gx, gy]];
+            visited[gy][gx] = true;
+
+            let minGX = gx,
+              maxGX = gx,
+              minGY = gy,
+              maxGY = gy;
+
+            while (queue.length) {
+              const [cx, cy] = queue.shift();
+              minGX = Math.min(minGX, cx);
+              maxGX = Math.max(maxGX, cx);
+              minGY = Math.min(minGY, cy);
+              maxGY = Math.max(maxGY, cy);
+
+              for (const [dx, dy] of dirs) {
+                const nx = cx + dx;
+                const ny = cy + dy;
+                if (nx < 0 || ny < 0 || nx >= cols || ny >= rows) continue;
+                if (visited[ny][nx] || !grid[ny][nx]) continue;
+                visited[ny][nx] = true;
+                queue.push([nx, ny]);
+              }
+            }
+
+            const x = minGX * cellW;
+            const y = minGY * cellH;
+            const w = Math.min(width - x, (maxGX - minGX + 1) * cellW);
+            const h = Math.min(height - y, (maxGY - minGY + 1) * cellH);
+
+            if (w > 40 && h > 20) {
+              regions.push({
+                id: uid("suggested"),
+                label: `Suggested ${count++}`,
+                x,
+                y,
+                w,
+                h,
+                kind: "suggested",
+              });
+            }
+          }
+        }
+
+        return regions.sort((a, b) => a.y - b.y || a.x - b.x).slice(0, 18);
+      }
+
+      function autoSuggestRegions() {
+        const active = getActiveImage();
+        if (!active) return;
+
+        const base = getActiveProcessedCanvas();
+        if (!base) return;
+
+        const previousRegions = structuredClone(active.regions);
+        const lines = suggestLineRegions(base);
+        const blocks = suggestBlockRegions(base);
+
+        const merged = [...lines];
+        for (const b of blocks) {
+          const duplicate = merged.some(
+            (m) =>
+              Math.abs(m.x - b.x) < 20 &&
+              Math.abs(m.y - b.y) < 20 &&
+              Math.abs(m.w - b.w) < 30 &&
+              Math.abs(m.h - b.h) < 20,
+          );
+          if (!duplicate) merged.push(b);
+        }
+
+        active.regions = merged.sort((a, b) => a.y - b.y || a.x - b.x);
+        pushHistory("bulkReplaceRegions", {
+          imageId: active.id,
+          previousRegions,
+        });
+
+        renderRegionList();
         drawOverlay();
         refreshButtons();
+        setStatus(`Suggested ${active.regions.length} regions`, 0);
       }
-    });
 
-    resetAll();
-  </script>
-</body>
-</html> 
+      function loadSampleBatch() {
+        function makeCanvas(title, lines, extraFn) {
+          const c = document.createElement("canvas");
+          c.width = 1300;
+          c.height = 820;
+          const ctx = c.getContext("2d");
+
+          ctx.fillStyle = "#fffef8";
+          ctx.fillRect(0, 0, c.width, c.height);
+
+          ctx.fillStyle = "#111";
+          ctx.font = "bold 48px Arial";
+          ctx.fillText(title, 60, 90);
+
+          ctx.font = "36px Arial";
+          let y = 170;
+          for (const line of lines) {
+            ctx.fillText(line, 60, y);
+            y += 62;
+          }
+
+          extraFn?.(ctx);
+          return c;
+        }
+
+        const c1 = makeCanvas(
+          "Invoice Sample 1234567890",
+          [
+            "Order ID: 45892",
+            "Total Amount: 7345.50",
+            "Date: 12/04/2026",
+            "Customer Number: 903145",
+          ],
+          (ctx) => {
+            ctx.font = "italic 34px cursive";
+            ctx.fillText("Pay before Friday please", 60, 470);
+            ctx.font = "30px Arial";
+            ctx.fillText("Line A", 60, 590);
+            ctx.fillText("Line B", 60, 645);
+            ctx.fillText("Line C", 60, 700);
+          },
+        );
+
+        const c2 = makeCanvas(
+          "Hindi OCR Sample",
+          [
+            "नाम: Champak Roy",
+            "कुल राशि: १२३४५.६७",
+            "तारीख: १२/०४/२०२६",
+            "Clear writing gives better results.",
+          ],
+          (ctx) => {
+            ctx.font = "36px Arial";
+            ctx.fillText("Mixed English and Hindi sample lines.", 60, 470);
+          },
+        );
+
+        Promise.all([makeImageFromCanvas(c1), makeImageFromCanvas(c2)]).then(
+          ([img1, img2]) => {
+            addImage(img1, "sample-english.png");
+            addImage(img2, "sample-mixed.png");
+            activeImageId = images[0]?.id || null;
+            renderImageList();
+            renderRegionList();
+            renderPreviews();
+            fitOriginal();
+            fitProcessed();
+            setStatus("Sample batch loaded", 0);
+          },
+        );
+      }
+
+      dropZone.addEventListener("click", () => fileInput.click());
+      dropZone.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          fileInput.click();
+        }
+      });
+
+      fileInput.addEventListener("change", (e) => handleFiles(e.target.files));
+
+      ["dragenter", "dragover"].forEach((evt) => {
+        dropZone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          dropZone.classList.add("drag");
+        });
+      });
+      ["dragleave", "drop"].forEach((evt) => {
+        dropZone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          dropZone.classList.remove("drag");
+        });
+      });
+      dropZone.addEventListener("drop", (e) =>
+        handleFiles(e.dataTransfer?.files),
+      );
+
+      loadPdfBtn.addEventListener("click", loadPdf);
+      importPdfPageBtn.addEventListener("click", importSelectedPdfPage);
+      importAllPdfPagesBtn.addEventListener("click", importAllPdfPages);
+
+      startCameraBtn.addEventListener("click", startCamera);
+      captureBtn.addEventListener("click", captureFromCamera);
+      stopCameraBtn.addEventListener("click", stopCamera);
+
+      [
+        scaleRange,
+        thresholdRange,
+        brightnessRange,
+        contrastRange,
+        blurRange,
+        rotateSelect,
+        grayscaleCheck,
+        thresholdCheck,
+        invertCheck,
+        sharpenCheck,
+      ].forEach((el) => {
+        el.addEventListener("input", () => {
+          if (getActiveImage()) renderPreviews();
+        });
+        el.addEventListener("change", () => {
+          if (getActiveImage()) renderPreviews();
+        });
+      });
+
+      ocrBtn.addEventListener("click", runOCRWholeImage);
+      ocrActiveCropBtn.addEventListener("click", runOCRActiveCrop);
+      ocrRegionsBtn.addEventListener("click", runOCRSavedRegions);
+      lineByLineBtn.addEventListener("click", runOCRLineByLine);
+      batchAllImagesBtn.addEventListener("click", runBatchAllImages);
+      saveRegionBtn.addEventListener("click", () =>
+        saveCurrentCropAsRegion("manual"),
+      );
+      autoSuggestBtn.addEventListener("click", autoSuggestRegions);
+      clearCropBtn.addEventListener("click", clearCrop);
+      undoBtn.addEventListener("click", undoLast);
+      resetBtn.addEventListener("click", resetAll);
+      sampleBtn.addEventListener("click", loadSampleBatch);
+
+      zoomInOriginalBtn.addEventListener("click", () => {
+        originalZoom = Math.min(6, originalZoom + 0.25);
+        applyOriginalZoom();
+      });
+      zoomOutOriginalBtn.addEventListener("click", () => {
+        originalZoom = Math.max(0.25, originalZoom - 0.25);
+        applyOriginalZoom();
+      });
+      fitOriginalBtn.addEventListener("click", fitOriginal);
+
+      zoomInProcessedBtn.addEventListener("click", () => {
+        processedZoom = Math.min(6, processedZoom + 0.25);
+        applyProcessedZoom();
+      });
+      zoomOutProcessedBtn.addEventListener("click", () => {
+        processedZoom = Math.max(0.25, processedZoom - 0.25);
+        applyProcessedZoom();
+      });
+      fitProcessedBtn.addEventListener("click", fitProcessed);
+
+      rotateLeftBtn.addEventListener("click", () => adjustRotation(-1));
+      rotateRightBtn.addEventListener("click", () => adjustRotation(1));
+
+      copyBtn.addEventListener("click", copyText);
+      downloadTxtBtn.addEventListener("click", downloadTxt);
+      downloadJsonBtn.addEventListener("click", downloadJson);
+      downloadCsvBtn.addEventListener("click", downloadCsv);
+
+      processedCanvas.addEventListener("mousedown", (e) => {
+        if (!cropModeCheck.checked || !getActiveImage()) return;
+        isDraggingCrop = true;
+        dragStart = getCanvasCoordsFromPointer(e.clientX, e.clientY);
+        cropRect = { x: dragStart.x, y: dragStart.y, w: 0, h: 0 };
+        drawOverlay();
+        refreshButtons();
+        e.preventDefault();
+      });
+
+      processedCanvas.addEventListener("mousemove", (e) => {
+        if (!cropModeCheck.checked || !isDraggingCrop || !dragStart) return;
+        const p = getCanvasCoordsFromPointer(e.clientX, e.clientY);
+        cropRect = normalizeCropRect(dragStart, p);
+        drawOverlay();
+        refreshButtons();
+      });
+
+      window.addEventListener("mouseup", () => {
+        if (!cropModeCheck.checked) return;
+        if (isDraggingCrop) {
+          isDraggingCrop = false;
+          drawOverlay();
+          refreshButtons();
+        }
+      });
+
+      processedCanvas.addEventListener(
+        "touchstart",
+        (e) => {
+          if (!cropModeCheck.checked || !getActiveImage()) return;
+          const t = e.touches[0];
+          if (!t) return;
+          isDraggingCrop = true;
+          dragStart = getCanvasCoordsFromPointer(t.clientX, t.clientY);
+          cropRect = { x: dragStart.x, y: dragStart.y, w: 0, h: 0 };
+          drawOverlay();
+          refreshButtons();
+          e.preventDefault();
+        },
+        { passive: false },
+      );
+
+      processedCanvas.addEventListener(
+        "touchmove",
+        (e) => {
+          if (!cropModeCheck.checked || !isDraggingCrop || !dragStart) return;
+          const t = e.touches[0];
+          if (!t) return;
+          const p = getCanvasCoordsFromPointer(t.clientX, t.clientY);
+          cropRect = normalizeCropRect(dragStart, p);
+          drawOverlay();
+          refreshButtons();
+          e.preventDefault();
+        },
+        { passive: false },
+      );
+
+      window.addEventListener("touchend", () => {
+        if (!cropModeCheck.checked) return;
+        if (isDraggingCrop) {
+          isDraggingCrop = false;
+          drawOverlay();
+          refreshButtons();
+        }
+      });
+
+      resetAll();
+    </script>
+  </body>
+</html>
