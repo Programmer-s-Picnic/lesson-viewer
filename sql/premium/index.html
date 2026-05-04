@@ -2,142 +2,145 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>SQL in Browser — SQLite Demo (VS Code Style)</title>
+<title>SQL Playground — Beginner + Fullscreen</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-<meta name="description" content="Practice SQL in your browser using SQLite. Beginner-friendly SQL playground with fullscreen and advanced mode." />
-
-<link rel="stylesheet" href="styles.css" />
-
 <style>
-/* BEGINNER MODE */
-body.beginner-mode .advanced-only {
-  display: none !important;
+body { font-family: Arial; margin:0; background:#1e1e1e; color:#eee; }
+
+.vs-titlebar {
+  display:flex; justify-content:space-between; padding:10px;
+  background:#2d2d2d;
 }
 
-body.beginner-mode .split {
-  grid-template-columns: 1fr;
+button { margin:5px; padding:6px 10px; cursor:pointer; }
+
+textarea {
+  width:100%; height:150px; background:#111; color:#0f0;
+  padding:10px;
 }
 
-body.beginner-mode .samples .chip:not(.beginner-chip) {
-  display: none;
-}
+#result { margin-top:10px; background:#000; padding:10px; }
 
-/* COLLAPSE */
-.info-card-body.collapsed {
-  display: none;
-}
+.beginner-mode .advanced-only { display:none; }
 </style>
 </head>
 
-<body class="theme-dark">
+<body>
 
-<!-- TITLEBAR -->
 <div class="vs-titlebar">
-  <div class="title">Programmer’s Picnic — SQL Playground</div>
-
-  <div class="right">
-    <button id="beginnerModeBtn" class="btn-ghost">🧑‍🎓 Beginner Mode</button>
-    <button id="fullscreenBtn" class="btn-ghost">⛶ Full Screen</button>
+  <div>Programmer’s Picnic SQL</div>
+  <div>
+    <button id="beginnerModeBtn">🧑‍🎓 Beginner Mode</button>
+    <button id="fullscreenBtn">⛶ Full Screen</button>
   </div>
 </div>
 
-<!-- MAIN -->
-<div class="vs-shell">
+<div style="padding:10px">
 
-  <!-- SIDEBAR -->
-  <aside class="vs-sidebar">
-    <div class="block">
-      <b>RUN</b><br><br>
-      <button id="runBtn">Run SQL</button>
-      <button id="resetBtn">Reset</button>
-    </div>
+  <!-- RUN BUTTONS -->
+  <div>
+    <button id="runBtn">▶ Run SQL</button>
+    <button id="resetBtn">⟳ Reset DB</button>
+  </div>
 
-    <!-- ADVANCED -->
-    <div class="block advanced-only">
-      <b>IMPORT / EXPORT</b><br><br>
-      <button>Load DB</button>
-      <button>Export DB</button>
-    </div>
+  <!-- SAMPLES -->
+  <div>
+    <button class="chip" data-sql="SELECT * FROM students;">Students</button>
+    <button class="chip" data-sql="SELECT COUNT(*) FROM students;">COUNT</button>
+  </div>
 
-    <div class="block advanced-only">
-      <b>HISTORY</b><br><br>
-      <button>Show History</button>
-    </div>
-  </aside>
+  <!-- EDITOR -->
+  <textarea id="sqlInput">SELECT * FROM students;</textarea>
 
-  <!-- MAIN AREA -->
-  <main class="vs-main">
+  <!-- RESULT -->
+  <div id="result">Result will appear here</div>
 
-    <!-- INTRO -->
-    <section class="info-card">
-      <div class="info-card-head">
-        <h2>SQL Introduction</h2>
-        <button class="toggle-section-btn" data-target="intro">Show</button>
-      </div>
-
-      <div id="intro" class="info-card-body collapsed">
-        SQL is used to store, read, update, and manage structured data in databases.
-      </div>
-    </section>
-
-    <!-- EDITOR -->
-    <section class="split">
-
-      <!-- LEFT -->
-      <div class="pane">
-
-        <h2>EDITOR</h2>
-
-        <div class="samples">
-          <button class="chip beginner-chip" data-sql="SELECT * FROM birthdays;">Birthdays</button>
-          <button class="chip beginner-chip" data-sql="SELECT COUNT(*) FROM birthdays;">COUNT</button>
-          <button class="chip beginner-chip" data-sql="SELECT MAX(id) FROM birthdays;">MAX</button>
-          <button class="chip beginner-chip" data-sql="SELECT * FROM birthdays WHERE id=1;">WHERE</button>
-
-          <!-- ADVANCED -->
-          <button class="chip advanced-only" data-sql="SELECT * FROM sqlite_master;">Show Tables</button>
-        </div>
-
-        <textarea id="sqlInput">SELECT * FROM birthdays;</textarea>
-
-        <div id="result"></div>
-
-      </div>
-
-      <!-- RIGHT (ADVANCED HISTORY) -->
-      <div class="pane advanced-only">
-        <h2>QUERY HISTORY</h2>
-        <div id="history"></div>
-      </div>
-
-    </section>
-
-  </main>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
 
 <script>
-/* BEGINNER MODE */
-const beginnerModeBtn = document.getElementById("beginnerModeBtn");
+let db;
 
-function setBeginnerMode(on) {
+/* INIT SQLITE */
+initSqlJs({
+  locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
+}).then(SQL => {
+
+  function initDB() {
+    db = new SQL.Database();
+
+    db.run(`
+      CREATE TABLE students (id INTEGER, name TEXT);
+      INSERT INTO students VALUES (1,'Champak'),(2,'Roy'),(3,'SQL Student');
+    `);
+  }
+
+  initDB();
+
+  /* RUN SQL */
+  document.getElementById("runBtn").onclick = () => {
+    const sql = document.getElementById("sqlInput").value;
+
+    try {
+      const res = db.exec(sql);
+
+      if (res.length === 0) {
+        document.getElementById("result").innerText = "Query executed (no result)";
+        return;
+      }
+
+      let html = "<table border='1' style='border-collapse:collapse'>";
+      html += "<tr>" + res[0].columns.map(c => `<th>${c}</th>`).join("") + "</tr>";
+
+      res[0].values.forEach(row => {
+        html += "<tr>" + row.map(v => `<td>${v}</td>`).join("") + "</tr>";
+      });
+
+      html += "</table>";
+
+      document.getElementById("result").innerHTML = html;
+
+    } catch (err) {
+      document.getElementById("result").innerText = err;
+    }
+  };
+
+  /* RESET */
+  document.getElementById("resetBtn").onclick = () => {
+    initDB();
+    document.getElementById("result").innerText = "Database reset.";
+  };
+
+});
+
+/* SAMPLE CLICK */
+document.querySelectorAll(".chip").forEach(btn => {
+  btn.onclick = () => {
+    document.getElementById("sqlInput").value = btn.dataset.sql;
+  };
+});
+
+/* BEGINNER MODE */
+const beginnerBtn = document.getElementById("beginnerModeBtn");
+
+function setMode(on) {
   document.body.classList.toggle("beginner-mode", on);
-  beginnerModeBtn.textContent = on ? "🧑‍💻 Advanced Mode" : "🧑‍🎓 Beginner Mode";
-  localStorage.setItem("beginner", on ? "1" : "0");
+  beginnerBtn.textContent = on ? "🧑‍💻 Advanced Mode" : "🧑‍🎓 Beginner Mode";
+  localStorage.setItem("mode", on ? "1" : "0");
 }
 
-beginnerModeBtn.onclick = () => {
-  setBeginnerMode(!document.body.classList.contains("beginner-mode"));
+beginnerBtn.onclick = () => {
+  setMode(!document.body.classList.contains("beginner-mode"));
 };
 
-setBeginnerMode(localStorage.getItem("beginner") !== "0");
+setMode(localStorage.getItem("mode") !== "0");
 
 /* FULLSCREEN */
-const fullscreenBtn = document.getElementById("fullscreenBtn");
+const fsBtn = document.getElementById("fullscreenBtn");
 
-fullscreenBtn.onclick = async () => {
+fsBtn.onclick = async () => {
   if (!document.fullscreenElement) {
     await document.documentElement.requestFullscreen();
   } else {
@@ -146,27 +149,11 @@ fullscreenBtn.onclick = async () => {
 };
 
 document.addEventListener("fullscreenchange", () => {
-  fullscreenBtn.textContent = document.fullscreenElement
+  fsBtn.textContent = document.fullscreenElement
     ? "⛶ Exit Full Screen"
     : "⛶ Full Screen";
-});
-
-/* TOGGLE INTRO */
-document.querySelectorAll(".toggle-section-btn").forEach(btn => {
-  btn.onclick = () => {
-    const target = document.getElementById(btn.dataset.target);
-    const collapsed = target.classList.toggle("collapsed");
-    btn.textContent = collapsed ? "Show" : "Hide";
-  };
-});
-
-/* SAMPLE SQL CLICK */
-document.querySelectorAll(".chip").forEach(btn => {
-  btn.onclick = () => {
-    document.getElementById("sqlInput").value = btn.dataset.sql;
-  };
 });
 </script>
 
 </body>
-</html> 
+</html>
