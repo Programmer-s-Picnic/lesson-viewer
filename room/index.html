@@ -1,287 +1,373 @@
-<!doctype html>
+ <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Simple Whiteboard Chalk</title>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Simple Whiteboard Chalk</title>
 
-    <style>
-      * {
-        box-sizing: border-box;
-      }
+<style>
+*{box-sizing:border-box}
 
-      body {
-        margin: 0;
-        font-family: system-ui, sans-serif;
-        background: #111;
-        overflow: hidden;
-      }
+body{
+  margin:0;
+  font-family:system-ui,sans-serif;
+  background:#111;
+  overflow:hidden;
+}
 
-      .toolbar {
-        position: fixed;
-        top: 10px;
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 10;
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-        justify-content: center;
-        padding: 10px;
-        border-radius: 16px;
-        background: rgba(0, 0, 0, 0.65);
-        backdrop-filter: blur(10px);
-      }
+.toolbar{
+  position:fixed;
+  top:10px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:10;
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  justify-content:center;
+  align-items:center;
+  padding:10px;
+  border-radius:16px;
+  background:rgba(0,0,0,.78);
+  color:#fff;
+  backdrop-filter:blur(10px);
+}
 
-      button,
-      input {
-        border: 0;
-        border-radius: 10px;
-        padding: 8px 11px;
-        font-weight: 700;
-        cursor: pointer;
-      }
+button,input{
+  border:0;
+  border-radius:10px;
+  padding:8px 11px;
+  font-weight:700;
+  cursor:pointer;
+}
 
-      button {
-        background: #fff;
-        color: #111;
-      }
+button{
+  background:#fff;
+  color:#111;
+}
 
-      button.active {
-        background: #ff9f1c;
-      }
+button.active{
+  background:#ff9f1c;
+  color:#111;
+}
 
-      input[type="color"] {
-        width: 44px;
-        height: 36px;
-        padding: 3px;
-      }
+label{
+  font-size:13px;
+  font-weight:700;
+  color:inherit;
+}
 
-      .stage {
-        width: 100vw;
-        height: 100vh;
-        background: url("classroom.jpg") center/cover no-repeat;
-      }
+input[type="color"]{
+  width:44px;
+  height:36px;
+  padding:3px;
+}
 
-      canvas {
-        width: 100vw;
-        height: 100vh;
-        display: block;
-        touch-action: none;
-        cursor: crosshair;
-      }
+input[type="range"]{
+  width:100px;
+}
 
-      .light .toolbar {
-        background: rgba(255, 255, 255, 0.75);
-      }
+.colorBtn{
+  width:34px;
+  height:34px;
+  padding:0;
+  border:2px solid rgba(255,255,255,.6);
+}
 
-      .light button {
-        background: #111;
-        color: #fff;
-      }
+.stage{
+  width:100vw;
+  height:100vh;
+  background:url("classroom.jpg") center/cover no-repeat;
+}
 
-      .light button.active {
-        background: #ff9f1c;
-        color: #111;
-      }
-    </style>
-  </head>
+canvas{
+  width:100vw;
+  height:100vh;
+  display:block;
+  touch-action:none;
+  cursor:crosshair;
+}
 
-  <body>
-    <div class="toolbar">
-      <button id="penBtn" class="active">✏️ Chalk</button>
-      <button id="eraserBtn">⬜ Eraser</button>
+.light{
+  background:#fff;
+}
 
-      <input type="color" id="color" value="#111111" />
-      <input type="range" id="size" min="2" max="35" value="5" />
+.light .toolbar{
+  background:rgba(255,255,255,.9);
+  color:#111;
+}
 
-      <button id="undoBtn">↶ Undo</button>
-      <button id="redoBtn">↷ Redo</button>
-      <button id="saveBtn">Save PNG</button>
-      <button id="fsBtn">Fullscreen</button>
-      <button id="themeBtn">Dark/Light</button>
-      <button id="shareBtn">Share</button>
-    </div>
+.light button{
+  background:#111;
+  color:#fff;
+}
 
-    <div class="stage" id="stage">
-      <canvas id="board"></canvas>
-    </div>
+.light button.active{
+  background:#ff9f1c;
+  color:#111;
+}
 
-    <script>
-      const canvas = document.getElementById("board");
-      const ctx = canvas.getContext("2d");
+.light .colorBtn{
+  border:2px solid rgba(0,0,0,.35);
+}
+</style>
+</head>
 
-      const penBtn = document.getElementById("penBtn");
-      const eraserBtn = document.getElementById("eraserBtn");
-      const color = document.getElementById("color");
-      const size = document.getElementById("size");
+<body>
 
-      let tool = "pen";
-      let drawing = false;
-      let lastX = 0;
-      let lastY = 0;
+<div class="toolbar">
+  <button id="penBtn" class="active">✏️ Chalk</button>
+  <button id="eraserBtn">⬜ Eraser</button>
 
-      let undoStack = [];
-      let redoStack = [];
+  <input type="color" id="color" value="#ffffff">
 
-      function resizeCanvas() {
-        const old = document.createElement("canvas");
-        old.width = canvas.width;
-        old.height = canvas.height;
-        old.getContext("2d").drawImage(canvas, 0, 0);
+  <button class="colorBtn" style="background:#ffffff" onclick="setColor('#ffffff')" title="White"></button>
+  <button class="colorBtn" style="background:#ffd93d" onclick="setColor('#ffd93d')" title="Yellow"></button>
+  <button class="colorBtn" style="background:#4dabf7" onclick="setColor('#4dabf7')" title="Blue"></button>
+  <button class="colorBtn" style="background:#ff6b6b" onclick="setColor('#ff6b6b')" title="Red"></button>
+  <button class="colorBtn" style="background:#51cf66" onclick="setColor('#51cf66')" title="Green"></button>
+  <button class="colorBtn" style="background:#111111" onclick="setColor('#111111')" title="Black"></button>
 
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+  <label>Pen</label>
+  <input type="range" id="size" min="2" max="35" value="5">
 
-        ctx.drawImage(old, 0, 0, canvas.width, canvas.height);
-      }
-      resizeCanvas();
-      window.addEventListener("resize", resizeCanvas);
+  <label>Eraser</label>
+  <input type="range" id="eraserSize" min="10" max="90" value="35">
 
-      function saveState() {
-        undoStack.push(canvas.toDataURL());
-        if (undoStack.length > 40) undoStack.shift();
-        redoStack = [];
-      }
+  <label>Smooth</label>
+  <input type="range" id="smooth" min="1" max="20" value="6">
 
-      function loadState(data) {
-        const img = new Image();
-        img.onload = () => {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        };
-        img.src = data;
-      }
+  <button id="clearBtn">Clear</button>
+  <button id="undoBtn">↶ Undo</button>
+  <button id="redoBtn">↷ Redo</button>
+  <button id="saveBtn">Save PNG</button>
+  <button id="fsBtn">Fullscreen</button>
+  <button id="themeBtn">Dark/Light</button>
+  <button id="shareBtn">Share</button>
+</div>
 
-      function getPos(e) {
-        const r = canvas.getBoundingClientRect();
-        const p = e.touches ? e.touches[0] : e;
-        return {
-          x: p.clientX - r.left,
-          y: p.clientY - r.top,
-        };
-      }
+<div class="stage" id="stage">
+  <canvas id="board"></canvas>
+</div>
 
-      function startDraw(e) {
-        saveState();
-        drawing = true;
-        const p = getPos(e);
-        lastX = p.x;
-        lastY = p.y;
-      }
+<script>
+const canvas = document.getElementById("board");
+const ctx = canvas.getContext("2d");
 
-      function draw(e) {
-        if (!drawing) return;
-        e.preventDefault();
+const penBtn = document.getElementById("penBtn");
+const eraserBtn = document.getElementById("eraserBtn");
+const color = document.getElementById("color");
+const size = document.getElementById("size");
+const eraserSize = document.getElementById("eraserSize");
+const smooth = document.getElementById("smooth");
 
-        const p = getPos(e);
+let tool = "pen";
+let drawing = false;
+let lastX = 0;
+let lastY = 0;
 
-        ctx.lineWidth = size.value;
-        ctx.lineCap = "round";
-        ctx.lineJoin = "round";
+let undoStack = [];
+let redoStack = [];
 
-        if (tool === "eraser") {
-          ctx.globalCompositeOperation = "destination-out";
-          ctx.strokeStyle = "rgba(0,0,0,1)";
-        } else {
-          ctx.globalCompositeOperation = "source-over";
-          ctx.strokeStyle = color.value;
-        }
+function resizeCanvas(){
+  const old = document.createElement("canvas");
+  old.width = canvas.width;
+  old.height = canvas.height;
+  old.getContext("2d").drawImage(canvas,0,0);
 
-        ctx.beginPath();
-        ctx.moveTo(lastX, lastY);
-        ctx.lineTo(p.x, p.y);
-        ctx.stroke();
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
 
-        lastX = p.x;
-        lastY = p.y;
-      }
+  ctx.drawImage(old,0,0,canvas.width,canvas.height);
+}
 
-      function stopDraw() {
-        drawing = false;
-      }
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
 
-      canvas.addEventListener("mousedown", startDraw);
-      canvas.addEventListener("mousemove", draw);
-      window.addEventListener("mouseup", stopDraw);
+function setColor(c){
+  color.value = c;
+  tool = "pen";
+  penBtn.classList.add("active");
+  eraserBtn.classList.remove("active");
+  canvas.style.cursor = "crosshair";
+}
 
-      canvas.addEventListener("touchstart", startDraw, { passive: false });
-      canvas.addEventListener("touchmove", draw, { passive: false });
-      window.addEventListener("touchend", stopDraw);
+function saveState(){
+  undoStack.push(canvas.toDataURL("image/png"));
+  if(undoStack.length > 40) undoStack.shift();
+  redoStack = [];
+}
 
-      penBtn.onclick = () => {
-        tool = "pen";
-        canvas.style.cursor = "crosshair";
-        penBtn.classList.add("active");
-        eraserBtn.classList.remove("active");
-      };
+function loadState(data){
+  const img = new Image();
+  img.onload = () => {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(img,0,0,canvas.width,canvas.height);
+  };
+  img.src = data;
+}
 
-      eraserBtn.onclick = () => {
-        tool = "eraser";
-        canvas.style.cursor = "cell";
-        eraserBtn.classList.add("active");
-        penBtn.classList.remove("active");
-      };
+function getPos(e){
+  const r = canvas.getBoundingClientRect();
+  const p = e.touches ? e.touches[0] : e;
+  return {
+    x:p.clientX - r.left,
+    y:p.clientY - r.top
+  };
+}
 
-      undoBtn.onclick = () => {
-        if (!undoStack.length) return;
-        redoStack.push(canvas.toDataURL());
-        loadState(undoStack.pop());
-      };
+function startDraw(e){
+  e.preventDefault();
+  saveState();
+  drawing = true;
+  const p = getPos(e);
+  lastX = p.x;
+  lastY = p.y;
+}
 
-      redoBtn.onclick = () => {
-        if (!redoStack.length) return;
-        undoStack.push(canvas.toDataURL());
-        loadState(redoStack.pop());
-      };
+function draw(e){
+  if(!drawing) return;
+  e.preventDefault();
 
-      saveBtn.onclick = () => {
-        const output = document.createElement("canvas");
-        const octx = output.getContext("2d");
+  const p = getPos(e);
 
-        output.width = window.innerWidth;
-        output.height = window.innerHeight;
+  const factor = Number(smooth.value) / 20;
+  const x = lastX + (p.x - lastX) * factor;
+  const y = lastY + (p.y - lastY) * factor;
 
-        const bg = new Image();
-        bg.onload = () => {
-          octx.drawImage(bg, 0, 0, output.width, output.height);
-          octx.drawImage(canvas, 0, 0);
-          const link = document.createElement("a");
-          link.download = "whiteboard-chalk.png";
-          link.href = output.toDataURL("image/png");
-          link.click();
-        };
-        bg.src = "classroom.jpg";
-      };
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
 
-      fsBtn.onclick = () => {
-        if (!document.fullscreenElement) {
-          document.documentElement.requestFullscreen();
-        } else {
-          document.exitFullscreen();
-        }
-      };
+  if(tool === "eraser"){
+    ctx.globalCompositeOperation = "destination-out";
+    ctx.shadowBlur = 0;
+    ctx.lineWidth = Number(eraserSize.value);
+    ctx.strokeStyle = "rgba(0,0,0,1)";
+  }else{
+    ctx.globalCompositeOperation = "source-over";
+    ctx.strokeStyle = color.value;
+    ctx.lineWidth = Number(size.value);
 
-      themeBtn.onclick = () => {
-        document.body.classList.toggle("light");
-      };
+    ctx.shadowBlur = 2;
+    ctx.shadowColor = color.value;
+  }
 
-      shareBtn.onclick = async () => {
-        canvas.toBlob(async (blob) => {
-          const file = new File([blob], "whiteboard.png", {
-            type: "image/png",
-          });
+  ctx.beginPath();
+  ctx.moveTo(lastX,lastY);
+  ctx.lineTo(x,y);
+  ctx.stroke();
 
-          if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({
-              title: "Whiteboard",
-              files: [file],
-            });
-          } else {
-            alert("Sharing not supported. Use Save PNG.");
-          }
+  lastX = x;
+  lastY = y;
+}
+
+function stopDraw(){
+  drawing = false;
+  ctx.beginPath();
+}
+
+canvas.addEventListener("mousedown", startDraw);
+canvas.addEventListener("mousemove", draw);
+window.addEventListener("mouseup", stopDraw);
+
+canvas.addEventListener("touchstart", startDraw, {passive:false});
+canvas.addEventListener("touchmove", draw, {passive:false});
+window.addEventListener("touchend", stopDraw);
+
+penBtn.onclick = () => {
+  tool = "pen";
+  canvas.style.cursor = "crosshair";
+  penBtn.classList.add("active");
+  eraserBtn.classList.remove("active");
+};
+
+eraserBtn.onclick = () => {
+  tool = "eraser";
+  canvas.style.cursor = "cell";
+  eraserBtn.classList.add("active");
+  penBtn.classList.remove("active");
+};
+
+clearBtn.onclick = () => {
+  saveState();
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+};
+
+undoBtn.onclick = () => {
+  if(!undoStack.length) return;
+  redoStack.push(canvas.toDataURL("image/png"));
+  loadState(undoStack.pop());
+};
+
+redoBtn.onclick = () => {
+  if(!redoStack.length) return;
+  undoStack.push(canvas.toDataURL("image/png"));
+  loadState(redoStack.pop());
+};
+
+saveBtn.onclick = () => {
+  const output = document.createElement("canvas");
+  const octx = output.getContext("2d");
+
+  output.width = window.innerWidth;
+  output.height = window.innerHeight;
+
+  const bg = new Image();
+  bg.onload = () => {
+    octx.drawImage(bg,0,0,output.width,output.height);
+    octx.drawImage(canvas,0,0,output.width,output.height);
+
+    const link = document.createElement("a");
+    link.download = "whiteboard-chalk.png";
+    link.href = output.toDataURL("image/png");
+    link.click();
+  };
+
+  bg.src = "classroom.jpg";
+};
+
+fsBtn.onclick = () => {
+  if(!document.fullscreenElement){
+    document.documentElement.requestFullscreen();
+  }else{
+    document.exitFullscreen();
+  }
+};
+
+themeBtn.onclick = () => {
+  document.body.classList.toggle("light");
+};
+
+shareBtn.onclick = async () => {
+  const output = document.createElement("canvas");
+  const octx = output.getContext("2d");
+
+  output.width = window.innerWidth;
+  output.height = window.innerHeight;
+
+  const bg = new Image();
+
+  bg.onload = () => {
+    octx.drawImage(bg,0,0,output.width,output.height);
+    octx.drawImage(canvas,0,0,output.width,output.height);
+
+    output.toBlob(async blob => {
+      const file = new File([blob], "whiteboard-chalk.png", {type:"image/png"});
+
+      if(navigator.canShare && navigator.canShare({files:[file]})){
+        await navigator.share({
+          title:"Whiteboard Chalk",
+          files:[file]
         });
-      };
-    </script>
-  </body>
+      }else{
+        alert("Sharing not supported. Use Save PNG.");
+      }
+    });
+  };
+
+  bg.src = "classroom.jpg";
+};
+</script>
+
+</body>
 </html>
