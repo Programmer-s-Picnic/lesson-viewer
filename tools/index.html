@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Website Change Request JSON Tool | Champak Roy</title>
+
+    <style>
+      :root {
+        --saffron: #ff9933;
+        --saffron-dark: #d97706;
+        --bg: #fff7ed;
+        --card: #ffffff;
+        --border: #fed7aa;
+        --text: #1f2937;
+        --muted: #6b7280;
+        --dark: #111827;
+        --green: #16a34a;
+        --red: #dc2626;
+        --blue: #2563eb;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: linear-gradient(135deg, #fff7ed, #ffedd5);
+        color: var(--text);
+      }
+
+      header {
+        background: linear-gradient(90deg, #ff9933, #f97316);
+        color: white;
+        padding: 28px 16px;
+        text-align: center;
+      }
+
+      header h1 {
+        margin: 0;
+        font-size: 32px;
+      }
+
+      header p {
+        margin: 8px 0 0;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: auto;
+        padding: 18px;
+      }
+
+      .toolbar {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: #fff7ed;
+        border-bottom: 1px solid var(--border);
+        padding: 12px 0;
+      }
+
+      .card,
+      .entry {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 18px;
+        margin-bottom: 16px;
+        box-shadow: 0 8px 22px rgba(249, 115, 22, 0.14);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+
+      label {
+        font-weight: bold;
+        display: block;
+        margin: 12px 0 6px;
+      }
+
+      input,
+      textarea,
+      select {
+        width: 100%;
+        padding: 11px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        font-size: 15px;
+      }
+
+      textarea {
+        min-height: 90px;
+        resize: vertical;
+      }
+
+      button {
+        border: none;
+        background: var(--saffron);
+        color: white;
+        padding: 10px 14px;
+        border-radius: 12px;
+        font-weight: bold;
+        cursor: pointer;
+        margin: 6px 5px 6px 0;
+      }
+
+      button:hover {
+        background: var(--saffron-dark);
+      }
+
+      .secondary {
+        background: #374151;
+      }
+      .secondary:hover {
+        background: #111827;
+      }
+
+      .danger {
+        background: var(--red);
+      }
+      .danger:hover {
+        background: #991b1b;
+      }
+
+      .success {
+        background: var(--green);
+      }
+      .success:hover {
+        background: #15803d;
+      }
+
+      .blue {
+        background: var(--blue);
+      }
+      .blue:hover {
+        background: #1d4ed8;
+      }
+
+      .small {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .entry-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .badge {
+        background: #ffedd5;
+        border: 1px solid var(--border);
+        color: #9a3412;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: bold;
+      }
+
+      .img-preview {
+        max-width: 180px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        margin: 8px;
+      }
+
+      .imageBox {
+        display: flex;
+        flex-wrap: wrap;
+        margin-top: 8px;
+      }
+
+      pre {
+        background: var(--dark);
+        color: #f9fafb;
+        padding: 16px;
+        border-radius: 14px;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        max-height: 500px;
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      .stats {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+      }
+
+      .stat {
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 10px 14px;
+        font-weight: bold;
+      }
+
+      .invalid {
+        border-color: var(--red) !important;
+        box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+      }
+
+      footer {
+        text-align: center;
+        padding: 20px;
+        color: var(--muted);
+      }
+
+      @media (max-width: 800px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+        header h1 {
+          font-size: 24px;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <header>
+      <h1>— Website Change Request Tool</h1>
+      <p>
+        Multiple URLs, screenshots, JSON, tickets, search, local save,
+        import/export
+      </p>
+    </header>
+
+    <main class="container">
+      <div class="toolbar">
+        <button onclick="addEntry()">+ Add Entry</button>
+        <button onclick="generateJSON()">Generate JSON</button>
+        <button id="jsonToggleBtn" onclick="toggleJSON()">Show JSON</button>
+        <button onclick="copyJSON()">Copy JSON</button>
+        <button onclick="downloadJSON()">Download JSON</button>
+        <button onclick="saveLocal()" class="success">Save Locally</button>
+        <button onclick="loadLocal()" class="blue">Load Saved</button>
+        <button onclick="sendEmail()" class="secondary">Send by Email</button>
+        <button onclick="clearAll()" class="danger">Clear All</button>
+      </div>
+
+      <section class="card">
+        <h2>Project Details</h2>
+
+        <div class="grid">
+          <div>
+            <label>Sender Name / Contact</label>
+            <input
+              id="senderContact"
+              placeholder="Name, email, phone"
+              oninput="generateJSON()"
+            />
+          </div>
+
+          <div>
+            <label>Project / Website Name</label>
+            <input
+              id="projectName"
+              placeholder="Example: Programmers Picnic"
+              oninput="generateJSON()"
+            />
+          </div>
+        </div>
+
+        <label>Search / Filter Entries</label>
+        <input
+          id="searchBox"
+          placeholder="Search by URL, change text, new data, status..."
+          oninput="filterEntries()"
+        />
+
+        <label>Import JSON</label>
+        <input
+          type="file"
+          accept="application/json"
+          onchange="importJSON(event)"
+        />
+
+        <div class="stats">
+          <div class="stat">Entries: <span id="entryCount">0</span></div>
+          <div class="stat">Images: <span id="imageCount">0</span></div>
+          <div class="stat">Valid URLs: <span id="validCount">0</span></div>
+          <div class="stat">Invalid URLs: <span id="invalidCount">0</span></div>
+        </div>
+      </section>
+
+      <section id="entries"></section>
+
+      <section class="card hidden" id="jsonSection">
+        <h2>JSON Output</h2>
+        <p class="small">
+          Screenshots are stored as Base64 inside JSON. Large images will make
+          the JSON large.
+        </p>
+        <pre id="jsonOutput">{}</pre>
+      </section>
+    </main>
+
+    <footer>Change Request Tool</footer>
+
+    <script>
+      let entryCounter = 0;
+
+      function createTicketId() {
+        return (
+          "REQ-" +
+          Date.now().toString(36).toUpperCase() +
+          "-" +
+          Math.random().toString(36).slice(2, 6).toUpperCase()
+        );
+      }
+
+      function addEntry(data = null) {
+        entryCounter++;
+
+        const ticketId = data?.ticketId || createTicketId();
+
+        const entry = document.createElement("div");
+        entry.className = "entry";
+        entry.dataset.ticketId = ticketId;
+        entry.images = data?.screenshots || [];
+
+        entry.innerHTML = `
+      <div class="entry-head">
+        <h2>Change Entry #${entryCounter}</h2>
+        <span class="badge">${ticketId}</span>
+      </div>
+
+      <div class="grid">
+        <div>
+          <label>Page URL</label>
+          <input class="url" placeholder="https://example.com/page" value="${escapeAttr(data?.url || "")}" oninput="generateJSON()" />
+        </div>
+
+        <div>
+          <label>Status</label>
+          <select class="status" onchange="generateJSON()">
+            <option ${data?.status === "New" ? "selected" : ""}>New</option>
+            <option ${data?.status === "Urgent" ? "selected" : ""}>Urgent</option>
+            <option ${data?.status === "In Progress" ? "selected" : ""}>In Progress</option>
+            <option ${data?.status === "Done" ? "selected" : ""}>Done</option>
+          </select>
+        </div>
+      </div>
+
+      <button onclick="openURL(this)">Open URL in New Tab</button>
+
+      <label>Desired Changes</label>
+      <textarea class="changes" placeholder="Write desired changes..." oninput="generateJSON()">${escapeText(data?.desiredChanges || "")}</textarea>
+
+      <label>New Data / Replacement Content</label>
+      <textarea class="newData" placeholder="Paste new text, links, product data, etc." oninput="generateJSON()">${escapeText(data?.newData || "")}</textarea>
+
+      <label>Notes</label>
+      <textarea class="notes" placeholder="Extra notes..." oninput="generateJSON()">${escapeText(data?.notes || "")}</textarea>
+
+      <label>Screenshots / Images</label>
+      <input type="file" accept="image/*" multiple onchange="handleImages(this)" />
+
+      <p class="small">Tip: You can also paste screenshots using Ctrl+V. They will be added to the last visible entry.</p>
+
+      <div class="imageBox"></div>
+
+      <button onclick="duplicateEntry(this)" class="blue">Duplicate</button>
+      <button onclick="removeImages(this)" class="secondary">Remove Images</button>
+      <button onclick="removeEntry(this)" class="danger">Remove Entry</button>
+    `;
+
+        document.getElementById("entries").appendChild(entry);
+        renderImages(entry);
+        generateJSON();
+      }
+
+      function escapeAttr(str) {
+        return String(str)
+          .replaceAll("&", "&amp;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("<", "&lt;");
+      }
+
+      function escapeText(str) {
+        return String(str)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;");
+      }
+
+      function openURL(button) {
+        const entry = button.closest(".entry");
+        const url = entry.querySelector(".url").value.trim();
+
+        if (!url.startsWith("http://") && !url.startsWith("https://")) {
+          alert("Enter a valid URL starting with http:// or https://");
+          return;
+        }
+
+        window.open(url, "_blank");
+      }
+
+      function handleImages(input) {
+        const entry = input.closest(".entry");
+        const files = Array.from(input.files);
+
+        files.forEach((file) => {
+          const reader = new FileReader();
+
+          reader.onload = (e) => {
+            entry.images.push({
+              fileName: file.name,
+              fileType: file.type,
+              size: file.size,
+              imageData: e.target.result,
+            });
+
+            renderImages(entry);
+            generateJSON();
+          };
+
+          reader.readAsDataURL(file);
+        });
+      }
+
+      function renderImages(entry) {
+        const box = entry.querySelector(".imageBox");
+        box.innerHTML = "";
+
+        entry.images.forEach((img, index) => {
+          const wrapper = document.createElement("div");
+          wrapper.innerHTML = `
+        <img class="img-preview" src="${img.imageData}" />
+        <br>
+        <button class="danger" onclick="removeSingleImage(this, ${index})">Remove</button>
+      `;
+          box.appendChild(wrapper);
+        });
+      }
+
+      function removeSingleImage(button, index) {
+        const entry = button.closest(".entry");
+        entry.images.splice(index, 1);
+        renderImages(entry);
+        generateJSON();
+      }
+
+      function removeImages(button) {
+        const entry = button.closest(".entry");
+        entry.images = [];
+        renderImages(entry);
+        generateJSON();
+      }
+
+      function removeEntry(button) {
+        button.closest(".entry").remove();
+        generateJSON();
+      }
+
+      function duplicateEntry(button) {
+        const entry = button.closest(".entry");
+
+        addEntry({
+          url: entry.querySelector(".url").value,
+          status: entry.querySelector(".status").value,
+          desiredChanges: entry.querySelector(".changes").value,
+          newData: entry.querySelector(".newData").value,
+          notes: entry.querySelector(".notes").value,
+          screenshots: JSON.parse(JSON.stringify(entry.images)),
+        });
+      }
+
+      function isValidURL(url) {
+        return url.startsWith("http://") || url.startsWith("https://");
+      }
+
+      function generateJSON() {
+        const entries = document.querySelectorAll(".entry");
+
+        let valid = 0;
+        let invalid = 0;
+        let images = 0;
+
+        const data = {
+          app: "   Website Change Request Tool",
+          senderContact: document.getElementById("senderContact").value.trim(),
+          projectName: document.getElementById("projectName").value.trim(),
+          createdAt: new Date().toISOString(),
+          totalEntries: entries.length,
+          requests: [],
+        };
+
+        entries.forEach((entry, index) => {
+          const urlInput = entry.querySelector(".url");
+          const url = urlInput.value.trim();
+
+          if (url && isValidURL(url)) {
+            valid++;
+            urlInput.classList.remove("invalid");
+          } else {
+            invalid++;
+            urlInput.classList.add("invalid");
+          }
+
+          images += entry.images.length;
+
+          data.requests.push({
+            entryNumber: index + 1,
+            ticketId: entry.dataset.ticketId,
+            status: entry.querySelector(".status").value,
+            url,
+            desiredChanges: entry.querySelector(".changes").value.trim(),
+            newData: entry.querySelector(".newData").value.trim(),
+            notes: entry.querySelector(".notes").value.trim(),
+            screenshots: entry.images,
+          });
+        });
+
+        document.getElementById("entryCount").textContent = entries.length;
+        document.getElementById("imageCount").textContent = images;
+        document.getElementById("validCount").textContent = valid;
+        document.getElementById("invalidCount").textContent = invalid;
+
+        document.getElementById("jsonOutput").textContent = JSON.stringify(
+          data,
+          null,
+          2,
+        );
+
+        return data;
+      }
+
+      function toggleJSON() {
+        const section = document.getElementById("jsonSection");
+        const btn = document.getElementById("jsonToggleBtn");
+
+        generateJSON();
+
+        section.classList.toggle("hidden");
+        btn.textContent = section.classList.contains("hidden")
+          ? "Show JSON"
+          : "Hide JSON";
+      }
+
+      function copyJSON() {
+        generateJSON();
+        navigator.clipboard.writeText(
+          document.getElementById("jsonOutput").textContent,
+        );
+        alert("JSON copied!");
+      }
+
+      function downloadJSON() {
+        generateJSON();
+
+        const blob = new Blob(
+          [document.getElementById("jsonOutput").textContent],
+          {
+            type: "application/json",
+          },
+        );
+
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "v3- -change-requests.json";
+        link.click();
+      }
+
+      function saveLocal() {
+        generateJSON();
+        localStorage.setItem(
+          "v3 ChangeRequests",
+          document.getElementById("jsonOutput").textContent,
+        );
+        alert("Saved locally in this browser!");
+      }
+
+      function loadLocal() {
+        const saved = localStorage.getItem("v3 ChangeRequests");
+
+        if (!saved) {
+          alert("No saved data found.");
+          return;
+        }
+
+        loadFromJSON(JSON.parse(saved));
+      }
+
+      function importJSON(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+          try {
+            const data = JSON.parse(e.target.result);
+            loadFromJSON(data);
+          } catch {
+            alert("Invalid JSON file.");
+          }
+        };
+
+        reader.readAsText(file);
+      }
+
+      function loadFromJSON(data) {
+        document.getElementById("senderContact").value =
+          data.senderContact || "";
+        document.getElementById("projectName").value = data.projectName || "";
+        document.getElementById("entries").innerHTML = "";
+        entryCounter = 0;
+
+        if (Array.isArray(data.requests)) {
+          data.requests.forEach((item) => addEntry(item));
+        }
+
+        generateJSON();
+      }
+
+      function sendEmail() {
+        generateJSON();
+
+        const subject = encodeURIComponent("Website Change Request JSON");
+        const body = encodeURIComponent(
+          document.getElementById("jsonOutput").textContent,
+        );
+
+        window.location.href = `mailto:?subject=${subject}&body=${body}`;
+      }
+
+      function filterEntries() {
+        const q = document.getElementById("searchBox").value.toLowerCase();
+        const entries = document.querySelectorAll(".entry");
+
+        entries.forEach((entry) => {
+          const text =
+            entry.innerText.toLowerCase() +
+            " " +
+            entry.querySelector(".url").value.toLowerCase() +
+            " " +
+            entry.querySelector(".changes").value.toLowerCase() +
+            " " +
+            entry.querySelector(".newData").value.toLowerCase() +
+            " " +
+            entry.querySelector(".notes").value.toLowerCase();
+
+          entry.style.display = text.includes(q) ? "block" : "none";
+        });
+      }
+
+      function clearAll() {
+        if (!confirm("Clear all entries?")) return;
+
+        document.getElementById("senderContact").value = "";
+        document.getElementById("projectName").value = "";
+        document.getElementById("entries").innerHTML = "";
+        entryCounter = 0;
+        addEntry();
+      }
+
+      document.addEventListener("paste", (event) => {
+        const visibleEntries = Array.from(
+          document.querySelectorAll(".entry"),
+        ).filter((e) => e.style.display !== "none");
+
+        const entry = visibleEntries[visibleEntries.length - 1];
+        if (!entry) return;
+
+        for (const item of event.clipboardData.items) {
+          if (item.type.includes("image")) {
+            const file = item.getAsFile();
+            const reader = new FileReader();
+
+            reader.onload = (e) => {
+              entry.images.push({
+                fileName: "pasted-screenshot.png",
+                fileType: file.type,
+                size: file.size,
+                imageData: e.target.result,
+              });
+
+              renderImages(entry);
+              generateJSON();
+            };
+
+            reader.readAsDataURL(file);
+          }
+        }
+      });
+
+      addEntry();
+    </script>
+  </body>
+</html>
