@@ -1,7 +1,7 @@
 const $ = (id) => document.getElementById(id);
 const ui = {
   app: $("appShell"), code: $("ppCode"), gutter: $("ppGutter"), stdin: $("ppStdin"), out: $("ppOut"), err: $("ppErr"),
-  run: $("ppRun"), stop: $("ppStop"), clear: $("ppClear"), font: $("ppFontSize"), fullscreen: $("ppFullscreen"), share: $("ppShare"), theme: $("ppTheme"),
+  run: $("ppRun"), stop: $("ppStop"), clear: $("ppClear"), font: $("ppFontSize"), fullscreen: $("ppFullscreen"), fullscreenTool: $("ppFullscreenTool"), fullscreenButtons: Array.from(document.querySelectorAll(".jsFullscreen")), share: $("ppShare"), theme: $("ppTheme"),
   pkgs: $("ppPkgs"), install: $("ppInstall"), list: $("ppList"), status: $("ppStatus"), toast: $("ppToast"), copyOut: $("ppCopyOut"), plots: $("ppPlots")
 };
 const K_CODE = "pp_beginner_code_v1";
@@ -214,7 +214,37 @@ ui.run.addEventListener("click", runCode);
 ui.stop.addEventListener("click", stopRun);
 ui.clear.addEventListener("click", ()=>{ ui.out.textContent="Output will appear here."; ui.err.textContent="Errors will appear here."; showPlots([]); });
 ui.font.addEventListener("change", ()=>applyFont(ui.font.value));
-ui.fullscreen.addEventListener("click", ()=>{ document.body.classList.toggle("fullscreen"); ui.app.classList.toggle("fullscreen"); ui.fullscreen.textContent = ui.app.classList.contains("fullscreen") ? "⛶ Exit full screen" : "⛶ Full screen"; });
+function syncFullscreenButtons(){
+  const active = ui.app.classList.contains("fullscreen") || document.fullscreenElement === ui.app;
+  ui.fullscreenButtons.forEach(btn => btn.textContent = active ? "⛶ Exit full screen" : "⛶ Full screen");
+}
+async function toggleFullscreen(){
+  const active = ui.app.classList.contains("fullscreen") || document.fullscreenElement === ui.app;
+  if(active){
+    ui.app.classList.remove("fullscreen");
+    document.body.classList.remove("fullscreen");
+    if(document.fullscreenElement){
+      try{ await document.exitFullscreen(); }catch{}
+    }
+  }else{
+    ui.app.classList.add("fullscreen");
+    document.body.classList.add("fullscreen");
+    try{
+      if(ui.app.requestFullscreen) await ui.app.requestFullscreen();
+    }catch{
+      // CSS fullscreen fallback still remains active.
+    }
+  }
+  syncFullscreenButtons();
+}
+ui.fullscreenButtons.forEach(btn => btn.addEventListener("click", toggleFullscreen));
+document.addEventListener("fullscreenchange", ()=>{
+  if(!document.fullscreenElement){
+    ui.app.classList.remove("fullscreen");
+    document.body.classList.remove("fullscreen");
+  }
+  syncFullscreenButtons();
+});
 ui.share.addEventListener("click", shareProject);
 ui.theme.addEventListener("click", ()=>applyTheme((document.body.dataset.theme || "light") === "light" ? "dark" : "light"));
 ui.install.addEventListener("click", installModules);
