@@ -2,16 +2,20 @@ const $ = (id) => document.getElementById(id);
 const ui = {
   app: $("appShell"), code: $("ppCode"), gutter: $("ppGutter"), stdin: $("ppStdin"), out: $("ppOut"), err: $("ppErr"),
   run: $("ppRun"), stop: $("ppStop"), clear: $("ppClear"), font: $("ppFontSize"), fullscreen: $("ppFullscreen"), fullscreenTool: $("ppFullscreenTool"), fullscreenButtons: Array.from(document.querySelectorAll(".jsFullscreen")), share: $("ppShare"), theme: $("ppTheme"),
-  pkgs: $("ppPkgs"), install: $("ppInstall"), list: $("ppList"), status: $("ppStatus"), toast: $("ppToast"), copyOut: $("ppCopyOut"), plots: $("ppPlots")
+  pkgs: $("ppPkgs"), install: $("ppInstall"), list: $("ppList"), status: $("ppStatus"), toast: $("ppToast"), copyOut: $("ppCopyOut"), plots: $("ppPlots"),
+  plotMode: $("ppPlotMode"), openPlots: $("ppOpenPlots"), plotModal: $("ppPlotModal"), plotModalTitle: $("ppPlotModalTitle"), plotModalImg: $("ppPlotModalImg"), plotModalClose: $("ppPlotModalClose"), plotPrev: $("ppPlotPrev"), plotNext: $("ppPlotNext"), plotDownload: $("ppPlotDownload")
 };
 const K_CODE = "pp_beginner_code_v1";
 const K_STDIN = "pp_beginner_stdin_v1";
 const K_FONT = "pp_beginner_font_v1";
 const K_THEME = "pp_beginner_theme_v1";
+const K_PLOT_MODE = "pp_beginner_plot_mode_v1";
 let worker = null;
 let running = false;
 let ready = false;
 let runTimer = null;
+let currentPlots = [];
+let currentPlotIndex = 0;
 
 function toast(msg){ ui.toast.textContent = msg; ui.toast.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(()=>ui.toast.classList.remove("show"), 1600); }
 function setStatus(msg, kind=""){ ui.status.textContent = msg; ui.status.className = "status " + kind; }
@@ -19,7 +23,70 @@ function save(){ localStorage.setItem(K_CODE, ui.code.value); localStorage.setIt
 function escapeHtml(s){ return String(s ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;"); }
 function updateGutter(){ const n = ui.code.value.split("\n").length; ui.gutter.textContent = Array.from({length:n},(_,i)=>i+1).join("\n"); }
 function applyFont(size){ ui.code.style.fontSize = size + "px"; ui.gutter.style.fontSize = size + "px"; ui.out.style.fontSize = Math.max(14, Number(size)-1) + "px"; ui.err.style.fontSize = Math.max(14, Number(size)-1) + "px"; localStorage.setItem(K_FONT, size); }
-function showPlots(plots){ ui.plots.innerHTML = ""; (plots || []).forEach((src, i)=>{ const box = document.createElement("article"); box.className = "plot"; box.innerHTML = `<b>Plot ${i+1}</b><img alt="Python plot ${i+1}" src="${src}">`; ui.plots.appendChild(box); }); }
+function applyPlotMode(mode){
+  const allowed = new Set(["modal", "gallery", "both", "hidden"]);
+  const value = allowed.has(mode) ? mode : "both";
+  if(ui.plotMode) ui.plotMode.value = value;
+  localStorage.setItem(K_PLOT_MODE, value);
+  document.body.dataset.plotMode = value;
+  if(ui.openPlots) ui.openPlots.disabled = currentPlots.length === 0;
+}
+function getPlotMode(){ return (ui.plotMode && ui.plotMode.value) || localStorage.getItem(K_PLOT_MODE) || "both"; }
+function showPlots(plots){
+  currentPlots = Array.isArray(plots) ? plots.filter(Boolean) : [];
+  currentPlotIndex = 0;
+  ui.plots.innerHTML = "";
+  const mode = getPlotMode();
+  if(ui.openPlots) ui.openPlots.disabled = currentPlots.length === 0;
+  if(!currentPlots.length){ closePlotModal(); return; }
+
+  if(mode === "gallery" || mode === "both"){
+    currentPlots.forEach((src, i)=>{
+      const box = document.createElement("article");
+      box.className = "plot";
+      box.innerHTML = `
+        <div class="plotHead">
+          <b>Plot ${i+1}</b>
+          <div class="plotActions">
+            <button class="miniBtn" type="button" data-open-plot="${i}">Open</button>
+            <a class="miniBtn plotDownloadLink" href="${src}" download="python-plot-${i+1}.png">PNG</a>
+          </div>
+        </div>
+        <button class="plotPreview" type="button" data-open-plot="${i}" aria-label="Open plot ${i+1} in modal">
+          <img alt="Python plot ${i+1}" src="${src}">
+        </button>`;
+      ui.plots.appendChild(box);
+    });
+  }
+
+  if(mode === "modal" || mode === "both") openPlotModal(0);
+}
+function openPlotModal(index=0){
+  if(!currentPlots.length || !ui.plotModal) return toast("No plots to show");
+  currentPlotIndex = Math.max(0, Math.min(index, currentPlots.length - 1));
+  ui.plotModalImg.src = currentPlots[currentPlotIndex];
+  ui.plotModalImg.alt = `Python plot ${currentPlotIndex + 1}`;
+  ui.plotModalTitle.textContent = `Matplotlib Plot ${currentPlotIndex + 1} of ${currentPlots.length}`;
+  ui.plotDownload.href = currentPlots[currentPlotIndex];
+  ui.plotDownload.download = `python-plot-${currentPlotIndex + 1}.png`;
+  ui.plotPrev.disabled = currentPlots.length <= 1;
+  ui.plotNext.disabled = currentPlots.length <= 1;
+  ui.plotModal.classList.add("show");
+  ui.plotModal.setAttribute("aria-hidden", "false");
+  document.body.classList.add("modalOpen");
+}
+function closePlotModal(){
+  if(!ui.plotModal) return;
+  ui.plotModal.classList.remove("show");
+  ui.plotModal.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("modalOpen");
+  if(ui.plotModalImg) ui.plotModalImg.removeAttribute("src");
+}
+function stepPlot(delta){
+  if(!currentPlots.length) return;
+  const next = (currentPlotIndex + delta + currentPlots.length) % currentPlots.length;
+  openPlotModal(next);
+}
 
 function applyTheme(theme){
   const t = theme === "dark" ? "dark" : "light";
@@ -251,9 +318,27 @@ ui.install.addEventListener("click", installModules);
 ui.list.addEventListener("click", ()=>{ if(!ready) return toast("Python is still loading"); ui.out.textContent="Loading module list…"; worker.postMessage({type:"LIST_PKGS"}); });
 ui.copyOut.addEventListener("click", async()=>{ try{ await navigator.clipboard.writeText(ui.out.textContent); toast("stdout copied"); }catch{ toast("Copy blocked"); } });
 
+if(ui.plotMode) ui.plotMode.addEventListener("change", ()=>{ applyPlotMode(ui.plotMode.value); showPlots(currentPlots); });
+if(ui.openPlots) ui.openPlots.addEventListener("click", ()=>openPlotModal(currentPlotIndex));
+if(ui.plots) ui.plots.addEventListener("click", (e)=>{
+  const btn = e.target.closest("[data-open-plot]");
+  if(btn) openPlotModal(Number(btn.dataset.openPlot || 0));
+});
+if(ui.plotModalClose) ui.plotModalClose.addEventListener("click", closePlotModal);
+if(ui.plotModal) ui.plotModal.addEventListener("click", (e)=>{ if(e.target === ui.plotModal) closePlotModal(); });
+if(ui.plotPrev) ui.plotPrev.addEventListener("click", ()=>stepPlot(-1));
+if(ui.plotNext) ui.plotNext.addEventListener("click", ()=>stepPlot(1));
+document.addEventListener("keydown", (e)=>{
+  if(!ui.plotModal || !ui.plotModal.classList.contains("show")) return;
+  if(e.key === "Escape") closePlotModal();
+  if(e.key === "ArrowLeft") stepPlot(-1);
+  if(e.key === "ArrowRight") stepPlot(1);
+});
+
 loadHash();
 if(!ui.code.value.trim()) ui.code.value = localStorage.getItem(K_CODE) || ui.code.value;
 else if(!location.hash && localStorage.getItem(K_CODE)) ui.code.value = localStorage.getItem(K_CODE);
 ui.stdin.value = ui.stdin.value || localStorage.getItem(K_STDIN) || "Champak";
 applyTheme(localStorage.getItem(K_THEME) || "light");
+applyPlotMode(localStorage.getItem(K_PLOT_MODE) || "both");
 const font = localStorage.getItem(K_FONT) || "16"; ui.font.value = font; applyFont(font); updateGutter(); makeWorker();

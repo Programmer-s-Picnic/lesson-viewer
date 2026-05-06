@@ -194,6 +194,13 @@ self.onmessage = async (ev) => {
       const policy_json = JSON.stringify(policy);
 
       await ensurePyodide();
+      // Auto-load common plotting/science wheels when the user's code needs them.
+      // This makes: import matplotlib.pyplot as plt work without manually installing first.
+      if (/(matplotlib|pyplot|plt\.)/.test(code)) {
+        try { await py.loadPackage(["matplotlib", "numpy"]); } catch(e) {}
+      } else if (/(import\s+numpy|from\s+numpy)/.test(code)) {
+        try { await py.loadPackage("numpy"); } catch(e) {}
+      }
       py.globals.set("U_CODE", code);
       py.globals.set("U_STDIN", stdin);
       py.globals.set("U_POLICY_JSON", policy_json);
