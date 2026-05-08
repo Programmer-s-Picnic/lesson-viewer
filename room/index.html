@@ -1,511 +1,652 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Simple Whiteboard Chalk</title>
 
-    <style>
-      * {
-        box-sizing: border-box;
-      }
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Simple Whiteboard Chalk - Fixed</title>
 
-      body {
-        margin: 0;
-        font-family: system-ui, sans-serif;
-        background: #111;
-        overflow: hidden;
-      }
+  <style>
+    * {
+      box-sizing: border-box;
+    }
 
+    :root {
+      --accent: #ff9f1c;
+      --dark-panel: rgba(0, 0, 0, 0.78);
+      --light-panel: rgba(255, 255, 255, 0.92);
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #111;
+      overflow: hidden;
+    }
+
+    body {
+      color: #fff;
+    }
+
+    .stage {
+      width: 100vw;
+      height: 100vh;
+      background-image: url("classroom.jpg");
+      background-position: center;
+      background-size: cover;
+      background-repeat: no-repeat;
+      position: relative;
+    }
+
+    canvas {
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      touch-action: none;
+      cursor: crosshair;
+    }
+
+    .toolbar {
+      position: fixed;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 30;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      max-width: min(1120px, calc(100vw - 20px));
+      padding: 10px;
+      border-radius: 18px;
+      background: var(--dark-panel);
+      color: #fff;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      transition: opacity 0.18s ease, transform 0.18s ease;
+    }
+
+    .toolbar.collapsed {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateX(-50%) translateY(-12px) scale(0.98);
+    }
+
+    .toolbarBall {
+      position: fixed;
+      top: 14px;
+      right: 14px;
+      z-index: 40;
+      width: 54px;
+      height: 54px;
+      display: none;
+      place-items: center;
+      border: 0;
+      border-radius: 999px;
+      background: var(--accent);
+      color: #111;
+      font-size: 24px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 12px 26px rgba(0, 0, 0, 0.35);
+    }
+
+    .toolbarBall.visible {
+      display: grid;
+    }
+
+    button,
+    input,
+    select {
+      border: 0;
+      border-radius: 10px;
+      padding: 8px 11px;
+      font-weight: 750;
+      cursor: pointer;
+    }
+
+    button {
+      background: #fff;
+      color: #111;
+    }
+
+    button:hover,
+    .toolbarBall:hover {
+      filter: brightness(1.05);
+    }
+
+    button.active {
+      background: var(--accent);
+      color: #111;
+    }
+
+    label {
+      font-size: 13px;
+      font-weight: 800;
+      color: inherit;
+    }
+
+    input[type="color"] {
+      width: 44px;
+      height: 36px;
+      padding: 3px;
+    }
+
+    input[type="range"] {
+      width: 96px;
+    }
+
+    .colorBtn {
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      border: 2px solid rgba(255, 255, 255, 0.65);
+    }
+
+    .divider {
+      width: 1px;
+      height: 32px;
+      background: rgba(255, 255, 255, 0.22);
+      margin: 0 2px;
+    }
+
+    .hint {
+      position: fixed;
+      left: 12px;
+      bottom: 12px;
+      z-index: 20;
+      background: rgba(0, 0, 0, 0.55);
+      color: #fff;
+      padding: 8px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      line-height: 1.35;
+      max-width: calc(100vw - 24px);
+      pointer-events: none;
+    }
+
+    body.light {
+      background: #fff;
+      color: #111;
+    }
+
+    body.light .toolbar {
+      background: var(--light-panel);
+      color: #111;
+    }
+
+    body.light button:not(.active):not(.toolbarBall) {
+      background: #111;
+      color: #fff;
+    }
+
+    body.light .colorBtn {
+      border-color: rgba(0, 0, 0, 0.35);
+    }
+
+    body.light .divider {
+      background: rgba(0, 0, 0, 0.18);
+    }
+
+    body.light .hint {
+      background: rgba(255, 255, 255, 0.72);
+      color: #111;
+    }
+
+    @media (max-width: 700px) {
       .toolbar {
-        position: fixed;
-        top: 10px;
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 10;
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-        justify-content: center;
-        align-items: center;
-        padding: 10px;
-        border-radius: 16px;
-        background: rgba(0, 0, 0, 0.78);
-        color: #fff;
-        backdrop-filter: blur(10px);
-      }
-
-      .toolbar.hidden {
-        display: none;
-      }
-
-      .showToolbarBtn {
-        position: fixed;
-        top: 10px;
-        right: 10px;
-        z-index: 20;
-        display: none;
-        background: #ff9f1c;
-        color: #111;
-        border: 0;
-        border-radius: 12px;
-        padding: 9px 13px;
-        font-weight: 800;
-        cursor: pointer;
-      }
-
-      .showToolbarBtn.visible {
-        display: block;
-      }
-
-      button,
-      input {
-        border: 0;
-        border-radius: 10px;
-        padding: 8px 11px;
-        font-weight: 700;
-        cursor: pointer;
-      }
-
-      button {
-        background: #fff;
-        color: #111;
-      }
-
-      button.active {
-        background: #ff9f1c;
-        color: #111;
-      }
-
-      label {
-        font-size: 13px;
-        font-weight: 700;
-        color: inherit;
-      }
-
-      input[type="color"] {
-        width: 44px;
-        height: 36px;
-        padding: 3px;
+        top: 8px;
+        width: calc(100vw - 16px);
+        max-height: 46vh;
+        overflow: auto;
+        justify-content: flex-start;
       }
 
       input[type="range"] {
-        width: 100px;
+        width: 82px;
       }
 
-      .colorBtn {
-        width: 34px;
-        height: 34px;
-        padding: 0;
-        border: 2px solid rgba(255, 255, 255, 0.6);
+      .hint {
+        display: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="toolbar" id="toolbar">
+    <button id="penBtn" class="active" type="button">✏️ Chalk</button>
+    <button id="eraserBtn" type="button">⬜ Eraser</button>
+
+    <input type="color" id="color" value="#ffffff" title="Choose chalk color" />
+
+    <button class="colorBtn" style="background:#ffffff" data-color="#ffffff" title="White" type="button"></button>
+    <button class="colorBtn" style="background:#ffd93d" data-color="#ffd93d" title="Yellow" type="button"></button>
+    <button class="colorBtn" style="background:#4dabf7" data-color="#4dabf7" title="Blue" type="button"></button>
+    <button class="colorBtn" style="background:#ff6b6b" data-color="#ff6b6b" title="Red" type="button"></button>
+    <button class="colorBtn" style="background:#51cf66" data-color="#51cf66" title="Green" type="button"></button>
+    <button class="colorBtn" style="background:#111111" data-color="#111111" title="Black" type="button"></button>
+
+    <label for="size">Pen</label>
+    <input type="range" id="size" min="2" max="35" value="5" />
+
+    <label for="eraserSize">Eraser</label>
+    <input type="range" id="eraserSize" min="10" max="100" value="35" />
+
+    <label for="smooth">Smooth</label>
+    <input type="range" id="smooth" min="1" max="20" value="12" />
+
+    <div class="divider" aria-hidden="true"></div>
+
+    <button id="undoBtn" type="button">↶ Undo</button>
+    <button id="redoBtn" type="button">↷ Redo</button>
+    <button id="clearBtn" type="button">Clear</button>
+
+    <div class="divider" aria-hidden="true"></div>
+
+    <button id="loadDrawingBtn" type="button">Load Drawing PNG</button>
+    <input type="file" id="loadDrawingInput" accept="image/png,image/*" hidden />
+
+    <button id="boardImageBtn" type="button">Change Board Image</button>
+    <input type="file" id="boardImageInput" accept="image/png,image/jpeg,image/webp,image/*" hidden />
+
+    <button id="resetBoardImageBtn" type="button">Reset Board</button>
+    <button id="saveBtn" type="button">Save PNG</button>
+    <button id="shareBtn" type="button">Share</button>
+
+    <div class="divider" aria-hidden="true"></div>
+
+    <button id="collapseBtn" type="button">Collapse</button>
+    <button id="fsBtn" type="button">Fullscreen</button>
+    <button id="themeBtn" type="button">Dark/Light</button>
+  </div>
+
+  <button class="toolbarBall" id="toolbarBall" title="Show toolbar" type="button">☰</button>
+
+  <div class="stage" id="stage">
+    <canvas id="board"></canvas>
+  </div>
+
+  <div class="hint">F2: collapse/show toolbar · Esc: leave fullscreen · Save includes the current board image</div>
+
+  <script>
+    const stage = document.getElementById("stage");
+    const canvas = document.getElementById("board");
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+
+    const toolbar = document.getElementById("toolbar");
+    const toolbarBall = document.getElementById("toolbarBall");
+    const penBtn = document.getElementById("penBtn");
+    const eraserBtn = document.getElementById("eraserBtn");
+    const color = document.getElementById("color");
+    const size = document.getElementById("size");
+    const eraserSize = document.getElementById("eraserSize");
+    const smooth = document.getElementById("smooth");
+    const clearBtn = document.getElementById("clearBtn");
+    const undoBtn = document.getElementById("undoBtn");
+    const redoBtn = document.getElementById("redoBtn");
+    const saveBtn = document.getElementById("saveBtn");
+    const shareBtn = document.getElementById("shareBtn");
+    const fsBtn = document.getElementById("fsBtn");
+    const themeBtn = document.getElementById("themeBtn");
+    const collapseBtn = document.getElementById("collapseBtn");
+    const loadDrawingBtn = document.getElementById("loadDrawingBtn");
+    const loadDrawingInput = document.getElementById("loadDrawingInput");
+    const boardImageBtn = document.getElementById("boardImageBtn");
+    const boardImageInput = document.getElementById("boardImageInput");
+    const resetBoardImageBtn = document.getElementById("resetBoardImageBtn");
+
+    const defaultBoardImage = "classroom.jpg";
+    let boardImageSrc = defaultBoardImage;
+    let boardImageObj = null;
+
+    let tool = "pen";
+    let drawing = false;
+    let lastX = 0;
+    let lastY = 0;
+    let undoStack = [];
+    let redoStack = [];
+    let lastCanvasData = null;
+    let currentPointerId = null;
+
+    function updateBoardBackground() {
+      stage.style.backgroundImage = `url("${boardImageSrc}")`;
+    }
+
+    function loadBoardImageObject(src) {
+      boardImageObj = null;
+      const img = new Image();
+      img.onload = () => {
+        boardImageObj = img;
+      };
+      img.onerror = () => {
+        boardImageObj = null;
+      };
+      img.src = src;
+    }
+
+    updateBoardBackground();
+    loadBoardImageObject(boardImageSrc);
+
+    function snapshot() {
+      return canvas.toDataURL("image/png");
+    }
+
+    function saveState() {
+      undoStack.push(snapshot());
+      if (undoStack.length > 50) undoStack.shift();
+      redoStack = [];
+    }
+
+    function loadState(dataUrl) {
+      const img = new Image();
+      img.onload = () => {
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.globalCompositeOperation = "source-over";
+        ctx.shadowBlur = 0;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        ctx.restore();
+      };
+      img.src = dataUrl;
+    }
+
+    function resizeCanvas() {
+      if (canvas.width && canvas.height) {
+        lastCanvasData = snapshot();
       }
 
-      .stage {
-        width: 100vw;
-        height: 100vh;
-        background: url("classroom.jpg") center/cover no-repeat;
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      const width = Math.round(window.innerWidth * dpr);
+      const height = Math.round(window.innerHeight * dpr);
+
+      canvas.width = width;
+      canvas.height = height;
+      canvas.style.width = `${window.innerWidth}px`;
+      canvas.style.height = `${window.innerHeight}px`;
+
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+
+      if (lastCanvasData) {
+        loadState(lastCanvasData);
+      }
+    }
+
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
+
+    function setPenMode() {
+      tool = "pen";
+      canvas.style.cursor = "crosshair";
+      penBtn.classList.add("active");
+      eraserBtn.classList.remove("active");
+    }
+
+    function setEraserMode() {
+      tool = "eraser";
+      canvas.style.cursor = "cell";
+      eraserBtn.classList.add("active");
+      penBtn.classList.remove("active");
+    }
+
+    function setColor(c) {
+      color.value = c;
+      setPenMode();
+    }
+
+    document.querySelectorAll(".colorBtn").forEach((btn) => {
+      btn.addEventListener("click", () => setColor(btn.dataset.color));
+    });
+
+    color.addEventListener("input", () => setPenMode());
+    penBtn.addEventListener("click", setPenMode);
+    eraserBtn.addEventListener("click", setEraserMode);
+
+    function getPos(e) {
+      const r = canvas.getBoundingClientRect();
+      return {
+        x: e.clientX - r.left,
+        y: e.clientY - r.top,
+      };
+    }
+
+    function startDraw(e) {
+      if (e.button !== undefined && e.button !== 0) return;
+      e.preventDefault();
+      currentPointerId = e.pointerId;
+      canvas.setPointerCapture?.(e.pointerId);
+      saveState();
+      drawing = true;
+      const p = getPos(e);
+      lastX = p.x;
+      lastY = p.y;
+    }
+
+    function draw(e) {
+      if (!drawing || (currentPointerId !== null && e.pointerId !== currentPointerId)) return;
+      e.preventDefault();
+
+      const p = getPos(e);
+      const smoothing = Math.max(0.05, Number(smooth.value) / 20);
+      const x = lastX + (p.x - lastX) * smoothing;
+      const y = lastY + (p.y - lastY) * smoothing;
+
+      ctx.save();
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+
+      if (tool === "eraser") {
+        ctx.globalCompositeOperation = "destination-out";
+        ctx.shadowBlur = 0;
+        ctx.lineWidth = Number(eraserSize.value);
+        ctx.strokeStyle = "rgba(0,0,0,1)";
+      } else {
+        ctx.globalCompositeOperation = "source-over";
+        ctx.strokeStyle = color.value;
+        ctx.lineWidth = Number(size.value);
+        ctx.shadowBlur = 2;
+        ctx.shadowColor = color.value;
       }
 
-      canvas {
-        width: 100vw;
-        height: 100vh;
-        display: block;
-        touch-action: none;
-        cursor: crosshair;
-      }
+      ctx.beginPath();
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      ctx.restore();
 
-      .light {
-        background: #fff;
-      }
+      lastX = x;
+      lastY = y;
+    }
 
-      .light .toolbar {
-        background: rgba(255, 255, 255, 0.9);
-        color: #111;
-      }
+    function stopDraw(e) {
+      if (currentPointerId !== null && e?.pointerId !== undefined && e.pointerId !== currentPointerId) return;
+      drawing = false;
+      currentPointerId = null;
+      ctx.beginPath();
+    }
 
-      .light button {
-        background: #111;
-        color: #fff;
-      }
+    canvas.addEventListener("pointerdown", startDraw);
+    canvas.addEventListener("pointermove", draw);
+    window.addEventListener("pointerup", stopDraw);
+    window.addEventListener("pointercancel", stopDraw);
 
-      .light button.active {
-        background: #ff9f1c;
-        color: #111;
-      }
+    clearBtn.addEventListener("click", () => {
+      saveState();
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    });
 
-      .light .colorBtn {
-        border: 2px solid rgba(0, 0, 0, 0.35);
-      }
-    </style>
-  </head>
+    undoBtn.addEventListener("click", () => {
+      if (!undoStack.length) return;
+      redoStack.push(snapshot());
+      loadState(undoStack.pop());
+    });
 
-  <body>
-    <div class="toolbar">
-      <button id="penBtn" class="active">✏️ Chalk</button>
-      <button id="eraserBtn">⬜ Eraser</button>
+    redoBtn.addEventListener("click", () => {
+      if (!redoStack.length) return;
+      undoStack.push(snapshot());
+      loadState(redoStack.pop());
+    });
 
-      <input type="color" id="color" value="#ffffff" />
+    loadDrawingBtn.addEventListener("click", () => loadDrawingInput.click());
 
-      <button
-        class="colorBtn"
-        style="background: #ffffff"
-        onclick="setColor('#ffffff')"
-        title="White"
-      ></button>
-      <button
-        class="colorBtn"
-        style="background: #ffd93d"
-        onclick="setColor('#ffd93d')"
-        title="Yellow"
-      ></button>
-      <button
-        class="colorBtn"
-        style="background: #4dabf7"
-        onclick="setColor('#4dabf7')"
-        title="Blue"
-      ></button>
-      <button
-        class="colorBtn"
-        style="background: #ff6b6b"
-        onclick="setColor('#ff6b6b')"
-        title="Red"
-      ></button>
-      <button
-        class="colorBtn"
-        style="background: #51cf66"
-        onclick="setColor('#51cf66')"
-        title="Green"
-      ></button>
-      <button
-        class="colorBtn"
-        style="background: #111111"
-        onclick="setColor('#111111')"
-        title="Black"
-      ></button>
-
-      <label>Pen</label>
-      <input type="range" id="size" min="2" max="35" value="5" />
-
-      <label>Eraser</label>
-      <input type="range" id="eraserSize" min="10" max="90" value="35" />
-
-      <label>Smooth</label>
-      <input type="range" id="smooth" min="1" max="20" value="6" />
-
-      <button id="clearBtn">Clear</button>
-
-      <button id="hideToolbarBtn">Hide Toolbar</button>
-      <button id="showToolbarBtn">Show Toolbar</button>
-      <button id="undoBtn">↶ Undo</button>
-      <button id="redoBtn">↷ Redo</button>
-      <button id="saveBtn">Save PNG</button>
-      <button id="loadBtn">Load PNG</button>
-      <input type="file" id="loadInput" accept="image/png,image/*" hidden />
-      <button id="fsBtn">Fullscreen</button>
-      <button id="themeBtn">Dark/Light</button>
-      <button id="shareBtn">Share</button>
-    </div>
-
-    <div class="stage" id="stage">
-      <canvas id="board"></canvas>
-    </div>
-
-    <script>
-      const canvas = document.getElementById("board");
-      const ctx = canvas.getContext("2d");
-
-      const penBtn = document.getElementById("penBtn");
-      const eraserBtn = document.getElementById("eraserBtn");
-      const color = document.getElementById("color");
-      const size = document.getElementById("size");
-      const eraserSize = document.getElementById("eraserSize");
-      const smooth = document.getElementById("smooth");
-
-      let tool = "pen";
-      let drawing = false;
-      let lastX = 0;
-      let lastY = 0;
-
-      let undoStack = [];
-      let redoStack = [];
-
-      function resizeCanvas() {
-        const old = document.createElement("canvas");
-        old.width = canvas.width;
-        old.height = canvas.height;
-        old.getContext("2d").drawImage(canvas, 0, 0);
-
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-
-        ctx.drawImage(old, 0, 0, canvas.width, canvas.height);
-      }
-
-      resizeCanvas();
-      window.addEventListener("resize", resizeCanvas);
-
-      function setColor(c) {
-        color.value = c;
-        tool = "pen";
-        penBtn.classList.add("active");
-        eraserBtn.classList.remove("active");
-        canvas.style.cursor = "crosshair";
-      }
-
-      function saveState() {
-        undoStack.push(canvas.toDataURL("image/png"));
-        if (undoStack.length > 40) undoStack.shift();
-        redoStack = [];
-      }
-
-      function loadState(data) {
+    loadDrawingInput.addEventListener("change", (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      saveState();
+      const reader = new FileReader();
+      reader.onload = (event) => {
         const img = new Image();
         img.onload = () => {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        };
-        img.src = data;
-      }
-
-      function getPos(e) {
-        const r = canvas.getBoundingClientRect();
-        const p = e.touches ? e.touches[0] : e;
-        return {
-          x: p.clientX - r.left,
-          y: p.clientY - r.top,
-        };
-      }
-
-      function startDraw(e) {
-        e.preventDefault();
-        saveState();
-        drawing = true;
-        const p = getPos(e);
-        lastX = p.x;
-        lastY = p.y;
-      }
-
-      function draw(e) {
-        if (!drawing) return;
-        e.preventDefault();
-
-        const p = getPos(e);
-
-        const factor = Number(smooth.value) / 20;
-        const x = lastX + (p.x - lastX) * factor;
-        const y = lastY + (p.y - lastY) * factor;
-
-        ctx.lineCap = "round";
-        ctx.lineJoin = "round";
-
-        if (tool === "eraser") {
-          ctx.globalCompositeOperation = "destination-out";
-          ctx.shadowBlur = 0;
-          ctx.lineWidth = Number(eraserSize.value);
-          ctx.strokeStyle = "rgba(0,0,0,1)";
-        } else {
+          ctx.save();
           ctx.globalCompositeOperation = "source-over";
-          ctx.strokeStyle = color.value;
-          ctx.lineWidth = Number(size.value);
-
-          ctx.shadowBlur = 2;
-          ctx.shadowColor = color.value;
-        }
-
-        ctx.beginPath();
-        ctx.moveTo(lastX, lastY);
-        ctx.lineTo(x, y);
-        ctx.stroke();
-
-        lastX = x;
-        lastY = y;
-      }
-
-      function stopDraw() {
-        drawing = false;
-        ctx.beginPath();
-      }
-
-      canvas.addEventListener("mousedown", startDraw);
-      canvas.addEventListener("mousemove", draw);
-      window.addEventListener("mouseup", stopDraw);
-
-      canvas.addEventListener("touchstart", startDraw, { passive: false });
-      canvas.addEventListener("touchmove", draw, { passive: false });
-      window.addEventListener("touchend", stopDraw);
-
-      penBtn.onclick = () => {
-        tool = "pen";
-        canvas.style.cursor = "crosshair";
-        penBtn.classList.add("active");
-        eraserBtn.classList.remove("active");
-      };
-
-      eraserBtn.onclick = () => {
-        tool = "eraser";
-        canvas.style.cursor = "cell";
-        eraserBtn.classList.add("active");
-        penBtn.classList.remove("active");
-      };
-
-      clearBtn.onclick = () => {
-        saveState();
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-      };
-
-      undoBtn.onclick = () => {
-        if (!undoStack.length) return;
-        redoStack.push(canvas.toDataURL("image/png"));
-        loadState(undoStack.pop());
-      };
-
-      redoBtn.onclick = () => {
-        if (!redoStack.length) return;
-        undoStack.push(canvas.toDataURL("image/png"));
-        loadState(redoStack.pop());
-      };
-
-      const loadBtn = document.getElementById("loadBtn");
-      const loadInput = document.getElementById("loadInput");
-
-      loadBtn.onclick = () => {
-        loadInput.click();
-      };
-
-      loadInput.onchange = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        saveState();
-
-        const reader = new FileReader();
-
-        reader.onload = (event) => {
-          const img = new Image();
-
-          img.onload = () => {
-            ctx.globalCompositeOperation = "source-over";
-            ctx.shadowBlur = 0;
-
-            // Fit image inside the board while keeping aspect ratio
-            const scale = Math.min(
-              canvas.width / img.width,
-              canvas.height / img.height,
-            );
-
-            const w = img.width * scale;
-            const h = img.height * scale;
-            const x = (canvas.width - w) / 2;
-            const y = (canvas.height - h) / 2;
-
-            ctx.drawImage(img, x, y, w, h);
-          };
-
-          img.src = event.target.result;
+          ctx.shadowBlur = 0;
+          const scale = Math.min(window.innerWidth / img.width, window.innerHeight / img.height);
+          const w = img.width * scale;
+          const h = img.height * scale;
+          const x = (window.innerWidth - w) / 2;
+          const y = (window.innerHeight - h) / 2;
+          ctx.drawImage(img, x, y, w, h);
+          ctx.restore();
         };
-
-        reader.readAsDataURL(file);
-
-        // Allows loading the same PNG again
-        loadInput.value = "";
+        img.src = event.target.result;
       };
+      reader.readAsDataURL(file);
+      loadDrawingInput.value = "";
+    });
 
-      saveBtn.onclick = () => {
-        const output = document.createElement("canvas");
-        const octx = output.getContext("2d");
+    boardImageBtn.addEventListener("click", () => boardImageInput.click());
 
-        output.width = window.innerWidth;
-        output.height = window.innerHeight;
-
-        const bg = new Image();
-        bg.onload = () => {
-          octx.drawImage(bg, 0, 0, output.width, output.height);
-          octx.drawImage(canvas, 0, 0, output.width, output.height);
-
-          const link = document.createElement("a");
-          link.download = "whiteboard-chalk.png";
-          link.href = output.toDataURL("image/png");
-          link.click();
-        };
-
-        bg.src = "classroom.jpg";
+    boardImageInput.addEventListener("change", (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        boardImageSrc = event.target.result;
+        updateBoardBackground();
+        loadBoardImageObject(boardImageSrc);
       };
+      reader.readAsDataURL(file);
+      boardImageInput.value = "";
+    });
 
-      const toolbar = document.querySelector(".toolbar");
-      const hideToolbarBtn = document.getElementById("hideToolbarBtn");
-      const showToolbarBtn = document.getElementById("showToolbarBtn");
+    resetBoardImageBtn.addEventListener("click", () => {
+      boardImageSrc = defaultBoardImage;
+      updateBoardBackground();
+      loadBoardImageObject(boardImageSrc);
+    });
 
-      function hideToolbar() {
-        toolbar.classList.add("hidden");
-        showToolbarBtn.classList.add("visible");
+    function drawCoverImage(octx, img, width, height) {
+      if (!img || !img.complete || !img.naturalWidth) {
+        octx.fillStyle = document.body.classList.contains("light") ? "#ffffff" : "#111111";
+        octx.fillRect(0, 0, width, height);
+        return;
       }
+      const scale = Math.max(width / img.naturalWidth, height / img.naturalHeight);
+      const w = img.naturalWidth * scale;
+      const h = img.naturalHeight * scale;
+      const x = (width - w) / 2;
+      const y = (height - h) / 2;
+      octx.drawImage(img, x, y, w, h);
+    }
 
-      function showToolbar() {
-        toolbar.classList.remove("hidden");
-        showToolbarBtn.classList.remove("visible");
-      }
+    function makeOutputCanvas() {
+      const output = document.createElement("canvas");
+      const octx = output.getContext("2d");
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      output.width = Math.round(window.innerWidth * dpr);
+      output.height = Math.round(window.innerHeight * dpr);
+      drawCoverImage(octx, boardImageObj, output.width, output.height);
+      octx.drawImage(canvas, 0, 0, output.width, output.height);
+      return output;
+    }
 
-      function toggleToolbar() {
-        if (toolbar.classList.contains("hidden")) {
-          showToolbar();
+    saveBtn.addEventListener("click", () => {
+      const output = makeOutputCanvas();
+      const link = document.createElement("a");
+      link.download = "whiteboard-chalk.png";
+      link.href = output.toDataURL("image/png");
+      link.click();
+    });
+
+    shareBtn.addEventListener("click", async () => {
+      const output = makeOutputCanvas();
+      output.toBlob(async (blob) => {
+        const file = new File([blob], "whiteboard-chalk.png", { type: "image/png" });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({ title: "Whiteboard Chalk", files: [file] });
+        } else if (navigator.share) {
+          await navigator.share({ title: "Whiteboard Chalk" });
         } else {
-          hideToolbar();
+          alert("Sharing is not supported here. Use Save PNG instead.");
         }
-      }
+      }, "image/png");
+    });
 
-      hideToolbarBtn.onclick = hideToolbar;
-      showToolbarBtn.onclick = showToolbar;
+    function collapseToolbar() {
+      toolbar.classList.add("collapsed");
+      toolbarBall.classList.add("visible");
+    }
 
-      document.addEventListener("keydown", (e) => {
-        if (e.key === "F2") {
-          e.preventDefault();
-          toggleToolbar();
-        }
-      });
+    function expandToolbar() {
+      toolbar.classList.remove("collapsed");
+      toolbarBall.classList.remove("visible");
+    }
 
-      fsBtn.onclick = () => {
+    function toggleToolbar() {
+      if (toolbar.classList.contains("collapsed")) expandToolbar();
+      else collapseToolbar();
+    }
+
+    collapseBtn.addEventListener("click", collapseToolbar);
+    toolbarBall.addEventListener("click", expandToolbar);
+
+    async function toggleFullscreen() {
+      try {
         if (!document.fullscreenElement) {
-          document.documentElement.requestFullscreen();
+          await document.documentElement.requestFullscreen();
         } else {
-          document.exitFullscreen();
+          await document.exitFullscreen();
         }
-      };
+      } catch (err) {
+        alert("Fullscreen is blocked by this browser or page context.");
+      }
+    }
 
-      themeBtn.onclick = () => {
-        document.body.classList.toggle("light");
-      };
+    fsBtn.addEventListener("click", toggleFullscreen);
 
-      shareBtn.onclick = async () => {
-        const output = document.createElement("canvas");
-        const octx = output.getContext("2d");
+    document.addEventListener("fullscreenchange", () => {
+      fsBtn.textContent = document.fullscreenElement ? "Exit Fullscreen" : "Fullscreen";
+      setTimeout(resizeCanvas, 60);
+    });
 
-        output.width = window.innerWidth;
-        output.height = window.innerHeight;
+    themeBtn.addEventListener("click", () => {
+      document.body.classList.toggle("light");
+    });
 
-        const bg = new Image();
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "F2") {
+        e.preventDefault();
+        toggleToolbar();
+      }
 
-        bg.onload = () => {
-          octx.drawImage(bg, 0, 0, output.width, output.height);
-          octx.drawImage(canvas, 0, 0, output.width, output.height);
+      const ctrlOrCmd = e.ctrlKey || e.metaKey;
+      if (ctrlOrCmd && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        undoBtn.click();
+      }
+      if (ctrlOrCmd && e.key.toLowerCase() === "y") {
+        e.preventDefault();
+        redoBtn.click();
+      }
+    });
+  </script>
+</body>
 
-          output.toBlob(async (blob) => {
-            const file = new File([blob], "whiteboard-chalk.png", {
-              type: "image/png",
-            });
-
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-              await navigator.share({
-                title: "Whiteboard Chalk",
-                files: [file],
-              });
-            } else {
-              alert("Sharing not supported. Use Save PNG.");
-            }
-          });
-        };
-
-        bg.src = "classroom.jpg";
-      };
-    </script>
-  </body>
 </html>
