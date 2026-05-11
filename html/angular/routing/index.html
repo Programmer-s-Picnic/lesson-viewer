@@ -1,0 +1,1363 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Routing in Angular | Level 0 to Infinity</title>
+
+  <meta name="description"
+    content="A complete beginner to expert lesson on Angular routing: routes, router outlet, router links, route parameters, guards, lazy loading, redirects, wildcard routes, and GitHub Pages deployment." />
+
+  <style>
+    :root {
+      --bg: #fff7ed;
+      --card: #ffffff;
+      --text: #241407;
+      --muted: #7c5b35;
+      --primary: #d97706;
+      --primary-dark: #92400e;
+      --accent: #f59e0b;
+      --soft: #ffedd5;
+      --line: #fed7aa;
+      --code-bg: #1f1308;
+      --code-text: #fff7ed;
+      --success: #15803d;
+      --danger: #b91c1c;
+      --info: #0369a1;
+      --shadow: 0 18px 45px rgba(120, 53, 15, 0.14);
+      --radius: 24px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background:
+        radial-gradient(circle at top left, #fed7aa 0, transparent 28%),
+        radial-gradient(circle at top right, #fde68a 0, transparent 24%),
+        var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+    }
+
+    a {
+      color: var(--primary-dark);
+      font-weight: 800;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(255, 247, 237, 0.94);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .topbar-inner {
+      max-width: 1240px;
+      margin: auto;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 900;
+      color: var(--primary-dark);
+      line-height: 1.25;
+    }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 15px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      display: grid;
+      place-items: center;
+      color: white;
+      font-weight: 900;
+      box-shadow: 0 10px 22px rgba(217, 119, 6, 0.28);
+    }
+
+    .nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .nav a {
+      font-size: 14px;
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--primary-dark);
+    }
+
+    .hero {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 56px 20px 28px;
+    }
+
+    .hero-card {
+      background: linear-gradient(135deg, #fff, #ffedd5);
+      border: 1px solid var(--line);
+      border-radius: 34px;
+      box-shadow: var(--shadow);
+      padding: 44px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .badge {
+      display: inline-flex;
+      background: #fff7ed;
+      border: 1px solid var(--line);
+      color: var(--primary-dark);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-weight: 800;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      font-size: clamp(34px, 6vw, 64px);
+      line-height: 1.05;
+      margin: 0 0 18px;
+      color: var(--primary-dark);
+      max-width: 950px;
+    }
+
+    .hero p {
+      max-width: 880px;
+      font-size: 20px;
+      color: var(--muted);
+      margin: 0 0 24px;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 24px;
+    }
+
+    .btn {
+      border: 0;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 13px 18px;
+      border-radius: 16px;
+      font-weight: 900;
+      font-size: 15px;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+      box-shadow: 0 12px 24px rgba(217, 119, 6, 0.25);
+    }
+
+    .btn-secondary {
+      background: #fff;
+      color: var(--primary-dark);
+      border: 1px solid var(--line);
+    }
+
+    .container {
+      max-width: 1240px;
+      margin: auto;
+      padding: 22px 20px 70px;
+      display: grid;
+      grid-template-columns: 310px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 86px;
+      background: rgba(255, 255, 255, 0.86);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 18px;
+      box-shadow: var(--shadow);
+      max-height: calc(100vh - 110px);
+      overflow: auto;
+    }
+
+    .sidebar h3 {
+      margin: 0 0 12px;
+      color: var(--primary-dark);
+    }
+
+    .sidebar a {
+      display: block;
+      padding: 9px 10px;
+      border-radius: 12px;
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .sidebar a:hover {
+      background: var(--soft);
+      text-decoration: none;
+      color: var(--primary-dark);
+    }
+
+    .content {
+      display: grid;
+      gap: 22px;
+    }
+
+    section.lesson {
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 28px;
+      box-shadow: var(--shadow);
+    }
+
+    section.lesson h2 {
+      margin: 0 0 12px;
+      color: var(--primary-dark);
+      font-size: 30px;
+      line-height: 1.2;
+    }
+
+    section.lesson h3 {
+      margin-top: 24px;
+      color: var(--primary-dark);
+    }
+
+    .note {
+      background: #fffbeb;
+      border-left: 5px solid var(--accent);
+      padding: 16px 18px;
+      border-radius: 16px;
+      margin: 18px 0;
+    }
+
+    .success {
+      background: #f0fdf4;
+      border-left: 5px solid var(--success);
+      padding: 16px 18px;
+      border-radius: 16px;
+      margin: 18px 0;
+    }
+
+    .warning {
+      background: #fef2f2;
+      border-left: 5px solid var(--danger);
+      padding: 16px 18px;
+      border-radius: 16px;
+      margin: 18px 0;
+    }
+
+    .info {
+      background: #f0f9ff;
+      border-left: 5px solid var(--info);
+      padding: 16px 18px;
+      border-radius: 16px;
+      margin: 18px 0;
+    }
+
+    pre {
+      position: relative;
+      background: var(--code-bg);
+      color: var(--code-text);
+      padding: 18px;
+      border-radius: 18px;
+      overflow-x: auto;
+      border: 1px solid #3b220f;
+    }
+
+    code {
+      font-family: Consolas, Monaco, "Courier New", monospace;
+      font-size: 14px;
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      border-radius: 10px;
+      padding: 6px 9px;
+      cursor: pointer;
+      font-weight: 800;
+      font-size: 12px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      margin-top: 16px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      min-width: 850px;
+    }
+
+    th,
+    td {
+      padding: 14px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: var(--soft);
+      color: var(--primary-dark);
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .card {
+      background: #fff7ed;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+    }
+
+    .card strong {
+      color: var(--primary-dark);
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .diagram {
+      background: #fffaf3;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 18px;
+      margin: 22px 0;
+      overflow-x: auto;
+    }
+
+    .diagram svg {
+      width: 100%;
+      min-width: 760px;
+      height: auto;
+      display: block;
+    }
+
+    .footer {
+      max-width: 1240px;
+      margin: 0 auto 36px;
+      padding: 24px 20px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    @media (max-width: 980px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: static;
+        max-height: none;
+      }
+
+      .cards {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-card {
+        padding: 28px;
+      }
+    }
+
+    @media print {
+
+      .topbar,
+      .sidebar,
+      .hero-actions,
+      .copy-btn {
+        display: none;
+      }
+
+      body {
+        background: white;
+      }
+
+      .container {
+        display: block;
+      }
+
+      section.lesson,
+      .hero-card {
+        box-shadow: none;
+        break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-icon">RT</div>
+        <div>
+          Programmers Picnic<br />
+          <small>AI-ML Classes by Champak Roy</small>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <a href="#intro">Intro</a>
+        <a href="#setup">Setup</a>
+        <a href="#links">Links</a>
+        <a href="#params">Params</a>
+        <a href="#guards">Guards</a>
+        <a href="#expert">Expert</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-card">
+        <div class="badge">Angular Routing Lesson</div>
+
+        <h1>Routing in Angular: Level 0 to Infinity</h1>
+
+        <p>
+          Learn Angular routing from the beginning: URLs, pages, routes, router outlet, router links,
+          route parameters, query parameters, redirects, wildcard routes, lazy loading, guards, resolvers,
+          and GitHub Pages deployment.
+        </p>
+
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#intro">Start Lesson</a>
+          <button class="btn btn-secondary" onclick="window.print()">Print Lesson</button>
+        </div>
+      </div>
+    </section>
+
+    <div class="container">
+      <aside class="sidebar">
+        <h3>Lesson Menu</h3>
+        <a href="#intro">1. Introduction</a>
+        <a href="#importance">2. Importance</a>
+        <a href="#mental-model">3. Mental Model</a>
+        <a href="#files">4. Routing Files</a>
+        <a href="#setup">5. Basic Setup</a>
+        <a href="#outlet">6. Router Outlet</a>
+        <a href="#links">7. Router Links</a>
+        <a href="#active">8. Active Links</a>
+        <a href="#params">9. Route Parameters</a>
+        <a href="#query">10. Query Parameters</a>
+        <a href="#redirect">11. Redirects</a>
+        <a href="#wildcard">12. Wildcard Route</a>
+        <a href="#lazy">13. Lazy Loading</a>
+        <a href="#guards">14. Guards</a>
+        <a href="#resolver">15. Resolvers</a>
+        <a href="#hash">16. GitHub Pages Hash Routing</a>
+        <a href="#structure">17. Folder Structure</a>
+        <a href="#expert">18. Expert Patterns</a>
+        <a href="#mistakes">19. Mistakes</a>
+        <a href="#assignment">20. Assignment</a>
+      </aside>
+
+      <div class="content">
+
+        <section class="lesson" id="intro">
+          <h2>1. Introduction to Angular Routing</h2>
+
+          <p>
+            Routing means moving from one screen to another inside a single Angular application.
+            In normal websites, each page may be a separate HTML file. In Angular, we usually have one application,
+            and Angular Router decides which component should be shown for each URL.
+          </p>
+
+          <div class="note">
+            <strong>Simple meaning:</strong>
+            Routing connects a browser URL like <code>/courses</code> to an Angular component like <code>Courses</code>.
+          </div>
+
+          <pre><button class="copy-btn">Copy</button><code>/             → Home Component
+/about        → About Component
+/courses      → Courses Component
+/students/101 → Student Detail Component</code></pre>
+        </section>
+
+        <section class="lesson" id="importance">
+          <h2>2. Why Routing Is Important</h2>
+
+          <p>
+            Without routing, an Angular app is just one screen. With routing, the app becomes a complete website or
+            dashboard.
+          </p>
+
+          <div class="cards">
+            <div class="card">
+              <strong>Pages</strong>
+              Create Home, About, Courses, Login, Dashboard, and Contact pages.
+            </div>
+
+            <div class="card">
+              <strong>Navigation</strong>
+              Move between screens without reloading the whole website.
+            </div>
+
+            <div class="card">
+              <strong>Architecture</strong>
+              Organize a large app into features, layouts, and protected areas.
+            </div>
+          </div>
+        </section>
+
+        <section class="lesson" id="mental-model">
+          <h2>3. Mental Model of Routing</h2>
+
+          <p>
+            Routing is a matching system. The browser has a URL. Angular checks the route list.
+            When it finds a matching path, it displays the matching component inside <code>router-outlet</code>.
+          </p>
+
+          <div class="diagram">
+            <svg viewBox="0 0 1100 520" xmlns="http://www.w3.org/2000/svg" role="img"
+              aria-label="Angular routing mental model">
+              <defs>
+                <marker id="arrow1" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+                  <path d="M0,0 L0,6 L9,3 z" fill="#d97706" />
+                </marker>
+              </defs>
+
+              <rect x="20" y="20" width="1060" height="480" rx="30" fill="#fff7ed" stroke="#fed7aa" stroke-width="3" />
+              <text x="550" y="64" text-anchor="middle" font-size="30" font-weight="800" fill="#92400e">
+                Angular Routing Flow
+              </text>
+
+              <rect x="70" y="210" width="190" height="100" rx="24" fill="#ffffff" stroke="#fed7aa" stroke-width="3" />
+              <text x="165" y="250" text-anchor="middle" font-size="22" font-weight="800" fill="#92400e">Browser
+                URL</text>
+              <text x="165" y="280" text-anchor="middle" font-size="15" fill="#7c5b35">/courses</text>
+
+              <rect x="330" y="210" width="190" height="100" rx="24" fill="#ffffff" stroke="#fed7aa" stroke-width="3" />
+              <text x="425" y="250" text-anchor="middle" font-size="22" font-weight="800" fill="#92400e">Routes
+                Array</text>
+              <text x="425" y="280" text-anchor="middle" font-size="15" fill="#7c5b35">path match</text>
+
+              <rect x="590" y="210" width="190" height="100" rx="24" fill="#ffffff" stroke="#fed7aa" stroke-width="3" />
+              <text x="685" y="250" text-anchor="middle" font-size="22" font-weight="800"
+                fill="#92400e">Component</text>
+              <text x="685" y="280" text-anchor="middle" font-size="15" fill="#7c5b35">Courses</text>
+
+              <rect x="850" y="210" width="190" height="100" rx="24" fill="#d97706" />
+              <text x="945" y="250" text-anchor="middle" font-size="22" font-weight="800" fill="#ffffff">Router
+                Outlet</text>
+              <text x="945" y="280" text-anchor="middle" font-size="15" fill="#fff7ed">page appears</text>
+
+              <path d="M260 260 H330" stroke="#d97706" stroke-width="5" marker-end="url(#arrow1)" />
+              <path d="M520 260 H590" stroke="#d97706" stroke-width="5" marker-end="url(#arrow1)" />
+              <path d="M780 260 H850" stroke="#d97706" stroke-width="5" marker-end="url(#arrow1)" />
+            </svg>
+          </div>
+        </section>
+
+        <section class="lesson" id="files">
+          <h2>4. Important Routing Files</h2>
+
+          <p>
+            In a modern standalone Angular app, routing commonly uses these files:
+          </p>
+
+          <pre><button class="copy-btn">Copy</button><code>src/app/
+├── app.config.ts
+├── app.routes.ts
+├── app.html
+└── pages/
+    ├── home/
+    ├── about/
+    └── courses/</code></pre>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>File</th>
+                  <th>Purpose</th>
+                  <th>Beginner Meaning</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>app.routes.ts</code></td>
+                  <td>Stores route definitions.</td>
+                  <td>URL to component map.</td>
+                </tr>
+                <tr>
+                  <td><code>app.config.ts</code></td>
+                  <td>Registers router providers.</td>
+                  <td>Tells Angular to use routing.</td>
+                </tr>
+                <tr>
+                  <td><code>app.html</code></td>
+                  <td>Contains navigation and <code>router-outlet</code>.</td>
+                  <td>Layout shell.</td>
+                </tr>
+                <tr>
+                  <td><code>pages</code></td>
+                  <td>Stores route-level page components.</td>
+                  <td>Home, About, Courses, Contact.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="lesson" id="setup">
+          <h2>5. Basic Routing Setup</h2>
+
+          <h3>Create Pages</h3>
+
+          <pre><button class="copy-btn">Copy</button><code>ng generate component pages/home
+ng generate component pages/about
+ng generate component pages/courses
+ng generate component pages/contact</code></pre>
+
+          <h3>app.routes.ts</h3>
+
+          <pre><button class="copy-btn">Copy</button><code>import { Routes } from '@angular/router';
+import { Home } from './pages/home/home';
+import { About } from './pages/about/about';
+import { Courses } from './pages/courses/courses';
+import { Contact } from './pages/contact/contact';
+
+export const routes: Routes = [
+  { path: '', component: Home },
+  { path: 'about', component: About },
+  { path: 'courses', component: Courses },
+  { path: 'contact', component: Contact }
+];</code></pre>
+
+          <h3>app.config.ts</h3>
+
+          <pre><button class="copy-btn">Copy</button><code>import { ApplicationConfig } from '@angular/core';
+import { provideRouter } from '@angular/router';
+
+import { routes } from './app.routes';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideRouter(routes)
+  ]
+};</code></pre>
+
+          <div class="success">
+            Now Angular knows which component to show for each path.
+          </div>
+        </section>
+
+        <section class="lesson" id="outlet">
+          <h2>6. router-outlet</h2>
+
+          <p>
+            <code>router-outlet</code> is the placeholder where Angular displays the matched route component.
+          </p>
+
+          <h3>app.html</h3>
+
+          <pre><button class="copy-btn">Copy</button><code>&lt;header class="site-header"&gt;
+  &lt;h1&gt;Programmers Picnic Angular&lt;/h1&gt;
+&lt;/header&gt;
+
+&lt;nav class="nav"&gt;
+  &lt;a routerLink="/"&gt;Home&lt;/a&gt;
+  &lt;a routerLink="/about"&gt;About&lt;/a&gt;
+  &lt;a routerLink="/courses"&gt;Courses&lt;/a&gt;
+  &lt;a routerLink="/contact"&gt;Contact&lt;/a&gt;
+&lt;/nav&gt;
+
+&lt;main class="page-area"&gt;
+  &lt;router-outlet&gt;&lt;/router-outlet&gt;
+&lt;/main&gt;
+
+&lt;footer&gt;
+  angular.learnwithchampak.live
+&lt;/footer&gt;</code></pre>
+
+          <div class="note">
+            Header, nav, and footer stay fixed. The selected page changes inside <code>router-outlet</code>.
+          </div>
+        </section>
+
+        <section class="lesson" id="links">
+          <h2>7. routerLink</h2>
+
+          <p>
+            In Angular, avoid normal <code>href</code> for internal navigation. Use <code>routerLink</code>.
+          </p>
+
+          <h3>Basic Links</h3>
+
+          <pre><button class="copy-btn">Copy</button><code>&lt;a routerLink="/"&gt;Home&lt;/a&gt;
+&lt;a routerLink="/about"&gt;About&lt;/a&gt;
+&lt;a routerLink="/courses"&gt;Courses&lt;/a&gt;</code></pre>
+
+          <h3>Dynamic Link</h3>
+
+          <pre><button class="copy-btn">Copy</button><code>&lt;a [routerLink]="['/students', student.id]"&gt;
+  View Student
+&lt;/a&gt;</code></pre>
+
+          <div class="warning">
+            Use <code>href</code> for external websites. Use <code>routerLink</code> for internal Angular pages.
+          </div>
+        </section>
+
+        <section class="lesson" id="active">
+          <h2>8. Active Navigation Link</h2>
+
+          <p>
+            <code>routerLinkActive</code> lets us style the current selected link.
+          </p>
+
+          <pre><button class="copy-btn">Copy</button><code>&lt;a
+  routerLink="/courses"
+  routerLinkActive="active-link"&gt;
+  Courses
+&lt;/a&gt;</code></pre>
+
+          <h3>CSS</h3>
+
+          <pre><button class="copy-btn">Copy</button><code>.active-link {
+  background: #d97706;
+  color: white;
+  border-radius: 12px;
+  padding: 8px 12px;
+}</code></pre>
+
+          <h3>Exact Match for Home</h3>
+
+          <pre><button class="copy-btn">Copy</button><code>&lt;a
+  routerLink="/"
+  routerLinkActive="active-link"
+  [routerLinkActiveOptions]="{ exact: true }"&gt;
+  Home
+&lt;/a&gt;</code></pre>
+        </section>
+
+        <section class="lesson" id="params">
+          <h2>9. Route Parameters</h2>
+
+          <p>
+            Route parameters are used when the URL contains a changing value.
+          </p>
+
+          <pre><button class="copy-btn">Copy</button><code>/students/101
+/students/102
+/students/103</code></pre>
+
+          <h3>Route Definition</h3>
+
+          <pre><button class="copy-btn">Copy</button><code>import { Routes } from '@angular/router';
+import { StudentDetail } from './pages/student-detail/student-detail';
+
+export const routes: Routes = [
+  { path: 'students/:id', component: StudentDetail }
+];</code></pre>
+
+          <h3>Read Route Parameter with ActivatedRoute</h3>
+
+          <pre><button class="copy-btn">Copy</button><code>import { Component, inject } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
+
+@Component({
+  selector: 'app-student-detail',
+  templateUrl: './student-detail.html'
+})
+export class StudentDetail {
+  private route = inject(ActivatedRoute);
+
+  studentId = this.route.snapshot.paramMap.get('id');
+}</code></pre>
+
+          <h3>student-detail.html</h3>
+
+          <pre><button class="copy-btn">Copy</button><code>&lt;h2&gt;Student Detail&lt;/h2&gt;
+&lt;p&gt;Student ID: {{ studentId }}&lt;/p&gt;</code></pre>
+        </section>
+
+        <section class="lesson" id="query">
+          <h2>10. Query Parameters</h2>
+
+          <p>
+            Query parameters are used for optional information like search, filter, page number, and sort order.
+          </p>
+
+          <pre><button class="copy-btn">Copy</button><code>/courses?level=beginner
+/courses?category=angular&page=2</code></pre>
+
+          <h3>Create Link with Query Parameters</h3>
+
+          <pre><button class="copy-btn">Copy</button><code>&lt;a
+  routerLink="/courses"
+  [queryParams]="{ level: 'beginner', page: 1 }"&gt;
+  Beginner Courses
+&lt;/a&gt;</code></pre>
+
+          <h3>Read Query Parameters</h3>
+
+          <pre><button class="copy-btn">Copy</button><code>import { Component, inject } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
+
+@Component({
+  selector: 'app-courses',
+  templateUrl: './courses.html'
+})
+export class Courses {
+  private route = inject(ActivatedRoute);
+
+  level = this.route.snapshot.queryParamMap.get('level');
+  page = this.route.snapshot.queryParamMap.get('page');
+}</code></pre>
+
+          <div class="note">
+            Route parameter is part of the path. Query parameter comes after <code>?</code>.
+          </div>
+        </section>
+
+        <section class="lesson" id="redirect">
+          <h2>11. Redirect Routes</h2>
+
+          <p>
+            Redirect routes automatically send one path to another path.
+          </p>
+
+          <h3>Redirect Empty Path to Home</h3>
+
+          <pre><button class="copy-btn">Copy</button><code>export const routes: Routes = [
+  { path: '', redirectTo: 'home', pathMatch: 'full' },
+  { path: 'home', component: Home },
+  { path: 'about', component: About }
+];</code></pre>
+
+          <h3>Redirect Old URL to New URL</h3>
+
+          <pre><button class="copy-btn">Copy</button><code>export const routes: Routes = [
+  { path: 'old-courses', redirectTo: 'courses', pathMatch: 'full' },
+  { path: 'courses', component: Courses }
+];</code></pre>
+
+          <div class="warning">
+            Use <code>pathMatch: 'full'</code> carefully for empty path redirects.
+          </div>
+        </section>
+
+        <section class="lesson" id="wildcard">
+          <h2>12. Wildcard Route: 404 Page</h2>
+
+          <p>
+            A wildcard route catches URLs that do not match any route.
+          </p>
+
+          <h3>Create Not Found Page</h3>
+
+          <pre><button class="copy-btn">Copy</button><code>ng generate component pages/not-found</code></pre>
+
+          <h3>Add Wildcard Route</h3>
+
+          <pre><button class="copy-btn">Copy</button><code>import { NotFound } from './pages/not-found/not-found';
+
+export const routes: Routes = [
+  { path: '', component: Home },
+  { path: 'about', component: About },
+  { path: 'courses', component: Courses },
+
+  { path: '**', component: NotFound }
+];</code></pre>
+
+          <div class="note">
+            Put wildcard route at the end. If it is placed before other routes, it may catch everything.
+          </div>
+        </section>
+
+        <section class="lesson" id="lazy">
+          <h2>13. Lazy Loading</h2>
+
+          <p>
+            Lazy loading means Angular loads a page or feature only when the user visits it.
+            This is useful for large apps.
+          </p>
+
+          <h3>Lazy Load Standalone Component</h3>
+
+          <pre><button class="copy-btn">Copy</button><code>export const routes: Routes = [
+  {
+    path: '',
+    loadComponent: () =>
+      import('./pages/home/home').then(m => m.Home)
+  },
+  {
+    path: 'courses',
+    loadComponent: () =>
+      import('./pages/courses/courses').then(m => m.Courses)
+  }
+];</code></pre>
+
+          <h3>Lazy Load Feature Routes</h3>
+
+          <pre><button class="copy-btn">Copy</button><code>export const routes: Routes = [
+  {
+    path: 'students',
+    loadChildren: () =>
+      import('./features/students/students.routes')
+        .then(m => m.STUDENTS_ROUTES)
+  }
+];</code></pre>
+
+          <h3>features/students/students.routes.ts</h3>
+
+          <pre><button class="copy-btn">Copy</button><code>import { Routes } from '@angular/router';
+import { StudentList } from './pages/student-list/student-list';
+import { StudentDetail } from './pages/student-detail/student-detail';
+
+export const STUDENTS_ROUTES: Routes = [
+  { path: '', component: StudentList },
+  { path: ':id', component: StudentDetail }
+];</code></pre>
+        </section>
+
+        <section class="lesson" id="guards">
+          <h2>14. Route Guards</h2>
+
+          <p>
+            Guards are used to protect routes. For example, only logged-in users should open the dashboard.
+          </p>
+
+          <h3>Generate Guard</h3>
+
+          <pre><button class="copy-btn">Copy</button><code>ng generate guard core/guards/auth</code></pre>
+
+          <h3>Simple Auth Guard</h3>
+
+          <pre><button class="copy-btn">Copy</button><code>import { CanActivateFn, Router } from '@angular/router';
+import { inject } from '@angular/core';
+
+export const authGuard: CanActivateFn = () => {
+  const router = inject(Router);
+  const token = localStorage.getItem('token');
+
+  if (token) {
+    return true;
+  }
+
+  return router.createUrlTree(['/login']);
+};</code></pre>
+
+          <h3>Use Guard in Routes</h3>
+
+          <pre><button class="copy-btn">Copy</button><code>import { authGuard } from './core/guards/auth-guard';
+
+export const routes: Routes = [
+  { path: 'login', component: Login },
+  {
+    path: 'dashboard',
+    component: Dashboard,
+    canActivate: [authGuard]
+  }
+];</code></pre>
+
+          <div class="warning">
+            A frontend guard improves user experience, but real security must also be enforced on the backend.
+          </div>
+        </section>
+
+        <section class="lesson" id="resolver">
+          <h2>15. Route Resolvers</h2>
+
+          <p>
+            A resolver loads data before a route opens. This is useful when a page must have data ready before display.
+          </p>
+
+          <h3>Resolver Example</h3>
+
+          <pre><button class="copy-btn">Copy</button><code>import { ResolveFn } from '@angular/router';
+
+export const courseResolver: ResolveFn<any> = () => {
+  return [
+    { id: 1, title: 'Angular Routing' },
+    { id: 2, title: 'Angular Services' }
+  ];
+};</code></pre>
+
+          <h3>Use Resolver in Route</h3>
+
+          <pre><button class="copy-btn">Copy</button><code>export const routes: Routes = [
+  {
+    path: 'courses',
+    component: Courses,
+    resolve: {
+      courses: courseResolver
+    }
+  }
+];</code></pre>
+
+          <h3>Read Resolved Data</h3>
+
+          <pre><button class="copy-btn">Copy</button><code>import { Component, inject } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
+
+@Component({
+  selector: 'app-courses',
+  templateUrl: './courses.html'
+})
+export class Courses {
+  private route = inject(ActivatedRoute);
+
+  courses = this.route.snapshot.data['courses'];
+}</code></pre>
+        </section>
+
+        <section class="lesson" id="hash">
+          <h2>16. Hash Routing for GitHub Pages</h2>
+
+          <p>
+            GitHub Pages is static hosting. If you refresh a deep Angular route like <code>/courses</code>,
+            GitHub Pages may not know how to serve it. The beginner-friendly fix is hash routing.
+          </p>
+
+          <pre><button class="copy-btn">Copy</button><code>https://angular.learnwithchampak.live/#/courses
+https://angular.learnwithchampak.live/#/about
+https://angular.learnwithchampak.live/#/students/101</code></pre>
+
+          <h3>Enable Hash Routing</h3>
+
+          <pre><button class="copy-btn">Copy</button><code>import { ApplicationConfig } from '@angular/core';
+import { provideRouter, withHashLocation } from '@angular/router';
+
+import { routes } from './app.routes';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideRouter(routes, withHashLocation())
+  ]
+};</code></pre>
+
+          <h3>Deploy for Your Custom Domain</h3>
+
+          <pre><button class="copy-btn">Copy</button><code>ng deploy --base-href=/</code></pre>
+
+          <div class="success">
+            For <strong>https://angular.learnwithchampak.live/</strong>, use <code>--base-href=/</code>.
+          </div>
+        </section>
+
+        <section class="lesson" id="structure">
+          <h2>17. Recommended Routing Folder Structure</h2>
+
+          <pre><button class="copy-btn">Copy</button><code>src/app/
+├── app.config.ts
+├── app.routes.ts
+├── app.html
+├── core/
+│   └── guards/
+│       └── auth-guard.ts
+├── shared/
+│   └── components/
+│       ├── header/
+│       └── footer/
+├── pages/
+│   ├── home/
+│   ├── about/
+│   ├── courses/
+│   ├── contact/
+│   └── not-found/
+└── features/
+    └── students/
+        ├── students.routes.ts
+        └── pages/
+            ├── student-list/
+            └── student-detail/</code></pre>
+
+          <div class="note">
+            Put simple pages in <code>pages</code>. Put large feature areas in <code>features</code>.
+          </div>
+        </section>
+
+        <section class="lesson" id="expert">
+          <h2>18. Expert Routing Patterns</h2>
+
+          <h3>Nested Routes</h3>
+
+          <pre><button class="copy-btn">Copy</button><code>export const routes: Routes = [
+  {
+    path: 'dashboard',
+    component: DashboardLayout,
+    children: [
+      { path: '', component: DashboardHome },
+      { path: 'students', component: StudentList },
+      { path: 'courses', component: CourseList }
+    ]
+  }
+];</code></pre>
+
+          <h3>Programmatic Navigation</h3>
+
+          <pre><button class="copy-btn">Copy</button><code>import { Component, inject } from '@angular/core';
+import { Router } from '@angular/router';
+
+@Component({
+  selector: 'app-login',
+  templateUrl: './login.html'
+})
+export class Login {
+  private router = inject(Router);
+
+  login() {
+    localStorage.setItem('token', 'demo-token');
+    this.router.navigate(['/dashboard']);
+  }
+}</code></pre>
+
+          <h3>Navigation with Replace URL</h3>
+
+          <pre><button class="copy-btn">Copy</button><code>this.router.navigate(['/dashboard'], {
+  replaceUrl: true
+});</code></pre>
+
+          <h3>Preloading Lazy Routes</h3>
+
+          <pre><button class="copy-btn">Copy</button><code>import { ApplicationConfig } from '@angular/core';
+import { provideRouter, withPreloading, PreloadAllModules } from '@angular/router';
+
+import { routes } from './app.routes';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideRouter(routes, withPreloading(PreloadAllModules))
+  ]
+};</code></pre>
+
+          <div class="info">
+            Expert routing is about clean structure, lazy loading, route guards, resolvers, error handling, and
+            user-friendly navigation.
+          </div>
+        </section>
+
+        <section class="lesson" id="mistakes">
+          <h2>19. Common Routing Mistakes</h2>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Mistake</th>
+                  <th>Problem</th>
+                  <th>Fix</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Forgetting <code>router-outlet</code></td>
+                  <td>Route changes but page component does not appear.</td>
+                  <td>Add <code>&lt;router-outlet&gt;&lt;/router-outlet&gt;</code>.</td>
+                </tr>
+                <tr>
+                  <td>Using <code>href</code> for internal navigation</td>
+                  <td>Page reloads fully.</td>
+                  <td>Use <code>routerLink</code>.</td>
+                </tr>
+                <tr>
+                  <td>Wildcard route at the top</td>
+                  <td>It catches all routes before real routes.</td>
+                  <td>Put <code>**</code> at the end.</td>
+                </tr>
+                <tr>
+                  <td>Wrong base href on GitHub Pages</td>
+                  <td>Blank page or broken JS/CSS.</td>
+                  <td>Use <code>--base-href=/</code> for your custom domain.</td>
+                </tr>
+                <tr>
+                  <td>Refresh gives 404 on static hosting</td>
+                  <td>Server does not know Angular route.</td>
+                  <td>Use hash routing for GitHub Pages.</td>
+                </tr>
+                <tr>
+                  <td>Huge routing file</td>
+                  <td>Hard to maintain.</td>
+                  <td>Split large features into feature route files.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="lesson" id="assignment">
+          <h2>20. Student Assignment</h2>
+
+          <p>
+            Create a routed Angular website for <strong>Programmers Picnic</strong>.
+          </p>
+
+          <h3>Generate Pages</h3>
+
+          <pre><button class="copy-btn">Copy</button><code>ng generate component pages/home
+ng generate component pages/about
+ng generate component pages/courses
+ng generate component pages/contact
+ng generate component pages/not-found
+ng generate component pages/student-detail</code></pre>
+
+          <h3>Create Routes</h3>
+
+          <pre><button class="copy-btn">Copy</button><code>export const routes: Routes = [
+  { path: '', component: Home },
+  { path: 'about', component: About },
+  { path: 'courses', component: Courses },
+  { path: 'contact', component: Contact },
+  { path: 'students/:id', component: StudentDetail },
+  { path: '**', component: NotFound }
+];</code></pre>
+
+          <h3>Create Navigation</h3>
+
+          <pre><button class="copy-btn">Copy</button><code>&lt;nav&gt;
+  &lt;a routerLink="/" routerLinkActive="active-link" [routerLinkActiveOptions]="{ exact: true }"&gt;Home&lt;/a&gt;
+  &lt;a routerLink="/about" routerLinkActive="active-link"&gt;About&lt;/a&gt;
+  &lt;a routerLink="/courses" routerLinkActive="active-link"&gt;Courses&lt;/a&gt;
+  &lt;a routerLink="/contact" routerLinkActive="active-link"&gt;Contact&lt;/a&gt;
+&lt;/nav&gt;
+
+&lt;router-outlet&gt;&lt;/router-outlet&gt;</code></pre>
+
+          <h3>Deploy</h3>
+
+          <pre><button class="copy-btn">Copy</button><code>ng deploy --base-href=/</code></pre>
+
+          <div class="success">
+            Final result: a routed Angular website running at <strong>https://angular.learnwithchampak.live/</strong>.
+          </div>
+        </section>
+
+        <section class="lesson">
+          <h2>Final Summary</h2>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Question</th>
+                  <th>Answer</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>What is routing?</td>
+                  <td>Connecting URL paths to Angular components.</td>
+                </tr>
+                <tr>
+                  <td>Where are routes stored?</td>
+                  <td><code>app.routes.ts</code></td>
+                </tr>
+                <tr>
+                  <td>What displays the matched route?</td>
+                  <td><code>router-outlet</code></td>
+                </tr>
+                <tr>
+                  <td>What creates internal navigation links?</td>
+                  <td><code>routerLink</code></td>
+                </tr>
+                <tr>
+                  <td>What catches unknown URLs?</td>
+                  <td><code>{ path: '**', component: NotFound }</code></td>
+                </tr>
+                <tr>
+                  <td>What protects routes?</td>
+                  <td>Route guards.</td>
+                </tr>
+                <tr>
+                  <td>What improves large-app loading?</td>
+                  <td>Lazy loading.</td>
+                </tr>
+                <tr>
+                  <td>What routing style is easiest for GitHub Pages?</td>
+                  <td>Hash routing with <code>withHashLocation()</code>.</td>
+                </tr>
+                <tr>
+                  <td>What base href for angular.learnwithchampak.live?</td>
+                  <td><code>/</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>
+      Programmers Picnic AI-ML Classes by Champak Roy
+      <br />
+      learnwithchampak.live | aiml.learnwithchampak.live | angular.learnwithchampak.live
+    </p>
+  </footer>
+
+  <script>
+    const copyButtons = document.querySelectorAll(".copy-btn");
+
+    copyButtons.forEach((button) => {
+      button.addEventListener("click", async () => {
+        const code = button.nextElementSibling.innerText;
+
+        try {
+          await navigator.clipboard.writeText(code);
+          const oldText = button.innerText;
+          button.innerText = "Copied";
+          setTimeout(() => {
+            button.innerText = oldText;
+          }, 1200);
+        } catch (error) {
+          alert("Copy failed. Please select and copy manually.");
+        }
+      });
+    });
+  </script>
+</body>
+
+</html>
