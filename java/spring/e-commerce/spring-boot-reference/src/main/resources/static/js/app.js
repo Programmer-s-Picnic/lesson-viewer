@@ -1,0 +1,1 @@
+console.log('Ecommerce app loaded');
