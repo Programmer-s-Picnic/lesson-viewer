@@ -1,7 +1,0 @@
-package com.programmerspicnic.ecommerce.repository;
-
-import com.programmerspicnic.ecommerce.entity.Order;
-import org.springframework.data.jpa.repository.JpaRepository;
-
-public interface OrderRepository extends JpaRepository<Order, Long> {
-}
