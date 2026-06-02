@@ -6,7 +6,7 @@
 
   <title>Simple API Tester for Students</title>
 
-  <meta name="description" content="A very simple student-level API tester. Enter URL, add parameters, send request, see response, share your result." />
+  <meta name="description" content="A very simple student-level API tester. Enter URL, add parameters, send request, see response, share your result by URL hash." />
   <meta name="theme-color" content="#d97706" />
 
   <!-- Google AdSense -->
@@ -276,6 +276,17 @@
       margin-top:12px;
     }
 
+    .hash-note{
+      background:#ecfdf5;
+      border:1px solid #a7f3d0;
+      color:#065f46;
+      padding:12px;
+      border-radius:14px;
+      font-size:13px;
+      line-height:1.55;
+      margin-top:12px;
+    }
+
     @media(max-width:720px){
       .request-row{
         grid-template-columns:1fr;
@@ -318,13 +329,13 @@
         <div class="logo">API</div>
         <div>
           <h1>Simple API Tester</h1>
-          <div class="sub">URL, parameters, response. Nothing confusing.</div>
+          <div class="sub">URL, parameters, response. Shared by URL hash.</div>
         </div>
       </div>
 
       <div class="buttons">
         <button id="fullscreenBtn">Full Screen</button>
-        <button id="shareBtn">Share</button>
+        <button id="shareBtn">Share Hash Link</button>
       </div>
     </div>
   </header>
@@ -378,6 +389,11 @@
       <div class="note">
         Simple meaning: the URL tells where to go. Parameters send extra information with the URL.
       </div>
+
+      <div class="hash-note">
+        Sharing uses URL hash content. The method, URL, parameters, and response are packed inside the part after <b>#api=</b>.
+        This hash is not sent to the server.
+      </div>
     </section>
 
     <section class="card">
@@ -407,7 +423,8 @@
 
       <div class="toolbar">
         <button class="small" id="copyResponseBtn">Copy Response</button>
-        <button class="small" id="copyLinkBtn">Copy Share Text</button>
+        <button class="small" id="copyHashBtn">Copy Hash Link</button>
+        <button class="small" id="putHashBtn">Put Data in Address Bar</button>
       </div>
 
       <div style="height:12px"></div>
@@ -415,13 +432,14 @@
       <pre id="responseOut">The response will appear here.</pre>
 
       <div class="note">
-        If a request fails, it may be because of CORS. That is a browser security rule. The API may still work from server-side code.
+        If a request fails, it may be because of CORS. That is a browser security rule.
+        The API may still work from server-side code.
       </div>
     </section>
   </main>
 
   <script>
-    const STORAGE_KEY = 'simple_student_api_tester_v1';
+    const STORAGE_KEY = 'simple_student_api_tester_v2_hash_share';
 
     const els = {
       method: document.getElementById('methodInput'),
@@ -438,7 +456,8 @@
       size: document.getElementById('sizeOut'),
       response: document.getElementById('responseOut'),
       copyResponse: document.getElementById('copyResponseBtn'),
-      copyLink: document.getElementById('copyLinkBtn'),
+      copyHash: document.getElementById('copyHashBtn'),
+      putHash: document.getElementById('putHashBtn'),
       share: document.getElementById('shareBtn'),
       fullscreen: document.getElementById('fullscreenBtn')
     };
@@ -451,52 +470,12 @@
       response: ''
     };
 
-    function saveLocal(){
-      const data = {
-        method: els.method.value,
-        url: els.url.value,
-        params: getParams(),
-        finalUrl: lastData.finalUrl,
-        status: lastData.status,
-        time: lastData.time,
-        size: lastData.size,
-        response: lastData.response
-      };
-
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    }
-
-    function loadLocal(){
-      try{
-        const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
-        if(!data) return;
-
-        els.method.value = data.method || 'GET';
-        els.url.value = data.url || '';
-
-        els.paramsBox.innerHTML = '';
-        if(data.params && data.params.length){
-          data.params.forEach(p => addParamRow(p.key, p.value));
-        }else{
-          addParamRow();
-        }
-
-        lastData = {
-          finalUrl: data.finalUrl || '',
-          status: data.status || '',
-          time: data.time || '',
-          size: data.size || '',
-          response: data.response || ''
-        };
-
-        els.finalUrl.textContent = lastData.finalUrl || '—';
-        els.status.textContent = lastData.status || '—';
-        els.time.textContent = lastData.time || '—';
-        els.size.textContent = lastData.size || '—';
-        els.response.textContent = lastData.response || 'The response will appear here.';
-      }catch{
-        addParamRow();
-      }
+    function escapeAttr(value){
+      return String(value || '')
+        .replaceAll('&','&amp;')
+        .replaceAll('"','&quot;')
+        .replaceAll('<','&lt;')
+        .replaceAll('>','&gt;');
     }
 
     function addParamRow(key = '', value = ''){
@@ -519,14 +498,6 @@
       });
 
       els.paramsBox.appendChild(row);
-    }
-
-    function escapeAttr(value){
-      return String(value || '')
-        .replaceAll('&','&amp;')
-        .replaceAll('"','&quot;')
-        .replaceAll('<','&lt;')
-        .replaceAll('>','&gt;');
     }
 
     function getParams(){
@@ -566,6 +537,14 @@
       return url.toString();
     }
 
+    function buildSafeUrlText(){
+      try{
+        return buildFinalUrl();
+      }catch{
+        return els.url.value || '';
+      }
+    }
+
     function bytesToSize(bytes){
       if(bytes === 0) return '0 B';
       if(!bytes) return '—';
@@ -574,6 +553,179 @@
       const index = Math.floor(Math.log(bytes) / Math.log(1024));
 
       return (bytes / Math.pow(1024, index)).toFixed(index ? 2 : 0) + ' ' + units[index];
+    }
+
+    function collectState(){
+      return {
+        v: 1,
+        method: els.method.value,
+        url: els.url.value,
+        params: getParams(),
+        finalUrl: lastData.finalUrl || buildSafeUrlText(),
+        status: lastData.status || '',
+        time: lastData.time || '',
+        size: lastData.size || '',
+        response: lastData.response || els.response.textContent || ''
+      };
+    }
+
+    function applyState(data){
+      if(!data) return;
+
+      els.method.value = data.method || 'GET';
+      els.url.value = data.url || '';
+
+      els.paramsBox.innerHTML = '';
+
+      if(Array.isArray(data.params) && data.params.length){
+        data.params.forEach(p => addParamRow(p.key, p.value));
+      }else{
+        addParamRow();
+      }
+
+      lastData = {
+        finalUrl: data.finalUrl || '',
+        status: data.status || '',
+        time: data.time || '',
+        size: data.size || '',
+        response: data.response || ''
+      };
+
+      els.finalUrl.textContent = lastData.finalUrl || '—';
+      els.status.textContent = lastData.status || '—';
+      els.time.textContent = lastData.time || '—';
+      els.size.textContent = lastData.size || '—';
+      els.response.textContent = lastData.response || 'The response will appear here.';
+
+      if(String(lastData.status).startsWith('2')){
+        els.status.style.color = 'var(--green)';
+      }else if(lastData.status && lastData.status !== '—'){
+        els.status.style.color = 'var(--red)';
+      }else{
+        els.status.style.color = 'inherit';
+      }
+    }
+
+    function saveLocal(){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(collectState()));
+    }
+
+    function loadLocal(){
+      try{
+        const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        if(data) applyState(data);
+      }catch{}
+    }
+
+    /*
+      Hash sharing:
+      The data is stored after #api=...
+      Example:
+      https://site.com/api-tester.html#api=eyJ2IjoxLCJtZXRob2QiOiJHRVQi...
+    */
+
+    function toBase64Url(text){
+      const bytes = new TextEncoder().encode(text);
+      let binary = '';
+
+      for(let i = 0; i < bytes.length; i++){
+        binary += String.fromCharCode(bytes[i]);
+      }
+
+      return btoa(binary)
+        .replaceAll('+','-')
+        .replaceAll('/','_')
+        .replaceAll('=','');
+    }
+
+    function fromBase64Url(base64url){
+      let base64 = base64url
+        .replaceAll('-','+')
+        .replaceAll('_','/');
+
+      while(base64.length % 4){
+        base64 += '=';
+      }
+
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+
+      for(let i = 0; i < binary.length; i++){
+        bytes[i] = binary.charCodeAt(i);
+      }
+
+      return new TextDecoder().decode(bytes);
+    }
+
+    function makeHash(){
+      const json = JSON.stringify(collectState());
+      return '#api=' + toBase64Url(json);
+    }
+
+    function readHash(){
+      const hash = location.hash || '';
+
+      if(!hash.startsWith('#api=')){
+        return null;
+      }
+
+      try{
+        const encoded = hash.slice(5);
+        const json = fromBase64Url(encoded);
+        return JSON.parse(json);
+      }catch{
+        alert('Could not read shared hash data.');
+        return null;
+      }
+    }
+
+    function makeShareUrl(){
+      const cleanUrl = location.origin + location.pathname + location.search;
+      return cleanUrl + makeHash();
+    }
+
+    function putDataInAddressBar(){
+      const newUrl = makeShareUrl();
+
+      if(newUrl.length > 12000){
+        alert('This response is very large. The hash link may become too long for some apps. Copying will still be attempted.');
+      }
+
+      history.replaceState(null, '', newUrl);
+      saveLocal();
+      alert('Hash data added to the address bar.');
+    }
+
+    async function copyHashLink(){
+      const shareUrl = makeShareUrl();
+
+      if(shareUrl.length > 12000){
+        alert('This hash link is very long because the response is large. It may not work in all apps.');
+      }
+
+      await navigator.clipboard.writeText(shareUrl);
+      alert('Hash link copied.');
+    }
+
+    async function shareHashLink(){
+      const shareUrl = makeShareUrl();
+
+      if(shareUrl.length > 12000){
+        alert('This hash link is very long because the response is large. Some apps may shorten or break it.');
+      }
+
+      if(navigator.share){
+        try{
+          await navigator.share({
+            title: 'Simple API Tester Result',
+            text: 'Open this link to see the URL, parameters, and response.',
+            url: shareUrl
+          });
+        }catch{}
+      }else{
+        await navigator.clipboard.writeText(shareUrl);
+        alert('Hash link copied.');
+      }
     }
 
     async function sendRequest(){
@@ -588,6 +740,7 @@
 
       els.finalUrl.textContent = finalUrl;
       els.status.textContent = 'Loading...';
+      els.status.style.color = 'inherit';
       els.time.textContent = '—';
       els.size.textContent = '—';
       els.response.textContent = 'Sending request...';
@@ -655,56 +808,6 @@
       }
     }
 
-    function makeShareText(){
-      return [
-        'Simple API Tester Result',
-        '',
-        'Method: ' + els.method.value,
-        'URL: ' + (lastData.finalUrl || buildSafeUrlText()),
-        '',
-        'Parameters:',
-        getParams().length
-          ? getParams().map(p => '- ' + p.key + ' = ' + p.value).join('\n')
-          : 'No parameters',
-        '',
-        'Status: ' + (lastData.status || 'Not sent yet'),
-        'Time: ' + (lastData.time || '—'),
-        'Size: ' + (lastData.size || '—'),
-        '',
-        'Response:',
-        String(lastData.response || els.response.textContent || '').slice(0, 1800)
-      ].join('\n');
-    }
-
-    function buildSafeUrlText(){
-      try{
-        return buildFinalUrl();
-      }catch{
-        return els.url.value || 'No URL';
-      }
-    }
-
-    async function shareData(){
-      const text = makeShareText();
-
-      if(navigator.share){
-        try{
-          await navigator.share({
-            title: 'Simple API Tester Result',
-            text
-          });
-        }catch{}
-      }else{
-        await navigator.clipboard.writeText(text);
-        alert('Share text copied.');
-      }
-    }
-
-    async function copyShareText(){
-      await navigator.clipboard.writeText(makeShareText());
-      alert('Share text copied.');
-    }
-
     async function copyResponse(){
       await navigator.clipboard.writeText(els.response.textContent || '');
       alert('Response copied.');
@@ -727,6 +830,7 @@
 
       els.finalUrl.textContent = '—';
       els.status.textContent = '—';
+      els.status.style.color = 'inherit';
       els.time.textContent = '—';
       els.size.textContent = '—';
       els.response.textContent = 'Example loaded. Press Send.';
@@ -735,7 +839,7 @@
     }
 
     function clearAll(){
-      if(!confirm('Clear URL, parameters, and response?')) return;
+      if(!confirm('Clear URL, parameters, response, local data, and hash?')) return;
 
       els.method.value = 'GET';
       els.url.value = '';
@@ -752,11 +856,18 @@
 
       els.finalUrl.textContent = '—';
       els.status.textContent = '—';
+      els.status.style.color = 'inherit';
       els.time.textContent = '—';
       els.size.textContent = '—';
       els.response.textContent = 'The response will appear here.';
 
       localStorage.removeItem(STORAGE_KEY);
+
+      history.replaceState(
+        null,
+        '',
+        location.origin + location.pathname + location.search
+      );
     }
 
     function toggleFullscreen(){
@@ -771,6 +882,7 @@
 
     function bindEvents(){
       els.send.addEventListener('click', sendRequest);
+
       els.addParam.addEventListener('click', () => {
         addParamRow();
         saveLocal();
@@ -785,8 +897,11 @@
       els.example.addEventListener('click', loadExample);
       els.clearAll.addEventListener('click', clearAll);
       els.copyResponse.addEventListener('click', copyResponse);
-      els.copyLink.addEventListener('click', copyShareText);
-      els.share.addEventListener('click', shareData);
+
+      els.copyHash.addEventListener('click', copyHashLink);
+      els.putHash.addEventListener('click', putDataInAddressBar);
+      els.share.addEventListener('click', shareHashLink);
+
       els.fullscreen.addEventListener('click', toggleFullscreen);
 
       els.method.addEventListener('change', saveLocal);
@@ -797,12 +912,25 @@
           sendRequest();
         }
       });
+
+      window.addEventListener('hashchange', () => {
+        const data = readHash();
+        if(data){
+          applyState(data);
+          saveLocal();
+        }
+      });
     }
 
     function init(){
       bindEvents();
 
-      if(localStorage.getItem(STORAGE_KEY)){
+      const sharedData = readHash();
+
+      if(sharedData){
+        applyState(sharedData);
+        saveLocal();
+      }else if(localStorage.getItem(STORAGE_KEY)){
         loadLocal();
       }else{
         addParamRow();
