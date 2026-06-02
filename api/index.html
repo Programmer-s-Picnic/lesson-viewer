@@ -1,0 +1,819 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+  <title>Simple API Tester for Students</title>
+
+  <meta name="description" content="A very simple student-level API tester. Enter URL, add parameters, send request, see response, share your result." />
+  <meta name="theme-color" content="#d97706" />
+
+  <!-- Google AdSense -->
+  <script
+    async
+    src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8321261883090494&host=ca-host-pub-1556223355139109"
+    crossorigin="anonymous">
+  </script>
+
+  <style>
+    :root{
+      --bg:#fff8ed;
+      --card:#ffffff;
+      --soft:#fff2dc;
+      --text:#1f2937;
+      --muted:#6b7280;
+      --line:#ead6b8;
+      --accent:#d97706;
+      --accent2:#f59e0b;
+      --green:#059669;
+      --red:#dc2626;
+      --shadow:0 12px 30px rgba(217,119,6,.12);
+      --radius:18px;
+      --mono:Consolas, Monaco, "Courier New", monospace;
+      --sans:system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    *{
+      box-sizing:border-box;
+    }
+
+    body{
+      margin:0;
+      font-family:var(--sans);
+      background:
+        radial-gradient(circle at top right, rgba(245,158,11,.24), transparent 28%),
+        linear-gradient(180deg,#fff8ed,#fff2dc);
+      color:var(--text);
+      min-height:100vh;
+    }
+
+    header{
+      background:rgba(255,248,237,.94);
+      backdrop-filter:blur(12px);
+      border-bottom:1px solid var(--line);
+      position:sticky;
+      top:0;
+      z-index:10;
+    }
+
+    .top{
+      max-width:980px;
+      margin:auto;
+      padding:14px 16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+
+    .logo{
+      width:44px;
+      height:44px;
+      border-radius:15px;
+      background:linear-gradient(135deg,var(--accent),var(--accent2));
+      display:grid;
+      place-items:center;
+      font-weight:900;
+      color:#111827;
+      box-shadow:var(--shadow);
+    }
+
+    h1{
+      font-size:21px;
+      margin:0;
+      line-height:1.1;
+    }
+
+    .sub{
+      font-size:13px;
+      color:var(--muted);
+      margin-top:3px;
+    }
+
+    .buttons{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    button,
+    input,
+    select{
+      font:inherit;
+    }
+
+    button{
+      border:1px solid var(--line);
+      background:#fff;
+      color:var(--text);
+      padding:10px 13px;
+      border-radius:14px;
+      cursor:pointer;
+      font-weight:800;
+      box-shadow:0 6px 16px rgba(0,0,0,.06);
+    }
+
+    button:hover{
+      border-color:var(--accent);
+      transform:translateY(-1px);
+    }
+
+    .primary{
+      border:0;
+      background:linear-gradient(135deg,var(--accent),var(--accent2));
+      color:#111827;
+    }
+
+    main{
+      max-width:980px;
+      margin:auto;
+      padding:16px;
+    }
+
+    .ad-box{
+      background:#fff;
+      border:1px dashed var(--line);
+      border-radius:var(--radius);
+      padding:10px;
+      margin-bottom:16px;
+      text-align:center;
+      overflow:hidden;
+    }
+
+    .card{
+      background:rgba(255,255,255,.94);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:16px;
+      margin-bottom:16px;
+    }
+
+    h2{
+      margin:0 0 10px;
+      font-size:18px;
+    }
+
+    .help{
+      font-size:13px;
+      color:var(--muted);
+      line-height:1.55;
+      margin-bottom:12px;
+    }
+
+    label{
+      display:block;
+      margin:12px 0 6px;
+      font-weight:900;
+      font-size:13px;
+    }
+
+    input,
+    select{
+      width:100%;
+      padding:12px;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:#fffdf8;
+      color:var(--text);
+      outline:none;
+    }
+
+    input:focus,
+    select:focus{
+      border-color:var(--accent);
+      box-shadow:0 0 0 4px rgba(217,119,6,.12);
+    }
+
+    .request-row{
+      display:grid;
+      grid-template-columns:130px 1fr auto;
+      gap:10px;
+      align-items:end;
+    }
+
+    .param-row{
+      display:grid;
+      grid-template-columns:1fr 1fr auto;
+      gap:8px;
+      margin:8px 0;
+    }
+
+    .small{
+      padding:9px 11px;
+      font-size:13px;
+    }
+
+    .toolbar{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top:12px;
+    }
+
+    .stats{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:10px;
+      margin-bottom:12px;
+    }
+
+    .stat{
+      background:var(--soft);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:10px;
+    }
+
+    .stat .k{
+      font-size:11px;
+      color:var(--muted);
+      font-weight:900;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+    }
+
+    .stat .v{
+      margin-top:5px;
+      font-family:var(--mono);
+      font-weight:800;
+      font-size:13px;
+      word-break:break-word;
+    }
+
+    pre{
+      margin:0;
+      min-height:280px;
+      max-height:540px;
+      overflow:auto;
+      white-space:pre-wrap;
+      word-break:break-word;
+      background:#111827;
+      color:#e5eefc;
+      border-radius:16px;
+      padding:14px;
+      font-family:var(--mono);
+      line-height:1.55;
+      border:1px solid #334155;
+    }
+
+    .note{
+      background:#fff7ed;
+      border:1px solid #fed7aa;
+      color:#7c2d12;
+      padding:12px;
+      border-radius:14px;
+      font-size:13px;
+      line-height:1.55;
+      margin-top:12px;
+    }
+
+    @media(max-width:720px){
+      .request-row{
+        grid-template-columns:1fr;
+      }
+
+      .param-row{
+        grid-template-columns:1fr;
+      }
+
+      .stats{
+        grid-template-columns:1fr 1fr;
+      }
+
+      button{
+        width:100%;
+      }
+
+      .buttons,
+      .toolbar{
+        width:100%;
+      }
+    }
+
+    @media(max-width:480px){
+      .stats{
+        grid-template-columns:1fr;
+      }
+
+      h1{
+        font-size:18px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="top">
+      <div class="brand">
+        <div class="logo">API</div>
+        <div>
+          <h1>Simple API Tester</h1>
+          <div class="sub">URL, parameters, response. Nothing confusing.</div>
+        </div>
+      </div>
+
+      <div class="buttons">
+        <button id="fullscreenBtn">Full Screen</button>
+        <button id="shareBtn">Share</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="ad-box">
+      <ins class="adsbygoogle"
+           style="display:block"
+           data-ad-client="ca-pub-8321261883090494"
+           data-ad-slot="7782388330"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
+    </div>
+
+    <section class="card">
+      <h2>1. Enter API Details</h2>
+      <div class="help">
+        Use this to test simple public APIs. Add parameters like <b>userId = 1</b> or <b>country = India</b>.
+      </div>
+
+      <div class="request-row">
+        <div>
+          <label>Method</label>
+          <select id="methodInput">
+            <option>GET</option>
+            <option>POST</option>
+            <option>PUT</option>
+            <option>PATCH</option>
+            <option>DELETE</option>
+          </select>
+        </div>
+
+        <div>
+          <label>URL</label>
+          <input id="urlInput" placeholder="https://jsonplaceholder.typicode.com/posts" />
+        </div>
+
+        <button class="primary" id="sendBtn">Send</button>
+      </div>
+
+      <label>Parameters</label>
+      <div id="paramsBox"></div>
+
+      <div class="toolbar">
+        <button class="small" id="addParamBtn">Add Parameter</button>
+        <button class="small" id="clearParamsBtn">Clear Parameters</button>
+        <button class="small" id="exampleBtn">Load Example</button>
+        <button class="small" id="clearAllBtn">Clear All</button>
+      </div>
+
+      <div class="note">
+        Simple meaning: the URL tells where to go. Parameters send extra information with the URL.
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>2. Response</h2>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="k">Final URL</div>
+          <div class="v" id="finalUrlOut">—</div>
+        </div>
+
+        <div class="stat">
+          <div class="k">Status</div>
+          <div class="v" id="statusOut">—</div>
+        </div>
+
+        <div class="stat">
+          <div class="k">Time</div>
+          <div class="v" id="timeOut">—</div>
+        </div>
+
+        <div class="stat">
+          <div class="k">Size</div>
+          <div class="v" id="sizeOut">—</div>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <button class="small" id="copyResponseBtn">Copy Response</button>
+        <button class="small" id="copyLinkBtn">Copy Share Text</button>
+      </div>
+
+      <div style="height:12px"></div>
+
+      <pre id="responseOut">The response will appear here.</pre>
+
+      <div class="note">
+        If a request fails, it may be because of CORS. That is a browser security rule. The API may still work from server-side code.
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const STORAGE_KEY = 'simple_student_api_tester_v1';
+
+    const els = {
+      method: document.getElementById('methodInput'),
+      url: document.getElementById('urlInput'),
+      paramsBox: document.getElementById('paramsBox'),
+      send: document.getElementById('sendBtn'),
+      addParam: document.getElementById('addParamBtn'),
+      clearParams: document.getElementById('clearParamsBtn'),
+      example: document.getElementById('exampleBtn'),
+      clearAll: document.getElementById('clearAllBtn'),
+      finalUrl: document.getElementById('finalUrlOut'),
+      status: document.getElementById('statusOut'),
+      time: document.getElementById('timeOut'),
+      size: document.getElementById('sizeOut'),
+      response: document.getElementById('responseOut'),
+      copyResponse: document.getElementById('copyResponseBtn'),
+      copyLink: document.getElementById('copyLinkBtn'),
+      share: document.getElementById('shareBtn'),
+      fullscreen: document.getElementById('fullscreenBtn')
+    };
+
+    let lastData = {
+      finalUrl: '',
+      status: '',
+      time: '',
+      size: '',
+      response: ''
+    };
+
+    function saveLocal(){
+      const data = {
+        method: els.method.value,
+        url: els.url.value,
+        params: getParams(),
+        finalUrl: lastData.finalUrl,
+        status: lastData.status,
+        time: lastData.time,
+        size: lastData.size,
+        response: lastData.response
+      };
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    function loadLocal(){
+      try{
+        const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        if(!data) return;
+
+        els.method.value = data.method || 'GET';
+        els.url.value = data.url || '';
+
+        els.paramsBox.innerHTML = '';
+        if(data.params && data.params.length){
+          data.params.forEach(p => addParamRow(p.key, p.value));
+        }else{
+          addParamRow();
+        }
+
+        lastData = {
+          finalUrl: data.finalUrl || '',
+          status: data.status || '',
+          time: data.time || '',
+          size: data.size || '',
+          response: data.response || ''
+        };
+
+        els.finalUrl.textContent = lastData.finalUrl || '—';
+        els.status.textContent = lastData.status || '—';
+        els.time.textContent = lastData.time || '—';
+        els.size.textContent = lastData.size || '—';
+        els.response.textContent = lastData.response || 'The response will appear here.';
+      }catch{
+        addParamRow();
+      }
+    }
+
+    function addParamRow(key = '', value = ''){
+      const row = document.createElement('div');
+      row.className = 'param-row';
+
+      row.innerHTML = `
+        <input class="p-key" placeholder="Parameter name" value="${escapeAttr(key)}">
+        <input class="p-value" placeholder="Parameter value" value="${escapeAttr(value)}">
+        <button class="small" type="button">Remove</button>
+      `;
+
+      row.querySelector('button').onclick = () => {
+        row.remove();
+        saveLocal();
+      };
+
+      row.querySelectorAll('input').forEach(input => {
+        input.addEventListener('input', saveLocal);
+      });
+
+      els.paramsBox.appendChild(row);
+    }
+
+    function escapeAttr(value){
+      return String(value || '')
+        .replaceAll('&','&amp;')
+        .replaceAll('"','&quot;')
+        .replaceAll('<','&lt;')
+        .replaceAll('>','&gt;');
+    }
+
+    function getParams(){
+      return [...els.paramsBox.querySelectorAll('.param-row')]
+        .map(row => ({
+          key: row.querySelector('.p-key').value.trim(),
+          value: row.querySelector('.p-value').value
+        }))
+        .filter(p => p.key);
+    }
+
+    function normalizeUrl(raw){
+      raw = String(raw || '').trim();
+
+      if(!raw){
+        throw new Error('Please enter a URL.');
+      }
+
+      if(/^[a-zA-Z][a-zA-Z\d+.-]*:\/\//.test(raw)){
+        return raw;
+      }
+
+      if(raw.startsWith('localhost') || raw.startsWith('127.0.0.1')){
+        return 'http://' + raw;
+      }
+
+      return 'https://' + raw;
+    }
+
+    function buildFinalUrl(){
+      const url = new URL(normalizeUrl(els.url.value));
+
+      getParams().forEach(p => {
+        url.searchParams.set(p.key, p.value);
+      });
+
+      return url.toString();
+    }
+
+    function bytesToSize(bytes){
+      if(bytes === 0) return '0 B';
+      if(!bytes) return '—';
+
+      const units = ['B','KB','MB','GB'];
+      const index = Math.floor(Math.log(bytes) / Math.log(1024));
+
+      return (bytes / Math.pow(1024, index)).toFixed(index ? 2 : 0) + ' ' + units[index];
+    }
+
+    async function sendRequest(){
+      let finalUrl = '';
+
+      try{
+        finalUrl = buildFinalUrl();
+      }catch(err){
+        alert(err.message);
+        return;
+      }
+
+      els.finalUrl.textContent = finalUrl;
+      els.status.textContent = 'Loading...';
+      els.time.textContent = '—';
+      els.size.textContent = '—';
+      els.response.textContent = 'Sending request...';
+
+      const start = performance.now();
+
+      try{
+        const response = await fetch(finalUrl, {
+          method: els.method.value
+        });
+
+        const text = await response.text();
+        const end = performance.now();
+
+        let shownText = text;
+
+        try{
+          shownText = JSON.stringify(JSON.parse(text), null, 2);
+        }catch{
+          shownText = text;
+        }
+
+        lastData = {
+          finalUrl,
+          status: response.status + ' ' + response.statusText,
+          time: Math.round(end - start) + ' ms',
+          size: bytesToSize(new TextEncoder().encode(text).length),
+          response: shownText
+        };
+
+        els.finalUrl.textContent = lastData.finalUrl;
+        els.status.textContent = lastData.status;
+        els.status.style.color = String(response.status).startsWith('2') ? 'var(--green)' : 'var(--red)';
+        els.time.textContent = lastData.time;
+        els.size.textContent = lastData.size;
+        els.response.textContent = shownText;
+
+        saveLocal();
+      }catch(err){
+        const end = performance.now();
+
+        lastData = {
+          finalUrl,
+          status: 'Error',
+          time: Math.round(end - start) + ' ms',
+          size: '—',
+          response:
+            'Request failed.\n\n' +
+            String(err) +
+            '\n\nPossible reasons:\n' +
+            '1. Wrong URL\n' +
+            '2. Server is down\n' +
+            '3. CORS blocked the request\n' +
+            '4. Internet problem'
+        };
+
+        els.finalUrl.textContent = lastData.finalUrl;
+        els.status.textContent = lastData.status;
+        els.status.style.color = 'var(--red)';
+        els.time.textContent = lastData.time;
+        els.size.textContent = lastData.size;
+        els.response.textContent = lastData.response;
+
+        saveLocal();
+      }
+    }
+
+    function makeShareText(){
+      return [
+        'Simple API Tester Result',
+        '',
+        'Method: ' + els.method.value,
+        'URL: ' + (lastData.finalUrl || buildSafeUrlText()),
+        '',
+        'Parameters:',
+        getParams().length
+          ? getParams().map(p => '- ' + p.key + ' = ' + p.value).join('\n')
+          : 'No parameters',
+        '',
+        'Status: ' + (lastData.status || 'Not sent yet'),
+        'Time: ' + (lastData.time || '—'),
+        'Size: ' + (lastData.size || '—'),
+        '',
+        'Response:',
+        String(lastData.response || els.response.textContent || '').slice(0, 1800)
+      ].join('\n');
+    }
+
+    function buildSafeUrlText(){
+      try{
+        return buildFinalUrl();
+      }catch{
+        return els.url.value || 'No URL';
+      }
+    }
+
+    async function shareData(){
+      const text = makeShareText();
+
+      if(navigator.share){
+        try{
+          await navigator.share({
+            title: 'Simple API Tester Result',
+            text
+          });
+        }catch{}
+      }else{
+        await navigator.clipboard.writeText(text);
+        alert('Share text copied.');
+      }
+    }
+
+    async function copyShareText(){
+      await navigator.clipboard.writeText(makeShareText());
+      alert('Share text copied.');
+    }
+
+    async function copyResponse(){
+      await navigator.clipboard.writeText(els.response.textContent || '');
+      alert('Response copied.');
+    }
+
+    function loadExample(){
+      els.method.value = 'GET';
+      els.url.value = 'https://jsonplaceholder.typicode.com/posts';
+
+      els.paramsBox.innerHTML = '';
+      addParamRow('userId', '1');
+
+      lastData = {
+        finalUrl: '',
+        status: '',
+        time: '',
+        size: '',
+        response: ''
+      };
+
+      els.finalUrl.textContent = '—';
+      els.status.textContent = '—';
+      els.time.textContent = '—';
+      els.size.textContent = '—';
+      els.response.textContent = 'Example loaded. Press Send.';
+
+      saveLocal();
+    }
+
+    function clearAll(){
+      if(!confirm('Clear URL, parameters, and response?')) return;
+
+      els.method.value = 'GET';
+      els.url.value = '';
+      els.paramsBox.innerHTML = '';
+      addParamRow();
+
+      lastData = {
+        finalUrl: '',
+        status: '',
+        time: '',
+        size: '',
+        response: ''
+      };
+
+      els.finalUrl.textContent = '—';
+      els.status.textContent = '—';
+      els.time.textContent = '—';
+      els.size.textContent = '—';
+      els.response.textContent = 'The response will appear here.';
+
+      localStorage.removeItem(STORAGE_KEY);
+    }
+
+    function toggleFullscreen(){
+      if(!document.fullscreenElement){
+        document.documentElement.requestFullscreen?.();
+        els.fullscreen.textContent = 'Exit Full Screen';
+      }else{
+        document.exitFullscreen?.();
+        els.fullscreen.textContent = 'Full Screen';
+      }
+    }
+
+    function bindEvents(){
+      els.send.addEventListener('click', sendRequest);
+      els.addParam.addEventListener('click', () => {
+        addParamRow();
+        saveLocal();
+      });
+
+      els.clearParams.addEventListener('click', () => {
+        els.paramsBox.innerHTML = '';
+        addParamRow();
+        saveLocal();
+      });
+
+      els.example.addEventListener('click', loadExample);
+      els.clearAll.addEventListener('click', clearAll);
+      els.copyResponse.addEventListener('click', copyResponse);
+      els.copyLink.addEventListener('click', copyShareText);
+      els.share.addEventListener('click', shareData);
+      els.fullscreen.addEventListener('click', toggleFullscreen);
+
+      els.method.addEventListener('change', saveLocal);
+      els.url.addEventListener('input', saveLocal);
+
+      els.url.addEventListener('keydown', e => {
+        if(e.key === 'Enter'){
+          sendRequest();
+        }
+      });
+    }
+
+    function init(){
+      bindEvents();
+
+      if(localStorage.getItem(STORAGE_KEY)){
+        loadLocal();
+      }else{
+        addParamRow();
+      }
+
+      try{
+        (adsbygoogle = window.adsbygoogle || []).push({});
+      }catch{}
+    }
+
+    init();
+  </script>
+</body>
+</html>
