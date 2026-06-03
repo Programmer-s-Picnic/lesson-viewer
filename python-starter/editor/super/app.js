@@ -163,6 +163,46 @@ function smartEnter(e){
   }
   updateGutter(); save();
 }
+
+function autoOutdentElseLine(){
+  const el = ui.code;
+  const value = el.value;
+  const pos = el.selectionStart;
+  const lineStart = value.lastIndexOf("\n", Math.max(0, pos - 1)) + 1;
+  const lineEndAt = value.indexOf("\n", pos);
+  const lineEnd = lineEndAt === -1 ? value.length : lineEndAt;
+  const line = value.slice(lineStart, lineEnd);
+  if(!/^ {4,}else:\s*$/.test(line)) return false;
+  const updated = line.slice(4);
+  el.value = value.slice(0, lineStart) + updated + value.slice(lineEnd);
+  el.selectionStart = el.selectionEnd = Math.max(lineStart, pos - 4);
+  updateGutter(); save();
+  return true;
+}
+
+function toggleIoBox(btn){
+  const card = btn.closest(".ioToggleCard");
+  if(!card) return;
+  const willExpand = !card.classList.contains("ioExpanded");
+
+  document.querySelectorAll(".ioToggleCard.ioExpanded").forEach(openCard => {
+    openCard.classList.remove("ioExpanded");
+    const openBtn = openCard.querySelector(".jsToggleBox");
+    if(openBtn){
+      openBtn.textContent = "Expand";
+      openBtn.setAttribute("aria-expanded", "false");
+    }
+  });
+
+  if(willExpand){
+    card.classList.add("ioExpanded");
+    btn.textContent = "Original size";
+    btn.setAttribute("aria-expanded", "true");
+    document.body.classList.add("ioExpandedMode");
+  }else{
+    document.body.classList.remove("ioExpandedMode");
+  }
+}
 function wrapPair(open, close){
   const el = ui.code;
   const start = el.selectionStart, end = el.selectionEnd;
@@ -274,7 +314,7 @@ function loadHash(){
   }catch{return false;}
 }
 
-ui.code.addEventListener("input", ()=>{ updateGutter(); save(); });
+ui.code.addEventListener("input", ()=>{ if(!autoOutdentElseLine()){ updateGutter(); save(); } });
 ui.stdin.addEventListener("input", save);
 ui.code.addEventListener("keydown", handleTypingAid);
 ui.run.addEventListener("click", runCode);
@@ -317,6 +357,7 @@ ui.theme.addEventListener("click", ()=>applyTheme((document.body.dataset.theme |
 ui.install.addEventListener("click", installModules);
 ui.list.addEventListener("click", ()=>{ if(!ready) return toast("Python is still loading"); ui.out.textContent="Loading module list…"; worker.postMessage({type:"LIST_PKGS"}); });
 ui.copyOut.addEventListener("click", async()=>{ try{ await navigator.clipboard.writeText(ui.out.textContent); toast("stdout copied"); }catch{ toast("Copy blocked"); } });
+document.querySelectorAll(".jsToggleBox").forEach(btn => btn.addEventListener("click", ()=>toggleIoBox(btn)));
 
 if(ui.plotMode) ui.plotMode.addEventListener("change", ()=>{ applyPlotMode(ui.plotMode.value); showPlots(currentPlots); });
 if(ui.openPlots) ui.openPlots.addEventListener("click", ()=>openPlotModal(currentPlotIndex));
