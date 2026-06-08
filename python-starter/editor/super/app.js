@@ -1,6 +1,6 @@
 const $ = (id) => document.getElementById(id);
 const ui = {
-  app: $("appShell"), code: $("ppCode"), gutter: $("ppGutter"), stdin: $("ppStdin"), out: $("ppOut"), err: $("ppErr"),
+  app: $("appShell"), codeCard: document.querySelector(".codeCard"), codeFullscreen: $("ppCodeFullscreen"), code: $("ppCode"), gutter: $("ppGutter"), stdin: $("ppStdin"), out: $("ppOut"), err: $("ppErr"),
   run: $("ppRun"), stop: $("ppStop"), clear: $("ppClear"), font: $("ppFontSize"), fullscreen: $("ppFullscreen"), fullscreenTool: $("ppFullscreenTool"), fullscreenButtons: Array.from(document.querySelectorAll(".jsFullscreen")), share: $("ppShare"), theme: $("ppTheme"),
   pkgs: $("ppPkgs"), install: $("ppInstall"), list: $("ppList"), status: $("ppStatus"), toast: $("ppToast"), copyOut: $("ppCopyOut"), plots: $("ppPlots"),
   plotMode: $("ppPlotMode"), openPlots: $("ppOpenPlots"), plotModal: $("ppPlotModal"), plotModalTitle: $("ppPlotModalTitle"), plotModalImg: $("ppPlotModalImg"), plotModalClose: $("ppPlotModalClose"), plotPrev: $("ppPlotPrev"), plotNext: $("ppPlotNext"), plotDownload: $("ppPlotDownload")
@@ -163,16 +163,16 @@ function smartEnter(e){
   }
   updateGutter(); save();
 }
-
-function autoOutdentElseLine(){
+function autoOutdentControlLine(){
   const el = ui.code;
   const value = el.value;
   const pos = el.selectionStart;
+  if(pos !== el.selectionEnd) return false;
   const lineStart = value.lastIndexOf("\n", Math.max(0, pos - 1)) + 1;
   const lineEndAt = value.indexOf("\n", pos);
   const lineEnd = lineEndAt === -1 ? value.length : lineEndAt;
   const line = value.slice(lineStart, lineEnd);
-  if(!/^ {4,}else:\s*$/.test(line)) return false;
+  if(!/^ {4,}(else:|elif\b.*:\s*)$/.test(line)) return false;
   const updated = line.slice(4);
   el.value = value.slice(0, lineStart) + updated + value.slice(lineEnd);
   el.selectionStart = el.selectionEnd = Math.max(lineStart, pos - 4);
@@ -180,11 +180,7 @@ function autoOutdentElseLine(){
   return true;
 }
 
-function toggleIoBox(btn){
-  const card = btn.closest(".ioToggleCard");
-  if(!card) return;
-  const willExpand = !card.classList.contains("ioExpanded");
-
+function closeIoExpandedCards(){
   document.querySelectorAll(".ioToggleCard.ioExpanded").forEach(openCard => {
     openCard.classList.remove("ioExpanded");
     const openBtn = openCard.querySelector(".jsToggleBox");
@@ -193,16 +189,48 @@ function toggleIoBox(btn){
       openBtn.setAttribute("aria-expanded", "false");
     }
   });
+  document.body.classList.remove("ioExpandedMode");
+}
+
+function toggleCodeFullscreen(){
+  if(!ui.codeCard || !ui.codeFullscreen) return;
+  const willExpand = !ui.codeCard.classList.contains("codeExpanded");
+  if(willExpand){
+    closeIoExpandedCards();
+    ui.codeCard.classList.add("codeExpanded");
+    document.body.classList.add("codeEditorFullscreenMode");
+    ui.codeFullscreen.textContent = "Original size";
+    ui.codeFullscreen.setAttribute("aria-expanded", "true");
+  }else{
+    ui.codeCard.classList.remove("codeExpanded");
+    document.body.classList.remove("codeEditorFullscreenMode");
+    ui.codeFullscreen.textContent = "Full screen";
+    ui.codeFullscreen.setAttribute("aria-expanded", "false");
+  }
+  setTimeout(()=>ui.code.focus(), 0);
+}
+
+function toggleIoBox(btn){
+  const card = btn.closest(".ioToggleCard");
+  if(!card) return;
+  const willExpand = !card.classList.contains("ioExpanded");
+
+  closeIoExpandedCards();
 
   if(willExpand){
+    if(ui.codeCard) ui.codeCard.classList.remove("codeExpanded");
+    if(ui.codeFullscreen){
+      ui.codeFullscreen.textContent = "Full screen";
+      ui.codeFullscreen.setAttribute("aria-expanded", "false");
+    }
+    document.body.classList.remove("codeEditorFullscreenMode");
     card.classList.add("ioExpanded");
     btn.textContent = "Original size";
     btn.setAttribute("aria-expanded", "true");
     document.body.classList.add("ioExpandedMode");
-  }else{
-    document.body.classList.remove("ioExpandedMode");
   }
 }
+
 function wrapPair(open, close){
   const el = ui.code;
   const start = el.selectionStart, end = el.selectionEnd;
@@ -314,7 +342,7 @@ function loadHash(){
   }catch{return false;}
 }
 
-ui.code.addEventListener("input", ()=>{ if(!autoOutdentElseLine()){ updateGutter(); save(); } });
+ui.code.addEventListener("input", ()=>{ if(!autoOutdentControlLine()){ updateGutter(); save(); } });
 ui.stdin.addEventListener("input", save);
 ui.code.addEventListener("keydown", handleTypingAid);
 ui.run.addEventListener("click", runCode);
@@ -357,7 +385,9 @@ ui.theme.addEventListener("click", ()=>applyTheme((document.body.dataset.theme |
 ui.install.addEventListener("click", installModules);
 ui.list.addEventListener("click", ()=>{ if(!ready) return toast("Python is still loading"); ui.out.textContent="Loading module list…"; worker.postMessage({type:"LIST_PKGS"}); });
 ui.copyOut.addEventListener("click", async()=>{ try{ await navigator.clipboard.writeText(ui.out.textContent); toast("stdout copied"); }catch{ toast("Copy blocked"); } });
+if(ui.codeFullscreen) ui.codeFullscreen.addEventListener("click", toggleCodeFullscreen);
 document.querySelectorAll(".jsToggleBox").forEach(btn => btn.addEventListener("click", ()=>toggleIoBox(btn)));
+
 
 if(ui.plotMode) ui.plotMode.addEventListener("change", ()=>{ applyPlotMode(ui.plotMode.value); showPlots(currentPlots); });
 if(ui.openPlots) ui.openPlots.addEventListener("click", ()=>openPlotModal(currentPlotIndex));
@@ -370,6 +400,14 @@ if(ui.plotModal) ui.plotModal.addEventListener("click", (e)=>{ if(e.target === u
 if(ui.plotPrev) ui.plotPrev.addEventListener("click", ()=>stepPlot(-1));
 if(ui.plotNext) ui.plotNext.addEventListener("click", ()=>stepPlot(1));
 document.addEventListener("keydown", (e)=>{
+  if(e.key === "Escape" && ui.codeCard && ui.codeCard.classList.contains("codeExpanded")){
+    toggleCodeFullscreen();
+    return;
+  }
+  if(e.key === "Escape" && document.querySelector(".ioToggleCard.ioExpanded")){
+    closeIoExpandedCards();
+    return;
+  }
   if(!ui.plotModal || !ui.plotModal.classList.contains("show")) return;
   if(e.key === "Escape") closePlotModal();
   if(e.key === "ArrowLeft") stepPlot(-1);
