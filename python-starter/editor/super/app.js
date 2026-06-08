@@ -1,6 +1,6 @@
 const $ = (id) => document.getElementById(id);
 const ui = {
-  app: $("appShell"), codeCard: document.querySelector(".codeCard"), codeFullscreen: $("ppCodeFullscreen"), code: $("ppCode"), gutter: $("ppGutter"), stdin: $("ppStdin"), out: $("ppOut"), err: $("ppErr"),
+  app: $("appShell"), codeCard: document.querySelector(".codeCard"), codeFullscreen: $("ppCodeFullscreen"), code: $("ppCode"), highlight: $("ppHighlight"), gutter: $("ppGutter"), stdin: $("ppStdin"), out: $("ppOut"), err: $("ppErr"),
   run: $("ppRun"), stop: $("ppStop"), clear: $("ppClear"), font: $("ppFontSize"), fullscreen: $("ppFullscreen"), fullscreenTool: $("ppFullscreenTool"), fullscreenButtons: Array.from(document.querySelectorAll(".jsFullscreen")), share: $("ppShare"), theme: $("ppTheme"),
   pkgs: $("ppPkgs"), install: $("ppInstall"), list: $("ppList"), status: $("ppStatus"), toast: $("ppToast"), copyOut: $("ppCopyOut"), plots: $("ppPlots"),
   plotMode: $("ppPlotMode"), openPlots: $("ppOpenPlots"), plotModal: $("ppPlotModal"), plotModalTitle: $("ppPlotModalTitle"), plotModalImg: $("ppPlotModalImg"), plotModalClose: $("ppPlotModalClose"), plotPrev: $("ppPlotPrev"), plotNext: $("ppPlotNext"), plotDownload: $("ppPlotDownload")
@@ -21,8 +21,46 @@ function toast(msg){ ui.toast.textContent = msg; ui.toast.classList.add("show");
 function setStatus(msg, kind=""){ ui.status.textContent = msg; ui.status.className = "status " + kind; }
 function save(){ localStorage.setItem(K_CODE, ui.code.value); localStorage.setItem(K_STDIN, ui.stdin.value); }
 function escapeHtml(s){ return String(s ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;"); }
-function updateGutter(){ const n = ui.code.value.split("\n").length; ui.gutter.textContent = Array.from({length:n},(_,i)=>i+1).join("\n"); }
-function applyFont(size){ ui.code.style.fontSize = size + "px"; ui.gutter.style.fontSize = size + "px"; ui.out.style.fontSize = Math.max(14, Number(size)-1) + "px"; ui.err.style.fontSize = Math.max(14, Number(size)-1) + "px"; localStorage.setItem(K_FONT, size); }
+function highlightPython(code){
+  const keywords = new Set([
+    "False","None","True","and","as","assert","async","await","break","class","continue","def","del","elif","else","except","finally","for","from","global","if","import","in","is","lambda","nonlocal","not","or","pass","raise","return","try","while","with","yield","match","case"
+  ]);
+  const builtins = new Set([
+    "abs","all","any","bin","bool","breakpoint","bytearray","bytes","callable","chr","classmethod","compile","complex","dict","dir","divmod","enumerate","eval","exec","filter","float","format","frozenset","getattr","globals","hasattr","hash","help","hex","id","input","int","isinstance","issubclass","iter","len","list","locals","map","max","memoryview","min","next","object","oct","open","ord","pow","print","property","range","repr","reversed","round","set","setattr","slice","sorted","staticmethod","str","sum","super","tuple","type","vars","zip"
+  ]);
+  const token = /(\"\"\"[\s\S]*?\"\"\"|[\'][\'][\'][\s\S]*?[\'][\'][\']|\"(?:\\.|[^\"\\])*\"|'(?:\\.|[^'\\])*'|#[^\n]*|@[A-Za-z_][\w.]*|\b(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?\b|\b[A-Za-z_]\w*\b|[+\-*\/\/%=<>!&|^~:.,;()\[\]{}])/g;
+  let out = "";
+  let last = 0;
+  let match;
+  while((match = token.exec(code))){
+    const raw = match[0];
+    out += escapeHtml(code.slice(last, match.index));
+    let cls = "";
+    if(raw.startsWith("#")) cls = "tok-comment";
+    else if(raw.startsWith('"') || raw.startsWith("'")) cls = "tok-string";
+    else if(raw.startsWith("@")) cls = "tok-decorator";
+    else if(/^\d|^\.\d/.test(raw)) cls = "tok-number";
+    else if(keywords.has(raw)) cls = "tok-keyword";
+    else if(builtins.has(raw)) cls = "tok-builtin";
+    else if(/^[+\-*\/\/%=<>!&|^~:.,;()\[\]{}]$/.test(raw)) cls = "tok-operator";
+    out += cls ? `<span class="${cls}">${escapeHtml(raw)}</span>` : escapeHtml(raw);
+    last = token.lastIndex;
+  }
+  out += escapeHtml(code.slice(last));
+  return out || " ";
+}
+function syncHighlightScroll(){
+  if(!ui.highlight || !ui.code) return;
+  ui.highlight.scrollTop = ui.code.scrollTop;
+  ui.highlight.scrollLeft = ui.code.scrollLeft;
+}
+function updateHighlight(){
+  if(!ui.highlight || !ui.code) return;
+  ui.highlight.innerHTML = highlightPython(ui.code.value);
+  syncHighlightScroll();
+}
+function updateGutter(){ const n = ui.code.value.split("\n").length; ui.gutter.textContent = Array.from({length:n},(_,i)=>i+1).join("\n"); updateHighlight(); }
+function applyFont(size){ ui.code.style.fontSize = size + "px"; ui.gutter.style.fontSize = size + "px"; if(ui.highlight) ui.highlight.style.fontSize = size + "px"; ui.out.style.fontSize = Math.max(14, Number(size)-1) + "px"; ui.err.style.fontSize = Math.max(14, Number(size)-1) + "px"; localStorage.setItem(K_FONT, size); }
 function applyPlotMode(mode){
   const allowed = new Set(["modal", "gallery", "both", "hidden"]);
   const value = allowed.has(mode) ? mode : "both";
@@ -343,6 +381,7 @@ function loadHash(){
 }
 
 ui.code.addEventListener("input", ()=>{ if(!autoOutdentControlLine()){ updateGutter(); save(); } });
+ui.code.addEventListener("scroll", syncHighlightScroll);
 ui.stdin.addEventListener("input", save);
 ui.code.addEventListener("keydown", handleTypingAid);
 ui.run.addEventListener("click", runCode);
