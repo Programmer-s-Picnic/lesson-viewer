@@ -53,10 +53,12 @@ function syncHighlightScroll(){
   if(!ui.highlight || !ui.code) return;
   ui.highlight.scrollTop = ui.code.scrollTop;
   ui.highlight.scrollLeft = ui.code.scrollLeft;
+  if(ui.gutter) ui.gutter.scrollTop = ui.code.scrollTop;
 }
 function updateHighlight(){
   if(!ui.highlight || !ui.code) return;
-  ui.highlight.innerHTML = highlightPython(ui.code.value);
+  const code = ui.code.value;
+  ui.highlight.innerHTML = highlightPython(code) + (code.endsWith("\n") ? " " : "");
   syncHighlightScroll();
 }
 function updateGutter(){ const n = ui.code.value.split("\n").length; ui.gutter.textContent = Array.from({length:n},(_,i)=>i+1).join("\n"); updateHighlight(); }
