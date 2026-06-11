@@ -55,6 +55,37 @@ function syncHighlightScroll(){
   ui.highlight.scrollLeft = ui.code.scrollLeft;
   if(ui.gutter) ui.gutter.scrollTop = ui.code.scrollTop;
 }
+let highlightSyncFrame = 0;
+function scheduleEditorSync(){
+  cancelAnimationFrame(highlightSyncFrame);
+  highlightSyncFrame = requestAnimationFrame(()=>{
+    updateHighlight();
+    syncHighlightScroll();
+  });
+}
+function installEditorLayoutWatchers(){
+  if(!ui.code) return;
+  const targets = [ui.code, ui.highlight, ui.gutter, document.querySelector(".editorWrap"), ui.codeCard].filter(Boolean);
+  if("ResizeObserver" in window){
+    const ro = new ResizeObserver(scheduleEditorSync);
+    targets.forEach(el => ro.observe(el));
+  }
+  window.addEventListener("resize", scheduleEditorSync);
+  window.addEventListener("orientationchange", scheduleEditorSync);
+  window.addEventListener("load", scheduleEditorSync);
+  window.addEventListener("pageshow", scheduleEditorSync);
+  if(window.visualViewport){
+    window.visualViewport.addEventListener("resize", scheduleEditorSync);
+    window.visualViewport.addEventListener("scroll", scheduleEditorSync);
+  }
+  if("MutationObserver" in window){
+    const mo = new MutationObserver(scheduleEditorSync);
+    mo.observe(document.body, {childList:true, subtree:true, attributes:true, attributeFilter:["style", "class"]});
+  }
+  setTimeout(scheduleEditorSync, 250);
+  setTimeout(scheduleEditorSync, 1000);
+  setTimeout(scheduleEditorSync, 2500);
+}
 function updateHighlight(){
   if(!ui.highlight || !ui.code) return;
   const code = ui.code.value;
@@ -62,7 +93,22 @@ function updateHighlight(){
   syncHighlightScroll();
 }
 function updateGutter(){ const n = ui.code.value.split("\n").length; ui.gutter.textContent = Array.from({length:n},(_,i)=>i+1).join("\n"); updateHighlight(); }
-function applyFont(size){ ui.code.style.fontSize = size + "px"; ui.gutter.style.fontSize = size + "px"; if(ui.highlight) ui.highlight.style.fontSize = size + "px"; ui.out.style.fontSize = Math.max(14, Number(size)-1) + "px"; ui.err.style.fontSize = Math.max(14, Number(size)-1) + "px"; localStorage.setItem(K_FONT, size); }
+function applyFont(size){
+  const lineHeight = Math.round(Number(size) * 1.5) + "px";
+  document.documentElement.style.setProperty("--editor-line-height", lineHeight);
+  ui.code.style.fontSize = size + "px";
+  ui.code.style.lineHeight = lineHeight;
+  ui.gutter.style.fontSize = size + "px";
+  ui.gutter.style.lineHeight = lineHeight;
+  if(ui.highlight){
+    ui.highlight.style.fontSize = size + "px";
+    ui.highlight.style.lineHeight = lineHeight;
+  }
+  ui.out.style.fontSize = Math.max(14, Number(size)-1) + "px";
+  ui.err.style.fontSize = Math.max(14, Number(size)-1) + "px";
+  localStorage.setItem(K_FONT, size);
+  scheduleEditorSync();
+}
 function applyPlotMode(mode){
   const allowed = new Set(["modal", "gallery", "both", "hidden"]);
   const value = allowed.has(mode) ? mode : "both";
@@ -384,6 +430,7 @@ function loadHash(){
 
 ui.code.addEventListener("input", ()=>{ if(!autoOutdentControlLine()){ updateGutter(); save(); } });
 ui.code.addEventListener("scroll", syncHighlightScroll);
+window.addEventListener("scroll", scheduleEditorSync, true);
 ui.stdin.addEventListener("input", save);
 ui.code.addEventListener("keydown", handleTypingAid);
 ui.run.addEventListener("click", runCode);
@@ -461,4 +508,4 @@ else if(!location.hash && localStorage.getItem(K_CODE)) ui.code.value = localSto
 ui.stdin.value = ui.stdin.value || localStorage.getItem(K_STDIN) || "Champak";
 applyTheme(localStorage.getItem(K_THEME) || "light");
 applyPlotMode(localStorage.getItem(K_PLOT_MODE) || "both");
-const font = localStorage.getItem(K_FONT) || "16"; ui.font.value = font; applyFont(font); updateGutter(); makeWorker();
+const font = localStorage.getItem(K_FONT) || "16"; ui.font.value = font; applyFont(font); updateGutter(); installEditorLayoutWatchers(); makeWorker();
