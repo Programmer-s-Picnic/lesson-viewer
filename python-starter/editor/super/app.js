@@ -21,20 +21,20 @@ function toast(msg){ ui.toast.textContent = msg; ui.toast.classList.add("show");
 function setStatus(msg, kind=""){ ui.status.textContent = msg; ui.status.className = "status " + kind; }
 function save(){ localStorage.setItem(K_CODE, ui.code.value); localStorage.setItem(K_STDIN, ui.stdin.value); }
 function escapeHtml(s){ return String(s ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;"); }
-function highlightPython(code){
+function highlightPythonLine(line){
   const keywords = new Set([
     "False","None","True","and","as","assert","async","await","break","class","continue","def","del","elif","else","except","finally","for","from","global","if","import","in","is","lambda","nonlocal","not","or","pass","raise","return","try","while","with","yield","match","case"
   ]);
   const builtins = new Set([
     "abs","all","any","bin","bool","breakpoint","bytearray","bytes","callable","chr","classmethod","compile","complex","dict","dir","divmod","enumerate","eval","exec","filter","float","format","frozenset","getattr","globals","hasattr","hash","help","hex","id","input","int","isinstance","issubclass","iter","len","list","locals","map","max","memoryview","min","next","object","oct","open","ord","pow","print","property","range","repr","reversed","round","set","setattr","slice","sorted","staticmethod","str","sum","super","tuple","type","vars","zip"
   ]);
-  const token = /(\"\"\"[\s\S]*?\"\"\"|[\'][\'][\'][\s\S]*?[\'][\'][\']|\"(?:\\.|[^\"\\])*\"|'(?:\\.|[^'\\])*'|#[^\n]*|@[A-Za-z_][\w.]*|\b(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?\b|\b[A-Za-z_]\w*\b|[+\-*\/\/%=<>!&|^~:.,;()\[\]{}])/g;
+  const token = /(""".*?"""|'''.*?'''|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|#[^\n]*|@[A-Za-z_][\w.]*|\b(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?\b|\b[A-Za-z_]\w*\b|[+\-*\/\/%=<>!&|^~:.,;()\[\]{}])/g;
   let out = "";
   let last = 0;
   let match;
-  while((match = token.exec(code))){
+  while((match = token.exec(line))){
     const raw = match[0];
-    out += escapeHtml(code.slice(last, match.index));
+    out += escapeHtml(line.slice(last, match.index));
     let cls = "";
     if(raw.startsWith("#")) cls = "tok-comment";
     else if(raw.startsWith('"') || raw.startsWith("'")) cls = "tok-string";
@@ -46,8 +46,12 @@ function highlightPython(code){
     out += cls ? `<span class="${cls}">${escapeHtml(raw)}</span>` : escapeHtml(raw);
     last = token.lastIndex;
   }
-  out += escapeHtml(code.slice(last));
-  return out || " ";
+  out += escapeHtml(line.slice(last));
+  return out || "&nbsp;";
+}
+function highlightPython(code){
+  const lines = String(code ?? "").split("\n");
+  return lines.map(line => `<div class="codeLine">${highlightPythonLine(line)}</div>`).join("");
 }
 function syncHighlightScroll(){
   if(!ui.highlight || !ui.code) return;
@@ -89,7 +93,7 @@ function installEditorLayoutWatchers(){
 function updateHighlight(){
   if(!ui.highlight || !ui.code) return;
   const code = ui.code.value;
-  ui.highlight.innerHTML = highlightPython(code) + (code.endsWith("\n") ? " " : "");
+  ui.highlight.innerHTML = highlightPython(code);
   syncHighlightScroll();
 }
 function updateGutter(){ const n = ui.code.value.split("\n").length; ui.gutter.textContent = Array.from({length:n},(_,i)=>i+1).join("\n"); updateHighlight(); }
