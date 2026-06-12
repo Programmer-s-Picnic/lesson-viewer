@@ -55,9 +55,16 @@ function highlightPython(code){
 }
 function syncHighlightScroll(){
   if(!ui.highlight || !ui.code) return;
-  ui.highlight.scrollTop = ui.code.scrollTop;
-  ui.highlight.scrollLeft = ui.code.scrollLeft;
-  if(ui.gutter) ui.gutter.scrollTop = ui.code.scrollTop;
+  const x = ui.code.scrollLeft || 0;
+  const y = ui.code.scrollTop || 0;
+  const inner = ui.highlight.querySelector(".codeHighlightInner");
+  if(inner){
+    inner.style.transform = `translate(${-x}px, ${-y}px)`;
+  }else{
+    ui.highlight.scrollTop = y;
+    ui.highlight.scrollLeft = x;
+  }
+  if(ui.gutter) ui.gutter.scrollTop = y;
 }
 let highlightSyncFrame = 0;
 function scheduleEditorSync(){
@@ -93,8 +100,20 @@ function installEditorLayoutWatchers(){
 function updateHighlight(){
   if(!ui.highlight || !ui.code) return;
   const code = ui.code.value;
-  ui.highlight.innerHTML = highlightPython(code);
+  ui.highlight.innerHTML = `<div class="codeHighlightInner">${highlightPython(code)}</div>`;
   syncHighlightScroll();
+}
+function resyncEditorAfterLayoutShift(){
+  updateHighlight();
+  syncHighlightScroll();
+}
+function resyncEditorManyTimes(){
+  resyncEditorAfterLayoutShift();
+  requestAnimationFrame(resyncEditorAfterLayoutShift);
+  setTimeout(resyncEditorAfterLayoutShift, 60);
+  setTimeout(resyncEditorAfterLayoutShift, 180);
+  setTimeout(resyncEditorAfterLayoutShift, 400);
+  setTimeout(resyncEditorAfterLayoutShift, 900);
 }
 function updateGutter(){ const n = ui.code.value.split("\n").length; ui.gutter.textContent = Array.from({length:n},(_,i)=>i+1).join("\n"); updateHighlight(); }
 function applyFont(size){
@@ -359,6 +378,7 @@ function makeWorker(){
       ui.out.textContent = r.stdout || "(no stdout)";
       ui.err.textContent = (r.stderr || "") + (r.error || "");
       showPlots(r.plots || []);
+      resyncEditorManyTimes();
       setStatus(r.ok ? "Run complete" : "Error found", r.ok ? "ok" : "bad");
       return;
     }
@@ -368,6 +388,7 @@ function makeWorker(){
       ui.out.textContent = installed.length ? "Installed:\n" + installed.join("\n") : "Already available / nothing new installed.";
       ui.err.textContent = "";
       setStatus("Module install complete", "ok");
+      resyncEditorManyTimes();
       toast("Install complete");
       return;
     }
@@ -396,6 +417,7 @@ function runCode(){
   ui.out.textContent = "Running…";
   ui.err.textContent = "";
   showPlots([]);
+  resyncEditorManyTimes();
   setStatus("Running…");
   worker.postMessage({type:"RUN_ONE", code:ui.code.value, stdin:ui.stdin.value, policy:{allow_micropip:true}});
   runTimer = setTimeout(()=>{ if(running){ stopRun(); ui.err.textContent = "Stopped: program took too long."; setStatus("Stopped", "bad"); } }, 12000);
@@ -439,7 +461,7 @@ ui.stdin.addEventListener("input", save);
 ui.code.addEventListener("keydown", handleTypingAid);
 ui.run.addEventListener("click", runCode);
 ui.stop.addEventListener("click", stopRun);
-ui.clear.addEventListener("click", ()=>{ ui.out.textContent="Output will appear here."; ui.err.textContent="Errors will appear here."; showPlots([]); });
+ui.clear.addEventListener("click", ()=>{ ui.out.textContent="Output will appear here."; ui.err.textContent="Errors will appear here."; showPlots([]); resyncEditorManyTimes(); });
 ui.font.addEventListener("change", ()=>applyFont(ui.font.value));
 function syncFullscreenButtons(){
   const active = ui.app.classList.contains("fullscreen") || document.fullscreenElement === ui.app;
