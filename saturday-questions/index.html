@@ -1551,6 +1551,168 @@
         padding-right: 16px;
       }
     }
+
+
+    /* Display optimization for compact Saturday Questions JSON */
+    .sq-hero-card {
+      grid-template-columns: minmax(0, 1fr) 360px;
+    }
+
+    .sq-hero h1 {
+      max-width: 880px;
+    }
+
+    .sq-hero-points {
+      align-self: stretch;
+    }
+
+    .sq-hero-point {
+      display: flex;
+      align-items: center;
+      min-height: 58px;
+    }
+
+    .grid {
+      align-items: start;
+    }
+
+    aside.panel {
+      position: sticky;
+      top: 86px;
+      max-height: calc(100vh - 104px);
+    }
+
+    .q-list {
+      max-height: calc(100vh - 330px);
+      scrollbar-width: thin;
+    }
+
+    .work-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .card {
+      min-height: 0;
+    }
+
+    .card.problem-card,
+    .work-grid > .card:first-child {
+      min-height: 0;
+    }
+
+    .card.editor {
+      min-height: 520px;
+    }
+
+    .svg-wrap {
+      padding-top: 0;
+    }
+
+    .svg-card {
+      max-height: 440px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(180deg, #fffdf9, #fff7ed);
+    }
+
+    .svg-card svg {
+      width: 100%;
+      height: auto;
+      max-height: 410px;
+      display: block;
+    }
+
+    .content {
+      padding-bottom: 8px;
+    }
+
+    .content .generated-prompt {
+      border: 1px solid rgba(245, 158, 11, 0.22);
+      border-radius: 18px;
+      padding: 12px 14px;
+      background: rgba(255, 251, 235, 0.78);
+      margin-bottom: 12px;
+    }
+
+    .content .generated-prompt strong {
+      color: #7c2d12;
+    }
+
+    .section {
+      display: none;
+      margin: 0 14px 14px;
+      border: 1px solid rgba(146, 87, 12, 0.13);
+      border-radius: 18px;
+    }
+
+    .replies {
+      margin: 0 10px 10px;
+      border: 1px solid rgba(146, 87, 12, 0.14);
+      border-radius: 22px;
+      overflow: hidden;
+    }
+
+    .reply-answer-card {
+      overflow: hidden;
+    }
+
+    .reply-msg {
+      font-size: 14px;
+    }
+
+    iframe.editor {
+      min-height: 480px;
+    }
+
+    @media (min-width: 1100px) {
+      .grid {
+        grid-template-columns: 320px minmax(0, 1fr);
+      }
+    }
+
+    @media (min-width: 1320px) {
+      .grid {
+        grid-template-columns: 340px minmax(0, 1fr);
+      }
+    }
+
+    @media (max-width: 1020px) {
+      aside.panel {
+        position: static;
+        max-height: none;
+      }
+
+      .q-list {
+        max-height: 360px;
+      }
+
+      .sq-hero-card {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .sq-hero h1 {
+        line-height: 1.03;
+      }
+
+      .q-list {
+        max-height: 300px;
+      }
+
+      .svg-card {
+        max-height: 330px;
+      }
+
+      .svg-card svg {
+        max-height: 310px;
+      }
+
+      iframe.editor {
+        min-height: 62vh;
+      }
+    }
+
   </style>
 </head>
 
@@ -1654,7 +1816,7 @@
         </div>
 
         <div class="work-grid">
-          <div class="card">
+          <div class="card problem-card">
             <div class="card-head">
               <div class="card-title" id="targetTitle">Problem</div>
 
@@ -1870,6 +2032,96 @@
     let META = {};
     let activeId = null;
     let teacherMode = true;
+
+
+    function topicFromMeta() {
+      const s = String((META && META.subtitle) || "").toLowerCase();
+      if (s.includes("pattern")) return "Pattern Printing";
+      if (s.includes("hash")) return "Hash Maps";
+      if (s.includes("sql")) return "SQL";
+      return "Coding Practice";
+    }
+
+    function deriveQuestionDetails(q, index) {
+      const id = String(q && q.id || "").toLowerCase();
+      const title = String(q && q.title || `Question ${index + 1}`);
+      const topic = topicFromMeta();
+      const baseTags = Array.isArray(q.tags) && q.tags.length ? q.tags :
+        topic === "Pattern Printing" ? ["Pattern", "Loops", "Python"] : [topic, "Practice"];
+
+      let prompt = String(q.prompt || "").trim();
+      let examples = Array.isArray(q.examples) ? q.examples : [];
+      let starter = String(q.starter_code || "").trim();
+      let hints = Array.isArray(q.hints) ? q.hints : [];
+
+      if (!prompt && topic === "Pattern Printing") {
+        const n = id.includes("butterfly") ? 4 : 5;
+        prompt = `Write a Python program for ${title}. Read an integer n and print the pattern shown in the visual. Focus on rows, columns, spaces, and stars.`;
+        examples = examples.length ? examples : [{ input: `n = ${n}`, output: "See the expected shape in the visual card." }];
+        starter = starter || "n = int(input('Enter n: '))\n\n# write your loops below\n";
+        hints = hints.length ? hints : [
+          "Use the outer loop to control rows.",
+          "Use one or more inner loops to print stars, numbers, or spaces.",
+          "Use end='' or string multiplication when you want to keep output on the same line.",
+          "Use print() after each row to move to the next line."
+        ];
+      } else if (!prompt) {
+        prompt = `Solve: ${title}. Read the input, write the logic, and produce the expected output.`;
+        starter = starter || "# Write your solution here\n";
+      }
+
+      return {
+        ...q,
+        title,
+        prompt,
+        examples,
+        starter_code: starter,
+        hints,
+        difficulty: q.difficulty || (index < 2 ? "easy" : index < 6 ? "medium" : "challenge"),
+        tags: baseTags,
+        estimated_minutes: q.estimated_minutes || (index < 2 ? 5 : index < 6 ? 8 : 12)
+      };
+    }
+
+    function normalizeQuestions(rawQuestions) {
+      return (Array.isArray(rawQuestions) ? rawQuestions : []).map(deriveQuestionDetails);
+    }
+
+    function normalizeRepliesPayload(rData) {
+      const source = Array.isArray(rData && rData.replies) ? rData.replies : [];
+      const out = [];
+      source.forEach((r, idx) => {
+        if (r && r.q_id) {
+          out.push(r);
+          return;
+        }
+        const qid = r && (r.id || r.question_id || r.qid);
+        const answers = Array.isArray(r && r.answers) ? r.answers : [];
+        if (qid && answers.length) {
+          answers.forEach((a, ai) => {
+            out.push({
+              id: `${qid}-answer-${ai + 1}`,
+              q_id: qid,
+              student: a.author || (ai === 0 ? "Champak Roy" : "System Hint"),
+              message: a.content || "",
+              created_at: (rData.meta && (rData.meta.last_updated || rData.meta.published_date)) || "",
+              answer: a.code || ""
+            });
+          });
+          return;
+        }
+        if (qid) {
+          out.push({
+            id: `${qid}-reply-${idx + 1}`,
+            q_id: qid,
+            student: r.author || r.student || "Reply",
+            message: r.content || r.message || "",
+            created_at: (rData.meta && rData.meta.last_updated) || ""
+          });
+        }
+      });
+      return out;
+    }
 
     const DEVICE = {
       ua: navigator.userAgent || "",
@@ -2767,10 +3019,10 @@
 
       let html = "";
       if (prompt) {
-        html += `<h3>Question</h3>`;
-        html += `<p style="white-space:pre-wrap;margin-top:0;">${escapeHTML(
+        html += `<div class="generated-prompt"><strong>Question</strong><br>`;
+        html += `<span style="white-space:pre-wrap;">${escapeHTML(
           prompt,
-        )}</p>`;
+        )}</span></div>`;
       } else {
         html += `<div class="muted">No prompt found for this question.</div>`;
       }
@@ -2865,7 +3117,7 @@
     async function loadReplies() {
       try {
         const rData = await fetchJSON(REPLIES_URL);
-        REPLIES = Array.isArray(rData.replies) ? rData.replies : [];
+        REPLIES = normalizeRepliesPayload(rData);
         renderReplies();
       } catch (err) {
         console.error(err);
@@ -2883,7 +3135,7 @@
         META = qData.meta || {};
         UI = qData.ui || {};
         CONFIG = qData.config || { editor_url: "" };
-        QUESTIONS = Array.isArray(qData.questions) ? qData.questions : [];
+        QUESTIONS = normalizeQuestions(qData.questions);
 
         applyMetaUI();
         initEditor();
