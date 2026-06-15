@@ -1,12 +1,13 @@
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>
-      Python Memory & Performance Lesson — id(), del, gc, size, and timing
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<title>
+      Python Memory &amp; Performance Lesson — id(), del, gc, size, and timing
     </title>
-    <style>
+<style>
       :root {
         --bg: #fff7e6; /* light saffron */
         --card: #ffffff;
@@ -421,400 +422,327 @@
         font-size: 0.95em;
       }
     </style>
-  </head>
-  <body>
-    <div class="wrap">
-      <div class="hero">
-        <span class="badge"
-          ><span class="dot"></span> Python Memory + Performance (Beginner →
-          Interview)</span
-        >
-        <h1>
+<meta content="Learn Python Memory &amp; Performance Lesson — id(), del, gc, size, and timing with Champak Roy at Programmer's Picnic. A practical lesson, demo, or learning tool for students." name="description"/><meta content="Champak Roy" name="author"/><link href="https://editor.learnwithchampak.live/python-starter/day7/" rel="canonical"/><meta content="Python Memory &amp; Performance Lesson — id(), del, gc, size, and timing" property="og:title"/><meta content="Learn Python Memory &amp; Performance Lesson — id(), del, gc, size, and timing with Champak Roy at Programmer's Picnic. A practical lesson, demo, or learning tool for students." property="og:description"/><meta content="website" property="og:type"/><meta content="https://editor.learnwithchampak.live/python-starter/day7/" property="og:url"/><meta content="Programmer's Picnic" property="og:site_name"/><meta content="summary_large_image" name="twitter:card"/><meta content="Python Memory &amp; Performance Lesson — id(), del, gc, size, and timing" name="twitter:title"/><meta content="Learn Python Memory &amp; Performance Lesson — id(), del, gc, size, and timing with Champak Roy at Programmer's Picnic. A practical lesson, demo, or learning tool for students." name="twitter:description"/></head>
+<body>
+<div class="wrap">
+<div class="hero">
+<span class="badge"><span class="dot"></span> Python Memory + Performance (Beginner →
+          Interview)</span>
+<h1>
           Python: <span class="inlinecode">id()</span>,
           <span class="inlinecode">del</span>,
           <span class="inlinecode">gc</span>, object size, and execution time
         </h1>
-        <p class="sub">
+<p class="sub">
           This lesson connects four confusing topics into one clear mental
           model: <b>objects</b>, <b>references</b>, <b>memory</b>, and
           <b>timing</b>.
         </p>
-
-        <div class="kpi">
-          <div class="pill">
-            <b>Identity</b><span class="inlinecode">id()</span> → identifies
+<div class="kpi">
+<div class="pill">
+<b>Identity</b><span class="inlinecode">id()</span> → identifies
             objects
           </div>
-          <div class="pill"><b>Memory</b>Freed when references drop to 0</div>
-          <div class="pill">
-            <b>Timing</b>Measure with
-            <span class="inlinecode">perf_counter</span>/<span
-              class="inlinecode"
-              >timeit</span
-            >
-          </div>
-        </div>
-
-        <div class="toc">
-          <b>Contents</b>
-          <ul>
-            <li>
-              <a href="#id"
-                >1) <span class="inlinecode">id()</span> — what it is and what
-                it isn’t</a
-              >
-            </li>
-            <li>
-              <a href="#id-to-value"
-                >2) Why you cannot get “value from id” reliably</a
-              >
-            </li>
-            <li>
-              <a href="#del"
-                >3) Freeing memory: <span class="inlinecode">del</span>,
-                reassigning, and reference counts</a
-              >
-            </li>
-            <li>
-              <a href="#gc"
-                >4) Garbage collection: when
-                <span class="inlinecode">gc</span> matters (cycles)</a
-              >
-            </li>
-            <li>
-              <a href="#sizeof"
-                >5) Measuring memory:
+<div class="pill"><b>Memory</b>Freed when references drop to 0</div>
+<div class="pill">
+<b>Timing</b>Measure with
+            <span class="inlinecode">perf_counter</span>/<span class="inlinecode">timeit</span>
+</div>
+</div>
+<div class="toc">
+<b>Contents</b>
+<ul>
+<li>
+<a href="#id">1) <span class="inlinecode">id()</span> — what it is and what
+                it isn’t</a>
+</li>
+<li>
+<a href="#id-to-value">2) Why you cannot get “value from id” reliably</a>
+</li>
+<li>
+<a href="#del">3) Freeing memory: <span class="inlinecode">del</span>,
+                reassigning, and reference counts</a>
+</li>
+<li>
+<a href="#gc">4) Garbage collection: when
+                <span class="inlinecode">gc</span> matters (cycles)</a>
+</li>
+<li>
+<a href="#sizeof">5) Measuring memory:
                 <span class="inlinecode">getsizeof</span> (shallow) vs deep
-                size</a
-              >
-            </li>
-            <li>
-              <a href="#time"
-                >6) Measuring time: per-statement timing, benchmarking,
-                profiling</a
-              >
-            </li>
-            <li><a href="#try">7) Try it live: embedded Python editor</a></li>
-          </ul>
-          <div class="small">
+                size</a>
+</li>
+<li>
+<a href="#time">6) Measuring time: per-statement timing, benchmarking,
+                profiling</a>
+</li>
+<li><a href="#try">7) Try it live: embedded Python editor</a></li>
+</ul>
+<div class="small">
             Pro tip: Ask students to <b>predict output first</b>, then run it.
             Curiosity rises → attendance rises 😄
           </div>
-        </div>
-
-        <!-- Embedded Python Editor -->
-        <div class="editorWrap" id="try">
-          <div class="editorTop">
-            <div>
-              <div class="title">
+</div>
+<!-- Embedded Python Editor -->
+<div class="editorWrap" id="try">
+<div class="editorTop">
+<div>
+<div class="title">
                 🧪 Try the code here (Programmer’s Picnic Python Editor)
               </div>
-              <div class="hint">
+<div class="hint">
                 Paste any snippet from this post into the editor and run. If
                 Blogger blocks the iframe, open in a new tab.
               </div>
-            </div>
-            <div class="btnrow">
-              <a
-                class="btn"
-                href="https://www.learnwithchampak.live/2026/01/programmers-picnic-python-editor.html"
-                target="_blank"
-                rel="noopener"
-                >Open editor in new tab ↗</a
-              >
-            </div>
-          </div>
-          <iframe
-            class="editor"
-            title="Programmer’s Picnic Python Editor"
-            src="https://www.learnwithchampak.live/2026/01/programmers-picnic-python-editor.html"
-            loading="lazy"
-            referrerpolicy="no-referrer"
-            allow="clipboard-read; clipboard-write"
-          ></iframe>
-        </div>
-        <p class="small" style="margin-top: 10px">
+</div>
+<div class="btnrow">
+<a class="btn" href="https://www.learnwithchampak.live/2026/01/programmers-picnic-python-editor.html" rel="noopener" target="_blank">Open editor in new tab ↗</a>
+</div>
+</div>
+<iframe allow="clipboard-read; clipboard-write" class="editor" loading="lazy" referrerpolicy="no-referrer" src="https://www.learnwithchampak.live/2026/01/programmers-picnic-python-editor.html" title="Programmer’s Picnic Python Editor"></iframe>
+</div>
+<p class="small" style="margin-top: 10px">
           If the editor doesn’t load on Blogger: open it in a new tab (button
           above). Some sites send headers that block embedding.
         </p>
-      </div>
-
-      <div class="grid">
-        <div class="card">
-          <h2 id="id">
+</div>
+<div class="grid">
+<div class="card">
+<h2 id="id">
             1) <span class="inlinecode">id()</span> — what it is and what it
             isn’t
           </h2>
-          <p>
+<p>
             In Python, a variable is not a “box holding a value”. It is a
             <b>name</b> (label) pointing to an <b>object</b>. The function
             <span class="inlinecode">id(obj)</span> returns a unique identity
             number for that object <b>during its lifetime</b>.
           </p>
-
-          <div class="quote">
-            <b>Think of it like this:</b> object = house,
+<div class="quote">
+<b>Think of it like this:</b> object = house,
             <span class="inlinecode">id()</span> = house address, variable =
             nameplate on the gate. You can change the nameplate without changing
             the house.
           </div>
-
-          <div class="codebox">
-            <div class="codebar">
-              <span class="label">Demo: object identity</span>
-              <button class="copybtn" type="button" data-copy>
-                <span class="clip">📋 Copy</span
-                ><span class="tick">✅ Copied</span>
-              </button>
-            </div>
-            <pre><code>x = 10
+<div class="codebox">
+<div class="codebar">
+<span class="label">Demo: object identity</span>
+<button class="copybtn" data-copy="" type="button">
+<span class="clip">📋 Copy</span><span class="tick">✅ Copied</span>
+</button>
+</div>
+<pre><code>x = 10
 print("x =", x)
 print("id(x) =", id(x))</code></pre>
-          </div>
-
-          <p>
+</div>
+<p>
             If two names point to the same object, they will share the same
             <span class="inlinecode">id</span>. This is why
             <span class="inlinecode">is</span> checks identity:
           </p>
-
-          <div class="codebox">
-            <div class="codebar">
-              <span class="label">Demo: same object vs same value</span>
-              <button class="copybtn" type="button" data-copy>
-                <span class="clip">📋 Copy</span
-                ><span class="tick">✅ Copied</span>
-              </button>
-            </div>
-            <pre><code>a = [1, 2, 3]
+<div class="codebox">
+<div class="codebar">
+<span class="label">Demo: same object vs same value</span>
+<button class="copybtn" data-copy="" type="button">
+<span class="clip">📋 Copy</span><span class="tick">✅ Copied</span>
+</button>
+</div>
+<pre><code>a = [1, 2, 3]
 b = a
 c = [1, 2, 3]
 
 print(a is b)  # True  (same object)
 print(a == c)  # True  (same value)
 print(a is c)  # False (different objects)</code></pre>
-          </div>
-
-          <div class="qa">
-            <div class="q">Quick question 💬</div>
-            <div class="a">
+</div>
+<div class="qa">
+<div class="q">Quick question 💬</div>
+<div class="a">
               Why does <span class="inlinecode">a == c</span> return True but
               <span class="inlinecode">a is c</span> return False?
             </div>
-          </div>
-
-          <h2 id="id-to-value">
+</div>
+<h2 id="id-to-value">
             2) Why you cannot get “value from id” reliably
           </h2>
-          <p>
+<p>
             Many learners ask: “If I know an object’s
             <span class="inlinecode">id</span>, can I get the variable value?”
             In normal Python, the answer is <b>no</b>, because Python does not
             keep a built-in reverse map like:
           </p>
-          <div class="quote"><b>id → variable name → value</b></div>
-
-          <p>
+<div class="quote"><b>id → variable name → value</b></div>
+<p>
             Also, the question becomes ambiguous because one object can have
             many names:
           </p>
-
-          <div class="codebox">
-            <div class="codebar">
-              <span class="label">Ambiguity: one object, many names</span>
-              <button class="copybtn" type="button" data-copy>
-                <span class="clip">📋 Copy</span
-                ><span class="tick">✅ Copied</span>
-              </button>
-            </div>
-            <pre><code>a = 100
+<div class="codebox">
+<div class="codebar">
+<span class="label">Ambiguity: one object, many names</span>
+<button class="copybtn" data-copy="" type="button">
+<span class="clip">📋 Copy</span><span class="tick">✅ Copied</span>
+</button>
+</div>
+<pre><code>a = 100
 b = 100
 
 print("id(a) =", id(a))
 print("id(b) =", id(b))
 print("a is b:", a is b)</code></pre>
-          </div>
-
-          <p>
+</div>
+<p>
             If <span class="inlinecode">a</span> and
             <span class="inlinecode">b</span> point to the same object, then
             “return the value of the variable” is not meaningful. Which variable
             name should Python return? There may be multiple.
           </p>
-
-          <p>
-            <b>Correct approach (if you truly need lookup):</b> create a
+<p>
+<b>Correct approach (if you truly need lookup):</b> create a
             registry yourself.
           </p>
-
-          <div class="codebox">
-            <div class="codebar">
-              <span class="label">Safe method: your own registry</span>
-              <button class="copybtn" type="button" data-copy>
-                <span class="clip">📋 Copy</span
-                ><span class="tick">✅ Copied</span>
-              </button>
-            </div>
-            <pre><code>registry = {}
+<div class="codebox">
+<div class="codebar">
+<span class="label">Safe method: your own registry</span>
+<button class="copybtn" data-copy="" type="button">
+<span class="clip">📋 Copy</span><span class="tick">✅ Copied</span>
+</button>
+</div>
+<pre><code>registry = {}
 
 obj = {"topic": "Python", "time": "7 PM"}
 registry[id(obj)] = obj
 
 print(registry[id(obj)])</code></pre>
-          </div>
-
-          <h2 id="del">
+</div>
+<h2 id="del">
             3) Freeing memory: <span class="inlinecode">del</span>, reassigning,
             and reference counts
           </h2>
-          <p>
+<p>
             Python mainly frees memory by <b>reference counting</b>. When an
             object has <b>zero references</b> left, it becomes eligible for
             cleanup. The keyword <span class="inlinecode">del</span> removes a
             <b>name</b> (reference), not “the object in memory”.
           </p>
-
-          <div class="quote">
-            <b>Rule:</b> Memory is freed when <b>no references</b> point to the
+<div class="quote">
+<b>Rule:</b> Memory is freed when <b>no references</b> point to the
             object.
           </div>
-
-          <div class="codebox">
-            <div class="codebar">
-              <span class="label">del removes the name</span>
-              <button class="copybtn" type="button" data-copy>
-                <span class="clip">📋 Copy</span
-                ><span class="tick">✅ Copied</span>
-              </button>
-            </div>
-            <pre><code>x = [1, 2, 3]
+<div class="codebox">
+<div class="codebar">
+<span class="label">del removes the name</span>
+<button class="copybtn" data-copy="" type="button">
+<span class="clip">📋 Copy</span><span class="tick">✅ Copied</span>
+</button>
+</div>
+<pre><code>x = [1, 2, 3]
 print("id(x) =", id(x))
 del x
 # x is gone now (NameError if you print x)</code></pre>
-          </div>
-
-          <p>
+</div>
+<p>
             But if another name points to the same object, it will remain alive:
           </p>
-
-          <div class="codebox">
-            <div class="codebar">
-              <span class="label">Not freed if another reference exists</span>
-              <button class="copybtn" type="button" data-copy>
-                <span class="clip">📋 Copy</span
-                ><span class="tick">✅ Copied</span>
-              </button>
-            </div>
-            <pre><code>a = [1, 2, 3]
+<div class="codebox">
+<div class="codebar">
+<span class="label">Not freed if another reference exists</span>
+<button class="copybtn" data-copy="" type="button">
+<span class="clip">📋 Copy</span><span class="tick">✅ Copied</span>
+</button>
+</div>
+<pre><code>a = [1, 2, 3]
 b = a
 del a
 print(b)  # still works, object still alive via b</code></pre>
-          </div>
-
-          <p>Reassigning also drops a reference:</p>
-
-          <div class="codebox">
-            <div class="codebar">
-              <span class="label">Reassigning drops the old object</span>
-              <button class="copybtn" type="button" data-copy>
-                <span class="clip">📋 Copy</span
-                ><span class="tick">✅ Copied</span>
-              </button>
-            </div>
-            <pre><code>big = [i for i in range(1_000_00)]
+</div>
+<p>Reassigning also drops a reference:</p>
+<div class="codebox">
+<div class="codebar">
+<span class="label">Reassigning drops the old object</span>
+<button class="copybtn" data-copy="" type="button">
+<span class="clip">📋 Copy</span><span class="tick">✅ Copied</span>
+</button>
+</div>
+<pre><code>big = [i for i in range(1_000_00)]
 big = None  # old list may be freed if no other refs exist</code></pre>
-          </div>
-
-          <div class="callout">
-            <strong>Reality check:</strong> Even if Python frees objects
+</div>
+<div class="callout">
+<strong>Reality check:</strong> Even if Python frees objects
             internally, the process memory shown by Task Manager may not drop
             immediately. That’s normal due to Python’s allocator and OS
             behavior.
           </div>
-
-          <h2 id="gc">
+<h2 id="gc">
             4) Garbage collection: when
             <span class="inlinecode">gc</span> matters (cycles)
           </h2>
-          <p>
+<p>
             Reference counting cannot free <b>cyclic references</b> (objects
             referring to each other). That’s why Python also has a
             <b>garbage collector</b> (GC) to detect cycles.
           </p>
-
-          <div class="codebox">
-            <div class="codebar">
-              <span class="label">Cycle example</span>
-              <button class="copybtn" type="button" data-copy>
-                <span class="clip">📋 Copy</span
-                ><span class="tick">✅ Copied</span>
-              </button>
-            </div>
-            <pre><code>a = []
+<div class="codebox">
+<div class="codebar">
+<span class="label">Cycle example</span>
+<button class="copybtn" data-copy="" type="button">
+<span class="clip">📋 Copy</span><span class="tick">✅ Copied</span>
+</button>
+</div>
+<pre><code>a = []
 a.append(a)   # a refers to itself (cycle)
 print("cycle created")</code></pre>
-          </div>
-
-          <p>You can request GC to run (rarely needed):</p>
-
-          <div class="codebox">
-            <div class="codebar">
-              <span class="label">gc.collect()</span>
-              <button class="copybtn" type="button" data-copy>
-                <span class="clip">📋 Copy</span
-                ><span class="tick">✅ Copied</span>
-              </button>
-            </div>
-            <pre><code>import gc
+</div>
+<p>You can request GC to run (rarely needed):</p>
+<div class="codebox">
+<div class="codebar">
+<span class="label">gc.collect()</span>
+<button class="copybtn" data-copy="" type="button">
+<span class="clip">📋 Copy</span><span class="tick">✅ Copied</span>
+</button>
+</div>
+<pre><code>import gc
 collected = gc.collect()
 print("Collected objects:", collected)</code></pre>
-          </div>
-
-          <div class="callout">
-            <strong>When to use gc.collect()?</strong> Mostly for debugging or
+</div>
+<div class="callout">
+<strong>When to use gc.collect()?</strong> Mostly for debugging or
             memory-critical batch jobs. For typical programs, let Python manage
             it.
           </div>
-
-          <h2 id="sizeof">
+<h2 id="sizeof">
             5) Measuring memory:
             <span class="inlinecode">getsizeof</span> (shallow) vs deep size
           </h2>
-          <p>
+<p>
             Python objects have overhead. A list is a container that holds
             references to items. So
             <span class="inlinecode">sys.getsizeof()</span> gives the size of
             the <b>container object</b> (shallow size), not the full memory of
             everything inside.
           </p>
-
-          <div class="codebox">
-            <div class="codebar">
-              <span class="label">Shallow size</span>
-              <button class="copybtn" type="button" data-copy>
-                <span class="clip">📋 Copy</span
-                ><span class="tick">✅ Copied</span>
-              </button>
-            </div>
-            <pre><code>import sys
+<div class="codebox">
+<div class="codebar">
+<span class="label">Shallow size</span>
+<button class="copybtn" data-copy="" type="button">
+<span class="clip">📋 Copy</span><span class="tick">✅ Copied</span>
+</button>
+</div>
+<pre><code>import sys
 
 lst = [1, 2, 3]
 print(sys.getsizeof(lst), "bytes")</code></pre>
-          </div>
-
-          <p>
+</div>
+<p>
             To estimate total memory (deep size), you can recursively add sizes:
           </p>
-
-          <div class="codebox">
-            <div class="codebar">
-              <span class="label">Deep size (recursive)</span>
-              <button class="copybtn" type="button" data-copy>
-                <span class="clip">📋 Copy</span
-                ><span class="tick">✅ Copied</span>
-              </button>
-            </div>
-            <pre><code>import sys
+<div class="codebox">
+<div class="codebar">
+<span class="label">Deep size (recursive)</span>
+<button class="copybtn" data-copy="" type="button">
+<span class="clip">📋 Copy</span><span class="tick">✅ Copied</span>
+</button>
+</div>
+<pre><code>import sys
 
 def deep_getsizeof(obj, seen=None):
     if seen is None:
@@ -836,57 +764,51 @@ def deep_getsizeof(obj, seen=None):
 
 data = [1, 2, [3, 4], {"a": 10, "b": [11, 12]}]
 print("Deep size:", deep_getsizeof(data), "bytes")</code></pre>
-          </div>
-
-          <div class="qa">
-            <div class="q">Quick question 💬</div>
-            <div class="a">
+</div>
+<div class="qa">
+<div class="q">Quick question 💬</div>
+<div class="a">
               Why can two lists with different numbers have similar
               <span class="inlinecode">getsizeof</span> values?
             </div>
-          </div>
-
-          <h2 id="time">
+</div>
+<h2 id="time">
             6) Measuring time: per-statement timing, benchmarking, profiling
           </h2>
-          <p>
+<p>
             Timing is tricky because computers do background work and short
             statements run extremely fast. That’s why we prefer
             <span class="inlinecode">time.perf_counter()</span> (high precision)
             and <span class="inlinecode">timeit</span> (repeat + average).
           </p>
-
-          <h3>
+<h3>
             6.1 High-precision timing with
             <span class="inlinecode">perf_counter</span>
-          </h3>
-          <div class="codebox">
-            <div class="codebar">
-              <span class="label">Block timing with perf_counter</span>
-              <button class="copybtn" type="button" data-copy>
-                <span class="clip">📋 Copy</span
-                ><span class="tick">✅ Copied</span>
-              </button>
-            </div>
-            <pre><code>import time
+</h3>
+<div class="codebox">
+<div class="codebar">
+<span class="label">Block timing with perf_counter</span>
+<button class="copybtn" data-copy="" type="button">
+<span class="clip">📋 Copy</span><span class="tick">✅ Copied</span>
+</button>
+</div>
+<pre><code>import time
 
 start = time.perf_counter()
 x = sum(range(1_000_000))
 end = time.perf_counter()
 
 print("Time:", end - start, "seconds")</code></pre>
-          </div>
-
-          <h3>6.2 Line-by-line timing (great for teaching)</h3>
-          <div class="codebox">
-            <div class="codebar">
-              <span class="label">Per-step timings</span>
-              <button class="copybtn" type="button" data-copy>
-                <span class="clip">📋 Copy</span
-                ><span class="tick">✅ Copied</span>
-              </button>
-            </div>
-            <pre><code>import time
+</div>
+<h3>6.2 Line-by-line timing (great for teaching)</h3>
+<div class="codebox">
+<div class="codebar">
+<span class="label">Per-step timings</span>
+<button class="copybtn" data-copy="" type="button">
+<span class="clip">📋 Copy</span><span class="tick">✅ Copied</span>
+</button>
+</div>
+<pre><code>import time
 
 t0 = time.perf_counter()
 a = [i*i for i in range(200_000)]
@@ -901,209 +823,185 @@ t3 = time.perf_counter()
 print("build list:", t1 - t0)
 print("sum:", t2 - t1)
 print("max:", t3 - t2)</code></pre>
-          </div>
-
-          <h3>
+</div>
+<h3>
             6.3 Benchmarking with <span class="inlinecode">timeit</span> (most
             reliable)
           </h3>
-          <div class="codebox">
-            <div class="codebar">
-              <span class="label">timeit benchmark</span>
-              <button class="copybtn" type="button" data-copy>
-                <span class="clip">📋 Copy</span
-                ><span class="tick">✅ Copied</span>
-              </button>
-            </div>
-            <pre><code>import timeit
+<div class="codebox">
+<div class="codebar">
+<span class="label">timeit benchmark</span>
+<button class="copybtn" data-copy="" type="button">
+<span class="clip">📋 Copy</span><span class="tick">✅ Copied</span>
+</button>
+</div>
+<pre><code>import timeit
 
 t = timeit.timeit("sum(range(1000))", number=10000)
 print("Total time:", t)</code></pre>
-          </div>
-
-          <h3>
+</div>
+<h3>
             6.4 Profiling with <span class="inlinecode">cProfile</span> (for
             bigger programs)
           </h3>
-          <div class="codebox">
-            <div class="codebar">
-              <span class="label">cProfile</span>
-              <button class="copybtn" type="button" data-copy>
-                <span class="clip">📋 Copy</span
-                ><span class="tick">✅ Copied</span>
-              </button>
-            </div>
-            <pre><code>import cProfile
+<div class="codebox">
+<div class="codebar">
+<span class="label">cProfile</span>
+<button class="copybtn" data-copy="" type="button">
+<span class="clip">📋 Copy</span><span class="tick">✅ Copied</span>
+</button>
+</div>
+<pre><code>import cProfile
 cProfile.run("sum(range(1_000_000))")</code></pre>
-          </div>
-
-          <h2>🎯 Interview-Ready Summary</h2>
-          <table class="table">
-            <tr>
-              <th>Topic</th>
-              <th>Best one-liner</th>
-            </tr>
-            <tr>
-              <td><span class="inlinecode">id()</span></td>
-              <td>
+</div>
+<h2>🎯 Interview-Ready Summary</h2>
+<table class="table">
+<tr>
+<th>Topic</th>
+<th>Best one-liner</th>
+</tr>
+<tr>
+<td><span class="inlinecode">id()</span></td>
+<td>
                 Identity of an object during its lifetime; not a variable
                 address you can reverse-map.
               </td>
-            </tr>
-            <tr>
-              <td><span class="inlinecode">del</span></td>
-              <td>
+</tr>
+<tr>
+<td><span class="inlinecode">del</span></td>
+<td>
                 Removes a name/reference; object is freed only when no
                 references remain.
               </td>
-            </tr>
-            <tr>
-              <td><span class="inlinecode">gc</span></td>
-              <td>
+</tr>
+<tr>
+<td><span class="inlinecode">gc</span></td>
+<td>
                 Collects cyclic garbage; manual
                 <span class="inlinecode">gc.collect()</span> is rarely needed.
               </td>
-            </tr>
-            <tr>
-              <td>Size</td>
-              <td>
-                <span class="inlinecode">sys.getsizeof()</span> is shallow; deep
+</tr>
+<tr>
+<td>Size</td>
+<td>
+<span class="inlinecode">sys.getsizeof()</span> is shallow; deep
                 size requires traversal.
               </td>
-            </tr>
-            <tr>
-              <td>Timing</td>
-              <td>
+</tr>
+<tr>
+<td>Timing</td>
+<td>
                 Use <span class="inlinecode">perf_counter</span> for timing and
                 <span class="inlinecode">timeit</span> for benchmarks.
               </td>
-            </tr>
-          </table>
-
-          <div class="qa">
-            <div class="q">Final check 💬</div>
-            <div class="a">
+</tr>
+</table>
+<div class="qa">
+<div class="q">Final check 💬</div>
+<div class="a">
               If you do <span class="inlinecode">del x</span>, is memory
               guaranteed to drop immediately in Task Manager? Why/why not?
             </div>
-          </div>
-
-          <div class="footer"></div>
-        </div>
-
-        <div class="card">
-          <h2>✅ Quick Cheatsheet</h2>
-
-          <h3>Identity / Equality</h3>
-          <div class="codebox">
-            <div class="codebar">
-              <span class="label">is vs == vs id()</span>
-              <button class="copybtn" type="button" data-copy>
-                <span class="clip">📋 Copy</span
-                ><span class="tick">✅ Copied</span>
-              </button>
-            </div>
-            <pre><code>a is b   # same object?
+</div>
+<div class="footer"></div>
+</div>
+<div class="card">
+<h2>✅ Quick Cheatsheet</h2>
+<h3>Identity / Equality</h3>
+<div class="codebox">
+<div class="codebar">
+<span class="label">is vs == vs id()</span>
+<button class="copybtn" data-copy="" type="button">
+<span class="clip">📋 Copy</span><span class="tick">✅ Copied</span>
+</button>
+</div>
+<pre><code>a is b   # same object?
 a == b   # same value?
 id(a)    # object identity</code></pre>
-          </div>
-
-          <h3>Freeing references</h3>
-          <div class="codebox">
-            <div class="codebar">
-              <span class="label">Drop references</span>
-              <button class="copybtn" type="button" data-copy>
-                <span class="clip">📋 Copy</span
-                ><span class="tick">✅ Copied</span>
-              </button>
-            </div>
-            <pre><code>del x
+</div>
+<h3>Freeing references</h3>
+<div class="codebox">
+<div class="codebar">
+<span class="label">Drop references</span>
+<button class="copybtn" data-copy="" type="button">
+<span class="clip">📋 Copy</span><span class="tick">✅ Copied</span>
+</button>
+</div>
+<pre><code>del x
 x = None</code></pre>
-          </div>
-
-          <h3>Garbage collection</h3>
-          <div class="codebox">
-            <div class="codebar">
-              <span class="label">gc.collect()</span>
-              <button class="copybtn" type="button" data-copy>
-                <span class="clip">📋 Copy</span
-                ><span class="tick">✅ Copied</span>
-              </button>
-            </div>
-            <pre><code>import gc
+</div>
+<h3>Garbage collection</h3>
+<div class="codebox">
+<div class="codebar">
+<span class="label">gc.collect()</span>
+<button class="copybtn" data-copy="" type="button">
+<span class="clip">📋 Copy</span><span class="tick">✅ Copied</span>
+</button>
+</div>
+<pre><code>import gc
 gc.collect()</code></pre>
-          </div>
-
-          <h3>Object size</h3>
-          <div class="codebox">
-            <div class="codebar">
-              <span class="label">Shallow size</span>
-              <button class="copybtn" type="button" data-copy>
-                <span class="clip">📋 Copy</span
-                ><span class="tick">✅ Copied</span>
-              </button>
-            </div>
-            <pre><code>import sys
+</div>
+<h3>Object size</h3>
+<div class="codebox">
+<div class="codebar">
+<span class="label">Shallow size</span>
+<button class="copybtn" data-copy="" type="button">
+<span class="clip">📋 Copy</span><span class="tick">✅ Copied</span>
+</button>
+</div>
+<pre><code>import sys
 sys.getsizeof(obj)</code></pre>
-          </div>
-
-          <h3>Timing</h3>
-          <div class="codebox">
-            <div class="codebar">
-              <span class="label">perf_counter</span>
-              <button class="copybtn" type="button" data-copy>
-                <span class="clip">📋 Copy</span
-                ><span class="tick">✅ Copied</span>
-              </button>
-            </div>
-            <pre><code>import time
+</div>
+<h3>Timing</h3>
+<div class="codebox">
+<div class="codebar">
+<span class="label">perf_counter</span>
+<button class="copybtn" data-copy="" type="button">
+<span class="clip">📋 Copy</span><span class="tick">✅ Copied</span>
+</button>
+</div>
+<pre><code>import time
 t0 = time.perf_counter()
 # code...
 t1 = time.perf_counter()
 print(t1 - t0)</code></pre>
-          </div>
-
-          <h3>Benchmarking</h3>
-          <div class="codebox">
-            <div class="codebar">
-              <span class="label">timeit</span>
-              <button class="copybtn" type="button" data-copy>
-                <span class="clip">📋 Copy</span
-                ><span class="tick">✅ Copied</span>
-              </button>
-            </div>
-            <pre><code>import timeit
+</div>
+<h3>Benchmarking</h3>
+<div class="codebox">
+<div class="codebar">
+<span class="label">timeit</span>
+<button class="copybtn" data-copy="" type="button">
+<span class="clip">📋 Copy</span><span class="tick">✅ Copied</span>
+</button>
+</div>
+<pre><code>import timeit
 timeit.timeit("sum(range(1000))", number=10000)</code></pre>
-          </div>
-
-          <h2>🧠 Mini-Assignments</h2>
-          <ul>
-            <li>
+</div>
+<h2>🧠 Mini-Assignments</h2>
+<ul>
+<li>
               Write a function that prints <b>shallow size</b> and
               <b>deep size</b> of any object.
             </li>
-            <li>
+<li>
               Create a cyclic list and observe behavior with and without
               <span class="inlinecode">gc.collect()</span>.
             </li>
-            <li>
+<li>
               Compare timing of <span class="inlinecode">for</span> loop vs
               list-comprehension for the same task.
             </li>
-            <li>
+<li>
               Explain why <span class="inlinecode">del x</span> does not always
               reduce OS memory immediately.
             </li>
-          </ul>
-
-          <div class="callout"></div>
-
-          <div class="footer"></div>
-        </div>
-      </div>
-    </div>
-
-    <script>
+</ul>
+<div class="callout"></div>
+<div class="footer"></div>
+</div>
+</div>
+</div>
+<script>
       // Copy button for every code block (works on most modern browsers)
       // Falls back to a selection-based copy if navigator.clipboard is blocked.
       function copyText(text) {
@@ -1165,5 +1063,5 @@ timeit.timeit("sum(range(1000))", number=10000)</code></pre>
           });
       });
     </script>
-  </body>
+</body>
 </html>

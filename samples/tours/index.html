@@ -1,466 +1,289 @@
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Varanasi Tourism Planner — Build Your Own Tour</title>
-    <meta
-      name="description"
-      content="Varanasi tourism planner with Places + Ghats + Routes + Festivals tabs, DIY tour builder, localStorage saving, WhatsApp share, and map view."
-    />
-    <link rel="stylesheet" href="styles.css" />
-    <!-- Leaflet (no API key) -->
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      crossorigin=""
-    />
-  </head>
-  <body>
-    <div class="topbar">
-      <div class="topbar-inner">
-        <div class="logo" aria-label="Varanasi Tourism Planner">
-          <div class="logo-badge">ॐ</div>
-          <div>
-            <div class="logo-title">Varanasi Tourism Planner</div>
-            <div class="logo-sub">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<title>Varanasi Tourism Planner — Build Your Own Tour</title>
+<meta content="Varanasi tourism planner with Places + Ghats + Routes + Festivals tabs, DIY tour builder, localStorage saving, WhatsApp share, and map view." name="description"/>
+<link href="styles.css" rel="stylesheet"/>
+<!-- Leaflet (no API key) -->
+<link crossorigin="" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet"/>
+<meta content="Champak Roy" name="author"/><link href="https://editor.learnwithchampak.live/samples/tours/" rel="canonical"/><meta content="Varanasi Tourism Planner — Build Your Own Tour" property="og:title"/><meta content="Varanasi tourism planner with Places + Ghats + Routes + Festivals tabs, DIY tour builder, localStorage saving, WhatsApp share, and map view." property="og:description"/><meta content="website" property="og:type"/><meta content="https://editor.learnwithchampak.live/samples/tours/" property="og:url"/><meta content="Programmer's Picnic" property="og:site_name"/><meta content="summary_large_image" name="twitter:card"/><meta content="Varanasi Tourism Planner — Build Your Own Tour" name="twitter:title"/><meta content="Varanasi tourism planner with Places + Ghats + Routes + Festivals tabs, DIY tour builder, localStorage saving, WhatsApp share, and map view." name="twitter:description"/></head>
+<body>
+<div class="topbar">
+<div class="topbar-inner">
+<div aria-label="Varanasi Tourism Planner" class="logo">
+<div class="logo-badge">ॐ</div>
+<div>
+<div class="logo-title">Varanasi Tourism Planner</div>
+<div class="logo-sub">
               Select destinations • Build your own tour
             </div>
-          </div>
-        </div>
-
-        <div class="pill" title="Quick search (syncs with right-side search)">
+</div>
+</div>
+<div class="pill" title="Quick search (syncs with right-side search)">
           🔎
-          <input
-            id="topSearch"
-            type="search"
-            placeholder="Search: Sarnath, Assi, Vishwanath..."
-            autocomplete="off"
-          />
-        </div>
-
-        <button
-          class="btn secondary"
-          id="saveTourBtn"
-          title="Save current tour in browser"
-        >
+          <input autocomplete="off" id="topSearch" placeholder="Search: Sarnath, Assi, Vishwanath..." type="search"/>
+</div>
+<button class="btn secondary" id="saveTourBtn" title="Save current tour in browser">
           💾 Save Tour
         </button>
-      </div>
-    </div>
-
-    <div class="wrap">
-      <div class="hero">
-        <!-- LEFT: DIRECTORY -->
-        <section class="panel">
-          <div class="panel-h">
-            <div>
-              <h1>Explore Varanasi</h1>
-              <p>
+</div>
+</div>
+<div class="wrap">
+<div class="hero">
+<!-- LEFT: DIRECTORY -->
+<section class="panel">
+<div class="panel-h">
+<div>
+<h1>Explore Varanasi</h1>
+<p>
                 Choose places you want to visit and build your personal tour
                 plan. Your tour is saved in <b>localStorage</b> so it stays even
                 after refresh.
               </p>
-
-              <div class="tabs" role="tablist" aria-label="Explore tabs">
-                <button
-                  class="tab active"
-                  id="tabPlaces"
-                  role="tab"
-                  aria-controls="panelPlaces"
-                  aria-selected="true"
-                >
+<div aria-label="Explore tabs" class="tabs" role="tablist">
+<button aria-controls="panelPlaces" aria-selected="true" class="tab active" id="tabPlaces" role="tab">
                   📍 Places
                 </button>
-                <button
-                  class="tab"
-                  id="tabGhats"
-                  role="tab"
-                  aria-controls="panelGhats"
-                  aria-selected="false"
-                >
+<button aria-controls="panelGhats" aria-selected="false" class="tab" id="tabGhats" role="tab">
                   🪔 Ghats
                 </button>
-                <button
-                  class="tab"
-                  id="tabRoutes"
-                  role="tab"
-                  aria-controls="panelRoutes"
-                  aria-selected="false"
-                >
+<button aria-controls="panelRoutes" aria-selected="false" class="tab" id="tabRoutes" role="tab">
                   🧭 Routes
                 </button>
-                <button
-                  class="tab"
-                  id="tabFest"
-                  role="tab"
-                  aria-controls="panelFest"
-                  aria-selected="false"
-                >
+<button aria-controls="panelFest" aria-selected="false" class="tab" id="tabFest" role="tab">
                   🎉 Festivals
                 </button>
-              </div>
-            </div>
-
-            <div class="countpill">
-              <span id="leftCount">0</span>
-              <span id="leftCountLabel">items</span>
-            </div>
-          </div>
-
-          <div class="panel-b">
-            <!-- Places Panel -->
-            <div
-              id="panelPlaces"
-              class="tabpanel show"
-              role="tabpanel"
-              aria-labelledby="tabPlaces"
-            >
-              <div class="chips">
-                <span class="chip hot">Start Point</span>
-                <span class="chip hot">Ghats</span>
-                <span class="chip hot">Temples</span>
-                <span class="chip hot">Heritage</span>
-                <span class="chip hot">Sarnath</span>
-                <span class="chip">Food</span>
-                <span class="chip">Shopping</span>
-                <span class="chip">Experience</span>
-                <span class="chip">Parikrama</span>
-              </div>
-
-              <div style="height: 12px"></div>
-              <div class="grid" id="destGrid"></div>
-            </div>
-
-            <!-- Ghats Panel -->
-            <div
-              id="panelGhats"
-              class="tabpanel"
-              role="tabpanel"
-              aria-labelledby="tabGhats"
-            >
-              <div class="ghats-top">
-                <div class="label">Search ghats</div>
-                <input
-                  id="ghatSearch"
-                  class="field"
-                  type="search"
-                  placeholder="Type: Assi, Dashashwamedh, Manikarnika..."
-                  autocomplete="off"
-                />
-
-                <div style="height: 10px"></div>
-
-                <div class="row">
-                  <select id="ghatGroup" class="field" aria-label="Ghat group">
-                    <option value="all">All ghats</option>
-                    <option value="famous">Famous ghats</option>
-                    <option value="south">South ghats</option>
-                    <option value="central">Central ghats</option>
-                    <option value="north">North ghats</option>
-                  </select>
-                  <button
-                    class="btn secondary"
-                    id="ghatSelectFamous"
-                    title="Tick famous ghats"
-                  >
+</div>
+</div>
+<div class="countpill">
+<span id="leftCount">0</span>
+<span id="leftCountLabel">items</span>
+</div>
+</div>
+<div class="panel-b">
+<!-- Places Panel -->
+<div aria-labelledby="tabPlaces" class="tabpanel show" id="panelPlaces" role="tabpanel">
+<div class="chips">
+<span class="chip hot">Start Point</span>
+<span class="chip hot">Ghats</span>
+<span class="chip hot">Temples</span>
+<span class="chip hot">Heritage</span>
+<span class="chip hot">Sarnath</span>
+<span class="chip">Food</span>
+<span class="chip">Shopping</span>
+<span class="chip">Experience</span>
+<span class="chip">Parikrama</span>
+</div>
+<div style="height: 12px"></div>
+<div class="grid" id="destGrid"></div>
+</div>
+<!-- Ghats Panel -->
+<div aria-labelledby="tabGhats" class="tabpanel" id="panelGhats" role="tabpanel">
+<div class="ghats-top">
+<div class="label">Search ghats</div>
+<input autocomplete="off" class="field" id="ghatSearch" placeholder="Type: Assi, Dashashwamedh, Manikarnika..." type="search"/>
+<div style="height: 10px"></div>
+<div class="row">
+<select aria-label="Ghat group" class="field" id="ghatGroup">
+<option value="all">All ghats</option>
+<option value="famous">Famous ghats</option>
+<option value="south">South ghats</option>
+<option value="central">Central ghats</option>
+<option value="north">North ghats</option>
+</select>
+<button class="btn secondary" id="ghatSelectFamous" title="Tick famous ghats">
                     ⭐ Select Famous
                   </button>
-                </div>
-
-                <div style="height: 10px"></div>
-
-                <div class="row">
-                  <button class="btn" id="ghatAddSelected">
+</div>
+<div style="height: 10px"></div>
+<div class="row">
+<button class="btn" id="ghatAddSelected">
                     ➕ Add selected to tour
                   </button>
-                  <button class="btn danger" id="ghatClearSelected">
+<button class="btn danger" id="ghatClearSelected">
                     🧹 Clear selection
                   </button>
-                </div>
-
-                <div class="note" style="margin-top: 10px">
+</div>
+<div class="note" style="margin-top: 10px">
                   Tip: Select many ghats quickly, then <b>Add selected</b>. They
                   will be appended after your existing tour items (start point
                   stays pinned).
                 </div>
-              </div>
-
-              <div class="ghatList" id="ghatList" aria-label="Ghats list"></div>
-            </div>
-
-            <!-- Routes Panel -->
-            <div
-              id="panelRoutes"
-              class="tabpanel"
-              role="tabpanel"
-              aria-labelledby="tabRoutes"
-            >
-              <div class="routes-top">
-                <div class="label">Find a ready route</div>
-                <input
-                  id="routeSearch"
-                  class="field"
-                  type="search"
-                  placeholder="Search routes: Panchkroshi, Sarnath, Ghats..."
-                  autocomplete="off"
-                />
-
-                <div style="height: 10px"></div>
-
-                <div class="row">
-                  <select
-                    id="routeCategory"
-                    class="field"
-                    aria-label="Route category"
-                  >
-                    <option value="all">All routes</option>
-                    <option value="parikrama">Parikrama</option>
-                    <option value="daytrip">Day Trip</option>
-                    <option value="ghats">Ghats</option>
-                    <option value="temples">Temples</option>
-                    <option value="heritage">Heritage</option>
-                    <option value="food">Food & Markets</option>
-                  </select>
-                  <button
-                    class="btn secondary"
-                    id="routeAddFeatured"
-                    title="Add featured route instantly"
-                  >
+</div>
+<div aria-label="Ghats list" class="ghatList" id="ghatList"></div>
+</div>
+<!-- Routes Panel -->
+<div aria-labelledby="tabRoutes" class="tabpanel" id="panelRoutes" role="tabpanel">
+<div class="routes-top">
+<div class="label">Find a ready route</div>
+<input autocomplete="off" class="field" id="routeSearch" placeholder="Search routes: Panchkroshi, Sarnath, Ghats..." type="search"/>
+<div style="height: 10px"></div>
+<div class="row">
+<select aria-label="Route category" class="field" id="routeCategory">
+<option value="all">All routes</option>
+<option value="parikrama">Parikrama</option>
+<option value="daytrip">Day Trip</option>
+<option value="ghats">Ghats</option>
+<option value="temples">Temples</option>
+<option value="heritage">Heritage</option>
+<option value="food">Food &amp; Markets</option>
+</select>
+<button class="btn secondary" id="routeAddFeatured" title="Add featured route instantly">
                     ⚡ Add Featured
                   </button>
-                </div>
-
-                <div class="note" style="margin-top: 10px">
+</div>
+<div class="note" style="margin-top: 10px">
                   Featured route is set to <b>Kashi Panchkroshi Parikrama</b>.
                   One click adds the full sequence to your tour.
                 </div>
-              </div>
-
-              <div
-                class="routeGrid"
-                id="routeGrid"
-                aria-label="Routes list"
-              ></div>
-            </div>
-
-            <!-- Festivals Panel -->
-            <div
-              id="panelFest"
-              class="tabpanel"
-              role="tabpanel"
-              aria-labelledby="tabFest"
-            >
-              <div class="festTop">
-                <div class="festControls">
-                  <input
-                    id="festMonth"
-                    type="month"
-                    aria-label="Festival month"
-                  />
-                  <input
-                    id="festSearch"
-                    type="search"
-                    placeholder="Search festivals (e.g., Diwali, Holi, Ganga...)"
-                    aria-label="Festival search"
-                  />
-                  <button id="festToday" class="btn secondary">Today</button>
-                </div>
-                <div class="festHint">
+</div>
+<div aria-label="Routes list" class="routeGrid" id="routeGrid"></div>
+</div>
+<!-- Festivals Panel -->
+<div aria-labelledby="tabFest" class="tabpanel" id="panelFest" role="tabpanel">
+<div class="festTop">
+<div class="festControls">
+<input aria-label="Festival month" id="festMonth" type="month"/>
+<input aria-label="Festival search" id="festSearch" placeholder="Search festivals (e.g., Diwali, Holi, Ganga...)" type="search"/>
+<button class="btn secondary" id="festToday">Today</button>
+</div>
+<div class="festHint">
                   Click a date to see festivals. Use “Add to Summary” for
                   WhatsApp share.
                 </div>
-              </div>
-
-              <div class="festLayout">
-                <div>
-                  <div class="calHead" id="calHead"></div>
-                  <div class="calGrid" id="calGrid"></div>
-                </div>
-
-                <div class="festSide">
-                  <div class="festSideHead">
-                    <b id="festSelectedTitle">Selected date</b>
-                    <button id="festAddToSummary" class="btn">
+</div>
+<div class="festLayout">
+<div>
+<div class="calHead" id="calHead"></div>
+<div class="calGrid" id="calGrid"></div>
+</div>
+<div class="festSide">
+<div class="festSideHead">
+<b id="festSelectedTitle">Selected date</b>
+<button class="btn" id="festAddToSummary">
                       ➕ Add to Summary
                     </button>
-                  </div>
-                  <div id="festList" class="festList"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- RIGHT: SEARCH + TOUR BUILDER -->
-        <aside class="panel right">
-          <div class="panel-h">
-            <div>
-              <h2>Search (Right Side)</h2>
-              <p>
+</div>
+<div class="festList" id="festList"></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- RIGHT: SEARCH + TOUR BUILDER -->
+<aside class="panel right">
+<div class="panel-h">
+<div>
+<h2>Search (Right Side)</h2>
+<p>
                 Filter destinations and add them to your tour. Reorder your tour
                 items here.
               </p>
-            </div>
-            <span class="countpill"><span id="tourCount">0</span> in tour</span>
-          </div>
-
-          <div class="panel-b">
-            <div class="label">Search destinations</div>
-            <input
-              id="rightSearch"
-              class="field"
-              type="search"
-              placeholder="Type to search..."
-              autocomplete="off"
-            />
-
-            <div style="height: 12px"></div>
-
-            <div class="label">Quick filters</div>
-            <div class="row">
-              <select id="filterType" class="field" aria-label="Filter by type">
-                <option value="all">All types</option>
-              </select>
-              <select
-                id="filterTime"
-                class="field"
-                aria-label="Filter by best time"
-              >
-                <option value="all">Any time</option>
-                <option value="sunrise">Sunrise</option>
-                <option value="day">Day</option>
-                <option value="evening">Evening</option>
-                <option value="night">Night</option>
-              </select>
-            </div>
-            <div style="height: 14px"></div>
-
-            <div class="label">Finder (Near me)</div>
-            <div class="nearbox">
-              <div class="row">
-                <button
-                  class="btn secondary"
-                  id="nearMeBtn"
-                  title="Use your current location (browser permission)"
-                >
+</div>
+<span class="countpill"><span id="tourCount">0</span> in tour</span>
+</div>
+<div class="panel-b">
+<div class="label">Search destinations</div>
+<input autocomplete="off" class="field" id="rightSearch" placeholder="Type to search..." type="search"/>
+<div style="height: 12px"></div>
+<div class="label">Quick filters</div>
+<div class="row">
+<select aria-label="Filter by type" class="field" id="filterType">
+<option value="all">All types</option>
+</select>
+<select aria-label="Filter by best time" class="field" id="filterTime">
+<option value="all">Any time</option>
+<option value="sunrise">Sunrise</option>
+<option value="day">Day</option>
+<option value="evening">Evening</option>
+<option value="night">Night</option>
+</select>
+</div>
+<div style="height: 14px"></div>
+<div class="label">Finder (Near me)</div>
+<div class="nearbox">
+<div class="row">
+<button class="btn secondary" id="nearMeBtn" title="Use your current location (browser permission)">
                   📍 Use my location
                 </button>
-                <select id="nearRadius" class="field" aria-label="Radius">
-                  <option value="2">Within 2 km</option>
-                  <option value="5" selected>Within 5 km</option>
-                  <option value="10">Within 10 km</option>
-                  <option value="25">Within 25 km</option>
-                </select>
-              </div>
-              <div class="row" style="margin-top: 10px">
-                <button class="btn" id="nearRefresh">🔎 Find nearby</button>
-                <button
-                  class="btn secondary"
-                  id="nearEnhance"
-                  title="Try to fetch missing coordinates "
-                >
+<select aria-label="Radius" class="field" id="nearRadius">
+<option value="2">Within 2 km</option>
+<option selected="" value="5">Within 5 km</option>
+<option value="10">Within 10 km</option>
+<option value="25">Within 25 km</option>
+</select>
+</div>
+<div class="row" style="margin-top: 10px">
+<button class="btn" id="nearRefresh">🔎 Find nearby</button>
+<button class="btn secondary" id="nearEnhance" title="Try to fetch missing coordinates ">
                   ✨ Improve results
                 </button>
-              </div>
-              <div class="nearstatus" id="nearStatus">
+</div>
+<div class="nearstatus" id="nearStatus">
                 Tip: Works best on phone with GPS. On desktop, location may be
                 approximate.
               </div>
-              <div
-                class="nearlist"
-                id="nearList"
-                aria-label="Nearby results"
-              ></div>
-            </div>
-
-            <div style="height: 14px"></div>
-
-            <div class="label">Your tour (reorder)</div>
-            <div class="tourlist" id="tourList"></div>
-
-            <div class="row" style="margin-top: 12px">
-              <button class="btn" id="makePlanBtn">🧭 Make Tour Summary</button>
-              <button class="btn secondary" id="viewMapBtn">
+<div aria-label="Nearby results" class="nearlist" id="nearList"></div>
+</div>
+<div style="height: 14px"></div>
+<div class="label">Your tour (reorder)</div>
+<div class="tourlist" id="tourList"></div>
+<div class="row" style="margin-top: 12px">
+<button class="btn" id="makePlanBtn">🧭 Make Tour Summary</button>
+<button class="btn secondary" id="viewMapBtn">
                 🗺️ View Tour Map
               </button>
-            </div>
-
-            <div class="row" style="margin-top: 10px">
-              <button class="btn danger" id="clearTourBtn">🧹 Clear</button>
-              <button
-                class="btn secondary"
-                id="openMapsBtn"
-                title="Open in Google Maps (new tab)"
-              >
+</div>
+<div class="row" style="margin-top: 10px">
+<button class="btn danger" id="clearTourBtn">🧹 Clear</button>
+<button class="btn secondary" id="openMapsBtn" title="Open in Google Maps (new tab)">
                 ↗️ Open in Maps
               </button>
-            </div>
-
-            <div class="note" id="summaryBox" style="display: none"></div>
-
-            <div class="note">
-              <b>Tip:</b> “View Tour Map” shows your selected destinations as
+</div>
+<div class="note" id="summaryBox" style="display: none"></div>
+<div class="note">
+<b>Tip:</b> “View Tour Map” shows your selected destinations as
               markers + route (order matters). Use
               <span class="kbd">Esc</span> or Close to exit the map.
             </div>
-          </div>
-        </aside>
-      </div>
-    </div>
-
-    <!-- Map Modal -->
-    <div
-      class="modal"
-      id="mapModal"
-      aria-hidden="true"
-      role="dialog"
-      aria-label="Tour Map Modal"
-    >
-      <div class="modal-card">
-        <div class="modal-h">
-          <div>
-            <b>Tour Map</b><br />
-            <small
-              >Markers + route from your selected destinations (order
-              matters)</small
-            >
-          </div>
-          <div class="modal-actions">
-            <a
-              class="btn secondary"
-              id="openMapsLink"
-              href="#"
-              target="_blank"
-              rel="noopener"
-              >↗️ Open in Maps</a
-            >
-            <button class="btn danger" id="closeMapBtn">✕ Close</button>
-          </div>
-        </div>
-        <div class="modal-b">
-          <div id="leafletMap" aria-label="Leaflet map"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Floating WhatsApp share -->
-    <div class="fab">
-      <button class="wabtn" id="waShare">
+</div>
+</aside>
+</div>
+</div>
+<!-- Map Modal -->
+<div aria-hidden="true" aria-label="Tour Map Modal" class="modal" id="mapModal" role="dialog">
+<div class="modal-card">
+<div class="modal-h">
+<div>
+<b>Tour Map</b><br/>
+<small>Markers + route from your selected destinations (order
+              matters)</small>
+</div>
+<div class="modal-actions">
+<a class="btn secondary" href="#" id="openMapsLink" rel="noopener" target="_blank">↗️ Open in Maps</a>
+<button class="btn danger" id="closeMapBtn">✕ Close</button>
+</div>
+</div>
+<div class="modal-b">
+<div aria-label="Leaflet map" id="leafletMap"></div>
+</div>
+</div>
+</div>
+<!-- Floating WhatsApp share -->
+<div class="fab">
+<button class="wabtn" id="waShare">
         🟢 WhatsApp
         <span class="waSub"><small>Share your tour</small></span>
-      </button>
-    </div>
-
-    <div class="toast" id="toast" aria-live="polite" aria-atomic="true"></div>
-
-    <script
-      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-      crossorigin=""
-    ></script>
-    <script src="app.js"></script>
-    <script src="https://programmer-s-picnic.github.io/json-images/find-on-page.js"></script>
-    <script src="https://programmer-s-picnic.github.io/json-images/imgshow.js"></script>
-    <script src="https://programmer-s-picnic.github.io/json-images/hometag.js"></script>
-  </body>
+</button>
+</div>
+<div aria-atomic="true" aria-live="polite" class="toast" id="toast"></div>
+<script crossorigin="" src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="app.js"></script>
+<script src="https://programmer-s-picnic.github.io/json-images/find-on-page.js"></script>
+<script src="https://programmer-s-picnic.github.io/json-images/imgshow.js"></script>
+<script src="https://programmer-s-picnic.github.io/json-images/hometag.js"></script>
+</body>
 </html>
