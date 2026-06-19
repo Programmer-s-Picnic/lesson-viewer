@@ -48,7 +48,7 @@
       </div>
       <div><div class="footer__head">Quick Links</div>
         <a class="footer__link" href="${base}index.html">Home</a>
-        <a class="footer__link" href="${base}pages/anupriya.html">Meet Anupriya</a>
+        <a class="footer__link" href="${base}pages/ .html">Meet  </a>
         <a class="footer__link" href="${base}pages/book.html">Book a Session</a>
         <a class="footer__link" href="${base}pages/contact.html">Contact</a>
       </div>
