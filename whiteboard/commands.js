@@ -23,14 +23,36 @@ export function applyCommand(state, command) {
 
   switch (command.type) {
     case COMMANDS.ADD_OBJECTS: {
-      next.objects.push(...deepClone(command.payload.objects));
+      next.objects.push(...deepClone(command.payload.objects || []));
+      if (command.payload.groups?.length) {
+        const existingGroupIds = new Set(next.groups.map((group) => group.id));
+        for (const group of deepClone(command.payload.groups)) {
+          if (!existingGroupIds.has(group.id)) next.groups.push(group);
+        }
+      }
       break;
     }
 
     case COMMANDS.DELETE_OBJECTS: {
       const ids = new Set(command.payload.ids);
       next.objects = next.objects.filter((obj) => !ids.has(obj.id));
-      next.groups = next.groups.filter((group) => !ids.has(group.id));
+
+      // Keep groups clean. If a child object is deleted, the group should not
+      // remain as a broken empty shell.
+      next.groups = next.groups
+        .filter((group) => !ids.has(group.id))
+        .map((group) => ({
+          ...group,
+          childIds: group.childIds.filter((childId) => !ids.has(childId)),
+        }))
+        .filter((group) => group.childIds.length > 1);
+
+      const remainingGroupIds = new Set(next.groups.map((group) => group.id));
+      next.objects = next.objects.map((obj) => (
+        obj.groupId && !remainingGroupIds.has(obj.groupId)
+          ? { ...obj, groupId: null }
+          : obj
+      ));
       next.selection.selectedIds = next.selection.selectedIds.filter((id) => !ids.has(id));
       break;
     }
@@ -82,6 +104,7 @@ export function applyCommand(state, command) {
       console.warn("Unknown command", command);
   }
 
+  next.metadata = next.metadata || {};
   next.metadata.updatedAt = Date.now();
   return next;
 }
@@ -97,7 +120,10 @@ export function invertCommand(command) {
     case COMMANDS.DELETE_OBJECTS:
       return {
         type: COMMANDS.ADD_OBJECTS,
-        payload: { objects: deepClone(command.payload.objectsBackup || []) },
+        payload: {
+          objects: deepClone(command.payload.objectsBackup || []),
+          groups: deepClone(command.payload.groupsBackup || []),
+        },
       };
 
     case COMMANDS.UPDATE_OBJECTS:

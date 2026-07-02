@@ -4,6 +4,7 @@ import { getSelectionBounds } from "./selection.js";
 export function createRenderer(canvas, store) {
   const ctx = canvas.getContext("2d");
   let pending = false;
+  let draftObject = null; // Temporary object shown while the user is dragging a new shape.
 
   function resize() {
     const rect = canvas.parentElement.getBoundingClientRect();
@@ -103,6 +104,27 @@ export function createRenderer(canvas, store) {
     ctx.restore();
   }
 
+  function drawObjectLabel(obj) {
+    if (!obj.text || typeof obj.x !== "number" || typeof obj.y !== "number") return;
+
+    const fontSize = obj.style?.fontSize || 20;
+    const fontFamily = obj.style?.fontFamily || "Inter, sans-serif";
+    const fontWeight = obj.style?.fontWeight || 800;
+
+    ctx.save();
+    ctx.globalAlpha = obj.style?.opacity ?? 1;
+    ctx.fillStyle = obj.style?.color || obj.style?.stroke || "#1f2328";
+    ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+    ctx.textAlign = obj.textAlign || "center";
+    ctx.textBaseline = "middle";
+
+    const textX = obj.textAlign === "left" ? obj.x + 12 : obj.x + obj.width / 2;
+    const textY = obj.verticalAlign === "top" ? obj.y + fontSize / 2 + 8 : obj.y + obj.height / 2;
+    ctx.fillText(String(obj.text), textX, textY, Math.max(10, obj.width - 18));
+    ctx.restore();
+  }
+
+
   function drawObject(obj) {
     switch (obj.type) {
       case OBJECT_TYPES.RECT:
@@ -115,6 +137,7 @@ export function createRenderer(canvas, store) {
           if (obj.style?.fill) ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
           ctx.strokeRect(obj.x, obj.y, obj.width, obj.height);
         }
+        drawObjectLabel(obj);
         break;
 
       case OBJECT_TYPES.ELLIPSE:
@@ -135,6 +158,7 @@ export function createRenderer(canvas, store) {
         ctx.closePath();
         if (obj.style?.fill) ctx.fill();
         ctx.stroke();
+        drawObjectLabel(obj);
         break;
 
       case OBJECT_TYPES.LINE:
@@ -212,6 +236,14 @@ export function createRenderer(canvas, store) {
 
     for (const obj of objects) drawObject(obj);
 
+    // Show a live preview while the beginner is drawing.
+    if (draftObject) {
+      ctx.save();
+      ctx.globalAlpha = 0.78;
+      drawObject(draftObject);
+      ctx.restore();
+    }
+
     drawSelectionOverlay(state);
     drawMarquee(state);
     ctx.restore();
@@ -223,5 +255,9 @@ export function createRenderer(canvas, store) {
     render,
     requestRender,
     screenToWorld,
+    setDraftObject(obj) {
+      draftObject = obj;
+      requestRender();
+    },
   };
 }

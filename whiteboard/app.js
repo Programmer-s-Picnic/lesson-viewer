@@ -28,6 +28,14 @@ const propFontSize = document.getElementById("propFontSize");
 const propText = document.getElementById("propText");
 const shareHashBtn = document.getElementById("shareHashBtn");
 const shareQueryBtn = document.getElementById("shareQueryBtn");
+const helpToggle = document.getElementById("helpToggle");
+const helpPanel = document.getElementById("helpPanel");
+const quickBoxInput = document.getElementById("quickBoxInput");
+const quickBoxBtn = document.getElementById("quickBoxBtn");
+const quickBoxClearBtn = document.getElementById("quickBoxClearBtn");
+const quickBannerInput = document.getElementById("quickBannerInput");
+const quickBannerBtn = document.getElementById("quickBannerBtn");
+const quickBannerClearBtn = document.getElementById("quickBannerClearBtn");
 
 const interaction = {
   pointerDown: false,
@@ -40,7 +48,7 @@ const interaction = {
 
 function updateStatus() {
   const state = store.getState();
-  statusText.textContent = `${state.objects.length} objects · ${state.groups.length} groups · ${state.selection.selectedIds.length} selected`;
+  statusText.textContent = `${state.objects.length} items · ${state.selection.selectedIds.length} selected`;
 }
 
 store.subscribe(() => {
@@ -143,6 +151,208 @@ function updateSelectedObjects(mutator) {
   });
 }
 
+
+function parseQuickBoxEntries(text) {
+  return String(text || "")
+    .split(/[\s,;|]+/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 100);
+}
+
+function getQuickBoxStartPosition(state) {
+  const bounds = state.objects.map(getObjectBounds).filter(Boolean);
+  const maxY = bounds.length ? Math.max(...bounds.map((box) => box.y + box.height)) : 40;
+  return { x: 90, y: Math.max(90, maxY + 48) };
+}
+
+function createQuickBoxObjects(sourceState, entries, startX, startY) {
+  const canvasRect = canvas.getBoundingClientRect();
+  const zoom = sourceState.camera?.zoom || 1;
+  const usableWidth = Math.max(360, (canvasRect.width / zoom) - 360);
+  const rowLimit = startX + usableWidth;
+  const gap = 14;
+  const rowGap = 18;
+  const height = 52;
+  const objects = [];
+  let cursorX = startX;
+  let cursorY = startY;
+  let tempState = { ...sourceState, objects: [...sourceState.objects] };
+
+  for (const entry of entries) {
+    const width = Math.max(76, Math.min(210, entry.length * 15 + 48));
+    if (cursorX > startX && cursorX + width > rowLimit) {
+      cursorX = startX;
+      cursorY += height + rowGap;
+    }
+
+    // One object only: the value is stored inside the box.
+    // This means selecting, moving, deleting, saving, and loading treats
+    // the box and its number as a single beginner-friendly item.
+    const rect = createRect(tempState, cursorX, cursorY, width, height);
+    rect.radius = 10;
+    rect.text = entry;
+    rect.textAlign = "center";
+    rect.verticalAlign = "middle";
+    rect.style = {
+      ...rect.style,
+      fontSize: Math.min(26, Math.max(20, Number(tempState.toolState?.toolOptions?.fontSize) || 20)),
+      fontFamily: tempState.toolState?.toolOptions?.fontFamily || "Inter, sans-serif",
+      fontWeight: 800,
+      color: tempState.toolState?.toolOptions?.stroke || "#1f2328",
+    };
+
+    objects.push(rect);
+    tempState.objects.push(rect);
+    cursorX += width + gap;
+  }
+
+  return objects;
+}
+
+function makeQuickBoxes({ clearFirst = false } = {}) {
+  const entries = parseQuickBoxEntries(quickBoxInput?.value || "");
+  if (!entries.length) {
+    alert("Type some values first. Example: 2,3,4,55,6");
+    quickBoxInput?.focus();
+    return;
+  }
+
+  if (entries.length > 60 && !confirm(`This will create ${entries.length} boxes. Continue?`)) return;
+
+  if (clearFirst) {
+    const previousState = deepClone(store.getState());
+    const freshState = createInitialBoardState();
+    const objects = createQuickBoxObjects(freshState, entries, 90, 90);
+    commandManager.execute({
+      type: COMMANDS.LOAD_BOARD,
+      payload: {
+        previousState,
+        state: {
+          ...freshState,
+          objects,
+          selection: {
+            ...freshState.selection,
+            selectedIds: objects.map((obj) => obj.id),
+          },
+        },
+      },
+    });
+  } else {
+    const state = store.getState();
+    const start = getQuickBoxStartPosition(state);
+    const objects = createQuickBoxObjects(state, entries, start.x, start.y);
+    commandManager.execute({
+      type: COMMANDS.ADD_OBJECTS,
+      payload: { objects },
+    });
+    const next = store.getState();
+    store.setState({
+      ...next,
+      selection: {
+        ...next.selection,
+        selectedIds: objects.map((obj) => obj.id),
+      },
+    });
+  }
+
+  setActiveTool(TOOLS.SELECT);
+  renderer.requestRender();
+}
+
+
+function getBannerStartPosition(state) {
+  const bounds = state.objects.map(getObjectBounds).filter(Boolean);
+  const maxY = bounds.length ? Math.max(...bounds.map((box) => box.y + box.height)) : 40;
+  return { x: 90, y: Math.max(90, maxY + 54) };
+}
+
+function createBannerObjects(sourceState, entries, startX, startY) {
+  const canvasRect = canvas.getBoundingClientRect();
+  const zoom = sourceState.camera?.zoom || 1;
+  const maxWidth = Math.max(360, (canvasRect.width / zoom) - 220);
+  const width = Math.min(760, maxWidth);
+  const height = 64;
+  const gap = 16;
+  const objects = [];
+  let cursorY = startY;
+  let tempState = { ...sourceState, objects: [...sourceState.objects] };
+
+  for (const entry of entries) {
+    const rect = createRect(tempState, startX, cursorY, width, height);
+    rect.radius = 16;
+    rect.text = entry;
+    rect.textAlign = "center";
+    rect.verticalAlign = "middle";
+    rect.style = {
+      ...rect.style,
+      fill: "#fde68a",
+      stroke: tempState.toolState?.toolOptions?.stroke || "#1f2328",
+      strokeWidth: 3,
+      fontSize: 26,
+      fontFamily: tempState.toolState?.toolOptions?.fontFamily || "Inter, sans-serif",
+      fontWeight: 900,
+      color: tempState.toolState?.toolOptions?.stroke || "#1f2328",
+    };
+
+    objects.push(rect);
+    tempState.objects.push(rect);
+    cursorY += height + gap;
+  }
+
+  return objects;
+}
+
+function makeQuickBanners({ clearFirst = false } = {}) {
+  const entries = parseQuickBoxEntries(quickBannerInput?.value || "");
+  if (!entries.length) {
+    alert("Type some banner headings first. Example: Start, Compare, Swap, Finish");
+    quickBannerInput?.focus();
+    return;
+  }
+
+  if (entries.length > 40 && !confirm(`This will create ${entries.length} banners. Continue?`)) return;
+
+  if (clearFirst) {
+    const previousState = deepClone(store.getState());
+    const freshState = createInitialBoardState();
+    const objects = createBannerObjects(freshState, entries, 90, 90);
+    commandManager.execute({
+      type: COMMANDS.LOAD_BOARD,
+      payload: {
+        previousState,
+        state: {
+          ...freshState,
+          objects,
+          selection: {
+            ...freshState.selection,
+            selectedIds: objects.map((obj) => obj.id),
+          },
+        },
+      },
+    });
+  } else {
+    const state = store.getState();
+    const start = getBannerStartPosition(state);
+    const objects = createBannerObjects(state, entries, start.x, start.y);
+    commandManager.execute({
+      type: COMMANDS.ADD_OBJECTS,
+      payload: { objects },
+    });
+    const next = store.getState();
+    store.setState({
+      ...next,
+      selection: {
+        ...next.selection,
+        selectedIds: objects.map((obj) => obj.id),
+      },
+    });
+  }
+
+  setActiveTool(TOOLS.SELECT);
+  renderer.requestRender();
+}
+
 function setActiveTool(tool) {
   const state = store.getState();
   store.setState({
@@ -164,11 +374,17 @@ function handleSelectPointerDown(event, hit, world) {
   const state = store.getState();
   if (hit) {
     const targetSelectableId = getTopSelectableId(state, hit.id);
+    const alreadySelected = state.selection.selectedIds.includes(targetSelectableId);
     let nextIds;
+
     if (event.shiftKey) {
       const ids = new Set(state.selection.selectedIds);
       ids.add(targetSelectableId);
       nextIds = [...ids];
+    } else if (alreadySelected) {
+      // Important for beginners: after selecting many items, dragging any one
+      // selected item should move the whole selected set together.
+      nextIds = state.selection.selectedIds;
     } else {
       nextIds = [targetSelectableId];
     }
@@ -217,7 +433,7 @@ function handleCreatePointerDown(tool, world) {
       interaction.activeDraftObject = createArrow(state, world.x, world.y, world.x, world.y);
       break;
     case TOOLS.TEXT: {
-      const text = prompt("Enter text");
+      const text = prompt("Type the text you want to place on the board:", "New idea");
       if (text) {
         commandManager.execute({
           type: COMMANDS.ADD_OBJECTS,
@@ -377,7 +593,7 @@ canvas.addEventListener("pointermove", (event) => {
 
   if (interaction.dragMode === "create") {
     updateDraftObject(world);
-    renderer.requestRender();
+    renderer.setDraftObject(interaction.activeDraftObject);
   } else if (interaction.dragMode === "marquee") {
     updateMarquee(interaction.startWorld, world);
   } else if (interaction.dragMode === "move") {
@@ -399,6 +615,7 @@ canvas.addEventListener("pointerup", () => {
   interaction.pointerDown = false;
   interaction.dragMode = null;
   interaction.activeDraftObject = null;
+  renderer.setDraftObject(null);
   interaction.moveSnapshot = null;
   renderer.requestRender();
 });
@@ -407,7 +624,7 @@ document.querySelectorAll("[data-tool]").forEach((button) => {
   button.addEventListener("click", () => setActiveTool(button.dataset.tool));
 });
 
-document.getElementById("groupBtn").addEventListener("click", () => {
+document.getElementById("groupBtn")?.addEventListener("click", () => {
   const state = store.getState();
   const childIds = getSelectionObjects(state).map((obj) => obj.id);
   if (childIds.length < 2) return;
@@ -418,7 +635,7 @@ document.getElementById("groupBtn").addEventListener("click", () => {
   });
 });
 
-document.getElementById("ungroupBtn").addEventListener("click", () => {
+document.getElementById("ungroupBtn")?.addEventListener("click", () => {
   const state = store.getState();
   const selectedGroupId = state.selection.selectedIds.find((id) => state.groups.some((g) => g.id === id));
   if (!selectedGroupId) return;
@@ -433,10 +650,10 @@ document.getElementById("ungroupBtn").addEventListener("click", () => {
   });
 });
 
-document.getElementById("undoBtn").addEventListener("click", () => commandManager.undo());
-document.getElementById("redoBtn").addEventListener("click", () => commandManager.redo());
+document.getElementById("undoBtn")?.addEventListener("click", () => commandManager.undo());
+document.getElementById("redoBtn")?.addEventListener("click", () => commandManager.redo());
 
-document.getElementById("selectAllBtn").addEventListener("click", () => {
+document.getElementById("selectAllBtn")?.addEventListener("click", () => {
   const state = store.getState();
   const ids = state.objects.map((obj) => obj.groupId || obj.id);
   store.setState({
@@ -448,7 +665,7 @@ document.getElementById("selectAllBtn").addEventListener("click", () => {
   });
 });
 
-document.getElementById("newBtn").addEventListener("click", () => {
+document.getElementById("newBtn")?.addEventListener("click", () => {
   const previousState = deepClone(store.getState());
   commandManager.execute({
     type: COMMANDS.CLEAR_BOARD,
@@ -456,7 +673,7 @@ document.getElementById("newBtn").addEventListener("click", () => {
   });
 });
 
-document.getElementById("saveBtn").addEventListener("click", () => {
+document.getElementById("saveBtn")?.addEventListener("click", () => {
   const blob = new Blob([JSON.stringify(store.getState(), null, 2)], { type: "application/json" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
@@ -465,11 +682,11 @@ document.getElementById("saveBtn").addEventListener("click", () => {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 });
 
-document.getElementById("loadBtn").addEventListener("click", () => {
-  document.getElementById("fileInput").click();
+document.getElementById("loadBtn")?.addEventListener("click", () => {
+  document.getElementById("fileInput")?.click();
 });
 
-document.getElementById("fileInput").addEventListener("change", (event) => {
+document.getElementById("fileInput")?.addEventListener("change", (event) => {
   const file = event.target.files?.[0];
   if (!file) return;
 
@@ -478,10 +695,11 @@ document.getElementById("fileInput").addEventListener("change", (event) => {
     try {
       const previousState = deepClone(store.getState());
       const parsed = JSON.parse(String(reader.result));
+      const safeState = validateAndNormalizeBoardState(parsed);
       commandManager.execute({
         type: COMMANDS.LOAD_BOARD,
         payload: {
-          state: parsed,
+          state: safeState,
           previousState,
         },
       });
@@ -494,7 +712,7 @@ document.getElementById("fileInput").addEventListener("change", (event) => {
   event.target.value = "";
 });
 
-document.getElementById("pngBtn").addEventListener("click", () => {
+document.getElementById("pngBtn")?.addEventListener("click", () => {
   const link = document.createElement("a");
   link.download = "pp-whiteboard.png";
   link.href = canvas.toDataURL("image/png");
@@ -673,7 +891,7 @@ if (shareHashBtn) {
     try {
       const url = buildHashShareUrl();
       await copyTextToClipboard(url);
-      alert("Hash share link copied.");
+      alert("Share link copied. You can paste it in WhatsApp, email, or your lesson page.");
     } catch (error) {
       console.error(error);
       alert("Could not copy hash share link.");
@@ -686,7 +904,7 @@ if (shareQueryBtn) {
     try {
       const url = buildQueryShareUrl();
       await copyTextToClipboard(url);
-      alert("Query share link copied. Replace example.json with your filename if needed.");
+      alert("Example JSON link copied. Replace example.json with your file name after uploading.");
     } catch (error) {
       console.error(error);
       alert("Could not copy query share link.");
@@ -694,7 +912,7 @@ if (shareQueryBtn) {
   });
 }
 
-document.getElementById("themeBtn").addEventListener("click", () => {
+document.getElementById("themeBtn")?.addEventListener("click", () => {
   const root = document.documentElement;
   const next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
   root.setAttribute("data-theme", next);
@@ -709,7 +927,53 @@ document.getElementById("themeBtn").addEventListener("click", () => {
   });
 
   localStorage.setItem("pp-theme", next);
+  const themeBtn = document.getElementById("themeBtn");
+  if (themeBtn) themeBtn.textContent = next === "dark" ? "Light Mode" : "Dark Mode";
 });
+
+
+
+if (quickBoxBtn) {
+  quickBoxBtn.addEventListener("click", () => makeQuickBoxes());
+}
+
+if (quickBoxClearBtn) {
+  quickBoxClearBtn.addEventListener("click", () => makeQuickBoxes({ clearFirst: true }));
+}
+
+if (quickBoxInput) {
+  quickBoxInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      makeQuickBoxes();
+    }
+  });
+}
+
+if (quickBannerBtn) {
+  quickBannerBtn.addEventListener("click", () => makeQuickBanners());
+}
+
+if (quickBannerClearBtn) {
+  quickBannerClearBtn.addEventListener("click", () => makeQuickBanners({ clearFirst: true }));
+}
+
+if (quickBannerInput) {
+  quickBannerInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      makeQuickBanners();
+    }
+  });
+}
+
+if (helpToggle && helpPanel) {
+  helpToggle.addEventListener("click", () => {
+    const willShow = helpPanel.hidden;
+    helpPanel.hidden = !willShow;
+    helpToggle.textContent = willShow ? "Hide Guide" : "Show Guide";
+  });
+}
 
 document.addEventListener("keydown", (event) => {
   const mod = event.ctrlKey || event.metaKey;
@@ -740,13 +1004,18 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Delete" || event.key === "Backspace") {
     if (!state.selection.selectedIds.length) return;
     const ids = getSelectionObjects(state).map((obj) => obj.id);
+    const idSet = new Set(ids);
     const deletedObjects = ids.map((id) => getObjectById(state, id)).filter(Boolean).map(deepClone);
+    const affectedGroups = state.groups
+      .filter((group) => group.childIds.some((childId) => idSet.has(childId)) || state.selection.selectedIds.includes(group.id))
+      .map(deepClone);
 
     commandManager.execute({
       type: COMMANDS.DELETE_OBJECTS,
       payload: {
         ids,
         objectsBackup: deletedObjects,
+        groupsBackup: affectedGroups,
       },
     });
   }
@@ -763,21 +1032,68 @@ function decodeHashToState(encoded) {
   return JSON.parse(json);
 }
 
+
+function validateAndNormalizeBoardState(data) {
+  // Beginners may load old or hand-edited JSON files. This keeps the app alive
+  // by merging the loaded data with a fresh default board.
+  if (!data || typeof data !== "object") {
+    throw new Error("The JSON file does not contain a board object.");
+  }
+
+  const base = createInitialBoardState();
+  const safe = {
+    ...base,
+    ...data,
+    metadata: { ...base.metadata, ...(data.metadata || {}) },
+    camera: { ...base.camera, ...(data.camera || {}) },
+    settings: { ...base.settings, ...(data.settings || {}) },
+    toolState: {
+      ...base.toolState,
+      ...(data.toolState || {}),
+      toolOptions: {
+        ...base.toolState.toolOptions,
+        ...(data.toolState?.toolOptions || {}),
+      },
+    },
+    selection: {
+      ...base.selection,
+      ...(data.selection || {}),
+      selectedIds: Array.isArray(data.selection?.selectedIds) ? data.selection.selectedIds : [],
+      marquee: { ...base.selection.marquee, ...(data.selection?.marquee || {}) },
+    },
+    objects: Array.isArray(data.objects) ? data.objects.filter((obj) => obj && obj.id && obj.type) : [],
+    groups: Array.isArray(data.groups) ? data.groups.filter((group) => group && group.id && Array.isArray(group.childIds)) : [],
+    connectors: Array.isArray(data.connectors) ? data.connectors : [],
+  };
+
+  return safe;
+}
+
+function isSafeJsonPath(file) {
+  // Keep ?json= simple for new users: allow relative JSON files only.
+  return file.endsWith(".json") && !file.includes("://") && !file.startsWith("//");
+}
 async function loadJsonFromQuery() {
   const params = new URLSearchParams(window.location.search);
   const file = params.get("json");
   if (!file) return false;
+
+  if (!isSafeJsonPath(file)) {
+    alert("For safety, use a local JSON file such as example.json.");
+    return false;
+  }
 
   try {
     const response = await fetch(file, { cache: "no-store" });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
     const previousState = deepClone(store.getState());
+    const safeState = validateAndNormalizeBoardState(data);
 
     commandManager.execute({
       type: COMMANDS.LOAD_BOARD,
       payload: {
-        state: data,
+        state: safeState,
         previousState,
       },
     });
@@ -794,7 +1110,7 @@ function loadJsonFromHash() {
   if (!rawHash) return false;
 
   try {
-    const state = decodeHashToState(rawHash);
+    const state = validateAndNormalizeBoardState(decodeHashToState(rawHash));
     const previousState = deepClone(store.getState());
 
     commandManager.execute({
@@ -836,6 +1152,8 @@ async function boot() {
   const savedTheme = localStorage.getItem("pp-theme");
   if (savedTheme) {
     document.documentElement.setAttribute("data-theme", savedTheme);
+    const themeBtn = document.getElementById("themeBtn");
+    if (themeBtn) themeBtn.textContent = savedTheme === "dark" ? "Light Mode" : "Dark Mode";
     const state = store.getState();
     store.setState({
       ...state,
@@ -848,22 +1166,6 @@ async function boot() {
 
   window.addEventListener("resize", () => renderer.resize());
   renderer.resize();
-
-  const state = store.getState();
-  commandManager.execute(
-    {
-      type: COMMANDS.ADD_OBJECTS,
-      payload: {
-        objects: [
-          createRect(state, 120, 120, 180, 90),
-          createText(state, 160, 155, "Start here"),
-          createEllipse(state, 420, 120, 160, 90),
-          createArrow(state, 300, 165, 420, 165),
-        ],
-      },
-    },
-    { record: false }
-  );
 
   syncColorInputs();
   setActiveTool(TOOLS.SELECT);
