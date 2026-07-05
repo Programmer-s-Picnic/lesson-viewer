@@ -97,14 +97,34 @@ export function getSelectionBounds(state) {
   return { x: x1, y: y1, width: x2 - x1, height: y2 - y1 };
 }
 
+export function distanceToSegment(px, py, x1, y1, x2, y2) {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const lengthSq = dx * dx + dy * dy;
+  if (lengthSq === 0) return Math.hypot(px - x1, py - y1);
+  const t = Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / lengthSq));
+  const closestX = x1 + t * dx;
+  const closestY = y1 + t * dy;
+  return Math.hypot(px - closestX, py - closestY);
+}
+
+export function pointHitsObject(obj, worldX, worldY) {
+  if (obj.type === OBJECT_TYPES.LINE || obj.type === OBJECT_TYPES.ARROW) {
+    const strokeWidth = obj.style?.strokeWidth || 2;
+    return distanceToSegment(worldX, worldY, obj.x1, obj.y1, obj.x2, obj.y2) <= Math.max(8, strokeWidth + 5);
+  }
+
+  const bounds = getObjectBounds(obj);
+  return Boolean(bounds && pointInRect(worldX, worldY, bounds));
+}
+
 export function hitTest(state, worldX, worldY) {
   const objects = [...state.objects]
     .filter((obj) => obj.visible !== false)
     .sort((a, b) => (b.zIndex || 0) - (a.zIndex || 0));
 
   for (const obj of objects) {
-    const bounds = getObjectBounds(obj);
-    if (bounds && pointInRect(worldX, worldY, bounds)) return obj;
+    if (pointHitsObject(obj, worldX, worldY)) return obj;
   }
   return null;
 }

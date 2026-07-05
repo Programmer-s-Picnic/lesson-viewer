@@ -44,6 +44,7 @@ const interaction = {
   startScreen: null,
   activeDraftObject: null,
   moveSnapshot: null,
+  eraseIds: new Set(),
 };
 
 function updateStatus() {
@@ -72,6 +73,7 @@ function updateCanvasCursor(tool) {
     line: "cell",
     arrow: "cell",
     text: "text",
+    eraser: "not-allowed",
   };
   canvas.style.cursor = cursorMap[tool] || "crosshair";
 }
@@ -353,6 +355,40 @@ function makeQuickBanners({ clearFirst = false } = {}) {
   renderer.requestRender();
 }
 
+function addEraseHit(world) {
+  const state = store.getState();
+  const hit = hitTest(state, world.x, world.y);
+  if (!hit) return;
+  interaction.eraseIds.add(hit.id);
+  store.setState({
+    ...state,
+    selection: {
+      ...state.selection,
+      selectedIds: [...interaction.eraseIds],
+    },
+  });
+}
+
+function finalizeErase() {
+  if (!interaction.eraseIds || !interaction.eraseIds.size) return;
+  const state = store.getState();
+  const ids = [...interaction.eraseIds];
+  const idSet = new Set(ids);
+  const deletedObjects = ids.map((id) => getObjectById(state, id)).filter(Boolean).map(deepClone);
+  const affectedGroups = state.groups
+    .filter((group) => group.childIds.some((childId) => idSet.has(childId)) || ids.includes(group.id))
+    .map(deepClone);
+
+  commandManager.execute({
+    type: COMMANDS.DELETE_OBJECTS,
+    payload: {
+      ids,
+      objectsBackup: deletedObjects,
+      groupsBackup: affectedGroups,
+    },
+  });
+}
+
 function setActiveTool(tool) {
   const state = store.getState();
   store.setState({
@@ -578,6 +614,13 @@ canvas.addEventListener("pointerdown", (event) => {
   interaction.activeDraftObject = null;
   interaction.moveSnapshot = null;
 
+  if (tool === TOOLS.ERASER) {
+    interaction.dragMode = "erase";
+    interaction.eraseIds = new Set();
+    addEraseHit(world);
+    return;
+  }
+
   if (tool === TOOLS.SELECT) {
     handleSelectPointerDown(event, hit, world);
     return;
@@ -598,6 +641,8 @@ canvas.addEventListener("pointermove", (event) => {
     updateMarquee(interaction.startWorld, world);
   } else if (interaction.dragMode === "move") {
     updateSelectionMove(world);
+  } else if (interaction.dragMode === "erase") {
+    addEraseHit(world);
   }
 });
 
@@ -610,6 +655,8 @@ canvas.addEventListener("pointerup", () => {
     finalizeMarqueeSelection();
   } else if (interaction.dragMode === "move") {
     finalizeMove();
+  } else if (interaction.dragMode === "erase") {
+    finalizeErase();
   }
 
   interaction.pointerDown = false;
@@ -617,6 +664,7 @@ canvas.addEventListener("pointerup", () => {
   interaction.activeDraftObject = null;
   renderer.setDraftObject(null);
   interaction.moveSnapshot = null;
+  interaction.eraseIds = new Set();
   renderer.requestRender();
 });
 

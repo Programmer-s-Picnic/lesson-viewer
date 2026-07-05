@@ -17,6 +17,7 @@ export const TOOLS = Object.freeze({
   LINE: "line",
   ARROW: "arrow",
   TEXT: "text",
+  ERASER: "eraser",
 });
 
 let objectCounter = 1;
