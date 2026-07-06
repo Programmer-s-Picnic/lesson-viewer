@@ -166,6 +166,7 @@ export function createRenderer(canvas, store) {
         ctx.globalAlpha = obj.style?.opacity ?? 1;
         ctx.strokeStyle = obj.style?.stroke || "#1f2328";
         ctx.lineWidth = obj.style?.strokeWidth || 2;
+        if (obj.meta?.movementTrace) ctx.setLineDash([8, 6]);
         ctx.beginPath();
         ctx.moveTo(obj.x1, obj.y1);
         ctx.lineTo(obj.x2, obj.y2);
@@ -178,10 +179,12 @@ export function createRenderer(canvas, store) {
         ctx.globalAlpha = obj.style?.opacity ?? 1;
         ctx.strokeStyle = obj.style?.stroke || "#1f2328";
         ctx.lineWidth = obj.style?.strokeWidth || 2;
+        if (obj.meta?.movementTrace) ctx.setLineDash([8, 6]);
         ctx.beginPath();
         ctx.moveTo(obj.x1, obj.y1);
         ctx.lineTo(obj.x2, obj.y2);
         ctx.stroke();
+        ctx.setLineDash([]);
         drawArrowHead(obj.x1, obj.y1, obj.x2, obj.y2, obj.style?.stroke || "#1f2328");
         ctx.restore();
         break;

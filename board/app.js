@@ -36,6 +36,7 @@ const quickBoxClearBtn = document.getElementById("quickBoxClearBtn");
 const quickBannerInput = document.getElementById("quickBannerInput");
 const quickBannerBtn = document.getElementById("quickBannerBtn");
 const quickBannerClearBtn = document.getElementById("quickBannerClearBtn");
+const movementTraceBtn = document.getElementById("movementTraceBtn");
 
 const interaction = {
   pointerDown: false,
@@ -45,6 +46,10 @@ const interaction = {
   activeDraftObject: null,
   moveSnapshot: null,
   eraseIds: new Set(),
+};
+
+const movementTrace = {
+  enabled: false,
 };
 
 function updateStatus() {
@@ -587,16 +592,65 @@ function updateSelectionMove(world) {
   });
 }
 
+function canTraceMovement(obj) {
+  return obj && typeof obj.x === "number" && typeof obj.y === "number" && typeof obj.width === "number" && typeof obj.height === "number";
+}
+
+function getObjectCenter(obj) {
+  return {
+    x: obj.x + obj.width / 2,
+    y: obj.y + obj.height / 2,
+  };
+}
+
+function createMovementTraceArrows(before, after) {
+  const state = store.getState();
+  const beforeMap = new Map(before.map((obj) => [obj.id, obj]));
+  const arrows = [];
+  let tempState = { ...state, objects: [...state.objects] };
+
+  for (const moved of after) {
+    const original = beforeMap.get(moved.id);
+    if (!canTraceMovement(original) || !canTraceMovement(moved)) continue;
+
+    const start = getObjectCenter(original);
+    const end = getObjectCenter(moved);
+    const distance = Math.hypot(end.x - start.x, end.y - start.y);
+    if (distance < 6) continue;
+
+    const arrow = createArrow(tempState, start.x, start.y, end.x, end.y);
+    arrow.meta = { ...(arrow.meta || {}), movementTrace: true };
+    arrow.style = {
+      ...arrow.style,
+      stroke: "#2563eb",
+      strokeWidth: 3,
+      opacity: 0.72,
+    };
+    arrows.push(arrow);
+    tempState.objects.push(arrow);
+  }
+
+  return arrows;
+}
+
 function finalizeMove() {
   if (!interaction.moveSnapshot) return;
   const state = store.getState();
   const before = interaction.moveSnapshot;
   const after = getSelectionObjects(state).map((obj) => deepClone(obj));
+  const traceArrows = movementTrace.enabled ? createMovementTraceArrows(before, after) : [];
 
   commandManager.execute({
     type: COMMANDS.UPDATE_OBJECTS,
     payload: { before, after },
   });
+
+  if (traceArrows.length) {
+    commandManager.execute({
+      type: COMMANDS.ADD_OBJECTS,
+      payload: { objects: traceArrows },
+    });
+  }
 }
 
 canvas.addEventListener("pointerdown", (event) => {
@@ -1021,6 +1075,22 @@ if (helpToggle && helpPanel) {
     helpPanel.hidden = !willShow;
     helpToggle.textContent = willShow ? "Hide Guide" : "Show Guide";
   });
+}
+
+function syncMovementTraceButton() {
+  if (!movementTraceBtn) return;
+  movementTraceBtn.textContent = movementTrace.enabled ? "Movement Lines: On" : "Movement Lines: Off";
+  movementTraceBtn.classList.toggle("active-toggle", movementTrace.enabled);
+  movementTraceBtn.setAttribute("aria-pressed", String(movementTrace.enabled));
+}
+
+if (movementTraceBtn) {
+  movementTraceBtn.addEventListener("click", () => {
+    movementTrace.enabled = !movementTrace.enabled;
+    syncMovementTraceButton();
+    setActiveTool(TOOLS.SELECT);
+  });
+  syncMovementTraceButton();
 }
 
 document.addEventListener("keydown", (event) => {

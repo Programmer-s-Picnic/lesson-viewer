@@ -14,12 +14,18 @@ A beginner-friendly teaching board for simple diagrams.
    - Click **Create Banners**.
    - Each heading becomes a wide movable banner.
 
-3. **Draw Line**
+3. **Movement Lines**
+   - Click **Movement Lines: Off** to turn it on.
+   - Move boxes or banners.
+   - The board will draw blue arrow lines from the old position to the new position.
+   - Click it again to turn movement lines off.
+
+4. **Draw Line**
    - Click **Draw Line**.
    - Drag on the board to draw a straight line.
    - Use this for teaching steps, sorting movements, comparisons, and arrows between ideas.
 
-4. **Eraser**
+5. **Eraser**
    - Click **Eraser**.
    - Click or drag over boxes, banners, or lines to remove them.
    - Use **Ctrl+Z** to undo an erase.
