@@ -37,6 +37,9 @@ const quickBannerInput = document.getElementById("quickBannerInput");
 const quickBannerBtn = document.getElementById("quickBannerBtn");
 const quickBannerClearBtn = document.getElementById("quickBannerClearBtn");
 const movementTraceBtn = document.getElementById("movementTraceBtn");
+const editTextInput = document.getElementById("editTextInput");
+const editSelectedTextBtn = document.getElementById("editSelectedTextBtn");
+const editTextNote = document.getElementById("editTextNote");
 
 const interaction = {
   pointerDown: false,
@@ -61,6 +64,7 @@ store.subscribe(() => {
   renderer.requestRender();
   updateStatus();
   syncPropertyPanel();
+  syncSelectedTextEditor();
   syncColorInputs();
 });
 
@@ -156,6 +160,198 @@ function updateSelectedObjects(mutator) {
     type: COMMANDS.UPDATE_OBJECTS,
     payload: { before, after },
   });
+}
+
+
+function getEditableSelectedObjects() {
+  return getSelectionObjects(store.getState()).filter((obj) => (
+    obj &&
+    obj.type !== "line" &&
+    obj.type !== "arrow" &&
+    Object.prototype.hasOwnProperty.call(obj, "text")
+  ));
+}
+
+function resizeObjectForText(obj, value) {
+  const copy = deepClone(obj);
+  copy.text = value;
+  copy.style = copy.style || {};
+  const fontSize = Number(copy.style.fontSize) || 20;
+  const minWidth = value.length * (fontSize * 0.72) + 42;
+  if (typeof copy.width === "number") copy.width = Math.max(copy.width, Math.min(760, minWidth));
+  return copy;
+}
+
+function syncSelectedTextEditor() {
+  if (!editTextInput && !editTextNote && !editSelectedTextBtn) return;
+
+  const editable = getEditableSelectedObjects();
+
+  if (!editable.length) {
+    if (editTextInput) {
+      editTextInput.value = "";
+      editTextInput.disabled = true;
+      editTextInput.placeholder = "Select a box or banner first";
+    }
+    if (editSelectedTextBtn) editSelectedTextBtn.disabled = true;
+    if (editTextNote) editTextNote.textContent = "Select a box or banner to change its text.";
+    return;
+  }
+
+  if (editTextInput) {
+    editTextInput.disabled = false;
+    editTextInput.placeholder = "Type new text";
+    const texts = [...new Set(editable.map((obj) => String(obj.text || "")))];
+    editTextInput.value = texts.length === 1 ? texts[0] : "";
+  }
+
+  if (editSelectedTextBtn) editSelectedTextBtn.disabled = false;
+
+  if (editTextNote) {
+    editTextNote.textContent = editable.length === 1
+      ? "Editing 1 selected item."
+      : `Editing ${editable.length} selected items. The same text will be applied to all.`;
+  }
+}
+
+function updateSelectedTextFromEditor() {
+  if (!editTextInput) return;
+  const value = editTextInput.value.trim();
+  if (!value) {
+    alert("Type the new text first.");
+    editTextInput.focus();
+    return;
+  }
+
+  const editable = getEditableSelectedObjects();
+  if (!editable.length) {
+    alert("Select a box or banner first.");
+    return;
+  }
+
+  const before = editable.map((obj) => deepClone(obj));
+  const after = editable.map((obj) => resizeObjectForText(obj, value));
+
+  commandManager.execute({
+    type: COMMANDS.UPDATE_OBJECTS,
+    payload: { before, after },
+  });
+
+  setActiveTool(TOOLS.SELECT);
+}
+
+let inlineTextEditor = null;
+
+function isEditableTextObject(obj) {
+  return Boolean(
+    obj &&
+    obj.type !== "line" &&
+    obj.type !== "arrow" &&
+    Object.prototype.hasOwnProperty.call(obj, "text")
+  );
+}
+
+function worldRectToBoardRect(bounds) {
+  const state = store.getState();
+  const shellRect = canvas.parentElement.getBoundingClientRect();
+  const canvasRect = canvas.getBoundingClientRect();
+  const offsetX = canvasRect.left - shellRect.left;
+  const offsetY = canvasRect.top - shellRect.top;
+
+  return {
+    left: offsetX + bounds.x * state.camera.zoom + state.camera.panX,
+    top: offsetY + bounds.y * state.camera.zoom + state.camera.panY,
+    width: bounds.width * state.camera.zoom,
+    height: bounds.height * state.camera.zoom,
+  };
+}
+
+function closeInlineTextEditor({ commit = false } = {}) {
+  if (!inlineTextEditor) return;
+
+  const { input, objectId } = inlineTextEditor;
+  inlineTextEditor = null;
+
+  input.removeEventListener("blur", input.__commitOnBlur);
+  input.remove();
+
+  if (!commit) return;
+
+  const value = input.value.trim();
+  if (!value) return;
+
+  const state = store.getState();
+  const obj = getObjectById(state, objectId);
+  if (!isEditableTextObject(obj)) return;
+  if (String(obj.text || "") === value) return;
+
+  commandManager.execute({
+    type: COMMANDS.UPDATE_OBJECTS,
+    payload: {
+      before: [deepClone(obj)],
+      after: [resizeObjectForText(obj, value)],
+    },
+  });
+}
+
+function beginInlineTextEdit(obj) {
+  if (!isEditableTextObject(obj)) return;
+  closeInlineTextEditor({ commit: false });
+
+  const bounds = getObjectBounds(obj);
+  if (!bounds) return;
+
+  const boardRect = worldRectToBoardRect(bounds);
+  const state = store.getState();
+  store.setState({
+    ...state,
+    selection: {
+      ...state.selection,
+      selectedIds: [obj.id],
+    },
+  });
+
+  const input = document.createElement("input");
+  input.type = "text";
+  input.className = "inline-text-editor";
+  input.value = String(obj.text || "");
+  input.setAttribute("aria-label", "Edit box or banner text");
+  input.style.left = `${boardRect.left + 6}px`;
+  input.style.top = `${boardRect.top + 6}px`;
+  input.style.width = `${Math.max(64, boardRect.width - 12)}px`;
+  input.style.height = `${Math.max(36, boardRect.height - 12)}px`;
+  input.style.fontSize = `${Math.max(16, (Number(obj.style?.fontSize) || 20) * (store.getState().camera?.zoom || 1))}px`;
+
+  input.addEventListener("pointerdown", (event) => event.stopPropagation());
+  input.addEventListener("click", (event) => event.stopPropagation());
+  input.addEventListener("dblclick", (event) => event.stopPropagation());
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      closeInlineTextEditor({ commit: true });
+      canvas.focus?.();
+    }
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeInlineTextEditor({ commit: false });
+      canvas.focus?.();
+    }
+  });
+
+  input.__commitOnBlur = () => closeInlineTextEditor({ commit: true });
+  input.addEventListener("blur", input.__commitOnBlur);
+
+  canvas.parentElement.appendChild(input);
+  inlineTextEditor = { input, objectId: obj.id };
+
+  requestAnimationFrame(() => {
+    input.focus();
+    input.select();
+  });
+}
+
+function editObjectText(obj) {
+  beginInlineTextEdit(obj);
 }
 
 
@@ -653,7 +849,18 @@ function finalizeMove() {
   }
 }
 
+
+canvas.addEventListener("dblclick", (event) => {
+  const screen = getPointerScreenPosition(event);
+  const world = renderer.screenToWorld(screen.x, screen.y);
+  const state = store.getState();
+  const hit = hitTest(state, world.x, world.y);
+  if (!hit) return;
+  editObjectText(hit);
+});
+
 canvas.addEventListener("pointerdown", (event) => {
+  closeInlineTextEditor({ commit: true });
   canvas.setPointerCapture(event.pointerId);
 
   const screen = getPointerScreenPosition(event);
@@ -1068,6 +1275,19 @@ if (quickBannerInput) {
     }
   });
 }
+if (editSelectedTextBtn) {
+  editSelectedTextBtn.addEventListener("click", updateSelectedTextFromEditor);
+}
+
+if (editTextInput) {
+  editTextInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      updateSelectedTextFromEditor();
+    }
+  });
+}
+
 
 if (helpToggle && helpPanel) {
   helpToggle.addEventListener("click", () => {
@@ -1282,7 +1502,10 @@ async function boot() {
     });
   }
 
-  window.addEventListener("resize", () => renderer.resize());
+  window.addEventListener("resize", () => {
+    closeInlineTextEditor({ commit: true });
+    renderer.resize();
+  });
   renderer.resize();
 
   syncColorInputs();
