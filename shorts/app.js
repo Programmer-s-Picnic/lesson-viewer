@@ -45,19 +45,42 @@ function wrap(ctx,text,maxWidth){
  return lines;
 }
 async function imageFrom(src){return new Promise((res,rej)=>{const im=new Image();im.onload=()=>res(im);im.onerror=rej;im.src=src})}
+function drawContainedImage(ctx,image,x,y,boxWidth,boxHeight){
+ const ratio=Math.min(boxWidth/image.naturalWidth,boxHeight/image.naturalHeight);
+ const width=image.naturalWidth*ratio,height=image.naturalHeight*ratio;
+ ctx.drawImage(image,x+(boxWidth-width)/2,y+(boxHeight-height)/2,width,height);
+}
+function fitCode(ctx,content,maxWidth){
+ const raw=String(content||"").replace(/\t/g,"    ").split("\n");
+ const fontSize=48,lineHeight=fontSize*1.38;
+ ctx.font=`500 ${fontSize}px ui-monospace, SFMono-Regular, Consolas, monospace`;
+ const fitted=[];
+ raw.forEach(line=>{
+  if(!line){fitted.push("");return}
+  let rest=line;
+  while(rest){
+   let take=rest.length;
+   while(take>1&&ctx.measureText(rest.slice(0,take)).width>maxWidth)take--;
+   fitted.push(rest.slice(0,take));
+   rest=rest.slice(take);
+  }
+ });
+ return{lines:fitted,fontSize,lineHeight};
+}
 async function paint(ctx,s,progress=1){
  const grad=ctx.createLinearGradient(0,0,W,H);grad.addColorStop(0,s.background);grad.addColorStop(1,state.brandColor||"#075985");ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
- ctx.save();if(s.transition==="fade")ctx.globalAlpha=Math.max(.02,progress);if(s.transition==="zoom"){const z=.88+.12*progress;ctx.translate(W/2,H/2);ctx.scale(z,z);ctx.translate(-W/2,-H/2)}if(s.transition==="slide")ctx.translate((1-progress)*W,0);
+ const entrance=Math.min(1,progress/.18);
+ ctx.save();if(s.transition==="fade")ctx.globalAlpha=Math.max(.02,entrance);if(s.transition==="zoom"){const z=.88+.12*entrance;ctx.translate(W/2,H/2);ctx.scale(z,z);ctx.translate(-W/2,-H/2)}if(s.transition==="slide")ctx.translate((1-entrance)*W,0);
  if(s.type==="image"&&s.image){try{const im=await imageFrom(s.image),ir=im.width/im.height,cr=W/(H-360);let dw,dh;if((s.imageFit==="cover"&&ir>cr)||(s.imageFit!=="cover"&&ir<cr)){dh=H-360;dw=dh*ir}else{dw=W;dh=dw/ir}ctx.drawImage(im,(W-dw)/2,170+(H-360-dh)/2,dw,dh)}catch(e){}}
  ctx.fillStyle="#ffffff22";ctx.beginPath();ctx.arc(900,190,220,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(80,1720,270,0,Math.PI*2);ctx.fill();
  ctx.fillStyle=state.accentColor||"#f59e0b";ctx.fillRect(70,105,150,14);
- ctx.fillStyle=s.textColor;ctx.font="800 46px system-ui";ctx.fillText((state.subject||"LESSON").toUpperCase(),70,185);
+ ctx.textAlign="left";ctx.textBaseline="alphabetic";ctx.fillStyle=s.textColor;ctx.font="800 46px system-ui";ctx.fillText((state.subject||"LESSON").toUpperCase(),70,185);
  let y=s.type==="image"?1320:500;ctx.font="900 90px system-ui";ctx.textAlign="center";const heads=wrap(ctx,s.heading,900);heads.forEach((line,i)=>ctx.fillText(line,W/2,y+i*105));y+=heads.length*105+55;
- if(s.type==="code"){ctx.fillStyle="#07111fdd";rounded(ctx,65,y-55,950,Math.min(760,H-y-300),34);ctx.textAlign="left";ctx.font="500 48px ui-monospace,monospace";ctx.fillStyle="#e2e8f0";const code=String(s.content).split("\n").slice(0,12);code.forEach((line,i)=>{ctx.fillStyle=i%2?"#bae6fd":"#fef3c7";ctx.fillText(line||" ",110,y+30+i*65)})}
+ if(s.type==="code"){const boxHeight=Math.max(220,Math.min(900,H-y-250));ctx.fillStyle="#07111fdd";rounded(ctx,65,y-55,950,boxHeight,34);ctx.textAlign="left";const viewHeight=boxHeight-90,code=fitCode(ctx,s.content,860);ctx.font=`500 ${code.fontSize}px ui-monospace, SFMono-Regular, Consolas, monospace`;const totalHeight=code.lines.length*code.lineHeight,overflow=Math.max(0,totalHeight-viewHeight),scrollProgress=Math.max(0,Math.min(1,(progress-.08)/.88)),slideUp=(1-entrance)*90,offset=overflow*scrollProgress;ctx.save();ctx.beginPath();ctx.rect(95,y-25,890,boxHeight-40);ctx.clip();code.lines.forEach((line,i)=>{ctx.fillStyle=i%2?"#bae6fd":"#fef3c7";ctx.fillText(line||" ",110,y+30+slideUp-offset+i*code.lineHeight)});ctx.restore()}
  else{ctx.textAlign="center";ctx.font=`${s.type==="question"||s.type==="answer"?"700":"550"} 55px system-ui`;const lines=wrap(ctx,s.content,880).slice(0,11);const lh=78;lines.forEach((line,i)=>ctx.fillText(line,W/2,y+i*lh))}
  ctx.restore();
  ctx.fillStyle="#061a2bdd";ctx.fillRect(0,H-190,W,190);ctx.textAlign="left";ctx.fillStyle="#fff";ctx.font="800 40px system-ui";ctx.fillText(state.teacherName||"Your Teacher",60,H-108);ctx.font="500 31px system-ui";ctx.fillStyle="#bae6fd";ctx.fillText(state.channelName||"",60,H-58);ctx.textAlign="right";ctx.fillStyle=state.accentColor;ctx.font="700 30px system-ui";ctx.fillText(state.website||"",W-60,H-70);
- if(state.logo){try{const logo=await imageFrom(state.logo);ctx.drawImage(logo,W-195,H-170,115,80)}catch(e){}}
+ if(state.logo){try{const logo=await imageFrom(state.logo);ctx.save();ctx.fillStyle="#ffffffee";rounded(ctx,W-245,70,175,125,20);drawContainedImage(ctx,logo,W-230,82,145,100);ctx.restore()}catch(e){}}
 }
 let previewSeq=0;
 async function drawPreview(progress=1){const seq=++previewSeq,ctx=$("preview").getContext("2d"),s=current();ctx.clearRect(0,0,W,H);if(!s){ctx.fillStyle="#075985";ctx.fillRect(0,0,W,H);ctx.fillStyle="#fff";ctx.textAlign="center";ctx.font="800 80px system-ui";ctx.fillText("Create your first slide",W/2,H/2);return}await paint(ctx,s,progress);if(seq!==previewSeq)return;$("slidePosition").textContent=`Slide ${state.current+1} of ${state.slides.length}`}
@@ -71,7 +94,7 @@ function slug(v){return(v||"edushort").toLowerCase().replace(/[^a-z0-9]+/g,"-").
 async function play(){
  if(!state.slides.length)return status("Add a slide first.");playing=!playing;const token=++playToken;$("playBtn").textContent=playing?"■ Stop":"▶ Preview";if(!playing)return;
  const audio=musicData?new Audio(musicData):null;if(audio){audio.loop=true;audio.volume=Number($("musicVolume").value);audio.play().catch(()=>{})}
- while(playing&&token===playToken){const s=current(),start=performance.now(),ms=s.duration*1000;while(playing&&performance.now()-start<ms){const p=Math.min(1,(performance.now()-start)/650);$("progress").value=Math.min(100,(performance.now()-start)/ms*100);await drawPreview(p);await new Promise(r=>setTimeout(r,33))}if(!playing)break;state.current=(state.current+1)%state.slides.length;renderList();loadEditor()}
+ while(playing&&token===playToken){const s=current(),start=performance.now(),ms=s.duration*1000;while(playing&&performance.now()-start<ms){const p=Math.min(1,(performance.now()-start)/ms);$("progress").value=p*100;await drawPreview(p);await new Promise(r=>setTimeout(r,33))}if(!playing)break;state.current=(state.current+1)%state.slides.length;renderList();loadEditor()}
  if(audio)audio.pause();playing=false;$("playBtn").textContent="▶ Preview";$("progress").value=0;drawPreview()
 }
 function status(t){$("status").textContent=t}
@@ -81,7 +104,7 @@ async function exportVideo(){
  const canvas=document.createElement("canvas");canvas.width=W;canvas.height=H;const ctx=canvas.getContext("2d"),stream=canvas.captureStream(FPS);let audioCtx,source;
  if(musicData){audioCtx=new AudioContext();const dest=audioCtx.createMediaStreamDestination(),audio=new Audio(musicData);audio.loop=true;audio.volume=Number($("musicVolume").value);source=audioCtx.createMediaElementSource(audio);source.connect(dest);source.connect(audioCtx.destination);dest.stream.getAudioTracks().forEach(t=>stream.addTrack(t));audio.play()}
  const rec=new MediaRecorder(stream,{mimeType:mime}),chunks=[];rec.ondataavailable=e=>e.data.size&&chunks.push(e.data);rec.start(500);status("Rendering video… keep this tab active.");
- for(let i=0;i<state.slides.length;i++){const s=state.slides[i],frames=Math.round(s.duration*FPS);for(let f=0;f<frames;f++){await paint(ctx,s,Math.min(1,(f/FPS)/.65));status(`Rendering slide ${i+1}/${state.slides.length} — ${Math.round((i+f/frames)/state.slides.length*100)}%`);await new Promise(r=>setTimeout(r,1000/FPS))}}
+ for(let i=0;i<state.slides.length;i++){const s=state.slides[i],frames=Math.round(s.duration*FPS);for(let f=0;f<frames;f++){await paint(ctx,s,frames>1?f/(frames-1):1);status(`Rendering slide ${i+1}/${state.slides.length} — ${Math.round((i+f/frames)/state.slides.length*100)}%`);await new Promise(r=>setTimeout(r,1000/FPS))}}
  rec.stop();if(source)source.mediaElement.pause();if(audioCtx)audioCtx.close();await new Promise(r=>rec.onstop=r);download(new Blob(chunks,{type:mime}),`${slug(state.projectTitle)}.webm`);status("Video ready.")
 }
 document.querySelectorAll("#slideButtons button").forEach(b=>b.onclick=()=>{state.slides.push(makeSlide(b.dataset.type));state.current=state.slides.length-1;renderAll()});
@@ -93,7 +116,7 @@ $("downBtn").onclick=()=>{if(state.current<state.slides.length-1){[state.slides[
 $("duplicateBtn").onclick=()=>{const s=current();if(s){state.slides.splice(state.current+1,0,{...structuredClone(s),id:crypto.randomUUID()});state.current++;renderAll()}};
 $("deleteBtn").onclick=()=>{if(current()&&confirm("Delete this slide?")){state.slides.splice(state.current,1);state.current=Math.max(0,Math.min(state.current,state.slides.length-1));renderAll()}};
 $("imageInput").onchange=async e=>{if(e.target.files[0]&&current()){current().image=await fileData(e.target.files[0]);drawPreview();saveLocal()}};
-$("logoInput").onchange=async e=>{if(e.target.files[0]){state.logo=await fileData(e.target.files[0]);drawPreview();saveLocal()}};
+$("logoInput").onchange=async e=>{if(e.target.files[0]){try{state.logo=await fileData(e.target.files[0]);await imageFrom(state.logo);await drawPreview();saveLocal();status(`Logo added: ${e.target.files[0].name}`)}catch(err){state.logo="";status("That logo image could not be read. Please choose PNG, JPG, WebP or GIF.")}}};
 $("musicInput").onchange=async e=>{if(e.target.files[0]){musicData=await fileData(e.target.files[0]);musicName=e.target.files[0].name;status(`Music selected: ${musicName}`)}};
 $("musicVolume").oninput=()=>{$("musicVolumeOut").value=Math.round($("musicVolume").value*100)+"%"};
 ["projectTitle","subject","teacherName","channelName","website","brandColor","accentColor"].forEach(id=>$(id).oninput=()=>{readSetup();drawPreview();saveLocal()});

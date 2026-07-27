@@ -14,3 +14,23 @@ df = pd.DataFrame(students_data)
 print(df[["name","marks"]])
 print(df[df["marks"] >= 70])
 print(df.sort_values("marks", ascending=True))
+
+import pandas as pd
+
+students = pd.DataFrame({
+    "student_id": [1, 2, 3],
+    "name": ["Champak", "Saurabh", "Avinash"]
+})
+
+marks = pd.DataFrame({
+    "student_id": [1, 2, 3],
+    "marks": [78, 92, 65]
+})
+
+result = pd.merge(students, marks, on="student_id")
+
+print(result)
+
+result = pd.merge(students, marks, left_on="student_id",right_on="student_id")
+
+print(result)
