@@ -1,0 +1,3132 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1">
+
+  <title>Image OCR Reader | Programmer's Picnic</title>
+
+  <meta
+    name="description"
+    content="Upload, paste or photograph an image and extract English, Hindi and other Indian-language text using browser-based OCR.">
+
+  <meta name="theme-color" content="#1769aa">
+
+  <style>
+    :root {
+      --primary: #1769aa;
+      --primary-dark: #0d4f86;
+      --primary-light: #e8f4ff;
+      --page: #eef4f9;
+      --surface: #ffffff;
+      --surface-soft: #f7fafc;
+      --border: #c8d5e1;
+      --text: #17212b;
+      --muted: #607080;
+      --success: #157347;
+      --danger: #b42318;
+      --warning: #9a6700;
+      --shadow: 0 16px 44px rgba(15, 55, 90, 0.13);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      color-scheme: light;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--text);
+
+      background:
+        radial-gradient(
+          circle at top left,
+          #d7ecff 0,
+          transparent 34%
+        ),
+        linear-gradient(
+          180deg,
+          #f9fcff,
+          var(--page)
+        );
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      touch-action: manipulation;
+    }
+
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible,
+    .upload-box:focus-visible {
+      outline: 3px solid rgba(23, 105, 170, 0.28);
+      outline-offset: 2px;
+    }
+
+    .site-header {
+      color: #ffffff;
+
+      background:
+        linear-gradient(
+          135deg,
+          var(--primary-dark),
+          var(--primary)
+        );
+
+      box-shadow:
+        0 8px 30px rgba(13, 79, 134, 0.22);
+    }
+
+    .header-inner,
+    main,
+    footer {
+      width: min(1250px, calc(100% - 26px));
+      margin-inline: auto;
+    }
+
+    .header-inner {
+      padding: 24px 0;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(1.8rem, 5vw, 2.65rem);
+      line-height: 1.1;
+    }
+
+    .subtitle {
+      max-width: 900px;
+      margin: 0;
+      color: #eaf5ff;
+      line-height: 1.55;
+    }
+
+    main {
+      padding: 25px 0 40px;
+    }
+
+    .app {
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .upload-section {
+      padding: 18px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface-soft);
+    }
+
+    .upload-box {
+      position: relative;
+      display: grid;
+      place-items: center;
+      min-height: 150px;
+      padding: 24px;
+      text-align: center;
+      border: 2px dashed #8db7da;
+      border-radius: 15px;
+      background: #ffffff;
+      cursor: pointer;
+
+      transition:
+        border-color 0.2s,
+        background 0.2s,
+        transform 0.2s;
+    }
+
+    .upload-box:hover,
+    .upload-box.drag-over {
+      border-color: var(--primary);
+      background: var(--primary-light);
+      transform: translateY(-1px);
+    }
+
+    .upload-box input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .upload-icon {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 9px;
+      color: var(--primary);
+    }
+
+    .upload-box strong {
+      display: block;
+      margin-bottom: 7px;
+      font-size: 1.1rem;
+    }
+
+    .upload-box span {
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .upload-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 9px;
+      margin-top: 13px;
+    }
+
+    .editor {
+      display: grid;
+      grid-template-columns: 300px minmax(0, 1fr);
+      min-height: 690px;
+    }
+
+    .settings-panel {
+      padding: 17px;
+      border-right: 1px solid var(--border);
+      background: #f8fbfe;
+    }
+
+    .panel-title {
+      margin: 0 0 14px;
+      color: var(--primary-dark);
+      font-size: 0.94rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .field {
+      margin-bottom: 16px;
+    }
+
+    .field label {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+      font-size: 0.89rem;
+      font-weight: 700;
+    }
+
+    .field select,
+    .field input[type="number"] {
+      width: 100%;
+      min-height: 43px;
+      padding: 8px 10px;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      background: #ffffff;
+    }
+
+    .field input[type="range"] {
+      width: 100%;
+    }
+
+    .check-field {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      margin-bottom: 15px;
+      color: #34495a;
+      font-size: 0.9rem;
+      line-height: 1.45;
+    }
+
+    .check-field input {
+      width: 18px;
+      height: 18px;
+      margin-top: 1px;
+      flex: 0 0 auto;
+    }
+
+    .button-stack {
+      display: grid;
+      gap: 9px;
+      margin-top: 18px;
+    }
+
+    .workspace {
+      min-width: 0;
+      background: #dde5eb;
+    }
+
+    .workspace-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(340px, 0.88fr);
+      min-height: 640px;
+    }
+
+    .preview-panel,
+    .result-panel {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .preview-panel {
+      border-right: 1px solid var(--border);
+    }
+
+    .section-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      min-height: 52px;
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--border);
+      background: #ffffff;
+    }
+
+    .section-heading h2 {
+      margin: 0;
+      color: var(--primary-dark);
+      font-size: 1rem;
+    }
+
+    .section-heading span {
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .canvas-stage {
+      position: relative;
+      display: grid;
+      place-items: center;
+      flex: 1;
+      min-height: 480px;
+      max-height: 75vh;
+      padding: 17px;
+      overflow: auto;
+
+      background-color: #d5dee5;
+
+      background-image:
+        linear-gradient(
+          45deg,
+          #c4ced6 25%,
+          transparent 25%
+        ),
+        linear-gradient(
+          -45deg,
+          #c4ced6 25%,
+          transparent 25%
+        ),
+        linear-gradient(
+          45deg,
+          transparent 75%,
+          #c4ced6 75%
+        ),
+        linear-gradient(
+          -45deg,
+          transparent 75%,
+          #c4ced6 75%
+        );
+
+      background-size: 28px 28px;
+
+      background-position:
+        0 0,
+        0 14px,
+        14px -14px,
+        -14px 0;
+    }
+
+    .canvas-wrapper {
+      display: none;
+      max-width: 100%;
+      line-height: 0;
+      background: #ffffff;
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.23);
+    }
+
+    .canvas-wrapper.visible {
+      display: block;
+    }
+
+    #previewCanvas {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      cursor: crosshair;
+      touch-action: none;
+      user-select: none;
+    }
+
+    .empty-preview {
+      max-width: 390px;
+      padding: 28px;
+      color: #536675;
+      text-align: center;
+      line-height: 1.6;
+      border: 1px solid #b8c6d1;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.84);
+    }
+
+    .selection-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 10px 12px;
+      border-top: 1px solid var(--border);
+      background: #ffffff;
+    }
+
+    .ocr-output {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      min-height: 0;
+      padding: 13px;
+      background: #ffffff;
+    }
+
+    #outputText {
+      width: 100%;
+      flex: 1;
+      min-height: 410px;
+      resize: vertical;
+      padding: 14px;
+      color: #15202b;
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      background: #fbfdff;
+      font-family:
+        "Noto Sans Devanagari",
+        "Nirmala UI",
+        Arial,
+        sans-serif;
+      font-size: 1rem;
+      line-height: 1.65;
+    }
+
+    .output-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 11px;
+    }
+
+    .statistics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .stat {
+      padding: 9px;
+      text-align: center;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      background: var(--surface-soft);
+    }
+
+    .stat strong {
+      display: block;
+      margin-bottom: 3px;
+      color: var(--primary-dark);
+      font-size: 1rem;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 0.75rem;
+    }
+
+    .status-panel {
+      padding: 13px 16px;
+      border-top: 1px solid var(--border);
+      background: #ffffff;
+    }
+
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+    }
+
+    #statusText.success {
+      color: var(--success);
+      font-weight: 700;
+    }
+
+    #statusText.error {
+      color: var(--danger);
+      font-weight: 700;
+    }
+
+    #statusText.warning {
+      color: var(--warning);
+      font-weight: 700;
+    }
+
+    .progress-track {
+      height: 12px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #dce6ed;
+    }
+
+    .progress-bar {
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+
+      background:
+        linear-gradient(
+          90deg,
+          var(--primary-dark),
+          #31a9df
+        );
+
+      transition: width 0.2s ease;
+    }
+
+    .privacy-note {
+      padding: 13px 16px;
+      color: #3d5668;
+      border-top: 1px solid var(--border);
+      background: var(--primary-light);
+      font-size: 0.9rem;
+      line-height: 1.55;
+    }
+
+    .btn {
+      min-height: 42px;
+      padding: 9px 13px;
+      border: 1px solid transparent;
+      border-radius: 9px;
+      font-weight: 700;
+      cursor: pointer;
+
+      transition:
+        transform 0.15s,
+        box-shadow 0.15s,
+        opacity 0.15s;
+    }
+
+    .btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(20, 60, 90, 0.14);
+    }
+
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      color: #ffffff;
+      background: var(--primary);
+    }
+
+    .btn-success {
+      color: #ffffff;
+      background: var(--success);
+    }
+
+    .btn-secondary {
+      color: var(--primary-dark);
+      border-color: #9dbbd4;
+      background: #edf7ff;
+    }
+
+    .btn-danger {
+      color: var(--danger);
+      border-color: #e8aaa4;
+      background: #fff4f3;
+    }
+
+    .btn-light {
+      color: #34495a;
+      border-color: var(--border);
+      background: #ffffff;
+    }
+
+    .small {
+      min-height: 37px;
+      padding: 7px 10px;
+      font-size: 0.85rem;
+    }
+
+    footer {
+      padding: 0 0 28px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 0.88rem;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    @media (max-width: 1050px) {
+      .workspace-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .preview-panel {
+        border-right: 0;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .canvas-stage {
+        min-height: 430px;
+        max-height: none;
+      }
+
+      #outputText {
+        min-height: 330px;
+      }
+    }
+
+    @media (max-width: 820px) {
+      .editor {
+        grid-template-columns: 1fr;
+      }
+
+      .settings-panel {
+        border-right: 0;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .settings-fields {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0 14px;
+      }
+
+      .button-stack {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 560px) {
+      .header-inner,
+      main,
+      footer {
+        width: min(100% - 16px, 1250px);
+      }
+
+      .app {
+        border-radius: 14px;
+      }
+
+      .upload-section {
+        padding: 11px;
+      }
+
+      .settings-fields {
+        grid-template-columns: 1fr;
+      }
+
+      .button-stack {
+        grid-template-columns: 1fr;
+      }
+
+      .canvas-stage {
+        min-height: 350px;
+        padding: 9px;
+      }
+
+      .statistics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .status-row {
+        display: block;
+      }
+
+      #progressText {
+        display: block;
+        margin-top: 5px;
+      }
+
+      .output-actions,
+      .selection-toolbar,
+      .upload-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+
+      .output-actions .btn,
+      .selection-toolbar .btn,
+      .upload-actions .btn {
+        width: 100%;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header class="site-header">
+    <div class="header-inner">
+
+      <h1>Image OCR Reader</h1>
+
+      <p class="subtitle">
+        Upload, paste or photograph an image, improve its
+        readability, select the required area and convert the
+        visible text into editable text.
+      </p>
+
+    </div>
+  </header>
+
+  <main>
+
+    <section class="app">
+
+      <div class="upload-section">
+
+        <label
+          class="upload-box"
+          id="uploadBox"
+          for="imageInput"
+          tabindex="0">
+
+          <svg
+            class="upload-icon"
+            viewBox="0 0 24 24"
+            aria-hidden="true">
+
+            <path
+              fill="currentColor"
+              d="M19 13v6H5v-6H3v6a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6zM13 5.83l2.59 2.58L17 7l-5-5-5 5 1.41 1.41L11 5.83V16h2z">
+            </path>
+
+          </svg>
+
+          <strong>
+            Choose, drop or paste an image
+          </strong>
+
+          <span>
+            Supports JPG, PNG, WEBP and other browser-supported
+            image formats
+          </span>
+
+          <input
+            id="imageInput"
+            type="file"
+            accept="image/*">
+
+        </label>
+
+        <input
+          id="cameraInput"
+          type="file"
+          accept="image/*"
+          capture="environment"
+          hidden>
+
+        <div class="upload-actions">
+
+          <button
+            class="btn btn-secondary small"
+            id="cameraButton"
+            type="button">
+
+            Take photograph
+
+          </button>
+
+          <button
+            class="btn btn-secondary small"
+            id="pasteButton"
+            type="button">
+
+            Paste image
+
+          </button>
+
+          <button
+            class="btn btn-danger small"
+            id="removeImageButton"
+            type="button"
+            disabled>
+
+            Remove image
+
+          </button>
+
+        </div>
+
+      </div>
+
+      <div class="editor">
+
+        <aside class="settings-panel">
+
+          <h2 class="panel-title">
+            OCR settings
+          </h2>
+
+          <div class="settings-fields">
+
+            <div class="field">
+
+              <label for="languageSelect">
+                Text language
+              </label>
+
+              <select id="languageSelect">
+
+                <option value="eng">
+                  English
+                </option>
+
+                <option value="hin">
+                  Hindi
+                </option>
+
+                <option value="eng,hin" selected>
+                  English + Hindi
+                </option>
+
+                <option value="ben">
+                  Bengali
+                </option>
+
+                <option value="mar">
+                  Marathi
+                </option>
+
+                <option value="san">
+                  Sanskrit
+                </option>
+
+                <option value="urd">
+                  Urdu
+                </option>
+
+              </select>
+
+            </div>
+
+            <div class="field">
+
+              <label for="pageMode">
+                Page layout
+              </label>
+
+              <select id="pageMode">
+
+                <option value="3" selected>
+                  Automatic page
+                </option>
+
+                <option value="6">
+                  Single text block
+                </option>
+
+                <option value="11">
+                  Sparse text
+                </option>
+
+                <option value="7">
+                  Single line
+                </option>
+
+                <option value="8">
+                  Single word
+                </option>
+
+                <option value="13">
+                  Raw text line
+                </option>
+
+              </select>
+
+            </div>
+
+            <div class="field">
+
+              <label for="processingMode">
+                Image processing
+              </label>
+
+              <select id="processingMode">
+
+                <option value="original">
+                  Original colour
+                </option>
+
+                <option value="grayscale" selected>
+                  Grayscale
+                </option>
+
+                <option value="binary">
+                  Black and white
+                </option>
+
+              </select>
+
+            </div>
+
+            <div class="field">
+
+              <label for="rotationSelect">
+                Rotate image
+              </label>
+
+              <select id="rotationSelect">
+
+                <option value="0">
+                  No rotation
+                </option>
+
+                <option value="90">
+                  90° clockwise
+                </option>
+
+                <option value="180">
+                  180°
+                </option>
+
+                <option value="270">
+                  90° anticlockwise
+                </option>
+
+              </select>
+
+            </div>
+
+            <div class="field">
+
+              <label for="upscaleSelect">
+                OCR image size
+              </label>
+
+              <select id="upscaleSelect">
+
+                <option value="1">
+                  Original size
+                </option>
+
+                <option value="1.5">
+                  1.5× larger
+                </option>
+
+                <option value="2" selected>
+                  2× larger
+                </option>
+
+                <option value="3">
+                  3× larger
+                </option>
+
+              </select>
+
+            </div>
+
+            <div class="field">
+
+              <label for="brightnessRange">
+
+                Brightness
+
+                <span id="brightnessValue">
+                  0
+                </span>
+
+              </label>
+
+              <input
+                id="brightnessRange"
+                type="range"
+                min="-100"
+                max="100"
+                value="0">
+
+            </div>
+
+            <div class="field">
+
+              <label for="contrastRange">
+
+                Contrast
+
+                <span id="contrastValue">
+                  25
+                </span>
+
+              </label>
+
+              <input
+                id="contrastRange"
+                type="range"
+                min="-100"
+                max="100"
+                value="25">
+
+            </div>
+
+            <div class="field">
+
+              <label for="thresholdRange">
+
+                Black/white threshold
+
+                <span id="thresholdValue">
+                  165
+                </span>
+
+              </label>
+
+              <input
+                id="thresholdRange"
+                type="range"
+                min="0"
+                max="255"
+                value="165">
+
+            </div>
+
+          </div>
+
+          <label class="check-field">
+
+            <input
+              id="useSelectionCheckbox"
+              type="checkbox"
+              disabled>
+
+            <span>
+              Read only the rectangular area selected on the
+              image.
+            </span>
+
+          </label>
+
+          <label class="check-field">
+
+            <input
+              id="cleanTextCheckbox"
+              type="checkbox"
+              checked>
+
+            <span>
+              Remove trailing spaces and excessive blank lines.
+            </span>
+
+          </label>
+
+          <div class="button-stack">
+
+            <button
+              class="btn btn-secondary"
+              id="autoImproveButton"
+              type="button"
+              disabled>
+
+              Apply recommended settings
+
+            </button>
+
+            <button
+              class="btn btn-primary"
+              id="readButton"
+              type="button"
+              disabled>
+
+              Read text from image
+
+            </button>
+
+            <button
+              class="btn btn-danger"
+              id="cancelButton"
+              type="button"
+              disabled>
+
+              Cancel OCR
+
+            </button>
+
+          </div>
+
+        </aside>
+
+        <section class="workspace">
+
+          <div class="workspace-grid">
+
+            <section class="preview-panel">
+
+              <div class="section-heading">
+
+                <h2>OCR image</h2>
+
+                <span id="imageInfo">
+                  No image
+                </span>
+
+              </div>
+
+              <div
+                class="canvas-stage"
+                id="canvasStage">
+
+                <div
+                  class="empty-preview"
+                  id="emptyPreview">
+
+                  Load an image to begin.
+
+                  <br><br>
+
+                  After loading, drag over the image to select a
+                  rectangular OCR area.
+
+                </div>
+
+                <div
+                  class="canvas-wrapper"
+                  id="canvasWrapper">
+
+                  <canvas id="previewCanvas"></canvas>
+
+                </div>
+
+              </div>
+
+              <div class="selection-toolbar">
+
+                <button
+                  class="btn btn-light small"
+                  id="selectAllButton"
+                  type="button"
+                  disabled>
+
+                  Select whole image
+
+                </button>
+
+                <button
+                  class="btn btn-light small"
+                  id="clearSelectionButton"
+                  type="button"
+                  disabled>
+
+                  Clear selection
+
+                </button>
+
+                <button
+                  class="btn btn-light small"
+                  id="saveProcessedButton"
+                  type="button"
+                  disabled>
+
+                  Save processed image
+
+                </button>
+
+              </div>
+
+            </section>
+
+            <section class="result-panel">
+
+              <div class="section-heading">
+
+                <h2>Recognised text</h2>
+
+                <span>
+                  Editable result
+                </span>
+
+              </div>
+
+              <div class="ocr-output">
+
+                <textarea
+                  id="outputText"
+                  spellcheck="true"
+                  placeholder="Recognised text will appear here..."></textarea>
+
+                <div class="output-actions">
+
+                  <button
+                    class="btn btn-success small"
+                    id="copyButton"
+                    type="button"
+                    disabled>
+
+                    Copy text
+
+                  </button>
+
+                  <button
+                    class="btn btn-secondary small"
+                    id="downloadButton"
+                    type="button"
+                    disabled>
+
+                    Save TXT
+
+                  </button>
+
+                  <button
+                    class="btn btn-secondary small"
+                    id="speakButton"
+                    type="button"
+                    disabled>
+
+                    Read aloud
+
+                  </button>
+
+                  <button
+                    class="btn btn-danger small"
+                    id="clearTextButton"
+                    type="button"
+                    disabled>
+
+                    Clear text
+
+                  </button>
+
+                </div>
+
+                <div class="statistics">
+
+                  <div class="stat">
+
+                    <strong id="confidenceValue">
+                      —
+                    </strong>
+
+                    <span>Confidence</span>
+
+                  </div>
+
+                  <div class="stat">
+
+                    <strong id="wordCount">
+                      0
+                    </strong>
+
+                    <span>Words</span>
+
+                  </div>
+
+                  <div class="stat">
+
+                    <strong id="characterCount">
+                      0
+                    </strong>
+
+                    <span>Characters</span>
+
+                  </div>
+
+                  <div class="stat">
+
+                    <strong id="timeValue">
+                      —
+                    </strong>
+
+                    <span>OCR time</span>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+            </section>
+
+          </div>
+
+          <div
+            class="status-panel"
+            aria-live="polite">
+
+            <div class="status-row">
+
+              <span id="statusText">
+                Load an image to begin.
+              </span>
+
+              <span id="progressText">
+                0%
+              </span>
+
+            </div>
+
+            <div
+              class="progress-track"
+              aria-hidden="true">
+
+              <div
+                class="progress-bar"
+                id="progressBar">
+              </div>
+
+            </div>
+
+          </div>
+
+        </section>
+
+      </div>
+
+      <div class="privacy-note">
+
+        <strong>Instructions:</strong>
+
+        Use a clear, straight image with readable text. Increase
+        contrast or use black-and-white mode for faded documents.
+        Drag over the preview to OCR only one section. The first
+        OCR operation may take longer while the selected language
+        data is loaded.
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <footer>
+    Programmer's Picnic by Champak Roy
+  </footer>
+
+  <script
+    src="https://cdn.jsdelivr.net/npm/tesseract.js@7.0.0/dist/tesseract.min.js">
+  </script>
+
+  <script>
+    "use strict";
+
+    const imageInput =
+      document.getElementById("imageInput");
+
+    const cameraInput =
+      document.getElementById("cameraInput");
+
+    const uploadBox =
+      document.getElementById("uploadBox");
+
+    const cameraButton =
+      document.getElementById("cameraButton");
+
+    const pasteButton =
+      document.getElementById("pasteButton");
+
+    const removeImageButton =
+      document.getElementById("removeImageButton");
+
+    const languageSelect =
+      document.getElementById("languageSelect");
+
+    const pageMode =
+      document.getElementById("pageMode");
+
+    const processingMode =
+      document.getElementById("processingMode");
+
+    const rotationSelect =
+      document.getElementById("rotationSelect");
+
+    const upscaleSelect =
+      document.getElementById("upscaleSelect");
+
+    const brightnessRange =
+      document.getElementById("brightnessRange");
+
+    const contrastRange =
+      document.getElementById("contrastRange");
+
+    const thresholdRange =
+      document.getElementById("thresholdRange");
+
+    const brightnessValue =
+      document.getElementById("brightnessValue");
+
+    const contrastValue =
+      document.getElementById("contrastValue");
+
+    const thresholdValue =
+      document.getElementById("thresholdValue");
+
+    const useSelectionCheckbox =
+      document.getElementById("useSelectionCheckbox");
+
+    const cleanTextCheckbox =
+      document.getElementById("cleanTextCheckbox");
+
+    const autoImproveButton =
+      document.getElementById("autoImproveButton");
+
+    const readButton =
+      document.getElementById("readButton");
+
+    const cancelButton =
+      document.getElementById("cancelButton");
+
+    const previewCanvas =
+      document.getElementById("previewCanvas");
+
+    const previewContext =
+      previewCanvas.getContext("2d", {
+        willReadFrequently: true
+      });
+
+    const workingCanvas =
+      document.createElement("canvas");
+
+    const workingContext =
+      workingCanvas.getContext("2d", {
+        willReadFrequently: true
+      });
+
+    const canvasWrapper =
+      document.getElementById("canvasWrapper");
+
+    const emptyPreview =
+      document.getElementById("emptyPreview");
+
+    const imageInfo =
+      document.getElementById("imageInfo");
+
+    const selectAllButton =
+      document.getElementById("selectAllButton");
+
+    const clearSelectionButton =
+      document.getElementById("clearSelectionButton");
+
+    const saveProcessedButton =
+      document.getElementById("saveProcessedButton");
+
+    const outputText =
+      document.getElementById("outputText");
+
+    const copyButton =
+      document.getElementById("copyButton");
+
+    const downloadButton =
+      document.getElementById("downloadButton");
+
+    const speakButton =
+      document.getElementById("speakButton");
+
+    const clearTextButton =
+      document.getElementById("clearTextButton");
+
+    const confidenceValue =
+      document.getElementById("confidenceValue");
+
+    const wordCount =
+      document.getElementById("wordCount");
+
+    const characterCount =
+      document.getElementById("characterCount");
+
+    const timeValue =
+      document.getElementById("timeValue");
+
+    const statusText =
+      document.getElementById("statusText");
+
+    const progressText =
+      document.getElementById("progressText");
+
+    const progressBar =
+      document.getElementById("progressBar");
+
+    const sourceImage = new Image();
+
+    let sourceFile = null;
+    let sourceUrl = "";
+
+    let selection = null;
+    let selectionStart = null;
+    let selecting = false;
+    let activePointerId = null;
+
+    let worker = null;
+    let workerLanguageKey = "";
+
+    let recognising = false;
+    let currentRunId = 0;
+    let preprocessTimer = null;
+
+    function clamp(value, minimum, maximum) {
+      return Math.max(
+        minimum,
+        Math.min(maximum, value)
+      );
+    }
+
+    function hasImage() {
+      return Boolean(
+        sourceImage.naturalWidth &&
+        sourceImage.naturalHeight
+      );
+    }
+
+    function hasSelection() {
+      return Boolean(
+        selection &&
+        selection.width >= 5 &&
+        selection.height >= 5
+      );
+    }
+
+    function setStatus(message, type = "") {
+      statusText.textContent = message;
+
+      statusText.classList.remove(
+        "success",
+        "error",
+        "warning"
+      );
+
+      if (type) {
+        statusText.classList.add(type);
+      }
+    }
+
+    function setProgress(value) {
+      const safeValue = clamp(
+        Number(value) || 0,
+        0,
+        100
+      );
+
+      progressBar.style.width =
+        `${safeValue}%`;
+
+      progressText.textContent =
+        `${Math.round(safeValue)}%`;
+    }
+
+    function updateButtons() {
+      const imageAvailable = hasImage();
+      const textAvailable =
+        outputText.value.trim().length > 0;
+
+      removeImageButton.disabled =
+        !imageAvailable || recognising;
+
+      autoImproveButton.disabled =
+        !imageAvailable || recognising;
+
+      readButton.disabled =
+        !imageAvailable || recognising;
+
+      cancelButton.disabled =
+        !recognising;
+
+      selectAllButton.disabled =
+        !imageAvailable || recognising;
+
+      clearSelectionButton.disabled =
+        !hasSelection() || recognising;
+
+      saveProcessedButton.disabled =
+        !imageAvailable || recognising;
+
+      useSelectionCheckbox.disabled =
+        !hasSelection() || recognising;
+
+      copyButton.disabled =
+        !textAvailable;
+
+      downloadButton.disabled =
+        !textAvailable;
+
+      speakButton.disabled =
+        !textAvailable;
+
+      clearTextButton.disabled =
+        !textAvailable;
+    }
+
+    function updateStatistics(
+      confidence = null,
+      elapsedSeconds = null
+    ) {
+      const text = outputText.value;
+
+      const words =
+        text.trim()
+          ? text.trim().split(/\s+/u).length
+          : 0;
+
+      confidenceValue.textContent =
+        confidence === null
+          ? "—"
+          : `${Math.round(confidence)}%`;
+
+      wordCount.textContent =
+        String(words);
+
+      characterCount.textContent =
+        String(text.length);
+
+      timeValue.textContent =
+        elapsedSeconds === null
+          ? "—"
+          : `${elapsedSeconds.toFixed(1)} s`;
+
+      updateButtons();
+    }
+
+    function getSelectedLanguages() {
+      return languageSelect.value
+        .split(",")
+        .map(language => language.trim())
+        .filter(Boolean);
+    }
+
+    function getLanguageKey() {
+      return getSelectedLanguages().join("+");
+    }
+
+    function cleanRecognisedText(text) {
+      return text
+        .replace(/\r/g, "")
+        .replace(/[ \t]+\n/g, "\n")
+        .replace(/[ \t]{2,}/g, " ")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
+    }
+
+    function getBaseFileName() {
+      const originalName =
+        sourceFile?.name || "image";
+
+      return (
+        originalName
+          .replace(/\.[^/.]+$/, "")
+          .replace(
+            /[^a-zA-Z0-9\u0900-\u097F-_]+/gu,
+            "-"
+          )
+          .replace(/^-+|-+$/g, "") ||
+        "image"
+      );
+    }
+
+    function drawPreview() {
+      if (!hasImage()) {
+        return;
+      }
+
+      previewCanvas.width =
+        workingCanvas.width;
+
+      previewCanvas.height =
+        workingCanvas.height;
+
+      previewContext.clearRect(
+        0,
+        0,
+        previewCanvas.width,
+        previewCanvas.height
+      );
+
+      previewContext.drawImage(
+        workingCanvas,
+        0,
+        0
+      );
+
+      if (hasSelection()) {
+        previewContext.save();
+
+        previewContext.fillStyle =
+          "rgba(0, 0, 0, 0.58)";
+
+        previewContext.fillRect(
+          0,
+          0,
+          previewCanvas.width,
+          previewCanvas.height
+        );
+
+        previewContext.drawImage(
+          workingCanvas,
+          selection.x,
+          selection.y,
+          selection.width,
+          selection.height,
+          selection.x,
+          selection.y,
+          selection.width,
+          selection.height
+        );
+
+        previewContext.strokeStyle =
+          "#00a8ff";
+
+        previewContext.lineWidth =
+          Math.max(
+            3,
+            previewCanvas.width / 700
+          );
+
+        previewContext.setLineDash([
+          Math.max(8, previewCanvas.width / 130),
+          Math.max(5, previewCanvas.width / 190)
+        ]);
+
+        previewContext.strokeRect(
+          selection.x,
+          selection.y,
+          selection.width,
+          selection.height
+        );
+
+        previewContext.restore();
+      }
+    }
+
+    function applyPixelProcessing() {
+      const mode =
+        processingMode.value;
+
+      const brightness =
+        Number(brightnessRange.value);
+
+      const contrast =
+        Number(contrastRange.value);
+
+      const threshold =
+        Number(thresholdRange.value);
+
+      const imageData =
+        workingContext.getImageData(
+          0,
+          0,
+          workingCanvas.width,
+          workingCanvas.height
+        );
+
+      const pixels =
+        imageData.data;
+
+      const brightnessOffset =
+        brightness * 2.55;
+
+      const contrastFactor =
+        (
+          259 *
+          (contrast + 255)
+        ) /
+        (
+          255 *
+          (259 - contrast)
+        );
+
+      for (
+        let index = 0;
+        index < pixels.length;
+        index += 4
+      ) {
+        let red =
+          contrastFactor *
+          (
+            pixels[index] -
+            128
+          ) +
+          128 +
+          brightnessOffset;
+
+        let green =
+          contrastFactor *
+          (
+            pixels[index + 1] -
+            128
+          ) +
+          128 +
+          brightnessOffset;
+
+        let blue =
+          contrastFactor *
+          (
+            pixels[index + 2] -
+            128
+          ) +
+          128 +
+          brightnessOffset;
+
+        red = clamp(red, 0, 255);
+        green = clamp(green, 0, 255);
+        blue = clamp(blue, 0, 255);
+
+        if (
+          mode === "grayscale" ||
+          mode === "binary"
+        ) {
+          const gray =
+            0.299 * red +
+            0.587 * green +
+            0.114 * blue;
+
+          if (mode === "binary") {
+            const value =
+              gray >= threshold
+                ? 255
+                : 0;
+
+            red = value;
+            green = value;
+            blue = value;
+          } else {
+            red = gray;
+            green = gray;
+            blue = gray;
+          }
+        }
+
+        pixels[index] = red;
+        pixels[index + 1] = green;
+        pixels[index + 2] = blue;
+      }
+
+      workingContext.putImageData(
+        imageData,
+        0,
+        0
+      );
+    }
+
+    function preprocessImage(
+      resetSelection = true
+    ) {
+      if (!hasImage()) {
+        return;
+      }
+
+      const rotation =
+        Number(rotationSelect.value);
+
+      const requestedScale =
+        Number(upscaleSelect.value);
+
+      const sourceWidth =
+        sourceImage.naturalWidth;
+
+      const sourceHeight =
+        sourceImage.naturalHeight;
+
+      const rotatedWidth =
+        rotation === 90 ||
+        rotation === 270
+          ? sourceHeight
+          : sourceWidth;
+
+      const rotatedHeight =
+        rotation === 90 ||
+        rotation === 270
+          ? sourceWidth
+          : sourceHeight;
+
+      const maximumDimension = 5000;
+
+      const safeScale =
+        Math.min(
+          requestedScale,
+          maximumDimension /
+            Math.max(
+              rotatedWidth,
+              rotatedHeight
+            )
+        );
+
+      const finalScale =
+        Math.max(
+          0.1,
+          safeScale
+        );
+
+      workingCanvas.width =
+        Math.max(
+          1,
+          Math.round(
+            rotatedWidth * finalScale
+          )
+        );
+
+      workingCanvas.height =
+        Math.max(
+          1,
+          Math.round(
+            rotatedHeight * finalScale
+          )
+        );
+
+      workingContext.clearRect(
+        0,
+        0,
+        workingCanvas.width,
+        workingCanvas.height
+      );
+
+      workingContext.save();
+
+      workingContext.translate(
+        workingCanvas.width / 2,
+        workingCanvas.height / 2
+      );
+
+      workingContext.rotate(
+        rotation * Math.PI / 180
+      );
+
+      workingContext.drawImage(
+        sourceImage,
+        -sourceWidth * finalScale / 2,
+        -sourceHeight * finalScale / 2,
+        sourceWidth * finalScale,
+        sourceHeight * finalScale
+      );
+
+      workingContext.restore();
+
+      applyPixelProcessing();
+
+      if (resetSelection) {
+        selection = null;
+        useSelectionCheckbox.checked = false;
+      }
+
+      canvasWrapper.classList.add(
+        "visible"
+      );
+
+      emptyPreview.hidden = true;
+
+      drawPreview();
+
+      imageInfo.textContent =
+        `${workingCanvas.width} × ${workingCanvas.height} px`;
+
+      updateButtons();
+    }
+
+    function schedulePreprocessing() {
+      window.clearTimeout(
+        preprocessTimer
+      );
+
+      preprocessTimer =
+        window.setTimeout(
+          () => {
+            preprocessImage(true);
+
+            setStatus(
+              "Image processing settings updated."
+            );
+          },
+          120
+        );
+    }
+
+    function loadImageFile(file) {
+      if (
+        !file ||
+        !file.type.startsWith("image/")
+      ) {
+        setStatus(
+          "Please select a valid image file.",
+          "error"
+        );
+
+        return;
+      }
+
+      if (recognising) {
+        return;
+      }
+
+      if (sourceUrl) {
+        URL.revokeObjectURL(sourceUrl);
+      }
+
+      sourceFile = file;
+      sourceUrl = URL.createObjectURL(file);
+
+      sourceImage.onload = () => {
+        preprocessImage(true);
+
+        removeImageButton.disabled = false;
+        autoImproveButton.disabled = false;
+        readButton.disabled = false;
+
+        setProgress(0);
+
+        setStatus(
+          `${file.name} loaded successfully.`,
+          "success"
+        );
+
+        updateButtons();
+      };
+
+      sourceImage.onerror = () => {
+        setStatus(
+          "The selected image could not be opened.",
+          "error"
+        );
+      };
+
+      sourceImage.src = sourceUrl;
+    }
+
+    function removeImage() {
+      if (recognising) {
+        return;
+      }
+
+      if (sourceUrl) {
+        URL.revokeObjectURL(sourceUrl);
+      }
+
+      sourceUrl = "";
+      sourceFile = null;
+
+      sourceImage.removeAttribute("src");
+
+      selection = null;
+      selectionStart = null;
+      selecting = false;
+
+      imageInput.value = "";
+      cameraInput.value = "";
+
+      previewCanvas.width = 1;
+      previewCanvas.height = 1;
+
+      workingCanvas.width = 1;
+      workingCanvas.height = 1;
+
+      canvasWrapper.classList.remove(
+        "visible"
+      );
+
+      emptyPreview.hidden = false;
+
+      imageInfo.textContent =
+        "No image";
+
+      useSelectionCheckbox.checked = false;
+      useSelectionCheckbox.disabled = true;
+
+      setProgress(0);
+
+      setStatus(
+        "Load an image to begin."
+      );
+
+      updateButtons();
+    }
+
+    function getCanvasPoint(event) {
+      const bounds =
+        previewCanvas.getBoundingClientRect();
+
+      return {
+        x: clamp(
+          (
+            event.clientX -
+            bounds.left
+          ) *
+          previewCanvas.width /
+          bounds.width,
+          0,
+          previewCanvas.width
+        ),
+
+        y: clamp(
+          (
+            event.clientY -
+            bounds.top
+          ) *
+          previewCanvas.height /
+          bounds.height,
+          0,
+          previewCanvas.height
+        )
+      };
+    }
+
+    function beginSelection(event) {
+      if (
+        !hasImage() ||
+        recognising
+      ) {
+        return;
+      }
+
+      const point =
+        getCanvasPoint(event);
+
+      selecting = true;
+      activePointerId = event.pointerId;
+      selectionStart = point;
+
+      selection = {
+        x: point.x,
+        y: point.y,
+        width: 0,
+        height: 0
+      };
+
+      previewCanvas.setPointerCapture(
+        event.pointerId
+      );
+
+      drawPreview();
+    }
+
+    function moveSelection(event) {
+      if (
+        !selecting ||
+        event.pointerId !== activePointerId
+      ) {
+        return;
+      }
+
+      const point =
+        getCanvasPoint(event);
+
+      selection = {
+        x: Math.min(
+          selectionStart.x,
+          point.x
+        ),
+
+        y: Math.min(
+          selectionStart.y,
+          point.y
+        ),
+
+        width: Math.abs(
+          point.x -
+          selectionStart.x
+        ),
+
+        height: Math.abs(
+          point.y -
+          selectionStart.y
+        )
+      };
+
+      drawPreview();
+    }
+
+    function finishSelection(event) {
+      if (
+        !selecting ||
+        event.pointerId !== activePointerId
+      ) {
+        return;
+      }
+
+      moveSelection(event);
+
+      selecting = false;
+      activePointerId = null;
+
+      try {
+        previewCanvas.releasePointerCapture(
+          event.pointerId
+        );
+      } catch (error) {
+        console.debug(error);
+      }
+
+      if (!hasSelection()) {
+        selection = null;
+        useSelectionCheckbox.checked = false;
+
+        setStatus(
+          "The selected area was too small."
+        );
+      } else {
+        useSelectionCheckbox.disabled = false;
+        useSelectionCheckbox.checked = true;
+
+        setStatus(
+          `Selected OCR area: ${Math.round(selection.width)} × ${Math.round(selection.height)} pixels.`,
+          "success"
+        );
+      }
+
+      drawPreview();
+      updateButtons();
+    }
+
+    function clearSelection() {
+      selection = null;
+
+      useSelectionCheckbox.checked = false;
+      useSelectionCheckbox.disabled = true;
+
+      drawPreview();
+
+      setStatus(
+        "Selection cleared. OCR will use the whole image."
+      );
+
+      updateButtons();
+    }
+
+    function selectWholeImage() {
+      if (!hasImage()) {
+        return;
+      }
+
+      selection = {
+        x: 0,
+        y: 0,
+        width: workingCanvas.width,
+        height: workingCanvas.height
+      };
+
+      useSelectionCheckbox.disabled = false;
+      useSelectionCheckbox.checked = true;
+
+      drawPreview();
+
+      setStatus(
+        "The complete image is selected."
+      );
+
+      updateButtons();
+    }
+
+    function createOCRCanvas() {
+      if (
+        useSelectionCheckbox.checked &&
+        hasSelection()
+      ) {
+        const left =
+          clamp(
+            Math.floor(selection.x),
+            0,
+            workingCanvas.width
+          );
+
+        const top =
+          clamp(
+            Math.floor(selection.y),
+            0,
+            workingCanvas.height
+          );
+
+        const width =
+          clamp(
+            Math.ceil(selection.width),
+            1,
+            workingCanvas.width - left
+          );
+
+        const height =
+          clamp(
+            Math.ceil(selection.height),
+            1,
+            workingCanvas.height - top
+          );
+
+        const cropCanvas =
+          document.createElement("canvas");
+
+        cropCanvas.width = width;
+        cropCanvas.height = height;
+
+        cropCanvas
+          .getContext("2d")
+          .drawImage(
+            workingCanvas,
+            left,
+            top,
+            width,
+            height,
+            0,
+            0,
+            width,
+            height
+          );
+
+        return cropCanvas;
+      }
+
+      return workingCanvas;
+    }
+
+    function formatWorkerStatus(status) {
+      const names = {
+        "loading tesseract core":
+          "Loading OCR engine",
+
+        "initializing tesseract":
+          "Initialising OCR engine",
+
+        "loading language traineddata":
+          "Loading language data",
+
+        "initializing api":
+          "Preparing language",
+
+        "recognizing text":
+          "Reading text"
+      };
+
+      return (
+        names[status] ||
+        status
+          .replace(/_/g, " ")
+          .replace(
+            /\b\w/g,
+            character =>
+              character.toUpperCase()
+          )
+      );
+    }
+
+    function handleWorkerProgress(message) {
+      if (!recognising) {
+        return;
+      }
+
+      const progress =
+        typeof message.progress === "number"
+          ? message.progress * 100
+          : 0;
+
+      setProgress(progress);
+
+      setStatus(
+        `${formatWorkerStatus(message.status)}…`
+      );
+    }
+
+    async function prepareWorker() {
+      const languageKey =
+        getLanguageKey();
+
+      const languages =
+        getSelectedLanguages();
+
+      if (
+        worker &&
+        workerLanguageKey === languageKey
+      ) {
+        return worker;
+      }
+
+      if (worker) {
+        await worker.terminate();
+        worker = null;
+      }
+
+      setStatus(
+        "Loading the selected OCR language. The first run may take longer."
+      );
+
+      worker =
+        await Tesseract.createWorker(
+          languages,
+          1,
+          {
+            logger: handleWorkerProgress,
+
+            errorHandler: error => {
+              console.error(
+                "OCR worker error:",
+                error
+              );
+            }
+          }
+        );
+
+      workerLanguageKey =
+        languageKey;
+
+      return worker;
+    }
+
+    function setRecognising(value) {
+      recognising = value;
+
+      languageSelect.disabled = value;
+      pageMode.disabled = value;
+      processingMode.disabled = value;
+      rotationSelect.disabled = value;
+      upscaleSelect.disabled = value;
+      brightnessRange.disabled = value;
+      contrastRange.disabled = value;
+      thresholdRange.disabled = value;
+
+      readButton.textContent =
+        value
+          ? "Reading text…"
+          : "Read text from image";
+
+      updateButtons();
+    }
+
+    async function recogniseText() {
+      if (
+        !hasImage() ||
+        recognising
+      ) {
+        return;
+      }
+
+      if (
+        typeof Tesseract ===
+        "undefined"
+      ) {
+        setStatus(
+          "The OCR library did not load. Check the internet connection and reload the page.",
+          "error"
+        );
+
+        return;
+      }
+
+      const runId =
+        ++currentRunId;
+
+      setRecognising(true);
+      setProgress(0);
+
+      outputText.value = "";
+      updateStatistics();
+
+      const startedAt =
+        performance.now();
+
+      try {
+        const activeWorker =
+          await prepareWorker();
+
+        if (runId !== currentRunId) {
+          return;
+        }
+
+        await activeWorker.setParameters({
+          tessedit_pageseg_mode:
+            pageMode.value,
+
+          preserve_interword_spaces:
+            "1",
+
+          user_defined_dpi:
+            "300"
+        });
+
+        const ocrCanvas =
+          createOCRCanvas();
+
+        setStatus(
+          "Reading text from the image…"
+        );
+
+        const result =
+          await activeWorker.recognize(
+            ocrCanvas
+          );
+
+        if (runId !== currentRunId) {
+          return;
+        }
+
+        let recognisedText =
+          result.data.text || "";
+
+        if (cleanTextCheckbox.checked) {
+          recognisedText =
+            cleanRecognisedText(
+              recognisedText
+            );
+        }
+
+        outputText.value =
+          recognisedText;
+
+        const elapsedSeconds =
+          (
+            performance.now() -
+            startedAt
+          ) / 1000;
+
+        updateStatistics(
+          result.data.confidence ?? 0,
+          elapsedSeconds
+        );
+
+        setProgress(100);
+
+        if (recognisedText.trim()) {
+          setStatus(
+            "Text recognition completed successfully.",
+            "success"
+          );
+        } else {
+          setStatus(
+            "OCR completed, but no readable text was detected. Try increasing contrast, changing the language or selecting a smaller area.",
+            "warning"
+          );
+        }
+      } catch (error) {
+        console.error(error);
+
+        if (runId === currentRunId) {
+          setProgress(0);
+
+          setStatus(
+            error?.message ||
+            "Text recognition failed.",
+            "error"
+          );
+        }
+      } finally {
+        if (runId === currentRunId) {
+          setRecognising(false);
+        }
+      }
+    }
+
+    async function cancelRecognition() {
+      if (!recognising) {
+        return;
+      }
+
+      currentRunId += 1;
+
+      setStatus(
+        "Cancelling OCR…"
+      );
+
+      try {
+        if (worker) {
+          await worker.terminate();
+        }
+      } catch (error) {
+        console.debug(error);
+      }
+
+      worker = null;
+      workerLanguageKey = "";
+
+      setRecognising(false);
+      setProgress(0);
+
+      setStatus(
+        "OCR cancelled.",
+        "warning"
+      );
+    }
+
+    function applyRecommendedSettings() {
+      if (!hasImage()) {
+        return;
+      }
+
+      processingMode.value =
+        "grayscale";
+
+      brightnessRange.value =
+        "5";
+
+      contrastRange.value =
+        "35";
+
+      thresholdRange.value =
+        "165";
+
+      upscaleSelect.value =
+        sourceImage.naturalWidth < 1600
+          ? "2"
+          : "1.5";
+
+      brightnessValue.textContent =
+        brightnessRange.value;
+
+      contrastValue.textContent =
+        contrastRange.value;
+
+      thresholdValue.textContent =
+        thresholdRange.value;
+
+      preprocessImage(true);
+
+      setStatus(
+        "Recommended OCR settings applied.",
+        "success"
+      );
+    }
+
+    async function pasteImage() {
+      if (
+        !navigator.clipboard ||
+        !navigator.clipboard.read
+      ) {
+        setStatus(
+          "Clipboard image reading is unavailable. Copy an image and press Ctrl+V, or use the upload button.",
+          "warning"
+        );
+
+        return;
+      }
+
+      try {
+        const clipboardItems =
+          await navigator.clipboard.read();
+
+        for (
+          const item of clipboardItems
+        ) {
+          const imageType =
+            item.types.find(
+              type =>
+                type.startsWith("image/")
+            );
+
+          if (imageType) {
+            const blob =
+              await item.getType(
+                imageType
+              );
+
+            const file =
+              new File(
+                [blob],
+                "pasted-image.png",
+                {
+                  type: imageType
+                }
+              );
+
+            loadImageFile(file);
+            return;
+          }
+        }
+
+        setStatus(
+          "No image was found in the clipboard.",
+          "warning"
+        );
+      } catch (error) {
+        console.error(error);
+
+        setStatus(
+          "Clipboard access was denied. Use Ctrl+V or choose an image file.",
+          "error"
+        );
+      }
+    }
+
+    async function copyText() {
+      const text =
+        outputText.value;
+
+      if (!text.trim()) {
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(
+          text
+        );
+
+        setStatus(
+          "Recognised text copied.",
+          "success"
+        );
+      } catch (error) {
+        outputText.focus();
+        outputText.select();
+
+        const copied =
+          document.execCommand("copy");
+
+        setStatus(
+          copied
+            ? "Recognised text copied."
+            : "Select the text and copy it manually.",
+          copied
+            ? "success"
+            : "warning"
+        );
+      }
+    }
+
+    function downloadText() {
+      const text =
+        outputText.value;
+
+      if (!text.trim()) {
+        return;
+      }
+
+      const blob =
+        new Blob(
+          [
+            "\uFEFF",
+            text
+          ],
+          {
+            type:
+              "text/plain;charset=utf-8"
+          }
+        );
+
+      const url =
+        URL.createObjectURL(blob);
+
+      const link =
+        document.createElement("a");
+
+      link.href = url;
+
+      link.download =
+        `${getBaseFileName()}-ocr.txt`;
+
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      window.setTimeout(
+        () =>
+          URL.revokeObjectURL(url),
+        1500
+      );
+
+      setStatus(
+        "Text file saved.",
+        "success"
+      );
+    }
+
+    function readTextAloud() {
+      const text =
+        outputText.value.trim();
+
+      if (!text) {
+        return;
+      }
+
+      if (
+        !("speechSynthesis" in window)
+      ) {
+        setStatus(
+          "Speech synthesis is not supported by this browser.",
+          "error"
+        );
+
+        return;
+      }
+
+      window.speechSynthesis.cancel();
+
+      const speech =
+        new SpeechSynthesisUtterance(
+          text
+        );
+
+      const languages =
+        getSelectedLanguages();
+
+      if (languages.includes("hin")) {
+        speech.lang = "hi-IN";
+      } else if (
+        languages.includes("ben")
+      ) {
+        speech.lang = "bn-IN";
+      } else if (
+        languages.includes("mar")
+      ) {
+        speech.lang = "mr-IN";
+      } else if (
+        languages.includes("urd")
+      ) {
+        speech.lang = "ur-IN";
+      } else {
+        speech.lang = "en-IN";
+      }
+
+      speech.rate = 0.95;
+
+      window.speechSynthesis.speak(
+        speech
+      );
+
+      setStatus(
+        "Reading the recognised text aloud.",
+        "success"
+      );
+    }
+
+    function saveProcessedImage() {
+      if (!hasImage()) {
+        return;
+      }
+
+      workingCanvas.toBlob(
+        blob => {
+          if (!blob) {
+            setStatus(
+              "The processed image could not be created.",
+              "error"
+            );
+
+            return;
+          }
+
+          const url =
+            URL.createObjectURL(blob);
+
+          const link =
+            document.createElement("a");
+
+          link.href = url;
+
+          link.download =
+            `${getBaseFileName()}-processed.png`;
+
+          document.body.appendChild(
+            link
+          );
+
+          link.click();
+          link.remove();
+
+          window.setTimeout(
+            () =>
+              URL.revokeObjectURL(url),
+            1500
+          );
+
+          setStatus(
+            "Processed image saved.",
+            "success"
+          );
+        },
+        "image/png",
+        1
+      );
+    }
+
+    function clearOutput() {
+      outputText.value = "";
+
+      window.speechSynthesis?.cancel();
+
+      updateStatistics();
+      setProgress(0);
+
+      setStatus(
+        hasImage()
+          ? "Recognised text cleared."
+          : "Load an image to begin."
+      );
+    }
+
+    imageInput.addEventListener(
+      "change",
+      event => {
+        loadImageFile(
+          event.target.files?.[0]
+        );
+      }
+    );
+
+    cameraInput.addEventListener(
+      "change",
+      event => {
+        loadImageFile(
+          event.target.files?.[0]
+        );
+      }
+    );
+
+    cameraButton.addEventListener(
+      "click",
+      () => {
+        cameraInput.click();
+      }
+    );
+
+    pasteButton.addEventListener(
+      "click",
+      pasteImage
+    );
+
+    removeImageButton.addEventListener(
+      "click",
+      removeImage
+    );
+
+    uploadBox.addEventListener(
+      "keydown",
+      event => {
+        if (
+          event.key === "Enter" ||
+          event.key === " "
+        ) {
+          event.preventDefault();
+          imageInput.click();
+        }
+      }
+    );
+
+    [
+      "dragenter",
+      "dragover"
+    ].forEach(eventName => {
+      uploadBox.addEventListener(
+        eventName,
+        event => {
+          event.preventDefault();
+
+          uploadBox.classList.add(
+            "drag-over"
+          );
+        }
+      );
+    });
+
+    [
+      "dragleave",
+      "drop"
+    ].forEach(eventName => {
+      uploadBox.addEventListener(
+        eventName,
+        event => {
+          event.preventDefault();
+
+          uploadBox.classList.remove(
+            "drag-over"
+          );
+        }
+      );
+    });
+
+    uploadBox.addEventListener(
+      "drop",
+      event => {
+        loadImageFile(
+          event.dataTransfer
+            ?.files?.[0]
+        );
+      }
+    );
+
+    document.addEventListener(
+      "paste",
+      event => {
+        if (recognising) {
+          return;
+        }
+
+        const imageItem =
+          Array.from(
+            event.clipboardData
+              ?.items || []
+          ).find(
+            item =>
+              item.type.startsWith(
+                "image/"
+              )
+          );
+
+        if (imageItem) {
+          const file =
+            imageItem.getAsFile();
+
+          if (file) {
+            loadImageFile(file);
+          }
+        }
+      }
+    );
+
+    previewCanvas.addEventListener(
+      "pointerdown",
+      beginSelection
+    );
+
+    previewCanvas.addEventListener(
+      "pointermove",
+      moveSelection
+    );
+
+    previewCanvas.addEventListener(
+      "pointerup",
+      finishSelection
+    );
+
+    previewCanvas.addEventListener(
+      "pointercancel",
+      finishSelection
+    );
+
+    [
+      processingMode,
+      rotationSelect,
+      upscaleSelect
+    ].forEach(control => {
+      control.addEventListener(
+        "change",
+        schedulePreprocessing
+      );
+    });
+
+    [
+      brightnessRange,
+      contrastRange,
+      thresholdRange
+    ].forEach(control => {
+      control.addEventListener(
+        "input",
+        () => {
+          brightnessValue.textContent =
+            brightnessRange.value;
+
+          contrastValue.textContent =
+            contrastRange.value;
+
+          thresholdValue.textContent =
+            thresholdRange.value;
+
+          schedulePreprocessing();
+        }
+      );
+    });
+
+    languageSelect.addEventListener(
+      "change",
+      () => {
+        setStatus(
+          "OCR language changed. The language data will load when OCR begins."
+        );
+      }
+    );
+
+    autoImproveButton.addEventListener(
+      "click",
+      applyRecommendedSettings
+    );
+
+    readButton.addEventListener(
+      "click",
+      recogniseText
+    );
+
+    cancelButton.addEventListener(
+      "click",
+      cancelRecognition
+    );
+
+    selectAllButton.addEventListener(
+      "click",
+      selectWholeImage
+    );
+
+    clearSelectionButton.addEventListener(
+      "click",
+      clearSelection
+    );
+
+    saveProcessedButton.addEventListener(
+      "click",
+      saveProcessedImage
+    );
+
+    copyButton.addEventListener(
+      "click",
+      copyText
+    );
+
+    downloadButton.addEventListener(
+      "click",
+      downloadText
+    );
+
+    speakButton.addEventListener(
+      "click",
+      readTextAloud
+    );
+
+    clearTextButton.addEventListener(
+      "click",
+      clearOutput
+    );
+
+    outputText.addEventListener(
+      "input",
+      () => {
+        updateStatistics();
+      }
+    );
+
+    window.addEventListener(
+      "beforeunload",
+      () => {
+        if (sourceUrl) {
+          URL.revokeObjectURL(
+            sourceUrl
+          );
+        }
+
+        window.speechSynthesis?.cancel();
+
+        if (worker) {
+          worker.terminate();
+        }
+      }
+    );
+
+    updateButtons();
+    updateStatistics();
+  </script>
+
+</body>
+
+</html>
