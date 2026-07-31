@@ -1,0 +1,2990 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1">
+
+  <title>Image Selection Tool | Programmer's Picnic</title>
+
+  <meta
+    name="description"
+    content="Load an image and select a portion using rectangle, ellipse, freehand, polygon or brush selection tools. Save the selected area as a transparent PNG.">
+
+  <meta name="theme-color" content="#1769aa">
+
+  <style>
+    :root {
+      --primary: #1769aa;
+      --primary-dark: #0d4f86;
+      --primary-light: #e7f3ff;
+      --page: #eef4f9;
+      --surface: #ffffff;
+      --border: #c6d4e1;
+      --text: #17212b;
+      --muted: #617181;
+      --success: #157347;
+      --danger: #b42318;
+      --warning: #9a6700;
+      --shadow: 0 16px 45px rgba(15, 55, 90, 0.13);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      color-scheme: light;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--text);
+
+      background:
+        radial-gradient(
+          circle at top left,
+          #d8ecff 0,
+          transparent 34%
+        ),
+        linear-gradient(
+          180deg,
+          #f8fbff,
+          var(--page)
+        );
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      touch-action: manipulation;
+    }
+
+    .site-header {
+      color: #ffffff;
+
+      background:
+        linear-gradient(
+          135deg,
+          var(--primary-dark),
+          var(--primary)
+        );
+
+      box-shadow:
+        0 8px 30px rgba(13, 79, 134, 0.22);
+    }
+
+    .header-inner,
+    main,
+    footer {
+      width: min(1250px, calc(100% - 26px));
+      margin-inline: auto;
+    }
+
+    .header-inner {
+      padding: 22px 0;
+    }
+
+    h1 {
+      margin: 0 0 7px;
+      font-size: clamp(1.7rem, 5vw, 2.5rem);
+      line-height: 1.1;
+    }
+
+    .subtitle {
+      margin: 0;
+      max-width: 850px;
+      color: #e9f5ff;
+      line-height: 1.55;
+    }
+
+    main {
+      padding: 24px 0 38px;
+    }
+
+    .app {
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .upload-section {
+      padding: 18px;
+      border-bottom: 1px solid var(--border);
+      background: #f8fbfe;
+    }
+
+    .upload-box {
+      position: relative;
+      display: grid;
+      place-items: center;
+      min-height: 135px;
+      padding: 22px;
+      text-align: center;
+      border: 2px dashed #8eb7da;
+      border-radius: 15px;
+      background: #ffffff;
+      cursor: pointer;
+
+      transition:
+        border-color 0.2s,
+        background 0.2s,
+        transform 0.2s;
+    }
+
+    .upload-box:hover,
+    .upload-box:focus-within,
+    .upload-box.drag-over {
+      border-color: var(--primary);
+      background: var(--primary-light);
+      transform: translateY(-1px);
+    }
+
+    .upload-box input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .upload-box strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 1.08rem;
+    }
+
+    .upload-box span {
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .upload-icon {
+      width: 44px;
+      height: 44px;
+      margin-bottom: 8px;
+      color: var(--primary);
+    }
+
+    .editor {
+      display: grid;
+      grid-template-columns: 250px minmax(0, 1fr);
+      min-height: 650px;
+    }
+
+    .sidebar {
+      padding: 16px;
+      border-right: 1px solid var(--border);
+      background: #f8fbfe;
+    }
+
+    .panel-title {
+      margin: 0 0 10px;
+      color: var(--primary-dark);
+      font-size: 0.92rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .tool-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .tool-button {
+      min-height: 68px;
+      padding: 8px 5px;
+      color: #294359;
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      background: #ffffff;
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-weight: 700;
+
+      transition:
+        background 0.15s,
+        border-color 0.15s,
+        transform 0.15s;
+    }
+
+    .tool-button:hover {
+      transform: translateY(-1px);
+      border-color: var(--primary);
+    }
+
+    .tool-button.active {
+      color: #ffffff;
+      border-color: var(--primary);
+      background: var(--primary);
+    }
+
+    .tool-icon {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 1.45rem;
+      line-height: 1;
+    }
+
+    .field {
+      margin-bottom: 16px;
+    }
+
+    .field label {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+      font-size: 0.88rem;
+      font-weight: 700;
+    }
+
+    .field input[type="range"] {
+      width: 100%;
+    }
+
+    .field select {
+      width: 100%;
+      min-height: 42px;
+      padding: 8px 10px;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      background: #ffffff;
+    }
+
+    .check-field {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      margin-bottom: 16px;
+      color: #34495a;
+      font-size: 0.9rem;
+      line-height: 1.45;
+    }
+
+    .check-field input {
+      width: 18px;
+      height: 18px;
+      margin-top: 1px;
+    }
+
+    .button-stack {
+      display: grid;
+      gap: 8px;
+    }
+
+    .btn {
+      min-height: 43px;
+      padding: 9px 12px;
+      border: 1px solid transparent;
+      border-radius: 9px;
+      font-weight: 700;
+      cursor: pointer;
+
+      transition:
+        transform 0.15s,
+        box-shadow 0.15s,
+        opacity 0.15s;
+    }
+
+    .btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+
+      box-shadow:
+        0 6px 16px rgba(20, 60, 90, 0.14);
+    }
+
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      color: #ffffff;
+      background: var(--primary);
+    }
+
+    .btn-success {
+      color: #ffffff;
+      background: var(--success);
+    }
+
+    .btn-secondary {
+      color: var(--primary-dark);
+      border-color: #9dbbd4;
+      background: #edf7ff;
+    }
+
+    .btn-danger {
+      color: var(--danger);
+      border-color: #e8aaa4;
+      background: #fff4f3;
+    }
+
+    .workspace {
+      min-width: 0;
+      background: #d7e0e7;
+    }
+
+    .top-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-bottom: 1px solid #bccbd6;
+      background: #ffffff;
+    }
+
+    .small-button {
+      min-height: 37px;
+      padding: 7px 11px;
+      color: #30485d;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #ffffff;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .small-button:hover:not(:disabled) {
+      border-color: var(--primary);
+      background: var(--primary-light);
+    }
+
+    .small-button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .zoom-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+      min-width: min(100%, 260px);
+    }
+
+    .zoom-group label {
+      white-space: nowrap;
+      font-size: 0.88rem;
+      font-weight: 700;
+    }
+
+    .zoom-group input {
+      width: 130px;
+      max-width: 40vw;
+    }
+
+    .canvas-stage {
+      display: grid;
+      place-items: center;
+      min-height: 560px;
+      max-height: 75vh;
+      padding: 22px;
+      overflow: auto;
+
+      background-color: #cfd9e1;
+
+      background-image:
+        linear-gradient(
+          45deg,
+          #bdc9d2 25%,
+          transparent 25%
+        ),
+        linear-gradient(
+          -45deg,
+          #bdc9d2 25%,
+          transparent 25%
+        ),
+        linear-gradient(
+          45deg,
+          transparent 75%,
+          #bdc9d2 75%
+        ),
+        linear-gradient(
+          -45deg,
+          transparent 75%,
+          #bdc9d2 75%
+        );
+
+      background-size: 28px 28px;
+
+      background-position:
+        0 0,
+        0 14px,
+        14px -14px,
+        -14px 0;
+    }
+
+    .canvas-wrapper {
+      position: relative;
+      display: none;
+      flex: 0 0 auto;
+      line-height: 0;
+      background: #ffffff;
+
+      box-shadow:
+        0 8px 30px rgba(0, 0, 0, 0.22);
+    }
+
+    .canvas-wrapper.visible {
+      display: block;
+    }
+
+    #editorCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+      touch-action: none;
+      user-select: none;
+    }
+
+    .empty-workspace {
+      max-width: 420px;
+      padding: 28px;
+      color: #546776;
+      text-align: center;
+      line-height: 1.6;
+      border: 1px solid #b9c7d2;
+      border-radius: 15px;
+      background: rgba(255, 255, 255, 0.8);
+    }
+
+    .status-bar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      padding: 11px 14px;
+      color: #40586b;
+      border-top: 1px solid #bccbd6;
+      background: #ffffff;
+      font-size: 0.88rem;
+      line-height: 1.4;
+    }
+
+    #statusText.success {
+      color: var(--success);
+      font-weight: 700;
+    }
+
+    #statusText.error {
+      color: var(--danger);
+      font-weight: 700;
+    }
+
+    #selectionInfo {
+      color: var(--primary-dark);
+      font-weight: 700;
+      text-align: right;
+    }
+
+    .instructions {
+      padding: 13px 16px;
+      color: #3e5669;
+      border-top: 1px solid var(--border);
+      background: var(--primary-light);
+      font-size: 0.91rem;
+      line-height: 1.55;
+    }
+
+    footer {
+      padding: 0 0 28px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 0.88rem;
+    }
+
+    @media (max-width: 850px) {
+      .editor {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        border-right: 0;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .tool-grid {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+      }
+
+      .button-stack {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .canvas-stage {
+        min-height: 430px;
+      }
+    }
+
+    @media (max-width: 580px) {
+      .header-inner,
+      main,
+      footer {
+        width: min(100% - 16px, 1250px);
+      }
+
+      .app {
+        border-radius: 14px;
+      }
+
+      .upload-section {
+        padding: 11px;
+      }
+
+      .tool-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .button-stack {
+        grid-template-columns: 1fr;
+      }
+
+      .top-toolbar {
+        align-items: stretch;
+      }
+
+      .zoom-group {
+        width: 100%;
+        margin-left: 0;
+      }
+
+      .zoom-group input {
+        flex: 1;
+        max-width: none;
+      }
+
+      .canvas-stage {
+        min-height: 380px;
+        padding: 10px;
+      }
+
+      .status-bar {
+        grid-template-columns: 1fr;
+      }
+
+      #selectionInfo {
+        text-align: left;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header class="site-header">
+    <div class="header-inner">
+
+      <h1>Image Selection Tool</h1>
+
+      <p class="subtitle">
+        Load an image and select any part using rectangle,
+        ellipse, freehand, polygon or brush tools. Save the
+        selected portion as a transparent PNG.
+      </p>
+
+    </div>
+  </header>
+
+  <main>
+
+    <section class="app">
+
+      <div class="upload-section">
+
+        <label
+          class="upload-box"
+          id="uploadBox"
+          for="imageInput">
+
+          <svg
+            class="upload-icon"
+            viewBox="0 0 24 24"
+            aria-hidden="true">
+
+            <path
+              fill="currentColor"
+              d="M19 13v6H5v-6H3v6a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6zM13 5.83l2.59 2.58L17 7l-5-5-5 5 1.41 1.41L11 5.83V16h2z">
+            </path>
+
+          </svg>
+
+          <strong>
+            Choose, drop or paste an image
+          </strong>
+
+          <span>
+            JPG, PNG, WEBP and other browser-supported formats
+          </span>
+
+          <input
+            id="imageInput"
+            type="file"
+            accept="image/*">
+
+        </label>
+
+      </div>
+
+      <div class="editor">
+
+        <aside class="sidebar">
+
+          <h2 class="panel-title">
+            Selection tools
+          </h2>
+
+          <div class="tool-grid">
+
+            <button
+              class="tool-button active"
+              type="button"
+              data-tool="rectangle">
+
+              <span class="tool-icon">▭</span>
+              Rectangle
+
+            </button>
+
+            <button
+              class="tool-button"
+              type="button"
+              data-tool="ellipse">
+
+              <span class="tool-icon">◯</span>
+              Ellipse
+
+            </button>
+
+            <button
+              class="tool-button"
+              type="button"
+              data-tool="freehand">
+
+              <span class="tool-icon">〰</span>
+              Freehand
+
+            </button>
+
+            <button
+              class="tool-button"
+              type="button"
+              data-tool="polygon">
+
+              <span class="tool-icon">⬡</span>
+              Polygon
+
+            </button>
+
+            <button
+              class="tool-button"
+              type="button"
+              data-tool="brush">
+
+              <span class="tool-icon">●</span>
+              Brush
+
+            </button>
+
+          </div>
+
+          <div
+            class="field"
+            id="brushSizeField">
+
+            <label for="brushSize">
+
+              Brush size
+
+              <span id="brushSizeValue">
+                60 px
+              </span>
+
+            </label>
+
+            <input
+              id="brushSize"
+              type="range"
+              min="5"
+              max="300"
+              value="60">
+
+          </div>
+
+          <div class="field">
+
+            <label for="overlayOpacity">
+
+              Outside darkness
+
+              <span id="overlayOpacityValue">
+                60%
+              </span>
+
+            </label>
+
+            <input
+              id="overlayOpacity"
+              type="range"
+              min="0"
+              max="90"
+              value="60">
+
+          </div>
+
+          <label class="check-field">
+
+            <input
+              id="cropOutput"
+              type="checkbox"
+              checked>
+
+            <span>
+              Crop the saved image to the selected area's
+              boundaries.
+            </span>
+
+          </label>
+
+          <div class="button-stack">
+
+            <button
+              class="btn btn-success"
+              id="saveSelectionButton"
+              type="button"
+              disabled>
+
+              Save selected part
+
+            </button>
+
+            <button
+              class="btn btn-primary"
+              id="saveMaskButton"
+              type="button"
+              disabled>
+
+              Save selection mask
+
+            </button>
+
+            <button
+              class="btn btn-secondary"
+              id="finishPolygonButton"
+              type="button"
+              disabled>
+
+              Finish polygon
+
+            </button>
+
+            <button
+              class="btn btn-danger"
+              id="clearSelectionButton"
+              type="button"
+              disabled>
+
+              Clear selection
+
+            </button>
+
+          </div>
+
+        </aside>
+
+        <section class="workspace">
+
+          <div class="top-toolbar">
+
+            <button
+              class="small-button"
+              id="undoButton"
+              type="button"
+              disabled>
+
+              Undo
+
+            </button>
+
+            <button
+              class="small-button"
+              id="redoButton"
+              type="button"
+              disabled>
+
+              Redo
+
+            </button>
+
+            <button
+              class="small-button"
+              id="fitButton"
+              type="button"
+              disabled>
+
+              Fit image
+
+            </button>
+
+            <button
+              class="small-button"
+              id="resetButton"
+              type="button"
+              disabled>
+
+              Remove image
+
+            </button>
+
+            <div class="zoom-group">
+
+              <label for="zoomRange">
+                Zoom
+              </label>
+
+              <input
+                id="zoomRange"
+                type="range"
+                min="25"
+                max="300"
+                value="100"
+                disabled>
+
+              <strong id="zoomValue">
+                100%
+              </strong>
+
+            </div>
+
+          </div>
+
+          <div
+            class="canvas-stage"
+            id="canvasStage">
+
+            <div
+              class="empty-workspace"
+              id="emptyWorkspace">
+
+              Load an image to start selecting a part.
+
+              <br><br>
+
+              On a phone or tablet, draw directly using your
+              finger.
+
+            </div>
+
+            <div
+              class="canvas-wrapper"
+              id="canvasWrapper">
+
+              <canvas id="editorCanvas"></canvas>
+
+            </div>
+
+          </div>
+
+          <div
+            class="status-bar"
+            aria-live="polite">
+
+            <span id="statusText">
+              No image loaded.
+            </span>
+
+            <span id="selectionInfo">
+              No selection
+            </span>
+
+          </div>
+
+        </section>
+
+      </div>
+
+      <div class="instructions">
+
+        <strong>Rectangle and ellipse:</strong>
+        drag across the image.
+
+        <strong>Freehand:</strong>
+        draw around the required part.
+
+        <strong>Polygon:</strong>
+        tap or click to add points, then use
+        “Finish polygon”, double-click, or press Enter.
+
+        <strong>Brush:</strong>
+        paint over the part that must be selected.
+
+        Hold <strong>Shift</strong> while drawing a rectangle or
+        ellipse to create a square or circle.
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <footer>
+    Programmer's Picnic by Champak Roy
+  </footer>
+
+  <script>
+    "use strict";
+
+    const imageInput =
+      document.getElementById("imageInput");
+
+    const uploadBox =
+      document.getElementById("uploadBox");
+
+    const canvas =
+      document.getElementById("editorCanvas");
+
+    const context =
+      canvas.getContext("2d");
+
+    const canvasStage =
+      document.getElementById("canvasStage");
+
+    const canvasWrapper =
+      document.getElementById("canvasWrapper");
+
+    const emptyWorkspace =
+      document.getElementById("emptyWorkspace");
+
+    const toolButtons =
+      Array.from(
+        document.querySelectorAll(".tool-button")
+      );
+
+    const brushSize =
+      document.getElementById("brushSize");
+
+    const brushSizeValue =
+      document.getElementById("brushSizeValue");
+
+    const overlayOpacity =
+      document.getElementById("overlayOpacity");
+
+    const overlayOpacityValue =
+      document.getElementById(
+        "overlayOpacityValue"
+      );
+
+    const cropOutput =
+      document.getElementById("cropOutput");
+
+    const saveSelectionButton =
+      document.getElementById(
+        "saveSelectionButton"
+      );
+
+    const saveMaskButton =
+      document.getElementById(
+        "saveMaskButton"
+      );
+
+    const finishPolygonButton =
+      document.getElementById(
+        "finishPolygonButton"
+      );
+
+    const clearSelectionButton =
+      document.getElementById(
+        "clearSelectionButton"
+      );
+
+    const undoButton =
+      document.getElementById("undoButton");
+
+    const redoButton =
+      document.getElementById("redoButton");
+
+    const fitButton =
+      document.getElementById("fitButton");
+
+    const resetButton =
+      document.getElementById("resetButton");
+
+    const zoomRange =
+      document.getElementById("zoomRange");
+
+    const zoomValue =
+      document.getElementById("zoomValue");
+
+    const statusText =
+      document.getElementById("statusText");
+
+    const selectionInfo =
+      document.getElementById("selectionInfo");
+
+    const maskCanvas =
+      document.createElement("canvas");
+
+    const maskContext =
+      maskCanvas.getContext("2d");
+
+    const overlayCanvas =
+      document.createElement("canvas");
+
+    const overlayContext =
+      overlayCanvas.getContext("2d");
+
+    const sourceImage = new Image();
+
+    let sourceFile = null;
+    let sourceUrl = "";
+
+    let activeTool = "rectangle";
+
+    let selection = null;
+
+    let isDrawing = false;
+    let pointerId = null;
+
+    let startPoint = null;
+
+    let fitScale = 1;
+    let zoomPercent = 100;
+
+    let history = [null];
+    let historyIndex = 0;
+
+    function cloneSelection(value) {
+      if (!value) {
+        return null;
+      }
+
+      return JSON.parse(
+        JSON.stringify(value)
+      );
+    }
+
+    function clamp(value, minimum, maximum) {
+      return Math.max(
+        minimum,
+        Math.min(maximum, value)
+      );
+    }
+
+    function distance(pointA, pointB) {
+      return Math.hypot(
+        pointB.x - pointA.x,
+        pointB.y - pointA.y
+      );
+    }
+
+    function setStatus(message, type = "") {
+      statusText.textContent = message;
+
+      statusText.classList.remove(
+        "success",
+        "error"
+      );
+
+      if (type) {
+        statusText.classList.add(type);
+      }
+    }
+
+    function hasImage() {
+      return Boolean(
+        sourceImage.naturalWidth &&
+        sourceImage.naturalHeight
+      );
+    }
+
+    function hasSelection() {
+      if (!selection) {
+        return false;
+      }
+
+      if (
+        selection.type === "rectangle" ||
+        selection.type === "ellipse"
+      ) {
+        return (
+          Math.abs(
+            selection.x2 - selection.x1
+          ) > 1 &&
+          Math.abs(
+            selection.y2 - selection.y1
+          ) > 1
+        );
+      }
+
+      if (selection.type === "brush") {
+        return selection.points.length > 0;
+      }
+
+      return selection.points.length >= 3;
+    }
+
+    function isPolygonInProgress() {
+      return (
+        selection &&
+        selection.type === "polygon" &&
+        !selection.finished
+      );
+    }
+
+    function updateButtons() {
+      const validSelection =
+        hasSelection();
+
+      saveSelectionButton.disabled =
+        !validSelection;
+
+      saveMaskButton.disabled =
+        !validSelection;
+
+      clearSelectionButton.disabled =
+        !selection;
+
+      finishPolygonButton.disabled =
+        !isPolygonInProgress() ||
+        selection.points.length < 3;
+
+      undoButton.disabled =
+        historyIndex <= 0;
+
+      redoButton.disabled =
+        historyIndex >= history.length - 1;
+
+      fitButton.disabled =
+        !hasImage();
+
+      resetButton.disabled =
+        !hasImage();
+
+      zoomRange.disabled =
+        !hasImage();
+    }
+
+    function updateSelectionInformation() {
+      if (!hasSelection()) {
+        selectionInfo.textContent =
+          selection
+            ? "Selection incomplete"
+            : "No selection";
+
+        updateButtons();
+        return;
+      }
+
+      const bounds =
+        getSelectionBounds();
+
+      const width =
+        Math.max(
+          0,
+          Math.round(
+            bounds.right - bounds.left
+          )
+        );
+
+      const height =
+        Math.max(
+          0,
+          Math.round(
+            bounds.bottom - bounds.top
+          )
+        );
+
+      selectionInfo.textContent =
+        `${selection.type} • ${width} × ${height} px`;
+
+      updateButtons();
+    }
+
+    function resetHistory() {
+      history = [null];
+      historyIndex = 0;
+      updateButtons();
+    }
+
+    function commitSelection() {
+      const snapshot =
+        cloneSelection(selection);
+
+      history = history.slice(
+        0,
+        historyIndex + 1
+      );
+
+      history.push(snapshot);
+
+      historyIndex =
+        history.length - 1;
+
+      updateButtons();
+    }
+
+    function restoreHistory(index) {
+      if (
+        index < 0 ||
+        index >= history.length
+      ) {
+        return;
+      }
+
+      historyIndex = index;
+
+      selection =
+        cloneSelection(
+          history[historyIndex]
+        );
+
+      isDrawing = false;
+      pointerId = null;
+
+      redraw();
+      updateSelectionInformation();
+    }
+
+    function undo() {
+      restoreHistory(
+        historyIndex - 1
+      );
+    }
+
+    function redo() {
+      restoreHistory(
+        historyIndex + 1
+      );
+    }
+
+    function setTool(toolName) {
+      activeTool = toolName;
+
+      toolButtons.forEach(button => {
+        button.classList.toggle(
+          "active",
+          button.dataset.tool === toolName
+        );
+      });
+
+      canvas.style.cursor =
+        toolName === "brush"
+          ? "cell"
+          : "crosshair";
+
+      if (toolName === "polygon") {
+        setStatus(
+          "Click or tap to add polygon points."
+        );
+      } else if (toolName === "brush") {
+        setStatus(
+          "Paint over the part that must be selected."
+        );
+      } else {
+        setStatus(
+          `Draw a ${toolName} selection.`
+        );
+      }
+    }
+
+    function getCanvasPoint(event) {
+      const bounds =
+        canvas.getBoundingClientRect();
+
+      const scaleX =
+        canvas.width / bounds.width;
+
+      const scaleY =
+        canvas.height / bounds.height;
+
+      return {
+        x: clamp(
+          (
+            event.clientX -
+            bounds.left
+          ) * scaleX,
+          0,
+          canvas.width
+        ),
+
+        y: clamp(
+          (
+            event.clientY -
+            bounds.top
+          ) * scaleY,
+          0,
+          canvas.height
+        )
+      };
+    }
+
+    function calculateConstrainedPoint(
+      origin,
+      current
+    ) {
+      const deltaX =
+        current.x - origin.x;
+
+      const deltaY =
+        current.y - origin.y;
+
+      const size =
+        Math.max(
+          Math.abs(deltaX),
+          Math.abs(deltaY)
+        );
+
+      return {
+        x:
+          origin.x +
+          Math.sign(deltaX || 1) *
+          size,
+
+        y:
+          origin.y +
+          Math.sign(deltaY || 1) *
+          size
+      };
+    }
+
+    function resizeWorkingCanvases() {
+      maskCanvas.width =
+        canvas.width;
+
+      maskCanvas.height =
+        canvas.height;
+
+      overlayCanvas.width =
+        canvas.width;
+
+      overlayCanvas.height =
+        canvas.height;
+    }
+
+    function calculateFitScale() {
+      if (!hasImage()) {
+        fitScale = 1;
+        return;
+      }
+
+      const availableWidth =
+        Math.max(
+          100,
+          canvasStage.clientWidth - 44
+        );
+
+      const availableHeight =
+        Math.max(
+          100,
+          canvasStage.clientHeight - 44
+        );
+
+      fitScale = Math.min(
+        1,
+        availableWidth /
+          sourceImage.naturalWidth,
+        availableHeight /
+          sourceImage.naturalHeight
+      );
+    }
+
+    function updateCanvasDisplaySize() {
+      if (!hasImage()) {
+        return;
+      }
+
+      const multiplier =
+        zoomPercent / 100;
+
+      const displayWidth =
+        Math.max(
+          1,
+          Math.round(
+            sourceImage.naturalWidth *
+            fitScale *
+            multiplier
+          )
+        );
+
+      const displayHeight =
+        Math.max(
+          1,
+          Math.round(
+            sourceImage.naturalHeight *
+            fitScale *
+            multiplier
+          )
+        );
+
+      canvasWrapper.style.width =
+        `${displayWidth}px`;
+
+      canvasWrapper.style.height =
+        `${displayHeight}px`;
+
+      zoomValue.textContent =
+        `${zoomPercent}%`;
+    }
+
+    function fitImage() {
+      zoomPercent = 100;
+      zoomRange.value = "100";
+
+      calculateFitScale();
+      updateCanvasDisplaySize();
+    }
+
+    function renderSelectionMask(
+      targetContext,
+      targetSelection = selection
+    ) {
+      targetContext.clearRect(
+        0,
+        0,
+        targetContext.canvas.width,
+        targetContext.canvas.height
+      );
+
+      if (!targetSelection) {
+        return;
+      }
+
+      targetContext.save();
+
+      targetContext.fillStyle =
+        "#ffffff";
+
+      targetContext.strokeStyle =
+        "#ffffff";
+
+      targetContext.lineCap =
+        "round";
+
+      targetContext.lineJoin =
+        "round";
+
+      if (
+        targetSelection.type ===
+        "rectangle"
+      ) {
+        const left =
+          Math.min(
+            targetSelection.x1,
+            targetSelection.x2
+          );
+
+        const top =
+          Math.min(
+            targetSelection.y1,
+            targetSelection.y2
+          );
+
+        const width =
+          Math.abs(
+            targetSelection.x2 -
+            targetSelection.x1
+          );
+
+        const height =
+          Math.abs(
+            targetSelection.y2 -
+            targetSelection.y1
+          );
+
+        targetContext.fillRect(
+          left,
+          top,
+          width,
+          height
+        );
+      }
+
+      if (
+        targetSelection.type ===
+        "ellipse"
+      ) {
+        const centerX =
+          (
+            targetSelection.x1 +
+            targetSelection.x2
+          ) / 2;
+
+        const centerY =
+          (
+            targetSelection.y1 +
+            targetSelection.y2
+          ) / 2;
+
+        const radiusX =
+          Math.abs(
+            targetSelection.x2 -
+            targetSelection.x1
+          ) / 2;
+
+        const radiusY =
+          Math.abs(
+            targetSelection.y2 -
+            targetSelection.y1
+          ) / 2;
+
+        targetContext.beginPath();
+
+        targetContext.ellipse(
+          centerX,
+          centerY,
+          radiusX,
+          radiusY,
+          0,
+          0,
+          Math.PI * 2
+        );
+
+        targetContext.fill();
+      }
+
+      if (
+        targetSelection.type ===
+          "freehand" ||
+        targetSelection.type ===
+          "polygon"
+      ) {
+        const points =
+          targetSelection.points;
+
+        if (points.length >= 3) {
+          targetContext.beginPath();
+
+          targetContext.moveTo(
+            points[0].x,
+            points[0].y
+          );
+
+          for (
+            let index = 1;
+            index < points.length;
+            index += 1
+          ) {
+            targetContext.lineTo(
+              points[index].x,
+              points[index].y
+            );
+          }
+
+          targetContext.closePath();
+          targetContext.fill();
+        }
+      }
+
+      if (
+        targetSelection.type ===
+        "brush"
+      ) {
+        const points =
+          targetSelection.points;
+
+        targetContext.lineWidth =
+          targetSelection.width;
+
+        if (points.length === 1) {
+          targetContext.beginPath();
+
+          targetContext.arc(
+            points[0].x,
+            points[0].y,
+            targetSelection.width / 2,
+            0,
+            Math.PI * 2
+          );
+
+          targetContext.fill();
+        }
+
+        if (points.length > 1) {
+          targetContext.beginPath();
+
+          targetContext.moveTo(
+            points[0].x,
+            points[0].y
+          );
+
+          for (
+            let index = 1;
+            index < points.length;
+            index += 1
+          ) {
+            targetContext.lineTo(
+              points[index].x,
+              points[index].y
+            );
+          }
+
+          targetContext.stroke();
+        }
+      }
+
+      targetContext.restore();
+    }
+
+    function drawSelectionOutline() {
+      if (!selection) {
+        return;
+      }
+
+      context.save();
+
+      context.strokeStyle =
+        "#00a8ff";
+
+      context.fillStyle =
+        "#00a8ff";
+
+      context.lineWidth =
+        Math.max(
+          2,
+          canvas.width / 800
+        );
+
+      context.setLineDash([
+        Math.max(
+          6,
+          canvas.width / 140
+        ),
+        Math.max(
+          4,
+          canvas.width / 200
+        )
+      ]);
+
+      context.lineCap = "round";
+      context.lineJoin = "round";
+
+      if (
+        selection.type === "rectangle"
+      ) {
+        context.strokeRect(
+          selection.x1,
+          selection.y1,
+          selection.x2 - selection.x1,
+          selection.y2 - selection.y1
+        );
+      }
+
+      if (
+        selection.type === "ellipse"
+      ) {
+        const centerX =
+          (
+            selection.x1 +
+            selection.x2
+          ) / 2;
+
+        const centerY =
+          (
+            selection.y1 +
+            selection.y2
+          ) / 2;
+
+        const radiusX =
+          Math.abs(
+            selection.x2 -
+            selection.x1
+          ) / 2;
+
+        const radiusY =
+          Math.abs(
+            selection.y2 -
+            selection.y1
+          ) / 2;
+
+        context.beginPath();
+
+        context.ellipse(
+          centerX,
+          centerY,
+          radiusX,
+          radiusY,
+          0,
+          0,
+          Math.PI * 2
+        );
+
+        context.stroke();
+      }
+
+      if (
+        selection.type ===
+          "freehand" ||
+        selection.type ===
+          "polygon"
+      ) {
+        const points =
+          selection.points;
+
+        if (points.length > 0) {
+          context.beginPath();
+
+          context.moveTo(
+            points[0].x,
+            points[0].y
+          );
+
+          for (
+            let index = 1;
+            index < points.length;
+            index += 1
+          ) {
+            context.lineTo(
+              points[index].x,
+              points[index].y
+            );
+          }
+
+          if (
+            selection.type ===
+              "freehand" ||
+            selection.finished
+          ) {
+            context.closePath();
+          }
+
+          context.stroke();
+
+          if (
+            selection.type ===
+            "polygon"
+          ) {
+            context.setLineDash([]);
+
+            const pointRadius =
+              Math.max(
+                4,
+                canvas.width / 300
+              );
+
+            points.forEach(point => {
+              context.beginPath();
+
+              context.arc(
+                point.x,
+                point.y,
+                pointRadius,
+                0,
+                Math.PI * 2
+              );
+
+              context.fill();
+            });
+          }
+        }
+      }
+
+      if (
+        selection.type === "brush"
+      ) {
+        const points =
+          selection.points;
+
+        context.setLineDash([]);
+
+        context.strokeStyle =
+          "#00a8ff";
+
+        context.globalAlpha = 0.85;
+
+        context.lineWidth =
+          selection.width;
+
+        if (points.length === 1) {
+          context.beginPath();
+
+          context.arc(
+            points[0].x,
+            points[0].y,
+            selection.width / 2,
+            0,
+            Math.PI * 2
+          );
+
+          context.stroke();
+        }
+
+        if (points.length > 1) {
+          context.beginPath();
+
+          context.moveTo(
+            points[0].x,
+            points[0].y
+          );
+
+          for (
+            let index = 1;
+            index < points.length;
+            index += 1
+          ) {
+            context.lineTo(
+              points[index].x,
+              points[index].y
+            );
+          }
+
+          context.stroke();
+        }
+      }
+
+      context.restore();
+    }
+
+    function redraw() {
+      if (!hasImage()) {
+        return;
+      }
+
+      context.clearRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      );
+
+      context.drawImage(
+        sourceImage,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      );
+
+      if (selection) {
+        renderSelectionMask(
+          maskContext
+        );
+
+        overlayContext.clearRect(
+          0,
+          0,
+          overlayCanvas.width,
+          overlayCanvas.height
+        );
+
+        const opacity =
+          Number(
+            overlayOpacity.value
+          ) / 100;
+
+        overlayContext.fillStyle =
+          `rgba(0, 0, 0, ${opacity})`;
+
+        overlayContext.fillRect(
+          0,
+          0,
+          overlayCanvas.width,
+          overlayCanvas.height
+        );
+
+        overlayContext.globalCompositeOperation =
+          "destination-out";
+
+        overlayContext.drawImage(
+          maskCanvas,
+          0,
+          0
+        );
+
+        overlayContext.globalCompositeOperation =
+          "source-over";
+
+        context.drawImage(
+          overlayCanvas,
+          0,
+          0
+        );
+
+        drawSelectionOutline();
+      }
+    }
+
+    function loadImageFile(file) {
+      if (
+        !file ||
+        !file.type.startsWith("image/")
+      ) {
+        setStatus(
+          "Please select a valid image file.",
+          "error"
+        );
+
+        return;
+      }
+
+      if (sourceUrl) {
+        URL.revokeObjectURL(sourceUrl);
+      }
+
+      sourceFile = file;
+
+      sourceUrl =
+        URL.createObjectURL(file);
+
+      sourceImage.onload = () => {
+        canvas.width =
+          sourceImage.naturalWidth;
+
+        canvas.height =
+          sourceImage.naturalHeight;
+
+        resizeWorkingCanvases();
+
+        canvasWrapper.classList.add(
+          "visible"
+        );
+
+        emptyWorkspace.hidden = true;
+
+        selection = null;
+        resetHistory();
+
+        calculateFitScale();
+        updateCanvasDisplaySize();
+        redraw();
+
+        setStatus(
+          `${file.name} loaded successfully.`,
+          "success"
+        );
+
+        updateSelectionInformation();
+      };
+
+      sourceImage.onerror = () => {
+        setStatus(
+          "The selected image could not be opened.",
+          "error"
+        );
+      };
+
+      sourceImage.src = sourceUrl;
+    }
+
+    function startDrawing(event) {
+      if (!hasImage()) {
+        return;
+      }
+
+      const point =
+        getCanvasPoint(event);
+
+      if (activeTool === "polygon") {
+        if (
+          !selection ||
+          selection.type !== "polygon" ||
+          selection.finished
+        ) {
+          selection = {
+            type: "polygon",
+            points: [point],
+            finished: false
+          };
+        } else {
+          selection.points.push(point);
+        }
+
+        redraw();
+        updateSelectionInformation();
+
+        setStatus(
+          "Add more polygon points, then finish the polygon."
+        );
+
+        return;
+      }
+
+      isDrawing = true;
+      pointerId = event.pointerId;
+      startPoint = point;
+
+      canvas.setPointerCapture(
+        event.pointerId
+      );
+
+      if (
+        activeTool === "rectangle" ||
+        activeTool === "ellipse"
+      ) {
+        selection = {
+          type: activeTool,
+          x1: point.x,
+          y1: point.y,
+          x2: point.x,
+          y2: point.y
+        };
+      }
+
+      if (activeTool === "freehand") {
+        selection = {
+          type: "freehand",
+          points: [point]
+        };
+      }
+
+      if (activeTool === "brush") {
+        selection = {
+          type: "brush",
+          width: Number(
+            brushSize.value
+          ),
+          points: [point]
+        };
+      }
+
+      redraw();
+      updateSelectionInformation();
+    }
+
+    function continueDrawing(event) {
+      if (
+        !isDrawing ||
+        event.pointerId !== pointerId ||
+        !selection
+      ) {
+        return;
+      }
+
+      let point =
+        getCanvasPoint(event);
+
+      if (
+        (
+          selection.type ===
+            "rectangle" ||
+          selection.type ===
+            "ellipse"
+        ) &&
+        event.shiftKey
+      ) {
+        point =
+          calculateConstrainedPoint(
+            startPoint,
+            point
+          );
+      }
+
+      if (
+        selection.type ===
+          "rectangle" ||
+        selection.type ===
+          "ellipse"
+      ) {
+        selection.x2 =
+          clamp(
+            point.x,
+            0,
+            canvas.width
+          );
+
+        selection.y2 =
+          clamp(
+            point.y,
+            0,
+            canvas.height
+          );
+      }
+
+      if (
+        selection.type ===
+          "freehand" ||
+        selection.type ===
+          "brush"
+      ) {
+        const lastPoint =
+          selection.points[
+            selection.points.length - 1
+          ];
+
+        if (
+          !lastPoint ||
+          distance(
+            lastPoint,
+            point
+          ) >= 2
+        ) {
+          selection.points.push(point);
+        }
+      }
+
+      redraw();
+      updateSelectionInformation();
+    }
+
+    function finishDrawing(event) {
+      if (
+        !isDrawing ||
+        event.pointerId !== pointerId
+      ) {
+        return;
+      }
+
+      continueDrawing(event);
+
+      isDrawing = false;
+
+      try {
+        canvas.releasePointerCapture(
+          event.pointerId
+        );
+      } catch (error) {
+        console.debug(error);
+      }
+
+      pointerId = null;
+
+      if (hasSelection()) {
+        commitSelection();
+
+        setStatus(
+          `${selection.type} selection completed.`,
+          "success"
+        );
+      } else {
+        selection = null;
+
+        setStatus(
+          "The selection was too small. Please try again.",
+          "error"
+        );
+      }
+
+      redraw();
+      updateSelectionInformation();
+    }
+
+    function finishPolygon() {
+      if (
+        !isPolygonInProgress() ||
+        selection.points.length < 3
+      ) {
+        setStatus(
+          "Add at least three polygon points.",
+          "error"
+        );
+
+        return;
+      }
+
+      selection.finished = true;
+
+      commitSelection();
+      redraw();
+      updateSelectionInformation();
+
+      setStatus(
+        "Polygon selection completed.",
+        "success"
+      );
+    }
+
+    function clearSelection() {
+      if (!selection) {
+        return;
+      }
+
+      selection = null;
+      commitSelection();
+
+      redraw();
+      updateSelectionInformation();
+
+      setStatus(
+        "Selection cleared."
+      );
+    }
+
+    function getSelectionBounds() {
+      if (!selection) {
+        return {
+          left: 0,
+          top: 0,
+          right: canvas.width,
+          bottom: canvas.height
+        };
+      }
+
+      let left = 0;
+      let top = 0;
+      let right = canvas.width;
+      let bottom = canvas.height;
+
+      if (
+        selection.type ===
+          "rectangle" ||
+        selection.type ===
+          "ellipse"
+      ) {
+        left =
+          Math.min(
+            selection.x1,
+            selection.x2
+          );
+
+        top =
+          Math.min(
+            selection.y1,
+            selection.y2
+          );
+
+        right =
+          Math.max(
+            selection.x1,
+            selection.x2
+          );
+
+        bottom =
+          Math.max(
+            selection.y1,
+            selection.y2
+          );
+      } else {
+        const points =
+          selection.points;
+
+        left =
+          Math.min(
+            ...points.map(
+              point => point.x
+            )
+          );
+
+        top =
+          Math.min(
+            ...points.map(
+              point => point.y
+            )
+          );
+
+        right =
+          Math.max(
+            ...points.map(
+              point => point.x
+            )
+          );
+
+        bottom =
+          Math.max(
+            ...points.map(
+              point => point.y
+            )
+          );
+
+        if (
+          selection.type === "brush"
+        ) {
+          const extra =
+            selection.width / 2;
+
+          left -= extra;
+          top -= extra;
+          right += extra;
+          bottom += extra;
+        }
+      }
+
+      return {
+        left: clamp(
+          Math.floor(left),
+          0,
+          canvas.width
+        ),
+
+        top: clamp(
+          Math.floor(top),
+          0,
+          canvas.height
+        ),
+
+        right: clamp(
+          Math.ceil(right),
+          0,
+          canvas.width
+        ),
+
+        bottom: clamp(
+          Math.ceil(bottom),
+          0,
+          canvas.height
+        )
+      };
+    }
+
+    function sanitizeFileName(name) {
+      return (
+        name
+          .replace(/\.[^/.]+$/, "")
+          .replace(
+            /[^a-zA-Z0-9-_]+/g,
+            "-"
+          )
+          .replace(
+            /^-+|-+$/g,
+            ""
+          ) ||
+        "image"
+      );
+    }
+
+    function downloadCanvas(
+      targetCanvas,
+      fileName
+    ) {
+      targetCanvas.toBlob(
+        blob => {
+          if (!blob) {
+            setStatus(
+              "The PNG could not be created.",
+              "error"
+            );
+
+            return;
+          }
+
+          const url =
+            URL.createObjectURL(blob);
+
+          const link =
+            document.createElement("a");
+
+          link.href = url;
+          link.download = fileName;
+
+          document.body.appendChild(
+            link
+          );
+
+          link.click();
+          link.remove();
+
+          window.setTimeout(
+            () =>
+              URL.revokeObjectURL(url),
+            1500
+          );
+        },
+        "image/png",
+        1
+      );
+    }
+
+    function createSelectedImageCanvas() {
+      renderSelectionMask(
+        maskContext
+      );
+
+      const fullCanvas =
+        document.createElement("canvas");
+
+      fullCanvas.width =
+        canvas.width;
+
+      fullCanvas.height =
+        canvas.height;
+
+      const fullContext =
+        fullCanvas.getContext("2d");
+
+      fullContext.drawImage(
+        sourceImage,
+        0,
+        0,
+        fullCanvas.width,
+        fullCanvas.height
+      );
+
+      fullContext.globalCompositeOperation =
+        "destination-in";
+
+      fullContext.drawImage(
+        maskCanvas,
+        0,
+        0
+      );
+
+      fullContext.globalCompositeOperation =
+        "source-over";
+
+      if (!cropOutput.checked) {
+        return fullCanvas;
+      }
+
+      const bounds =
+        getSelectionBounds();
+
+      const outputWidth =
+        Math.max(
+          1,
+          bounds.right -
+          bounds.left
+        );
+
+      const outputHeight =
+        Math.max(
+          1,
+          bounds.bottom -
+          bounds.top
+        );
+
+      const croppedCanvas =
+        document.createElement("canvas");
+
+      croppedCanvas.width =
+        outputWidth;
+
+      croppedCanvas.height =
+        outputHeight;
+
+      const croppedContext =
+        croppedCanvas.getContext("2d");
+
+      croppedContext.drawImage(
+        fullCanvas,
+        bounds.left,
+        bounds.top,
+        outputWidth,
+        outputHeight,
+        0,
+        0,
+        outputWidth,
+        outputHeight
+      );
+
+      return croppedCanvas;
+    }
+
+    function saveSelectedPart() {
+      if (!hasSelection()) {
+        setStatus(
+          "Create a selection first.",
+          "error"
+        );
+
+        return;
+      }
+
+      const outputCanvas =
+        createSelectedImageCanvas();
+
+      const baseName =
+        sanitizeFileName(
+          sourceFile?.name ||
+          "image"
+        );
+
+      downloadCanvas(
+        outputCanvas,
+        `${baseName}-selected.png`
+      );
+
+      setStatus(
+        "Selected part saved as a transparent PNG.",
+        "success"
+      );
+    }
+
+    function createMaskOutputCanvas() {
+      renderSelectionMask(
+        maskContext
+      );
+
+      if (!cropOutput.checked) {
+        const output =
+          document.createElement("canvas");
+
+        output.width =
+          maskCanvas.width;
+
+        output.height =
+          maskCanvas.height;
+
+        output
+          .getContext("2d")
+          .drawImage(
+            maskCanvas,
+            0,
+            0
+          );
+
+        return output;
+      }
+
+      const bounds =
+        getSelectionBounds();
+
+      const outputWidth =
+        Math.max(
+          1,
+          bounds.right -
+          bounds.left
+        );
+
+      const outputHeight =
+        Math.max(
+          1,
+          bounds.bottom -
+          bounds.top
+        );
+
+      const output =
+        document.createElement("canvas");
+
+      output.width =
+        outputWidth;
+
+      output.height =
+        outputHeight;
+
+      output
+        .getContext("2d")
+        .drawImage(
+          maskCanvas,
+          bounds.left,
+          bounds.top,
+          outputWidth,
+          outputHeight,
+          0,
+          0,
+          outputWidth,
+          outputHeight
+        );
+
+      return output;
+    }
+
+    function saveSelectionMask() {
+      if (!hasSelection()) {
+        setStatus(
+          "Create a selection first.",
+          "error"
+        );
+
+        return;
+      }
+
+      const outputCanvas =
+        createMaskOutputCanvas();
+
+      const baseName =
+        sanitizeFileName(
+          sourceFile?.name ||
+          "image"
+        );
+
+      downloadCanvas(
+        outputCanvas,
+        `${baseName}-selection-mask.png`
+      );
+
+      setStatus(
+        "Selection mask saved.",
+        "success"
+      );
+    }
+
+    function resetApplication() {
+      if (sourceUrl) {
+        URL.revokeObjectURL(
+          sourceUrl
+        );
+      }
+
+      sourceUrl = "";
+      sourceFile = null;
+
+      sourceImage.removeAttribute(
+        "src"
+      );
+
+      canvas.width = 1;
+      canvas.height = 1;
+
+      selection = null;
+      isDrawing = false;
+
+      imageInput.value = "";
+
+      canvasWrapper.classList.remove(
+        "visible"
+      );
+
+      emptyWorkspace.hidden = false;
+
+      resetHistory();
+
+      setStatus(
+        "No image loaded."
+      );
+
+      selectionInfo.textContent =
+        "No selection";
+
+      zoomPercent = 100;
+      zoomRange.value = "100";
+      zoomValue.textContent = "100%";
+
+      updateButtons();
+    }
+
+    toolButtons.forEach(button => {
+      button.addEventListener(
+        "click",
+        () => {
+          setTool(
+            button.dataset.tool
+          );
+        }
+      );
+    });
+
+    imageInput.addEventListener(
+      "change",
+      event => {
+        loadImageFile(
+          event.target.files?.[0]
+        );
+      }
+    );
+
+    [
+      "dragenter",
+      "dragover"
+    ].forEach(eventName => {
+      uploadBox.addEventListener(
+        eventName,
+        event => {
+          event.preventDefault();
+
+          uploadBox.classList.add(
+            "drag-over"
+          );
+        }
+      );
+    });
+
+    [
+      "dragleave",
+      "drop"
+    ].forEach(eventName => {
+      uploadBox.addEventListener(
+        eventName,
+        event => {
+          event.preventDefault();
+
+          uploadBox.classList.remove(
+            "drag-over"
+          );
+        }
+      );
+    });
+
+    uploadBox.addEventListener(
+      "drop",
+      event => {
+        loadImageFile(
+          event.dataTransfer
+            ?.files?.[0]
+        );
+      }
+    );
+
+    document.addEventListener(
+      "paste",
+      event => {
+        const item =
+          Array.from(
+            event.clipboardData
+              ?.items || []
+          ).find(
+            clipboardItem =>
+              clipboardItem.type.startsWith(
+                "image/"
+              )
+          );
+
+        if (item) {
+          loadImageFile(
+            item.getAsFile()
+          );
+        }
+      }
+    );
+
+    canvas.addEventListener(
+      "pointerdown",
+      startDrawing
+    );
+
+    canvas.addEventListener(
+      "pointermove",
+      continueDrawing
+    );
+
+    canvas.addEventListener(
+      "pointerup",
+      finishDrawing
+    );
+
+    canvas.addEventListener(
+      "pointercancel",
+      finishDrawing
+    );
+
+    canvas.addEventListener(
+      "dblclick",
+      event => {
+        event.preventDefault();
+
+        if (
+          isPolygonInProgress()
+        ) {
+          const points =
+            selection.points;
+
+          if (
+            points.length > 3
+          ) {
+            const last =
+              points[
+                points.length - 1
+              ];
+
+            const previous =
+              points[
+                points.length - 2
+              ];
+
+            if (
+              distance(
+                last,
+                previous
+              ) < 20
+            ) {
+              points.pop();
+            }
+          }
+
+          finishPolygon();
+        }
+      }
+    );
+
+    brushSize.addEventListener(
+      "input",
+      () => {
+        brushSizeValue.textContent =
+          `${brushSize.value} px`;
+      }
+    );
+
+    overlayOpacity.addEventListener(
+      "input",
+      () => {
+        overlayOpacityValue.textContent =
+          `${overlayOpacity.value}%`;
+
+        redraw();
+      }
+    );
+
+    zoomRange.addEventListener(
+      "input",
+      () => {
+        zoomPercent =
+          Number(
+            zoomRange.value
+          );
+
+        updateCanvasDisplaySize();
+      }
+    );
+
+    saveSelectionButton.addEventListener(
+      "click",
+      saveSelectedPart
+    );
+
+    saveMaskButton.addEventListener(
+      "click",
+      saveSelectionMask
+    );
+
+    finishPolygonButton.addEventListener(
+      "click",
+      finishPolygon
+    );
+
+    clearSelectionButton.addEventListener(
+      "click",
+      clearSelection
+    );
+
+    undoButton.addEventListener(
+      "click",
+      undo
+    );
+
+    redoButton.addEventListener(
+      "click",
+      redo
+    );
+
+    fitButton.addEventListener(
+      "click",
+      fitImage
+    );
+
+    resetButton.addEventListener(
+      "click",
+      resetApplication
+    );
+
+    document.addEventListener(
+      "keydown",
+      event => {
+        const target =
+          event.target;
+
+        const isFormField =
+          target instanceof
+            HTMLInputElement ||
+          target instanceof
+            HTMLSelectElement ||
+          target instanceof
+            HTMLTextAreaElement;
+
+        if (isFormField) {
+          return;
+        }
+
+        if (
+          event.key === "Enter" &&
+          isPolygonInProgress()
+        ) {
+          event.preventDefault();
+          finishPolygon();
+        }
+
+        if (
+          event.key ===
+            "Backspace" &&
+          isPolygonInProgress()
+        ) {
+          event.preventDefault();
+
+          selection.points.pop();
+
+          if (
+            selection.points.length === 0
+          ) {
+            selection = null;
+          }
+
+          redraw();
+          updateSelectionInformation();
+        }
+
+        if (event.key === "Escape") {
+          selection =
+            cloneSelection(
+              history[historyIndex]
+            );
+
+          isDrawing = false;
+
+          redraw();
+          updateSelectionInformation();
+
+          setStatus(
+            "Current drawing cancelled."
+          );
+        }
+
+        if (
+          (
+            event.ctrlKey ||
+            event.metaKey
+          ) &&
+          event.key.toLowerCase() === "z"
+        ) {
+          event.preventDefault();
+
+          if (event.shiftKey) {
+            redo();
+          } else {
+            undo();
+          }
+        }
+
+        if (
+          (
+            event.ctrlKey ||
+            event.metaKey
+          ) &&
+          event.key.toLowerCase() === "y"
+        ) {
+          event.preventDefault();
+          redo();
+        }
+      }
+    );
+
+    window.addEventListener(
+      "resize",
+      () => {
+        if (hasImage()) {
+          calculateFitScale();
+          updateCanvasDisplaySize();
+        }
+      }
+    );
+
+    window.addEventListener(
+      "beforeunload",
+      () => {
+        if (sourceUrl) {
+          URL.revokeObjectURL(
+            sourceUrl
+          );
+        }
+      }
+    );
+
+    setTool("rectangle");
+    updateButtons();
+  </script>
+
+</body>
+
+</html>
