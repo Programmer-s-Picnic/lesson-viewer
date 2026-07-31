@@ -1,0 +1,1468 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Background Remover | Programmer's Picnic</title>
+
+  <meta
+    name="description"
+    content="Upload an image, remove its background in the browser, preview the result, and save it as a transparent PNG.">
+
+  <meta name="theme-color" content="#1769aa">
+
+  <style>
+    :root {
+      --primary: #1769aa;
+      --primary-dark: #0d4f86;
+      --accent: #e8f3ff;
+      --surface: #ffffff;
+      --page: #f3f7fb;
+      --text: #16202a;
+      --muted: #607080;
+      --border: #cbd8e5;
+      --success: #157347;
+      --danger: #b42318;
+      --shadow: 0 16px 42px rgba(20, 55, 85, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      color-scheme: light;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--text);
+
+      background:
+        radial-gradient(circle at top left, #dceeff 0, transparent 35%),
+        linear-gradient(180deg, #f8fbff 0%, var(--page) 100%);
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      touch-action: manipulation;
+    }
+
+    .site-header {
+      color: #ffffff;
+      background: linear-gradient(
+        135deg,
+        var(--primary-dark),
+        var(--primary)
+      );
+
+      box-shadow: 0 8px 28px rgba(13, 79, 134, 0.2);
+    }
+
+    .header-inner,
+    main,
+    footer {
+      width: min(1120px, calc(100% - 28px));
+      margin-inline: auto;
+    }
+
+    .header-inner {
+      padding: 24px 0;
+    }
+
+    h1 {
+      margin: 0 0 7px;
+      font-size: clamp(1.75rem, 5vw, 2.6rem);
+      line-height: 1.1;
+    }
+
+    .subtitle {
+      margin: 0;
+      max-width: 760px;
+      color: #e8f3ff;
+      line-height: 1.55;
+    }
+
+    main {
+      padding: 26px 0 38px;
+    }
+
+    .app-shell {
+      padding: clamp(16px, 3vw, 28px);
+      border: 1px solid rgba(203, 216, 229, 0.9);
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: var(--shadow);
+    }
+
+    .drop-zone {
+      position: relative;
+      display: grid;
+      place-items: center;
+      min-height: 190px;
+      padding: 28px 18px;
+      text-align: center;
+      border: 2px dashed #8cb5d8;
+      border-radius: 18px;
+      background: #f7fbff;
+      cursor: pointer;
+
+      transition:
+        border-color 0.2s,
+        background 0.2s,
+        transform 0.2s;
+    }
+
+    .drop-zone:hover,
+    .drop-zone:focus-within,
+    .drop-zone.drag-over {
+      border-color: var(--primary);
+      background: var(--accent);
+      transform: translateY(-1px);
+    }
+
+    .drop-zone input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .upload-icon {
+      width: 58px;
+      height: 58px;
+      margin-bottom: 12px;
+      color: var(--primary);
+    }
+
+    .drop-zone strong {
+      display: block;
+      margin-bottom: 7px;
+      font-size: 1.12rem;
+    }
+
+    .drop-zone span {
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .privacy-note {
+      margin: 12px 0 0;
+      color: var(--muted);
+      font-size: 0.93rem;
+      line-height: 1.5;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      margin-top: 22px;
+    }
+
+    .preview-card {
+      overflow: hidden;
+      min-width: 0;
+      border: 1px solid var(--border);
+      border-radius: 17px;
+      background: var(--surface);
+    }
+
+    .preview-card h2 {
+      margin: 0;
+      padding: 13px 16px;
+      font-size: 1rem;
+      border-bottom: 1px solid var(--border);
+      background: #f8fbfe;
+    }
+
+    .preview-stage {
+      position: relative;
+      display: grid;
+      place-items: center;
+      min-height: 360px;
+      padding: 14px;
+      overflow: hidden;
+      background: #eef3f7;
+    }
+
+    .checkerboard {
+      background-color: #ffffff;
+
+      background-image:
+        linear-gradient(
+          45deg,
+          #dfe5eb 25%,
+          transparent 25%
+        ),
+        linear-gradient(
+          -45deg,
+          #dfe5eb 25%,
+          transparent 25%
+        ),
+        linear-gradient(
+          45deg,
+          transparent 75%,
+          #dfe5eb 75%
+        ),
+        linear-gradient(
+          -45deg,
+          transparent 75%,
+          #dfe5eb 75%
+        );
+
+      background-size: 24px 24px;
+
+      background-position:
+        0 0,
+        0 12px,
+        12px -12px,
+        -12px 0;
+    }
+
+    .preview-stage img {
+      display: none;
+      max-width: 100%;
+      max-height: 480px;
+      object-fit: contain;
+
+      filter:
+        drop-shadow(
+          0 6px 16px rgba(0, 0, 0, 0.16)
+        );
+    }
+
+    .preview-stage img.visible {
+      display: block;
+    }
+
+    .empty-state {
+      max-width: 280px;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.55;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 20px;
+      align-items: end;
+    }
+
+    .field {
+      grid-column: span 3;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .field input,
+    .field select {
+      width: 100%;
+      min-height: 44px;
+      padding: 9px 11px;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #ffffff;
+    }
+
+    .button-row {
+      grid-column: span 9;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .btn {
+      min-height: 44px;
+      padding: 10px 16px;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      font-weight: 700;
+      cursor: pointer;
+
+      transition:
+        transform 0.15s,
+        box-shadow 0.15s,
+        opacity 0.15s;
+    }
+
+    .btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+
+      box-shadow:
+        0 7px 18px rgba(20, 55, 85, 0.14);
+    }
+
+    .btn:focus-visible,
+    .field input:focus-visible,
+    .field select:focus-visible,
+    .drop-zone:focus-visible {
+      outline: 3px solid rgba(23, 105, 170, 0.28);
+      outline-offset: 2px;
+    }
+
+    .btn:disabled {
+      opacity: 0.48;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      color: #ffffff;
+      background: var(--primary);
+    }
+
+    .btn-success {
+      color: #ffffff;
+      background: var(--success);
+    }
+
+    .btn-secondary {
+      color: var(--primary-dark);
+      border-color: #9bbbd5;
+      background: #eef7ff;
+    }
+
+    .btn-danger {
+      color: var(--danger);
+      border-color: #efb4ae;
+      background: #fff5f4;
+    }
+
+    .status-panel {
+      margin-top: 18px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 13px;
+      background: #f8fbfe;
+    }
+
+    .status-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 9px;
+      font-size: 0.94rem;
+    }
+
+    #statusText.error {
+      color: var(--danger);
+      font-weight: 700;
+    }
+
+    #statusText.success {
+      color: var(--success);
+      font-weight: 700;
+    }
+
+    .progress-track {
+      height: 12px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #dfe8ef;
+    }
+
+    .progress-bar {
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+
+      background:
+        linear-gradient(
+          90deg,
+          var(--primary-dark),
+          #30a6df
+        );
+
+      transition: width 0.2s ease;
+    }
+
+    .progress-bar.indeterminate {
+      width: 35%;
+      animation: loading 1.1s infinite ease-in-out;
+    }
+
+    @keyframes loading {
+      0% {
+        transform: translateX(-110%);
+      }
+
+      100% {
+        transform: translateX(330%);
+      }
+    }
+
+    .details {
+      margin-top: 18px;
+      padding: 14px 16px;
+      border-left: 4px solid var(--primary);
+      border-radius: 8px;
+      background: var(--accent);
+      color: #29445a;
+      line-height: 1.55;
+    }
+
+    .details strong {
+      color: var(--primary-dark);
+    }
+
+    footer {
+      padding: 0 0 28px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 0.88rem;
+      line-height: 1.5;
+    }
+
+    footer a {
+      color: var(--primary-dark);
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    @media (max-width: 820px) {
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+
+      .preview-stage {
+        min-height: 300px;
+      }
+
+      .field,
+      .button-row {
+        grid-column: 1 / -1;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .header-inner,
+      main,
+      footer {
+        width: min(100% - 18px, 1120px);
+      }
+
+      .app-shell {
+        padding: 13px;
+        border-radius: 16px;
+      }
+
+      .drop-zone {
+        min-height: 165px;
+      }
+
+      .preview-stage {
+        min-height: 260px;
+      }
+
+      .button-row {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+
+      .btn {
+        width: 100%;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header class="site-header">
+    <div class="header-inner">
+
+      <h1>Background Remover</h1>
+
+      <p class="subtitle">
+        Upload or drop an image, remove its background with
+        in-browser artificial intelligence, and save the result
+        as a transparent PNG.
+      </p>
+
+    </div>
+  </header>
+
+  <main>
+
+    <section
+      class="app-shell"
+      aria-labelledby="uploaderHeading">
+
+      <h2 id="uploaderHeading" hidden>
+        Upload an image
+      </h2>
+
+      <label
+        class="drop-zone"
+        id="dropZone"
+        for="imageInput"
+        tabindex="0">
+
+        <svg
+          class="upload-icon"
+          viewBox="0 0 24 24"
+          aria-hidden="true">
+
+          <path
+            fill="currentColor"
+            d="M19 13v6H5v-6H3v6a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6zM13 5.83l2.59 2.58L17 7l-5-5-5 5 1.41 1.41L11 5.83V16h2z">
+          </path>
+
+        </svg>
+
+        <strong>
+          Choose an image or drag it here
+        </strong>
+
+        <span>
+          JPG, PNG, WEBP and most browser-supported image formats
+        </span>
+
+        <input
+          id="imageInput"
+          type="file"
+          accept="image/*">
+
+      </label>
+
+      <p class="privacy-note">
+        Processing runs in your browser. The first removal can
+        take longer because the AI model must be downloaded and
+        cached.
+      </p>
+
+      <div class="workspace">
+
+        <article class="preview-card">
+
+          <h2>Original image</h2>
+
+          <div
+            class="preview-stage"
+            id="originalStage">
+
+            <p
+              class="empty-state"
+              id="originalEmpty">
+
+              Your uploaded image will appear here.
+
+            </p>
+
+            <img
+              id="originalImage"
+              alt="Original uploaded image preview">
+
+          </div>
+
+        </article>
+
+        <article class="preview-card">
+
+          <h2>Background removed</h2>
+
+          <div
+            class="preview-stage checkerboard"
+            id="resultStage">
+
+            <p
+              class="empty-state"
+              id="resultEmpty">
+
+              The transparent result will appear here.
+
+            </p>
+
+            <img
+              id="resultImage"
+              alt="Image with its background removed">
+
+          </div>
+
+        </article>
+
+      </div>
+
+      <div class="controls">
+
+        <div class="button-row">
+
+          <button
+            class="btn btn-primary"
+            id="removeButton"
+            type="button"
+            disabled>
+
+            Remove background
+
+          </button>
+
+          <button
+            class="btn btn-success"
+            id="downloadTransparentButton"
+            type="button"
+            disabled>
+
+            Save transparent PNG
+
+          </button>
+
+          <button
+            class="btn btn-secondary"
+            id="downloadColorButton"
+            type="button"
+            disabled>
+
+            Save with selected background
+
+          </button>
+
+          <button
+            class="btn btn-danger"
+            id="resetButton"
+            type="button"
+            disabled>
+
+            Reset
+
+          </button>
+
+        </div>
+
+        <div class="field">
+
+          <label for="backgroundColor">
+            Saved background colour
+          </label>
+
+          <input
+            id="backgroundColor"
+            type="color"
+            value="#ffffff"
+            aria-describedby="backgroundHelp">
+
+        </div>
+
+      </div>
+
+      <div
+        class="status-panel"
+        aria-live="polite">
+
+        <div class="status-line">
+
+          <span id="statusText">
+            Choose an image to begin.
+          </span>
+
+          <span id="progressText">
+            0%
+          </span>
+
+        </div>
+
+        <div
+          class="progress-track"
+          aria-hidden="true">
+
+          <div
+            class="progress-bar"
+            id="progressBar">
+          </div>
+
+        </div>
+
+      </div>
+
+      <div
+        class="details"
+        id="backgroundHelp">
+
+        <strong>Saving options:</strong>
+
+        “Save transparent PNG” keeps the background transparent.
+
+        “Save with selected background” places the cut-out image
+        over the colour selected above.
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <footer>
+
+    Programmer's Picnic by Champak Roy
+
+    <br>
+
+    Uses
+
+    <a
+      href="https://github.com/imgly/background-removal-js"
+      target="_blank"
+      rel="noopener noreferrer">
+
+      @imgly/background-removal
+
+    </a>,
+
+    distributed under the AGPL-3.0 licence.
+
+  </footer>
+
+  <script type="module">
+
+    import * as backgroundRemovalModule
+      from "https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/+esm";
+
+    const removeBackground =
+      backgroundRemovalModule.removeBackground ||
+      backgroundRemovalModule.default;
+
+    const imageInput =
+      document.getElementById("imageInput");
+
+    const dropZone =
+      document.getElementById("dropZone");
+
+    const originalImage =
+      document.getElementById("originalImage");
+
+    const resultImage =
+      document.getElementById("resultImage");
+
+    const originalEmpty =
+      document.getElementById("originalEmpty");
+
+    const resultEmpty =
+      document.getElementById("resultEmpty");
+
+    const backgroundColor =
+      document.getElementById("backgroundColor");
+
+    const removeButton =
+      document.getElementById("removeButton");
+
+    const downloadTransparentButton =
+      document.getElementById(
+        "downloadTransparentButton"
+      );
+
+    const downloadColorButton =
+      document.getElementById(
+        "downloadColorButton"
+      );
+
+    const resetButton =
+      document.getElementById("resetButton");
+
+    const statusText =
+      document.getElementById("statusText");
+
+    const progressText =
+      document.getElementById("progressText");
+
+    const progressBar =
+      document.getElementById("progressBar");
+
+    let sourceFile = null;
+    let sourceUrl = "";
+
+    let resultBlob = null;
+    let resultUrl = "";
+
+    let isProcessing = false;
+
+    function setStatus(
+      message,
+      type = "normal"
+    ) {
+      statusText.textContent = message;
+
+      statusText.classList.remove(
+        "error",
+        "success"
+      );
+
+      if (
+        type === "error" ||
+        type === "success"
+      ) {
+        statusText.classList.add(type);
+      }
+    }
+
+    function setProgress(
+      percent,
+      indeterminate = false
+    ) {
+      const safePercent = Math.max(
+        0,
+        Math.min(
+          100,
+          Number(percent) || 0
+        )
+      );
+
+      progressBar.classList.toggle(
+        "indeterminate",
+        indeterminate
+      );
+
+      if (!indeterminate) {
+        progressBar.style.width =
+          `${safePercent}%`;
+
+        progressText.textContent =
+          `${Math.round(safePercent)}%`;
+      } else {
+        progressBar.style.width = "35%";
+        progressText.textContent = "Working…";
+      }
+    }
+
+    function setBusy(busy) {
+      isProcessing = busy;
+
+      imageInput.disabled = busy;
+
+      removeButton.disabled =
+        busy || !sourceFile;
+
+      resetButton.disabled =
+        busy || !sourceFile;
+
+      downloadTransparentButton.disabled =
+        busy || !resultBlob;
+
+      downloadColorButton.disabled =
+        busy || !resultBlob;
+
+      backgroundColor.disabled = busy;
+
+      removeButton.textContent =
+        busy
+          ? "Removing background…"
+          : "Remove background";
+
+      dropZone.style.pointerEvents =
+        busy ? "none" : "auto";
+
+      dropZone.setAttribute(
+        "aria-busy",
+        String(busy)
+      );
+    }
+
+    function releaseObjectUrl(url) {
+      if (url) {
+        URL.revokeObjectURL(url);
+      }
+    }
+
+    function clearResult() {
+      releaseObjectUrl(resultUrl);
+
+      resultUrl = "";
+      resultBlob = null;
+
+      resultImage.removeAttribute("src");
+      resultImage.classList.remove("visible");
+
+      resultEmpty.hidden = false;
+
+      downloadTransparentButton.disabled = true;
+      downloadColorButton.disabled = true;
+    }
+
+    function loadFile(file) {
+      if (
+        !file ||
+        !file.type.startsWith("image/")
+      ) {
+        setStatus(
+          "Please choose a valid image file.",
+          "error"
+        );
+
+        return;
+      }
+
+      if (isProcessing) {
+        return;
+      }
+
+      releaseObjectUrl(sourceUrl);
+
+      sourceFile = file;
+
+      sourceUrl =
+        URL.createObjectURL(file);
+
+      originalImage.src = sourceUrl;
+
+      originalImage.classList.add(
+        "visible"
+      );
+
+      originalEmpty.hidden = true;
+
+      clearResult();
+
+      resultEmpty.textContent =
+        "Press “Remove background” to create the transparent image.";
+
+      setProgress(0);
+
+      setStatus(
+        `${file.name} selected.`
+      );
+
+      setBusy(false);
+
+      resetButton.disabled = false;
+    }
+
+    function sanitizeBaseName(filename) {
+      const withoutExtension =
+        filename.replace(
+          /\.[^/.]+$/,
+          ""
+        );
+
+      return (
+        withoutExtension ||
+        "image"
+      )
+        .replace(
+          /[^a-zA-Z0-9-_]+/g,
+          "-"
+        )
+        .replace(
+          /^-+|-+$/g,
+          ""
+        ) || "image";
+    }
+
+    function downloadBlob(
+      blob,
+      filename
+    ) {
+      const url =
+        URL.createObjectURL(blob);
+
+      const link =
+        document.createElement("a");
+
+      link.href = url;
+      link.download = filename;
+
+      document.body.appendChild(link);
+
+      link.click();
+
+      link.remove();
+
+      window.setTimeout(
+        () => URL.revokeObjectURL(url),
+        1500
+      );
+    }
+
+    function loadImageFromBlob(blob) {
+      return new Promise(
+        (resolve, reject) => {
+          const url =
+            URL.createObjectURL(blob);
+
+          const image =
+            new Image();
+
+          image.onload = () => {
+            URL.revokeObjectURL(url);
+            resolve(image);
+          };
+
+          image.onerror = () => {
+            URL.revokeObjectURL(url);
+
+            reject(
+              new Error(
+                "The processed image could not be loaded."
+              )
+            );
+          };
+
+          image.src = url;
+        }
+      );
+    }
+
+    async function createImageWithBackground(
+      blob,
+      colour
+    ) {
+      const image =
+        await loadImageFromBlob(blob);
+
+      const canvas =
+        document.createElement("canvas");
+
+      canvas.width =
+        image.naturalWidth;
+
+      canvas.height =
+        image.naturalHeight;
+
+      const context =
+        canvas.getContext(
+          "2d",
+          {
+            alpha: false
+          }
+        );
+
+      if (!context) {
+        throw new Error(
+          "Canvas is not supported by this browser."
+        );
+      }
+
+      context.fillStyle = colour;
+
+      context.fillRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      );
+
+      context.drawImage(
+        image,
+        0,
+        0
+      );
+
+      return new Promise(
+        (resolve, reject) => {
+          canvas.toBlob(
+            outputBlob => {
+              if (outputBlob) {
+                resolve(outputBlob);
+              } else {
+                reject(
+                  new Error(
+                    "Could not create the final PNG."
+                  )
+                );
+              }
+            },
+            "image/png",
+            1
+          );
+        }
+      );
+    }
+
+    async function processImage() {
+      if (
+        !sourceFile ||
+        isProcessing
+      ) {
+        return;
+      }
+
+      if (
+        typeof removeBackground !==
+        "function"
+      ) {
+        setStatus(
+          "The background-removal library did not load. Check your internet connection and reload the page.",
+          "error"
+        );
+
+        return;
+      }
+
+      clearResult();
+
+      resultEmpty.textContent =
+        "Removing the background…";
+
+      setBusy(true);
+
+      setProgress(
+        0,
+        true
+      );
+
+      setStatus(
+        "Preparing the AI model. The first run may take a little longer."
+      );
+
+      try {
+        const outputBlob =
+          await removeBackground(
+            sourceFile,
+            {
+              output: {
+                format: "image/png",
+                quality: 1,
+                type: "foreground"
+              },
+
+              progress: (
+                key,
+                current,
+                total
+              ) => {
+                const percent =
+                  total > 0
+                    ? (
+                        current /
+                        total
+                      ) * 100
+                    : 0;
+
+                setProgress(percent);
+
+                const readableKey =
+                  String(
+                    key ||
+                    "processing"
+                  ).replace(
+                    /[:_-]+/g,
+                    " "
+                  );
+
+                setStatus(
+                  `${readableKey}: ${Math.round(percent)}%`
+                );
+              }
+            }
+          );
+
+        resultBlob = outputBlob;
+
+        resultUrl =
+          URL.createObjectURL(
+            resultBlob
+          );
+
+        resultImage.src =
+          resultUrl;
+
+        resultImage.classList.add(
+          "visible"
+        );
+
+        resultEmpty.hidden = true;
+
+        setProgress(100);
+
+        setStatus(
+          "Background removed successfully. You can now save the image.",
+          "success"
+        );
+      } catch (error) {
+        console.error(error);
+
+        clearResult();
+
+        resultEmpty.textContent =
+          "The background could not be removed. Try another image or browser.";
+
+        setProgress(0);
+
+        setStatus(
+          error?.message ||
+          "Background removal failed.",
+          "error"
+        );
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    function saveTransparent() {
+      if (
+        !resultBlob ||
+        !sourceFile
+      ) {
+        return;
+      }
+
+      const baseName =
+        sanitizeBaseName(
+          sourceFile.name
+        );
+
+      downloadBlob(
+        resultBlob,
+        `${baseName}-transparent.png`
+      );
+
+      setStatus(
+        "Transparent PNG saved.",
+        "success"
+      );
+    }
+
+    async function saveWithColour() {
+      if (
+        !resultBlob ||
+        !sourceFile ||
+        isProcessing
+      ) {
+        return;
+      }
+
+      setBusy(true);
+
+      setProgress(
+        0,
+        true
+      );
+
+      setStatus(
+        "Creating the image with the selected background colour…"
+      );
+
+      try {
+        const colouredBlob =
+          await createImageWithBackground(
+            resultBlob,
+            backgroundColor.value
+          );
+
+        const baseName =
+          sanitizeBaseName(
+            sourceFile.name
+          );
+
+        downloadBlob(
+          colouredBlob,
+          `${baseName}-background.png`
+        );
+
+        setProgress(100);
+
+        setStatus(
+          "Image with background colour saved.",
+          "success"
+        );
+      } catch (error) {
+        console.error(error);
+
+        setProgress(0);
+
+        setStatus(
+          error?.message ||
+          "The image could not be saved.",
+          "error"
+        );
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    function resetApp() {
+      if (isProcessing) {
+        return;
+      }
+
+      releaseObjectUrl(sourceUrl);
+
+      sourceUrl = "";
+      sourceFile = null;
+
+      imageInput.value = "";
+
+      originalImage.removeAttribute(
+        "src"
+      );
+
+      originalImage.classList.remove(
+        "visible"
+      );
+
+      originalEmpty.hidden = false;
+
+      clearResult();
+
+      resultEmpty.textContent =
+        "The transparent result will appear here.";
+
+      setProgress(0);
+
+      setStatus(
+        "Choose an image to begin."
+      );
+
+      setBusy(false);
+
+      resetButton.disabled = true;
+    }
+
+    imageInput.addEventListener(
+      "change",
+      event => {
+        loadFile(
+          event.target.files?.[0]
+        );
+      }
+    );
+
+    dropZone.addEventListener(
+      "keydown",
+      event => {
+        if (
+          event.key === "Enter" ||
+          event.key === " "
+        ) {
+          event.preventDefault();
+          imageInput.click();
+        }
+      }
+    );
+
+    [
+      "dragenter",
+      "dragover"
+    ].forEach(eventName => {
+      dropZone.addEventListener(
+        eventName,
+        event => {
+          event.preventDefault();
+
+          if (!isProcessing) {
+            dropZone.classList.add(
+              "drag-over"
+            );
+          }
+        }
+      );
+    });
+
+    [
+      "dragleave",
+      "drop"
+    ].forEach(eventName => {
+      dropZone.addEventListener(
+        eventName,
+        event => {
+          event.preventDefault();
+
+          dropZone.classList.remove(
+            "drag-over"
+          );
+        }
+      );
+    });
+
+    dropZone.addEventListener(
+      "drop",
+      event => {
+        if (!isProcessing) {
+          loadFile(
+            event.dataTransfer
+              ?.files?.[0]
+          );
+        }
+      }
+    );
+
+    document.addEventListener(
+      "paste",
+      event => {
+        if (isProcessing) {
+          return;
+        }
+
+        const imageItem =
+          Array.from(
+            event.clipboardData
+              ?.items || []
+          ).find(
+            item =>
+              item.type.startsWith(
+                "image/"
+              )
+          );
+
+        if (imageItem) {
+          loadFile(
+            imageItem.getAsFile()
+          );
+        }
+      }
+    );
+
+    removeButton.addEventListener(
+      "click",
+      processImage
+    );
+
+    downloadTransparentButton
+      .addEventListener(
+        "click",
+        saveTransparent
+      );
+
+    downloadColorButton
+      .addEventListener(
+        "click",
+        saveWithColour
+      );
+
+    resetButton.addEventListener(
+      "click",
+      resetApp
+    );
+
+    window.addEventListener(
+      "beforeunload",
+      () => {
+        releaseObjectUrl(sourceUrl);
+        releaseObjectUrl(resultUrl);
+      }
+    );
+
+  </script>
+
+</body>
+
+</html>
