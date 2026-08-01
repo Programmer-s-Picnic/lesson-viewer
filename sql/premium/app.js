@@ -1090,12 +1090,15 @@
             "</div>"
           : "") +
         '<div class="actions">' +
-        '<button data-act="insert" data-idx="' +
+        '<button data-act="view" data-idx="' +
         idx +
-        '" type="button">Insert</button>' +
+        '" type="button">View</button>' +
         '<button data-act="copy" data-idx="' +
         idx +
         '" type="button">Copy</button>' +
+        '<button class="remove-history" data-act="remove" data-idx="' +
+        idx +
+        '" type="button">Remove</button>' +
         "</div>";
 
       historyList.appendChild(wrap);
@@ -1568,9 +1571,10 @@
     var item = arr[idx];
     if (!item) return;
 
-    if (act === "insert") {
+    if (act === "view") {
       sqlInput.value = item.sql || "";
       sqlInput.focus();
+      sqlInput.scrollIntoView({ behavior: "smooth", block: "center" });
     }
 
     if (act === "copy") {
@@ -1582,6 +1586,13 @@
         .catch(function () {
           showErr("Clipboard blocked by browser.");
         });
+    }
+
+    if (act === "remove") {
+      arr.splice(idx, 1);
+      writeLS(activeTab === "success" ? LS_SUCCESS : LS_FAIL, arr);
+      renderHistory();
+      showOk("Saved query removed.");
     }
   });
 

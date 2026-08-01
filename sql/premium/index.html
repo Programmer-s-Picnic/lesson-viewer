@@ -162,6 +162,13 @@
         color: var(--bad);
         font-weight: 800;
       }
+      .history-tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+      .history-tab.active { background:var(--accent); color:#111; border-color:var(--accent); }
+      .history-list { display:grid; gap:10px; max-height:340px; overflow:auto; }
+      .history-item { padding:10px; border:1px solid var(--border); border-radius:10px; background:var(--panel); }
+      .history-meta { display:flex; justify-content:space-between; gap:8px; color:var(--muted); font-size:12px; }
+      .history-item pre { margin:8px 0; white-space:pre-wrap; word-break:break-word; }
+      .history-error { color:var(--bad); font-size:13px; margin-bottom:6px; }
       @media (max-width: 640px) {
         input[type="text"] {
           width: 100%;
@@ -222,6 +229,15 @@
 <button disabled="" id="exportJsonBtn">⬇ Export Result JSON</button>
 </div>
 <div id="result">Result will appear here</div>
+<section class="panel" aria-labelledby="historyTitle">
+<b id="historyTitle">Saved query history</b>
+<div class="history-tabs">
+<button class="history-tab active" id="successfulTab" type="button">Successful (<span id="successfulCount">0</span>)</button>
+<button class="history-tab" id="unsuccessfulTab" type="button">Unsuccessful (<span id="unsuccessfulCount">0</span>)</button>
+<button id="clearShownHistoryBtn" type="button">Remove All Shown</button>
+</div>
+<div class="history-list" id="queryHistoryList"></div>
+</section>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
 <script>
@@ -236,6 +252,44 @@
       const tableNameInput = document.getElementById("tableNameInput");
       const exportCsvBtn = document.getElementById("exportCsvBtn");
       const exportJsonBtn = document.getElementById("exportJsonBtn");
+      const HISTORY_SUCCESS_KEY = "pp_sql_history_success_v1";
+      const HISTORY_FAIL_KEY = "pp_sql_history_fail_v1";
+      let activeHistory = "success";
+
+      function readHistory(key) {
+        try { return JSON.parse(localStorage.getItem(key) || "[]"); }
+        catch (_) { return []; }
+      }
+      function historyKey(kind) {
+        return kind === "success" ? HISTORY_SUCCESS_KEY : HISTORY_FAIL_KEY;
+      }
+      function saveQuery(kind, sql, errorMessage = "") {
+        const key = historyKey(kind);
+        const items = readHistory(key);
+        items.unshift({ id: Date.now() + "-" + Math.random().toString(16).slice(2), sql, error: errorMessage, time: new Date().toLocaleString() });
+        localStorage.setItem(key, JSON.stringify(items.slice(0, 100)));
+        renderQueryHistory();
+      }
+      function renderQueryHistory() {
+        const successful = readHistory(HISTORY_SUCCESS_KEY);
+        const unsuccessful = readHistory(HISTORY_FAIL_KEY);
+        successfulCount.textContent = successful.length;
+        unsuccessfulCount.textContent = unsuccessful.length;
+        successfulTab.classList.toggle("active", activeHistory === "success");
+        unsuccessfulTab.classList.toggle("active", activeHistory === "fail");
+        const items = activeHistory === "success" ? successful : unsuccessful;
+        queryHistoryList.innerHTML = items.length ? items.map((item, index) => `
+          <article class="history-item">
+            <div class="history-meta"><span>${escapeHtml(item.time || item.ts || "")}</span><span>${activeHistory === "success" ? "Successful" : "Unsuccessful"}</span></div>
+            <pre>${escapeHtml(item.sql || "")}</pre>
+            ${item.error || item.err ? `<div class="history-error">${escapeHtml(item.error || item.err)}</div>` : ""}
+            <div class="row">
+              <button type="button" data-history-action="view" data-history-index="${index}">View</button>
+              <button type="button" data-history-action="copy" data-history-index="${index}">Copy</button>
+              <button type="button" data-history-action="remove" data-history-index="${index}">Remove</button>
+            </div>
+          </article>`).join("") : '<div class="hint">No saved queries in this list.</div>';
+      }
 
       function escapeHtml(value) {
         return String(value)
@@ -292,21 +346,25 @@
       }
 
       function runSQL() {
+        const executedSql = sqlInput.value;
         try {
-          const res = db.exec(sqlInput.value);
+          const res = db.exec(executedSql);
           if (!res.length) {
             lastResult = null;
             setExportState(false);
             result.innerText = "Query executed successfully. No rows returned.";
+            saveQuery("success", executedSql);
             return;
           }
           lastResult = res[res.length - 1];
           setExportState(true);
           renderTable(lastResult);
+          saveQuery("success", executedSql);
         } catch (err) {
           lastResult = null;
           setExportState(false);
           result.innerText = err.message || String(err);
+          saveQuery("fail", executedSql, err.message || String(err));
         }
       }
 
@@ -506,6 +564,37 @@
         importData("json");
       exportCsvBtn.onclick = exportCSV;
       exportJsonBtn.onclick = exportJSON;
+
+      successfulTab.onclick = () => { activeHistory = "success"; renderQueryHistory(); };
+      unsuccessfulTab.onclick = () => { activeHistory = "fail"; renderQueryHistory(); };
+      queryHistoryList.onclick = async (event) => {
+        const button = event.target.closest("button[data-history-action]");
+        if (!button) return;
+        const key = historyKey(activeHistory);
+        const items = readHistory(key);
+        const index = Number(button.dataset.historyIndex);
+        const item = items[index];
+        if (!item) return;
+        if (button.dataset.historyAction === "view") {
+          sqlInput.value = item.sql || "";
+          sqlInput.focus();
+          sqlInput.scrollIntoView({ behavior: "smooth", block: "center" });
+        } else if (button.dataset.historyAction === "copy") {
+          try { await navigator.clipboard.writeText(item.sql || ""); button.textContent = "Copied"; }
+          catch (_) { window.prompt("Copy this SQL:", item.sql || ""); }
+        } else if (button.dataset.historyAction === "remove") {
+          items.splice(index, 1);
+          localStorage.setItem(key, JSON.stringify(items));
+          renderQueryHistory();
+        }
+      };
+      clearShownHistoryBtn.onclick = () => {
+        const label = activeHistory === "success" ? "successful" : "unsuccessful";
+        if (!confirm(`Remove all ${label} saved queries?`)) return;
+        localStorage.setItem(historyKey(activeHistory), "[]");
+        renderQueryHistory();
+      };
+      renderQueryHistory();
 
       const themeToggleBtn = document.getElementById("themeToggleBtn");
       function setTheme(theme) {
