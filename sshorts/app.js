@@ -2,7 +2,7 @@
 const $=id=>document.getElementById(id);
 const W=1080,H=1920,FPS=30,AUTOSAVE="edushorts-maker-v1",PROJECT_FORMAT="edushorts-maker-project",PROJECT_VERSION=2;
 const defaults={projectTitle:"Python in 30 Seconds",subject:"Python",teacherName:"Champak Roy",channelName:"Learn With Champak",website:"learnwithchampak.live",brandColor:"#075985",accentColor:"#f59e0b",logo:"",slides:[],current:0};
-let state=structuredClone(defaults),playing=false,playToken=0,musicData="",musicName="",speechWord=-1,spokenUtterance=null,recording=null,narrationPlayer=null;
+let state=structuredClone(defaults),playing=false,playToken=0,musicData="",musicName="",speechWord=-1,spokenUtterance=null,recording=null,narrationPlayer=null,webcamStream=null;
 const typeNames={hook:"Hook",explanation:"Explanation",spoken:"Spoken Text",code:"Code",question:"Question",answer:"Answer",image:"Image",cta:"Call to action"};
 const palettes={hook:["#7c2d12","#f59e0b"],explanation:["#075985","#0ea5e9"],spoken:["#0f4c5c","#0e7490"],code:["#111827","#1e293b"],question:["#4c1d95","#7c3aed"],answer:["#065f46","#10b981"],image:["#0f172a","#334155"],cta:["#9a3412","#ea580c"]};
 const templates={
@@ -93,6 +93,17 @@ function drawNarrationCaption(ctx,text,activeWord){
  const x0=Math.max(55,(W-total)/2),y=H-245;ctx.fillStyle="#031827e8";ctx.beginPath();ctx.roundRect(35,y-60,W-70,86,20);ctx.fill();
  let x=x0;shown.forEach((word,i)=>{const index=start+i,w=widths[i];if(index===activeWord){ctx.fillStyle=state.accentColor||"#f59e0b";ctx.beginPath();ctx.roundRect(x-6,y-43,w+12,54,9);ctx.fill();ctx.fillStyle="#082f49"}else ctx.fillStyle="#fff";ctx.fillText(word,x,y);x+=w+space});ctx.restore();
 }
+function webcamSettings(){return{position:$("webcamPosition").value,size:$("webcamSize").value,round:$("webcamRound").checked,mirror:$("webcamMirror").checked}}
+function drawWebcam(ctx){
+ const video=$("webcamVideo");if(!webcamStream||video.readyState<2)return;
+ const settings=webcamSettings(),sizes={small:220,medium:300,large:390},width=sizes[settings.size]||300,height=settings.round?width:Math.round(width*9/16),margin=45;
+ const x=settings.position.endsWith("right")?W-margin-width:margin,y=settings.position.startsWith("top")?245:H-220-height;
+ ctx.save();ctx.beginPath();if(settings.round)ctx.arc(x+width/2,y+height/2,width/2,0,Math.PI*2);else ctx.roundRect(x,y,width,height,28);ctx.clip();
+ const videoRatio=video.videoWidth/video.videoHeight,boxRatio=width/height;let sw,sh,sx,sy;
+ if(videoRatio>boxRatio){sh=video.videoHeight;sw=sh*boxRatio;sx=(video.videoWidth-sw)/2;sy=0}else{sw=video.videoWidth;sh=sw/boxRatio;sx=0;sy=(video.videoHeight-sh)/2}
+ if(settings.mirror){ctx.translate(x+width,y);ctx.scale(-1,1);ctx.drawImage(video,sx,sy,sw,sh,0,0,width,height)}else ctx.drawImage(video,sx,sy,sw,sh,x,y,width,height);
+ ctx.restore();ctx.save();ctx.lineWidth=12;ctx.strokeStyle=state.accentColor||"#f59e0b";ctx.beginPath();if(settings.round)ctx.arc(x+width/2,y+height/2,width/2-6,0,Math.PI*2);else ctx.roundRect(x+6,y+6,width-12,height-12,23);ctx.stroke();ctx.restore();
+}
 async function paint(ctx,s,progress=1){
  const grad=ctx.createLinearGradient(0,0,W,H);grad.addColorStop(0,s.background);grad.addColorStop(1,state.brandColor||"#075985");ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
  const entrance=Math.min(1,progress/.18);
@@ -109,6 +120,7 @@ async function paint(ctx,s,progress=1){
  if(s.narrationAudio&&s.type!=="spoken"){const words=speechWords(s.narrationText||s.content),active=Math.min(words.length-1,Math.floor(Math.max(0,progress)*words.length));drawNarrationCaption(ctx,s.narrationText||s.content,active)}
  ctx.fillStyle="#061a2bdd";ctx.fillRect(0,H-190,W,190);ctx.textAlign="left";ctx.fillStyle="#fff";ctx.font="800 40px system-ui";ctx.fillText(state.teacherName||"Your Teacher",60,H-108);ctx.font="500 31px system-ui";ctx.fillStyle="#bae6fd";ctx.fillText(state.channelName||"",60,H-58);ctx.textAlign="right";ctx.fillStyle=state.accentColor;ctx.font="700 30px system-ui";ctx.fillText(state.website||"",W-60,H-70);
  if(state.logo){try{const logo=await imageFrom(state.logo);ctx.save();ctx.fillStyle="#ffffffee";rounded(ctx,W-245,70,175,125,20);drawContainedImage(ctx,logo,W-230,82,145,100);ctx.restore()}catch(e){}}
+ drawWebcam(ctx);
 }
 let previewSeq=0;
 async function drawPreview(progress=1){const seq=++previewSeq,ctx=$("preview").getContext("2d"),s=current();ctx.clearRect(0,0,W,H);if(!s){ctx.fillStyle="#075985";ctx.fillRect(0,0,W,H);ctx.fillStyle="#fff";ctx.textAlign="center";ctx.font="800 80px system-ui";ctx.fillText("Create your first slide",W/2,H/2);return}await paint(ctx,s,progress);if(seq!==previewSeq)return;$("slidePosition").textContent=`Slide ${state.current+1} of ${state.slides.length}`}
@@ -165,6 +177,11 @@ function loadVoices(){
  $("speechVoice").value=selected;
 }
 function status(t){$("status").textContent=t}
+async function startWebcam(){
+ if(webcamStream)return;if(!navigator.mediaDevices?.getUserMedia)return status("Camera access requires localhost or HTTPS in a supported browser.");
+ try{webcamStream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720},facingMode:"user"},audio:false});const video=$("webcamVideo");video.srcObject=webcamStream;await video.play();$("startWebcamBtn").disabled=true;$("stopWebcamBtn").disabled=false;$("webcamStatus").textContent="Camera is active and will be included in preview and video export.";drawPreview(Number($("progress").value)/100);status("Web camera added.")}catch(e){webcamStream=null;$("webcamStatus").textContent="Camera permission was not granted or no camera was found.";status("Could not start the web camera. Check browser permission and use localhost or HTTPS.")}
+}
+function stopWebcam(){if(webcamStream){webcamStream.getTracks().forEach(track=>track.stop());webcamStream=null}const video=$("webcamVideo");video.pause();video.srcObject=null;$("startWebcamBtn").disabled=false;$("stopWebcamBtn").disabled=true;$("webcamStatus").textContent="Camera is off. Start it before previewing or exporting.";drawPreview(Number($("progress").value)/100);status("Web camera stopped.")}
 async function exportVideo(){
  stopSpeech();if(!state.slides.length)return status("Add slides before exporting.");if(!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream)return status("Video export is not supported in this browser.");
  const mime=["video/webm;codecs=vp9","video/webm;codecs=vp8","video/webm"].find(MediaRecorder.isTypeSupported.bind(MediaRecorder));if(!mime)return status("No supported WebM recorder was found.");
@@ -202,6 +219,9 @@ $("recordNarrationBtn").onclick=async()=>{
  }catch(e){status("Microphone permission was not granted. You can upload a recorded audio file instead.")}
 };
 $("testSpeechBtn").onclick=()=>speakSlide();if("speechSynthesis" in window){loadVoices();speechSynthesis.onvoiceschanged=loadVoices}
+$("startWebcamBtn").onclick=startWebcam;$("stopWebcamBtn").onclick=stopWebcam;
+["webcamPosition","webcamSize","webcamRound","webcamMirror"].forEach(id=>$(id).oninput=()=>drawPreview(Number($("progress").value)/100));
+window.addEventListener("beforeunload",()=>{if(webcamStream)webcamStream.getTracks().forEach(track=>track.stop())});
 ["projectTitle","subject","teacherName","channelName","website","brandColor","accentColor"].forEach(id=>$(id).oninput=()=>{readSetup();drawPreview();saveLocal()});
 $("saveBtn").onclick=()=>{const project=projectPayload();download(new Blob([JSON.stringify(project,null,2)],{type:"application/json"}),`${slug(state.projectTitle)}-project.json`);status(`Project saved as JSON (${state.slides.length} slide${state.slides.length===1?"":"s"}).`)};
 $("openInput").onchange=async e=>{try{const file=e.target.files[0];if(!file)return;importProject(JSON.parse(await file.text()));syncSetup();renderAll();status(`Project opened: ${state.slides.length} slide${state.slides.length===1?"":"s"}${musicName?` and ${musicName}`:""}.`)}catch(err){status("This project JSON is invalid or contains an unsupported slide type.")}e.target.value=""};

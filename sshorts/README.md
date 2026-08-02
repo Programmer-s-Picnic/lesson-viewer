@@ -1,5 +1,9 @@
 # EduShorts Maker
 
+## Web camera overlay
+
+Open **Web camera**, press **Start camera**, and allow browser camera access. Choose the corner, size, circular or rectangular frame, and mirroring. The live camera overlay is drawn into both the preview and the exported video. Camera access requires HTTPS or localhost.
+
 A simplified, browser-based tool for creating vertical educational shorts.
 
 ## Run
