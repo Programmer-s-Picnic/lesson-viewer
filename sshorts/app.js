@@ -1,6 +1,6 @@
 "use strict";
 const $=id=>document.getElementById(id);
-const W=1080,H=1920,FPS=30,AUTOSAVE="edushorts-maker-v1";
+const W=1080,H=1920,FPS=30,AUTOSAVE="edushorts-maker-v1",PROJECT_FORMAT="edushorts-maker-project",PROJECT_VERSION=2;
 const defaults={projectTitle:"Python in 30 Seconds",subject:"Python",teacherName:"Champak Roy",channelName:"Learn With Champak",website:"learnwithchampak.live",brandColor:"#075985",accentColor:"#f59e0b",logo:"",slides:[],current:0};
 let state=structuredClone(defaults),playing=false,playToken=0,musicData="",musicName="",speechWord=-1,spokenUtterance=null,recording=null,narrationPlayer=null;
 const typeNames={hook:"Hook",explanation:"Explanation",spoken:"Spoken Text",code:"Code",question:"Question",answer:"Answer",image:"Image",cta:"Call to action"};
@@ -119,6 +119,26 @@ function bindEditor(){
 async function fileData(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file)})}
 function download(blob,name){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500)}
 function slug(v){return(v||"edushort").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,55)}
+function projectPayload(){
+ readSetup();
+ return{format:PROJECT_FORMAT,version:PROJECT_VERSION,savedAt:new Date().toISOString(),state:structuredClone(state),assets:{musicData,musicName},settings:{musicVolume:Number($("musicVolume").value)}};
+}
+function importProject(p){
+ // Version 2 keeps project data in named sections. The fallback reads older
+ // project files produced before the portable format was introduced.
+ const imported=p?.format===PROJECT_FORMAT?p.state:p;
+ if(!imported||typeof imported!=="object"||!Array.isArray(imported.slides))throw Error("Invalid project");
+ const slides=imported.slides.map(slide=>{
+  if(!slide||typeof slide!=="object"||!typeNames[slide.type])throw Error("Invalid slide");
+  return{...makeSlide(slide.type),...slide,id:typeof slide.id==="string"&&slide.id?slide.id:crypto.randomUUID()};
+ });
+ state={...structuredClone(defaults),...imported,slides};
+ state.current=Math.max(0,Math.min(Number(state.current)||0,Math.max(0,slides.length-1)));
+ musicData=p?.format===PROJECT_FORMAT?p.assets?.musicData||"":p.musicData||"";
+ musicName=p?.format===PROJECT_FORMAT?p.assets?.musicName||"":p.musicName||"";
+ const volume=p?.format===PROJECT_FORMAT?p.settings?.musicVolume:p.musicVolume;
+ if(Number.isFinite(Number(volume))){$("musicVolume").value=Math.max(0,Math.min(1,Number(volume)));$("musicVolumeOut").value=Math.round($("musicVolume").value*100)+"%"}
+}
 async function play(){
  if(!state.slides.length)return status("Add a slide first.");playing=!playing;const token=++playToken;$("playBtn").textContent=playing?"■ Stop":"▶ Preview";if(!playing){stopSpeech();stopNarration();return}
  const audio=musicData?new Audio(musicData):null;if(audio){audio.loop=true;audio.volume=Number($("musicVolume").value);audio.play().catch(()=>{})}
@@ -183,8 +203,8 @@ $("recordNarrationBtn").onclick=async()=>{
 };
 $("testSpeechBtn").onclick=()=>speakSlide();if("speechSynthesis" in window){loadVoices();speechSynthesis.onvoiceschanged=loadVoices}
 ["projectTitle","subject","teacherName","channelName","website","brandColor","accentColor"].forEach(id=>$(id).oninput=()=>{readSetup();drawPreview();saveLocal()});
-$("saveBtn").onclick=()=>{readSetup();download(new Blob([JSON.stringify({...state,musicData,musicName},null,2)],{type:"application/json"}),`${slug(state.projectTitle)}-project.json`);status("Portable project saved.")};
-$("openInput").onchange=async e=>{try{const p=JSON.parse(await e.target.files[0].text());if(!Array.isArray(p.slides))throw Error();state={...structuredClone(defaults),...p};musicData=p.musicData||"";musicName=p.musicName||"";syncSetup();renderAll();status("Project opened.")}catch(err){status("This project file is invalid.")}e.target.value=""};
+$("saveBtn").onclick=()=>{const project=projectPayload();download(new Blob([JSON.stringify(project,null,2)],{type:"application/json"}),`${slug(state.projectTitle)}-project.json`);status(`Project saved as JSON (${state.slides.length} slide${state.slides.length===1?"":"s"}).`)};
+$("openInput").onchange=async e=>{try{const file=e.target.files[0];if(!file)return;importProject(JSON.parse(await file.text()));syncSetup();renderAll();status(`Project opened: ${state.slides.length} slide${state.slides.length===1?"":"s"}${musicName?` and ${musicName}`:""}.`)}catch(err){status("This project JSON is invalid or contains an unsupported slide type.")}e.target.value=""};
 $("newBtn").onclick=()=>{if(confirm("Start a new project?")){stopSpeech();state=structuredClone(defaults);musicData="";syncSetup();renderAll()}};
 $("coverBtn").onclick=async()=>{if(!current())return status("Select a cover slide.");const c=document.createElement("canvas");c.width=W;c.height=H;await paint(c.getContext("2d"),current(),1);c.toBlob(b=>download(b,`${slug(state.projectTitle)}-cover.png`),"image/png")};
 $("videoBtn").onclick=exportVideo;$("progress").oninput=()=>drawPreview(Number($("progress").value)/100);
