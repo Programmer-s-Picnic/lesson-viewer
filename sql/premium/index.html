@@ -169,6 +169,19 @@
       .history-meta { display:flex; justify-content:space-between; gap:8px; color:var(--muted); font-size:12px; }
       .history-item pre { margin:8px 0; white-space:pre-wrap; word-break:break-word; }
       .history-error { color:var(--bad); font-size:13px; margin-bottom:6px; }
+      .share-dialog { width:min(680px, calc(100% - 24px)); border:1px solid var(--border); border-radius:16px; padding:0; color:var(--text); background:var(--panel); box-shadow:0 24px 80px rgba(0,0,0,.45); }
+      .share-dialog::backdrop { background:rgba(0,0,0,.65); backdrop-filter:blur(3px); }
+      .share-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px; border-bottom:1px solid var(--border); }
+      .share-head h2 { margin:0; font-size:19px; }
+      .share-close { min-width:42px; font-size:20px; }
+      .share-body { padding:16px; }
+      .share-source { margin:0 0 10px; color:var(--muted); font-size:13px; }
+      .share-preview { width:100%; min-height:150px; max-height:280px; resize:vertical; font-family:monospace; background:var(--result); color:var(--text); border:1px solid var(--border); border-radius:10px; padding:12px; }
+      .share-actions { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:9px; margin-top:12px; }
+      .share-actions button { min-height:44px; }
+      .share-warning { display:none; margin:10px 0 0; padding:9px 11px; border-radius:9px; background:rgba(245,158,11,.14); color:var(--text); font-size:13px; line-height:1.45; }
+      .share-warning.visible { display:block; }
+      .share-status { min-height:20px; margin:10px 0 0; color:var(--good); font-weight:700; font-size:13px; }
       @media (max-width: 640px) {
         input[type="text"] {
           width: 100%;
@@ -176,6 +189,7 @@
         .title-actions button {
           flex: 1;
         }
+        .share-actions { grid-template-columns:repeat(2, minmax(0,1fr)); }
       }
     </style>
 <meta charset="utf-8"/><meta content="Learn Sql Premium as part of practical AI/ML, Python, data science and coding study with Champak Roy of Varanasi at Programmer's Picnic. Build skills from…" name="description"/><meta content="Champak Roy" name="author"/><link href="https://editor.learnwithchampak.live/sql/premium/" rel="canonical"/><meta content="article" property="og:type"/><meta content="Sql Premium | Study AI/ML with Champak Roy of Varanasi" property="og:title"/><meta content="Learn Sql Premium as part of practical AI/ML, Python, data science and coding study with Champak Roy of Varanasi at Programmer's Picnic. Build skills from…" property="og:description"/><meta content="https://editor.learnwithchampak.live/sql/premium/" property="og:url"/><meta content="https://editor.learnwithchampak.live/assets/images/og-aiml-champak-roy-varanasi.png" property="og:image"/><meta content="summary_large_image" name="twitter:card"/><meta content="Sql Premium | Study AI/ML with Champak Roy of Varanasi" name="twitter:title"/><meta content="Learn Sql Premium as part of practical AI/ML, Python, data science and coding study with Champak Roy of Varanasi at Programmer's Picnic. Build skills from…" name="twitter:description"/><meta content="https://editor.learnwithchampak.live/assets/images/og-aiml-champak-roy-varanasi.png" name="twitter:image"/><script defer="True" src="/assets/js/pp-includes.js"></script><meta content="Sql Premium, AI ML course Varanasi, study AIML with Champak Roy, Champak Roy Varanasi, Programmer's Picnic, Python, data science, machine learning, coding lessons, learnwithchampak" name="keywords"/><meta content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" name="robots"/><meta content="#f59e0b" name="theme-color"/><meta content="en_IN" property="og:locale"/><meta content="Programmer's Picnic" property="og:site_name"/><meta content="1200" property="og:image:width"/><meta content="630" property="og:image:height"/><meta content="Study AI/ML with Champak Roy of Varanasi" property="og:image:alt"/><script type="application/ld+json">{"@context":"https://schema.org","@type":"Course","name":"Sql Premium | Study AI/ML with Champak Roy of Varanasi","description":"Learn Sql Premium as part of practical AI/ML, Python, data science and coding study with Champak Roy of Varanasi at Programmer's Picnic. Build skills from…","url":"https://editor.learnwithchampak.live/sql/premium/","image":"https://editor.learnwithchampak.live/assets/images/og-aiml-champak-roy-varanasi.png","inLanguage":"en-IN","publisher":{"@type":"Organization","name":"Programmer's Picnic","url":"https://www.learnwithchampak.live/"},"author":{"@type":"Person","name":"Champak Roy","homeLocation":{"@type":"Place","name":"Varanasi, India"}},"about":["AI/ML","Python","Data Science","Machine Learning","Coding Education"]}</script></head>
@@ -240,6 +254,26 @@
 <div class="history-list" id="queryHistoryList"></div>
 </section>
 </div>
+<dialog class="share-dialog" id="shareDialog" aria-labelledby="shareDialogTitle">
+  <div class="share-head">
+    <h2 id="shareDialogTitle">Share SQL query</h2>
+    <button class="share-close" id="closeShareBtn" type="button" aria-label="Close sharing">×</button>
+  </div>
+  <div class="share-body">
+    <p class="share-source" id="shareSource"></p>
+    <textarea class="share-preview" id="sharePreview" aria-label="SQL to share"></textarea>
+    <p class="share-warning" id="shareWarning">This query creates a long link. Copy SQL is the safest option if the link is rejected by a messaging service.</p>
+    <div class="share-actions">
+      <button id="copyShareLinkBtn" type="button">🔗 Copy Link</button>
+      <button id="copyShareSqlBtn" type="button">📋 Copy SQL</button>
+      <button id="whatsappShareBtn" type="button">WhatsApp</button>
+      <button id="emailShareBtn" type="button">Email</button>
+      <button id="nativeShareBtn" type="button">More Options</button>
+      <button id="closeShareActionBtn" type="button">Done</button>
+    </div>
+    <p class="share-status" id="shareStatus" role="status" aria-live="polite"></p>
+  </div>
+</dialog>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
 <script>
       let db,
@@ -619,11 +653,59 @@
         setTheme(document.body.classList.contains("light") ? "dark" : "light");
       setTheme(localStorage.getItem("pp_sql_theme") || "dark");
 
-      function buildShareUrl() {
+      const shareDialog = document.getElementById("shareDialog");
+      const sharePreview = document.getElementById("sharePreview");
+      const shareSource = document.getElementById("shareSource");
+      const shareWarning = document.getElementById("shareWarning");
+      const shareStatus = document.getElementById("shareStatus");
+
+      function selectedOrCompleteSql() {
+        const start = sqlInput.selectionStart;
+        const end = sqlInput.selectionEnd;
+        const selected = start !== end ? sqlInput.value.slice(start, end).trim() : "";
+        return { sql: selected || sqlInput.value.trim(), selected: Boolean(selected) };
+      }
+      function buildShareUrl(sql = sharePreview.value.trim()) {
         const url = new URL(window.location.href);
-        const sql = sqlInput.value.trim();
+        url.searchParams.delete("sql");
         url.hash = sql ? "sql=" + encodeURIComponent(sql) : "";
         return url.toString();
+      }
+      async function copyText(text, successMessage) {
+        try {
+          await navigator.clipboard.writeText(text);
+        } catch (_) {
+          const helper = document.createElement("textarea");
+          helper.value = text;
+          helper.style.position = "fixed";
+          helper.style.opacity = "0";
+          document.body.appendChild(helper);
+          helper.select();
+          const copied = document.execCommand("copy");
+          helper.remove();
+          if (!copied) throw new Error("Clipboard unavailable");
+        }
+        shareStatus.textContent = successMessage;
+      }
+      function shareMessage(sql, url) {
+        return "Try this SQL query in Programmer’s Picnic SQL:\n\n" + sql + "\n\nOpen it in the editor:\n" + url;
+      }
+      function refreshShareWarning() {
+        shareWarning.classList.toggle("visible", buildShareUrl().length > 1800);
+      }
+      function openShareDialog() {
+        const content = selectedOrCompleteSql();
+        if (!content.sql) {
+          show("Write a SQL query before sharing.", false);
+          return;
+        }
+        sharePreview.value = content.sql;
+        shareSource.textContent = content.selected
+          ? "Sharing the highlighted portion of the editor. You can edit it below."
+          : "No text was highlighted, so the complete query is ready to share. You can edit it below.";
+        shareStatus.textContent = "";
+        refreshShareWarning();
+        shareDialog.showModal();
       }
       function loadSharedSql() {
         if (!window.location.hash.startsWith("#sql=")) return;
@@ -631,25 +713,31 @@
           sqlInput.value = decodeURIComponent(window.location.hash.slice(5));
         } catch (e) {}
       }
-      document.getElementById("shareBtn").onclick = async () => {
-        const shareUrl = buildShareUrl();
-        try {
-          if (navigator.share) {
-            await navigator.share({
-              title: "Programmer’s Picnic SQL",
-              text: "Try this SQL",
-              url: shareUrl,
-            });
-            show("Shared successfully.", true);
-          } else {
-            await navigator.clipboard.writeText(shareUrl);
-            show("Share link copied to clipboard.", true);
-          }
-        } catch (err) {
-          if (err && err.name === "AbortError") return;
-          result.innerText = "Could not share. Copy this link:\n" + shareUrl;
-        }
+      document.getElementById("shareBtn").onclick = openShareDialog;
+      sharePreview.addEventListener("input", () => { shareStatus.textContent = ""; refreshShareWarning(); });
+      document.getElementById("copyShareLinkBtn").onclick = () => copyText(buildShareUrl(), "Share link copied.");
+      document.getElementById("copyShareSqlBtn").onclick = () => copyText(sharePreview.value.trim(), "SQL copied.");
+      document.getElementById("whatsappShareBtn").onclick = () => {
+        const url = buildShareUrl();
+        window.open("https://wa.me/?text=" + encodeURIComponent(shareMessage(sharePreview.value.trim(), url)), "_blank", "noopener");
       };
+      document.getElementById("emailShareBtn").onclick = () => {
+        const url = buildShareUrl();
+        window.location.href = "mailto:?subject=" + encodeURIComponent("SQL query from Programmer’s Picnic") + "&body=" + encodeURIComponent(shareMessage(sharePreview.value.trim(), url));
+      };
+      document.getElementById("nativeShareBtn").onclick = async () => {
+        const sql = sharePreview.value.trim();
+        const url = buildShareUrl(sql);
+        if (!navigator.share) return copyText(url, "Your browser has no share menu, so the link was copied.");
+        try {
+          await navigator.share({ title: "Programmer’s Picnic SQL", text: "Try this SQL query:\n\n" + sql, url });
+          shareStatus.textContent = "Shared successfully.";
+        } catch (err) { if (!err || err.name !== "AbortError") shareStatus.textContent = "Sharing was not completed."; }
+      };
+      function closeShareDialog() { shareDialog.close(); sqlInput.focus(); }
+      document.getElementById("closeShareBtn").onclick = closeShareDialog;
+      document.getElementById("closeShareActionBtn").onclick = closeShareDialog;
+      shareDialog.addEventListener("click", (event) => { if (event.target === shareDialog) closeShareDialog(); });
       loadSharedSql();
 
       const fsBtn = document.getElementById("fullscreenBtn");

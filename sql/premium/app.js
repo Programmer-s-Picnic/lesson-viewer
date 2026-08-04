@@ -1243,9 +1243,16 @@
       });
   }
 
-  function buildShareUrl() {
+  function getShareSQL() {
+    var start = sqlInput.selectionStart;
+    var end = sqlInput.selectionEnd;
+    var selected = start !== end ? sqlInput.value.slice(start, end).trim() : "";
+    return selected || (sqlInput.value || "").trim();
+  }
+
+  function buildShareUrl(sql) {
     var url = new URL(window.location.href);
-    var sql = sqlInput.value || "";
+    sql = typeof sql === "string" ? sql : getShareSQL();
     if (sql.trim()) {
       url.hash = "sql=" + encodeURIComponent(sql);
     } else {
@@ -1255,8 +1262,12 @@
   }
 
   function shareCurrentSQL() {
-    var shareUrl = buildShareUrl();
-    var sql = sqlInput.value || "";
+    var sql = getShareSQL();
+    if (!sql) {
+      showErr("Write a SQL query before sharing.");
+      return;
+    }
+    var shareUrl = buildShareUrl(sql);
     var shareText =
       "Try this SQL in Programmer’s Picnic — SQL in Browser:\n\n" + sql;
 
