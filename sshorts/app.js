@@ -123,7 +123,16 @@ async function paint(ctx,s,progress=1){
  drawWebcam(ctx);
 }
 let previewSeq=0;
-async function drawPreview(progress=1){const seq=++previewSeq,ctx=$("preview").getContext("2d"),s=current();ctx.clearRect(0,0,W,H);if(!s){ctx.fillStyle="#075985";ctx.fillRect(0,0,W,H);ctx.fillStyle="#fff";ctx.textAlign="center";ctx.font="800 80px system-ui";ctx.fillText("Create your first slide",W/2,H/2);return}await paint(ctx,s,progress);if(seq!==previewSeq)return;$("slidePosition").textContent=`Slide ${state.current+1} of ${state.slides.length}`}
+const previewBuffer=document.createElement("canvas");previewBuffer.width=W;previewBuffer.height=H;
+async function drawPreview(progress=1){
+ const seq=++previewSeq,preview=$("preview"),ctx=preview.getContext("2d"),bufferCtx=previewBuffer.getContext("2d"),s=current();
+ bufferCtx.clearRect(0,0,W,H);
+ if(!s){bufferCtx.fillStyle="#075985";bufferCtx.fillRect(0,0,W,H);bufferCtx.fillStyle="#fff";bufferCtx.textAlign="center";bufferCtx.font="800 80px system-ui";bufferCtx.fillText("Create your first slide",W/2,H/2)}
+ else await paint(bufferCtx,s,progress);
+ if(seq!==previewSeq)return;
+ ctx.clearRect(0,0,W,H);ctx.drawImage(previewBuffer,0,0);
+ if(s)$("slidePosition").textContent=`Slide ${state.current+1} of ${state.slides.length}`;
+}
 function updateDuration(){const t=state.slides.reduce((a,s)=>a+Number(s.duration||0),0);$("durationStatus").textContent=`${t} seconds`;$("durationWarning").hidden=t<=60}
 function bindEditor(){
  ["heading","content","duration","transition","background","textColor","language","imageFit","speechVoice","speechRate","narrationText"].forEach(id=>$(id).addEventListener("input",()=>{const s=current();if(!s)return;s[id==="duration"?"duration":id]=id==="duration"?Math.max(1,Number($(id).value)):id==="speechRate"?Number($(id).value):$(id).value;if(id==="speechRate")$("speechRateOut").value=`${Number($(id).value).toFixed(1).replace(".0","")}×`;renderList();drawPreview();updateDuration();saveLocal()}));
