@@ -221,10 +221,20 @@ $("recordNarrationBtn").onclick=async()=>{
  if(recording){recording.recorder.stop();return}
  if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder)return status("Microphone recording is unavailable. Open the app through localhost/HTTPS or upload an audio file.");
  try{
-  const stream=await navigator.mediaDevices.getUserMedia({audio:true}),mime=["audio/webm;codecs=opus","audio/webm","audio/ogg;codecs=opus"].find(x=>MediaRecorder.isTypeSupported(x))||"",recorder=new MediaRecorder(stream,mime?{mimeType:mime}:undefined),chunks=[];
+  const removeNoise=$("noiseRemoval").checked;
+  const sourceStream=await navigator.mediaDevices.getUserMedia({audio:{noiseSuppression:removeNoise,echoCancellation:removeNoise,autoGainControl:removeNoise,channelCount:1,sampleRate:{ideal:48000}}});
+  let stream=sourceStream,audioContext=null;
+  if(removeNoise){
+   audioContext=new (window.AudioContext||window.webkitAudioContext)();await audioContext.resume();
+   const source=audioContext.createMediaStreamSource(sourceStream),highPass=audioContext.createBiquadFilter(),lowPass=audioContext.createBiquadFilter(),compressor=audioContext.createDynamicsCompressor(),destination=audioContext.createMediaStreamDestination();
+   highPass.type="highpass";highPass.frequency.value=85;highPass.Q.value=.7;lowPass.type="lowpass";lowPass.frequency.value=12000;lowPass.Q.value=.7;
+   compressor.threshold.value=-24;compressor.knee.value=18;compressor.ratio.value=3;compressor.attack.value=.005;compressor.release.value=.2;
+   source.connect(highPass).connect(lowPass).connect(compressor).connect(destination);stream=destination.stream;
+  }
+  const mime=["audio/webm;codecs=opus","audio/webm","audio/ogg;codecs=opus"].find(x=>MediaRecorder.isTypeSupported(x))||"",recorder=new MediaRecorder(stream,mime?{mimeType:mime}:undefined),chunks=[];
   recorder.ondataavailable=e=>e.data.size&&chunks.push(e.data);
-  recorder.onstop=async()=>{stream.getTracks().forEach(t=>t.stop());const blob=new Blob(chunks,{type:recorder.mimeType||"audio/webm"}),data=await fileData(new File([blob],"recorded-narration.webm",{type:blob.type}));recording=null;button.classList.remove("recording");button.textContent="● Start recording";await attachNarration(data,"recorded narration")};
-  recording={recorder,stream};button.classList.add("recording");button.textContent="■ Stop recording";recorder.start();status("Recording… speak the narration text, then press Stop recording.");
+  recorder.onstop=async()=>{sourceStream.getTracks().forEach(t=>t.stop());stream.getTracks().forEach(t=>t.stop());if(audioContext)await audioContext.close();const blob=new Blob(chunks,{type:recorder.mimeType||"audio/webm"}),data=await fileData(new File([blob],"recorded-narration.webm",{type:blob.type}));recording=null;button.classList.remove("recording");button.textContent="● Start recording";await attachNarration(data,removeNoise?"noise-reduced recording":"recorded narration")};
+  recording={recorder,stream,sourceStream,audioContext};button.classList.add("recording");button.textContent="■ Stop recording";recorder.start();status(removeNoise?"Recording with noise removal… speak clearly, then press Stop recording.":"Recording… speak the narration text, then press Stop recording.");
  }catch(e){status("Microphone permission was not granted. You can upload a recorded audio file instead.")}
 };
 $("testSpeechBtn").onclick=()=>speakSlide();if("speechSynthesis" in window){loadVoices();speechSynthesis.onvoiceschanged=loadVoices}
