@@ -1,6 +1,7 @@
 "use strict";
 const $=id=>document.getElementById(id);
-const W=1080,H=1920,FPS=30,AUTOSAVE="edushorts-maker-v1",PROJECT_FORMAT="edushorts-maker-project",PROJECT_VERSION=2;
+let W=1080,H=1920;
+const FPS=30,AUTOSAVE="edushorts-maker-v1",PROJECT_FORMAT="edushorts-maker-project",PROJECT_VERSION=3;
 const defaults={projectTitle:"Python in 30 Seconds",subject:"Python",teacherName:"Champak Roy",channelName:"Learn With Champak",website:"learnwithchampak.live",brandColor:"#075985",accentColor:"#f59e0b",logo:"",slides:[],current:0};
 let state=structuredClone(defaults),playing=false,exporting=false,playToken=0,musicData="",musicName="",speechWord=-1,spokenUtterance=null,recording=null,narrationPlayer=null,webcamStream=null,webcamAnimationId=0,webcamPreviewBusy=false;
 const imageCache=new Map();
@@ -105,18 +106,47 @@ function drawNarrationCaption(ctx,text,activeWord){
 function webcamSettings(){return{position:$("webcamPosition").value,size:$("webcamSize").value,round:$("webcamRound").checked,mirror:$("webcamMirror").checked}}
 function drawWebcam(ctx){
  const video=$("webcamVideo");if(!webcamStream||video.readyState<2)return;
- const settings=webcamSettings(),sizes={small:220,medium:300,large:390},width=sizes[settings.size]||300,height=settings.round?width:Math.round(width*9/16),margin=45;
- const x=settings.position.endsWith("right")?W-margin-width:margin,y=settings.position.startsWith("top")?245:H-220-height;
+ const landscape=W>H,settings=webcamSettings(),sizes=landscape?{small:180,medium:245,large:320}:{small:220,medium:300,large:390},width=sizes[settings.size]||300,height=settings.round?width:Math.round(width*9/16),margin=45;
+ const x=settings.position.endsWith("right")?W-margin-width:margin,y=settings.position.startsWith("top")?(landscape?155:245):H-(landscape?150:220)-height;
  ctx.save();ctx.beginPath();if(settings.round)ctx.arc(x+width/2,y+height/2,width/2,0,Math.PI*2);else ctx.roundRect(x,y,width,height,28);ctx.clip();
  const videoRatio=video.videoWidth/video.videoHeight,boxRatio=width/height;let sw,sh,sx,sy;
  if(videoRatio>boxRatio){sh=video.videoHeight;sw=sh*boxRatio;sx=(video.videoWidth-sw)/2;sy=0}else{sw=video.videoWidth;sh=sw/boxRatio;sx=0;sy=(video.videoHeight-sh)/2}
  if(settings.mirror){ctx.translate(x+width,y);ctx.scale(-1,1);ctx.drawImage(video,sx,sy,sw,sh,0,0,width,height)}else ctx.drawImage(video,sx,sy,sw,sh,x,y,width,height);
  ctx.restore();ctx.save();ctx.lineWidth=12;ctx.strokeStyle=state.accentColor||"#f59e0b";ctx.beginPath();if(settings.round)ctx.arc(x+width/2,y+height/2,width/2-6,0,Math.PI*2);else ctx.roundRect(x+6,y+6,width-12,height-12,23);ctx.stroke();ctx.restore();
 }
+function applyEntrance(ctx,transition,progress){
+ const entrance=Math.min(1,progress/.2),ease=1-Math.pow(1-entrance,3);
+ if(transition==="fade")ctx.globalAlpha=Math.max(.02,ease);
+ if(transition==="zoom"){const z=.78+.22*ease;ctx.translate(W/2,H/2);ctx.scale(z,z);ctx.translate(-W/2,-H/2)}
+ if(transition==="slide")ctx.translate((1-ease)*W,0);
+ if(transition==="slide-left")ctx.translate(-(1-ease)*W,0);
+ if(transition==="rise"){const bounce=Math.sin(entrance*Math.PI)*.025;ctx.translate(W/2,H/2+(1-ease)*H*.28);ctx.scale(1+bounce,1+bounce);ctx.translate(-W/2,-H/2)}
+ if(transition==="rotate"){ctx.translate(W/2,H/2);ctx.rotate((1-ease)*-.11);ctx.scale(.82+.18*ease,.82+.18*ease);ctx.translate(-W/2,-H/2)}
+ if(transition==="reveal"){ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(W*ease,0);ctx.lineTo(Math.min(W,W*ease+H*.35),H);ctx.lineTo(0,H);ctx.closePath();ctx.clip()}
+ return entrance;
+}
+async function paintLandscape(ctx,s,progress=1){
+ const grad=ctx.createLinearGradient(0,0,W,H);grad.addColorStop(0,s.background);grad.addColorStop(1,state.brandColor||"#075985");ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
+ const entrance=Math.min(1,progress/.2);ctx.save();applyEntrance(ctx,s.transition,progress);
+ ctx.fillStyle="#ffffff18";ctx.beginPath();ctx.arc(1710,90,250,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(90,980,230,0,Math.PI*2);ctx.fill();
+ if(s.type==="image"&&s.image){try{const im=await imageFrom(s.image),boxX=80,boxY=170,boxW=780,boxH=700,ir=im.width/im.height,br=boxW/boxH;let dw,dh;if((s.imageFit==="cover"&&ir>br)||(s.imageFit!=="cover"&&ir<br)){dh=boxH;dw=dh*ir}else{dw=boxW;dh=dw/ir}ctx.save();ctx.beginPath();ctx.roundRect(boxX,boxY,boxW,boxH,34);ctx.clip();ctx.drawImage(im,boxX+(boxW-dw)/2,boxY+(boxH-dh)/2,dw,dh);ctx.restore()}catch(e){}}
+ ctx.fillStyle=state.accentColor||"#f59e0b";ctx.fillRect(90,62,220,13);ctx.fillStyle=s.textColor;ctx.textAlign="left";ctx.font="800 35px system-ui";ctx.fillText((state.subject||"LESSON").toUpperCase(),90,125);
+ const contentX=s.type==="image"?960:W/2,maxWidth=s.type==="image"?820:1540;let y=s.type==="image"?330:275;
+ ctx.textAlign=s.type==="image"?"left":"center";ctx.font="900 68px system-ui";const heads=wrap(ctx,s.heading,maxWidth);heads.forEach((line,i)=>ctx.fillText(line,contentX,y+i*78));y+=heads.length*78+30;
+ if(s.type==="code"){const boxX=170,boxW=1580,boxH=Math.min(510,H-y-145);ctx.fillStyle="#07111fdd";rounded(ctx,boxX,y-35,boxW,boxH,34);const code=fitCode(ctx,s.content,boxW-100,boxH-80),total=code.lines.length*code.lineHeight,overflow=Math.max(0,total-(boxH-80)),scroll=Math.max(0,Math.min(1,(progress-.12)/.78)),offset=overflow*scroll*scroll*(3-2*scroll);ctx.save();ctx.beginPath();ctx.rect(boxX+35,y-5,boxW-70,boxH-55);ctx.clip();ctx.textAlign="left";ctx.font=`500 ${code.fontSize}px ui-monospace, SFMono-Regular, Consolas, monospace`;code.lines.forEach((line,i)=>{ctx.fillStyle=i%2?"#bae6fd":"#fef3c7";ctx.fillText(line||" ",boxX+55,y+45+(1-entrance)*70-offset+i*code.lineHeight)});ctx.restore()}
+ else if(s.type==="spoken"){const words=speechWords(s.content),active=Math.min(words.length-1,Math.floor(progress*words.length));drawSpokenText(ctx,s.content,y,speechWord>=0?speechWord:active)}
+ else{ctx.font=`${s.type==="question"||s.type==="answer"?"700":"550"} 44px system-ui`;const lines=wrap(ctx,s.content,maxWidth).slice(0,8),lh=61;lines.forEach((line,i)=>ctx.fillText(line,contentX,y+i*lh))}
+ ctx.restore();
+ if(s.narrationAudio&&s.type!=="spoken"){const words=speechWords(s.narrationText||s.content),active=Math.min(words.length-1,Math.floor(progress*words.length));drawNarrationCaption(ctx,s.narrationText||s.content,active)}
+ ctx.fillStyle="#061a2bdd";ctx.fillRect(0,H-125,W,125);ctx.textAlign="left";ctx.fillStyle="#fff";ctx.font="800 31px system-ui";ctx.fillText(state.teacherName||"Your Teacher",65,H-67);ctx.font="500 24px system-ui";ctx.fillStyle="#bae6fd";ctx.fillText(state.channelName||"",65,H-28);ctx.textAlign="right";ctx.fillStyle=state.accentColor;ctx.font="700 25px system-ui";ctx.fillText(state.website||"",W-65,H-45);
+ if(state.logo){try{const logo=await imageFrom(state.logo);ctx.save();ctx.fillStyle="#ffffffee";rounded(ctx,W-235,35,170,105,18);drawContainedImage(ctx,logo,W-220,45,140,85);ctx.restore()}catch(e){}}
+ drawWebcam(ctx);
+}
 async function paint(ctx,s,progress=1){
+ if(W>H)return paintLandscape(ctx,s,progress);
  const grad=ctx.createLinearGradient(0,0,W,H);grad.addColorStop(0,s.background);grad.addColorStop(1,state.brandColor||"#075985");ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
  const entrance=Math.min(1,progress/.18);
- ctx.save();if(s.transition==="fade")ctx.globalAlpha=Math.max(.02,entrance);if(s.transition==="zoom"){const z=.88+.12*entrance;ctx.translate(W/2,H/2);ctx.scale(z,z);ctx.translate(-W/2,-H/2)}if(s.transition==="slide")ctx.translate((1-entrance)*W,0);
+ ctx.save();applyEntrance(ctx,s.transition,progress);
  if(s.type==="image"&&s.image){try{const im=await imageFrom(s.image),ir=im.width/im.height,cr=W/(H-360);let dw,dh;if((s.imageFit==="cover"&&ir>cr)||(s.imageFit!=="cover"&&ir<cr)){dh=H-360;dw=dh*ir}else{dw=W;dh=dw/ir}ctx.drawImage(im,(W-dw)/2,170+(H-360-dh)/2,dw,dh)}catch(e){}}
  ctx.fillStyle="#ffffff22";ctx.beginPath();ctx.arc(900,190,220,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(80,1720,270,0,Math.PI*2);ctx.fill();
  ctx.fillStyle=state.accentColor||"#f59e0b";ctx.fillRect(70,105,150,14);
@@ -133,6 +163,14 @@ async function paint(ctx,s,progress=1){
 }
 let previewSeq=0;
 const previewBuffer=document.createElement("canvas");previewBuffer.width=W;previewBuffer.height=H;
+function setExportFormat(value=$("exportFormat").value){
+ const landscape=value==="landscape";W=landscape?1920:1080;H=landscape?1080:1920;
+ const preview=$("preview");preview.width=W;preview.height=H;previewBuffer.width=W;previewBuffer.height=H;
+ preview.closest(".phone-wrap").classList.toggle("landscape",landscape);
+ $("videoBtn").textContent=landscape?"Export Full-screen Video — 1920×1080":"Export Vertical Reel — 1080×1920";
+ $("formatHelp").textContent=landscape?"Best for regular YouTube lessons, presentations and desktop viewing. Layouts automatically reflow to 16:9.":"Best for YouTube Shorts, Instagram Reels and Facebook Reels. Layouts automatically fit 9:16.";
+ drawPreview(Number($("progress").value)/100);
+}
 async function drawPreview(progress=1){
  const seq=++previewSeq,preview=$("preview"),ctx=preview.getContext("2d"),bufferCtx=previewBuffer.getContext("2d"),s=current();
  bufferCtx.clearRect(0,0,W,H);
@@ -160,7 +198,7 @@ function download(blob,name){const a=document.createElement("a");a.href=URL.crea
 function slug(v){return(v||"edushort").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,55)}
 function projectPayload(){
  readSetup();
- return{format:PROJECT_FORMAT,version:PROJECT_VERSION,savedAt:new Date().toISOString(),state:structuredClone(state),assets:{musicData,musicName},settings:{musicVolume:Number($("musicVolume").value)}};
+ return{format:PROJECT_FORMAT,version:PROJECT_VERSION,savedAt:new Date().toISOString(),state:structuredClone(state),assets:{musicData,musicName},settings:{musicVolume:Number($("musicVolume").value),exportFormat:$("exportFormat").value}};
 }
 function importProject(p){
  // Version 2 keeps project data in named sections. The fallback reads older
@@ -177,6 +215,7 @@ function importProject(p){
  musicName=p?.format===PROJECT_FORMAT?p.assets?.musicName||"":p.musicName||"";
  const volume=p?.format===PROJECT_FORMAT?p.settings?.musicVolume:p.musicVolume;
  if(Number.isFinite(Number(volume))){$("musicVolume").value=Math.max(0,Math.min(1,Number(volume)));$("musicVolumeOut").value=Math.round($("musicVolume").value*100)+"%"}
+ const exportFormat=p?.format===PROJECT_FORMAT?p.settings?.exportFormat:p.exportFormat;if(exportFormat==="landscape"||exportFormat==="vertical")$("exportFormat").value=exportFormat;setExportFormat();
 }
 async function play(){
  if(!state.slides.length)return status("Add a slide first.");playing=!playing;const token=++playToken;$("playBtn").textContent=playing?"■ Stop":"▶ Preview";if(!playing){stopSpeech();stopNarration();return}
@@ -230,9 +269,9 @@ async function exportVideo(){
    }
    if(slideAudio){slideAudio.pause();slideAudio=null}
   }
-  const stopped=new Promise(resolve=>rec.addEventListener("stop",resolve,{once:true}));rec.stop();await stopped;if(musicAudio)musicAudio.pause();if(audioCtx)await audioCtx.close();audioCtx=null;download(new Blob(chunks,{type:mime}),`${slug(state.projectTitle)}.webm`);status("Video ready with recorded narration.");
+  const stopped=new Promise(resolve=>rec.addEventListener("stop",resolve,{once:true}));rec.stop();await stopped;if(musicAudio)musicAudio.pause();if(audioCtx)await audioCtx.close();audioCtx=null;const formatName=W>H?"fullscreen-1920x1080":"vertical-1080x1920";download(new Blob(chunks,{type:mime}),`${slug(state.projectTitle)}-${formatName}.webm`);status(`Video ready: ${W} × ${H} with recorded narration.`);
  }catch(error){if(rec?.state==="recording")rec.stop();if(slideAudio)slideAudio.pause();if(musicAudio)musicAudio.pause();if(audioCtx)await audioCtx.close().catch(()=>{});status(`Video export stopped: ${error.message||"unexpected error"}`)}
- finally{exporting=false;videoButton.disabled=false;videoButton.textContent="Export 1080×1920 video";state.current=Math.max(0,Math.min(selectedSlide,state.slides.length-1));$("progress").value=0;renderList();loadEditor();await drawPreview(1);if(webcamStream)startWebcamPreviewLoop()}
+ finally{exporting=false;videoButton.disabled=false;setExportFormat();state.current=Math.max(0,Math.min(selectedSlide,state.slides.length-1));$("progress").value=0;renderList();loadEditor();await drawPreview(1);if(webcamStream)startWebcamPreviewLoop()}
 }
 document.querySelectorAll("#slideButtons button").forEach(b=>b.onclick=()=>{state.slides.push(makeSlide(b.dataset.type));state.current=state.slides.length-1;renderAll()});
 $("useTemplateBtn").onclick=()=>{const key=$("templateSelect").value;if(!key)return status("Choose a lesson template.");if(state.slides.length&&!confirm("Replace the current slides with this template?"))return;state.slides=templates[key].map(x=>makeSlide(...x));state.current=0;renderAll();status("Template created.")};
@@ -280,10 +319,11 @@ $("openInput").onchange=async e=>{try{const file=e.target.files[0];if(!file)retu
 $("newBtn").onclick=()=>{if(confirm("Start a new project?")){stopSpeech();state=structuredClone(defaults);musicData="";syncSetup();renderAll()}};
 $("coverBtn").onclick=async()=>{if(!current())return status("Select a cover slide.");const c=document.createElement("canvas");c.width=W;c.height=H;await paint(c.getContext("2d"),current(),1);c.toBlob(b=>download(b,`${slug(state.projectTitle)}-cover.png`),"image/png")};
 $("videoBtn").onclick=exportVideo;$("progress").oninput=()=>drawPreview(Number($("progress").value)/100);
+$("exportFormat").onchange=()=>setExportFormat();
 const guideDialog=$("guideDialog"),openGuide=()=>{if(typeof guideDialog.showModal==="function")guideDialog.showModal();else guideDialog.setAttribute("open","");document.body.classList.add("guide-open")},closeGuide=()=>{if(typeof guideDialog.close==="function")guideDialog.close();else guideDialog.removeAttribute("open");document.body.classList.remove("guide-open")};
 $("guideBtn").onclick=openGuide;$("closeGuideBtn").onclick=closeGuide;$("doneGuideBtn").onclick=closeGuide;$("printGuideBtn").onclick=()=>window.print();
 guideDialog.addEventListener("click",e=>{if(e.target===guideDialog){const r=guideDialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeGuide()}});
 guideDialog.addEventListener("close",()=>document.body.classList.remove("guide-open"));
 bindEditor();
 try{const saved=JSON.parse(localStorage.getItem(AUTOSAVE));if(saved&&Array.isArray(saved.slides))state={...structuredClone(defaults),...saved}}catch(e){}
-syncSetup();renderAll();
+syncSetup();setExportFormat();renderAll();
