@@ -975,11 +975,22 @@
     return m ? m[1] : "";
   }
 
+  function getSqlToRun() {
+    var start = sqlInput.selectionStart;
+    var end = sqlInput.selectionEnd;
+
+    if (typeof start === "number" && typeof end === "number" && start !== end) {
+      return sqlInput.value.slice(start, end);
+    }
+
+    return sqlInput.value || "";
+  }
+
   function runSQL() {
     clearOutput();
     if (!db) return;
 
-    var sql = sqlInput.value || "";
+    var sql = getSqlToRun();
     var start = performance.now();
 
     try {
