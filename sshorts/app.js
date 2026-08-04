@@ -266,6 +266,10 @@ $("openInput").onchange=async e=>{try{const file=e.target.files[0];if(!file)retu
 $("newBtn").onclick=()=>{if(confirm("Start a new project?")){stopSpeech();state=structuredClone(defaults);musicData="";syncSetup();renderAll()}};
 $("coverBtn").onclick=async()=>{if(!current())return status("Select a cover slide.");const c=document.createElement("canvas");c.width=W;c.height=H;await paint(c.getContext("2d"),current(),1);c.toBlob(b=>download(b,`${slug(state.projectTitle)}-cover.png`),"image/png")};
 $("videoBtn").onclick=exportVideo;$("progress").oninput=()=>drawPreview(Number($("progress").value)/100);
+const guideDialog=$("guideDialog"),openGuide=()=>{if(typeof guideDialog.showModal==="function")guideDialog.showModal();else guideDialog.setAttribute("open","");document.body.classList.add("guide-open")},closeGuide=()=>{if(typeof guideDialog.close==="function")guideDialog.close();else guideDialog.removeAttribute("open");document.body.classList.remove("guide-open")};
+$("guideBtn").onclick=openGuide;$("closeGuideBtn").onclick=closeGuide;$("doneGuideBtn").onclick=closeGuide;$("printGuideBtn").onclick=()=>window.print();
+guideDialog.addEventListener("click",e=>{if(e.target===guideDialog){const r=guideDialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeGuide()}});
+guideDialog.addEventListener("close",()=>document.body.classList.remove("guide-open"));
 bindEditor();
 try{const saved=JSON.parse(localStorage.getItem(AUTOSAVE));if(saved&&Array.isArray(saved.slides))state={...structuredClone(defaults),...saved}}catch(e){}
 syncSetup();renderAll();
