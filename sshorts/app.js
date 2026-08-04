@@ -2,7 +2,7 @@
 const $=id=>document.getElementById(id);
 const W=1080,H=1920,FPS=30,AUTOSAVE="edushorts-maker-v1",PROJECT_FORMAT="edushorts-maker-project",PROJECT_VERSION=2;
 const defaults={projectTitle:"Python in 30 Seconds",subject:"Python",teacherName:"Champak Roy",channelName:"Learn With Champak",website:"learnwithchampak.live",brandColor:"#075985",accentColor:"#f59e0b",logo:"",slides:[],current:0};
-let state=structuredClone(defaults),playing=false,playToken=0,musicData="",musicName="",speechWord=-1,spokenUtterance=null,recording=null,narrationPlayer=null,webcamStream=null,webcamAnimationId=0,webcamPreviewBusy=false;
+let state=structuredClone(defaults),playing=false,exporting=false,playToken=0,musicData="",musicName="",speechWord=-1,spokenUtterance=null,recording=null,narrationPlayer=null,webcamStream=null,webcamAnimationId=0,webcamPreviewBusy=false;
 const imageCache=new Map();
 const typeNames={hook:"Hook",explanation:"Explanation",spoken:"Spoken Text",code:"Code",question:"Question",answer:"Answer",image:"Image",cta:"Call to action"};
 const palettes={hook:["#7c2d12","#f59e0b"],explanation:["#075985","#0ea5e9"],spoken:["#0f4c5c","#0e7490"],code:["#111827","#1e293b"],question:["#4c1d95","#7c3aed"],answer:["#065f46","#10b981"],image:["#0f172a","#334155"],cta:["#9a3412","#ea580c"]};
@@ -146,7 +146,7 @@ function startWebcamPreviewLoop(){
  cancelAnimationFrame(webcamAnimationId);
  const tick=async()=>{
   if(!webcamStream)return;
-  if(!playing&&!webcamPreviewBusy){webcamPreviewBusy=true;try{await drawPreview(Number($("progress").value)/100)}finally{webcamPreviewBusy=false}}
+  if(!playing&&!exporting&&!webcamPreviewBusy){webcamPreviewBusy=true;try{await drawPreview(Number($("progress").value)/100)}finally{webcamPreviewBusy=false}}
   webcamAnimationId=requestAnimationFrame(tick);
  };
  webcamAnimationId=requestAnimationFrame(tick);
@@ -210,15 +210,29 @@ async function startWebcam(){
 }
 function stopWebcam(fromTrack=false){cancelAnimationFrame(webcamAnimationId);webcamAnimationId=0;const oldStream=webcamStream;webcamStream=null;if(oldStream&&!fromTrack)oldStream.getTracks().forEach(track=>track.stop());const video=$("webcamVideo");video.pause();video.srcObject=null;$("startWebcamBtn").disabled=false;$("stopWebcamBtn").disabled=true;$("webcamStatus").textContent="Camera is off. Start it before previewing or exporting.";drawPreview(Number($("progress").value)/100);status(fromTrack?"Web camera ended.":"Web camera stopped.")}
 async function exportVideo(){
- stopSpeech();if(!state.slides.length)return status("Add slides before exporting.");if(!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream)return status("Video export is not supported in this browser.");
- await preloadProjectImages();
+ stopSpeech();stopNarration();if(exporting)return status("A video export is already running.");if(!state.slides.length)return status("Add slides before exporting.");if(!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream)return status("Video export is not supported in this browser.");
  const mime=["video/webm;codecs=vp9","video/webm;codecs=vp8","video/webm"].find(MediaRecorder.isTypeSupported.bind(MediaRecorder));if(!mime)return status("No supported WebM recorder was found.");
- const canvas=document.createElement("canvas");canvas.width=W;canvas.height=H;const ctx=canvas.getContext("2d"),frameCanvas=document.createElement("canvas");frameCanvas.width=W;frameCanvas.height=H;const frameCtx=frameCanvas.getContext("2d"),stream=canvas.captureStream(FPS);let audioCtx,dest,musicAudio;
- const hasAudio=!!musicData||state.slides.some(s=>s.narrationAudio);
- if(hasAudio){audioCtx=new AudioContext();await audioCtx.resume();dest=audioCtx.createMediaStreamDestination();dest.stream.getAudioTracks().forEach(t=>stream.addTrack(t));if(musicData){musicAudio=new Audio(musicData);musicAudio.loop=true;musicAudio.volume=Number($("musicVolume").value);const musicSource=audioCtx.createMediaElementSource(musicAudio);musicSource.connect(dest);musicSource.connect(audioCtx.destination);await musicAudio.play()}}
- const rec=new MediaRecorder(stream,{mimeType:mime}),chunks=[];rec.ondataavailable=e=>e.data.size&&chunks.push(e.data);rec.start(500);status("Rendering video… keep this tab active.");
- for(let i=0;i<state.slides.length;i++){const s=state.slides[i],frames=Math.round(s.duration*FPS);let slideAudio;if(s.narrationAudio&&audioCtx){slideAudio=new Audio(s.narrationAudio);const slideSource=audioCtx.createMediaElementSource(slideAudio);slideSource.connect(dest);slideSource.connect(audioCtx.destination);await slideAudio.play()}for(let f=0;f<frames;f++){await paint(frameCtx,s,frames>1?f/(frames-1):1);ctx.drawImage(frameCanvas,0,0);status(`Rendering slide ${i+1}/${state.slides.length} — ${Math.round((i+f/frames)/state.slides.length*100)}%`);await new Promise(r=>setTimeout(r,1000/FPS))}if(slideAudio)slideAudio.pause()}
- rec.stop();if(musicAudio)musicAudio.pause();await new Promise(r=>rec.onstop=r);if(audioCtx)await audioCtx.close();download(new Blob(chunks,{type:mime}),`${slug(state.projectTitle)}.webm`);status("Video ready with recorded narration.")
+ const selectedSlide=state.current,videoButton=$("videoBtn"),preview=$("preview"),previewCtx=preview.getContext("2d");let audioCtx,dest,musicAudio,rec,slideAudio;
+ exporting=true;videoButton.disabled=true;videoButton.textContent="Exporting…";cancelAnimationFrame(webcamAnimationId);webcamAnimationId=0;
+ try{
+  await preloadProjectImages();
+  const canvas=document.createElement("canvas");canvas.width=W;canvas.height=H;const ctx=canvas.getContext("2d"),frameCanvas=document.createElement("canvas");frameCanvas.width=W;frameCanvas.height=H;const frameCtx=frameCanvas.getContext("2d"),stream=canvas.captureStream(FPS);
+  const hasAudio=!!musicData||state.slides.some(s=>s.narrationAudio);
+  if(hasAudio){audioCtx=new (window.AudioContext||window.webkitAudioContext)();await audioCtx.resume();dest=audioCtx.createMediaStreamDestination();dest.stream.getAudioTracks().forEach(t=>stream.addTrack(t));if(musicData){musicAudio=new Audio(musicData);musicAudio.loop=true;musicAudio.volume=Number($("musicVolume").value);const musicSource=audioCtx.createMediaElementSource(musicAudio);musicSource.connect(dest);musicSource.connect(audioCtx.destination);await musicAudio.play()}}
+  const chunks=[];rec=new MediaRecorder(stream,{mimeType:mime});rec.ondataavailable=e=>e.data.size&&chunks.push(e.data);rec.start(500);status("Rendering video… slides are shown in Preview as they export.");
+  for(let i=0;i<state.slides.length;i++){
+   const s=state.slides[i],frames=Math.max(1,Math.round(s.duration*FPS));state.current=i;renderList();loadEditor();$("slidePosition").textContent=`Exporting slide ${i+1} of ${state.slides.length}`;
+   if(s.narrationAudio&&audioCtx){slideAudio=new Audio(s.narrationAudio);const slideSource=audioCtx.createMediaElementSource(slideAudio);slideSource.connect(dest);slideSource.connect(audioCtx.destination);await slideAudio.play()}
+   for(let f=0;f<frames;f++){
+    const progress=frames>1?f/(frames-1):1;frameCtx.clearRect(0,0,W,H);await paint(frameCtx,s,progress);
+    ctx.clearRect(0,0,W,H);ctx.drawImage(frameCanvas,0,0);previewCtx.clearRect(0,0,W,H);previewCtx.drawImage(frameCanvas,0,0);$("progress").value=progress*100;
+    status(`Rendering slide ${i+1}/${state.slides.length} — ${Math.round((i+f/frames)/state.slides.length*100)}%`);await new Promise(r=>setTimeout(r,1000/FPS));
+   }
+   if(slideAudio){slideAudio.pause();slideAudio=null}
+  }
+  const stopped=new Promise(resolve=>rec.addEventListener("stop",resolve,{once:true}));rec.stop();await stopped;if(musicAudio)musicAudio.pause();if(audioCtx)await audioCtx.close();audioCtx=null;download(new Blob(chunks,{type:mime}),`${slug(state.projectTitle)}.webm`);status("Video ready with recorded narration.");
+ }catch(error){if(rec?.state==="recording")rec.stop();if(slideAudio)slideAudio.pause();if(musicAudio)musicAudio.pause();if(audioCtx)await audioCtx.close().catch(()=>{});status(`Video export stopped: ${error.message||"unexpected error"}`)}
+ finally{exporting=false;videoButton.disabled=false;videoButton.textContent="Export 1080×1920 video";state.current=Math.max(0,Math.min(selectedSlide,state.slides.length-1));$("progress").value=0;renderList();loadEditor();await drawPreview(1);if(webcamStream)startWebcamPreviewLoop()}
 }
 document.querySelectorAll("#slideButtons button").forEach(b=>b.onclick=()=>{state.slides.push(makeSlide(b.dataset.type));state.current=state.slides.length-1;renderAll()});
 $("useTemplateBtn").onclick=()=>{const key=$("templateSelect").value;if(!key)return status("Choose a lesson template.");if(state.slides.length&&!confirm("Replace the current slides with this template?"))return;state.slides=templates[key].map(x=>makeSlide(...x));state.current=0;renderAll();status("Template created.")};
