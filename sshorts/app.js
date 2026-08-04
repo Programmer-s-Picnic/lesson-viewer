@@ -2,7 +2,8 @@
 const $=id=>document.getElementById(id);
 const W=1080,H=1920,FPS=30,AUTOSAVE="edushorts-maker-v1",PROJECT_FORMAT="edushorts-maker-project",PROJECT_VERSION=2;
 const defaults={projectTitle:"Python in 30 Seconds",subject:"Python",teacherName:"Champak Roy",channelName:"Learn With Champak",website:"learnwithchampak.live",brandColor:"#075985",accentColor:"#f59e0b",logo:"",slides:[],current:0};
-let state=structuredClone(defaults),playing=false,playToken=0,musicData="",musicName="",speechWord=-1,spokenUtterance=null,recording=null,narrationPlayer=null,webcamStream=null;
+let state=structuredClone(defaults),playing=false,playToken=0,musicData="",musicName="",speechWord=-1,spokenUtterance=null,recording=null,narrationPlayer=null,webcamStream=null,webcamAnimationId=0,webcamPreviewBusy=false;
+const imageCache=new Map();
 const typeNames={hook:"Hook",explanation:"Explanation",spoken:"Spoken Text",code:"Code",question:"Question",answer:"Answer",image:"Image",cta:"Call to action"};
 const palettes={hook:["#7c2d12","#f59e0b"],explanation:["#075985","#0ea5e9"],spoken:["#0f4c5c","#0e7490"],code:["#111827","#1e293b"],question:["#4c1d95","#7c3aed"],answer:["#065f46","#10b981"],image:["#0f172a","#334155"],cta:["#9a3412","#ea580c"]};
 const templates={
@@ -48,7 +49,15 @@ function wrap(ctx,text,maxWidth){
  for(const p of paras){if(!p){lines.push("");continue}let line="";for(const word of p.split(/\s+/)){const test=line?line+" "+word:word;if(ctx.measureText(test).width>maxWidth&&line){lines.push(line);line=word}else line=test}lines.push(line)}
  return lines;
 }
-async function imageFrom(src){return new Promise((res,rej)=>{const im=new Image();im.onload=()=>res(im);im.onerror=rej;im.src=src})}
+async function imageFrom(src){
+ if(!src)throw new Error("Missing image source");
+ if(!imageCache.has(src))imageCache.set(src,new Promise((res,rej)=>{const im=new Image();im.onload=async()=>{try{if(im.decode)await im.decode()}catch(e){}res(im)};im.onerror=()=>{imageCache.delete(src);rej(new Error("Image could not be loaded"))};im.src=src}));
+ return imageCache.get(src);
+}
+async function preloadProjectImages(){
+ const sources=[state.logo,...state.slides.map(slide=>slide.image)].filter(Boolean);
+ await Promise.allSettled([...new Set(sources)].map(imageFrom));
+}
 function drawContainedImage(ctx,image,x,y,boxWidth,boxHeight){
  const ratio=Math.min(boxWidth/image.naturalWidth,boxHeight/image.naturalHeight);
  const width=image.naturalWidth*ratio,height=image.naturalHeight*ratio;
@@ -133,6 +142,15 @@ async function drawPreview(progress=1){
  ctx.clearRect(0,0,W,H);ctx.drawImage(previewBuffer,0,0);
  if(s)$("slidePosition").textContent=`Slide ${state.current+1} of ${state.slides.length}`;
 }
+function startWebcamPreviewLoop(){
+ cancelAnimationFrame(webcamAnimationId);
+ const tick=async()=>{
+  if(!webcamStream)return;
+  if(!playing&&!webcamPreviewBusy){webcamPreviewBusy=true;try{await drawPreview(Number($("progress").value)/100)}finally{webcamPreviewBusy=false}}
+  webcamAnimationId=requestAnimationFrame(tick);
+ };
+ webcamAnimationId=requestAnimationFrame(tick);
+}
 function updateDuration(){const t=state.slides.reduce((a,s)=>a+Number(s.duration||0),0);$("durationStatus").textContent=`${t} seconds`;$("durationWarning").hidden=t<=60}
 function bindEditor(){
  ["heading","content","duration","transition","background","textColor","language","imageFit","speechVoice","speechRate","narrationText"].forEach(id=>$(id).addEventListener("input",()=>{const s=current();if(!s)return;s[id==="duration"?"duration":id]=id==="duration"?Math.max(1,Number($(id).value)):id==="speechRate"?Number($(id).value):$(id).value;if(id==="speechRate")$("speechRateOut").value=`${Number($(id).value).toFixed(1).replace(".0","")}×`;renderList();drawPreview();updateDuration();saveLocal()}));
@@ -188,17 +206,18 @@ function loadVoices(){
 function status(t){$("status").textContent=t}
 async function startWebcam(){
  if(webcamStream)return;if(!navigator.mediaDevices?.getUserMedia)return status("Camera access requires localhost or HTTPS in a supported browser.");
- try{webcamStream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720},facingMode:"user"},audio:false});const video=$("webcamVideo");video.srcObject=webcamStream;await video.play();$("startWebcamBtn").disabled=true;$("stopWebcamBtn").disabled=false;$("webcamStatus").textContent="Camera is active and will be included in preview and video export.";drawPreview(Number($("progress").value)/100);status("Web camera added.")}catch(e){webcamStream=null;$("webcamStatus").textContent="Camera permission was not granted or no camera was found.";status("Could not start the web camera. Check browser permission and use localhost or HTTPS.")}
+ try{webcamStream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720},facingMode:"user"},audio:false});const video=$("webcamVideo");video.srcObject=webcamStream;await new Promise((resolve,reject)=>{if(video.readyState>=2)return resolve();video.onloadeddata=resolve;video.onerror=reject});await video.play();await preloadProjectImages();webcamStream.getVideoTracks().forEach(track=>track.onended=()=>stopWebcam(true));$("startWebcamBtn").disabled=true;$("stopWebcamBtn").disabled=false;$("webcamStatus").textContent="Camera is live and will remain active during narration recording and video export.";startWebcamPreviewLoop();drawPreview(Number($("progress").value)/100);status("Web camera is live.")}catch(e){webcamStream=null;$("webcamStatus").textContent="Camera permission was not granted or no camera was found.";status("Could not start the web camera. Check browser permission and use localhost or HTTPS.")}
 }
-function stopWebcam(){if(webcamStream){webcamStream.getTracks().forEach(track=>track.stop());webcamStream=null}const video=$("webcamVideo");video.pause();video.srcObject=null;$("startWebcamBtn").disabled=false;$("stopWebcamBtn").disabled=true;$("webcamStatus").textContent="Camera is off. Start it before previewing or exporting.";drawPreview(Number($("progress").value)/100);status("Web camera stopped.")}
+function stopWebcam(fromTrack=false){cancelAnimationFrame(webcamAnimationId);webcamAnimationId=0;const oldStream=webcamStream;webcamStream=null;if(oldStream&&!fromTrack)oldStream.getTracks().forEach(track=>track.stop());const video=$("webcamVideo");video.pause();video.srcObject=null;$("startWebcamBtn").disabled=false;$("stopWebcamBtn").disabled=true;$("webcamStatus").textContent="Camera is off. Start it before previewing or exporting.";drawPreview(Number($("progress").value)/100);status(fromTrack?"Web camera ended.":"Web camera stopped.")}
 async function exportVideo(){
  stopSpeech();if(!state.slides.length)return status("Add slides before exporting.");if(!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream)return status("Video export is not supported in this browser.");
+ await preloadProjectImages();
  const mime=["video/webm;codecs=vp9","video/webm;codecs=vp8","video/webm"].find(MediaRecorder.isTypeSupported.bind(MediaRecorder));if(!mime)return status("No supported WebM recorder was found.");
- const canvas=document.createElement("canvas");canvas.width=W;canvas.height=H;const ctx=canvas.getContext("2d"),stream=canvas.captureStream(FPS);let audioCtx,dest,musicAudio;
+ const canvas=document.createElement("canvas");canvas.width=W;canvas.height=H;const ctx=canvas.getContext("2d"),frameCanvas=document.createElement("canvas");frameCanvas.width=W;frameCanvas.height=H;const frameCtx=frameCanvas.getContext("2d"),stream=canvas.captureStream(FPS);let audioCtx,dest,musicAudio;
  const hasAudio=!!musicData||state.slides.some(s=>s.narrationAudio);
  if(hasAudio){audioCtx=new AudioContext();await audioCtx.resume();dest=audioCtx.createMediaStreamDestination();dest.stream.getAudioTracks().forEach(t=>stream.addTrack(t));if(musicData){musicAudio=new Audio(musicData);musicAudio.loop=true;musicAudio.volume=Number($("musicVolume").value);const musicSource=audioCtx.createMediaElementSource(musicAudio);musicSource.connect(dest);musicSource.connect(audioCtx.destination);await musicAudio.play()}}
  const rec=new MediaRecorder(stream,{mimeType:mime}),chunks=[];rec.ondataavailable=e=>e.data.size&&chunks.push(e.data);rec.start(500);status("Rendering video… keep this tab active.");
- for(let i=0;i<state.slides.length;i++){const s=state.slides[i],frames=Math.round(s.duration*FPS);let slideAudio;if(s.narrationAudio&&audioCtx){slideAudio=new Audio(s.narrationAudio);const slideSource=audioCtx.createMediaElementSource(slideAudio);slideSource.connect(dest);slideSource.connect(audioCtx.destination);await slideAudio.play()}for(let f=0;f<frames;f++){await paint(ctx,s,frames>1?f/(frames-1):1);status(`Rendering slide ${i+1}/${state.slides.length} — ${Math.round((i+f/frames)/state.slides.length*100)}%`);await new Promise(r=>setTimeout(r,1000/FPS))}if(slideAudio)slideAudio.pause()}
+ for(let i=0;i<state.slides.length;i++){const s=state.slides[i],frames=Math.round(s.duration*FPS);let slideAudio;if(s.narrationAudio&&audioCtx){slideAudio=new Audio(s.narrationAudio);const slideSource=audioCtx.createMediaElementSource(slideAudio);slideSource.connect(dest);slideSource.connect(audioCtx.destination);await slideAudio.play()}for(let f=0;f<frames;f++){await paint(frameCtx,s,frames>1?f/(frames-1):1);ctx.drawImage(frameCanvas,0,0);status(`Rendering slide ${i+1}/${state.slides.length} — ${Math.round((i+f/frames)/state.slides.length*100)}%`);await new Promise(r=>setTimeout(r,1000/FPS))}if(slideAudio)slideAudio.pause()}
  rec.stop();if(musicAudio)musicAudio.pause();await new Promise(r=>rec.onstop=r);if(audioCtx)await audioCtx.close();download(new Blob(chunks,{type:mime}),`${slug(state.projectTitle)}.webm`);status("Video ready with recorded narration.")
 }
 document.querySelectorAll("#slideButtons button").forEach(b=>b.onclick=()=>{state.slides.push(makeSlide(b.dataset.type));state.current=state.slides.length-1;renderAll()});
