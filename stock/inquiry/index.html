@@ -1,0 +1,1566 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+
+  <meta
+    name="description"
+    content="Track Indian and international stocks using Yahoo Finance symbols."
+  >
+
+  <title>Learn With Champak Stock Tracker</title>
+
+  <style>
+    :root {
+      --background: #f6f8f5;
+      --surface: #ffffff;
+      --surface-soft: #f0f5f1;
+      --text: #17221d;
+      --muted: #68756e;
+      --border: #dbe3de;
+      --green: #176a47;
+      --green-light: #e3efe5;
+      --red: #b33a31;
+      --shadow: 0 10px 30px rgba(20, 45, 32, 0.07);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      background: var(--background);
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    button:disabled {
+      cursor: wait;
+      opacity: 0.65;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      min-height: 78px;
+      padding: 12px clamp(18px, 5vw, 72px);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      background: rgba(255, 255, 255, 0.96);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(10px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-mark {
+      width: 44px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      border-radius: 50%;
+      background: var(--green);
+      color: white;
+      font-family: Georgia, serif;
+      font-size: 11px;
+      font-weight: bold;
+      letter-spacing: 0.08em;
+    }
+
+    .brand strong,
+    .brand small {
+      display: block;
+    }
+
+    .brand strong {
+      font-family: Georgia, serif;
+      font-size: 18px;
+    }
+
+    .brand small {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .button {
+      min-height: 42px;
+      padding: 10px 16px;
+      border: 0;
+      border-radius: 8px;
+      font-weight: bold;
+    }
+
+    .button-primary {
+      background: var(--green);
+      color: white;
+      box-shadow: 0 5px 15px rgba(23, 106, 71, 0.18);
+    }
+
+    .button-secondary {
+      background: transparent;
+      color: var(--muted);
+    }
+
+    .button-secondary:hover {
+      background: var(--surface-soft);
+      color: var(--text);
+    }
+
+    .button-light {
+      background: var(--green-light);
+      color: var(--green);
+    }
+
+    .hero {
+      padding: 72px clamp(20px, 7vw, 110px) 62px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 50px;
+      background:
+        radial-gradient(
+          circle at 90% 20%,
+          rgba(23, 106, 71, 0.08),
+          transparent 30%
+        ),
+        linear-gradient(110deg, #f1f5ef, #fbf8f1);
+    }
+
+    .hero-content {
+      max-width: 760px;
+    }
+
+    .eyebrow {
+      margin: 0 0 15px;
+      color: var(--green);
+      font-size: 11px;
+      font-weight: bold;
+      letter-spacing: 0.18em;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(42px, 6vw, 76px);
+      font-weight: 500;
+      line-height: 0.98;
+      letter-spacing: -0.04em;
+    }
+
+    .hero h1 em {
+      color: var(--green);
+      font-weight: 400;
+    }
+
+    .hero-description {
+      max-width: 620px;
+      margin: 24px 0 0;
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.7;
+    }
+
+    .price-source {
+      min-width: 235px;
+      padding: 17px;
+      display: flex;
+      align-items: flex-start;
+      gap: 13px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.75);
+    }
+
+    .source-dot {
+      width: 9px;
+      height: 9px;
+      margin-top: 4px;
+      flex-shrink: 0;
+      border-radius: 50%;
+      background: #2ca56c;
+      box-shadow: 0 0 0 5px rgba(44, 165, 108, 0.12);
+    }
+
+    .price-source strong,
+    .price-source small {
+      display: block;
+    }
+
+    .price-source strong {
+      font-size: 13px;
+    }
+
+    .price-source small {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .summary-card {
+      min-width: 0;
+      padding: 29px clamp(18px, 3vw, 44px);
+      border-right: 1px solid var(--border);
+    }
+
+    .summary-card:last-child {
+      border-right: 0;
+      background: #f1f6f1;
+    }
+
+    .summary-card > span {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+
+    .summary-card strong {
+      display: block;
+      margin: 11px 0 8px;
+      overflow-wrap: anywhere;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(24px, 2.6vw, 37px);
+    }
+
+    .summary-card small {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .positive {
+      color: var(--green) !important;
+    }
+
+    .negative {
+      color: var(--red) !important;
+    }
+
+    .portfolio {
+      padding: 54px clamp(16px, 5vw, 72px) 70px;
+    }
+
+    .section-heading {
+      margin-bottom: 23px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 20px;
+    }
+
+    .section-heading h2 {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 34px;
+      font-weight: 500;
+    }
+
+    .stock-form {
+      margin-bottom: 14px;
+      padding: 18px;
+      display: none;
+      grid-template-columns: 1.1fr 1.4fr 0.7fr 1fr 1fr auto;
+      align-items: end;
+      gap: 11px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+    }
+
+    .stock-form.visible {
+      display: grid;
+    }
+
+    .field label {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: bold;
+    }
+
+    .field input {
+      width: 100%;
+      min-height: 42px;
+      margin-top: 7px;
+      padding: 10px 11px;
+      color: var(--text);
+      background: #fbfcfa;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      outline: none;
+    }
+
+    .field input:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(23, 106, 71, 0.1);
+    }
+
+    .notice {
+      min-height: 38px;
+      padding: 10px 14px;
+      color: #526158;
+      background: #edf4ee;
+      border: 1px solid #dbe6dc;
+      border-radius: 8px 8px 0 0;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .notice::before {
+      content: "●";
+      margin-right: 8px;
+      color: var(--green);
+      font-size: 8px;
+    }
+
+    .table-container {
+      overflow: auto;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-top: 0;
+      border-radius: 0 0 10px 10px;
+      box-shadow: var(--shadow);
+    }
+
+    table {
+      width: 100%;
+      min-width: 1050px;
+      border-collapse: collapse;
+    }
+
+    th {
+      padding: 14px 17px;
+      color: #7b847f;
+      background: #fafbf9;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    td {
+      padding: 18px 17px;
+      border-bottom: 1px solid #e7ece8;
+      font-size: 14px;
+      vertical-align: middle;
+    }
+
+    tbody tr:hover {
+      background: #fbfdfb;
+    }
+
+    td strong,
+    td small {
+      display: block;
+    }
+
+    td small {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .remove-button {
+      padding: 5px 9px;
+      color: #99a29d;
+      background: transparent;
+      border: 0;
+      border-radius: 5px;
+      font-size: 22px;
+    }
+
+    .remove-button:hover {
+      color: var(--red);
+      background: #fff2f1;
+    }
+
+    .manual-price {
+      width: 110px;
+      min-height: 35px;
+      padding: 7px 8px;
+      color: var(--text);
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+
+    .empty-state {
+      padding: 55px 20px;
+      text-align: center;
+    }
+
+    .empty-state h3 {
+      margin: 0 0 8px;
+      font-family: Georgia, serif;
+      font-size: 25px;
+    }
+
+    .empty-state p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .help {
+      margin-top: 22px;
+      padding: 18px 20px;
+      background: #fffaf2;
+      border: 1px solid #ebdfca;
+      border-radius: 9px;
+      color: #645744;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    footer {
+      padding: 22px clamp(18px, 5vw, 72px);
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      color: var(--muted);
+      background: white;
+      border-top: 1px solid var(--border);
+      font-size: 11px;
+    }
+
+    @media (max-width: 1000px) {
+      .hero {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .price-source {
+        width: 100%;
+      }
+
+      .summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .summary-card:nth-child(2) {
+        border-right: 0;
+      }
+
+      .summary-card:nth-child(-n + 2) {
+        border-bottom: 1px solid var(--border);
+      }
+
+      .stock-form {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media (max-width: 650px) {
+      .topbar {
+        align-items: flex-start;
+      }
+
+      .brand small {
+        display: none;
+      }
+
+      .top-actions .button-secondary,
+      .top-actions .import-label {
+        display: none;
+      }
+
+      .hero {
+        padding: 52px 20px;
+      }
+
+      .summary-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .summary-card {
+        border-right: 0;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .stock-form {
+        grid-template-columns: 1fr;
+      }
+
+      .section-heading {
+        align-items: center;
+      }
+
+      footer {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">LWC</span>
+
+      <div>
+        <strong>Stock Tracker</strong>
+        <small>Learn With Champak</small>
+      </div>
+    </div>
+
+    <div class="top-actions">
+      <label class="button button-secondary import-label">
+        Import CSV
+
+        <input
+          id="csvFileInput"
+          type="file"
+          accept=".csv,text/csv"
+          hidden
+        >
+      </label>
+
+      <button
+        id="exportButton"
+        class="button button-secondary"
+        type="button"
+      >
+        Export
+      </button>
+
+      <button
+        id="refreshButton"
+        class="button button-primary"
+        type="button"
+      >
+        ↻ Refresh prices
+      </button>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="hero-content">
+      <p class="eyebrow">YOUR LONG-TERM PORTFOLIO</p>
+
+      <h1>
+        Know what you own.<br>
+        <em>Watch it grow.</em>
+      </h1>
+
+      <p class="hero-description">
+        A private and straightforward view of your investments.
+        Holdings remain saved in this browser. Market prices are
+        requested from Yahoo Finance.
+      </p>
+    </div>
+
+    <aside class="price-source">
+      <span class="source-dot"></span>
+
+      <div>
+        <strong>Yahoo Finance prices</strong>
+
+        <small>
+          Latest available market data<br>
+          may be delayed.
+        </small>
+      </div>
+    </aside>
+  </section>
+
+  <section class="summary-grid">
+    <article class="summary-card">
+      <span>Current value</span>
+
+      <strong id="currentValue">₹0</strong>
+
+      <small id="overallGain">₹0 overall</small>
+    </article>
+
+    <article class="summary-card">
+      <span>Amount invested</span>
+
+      <strong id="investedValue">₹0</strong>
+
+      <small id="holdingCount">Across 0 holdings</small>
+    </article>
+
+    <article class="summary-card">
+      <span>Absolute return</span>
+
+      <strong id="absoluteReturn">0%</strong>
+
+      <small>Current value compared with cost</small>
+    </article>
+
+    <article class="summary-card">
+      <span title="Annualised return calculated using purchase dates">
+        Portfolio XIRR ⓘ
+      </span>
+
+      <strong id="portfolioXirr">—</strong>
+
+      <small>Annualised return</small>
+    </article>
+  </section>
+
+  <section class="portfolio">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">PORTFOLIO</p>
+        <h2>Your holdings</h2>
+      </div>
+
+      <button
+        id="showFormButton"
+        class="button button-light"
+        type="button"
+      >
+        ＋ Add stock
+      </button>
+    </div>
+
+    <form id="stockForm" class="stock-form">
+      <div class="field">
+        <label for="symbol">Yahoo symbol</label>
+
+        <input
+          id="symbol"
+          name="symbol"
+          required
+          placeholder="RELIANCE.NS"
+          autocomplete="off"
+        >
+      </div>
+
+      <div class="field">
+        <label for="companyName">Company name</label>
+
+        <input
+          id="companyName"
+          name="companyName"
+          placeholder="Reliance Industries"
+          autocomplete="off"
+        >
+      </div>
+
+      <div class="field">
+        <label for="quantity">Quantity</label>
+
+        <input
+          id="quantity"
+          name="quantity"
+          required
+          type="number"
+          min="0.0001"
+          step="any"
+          placeholder="10"
+        >
+      </div>
+
+      <div class="field">
+        <label for="buyPrice">Average buy price</label>
+
+        <input
+          id="buyPrice"
+          name="buyPrice"
+          required
+          type="number"
+          min="0.01"
+          step="any"
+          placeholder="1200"
+        >
+      </div>
+
+      <div class="field">
+        <label for="buyDate">Purchase date</label>
+
+        <input
+          id="buyDate"
+          name="buyDate"
+          required
+          type="date"
+        >
+      </div>
+
+      <button class="button button-primary" type="submit">
+        Save holding
+      </button>
+    </form>
+
+    <div id="message" class="notice" role="status">
+      Sample portfolio loaded. Replace it with your holdings.
+    </div>
+
+    <div class="table-container">
+      <table id="holdingsTable">
+        <thead>
+          <tr>
+            <th>Stock</th>
+            <th>Quantity</th>
+            <th>Average price</th>
+            <th>Latest price</th>
+            <th>Invested</th>
+            <th>Current value</th>
+            <th>Return</th>
+            <th></th>
+          </tr>
+        </thead>
+
+        <tbody id="holdingsBody"></tbody>
+      </table>
+
+      <div id="emptyState" class="empty-state" hidden>
+        <h3>Your portfolio is empty</h3>
+        <p>Add your first Yahoo Finance symbol to begin.</p>
+      </div>
+    </div>
+
+    <div class="help">
+      <strong>Yahoo symbols:</strong>
+      use <code>.NS</code> for National Stock Exchange shares, such as
+      <code>RELIANCE.NS</code>, and <code>.BO</code> for Bombay Stock
+      Exchange shares, such as <code>RELIANCE.BO</code>. If Yahoo blocks
+      the browser request, enter the current price manually in the price box.
+    </div>
+  </section>
+
+  <footer>
+    <span>Learn With Champak · Personal Stock Tracker</span>
+    <span>For tracking and education—not investment advice.</span>
+  </footer>
+
+  <script>
+    "use strict";
+
+    const STORAGE_KEY = "lwc-stock-tracker-html-v1";
+
+    const sampleHoldings = [
+      {
+        id: "sample-1",
+        symbol: "RELIANCE.NS",
+        name: "Reliance Industries",
+        quantity: 10,
+        buyPrice: 1245,
+        buyDate: "2025-04-15",
+        currentPrice: 1390.40,
+        changePercent: 0.65,
+        currency: "INR"
+      },
+      {
+        id: "sample-2",
+        symbol: "TCS.NS",
+        name: "Tata Consultancy Services",
+        quantity: 5,
+        buyPrice: 3580,
+        buyDate: "2024-11-20",
+        currentPrice: 3265.10,
+        changePercent: -0.42,
+        currency: "INR"
+      },
+      {
+        id: "sample-3",
+        symbol: "HDFCBANK.NS",
+        name: "HDFC Bank",
+        quantity: 18,
+        buyPrice: 882,
+        buyDate: "2025-01-08",
+        currentPrice: 1004.60,
+        changePercent: 0.27,
+        currency: "INR"
+      }
+    ];
+
+    const holdingsBody = document.getElementById("holdingsBody");
+    const holdingsTable = document.getElementById("holdingsTable");
+    const emptyState = document.getElementById("emptyState");
+    const stockForm = document.getElementById("stockForm");
+    const showFormButton = document.getElementById("showFormButton");
+    const refreshButton = document.getElementById("refreshButton");
+    const exportButton = document.getElementById("exportButton");
+    const csvFileInput = document.getElementById("csvFileInput");
+    const messageElement = document.getElementById("message");
+
+    let holdings = loadHoldings();
+
+    document.getElementById("buyDate").value = getToday();
+
+    render();
+
+    showFormButton.addEventListener("click", function () {
+      stockForm.classList.toggle("visible");
+
+      showFormButton.textContent = stockForm.classList.contains("visible")
+        ? "× Close form"
+        : "＋ Add stock";
+    });
+
+    stockForm.addEventListener("submit", function (event) {
+      event.preventDefault();
+
+      const formData = new FormData(stockForm);
+
+      const symbol = String(formData.get("symbol"))
+        .trim()
+        .toUpperCase();
+
+      const companyName =
+        String(formData.get("companyName")).trim() || symbol;
+
+      const quantity = Number(formData.get("quantity"));
+      const buyPrice = Number(formData.get("buyPrice"));
+      const buyDate = String(formData.get("buyDate"));
+
+      if (!symbol || quantity <= 0 || buyPrice <= 0 || !buyDate) {
+        showMessage("Please enter valid holding information.");
+        return;
+      }
+
+      holdings.push({
+        id: createId(),
+        symbol: symbol,
+        name: companyName,
+        quantity: quantity,
+        buyPrice: buyPrice,
+        buyDate: buyDate,
+        currentPrice: buyPrice,
+        changePercent: 0,
+        currency: "INR"
+      });
+
+      saveHoldings();
+      render();
+
+      stockForm.reset();
+      document.getElementById("buyDate").value = getToday();
+
+      stockForm.classList.remove("visible");
+      showFormButton.textContent = "＋ Add stock";
+
+      showMessage(
+        symbol + " added. Press Refresh prices to obtain its market price."
+      );
+    });
+
+    refreshButton.addEventListener("click", refreshAllPrices);
+    exportButton.addEventListener("click", exportCsv);
+
+    csvFileInput.addEventListener("change", function () {
+      const selectedFile = csvFileInput.files[0];
+
+      if (selectedFile) {
+        importCsv(selectedFile);
+      }
+
+      csvFileInput.value = "";
+    });
+
+    function loadHoldings() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+
+        if (saved) {
+          const parsed = JSON.parse(saved);
+
+          if (Array.isArray(parsed)) {
+            return parsed;
+          }
+        }
+      } catch (error) {
+        console.error("Unable to load holdings:", error);
+      }
+
+      return structuredClone(sampleHoldings);
+    }
+
+    function saveHoldings() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(holdings));
+    }
+
+    function render() {
+      holdingsBody.innerHTML = "";
+
+      holdingsTable.hidden = holdings.length === 0;
+      emptyState.hidden = holdings.length !== 0;
+
+      holdings.forEach(function (holding) {
+        const invested = holding.quantity * holding.buyPrice;
+
+        const latestPrice =
+          Number(holding.currentPrice) || holding.buyPrice;
+
+        const currentValue = holding.quantity * latestPrice;
+        const gain = currentValue - invested;
+
+        const returnPercent =
+          invested > 0 ? (gain / invested) * 100 : 0;
+
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+          <td>
+            <strong>${escapeHtml(holding.symbol)}</strong>
+            <small>${escapeHtml(holding.name)}</small>
+            ${
+              holding.status
+                ? `<small class="negative">
+                    ${escapeHtml(holding.status)}
+                  </small>`
+                : ""
+            }
+          </td>
+
+          <td>${formatNumber(holding.quantity, 4)}</td>
+
+          <td>
+            ${formatMoney(
+              holding.buyPrice,
+              holding.currency || "INR"
+            )}
+          </td>
+
+          <td>
+            <input
+              class="manual-price"
+              type="number"
+              min="0"
+              step="any"
+              value="${latestPrice}"
+              data-price-id="${holding.id}"
+              aria-label="Current price for ${escapeHtml(holding.symbol)}"
+            >
+
+            ${
+              Number.isFinite(holding.changePercent)
+                ? `
+                  <small class="${
+                    holding.changePercent >= 0
+                      ? "positive"
+                      : "negative"
+                  }">
+                    ${
+                      holding.changePercent >= 0 ? "+" : ""
+                    }${formatNumber(holding.changePercent)}% today
+                  </small>
+                `
+                : ""
+            }
+          </td>
+
+          <td>
+            ${formatMoney(
+              invested,
+              holding.currency || "INR"
+            )}
+          </td>
+
+          <td>
+            <strong>
+              ${formatMoney(
+                currentValue,
+                holding.currency || "INR"
+              )}
+            </strong>
+          </td>
+
+          <td class="${gain >= 0 ? "positive" : "negative"}">
+            <strong>
+              ${gain >= 0 ? "+" : ""}${formatMoney(
+                gain,
+                holding.currency || "INR"
+              )}
+            </strong>
+
+            <small>
+              ${gain >= 0 ? "+" : ""}${formatNumber(returnPercent)}%
+            </small>
+          </td>
+
+          <td>
+            <button
+              class="remove-button"
+              type="button"
+              data-remove-id="${holding.id}"
+              aria-label="Remove ${escapeHtml(holding.symbol)}"
+              title="Remove holding"
+            >
+              ×
+            </button>
+          </td>
+        `;
+
+        holdingsBody.appendChild(row);
+      });
+
+      document
+        .querySelectorAll("[data-remove-id]")
+        .forEach(function (button) {
+          button.addEventListener("click", function () {
+            removeHolding(button.dataset.removeId);
+          });
+        });
+
+      document
+        .querySelectorAll("[data-price-id]")
+        .forEach(function (input) {
+          input.addEventListener("change", function () {
+            updateManualPrice(
+              input.dataset.priceId,
+              Number(input.value)
+            );
+          });
+        });
+
+      updateSummary();
+    }
+
+    function updateSummary() {
+      const invested = holdings.reduce(function (total, holding) {
+        return total + holding.quantity * holding.buyPrice;
+      }, 0);
+
+      const currentValue = holdings.reduce(function (total, holding) {
+        const price =
+          Number(holding.currentPrice) || holding.buyPrice;
+
+        return total + holding.quantity * price;
+      }, 0);
+
+      const gain = currentValue - invested;
+
+      const absoluteReturn =
+        invested > 0 ? (gain / invested) * 100 : 0;
+
+      const cashFlows = holdings.map(function (holding) {
+        return {
+          amount: -(holding.quantity * holding.buyPrice),
+          date: new Date(holding.buyDate)
+        };
+      });
+
+      if (currentValue > 0) {
+        cashFlows.push({
+          amount: currentValue,
+          date: new Date()
+        });
+      }
+
+      const annualisedReturn = calculateXirr(cashFlows);
+
+      document.getElementById("currentValue").textContent =
+        formatMoney(currentValue);
+
+      document.getElementById("investedValue").textContent =
+        formatMoney(invested);
+
+      document.getElementById("holdingCount").textContent =
+        "Across " +
+        holdings.length +
+        " holding" +
+        (holdings.length === 1 ? "" : "s");
+
+      const overallGain = document.getElementById("overallGain");
+
+      overallGain.textContent =
+        (gain >= 0 ? "▲ " : "▼ ") +
+        formatMoney(Math.abs(gain)) +
+        " overall";
+
+      overallGain.className =
+        gain >= 0 ? "positive" : "negative";
+
+      const absoluteReturnElement =
+        document.getElementById("absoluteReturn");
+
+      absoluteReturnElement.textContent =
+        (absoluteReturn >= 0 ? "+" : "") +
+        formatNumber(absoluteReturn) +
+        "%";
+
+      absoluteReturnElement.className =
+        absoluteReturn >= 0 ? "positive" : "negative";
+
+      document.getElementById("portfolioXirr").textContent =
+        annualisedReturn === null
+          ? "—"
+          : (annualisedReturn >= 0 ? "+" : "") +
+            formatNumber(annualisedReturn * 100) +
+            "%";
+    }
+
+    async function refreshAllPrices() {
+      if (holdings.length === 0) {
+        showMessage("Add at least one stock first.");
+        return;
+      }
+
+      refreshButton.disabled = true;
+      refreshButton.textContent = "Updating…";
+
+      showMessage("Requesting the latest available Yahoo Finance prices…");
+
+      let updatedCount = 0;
+      let failedCount = 0;
+
+      for (const holding of holdings) {
+        try {
+          const quote = await fetchYahooQuote(holding.symbol);
+
+          holding.name = quote.name || holding.name;
+          holding.currentPrice = quote.currentPrice;
+          holding.changePercent = quote.changePercent;
+          holding.currency = quote.currency || holding.currency || "INR";
+          holding.status = "";
+
+          updatedCount += 1;
+        } catch (error) {
+          console.error(
+            "Price refresh failed for",
+            holding.symbol,
+            error
+          );
+
+          holding.status =
+            "Automatic refresh blocked. Enter price manually.";
+
+          failedCount += 1;
+        }
+      }
+
+      saveHoldings();
+      render();
+
+      refreshButton.disabled = false;
+      refreshButton.textContent = "↻ Refresh prices";
+
+      if (failedCount === 0) {
+        showMessage(
+          updatedCount +
+          " price" +
+          (updatedCount === 1 ? "" : "s") +
+          " updated successfully."
+        );
+      } else {
+        showMessage(
+          updatedCount +
+          " prices updated. " +
+          failedCount +
+          " could not be fetched because Yahoo may block direct browser requests."
+        );
+      }
+    }
+
+    async function fetchYahooQuote(symbol) {
+      const url =
+        "https://query1.finance.yahoo.com/v8/finance/chart/" +
+        encodeURIComponent(symbol) +
+        "?interval=1d&range=5d";
+
+      const response = await fetch(url, {
+        method: "GET",
+        cache: "no-store"
+      });
+
+      if (!response.ok) {
+        throw new Error("Yahoo returned HTTP " + response.status);
+      }
+
+      const data = await response.json();
+      const result = data?.chart?.result?.[0];
+      const metadata = result?.meta;
+
+      if (!metadata || !Number.isFinite(metadata.regularMarketPrice)) {
+        throw new Error("Symbol not found");
+      }
+
+      const previousClose =
+        metadata.chartPreviousClose ||
+        metadata.previousClose ||
+        metadata.regularMarketPrice;
+
+      const changePercent =
+        previousClose > 0
+          ? (
+              (
+                metadata.regularMarketPrice -
+                previousClose
+              ) /
+              previousClose
+            ) * 100
+          : 0;
+
+      return {
+        name:
+          metadata.longName ||
+          metadata.shortName ||
+          symbol,
+
+        currentPrice: metadata.regularMarketPrice,
+        changePercent: changePercent,
+        currency: metadata.currency || "INR"
+      };
+    }
+
+    function updateManualPrice(id, price) {
+      if (!Number.isFinite(price) || price < 0) {
+        showMessage("Please enter a valid current price.");
+        render();
+        return;
+      }
+
+      const holding = holdings.find(function (item) {
+        return item.id === id;
+      });
+
+      if (!holding) {
+        return;
+      }
+
+      holding.currentPrice = price;
+      holding.changePercent = 0;
+      holding.status = "";
+
+      saveHoldings();
+      render();
+
+      showMessage(
+        "Current price for " +
+        holding.symbol +
+        " updated manually."
+      );
+    }
+
+    function removeHolding(id) {
+      const holding = holdings.find(function (item) {
+        return item.id === id;
+      });
+
+      holdings = holdings.filter(function (item) {
+        return item.id !== id;
+      });
+
+      saveHoldings();
+      render();
+
+      if (holding) {
+        showMessage(holding.symbol + " removed.");
+      }
+    }
+
+    function calculateXirr(cashFlows) {
+      const hasNegative = cashFlows.some(function (flow) {
+        return flow.amount < 0;
+      });
+
+      const hasPositive = cashFlows.some(function (flow) {
+        return flow.amount > 0;
+      });
+
+      if (!hasNegative || !hasPositive) {
+        return null;
+      }
+
+      const firstDate = Math.min(
+        ...cashFlows.map(function (flow) {
+          return flow.date.getTime();
+        })
+      );
+
+      function netPresentValue(rate) {
+        return cashFlows.reduce(function (total, flow) {
+          const years =
+            (flow.date.getTime() - firstDate) /
+            31557600000;
+
+          return (
+            total +
+            flow.amount / Math.pow(1 + rate, years)
+          );
+        }, 0);
+      }
+
+      let lowerRate = -0.9999;
+      let upperRate = 10;
+
+      if (
+        netPresentValue(lowerRate) *
+        netPresentValue(upperRate) >
+        0
+      ) {
+        return null;
+      }
+
+      for (let attempt = 0; attempt < 120; attempt += 1) {
+        const middleRate =
+          (lowerRate + upperRate) / 2;
+
+        const lowerValue = netPresentValue(lowerRate);
+        const middleValue = netPresentValue(middleRate);
+
+        if (lowerValue * middleValue <= 0) {
+          upperRate = middleRate;
+        } else {
+          lowerRate = middleRate;
+        }
+      }
+
+      return (lowerRate + upperRate) / 2;
+    }
+
+    function exportCsv() {
+      const rows = [
+        [
+          "symbol",
+          "name",
+          "quantity",
+          "buyPrice",
+          "buyDate",
+          "currentPrice",
+          "currency"
+        ]
+      ];
+
+      holdings.forEach(function (holding) {
+        rows.push([
+          holding.symbol,
+          holding.name,
+          holding.quantity,
+          holding.buyPrice,
+          holding.buyDate,
+          holding.currentPrice || "",
+          holding.currency || "INR"
+        ]);
+      });
+
+      const csv = rows
+        .map(function (row) {
+          return row
+            .map(function (value) {
+              return (
+                '"' +
+                String(value).replaceAll('"', '""') +
+                '"'
+              );
+            })
+            .join(",");
+        })
+        .join("\n");
+
+      const blob = new Blob([csv], {
+        type: "text/csv;charset=utf-8"
+      });
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download =
+        "stock-portfolio-" + getToday() + ".csv";
+
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      URL.revokeObjectURL(url);
+
+      showMessage("Portfolio exported as CSV.");
+    }
+
+    function importCsv(file) {
+      const reader = new FileReader();
+
+      reader.onload = function () {
+        try {
+          const text = String(reader.result).trim();
+          const lines = text.split(/\r?\n/);
+
+          if (lines.length < 2) {
+            throw new Error("No holding rows found");
+          }
+
+          const headers = parseCsvLine(lines.shift());
+
+          const imported = lines
+            .filter(function (line) {
+              return line.trim() !== "";
+            })
+            .map(function (line) {
+              const values = parseCsvLine(line);
+              const row = {};
+
+              headers.forEach(function (header, index) {
+                row[header] = values[index] || "";
+              });
+
+              return {
+                id: createId(),
+                symbol: String(row.symbol || "")
+                  .trim()
+                  .toUpperCase(),
+
+                name:
+                  String(row.name || "").trim() ||
+                  String(row.symbol || "").trim(),
+
+                quantity: Number(row.quantity),
+                buyPrice: Number(row.buyPrice),
+                buyDate: row.buyDate || getToday(),
+
+                currentPrice:
+                  row.currentPrice !== ""
+                    ? Number(row.currentPrice)
+                    : Number(row.buyPrice),
+
+                changePercent: 0,
+                currency: row.currency || "INR"
+              };
+            })
+            .filter(function (holding) {
+              return (
+                holding.symbol &&
+                holding.quantity > 0 &&
+                holding.buyPrice > 0
+              );
+            });
+
+          holdings = imported;
+          saveHoldings();
+          render();
+
+          showMessage(
+            imported.length +
+            " holding" +
+            (imported.length === 1 ? "" : "s") +
+            " imported."
+          );
+        } catch (error) {
+          console.error(error);
+
+          showMessage(
+            "The CSV could not be imported. Use a file exported by this tracker."
+          );
+        }
+      };
+
+      reader.readAsText(file);
+    }
+
+    function parseCsvLine(line) {
+      const values = [];
+      let current = "";
+      let insideQuotes = false;
+
+      for (let index = 0; index < line.length; index += 1) {
+        const character = line[index];
+        const nextCharacter = line[index + 1];
+
+        if (character === '"' && insideQuotes && nextCharacter === '"') {
+          current += '"';
+          index += 1;
+        } else if (character === '"') {
+          insideQuotes = !insideQuotes;
+        } else if (character === "," && !insideQuotes) {
+          values.push(current);
+          current = "";
+        } else {
+          current += character;
+        }
+      }
+
+      values.push(current);
+
+      return values.map(function (value) {
+        return value.trim();
+      });
+    }
+
+    function formatMoney(value, currency = "INR") {
+      try {
+        return new Intl.NumberFormat("en-IN", {
+          style: "currency",
+          currency: currency,
+          maximumFractionDigits: 0
+        }).format(Number(value) || 0);
+      } catch {
+        return "₹" + formatNumber(Number(value) || 0);
+      }
+    }
+
+    function formatNumber(value, digits = 2) {
+      return new Intl.NumberFormat("en-IN", {
+        maximumFractionDigits: digits
+      }).format(Number(value) || 0);
+    }
+
+    function showMessage(message) {
+      messageElement.textContent = message;
+    }
+
+    function getToday() {
+      return new Date().toISOString().slice(0, 10);
+    }
+
+    function createId() {
+      if (window.crypto && crypto.randomUUID) {
+        return crypto.randomUUID();
+      }
+
+      return (
+        Date.now().toString(36) +
+        Math.random().toString(36).slice(2)
+      );
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+  </script>
+</body>
+</html>
