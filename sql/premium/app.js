@@ -481,75 +481,62 @@
         }
       }
 
-      function buildAllSQLText() {
-        const successful = readHistory(HISTORY_SUCCESS_KEY);
-        const unsuccessful = readHistory(HISTORY_FAIL_KEY);
-        const sections = [];
-        const current = sqlInput.value.trim();
+      function bytesToBase64Url(bytes) {
+        let binary = "";
+        for (let i = 0; i < bytes.length; i += 0x8000) {
+          binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+        }
+        return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
+      }
 
-        sections.push(
-          "-- PROGRAMMER'S PICNIC SQL EXPORT",
-          "-- Created: " + new Date().toLocaleString(),
-          "",
-          "-- ==================================================",
-          "-- CURRENT EDITOR SQL",
-          "-- ==================================================",
-          current || "-- No SQL in the editor.",
-        );
+      function base64UrlToBytes(value) {
+        let base64 = value.replaceAll("-", "+").replaceAll("_", "/");
+        while (base64.length % 4) base64 += "=";
+        const binary = atob(base64);
+        return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+      }
 
-        sections.push(
-          "",
-          "-- ==================================================",
-          "-- SUCCESSFUL QUERIES (" + successful.length + ")",
-          "-- ==================================================",
-        );
-        if (!successful.length) sections.push("-- No successful queries saved.");
-        successful.forEach((item, index) => {
-          sections.push(
-            "",
-            "-- Successful query " + (index + 1) + (item.time ? " | " + item.time : ""),
-            String(item.sql || "").trim(),
-          );
-        });
+      async function encodeSharedState(state) {
+        const bytes = new TextEncoder().encode(JSON.stringify(state));
+        if (!("CompressionStream" in window)) return "allb=" + bytesToBase64Url(bytes);
+        const stream = new Blob([bytes]).stream().pipeThrough(new CompressionStream("gzip"));
+        const compressed = new Uint8Array(await new Response(stream).arrayBuffer());
+        return "allz=" + bytesToBase64Url(compressed);
+      }
 
-        sections.push(
-          "",
-          "-- ==================================================",
-          "-- FAILED QUERIES (" + unsuccessful.length + ")",
-          "-- ==================================================",
-        );
-        if (!unsuccessful.length) sections.push("-- No failed queries saved.");
-        unsuccessful.forEach((item, index) => {
-          const error = item.error || item.err || "Unknown SQL error";
-          sections.push(
-            "",
-            "-- Failed query " + (index + 1) + (item.time ? " | " + item.time : ""),
-            "-- Error: " + String(error).replace(/\r?\n/g, " "),
-            String(item.sql || "").trim(),
-          );
-        });
+      async function decodeSharedState(hash) {
+        const compressed = hash.startsWith("allz=");
+        const bytes = base64UrlToBytes(hash.slice(5));
+        let jsonBytes = bytes;
+        if (compressed) {
+          if (!("DecompressionStream" in window)) throw new Error("Compressed links are unsupported.");
+          const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
+          jsonBytes = new Uint8Array(await new Response(stream).arrayBuffer());
+        }
+        return JSON.parse(new TextDecoder().decode(jsonBytes));
+      }
 
-        return sections.join("\n").trim() + "\n";
+      async function buildAllShareUrl() {
+        const state = {
+          v: 1,
+          editor: sqlInput.value,
+          successful: readHistory(HISTORY_SUCCESS_KEY),
+          failed: readHistory(HISTORY_FAIL_KEY),
+        };
+        const url = new URL(window.location.href);
+        url.hash = await encodeSharedState(state);
+        return url.toString();
       }
 
       async function shareAllSQL() {
-        const text = buildAllSQLText();
-        const file = typeof File === "function"
-          ? new File([text], "programmers-picnic-sql-history.sql", { type: "text/plain;charset=utf-8" })
-          : null;
-
+        const url = await buildAllShareUrl();
         if (navigator.share) {
           try {
-            const fileData = {
+            await navigator.share({
               title: "Programmer’s Picnic SQL",
-              text: "Current SQL, successful queries and failed queries.",
-              files: [file],
-            };
-            if (file && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
-              await navigator.share(fileData);
-            } else {
-              await navigator.share({ title: fileData.title, text });
-            }
+              text: "Open my current SQL, successful queries and failed queries.",
+              url,
+            });
             return;
           } catch (error) {
             if (error && error.name === "AbortError") return;
@@ -557,20 +544,34 @@
         }
 
         try {
-          await navigator.clipboard.writeText(text);
-          show("All editor, successful and failed SQL queries were copied.", true);
+          await navigator.clipboard.writeText(url);
+          show("The URL containing all SQL queries was copied.", true);
         } catch (_) {
-          download("programmers-picnic-sql-history.sql", text, "text/plain;charset=utf-8");
-          show("All SQL queries were downloaded because sharing is unavailable.", true);
+          window.prompt("Copy this URL containing all SQL queries:", url);
         }
       }
 
-      function loadSharedSQL() {
-        if (!window.location.hash.startsWith("#sql=")) return;
+      async function loadSharedSQL() {
+        const hash = window.location.hash.slice(1);
+        if (!hash) return;
         try {
-          sqlInput.value = decodeURIComponent(window.location.hash.slice(5));
+          if (hash.startsWith("sql=")) {
+            sqlInput.value = decodeURIComponent(hash.slice(4));
+            return;
+          }
+          if (!hash.startsWith("allz=") && !hash.startsWith("allb=")) return;
+          const state = await decodeSharedState(hash);
+          if (!state || state.v !== 1) throw new Error("Unsupported shared state.");
+          sqlInput.value = String(state.editor || "");
+          try {
+            localStorage.setItem(HISTORY_SUCCESS_KEY, JSON.stringify(Array.isArray(state.successful) ? state.successful : []));
+            localStorage.setItem(HISTORY_FAIL_KEY, JSON.stringify(Array.isArray(state.failed) ? state.failed : []));
+            removeExistingHistoryDuplicates();
+            renderQueryHistory();
+          } catch (_) {}
+          show("Shared editor SQL and query history loaded.", true);
         } catch (_) {
-          show("This shared SQL link is damaged or incomplete.", false);
+          show("This shared SQL URL is damaged, incomplete or unsupported.", false);
         }
       }
 
