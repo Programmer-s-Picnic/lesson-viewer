@@ -27,13 +27,48 @@
       function historyKey(kind) {
         return kind === "success" ? HISTORY_SUCCESS_KEY : HISTORY_FAIL_KEY;
       }
+      function queryIdentity(sql) {
+        return String(sql || "")
+          .trim()
+          .replace(/\r\n?/g, "\n")
+          .replace(/[ \t]+$/gm, "")
+          .replace(/;+\s*$/, "")
+          .trim();
+      }
       function saveQuery(kind, sql, errorMessage = "") {
         const key = historyKey(kind);
-        const items = readHistory(key);
+        const otherKey = historyKey(kind === "success" ? "fail" : "success");
+        const identity = queryIdentity(sql);
+        const items = readHistory(key).filter((item) => queryIdentity(item.sql) !== identity);
+        const otherItems = readHistory(otherKey).filter((item) => queryIdentity(item.sql) !== identity);
         items.unshift({ id: Date.now() + "-" + Math.random().toString(16).slice(2), sql, error: errorMessage, time: new Date().toLocaleString() });
-        try { localStorage.setItem(key, JSON.stringify(items.slice(0, 100))); }
+        try {
+          localStorage.setItem(key, JSON.stringify(items.slice(0, 100)));
+          localStorage.setItem(otherKey, JSON.stringify(otherItems.slice(0, 100)));
+        }
         catch (_) { /* Keep SQL usable if storage is unavailable. */ }
         renderQueryHistory();
+      }
+      function removeExistingHistoryDuplicates() {
+        const successful = [];
+        const seen = new Set();
+        for (const item of readHistory(HISTORY_SUCCESS_KEY)) {
+          const identity = queryIdentity(item.sql);
+          if (!identity || seen.has(identity)) continue;
+          seen.add(identity);
+          successful.push(item);
+        }
+        const unsuccessful = [];
+        for (const item of readHistory(HISTORY_FAIL_KEY)) {
+          const identity = queryIdentity(item.sql);
+          if (!identity || seen.has(identity)) continue;
+          seen.add(identity);
+          unsuccessful.push(item);
+        }
+        try {
+          localStorage.setItem(HISTORY_SUCCESS_KEY, JSON.stringify(successful.slice(0, 100)));
+          localStorage.setItem(HISTORY_FAIL_KEY, JSON.stringify(unsuccessful.slice(0, 100)));
+        } catch (_) {}
       }
       function renderQueryHistory() {
         const successful = readHistory(HISTORY_SUCCESS_KEY);
@@ -51,6 +86,7 @@
             <div class="row">
               <button type="button" data-history-action="view" data-history-index="${index}">View</button>
               <button type="button" data-history-action="copy" data-history-index="${index}">Copy</button>
+              <button type="button" data-history-action="share" data-history-index="${index}">Share</button>
               <button type="button" data-history-action="remove" data-history-index="${index}">Remove</button>
             </div>
           </article>`).join("") : '<div class="hint">No saved queries in this list.</div>';
@@ -375,6 +411,8 @@
         } else if (button.dataset.historyAction === "copy") {
           try { await navigator.clipboard.writeText(item.sql || ""); button.textContent = "Copied"; }
           catch (_) { window.prompt("Copy this SQL:", item.sql || ""); }
+        } else if (button.dataset.historyAction === "share") {
+          await shareSQL(item.sql || "");
         } else if (button.dataset.historyAction === "remove") {
           items.splice(index, 1);
           try { localStorage.setItem(key, JSON.stringify(items)); } catch (_) {}
@@ -387,6 +425,7 @@
         try { localStorage.setItem(historyKey(activeHistory), "[]"); } catch (_) {}
         renderQueryHistory();
       };
+      removeExistingHistoryDuplicates();
       renderQueryHistory();
 
       const themeToggleBtn = document.getElementById("themeToggleBtn");
@@ -402,144 +441,142 @@
       try { savedTheme = localStorage.getItem("pp_sql_theme") || "dark"; } catch (_) {}
       setTheme(savedTheme);
 
-      const shareDialog = document.getElementById("shareDialog");
-      const sharePreview = document.getElementById("sharePreview");
-      const shareSource = document.getElementById("shareSource");
-      const shareWarning = document.getElementById("shareWarning");
-      const shareStatus = document.getElementById("shareStatus");
-      const shareCharCount = document.getElementById("shareCharCount");
-      const shareLinkSize = document.getElementById("shareLinkSize");
-      let shareRefreshToken = 0;
-
-      function selectedOrCompleteSql() {
+      function currentSQLForSharing() {
         const start = sqlInput.selectionStart;
         const end = sqlInput.selectionEnd;
         const selected = start !== end ? sqlInput.value.slice(start, end).trim() : "";
-        return { sql: selected || sqlInput.value.trim(), selected: Boolean(selected) };
+        return selected || sqlInput.value.trim();
       }
-      function bytesToBase64Url(bytes) {
-        let binary = "";
-        for (let i = 0; i < bytes.length; i += 0x8000) {
-          binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-        }
-        return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
-      }
-      function base64UrlToBytes(value) {
-        const base64 = value.replaceAll("-", "+").replaceAll("_", "/") + "===".slice((value.length + 3) % 4);
-        const binary = atob(base64);
-        return Uint8Array.from(binary, (character) => character.charCodeAt(0));
-      }
-      async function compressText(text) {
-        const input = new TextEncoder().encode(text);
-        if (!("CompressionStream" in window)) return { prefix: "sqlb=", bytes: input };
-        const stream = new Blob([input]).stream().pipeThrough(new CompressionStream("gzip"));
-        return { prefix: "sqlz=", bytes: new Uint8Array(await new Response(stream).arrayBuffer()) };
-      }
-      async function decompressText(bytes) {
-        if (!("DecompressionStream" in window)) throw new Error("This browser cannot open compressed SQL links.");
-        const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
-        return new TextDecoder().decode(await new Response(stream).arrayBuffer());
-      }
-      async function buildShareUrl(sql = sharePreview.value.trim()) {
+
+      function buildSimpleShareUrl(sql) {
         const url = new URL(window.location.href);
-        url.searchParams.delete("sql");
-        if (!sql) url.hash = "";
-        else {
-          const payload = await compressText(sql);
-          url.hash = payload.prefix + bytesToBase64Url(payload.bytes);
-        }
+        url.hash = "sql=" + encodeURIComponent(sql);
         return url.toString();
       }
-      async function copyText(text, successMessage) {
-        try {
-          await navigator.clipboard.writeText(text);
-        } catch (_) {
-          const helper = document.createElement("textarea");
-          helper.value = text;
-          helper.style.position = "fixed";
-          helper.style.opacity = "0";
-          document.body.appendChild(helper);
-          helper.select();
-          const copied = document.execCommand("copy");
-          helper.remove();
-          if (!copied) throw new Error("Clipboard unavailable");
-        }
-        shareStatus.textContent = successMessage;
-      }
-      function shareMessage(sql, url) {
-        const firstLine = sql.split(/\r?\n/).find((line) => line.trim()) || "SQL query";
-        const preview = firstLine.trim().slice(0, 90);
-        return "Open this SQL query in Programmer’s Picnic SQL:\n\n" + preview + (firstLine.length > 90 ? "…" : "") + "\n\n" + url;
-      }
-      async function refreshShareDetails() {
-        const token = ++shareRefreshToken;
-        const sql = sharePreview.value.trim();
-        shareCharCount.textContent = sql.length.toLocaleString() + " characters";
-        shareLinkSize.textContent = "Preparing compact link…";
-        try {
-          const url = await buildShareUrl(sql);
-          if (token !== shareRefreshToken) return;
-          shareLinkSize.textContent = url.length.toLocaleString() + "-character compact link";
-          shareWarning.classList.toggle("visible", url.length > 4000);
-        } catch (_) {
-          shareLinkSize.textContent = "Could not prepare link";
-          shareWarning.classList.add("visible");
-        }
-      }
-      function openShareDialog() {
-        const content = selectedOrCompleteSql();
-        if (!content.sql) {
+
+      async function shareSQL(sql) {
+        sql = String(sql || "").trim();
+        if (!sql) {
           show("Write a SQL query before sharing.", false);
           return;
         }
-        sharePreview.value = content.sql;
-        shareSource.textContent = content.selected
-          ? "Sharing the highlighted portion of the editor. You can edit it below."
-          : "No text was highlighted, so the complete query is ready to share. You can edit it below.";
-        shareStatus.textContent = "";
-        refreshShareDetails();
-        shareDialog.showModal();
-      }
-      async function loadSharedSql() {
-        const hash = window.location.hash.slice(1);
-        if (!/^sql(?:z|b)?=/.test(hash)) return;
+        const url = buildSimpleShareUrl(sql);
+        if (navigator.share) {
+          try {
+            await navigator.share({
+              title: "Programmer’s Picnic SQL",
+              text: "SQL query:\n\n" + sql,
+              url,
+            });
+            return;
+          } catch (error) {
+            if (error && error.name === "AbortError") return;
+          }
+        }
         try {
-          if (hash.startsWith("sqlz=")) sqlInput.value = await decompressText(base64UrlToBytes(hash.slice(5)));
-          else if (hash.startsWith("sqlb=")) sqlInput.value = new TextDecoder().decode(base64UrlToBytes(hash.slice(5)));
-          else sqlInput.value = decodeURIComponent(hash.slice(4));
-          result.textContent = "Shared SQL loaded. Review it, then click Run SQL.";
-        } catch (e) { show("This shared SQL link is damaged or incomplete.", false); }
+          await navigator.clipboard.writeText(url);
+          show("Sharing is unavailable, so the SQL link was copied.", true);
+        } catch (_) {
+          window.prompt("Copy this SQL link:", url);
+        }
       }
-      document.getElementById("shareBtn").onclick = openShareDialog;
-      sharePreview.addEventListener("input", () => { shareStatus.textContent = ""; refreshShareDetails(); });
-      document.getElementById("copyShareLinkBtn").onclick = async () => copyText(await buildShareUrl(), "Compact share link copied.");
-      document.getElementById("copyShareSqlBtn").onclick = () => copyText(sharePreview.value.trim(), "SQL copied.");
-      document.getElementById("downloadShareSqlBtn").onclick = () => {
-        download("shared-query.sql", sharePreview.value.trim() + "\n", "text/plain;charset=utf-8");
-        shareStatus.textContent = "SQL file downloaded.";
-      };
-      document.getElementById("whatsappShareBtn").onclick = async () => {
-        const url = await buildShareUrl();
-        window.open("https://wa.me/?text=" + encodeURIComponent("Open this SQL query in Programmer’s Picnic SQL:\n" + url), "_blank", "noopener");
-      };
-      document.getElementById("emailShareBtn").onclick = async () => {
-        const url = await buildShareUrl();
-        window.location.href = "mailto:?subject=" + encodeURIComponent("SQL query from Programmer’s Picnic") + "&body=" + encodeURIComponent(shareMessage(sharePreview.value.trim(), url));
-      };
-      document.getElementById("nativeShareBtn").onclick = async () => {
-        const sql = sharePreview.value.trim();
-        const url = await buildShareUrl(sql);
-        if (!navigator.share) return copyText(url, "Your browser has no share menu, so the link was copied.");
+
+      function buildAllSQLText() {
+        const successful = readHistory(HISTORY_SUCCESS_KEY);
+        const unsuccessful = readHistory(HISTORY_FAIL_KEY);
+        const sections = [];
+        const current = sqlInput.value.trim();
+
+        sections.push(
+          "-- PROGRAMMER'S PICNIC SQL EXPORT",
+          "-- Created: " + new Date().toLocaleString(),
+          "",
+          "-- ==================================================",
+          "-- CURRENT EDITOR SQL",
+          "-- ==================================================",
+          current || "-- No SQL in the editor.",
+        );
+
+        sections.push(
+          "",
+          "-- ==================================================",
+          "-- SUCCESSFUL QUERIES (" + successful.length + ")",
+          "-- ==================================================",
+        );
+        if (!successful.length) sections.push("-- No successful queries saved.");
+        successful.forEach((item, index) => {
+          sections.push(
+            "",
+            "-- Successful query " + (index + 1) + (item.time ? " | " + item.time : ""),
+            String(item.sql || "").trim(),
+          );
+        });
+
+        sections.push(
+          "",
+          "-- ==================================================",
+          "-- FAILED QUERIES (" + unsuccessful.length + ")",
+          "-- ==================================================",
+        );
+        if (!unsuccessful.length) sections.push("-- No failed queries saved.");
+        unsuccessful.forEach((item, index) => {
+          const error = item.error || item.err || "Unknown SQL error";
+          sections.push(
+            "",
+            "-- Failed query " + (index + 1) + (item.time ? " | " + item.time : ""),
+            "-- Error: " + String(error).replace(/\r?\n/g, " "),
+            String(item.sql || "").trim(),
+          );
+        });
+
+        return sections.join("\n").trim() + "\n";
+      }
+
+      async function shareAllSQL() {
+        const text = buildAllSQLText();
+        const file = typeof File === "function"
+          ? new File([text], "programmers-picnic-sql-history.sql", { type: "text/plain;charset=utf-8" })
+          : null;
+
+        if (navigator.share) {
+          try {
+            const fileData = {
+              title: "Programmer’s Picnic SQL",
+              text: "Current SQL, successful queries and failed queries.",
+              files: [file],
+            };
+            if (file && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+              await navigator.share(fileData);
+            } else {
+              await navigator.share({ title: fileData.title, text });
+            }
+            return;
+          } catch (error) {
+            if (error && error.name === "AbortError") return;
+          }
+        }
+
         try {
-          await navigator.share({ title: "Programmer’s Picnic SQL", text: "Open this SQL query in the browser editor.", url });
-          shareStatus.textContent = "Shared successfully.";
-        } catch (err) { if (!err || err.name !== "AbortError") shareStatus.textContent = "Sharing was not completed."; }
-      };
-      function closeShareDialog() { shareDialog.close(); sqlInput.focus(); }
-      document.getElementById("closeShareBtn").onclick = closeShareDialog;
-      document.getElementById("closeShareActionBtn").onclick = closeShareDialog;
-      shareDialog.addEventListener("click", (event) => { if (event.target === shareDialog) closeShareDialog(); });
-      loadSharedSql();
+          await navigator.clipboard.writeText(text);
+          show("All editor, successful and failed SQL queries were copied.", true);
+        } catch (_) {
+          download("programmers-picnic-sql-history.sql", text, "text/plain;charset=utf-8");
+          show("All SQL queries were downloaded because sharing is unavailable.", true);
+        }
+      }
+
+      function loadSharedSQL() {
+        if (!window.location.hash.startsWith("#sql=")) return;
+        try {
+          sqlInput.value = decodeURIComponent(window.location.hash.slice(5));
+        } catch (_) {
+          show("This shared SQL link is damaged or incomplete.", false);
+        }
+      }
+
+      document.getElementById("shareBtn").onclick = shareAllSQL;
+      loadSharedSQL();
+
 
       const fsBtn = document.getElementById("fullscreenBtn");
       fsBtn.onclick = async () => {
