@@ -407,6 +407,9 @@
       const shareSource = document.getElementById("shareSource");
       const shareWarning = document.getElementById("shareWarning");
       const shareStatus = document.getElementById("shareStatus");
+      const shareCharCount = document.getElementById("shareCharCount");
+      const shareLinkSize = document.getElementById("shareLinkSize");
+      let shareRefreshToken = 0;
 
       function selectedOrCompleteSql() {
         const start = sqlInput.selectionStart;
@@ -414,10 +417,37 @@
         const selected = start !== end ? sqlInput.value.slice(start, end).trim() : "";
         return { sql: selected || sqlInput.value.trim(), selected: Boolean(selected) };
       }
-      function buildShareUrl(sql = sharePreview.value.trim()) {
+      function bytesToBase64Url(bytes) {
+        let binary = "";
+        for (let i = 0; i < bytes.length; i += 0x8000) {
+          binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+        }
+        return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
+      }
+      function base64UrlToBytes(value) {
+        const base64 = value.replaceAll("-", "+").replaceAll("_", "/") + "===".slice((value.length + 3) % 4);
+        const binary = atob(base64);
+        return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+      }
+      async function compressText(text) {
+        const input = new TextEncoder().encode(text);
+        if (!("CompressionStream" in window)) return { prefix: "sqlb=", bytes: input };
+        const stream = new Blob([input]).stream().pipeThrough(new CompressionStream("gzip"));
+        return { prefix: "sqlz=", bytes: new Uint8Array(await new Response(stream).arrayBuffer()) };
+      }
+      async function decompressText(bytes) {
+        if (!("DecompressionStream" in window)) throw new Error("This browser cannot open compressed SQL links.");
+        const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
+        return new TextDecoder().decode(await new Response(stream).arrayBuffer());
+      }
+      async function buildShareUrl(sql = sharePreview.value.trim()) {
         const url = new URL(window.location.href);
         url.searchParams.delete("sql");
-        url.hash = sql ? "sql=" + encodeURIComponent(sql) : "";
+        if (!sql) url.hash = "";
+        else {
+          const payload = await compressText(sql);
+          url.hash = payload.prefix + bytesToBase64Url(payload.bytes);
+        }
         return url.toString();
       }
       async function copyText(text, successMessage) {
@@ -437,10 +467,24 @@
         shareStatus.textContent = successMessage;
       }
       function shareMessage(sql, url) {
-        return "Try this SQL query in Programmer’s Picnic SQL:\n\n" + sql + "\n\nOpen it in the editor:\n" + url;
+        const firstLine = sql.split(/\r?\n/).find((line) => line.trim()) || "SQL query";
+        const preview = firstLine.trim().slice(0, 90);
+        return "Open this SQL query in Programmer’s Picnic SQL:\n\n" + preview + (firstLine.length > 90 ? "…" : "") + "\n\n" + url;
       }
-      function refreshShareWarning() {
-        shareWarning.classList.toggle("visible", buildShareUrl().length > 1800);
+      async function refreshShareDetails() {
+        const token = ++shareRefreshToken;
+        const sql = sharePreview.value.trim();
+        shareCharCount.textContent = sql.length.toLocaleString() + " characters";
+        shareLinkSize.textContent = "Preparing compact link…";
+        try {
+          const url = await buildShareUrl(sql);
+          if (token !== shareRefreshToken) return;
+          shareLinkSize.textContent = url.length.toLocaleString() + "-character compact link";
+          shareWarning.classList.toggle("visible", url.length > 4000);
+        } catch (_) {
+          shareLinkSize.textContent = "Could not prepare link";
+          shareWarning.classList.add("visible");
+        }
       }
       function openShareDialog() {
         const content = selectedOrCompleteSql();
@@ -453,33 +497,41 @@
           ? "Sharing the highlighted portion of the editor. You can edit it below."
           : "No text was highlighted, so the complete query is ready to share. You can edit it below.";
         shareStatus.textContent = "";
-        refreshShareWarning();
+        refreshShareDetails();
         shareDialog.showModal();
       }
-      function loadSharedSql() {
-        if (!window.location.hash.startsWith("#sql=")) return;
+      async function loadSharedSql() {
+        const hash = window.location.hash.slice(1);
+        if (!/^sql(?:z|b)?=/.test(hash)) return;
         try {
-          sqlInput.value = decodeURIComponent(window.location.hash.slice(5));
+          if (hash.startsWith("sqlz=")) sqlInput.value = await decompressText(base64UrlToBytes(hash.slice(5)));
+          else if (hash.startsWith("sqlb=")) sqlInput.value = new TextDecoder().decode(base64UrlToBytes(hash.slice(5)));
+          else sqlInput.value = decodeURIComponent(hash.slice(4));
+          result.textContent = "Shared SQL loaded. Review it, then click Run SQL.";
         } catch (e) { show("This shared SQL link is damaged or incomplete.", false); }
       }
       document.getElementById("shareBtn").onclick = openShareDialog;
-      sharePreview.addEventListener("input", () => { shareStatus.textContent = ""; refreshShareWarning(); });
-      document.getElementById("copyShareLinkBtn").onclick = () => copyText(buildShareUrl(), "Share link copied.");
+      sharePreview.addEventListener("input", () => { shareStatus.textContent = ""; refreshShareDetails(); });
+      document.getElementById("copyShareLinkBtn").onclick = async () => copyText(await buildShareUrl(), "Compact share link copied.");
       document.getElementById("copyShareSqlBtn").onclick = () => copyText(sharePreview.value.trim(), "SQL copied.");
-      document.getElementById("whatsappShareBtn").onclick = () => {
-        const url = buildShareUrl();
-        window.open("https://wa.me/?text=" + encodeURIComponent(shareMessage(sharePreview.value.trim(), url)), "_blank", "noopener");
+      document.getElementById("downloadShareSqlBtn").onclick = () => {
+        download("shared-query.sql", sharePreview.value.trim() + "\n", "text/plain;charset=utf-8");
+        shareStatus.textContent = "SQL file downloaded.";
       };
-      document.getElementById("emailShareBtn").onclick = () => {
-        const url = buildShareUrl();
+      document.getElementById("whatsappShareBtn").onclick = async () => {
+        const url = await buildShareUrl();
+        window.open("https://wa.me/?text=" + encodeURIComponent("Open this SQL query in Programmer’s Picnic SQL:\n" + url), "_blank", "noopener");
+      };
+      document.getElementById("emailShareBtn").onclick = async () => {
+        const url = await buildShareUrl();
         window.location.href = "mailto:?subject=" + encodeURIComponent("SQL query from Programmer’s Picnic") + "&body=" + encodeURIComponent(shareMessage(sharePreview.value.trim(), url));
       };
       document.getElementById("nativeShareBtn").onclick = async () => {
         const sql = sharePreview.value.trim();
-        const url = buildShareUrl(sql);
+        const url = await buildShareUrl(sql);
         if (!navigator.share) return copyText(url, "Your browser has no share menu, so the link was copied.");
         try {
-          await navigator.share({ title: "Programmer’s Picnic SQL", text: "Try this SQL query:\n\n" + sql, url });
+          await navigator.share({ title: "Programmer’s Picnic SQL", text: "Open this SQL query in the browser editor.", url });
           shareStatus.textContent = "Shared successfully.";
         } catch (err) { if (!err || err.name !== "AbortError") shareStatus.textContent = "Sharing was not completed."; }
       };
