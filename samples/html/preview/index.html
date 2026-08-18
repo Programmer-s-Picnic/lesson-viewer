@@ -121,8 +121,9 @@
       flex: 1;
       min-height: 0;
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px
+      grid-template-columns: minmax(260px, var(--editor-width, 50%)) 12px minmax(260px, 1fr);
+      gap: 0;
+      align-items: stretch
     }
 
     .pane {
@@ -230,6 +231,39 @@
       color: #be123c
     }
 
+    .resize-handle {
+      min-width: 12px;
+      cursor: col-resize;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: none;
+      user-select: none
+    }
+
+    .resize-handle::before {
+      content: "";
+      width: 4px;
+      height: 56px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, var(--primary), var(--primary2));
+      box-shadow: 0 8px 18px rgba(217, 119, 6, .22);
+      opacity: .72
+    }
+
+    .resize-handle:hover::before,
+    .resize-handle.dragging::before {
+      opacity: 1;
+      width: 6px
+    }
+
+    body.resizing,
+    body.resizing * {
+      cursor: col-resize !important;
+      user-select: none !important
+    }
+
     iframe {
       flex: 1;
       width: 100%;
@@ -289,7 +323,12 @@
       }
 
       .workarea {
-        grid-template-columns: 1fr
+        grid-template-columns: 1fr;
+        gap: 12px
+      }
+
+      .resize-handle {
+        display: none
       }
 
       .pane {
@@ -308,6 +347,7 @@
 <div class="actions">
 <button class="primary" id="runBtn" type="button">Run</button>
 <button id="shareBtn" type="button">Share</button>
+<button id="tabPreviewBtn" type="button">Preview Tab</button>
 <button id="fullBtn" type="button">Fullscreen</button>
 <button id="resetBtn" type="button">Reset</button>
 </div>
@@ -320,6 +360,7 @@
 <textarea autocapitalize="off" autocomplete="off" autocorrect="off" class="code-input" id="editor" spellcheck="false"></textarea>
 </div>
 </section>
+<div class="resize-handle" id="resizeHandle" role="separator" aria-label="Resize editor and preview" aria-orientation="vertical" tabindex="0"></div>
 <section class="pane">
 <div class="pane-title"><span>LIVE PREVIEW</span><span class="status" id="previewStatus">Ready</span></div>
 <iframe id="preview" sandbox="allow-scripts allow-forms allow-modals allow-popups"></iframe>
@@ -329,6 +370,7 @@
 <div class="toast" id="toast">Done</div>
 <script>
     const STORAGE_KEY = "pp_simple_html_editor_v2";
+    const WIDTH_KEY = "pp_simple_html_editor_width_v1";
     const starterCode = `<!doctype html>
 <html lang="en">
 <head>
@@ -378,6 +420,9 @@
     const preview = document.getElementById("preview");
     const runBtn = document.getElementById("runBtn");
     const shareBtn = document.getElementById("shareBtn");
+    const tabPreviewBtn = document.getElementById("tabPreviewBtn");
+    const resizeHandle = document.getElementById("resizeHandle");
+    const workarea = document.querySelector(".workarea");
     const fullBtn = document.getElementById("fullBtn");
     const resetBtn = document.getElementById("resetBtn");
     const previewStatus = document.getElementById("previewStatus");
@@ -404,6 +449,49 @@
     function decodeShare(text) { text = text.replace(/-/g, "+").replace(/_/g, "/"); while (text.length % 4) text += "="; const bin = atob(text); const bytes = Uint8Array.from(bin, c => c.charCodeAt(0)); return new TextDecoder().decode(bytes); }
     async function shareCode() { const url = location.origin + location.pathname + "#code=" + encodeShare(editor.value); try { await navigator.clipboard.writeText(url); showToast("Share link copied"); } catch (e) { prompt("Copy this share link:", url); } }
     async function toggleFullscreen() { try { if (!document.fullscreenElement) { await app.requestFullscreen(); } else { await document.exitFullscreen(); } } catch (e) { showToast("Fullscreen blocked by browser"); } }
+    function openPreviewTab() {
+      runPreview();
+      const blob = new Blob([editor.value], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      const win = window.open(url, "_blank", "noopener,noreferrer");
+      if (!win) {
+        showToast("Popup blocked. Allow popups for preview tab.");
+        URL.revokeObjectURL(url);
+        return;
+      }
+      showToast("Preview opened in new tab");
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    }
+    function setEditorWidthFromPointer(clientX) {
+      if (!workarea) return;
+      const rect = workarea.getBoundingClientRect();
+      const pct = ((clientX - rect.left) / rect.width) * 100;
+      const clamped = Math.min(75, Math.max(25, pct));
+      workarea.style.setProperty("--editor-width", clamped.toFixed(2) + "%");
+      localStorage.setItem(WIDTH_KEY, clamped.toFixed(2));
+    }
+    function restoreEditorWidth() {
+      const savedWidth = Number(localStorage.getItem(WIDTH_KEY));
+      if (Number.isFinite(savedWidth) && savedWidth >= 25 && savedWidth <= 75 && workarea) {
+        workarea.style.setProperty("--editor-width", savedWidth + "%");
+      }
+    }
+    function startResize(e) {
+      e.preventDefault();
+      resizeHandle.classList.add("dragging");
+      document.body.classList.add("resizing");
+      resizeHandle.setPointerCapture?.(e.pointerId);
+      setEditorWidthFromPointer(e.clientX);
+    }
+    function moveResize(e) {
+      if (!resizeHandle.classList.contains("dragging")) return;
+      setEditorWidthFromPointer(e.clientX);
+    }
+    function stopResize(e) {
+      resizeHandle.classList.remove("dragging");
+      document.body.classList.remove("resizing");
+      try { resizeHandle.releasePointerCapture?.(e.pointerId); } catch (_) {}
+    }
 
     let timer = null;
     editor.addEventListener("input", () => { refreshHighlight(); previewStatus.textContent = "Typing..."; saveStatus.textContent = "Auto preview on"; clearTimeout(timer); timer = setTimeout(runPreview, 300); });
@@ -415,11 +503,22 @@
     });
     runBtn.addEventListener("click", () => { runPreview(); showToast("Preview updated"); });
     shareBtn.addEventListener("click", shareCode);
+    tabPreviewBtn.addEventListener("click", openPreviewTab);
+    resizeHandle.addEventListener("pointerdown", startResize);
+    resizeHandle.addEventListener("pointermove", moveResize);
+    resizeHandle.addEventListener("pointerup", stopResize);
+    resizeHandle.addEventListener("pointercancel", stopResize);
+    resizeHandle.addEventListener("keydown", e => {
+      const current = Number(localStorage.getItem(WIDTH_KEY)) || 50;
+      if (e.key === "ArrowLeft") { e.preventDefault(); const next = Math.max(25, current - 5); workarea.style.setProperty("--editor-width", next + "%"); localStorage.setItem(WIDTH_KEY, next); }
+      if (e.key === "ArrowRight") { e.preventDefault(); const next = Math.min(75, current + 5); workarea.style.setProperty("--editor-width", next + "%"); localStorage.setItem(WIDTH_KEY, next); }
+    });
     fullBtn.addEventListener("click", toggleFullscreen);
     resetBtn.addEventListener("click", () => { if (!confirm("Reset the editor to the starter code?")) return; editor.value = starterCode; runPreview(); showToast("Starter restored"); });
     document.addEventListener("fullscreenchange", () => { fullBtn.textContent = document.fullscreenElement ? "Exit Fullscreen" : "Fullscreen"; });
 
     function init() {
+      restoreEditorWidth();
       try { const m = location.hash.match(/code=([^&]+)/); if (m && m[1]) { editor.value = decodeShare(m[1]); runPreview(); showToast("Shared code loaded"); return; } } catch (e) { }
       const savedCode = localStorage.getItem(STORAGE_KEY);
       if (savedCode && savedCode.trim().includes("<")) {
