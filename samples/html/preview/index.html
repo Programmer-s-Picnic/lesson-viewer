@@ -324,15 +324,34 @@
 
       .workarea {
         grid-template-columns: 1fr;
-        gap: 12px
+        grid-template-rows: minmax(220px, var(--editor-height, 48vh)) 12px minmax(220px, 1fr);
+        gap: 0
       }
 
       .resize-handle {
-        display: none
+        min-width: 100%;
+        min-height: 12px;
+        cursor: row-resize
+      }
+
+      .resize-handle::before {
+        width: 56px;
+        height: 4px
+      }
+
+      .resize-handle:hover::before,
+      .resize-handle.dragging::before {
+        height: 6px;
+        width: 64px
+      }
+
+      body.resizing,
+      body.resizing * {
+        cursor: row-resize !important
       }
 
       .pane {
-        min-height: 48vh
+        min-height: 0
       }
     }
   </style>
@@ -371,6 +390,7 @@
 <script>
     const STORAGE_KEY = "pp_simple_html_editor_v2";
     const WIDTH_KEY = "pp_simple_html_editor_width_v1";
+    const HEIGHT_KEY = "pp_simple_html_editor_height_v1";
     const starterCode = `<!doctype html>
 <html lang="en">
 <head>
@@ -447,7 +467,31 @@
     function runPreview() { preview.srcdoc = editor.value; localStorage.setItem(STORAGE_KEY, editor.value); previewStatus.textContent = "Updated"; saveStatus.textContent = "Saved locally"; refreshHighlight(); }
     function encodeShare(text) { const bytes = new TextEncoder().encode(text); let bin = ""; bytes.forEach(b => bin += String.fromCharCode(b)); return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); }
     function decodeShare(text) { text = text.replace(/-/g, "+").replace(/_/g, "/"); while (text.length % 4) text += "="; const bin = atob(text); const bytes = Uint8Array.from(bin, c => c.charCodeAt(0)); return new TextDecoder().decode(bytes); }
-    async function shareCode() { const url = location.origin + location.pathname + "#code=" + encodeShare(editor.value); try { await navigator.clipboard.writeText(url); showToast("Share link copied"); } catch (e) { prompt("Copy this share link:", url); } }
+    async function shareCode() {
+      const url = location.origin + location.pathname + "#code=" + encodeShare(editor.value);
+      const shareData = {
+        title: "Programmer's Picnic HTML Preview",
+        text: "Open this HTML code in Programmer's Picnic Simple HTML Editor.",
+        url
+      };
+      try {
+        if (navigator.share) {
+          await navigator.share(shareData);
+          showToast("Shared");
+          return;
+        }
+        await navigator.clipboard.writeText(url);
+        showToast("Share link copied");
+      } catch (e) {
+        if (e && e.name === "AbortError") return;
+        try {
+          await navigator.clipboard.writeText(url);
+          showToast("Share link copied");
+        } catch (_) {
+          prompt("Copy this share link:", url);
+        }
+      }
+    }
     async function toggleFullscreen() { try { if (!document.fullscreenElement) { await app.requestFullscreen(); } else { await document.exitFullscreen(); } } catch (e) { showToast("Fullscreen blocked by browser"); } }
     function openPreviewTab() {
       runPreview();
@@ -462,30 +506,47 @@
       showToast("Preview opened in new tab");
       setTimeout(() => URL.revokeObjectURL(url), 60000);
     }
-    function setEditorWidthFromPointer(clientX) {
+    function isStackedLayout() {
+      return window.matchMedia("(max-width: 900px)").matches;
+    }
+    function setEditorSizeFromPointer(clientX, clientY) {
       if (!workarea) return;
       const rect = workarea.getBoundingClientRect();
-      const pct = ((clientX - rect.left) / rect.width) * 100;
-      const clamped = Math.min(75, Math.max(25, pct));
-      workarea.style.setProperty("--editor-width", clamped.toFixed(2) + "%");
-      localStorage.setItem(WIDTH_KEY, clamped.toFixed(2));
+      if (isStackedLayout()) {
+        const pct = ((clientY - rect.top) / rect.height) * 100;
+        const clamped = Math.min(75, Math.max(25, pct));
+        workarea.style.setProperty("--editor-height", clamped.toFixed(2) + "%");
+        localStorage.setItem(HEIGHT_KEY, clamped.toFixed(2));
+        resizeHandle.setAttribute("aria-orientation", "horizontal");
+      } else {
+        const pct = ((clientX - rect.left) / rect.width) * 100;
+        const clamped = Math.min(75, Math.max(25, pct));
+        workarea.style.setProperty("--editor-width", clamped.toFixed(2) + "%");
+        localStorage.setItem(WIDTH_KEY, clamped.toFixed(2));
+        resizeHandle.setAttribute("aria-orientation", "vertical");
+      }
     }
-    function restoreEditorWidth() {
+    function restoreEditorSize() {
       const savedWidth = Number(localStorage.getItem(WIDTH_KEY));
+      const savedHeight = Number(localStorage.getItem(HEIGHT_KEY));
       if (Number.isFinite(savedWidth) && savedWidth >= 25 && savedWidth <= 75 && workarea) {
         workarea.style.setProperty("--editor-width", savedWidth + "%");
       }
+      if (Number.isFinite(savedHeight) && savedHeight >= 25 && savedHeight <= 75 && workarea) {
+        workarea.style.setProperty("--editor-height", savedHeight + "%");
+      }
+      resizeHandle.setAttribute("aria-orientation", isStackedLayout() ? "horizontal" : "vertical");
     }
     function startResize(e) {
       e.preventDefault();
       resizeHandle.classList.add("dragging");
       document.body.classList.add("resizing");
       resizeHandle.setPointerCapture?.(e.pointerId);
-      setEditorWidthFromPointer(e.clientX);
+      setEditorSizeFromPointer(e.clientX, e.clientY);
     }
     function moveResize(e) {
       if (!resizeHandle.classList.contains("dragging")) return;
-      setEditorWidthFromPointer(e.clientX);
+      setEditorSizeFromPointer(e.clientX, e.clientY);
     }
     function stopResize(e) {
       resizeHandle.classList.remove("dragging");
@@ -509,16 +570,23 @@
     resizeHandle.addEventListener("pointerup", stopResize);
     resizeHandle.addEventListener("pointercancel", stopResize);
     resizeHandle.addEventListener("keydown", e => {
-      const current = Number(localStorage.getItem(WIDTH_KEY)) || 50;
-      if (e.key === "ArrowLeft") { e.preventDefault(); const next = Math.max(25, current - 5); workarea.style.setProperty("--editor-width", next + "%"); localStorage.setItem(WIDTH_KEY, next); }
-      if (e.key === "ArrowRight") { e.preventDefault(); const next = Math.min(75, current + 5); workarea.style.setProperty("--editor-width", next + "%"); localStorage.setItem(WIDTH_KEY, next); }
+      if (isStackedLayout()) {
+        const current = Number(localStorage.getItem(HEIGHT_KEY)) || 48;
+        if (e.key === "ArrowUp") { e.preventDefault(); const next = Math.max(25, current - 5); workarea.style.setProperty("--editor-height", next + "%"); localStorage.setItem(HEIGHT_KEY, next); }
+        if (e.key === "ArrowDown") { e.preventDefault(); const next = Math.min(75, current + 5); workarea.style.setProperty("--editor-height", next + "%"); localStorage.setItem(HEIGHT_KEY, next); }
+      } else {
+        const current = Number(localStorage.getItem(WIDTH_KEY)) || 50;
+        if (e.key === "ArrowLeft") { e.preventDefault(); const next = Math.max(25, current - 5); workarea.style.setProperty("--editor-width", next + "%"); localStorage.setItem(WIDTH_KEY, next); }
+        if (e.key === "ArrowRight") { e.preventDefault(); const next = Math.min(75, current + 5); workarea.style.setProperty("--editor-width", next + "%"); localStorage.setItem(WIDTH_KEY, next); }
+      }
     });
+    window.addEventListener("resize", restoreEditorSize);
     fullBtn.addEventListener("click", toggleFullscreen);
     resetBtn.addEventListener("click", () => { if (!confirm("Reset the editor to the starter code?")) return; editor.value = starterCode; runPreview(); showToast("Starter restored"); });
     document.addEventListener("fullscreenchange", () => { fullBtn.textContent = document.fullscreenElement ? "Exit Fullscreen" : "Fullscreen"; });
 
     function init() {
-      restoreEditorWidth();
+      restoreEditorSize();
       try { const m = location.hash.match(/code=([^&]+)/); if (m && m[1]) { editor.value = decodeShare(m[1]); runPreview(); showToast("Shared code loaded"); return; } } catch (e) { }
       const savedCode = localStorage.getItem(STORAGE_KEY);
       if (savedCode && savedCode.trim().includes("<")) {
