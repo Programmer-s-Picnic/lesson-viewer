@@ -2,7 +2,7 @@ const $ = (id) => document.getElementById(id);
 const ui = {
   app: $("appShell"), codeCard: document.querySelector(".codeCard"), codeFullscreen: $("ppCodeFullscreen"), code: $("ppCode"), highlight: $("ppHighlight"), gutter: $("ppGutter"), stdin: $("ppStdin"), out: $("ppOut"), err: $("ppErr"),
   run: $("ppRun"), stop: $("ppStop"), clear: $("ppClear"), font: $("ppFontSize"), fullscreen: $("ppFullscreen"), fullscreenTool: $("ppFullscreenTool"), fullscreenButtons: Array.from(document.querySelectorAll(".jsFullscreen")), share: $("ppShare"), theme: $("ppTheme"),
-  pkgs: $("ppPkgs"), install: $("ppInstall"), list: $("ppList"), status: $("ppStatus"), toast: $("ppToast"), copyOut: $("ppCopyOut"), plots: $("ppPlots"),
+  pkgs: $("ppPkgs"), install: $("ppInstall"), list: $("ppList"), readOutput: $("ppReadOutput"), status: $("ppStatus"), toast: $("ppToast"), copyOut: $("ppCopyOut"), plots: $("ppPlots"),
   plotMode: $("ppPlotMode"), openPlots: $("ppOpenPlots"), plotModal: $("ppPlotModal"), plotModalTitle: $("ppPlotModalTitle"), plotModalImg: $("ppPlotModalImg"), plotModalClose: $("ppPlotModalClose"), plotPrev: $("ppPlotPrev"), plotNext: $("ppPlotNext"), plotDownload: $("ppPlotDownload")
 };
 const K_CODE = "pp_beginner_code_v1";
@@ -10,6 +10,7 @@ const K_STDIN = "pp_beginner_stdin_v1";
 const K_FONT = "pp_beginner_font_v1";
 const K_THEME = "pp_beginner_theme_v1";
 const K_PLOT_MODE = "pp_beginner_plot_mode_v1";
+const K_READ_OUTPUT = "pp_beginner_read_output_v1";
 let worker = null;
 let running = false;
 let ready = false;
@@ -19,6 +20,22 @@ let currentPlotIndex = 0;
 
 function toast(msg){ ui.toast.textContent = msg; ui.toast.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(()=>ui.toast.classList.remove("show"), 1600); }
 function setStatus(msg, kind=""){ ui.status.textContent = msg; ui.status.className = "status " + kind; }
+function stopReading(){
+  if("speechSynthesis" in window) window.speechSynthesis.cancel();
+}
+function readRunOutput(stdout, stderr){
+  if(!ui.readOutput?.checked || !("speechSynthesis" in window)) return;
+  const parts = [];
+  const outText = String(stdout || "").trim();
+  const errText = String(stderr || "").trim();
+  if(outText) parts.push(`Standard output. ${outText}`);
+  if(errText) parts.push(`Standard error. ${errText}`);
+  if(!parts.length) parts.push("The program finished with no standard output or standard error.");
+  stopReading();
+  const utterance = new SpeechSynthesisUtterance(parts.join(" "));
+  utterance.lang = document.documentElement.lang || "en";
+  window.speechSynthesis.speak(utterance);
+}
 function save(){ localStorage.setItem(K_CODE, ui.code.value); localStorage.setItem(K_STDIN, ui.stdin.value); }
 function escapeHtml(s){ return String(s ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;"); }
 function highlightPythonLine(line){
@@ -377,6 +394,7 @@ function makeWorker(){
       const r = msg.result || {};
       ui.out.textContent = r.stdout || "(no stdout)";
       ui.err.textContent = (r.stderr || "") + (r.error || "");
+      readRunOutput(r.stdout, (r.stderr || "") + (r.error || ""));
       showPlots(r.plots || []);
       resyncEditorManyTimes();
       setStatus(r.ok ? "Run complete" : "Error found", r.ok ? "ok" : "bad");
@@ -401,15 +419,17 @@ function makeWorker(){
     if(msg.type === "ERR"){
       running = false; ui.install.disabled = false; clearTimeout(runTimer);
       ui.err.textContent = msg.message || "Unknown worker error";
+      readRunOutput("", ui.err.textContent);
       setStatus("Error", "bad");
     }
   };
-  worker.onerror = (e) => { running = false; ui.err.textContent = e.message || String(e); setStatus("Worker error", "bad"); };
+  worker.onerror = (e) => { running = false; ui.err.textContent = e.message || String(e); readRunOutput("", ui.err.textContent); setStatus("Worker error", "bad"); };
   worker.postMessage({type:"INIT", policy:{allow_micropip:true}});
 }
 
 function runCode(){
   save();
+  stopReading();
   if(!worker) makeWorker();
   if(!ready) return toast("Python is still loading");
   if(running) return toast("Already running");
@@ -420,9 +440,9 @@ function runCode(){
   resyncEditorManyTimes();
   setStatus("Running…");
   worker.postMessage({type:"RUN_ONE", code:ui.code.value, stdin:ui.stdin.value, policy:{allow_micropip:true}});
-  runTimer = setTimeout(()=>{ if(running){ stopRun(); ui.err.textContent = "Stopped: program took too long."; setStatus("Stopped", "bad"); } }, 12000);
+  runTimer = setTimeout(()=>{ if(running){ stopRun(); ui.err.textContent = "Stopped: program took too long."; readRunOutput("", ui.err.textContent); setStatus("Stopped", "bad"); } }, 12000);
 }
-function stopRun(){ running = false; clearTimeout(runTimer); makeWorker(); toast("Stopped"); }
+function stopRun(){ running = false; clearTimeout(runTimer); stopReading(); makeWorker(); toast("Stopped"); }
 function installModules(){
   const pkgs = ui.pkgs.value.trim().split(/[ ,\n]+/).filter(Boolean);
   if(!pkgs.length) return toast("Type a module name first");
@@ -461,7 +481,7 @@ ui.stdin.addEventListener("input", save);
 ui.code.addEventListener("keydown", handleTypingAid);
 ui.run.addEventListener("click", runCode);
 ui.stop.addEventListener("click", stopRun);
-ui.clear.addEventListener("click", ()=>{ ui.out.textContent="Output will appear here."; ui.err.textContent="Errors will appear here."; showPlots([]); resyncEditorManyTimes(); });
+ui.clear.addEventListener("click", ()=>{ stopReading(); ui.out.textContent="Output will appear here."; ui.err.textContent="Errors will appear here."; showPlots([]); resyncEditorManyTimes(); });
 ui.font.addEventListener("change", ()=>applyFont(ui.font.value));
 function syncFullscreenButtons(){
   const active = ui.app.classList.contains("fullscreen") || document.fullscreenElement === ui.app;
@@ -498,6 +518,13 @@ ui.share.addEventListener("click", shareProject);
 ui.theme.addEventListener("click", ()=>applyTheme((document.body.dataset.theme || "light") === "light" ? "dark" : "light"));
 ui.install.addEventListener("click", installModules);
 ui.list.addEventListener("click", ()=>{ if(!ready) return toast("Python is still loading"); ui.out.textContent="Loading module list…"; worker.postMessage({type:"LIST_PKGS"}); });
+if(ui.readOutput){
+  ui.readOutput.checked = localStorage.getItem(K_READ_OUTPUT) === "true";
+  ui.readOutput.addEventListener("change", ()=>{
+    localStorage.setItem(K_READ_OUTPUT, String(ui.readOutput.checked));
+    if(!ui.readOutput.checked) stopReading();
+  });
+}
 ui.copyOut.addEventListener("click", async()=>{ try{ await navigator.clipboard.writeText(ui.out.textContent); toast("stdout copied"); }catch{ toast("Copy blocked"); } });
 if(ui.codeFullscreen) ui.codeFullscreen.addEventListener("click", toggleCodeFullscreen);
 document.querySelectorAll(".jsToggleBox").forEach(btn => btn.addEventListener("click", ()=>toggleIoBox(btn)));
