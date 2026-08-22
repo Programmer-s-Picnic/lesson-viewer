@@ -25,16 +25,22 @@ function stopReading(){
 }
 function readRunOutput(stdout, stderr){
   if(!ui.readOutput?.checked || !("speechSynthesis" in window)) return;
-  const parts = [];
   const outText = String(stdout || "").trim();
   const errText = String(stderr || "").trim();
-  if(outText) parts.push(`Standard output. ${outText}`);
-  if(errText) parts.push(`Standard error. ${errText}`);
-  if(!parts.length) parts.push("The program finished with no standard output or standard error.");
+  const parts = [];
+  if(outText) parts.push({text:`Standard output. ${outText}`, target:ui.out});
+  if(errText) parts.push({text:`Standard error. ${errText}`, target:ui.err});
+  if(!parts.length) parts.push({text:"The program finished with no standard output or standard error.", target:ui.out});
   stopReading();
-  const utterance = new SpeechSynthesisUtterance(parts.join(" "));
-  utterance.lang = document.documentElement.lang || "en";
-  window.speechSynthesis.speak(utterance);
+  parts.forEach(part => {
+    const utterance = new SpeechSynthesisUtterance(part.text);
+    utterance.lang = document.documentElement.lang || "en";
+    utterance.addEventListener("start", ()=>{
+      const panel = part.target?.closest(".ioToggleCard") || part.target;
+      panel?.scrollIntoView({behavior:"smooth", block:"center"});
+    });
+    window.speechSynthesis.speak(utterance);
+  });
 }
 function save(){ localStorage.setItem(K_CODE, ui.code.value); localStorage.setItem(K_STDIN, ui.stdin.value); }
 function escapeHtml(s){ return String(s ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;"); }
