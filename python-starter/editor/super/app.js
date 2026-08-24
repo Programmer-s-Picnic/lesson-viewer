@@ -3,7 +3,8 @@ const ui = {
   app: $("appShell"), codeCard: document.querySelector(".codeCard"), codeFullscreen: $("ppCodeFullscreen"), code: $("ppCode"), highlight: $("ppHighlight"), gutter: $("ppGutter"), stdin: $("ppStdin"), out: $("ppOut"), err: $("ppErr"),
   run: $("ppRun"), stop: $("ppStop"), clear: $("ppClear"), font: $("ppFontSize"), fullscreen: $("ppFullscreen"), fullscreenTool: $("ppFullscreenTool"), fullscreenButtons: Array.from(document.querySelectorAll(".jsFullscreen")), share: $("ppShare"), theme: $("ppTheme"),
   pkgs: $("ppPkgs"), install: $("ppInstall"), list: $("ppList"), readOutput: $("ppReadOutput"), status: $("ppStatus"), toast: $("ppToast"), copyOut: $("ppCopyOut"), plots: $("ppPlots"),
-  plotMode: $("ppPlotMode"), openPlots: $("ppOpenPlots"), plotModal: $("ppPlotModal"), plotModalTitle: $("ppPlotModalTitle"), plotModalImg: $("ppPlotModalImg"), plotModalClose: $("ppPlotModalClose"), plotPrev: $("ppPlotPrev"), plotNext: $("ppPlotNext"), plotDownload: $("ppPlotDownload")
+  plotMode: $("ppPlotMode"), openPlots: $("ppOpenPlots"), plotModal: $("ppPlotModal"), plotModalTitle: $("ppPlotModalTitle"), plotModalImg: $("ppPlotModalImg"), plotModalClose: $("ppPlotModalClose"), plotPrev: $("ppPlotPrev"), plotNext: $("ppPlotNext"), plotDownload: $("ppPlotDownload"),
+  fileInput: $("ppFileInput"), uploadFiles: $("ppUploadFiles"), refreshFiles: $("ppRefreshFiles"), downloadAllFiles: $("ppDownloadAllFiles"), fileList: $("ppFileList")
 };
 const K_CODE = "pp_beginner_code_v1";
 const K_STDIN = "pp_beginner_stdin_v1";
@@ -17,9 +18,42 @@ let ready = false;
 let runTimer = null;
 let currentPlots = [];
 let currentPlotIndex = 0;
+let projectFiles = [];
 
 function toast(msg){ ui.toast.textContent = msg; ui.toast.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(()=>ui.toast.classList.remove("show"), 1600); }
 function setStatus(msg, kind=""){ ui.status.textContent = msg; ui.status.className = "status " + kind; }
+function formatFileSize(bytes){
+  const n = Number(bytes) || 0;
+  if(n < 1024) return `${n} B`;
+  if(n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+function escapeAttr(s){ return escapeHtml(s).replaceAll('"', "&quot;"); }
+function renderFiles(files){
+  projectFiles = Array.isArray(files) ? files : [];
+  if(ui.downloadAllFiles) ui.downloadAllFiles.disabled = projectFiles.length === 0;
+  if(!ui.fileList) return;
+  if(!projectFiles.length){
+    ui.fileList.innerHTML = '<p class="emptyFiles">No project files yet. Upload a file such as marks.csv.</p>';
+    return;
+  }
+  ui.fileList.innerHTML = projectFiles.map(file => `
+    <div class="fileRow">
+      <span class="fileName" title="${escapeAttr(file.name)}">${escapeHtml(file.name)}</span>
+      <span class="fileSize">${formatFileSize(file.size)}</span>
+      <span class="fileButtons">
+        <button class="miniBtn" data-file-download="${escapeAttr(file.name)}" type="button">Download</button>
+        <button class="miniBtn" data-file-delete="${escapeAttr(file.name)}" type="button">Delete</button>
+      </span>
+    </div>`).join("");
+}
+function downloadBytes(name, data, type="application/octet-stream"){
+  const blob = new Blob([data], {type});
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url; link.download = name; document.body.appendChild(link); link.click(); link.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
 function stopReading(){
   if("speechSynthesis" in window) window.speechSynthesis.cancel();
 }
@@ -394,7 +428,7 @@ function makeWorker(){
   setStatus("Loading Python…");
   worker.onmessage = (ev) => {
     const msg = ev.data || {};
-    if(msg.type === "READY"){ ready = true; setStatus("Ready", "ok"); return; }
+    if(msg.type === "READY"){ ready = true; setStatus("Ready", "ok"); worker.postMessage({type:"FILE_LIST"}); return; }
     if(msg.type === "RUN_RESULT"){
       running = false; clearTimeout(runTimer);
       const r = msg.result || {};
@@ -404,6 +438,22 @@ function makeWorker(){
       showPlots(r.plots || []);
       resyncEditorManyTimes();
       setStatus(r.ok ? "Run complete" : "Error found", r.ok ? "ok" : "bad");
+      renderFiles(msg.files || []);
+      return;
+    }
+    if(msg.type === "FILE_LIST"){
+      renderFiles(msg.files || []);
+      if(msg.notice) toast(msg.notice);
+      return;
+    }
+    if(msg.type === "FILE_DATA"){
+      downloadBytes(msg.name || "download", msg.data);
+      toast(`${msg.name || "File"} downloaded`);
+      return;
+    }
+    if(msg.type === "FILE_ZIP_DATA"){
+      downloadBytes(msg.name || "python-project-files.zip", msg.data, "application/zip");
+      toast("ZIP downloaded");
       return;
     }
     if(msg.type === "INSTALLED"){
@@ -532,6 +582,33 @@ if(ui.readOutput){
   });
 }
 ui.copyOut.addEventListener("click", async()=>{ try{ await navigator.clipboard.writeText(ui.out.textContent); toast("stdout copied"); }catch{ toast("Copy blocked"); } });
+if(ui.uploadFiles && ui.fileInput){
+  ui.uploadFiles.addEventListener("click", ()=>{
+    if(!ready) return toast("Python is still loading");
+    ui.fileInput.click();
+  });
+  ui.fileInput.addEventListener("change", async()=>{
+    const selected = Array.from(ui.fileInput.files || []);
+    if(!selected.length) return;
+    const maxFileSize = 20 * 1024 * 1024;
+    if(selected.some(file => file.size > maxFileSize)){
+      ui.fileInput.value = "";
+      return toast("Each file must be 20 MB or smaller");
+    }
+    const files = await Promise.all(selected.map(async file => ({name:file.name, data:await file.arrayBuffer()})));
+    const transfers = files.map(file => file.data);
+    worker.postMessage({type:"FILE_UPLOAD", files}, transfers);
+    ui.fileInput.value = "";
+  });
+}
+if(ui.refreshFiles) ui.refreshFiles.addEventListener("click", ()=>{ if(ready) worker.postMessage({type:"FILE_LIST"}); });
+if(ui.downloadAllFiles) ui.downloadAllFiles.addEventListener("click", ()=>{ if(ready && projectFiles.length) worker.postMessage({type:"FILE_ZIP"}); });
+if(ui.fileList) ui.fileList.addEventListener("click", e=>{
+  const download = e.target.closest("[data-file-download]");
+  const remove = e.target.closest("[data-file-delete]");
+  if(download) worker.postMessage({type:"FILE_GET", name:download.dataset.fileDownload});
+  if(remove && confirm(`Delete ${remove.dataset.fileDelete}?`)) worker.postMessage({type:"FILE_DELETE", name:remove.dataset.fileDelete});
+});
 if(ui.codeFullscreen) ui.codeFullscreen.addEventListener("click", toggleCodeFullscreen);
 document.querySelectorAll(".jsToggleBox").forEach(btn => btn.addEventListener("click", ()=>toggleIoBox(btn)));
 

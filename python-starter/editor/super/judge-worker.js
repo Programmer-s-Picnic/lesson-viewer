@@ -12,6 +12,37 @@ let ready = false;
 let installPromise = null; // mutex for INSTALL
 
 const MAX_OUT_CHARS = 50000;
+const PROJECT_DIR = "/pp_files";
+
+function safeFileName(name) {
+  const clean = String(name || "").replaceAll("\\", "/").split("/").pop();
+  if (!clean || clean === "." || clean === ".." || clean.includes("\0")) {
+    throw new Error("Invalid file name");
+  }
+  return clean;
+}
+
+function listProjectFiles() {
+  const FS = py.FS;
+  return FS.readdir(PROJECT_DIR)
+    .filter(name => name !== "." && name !== ".." && !name.startsWith("."))
+    .map(name => {
+      const path = `${PROJECT_DIR}/${name}`;
+      const stat = FS.stat(path);
+      return { name, size: stat.size, isFile: FS.isFile(stat.mode) };
+    })
+    .filter(item => item.isFile)
+    .map(({name, size}) => ({name, size}))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+async function syncFileSystem(populate=false) {
+  try{
+    await new Promise((resolve, reject)=>py.FS.syncfs(populate, error => error ? reject(error) : resolve()));
+  }catch(e){
+    // File support still works for this session when IndexedDB is unavailable.
+  }
+}
 
 function clampOut(s) {
   s = (s ?? "").toString();
@@ -23,7 +54,6 @@ async function ensurePyodide() {
   if (ready && py) return py;
 
   py = await loadPyodide({ indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.2/full/" });
-
   // Persistent filesystem for packages across refresh (IndexedDB via IDBFS)
   try{
     const FS = py.FS;
@@ -33,11 +63,15 @@ async function ensurePyodide() {
     if(IDBFS){
       if(!FS.analyzePath('/pp_persist').exists) FS.mkdir('/pp_persist');
       FS.mount(IDBFS, {}, '/pp_persist');
+      if(!FS.analyzePath(PROJECT_DIR).exists) FS.mkdir(PROJECT_DIR);
+      FS.mount(IDBFS, {}, PROJECT_DIR);
       await new Promise((res, rej)=>FS.syncfs(true, (e)=> e ? rej(e) : res()));
     }
   }catch(e){
     // best effort
   }
+  if(!py.FS.analyzePath(PROJECT_DIR).exists) py.FS.mkdir(PROJECT_DIR);
+  py.FS.chdir(PROJECT_DIR);
 
   await py.runPythonAsync(`
 import sys, builtins, io, traceback, json, os, base64
@@ -196,9 +230,13 @@ self.onmessage = async (ev) => {
       await ensurePyodide();
       // Auto-load common plotting/science wheels when the user's code needs them.
       // This makes: import matplotlib.pyplot as plt work without manually installing first.
-      if (/(matplotlib|pyplot|plt\.)/.test(code)) {
+      if (/\b(sklearn|scikit-learn|DecisionTreeClassifier)\b/.test(code)) {
+        try { await py.loadPackage(["pandas", "scikit-learn"]); } catch(e) {}
+      } else if (/\b(import\s+pandas|from\s+pandas|pd\.)\b/.test(code)) {
+        try { await py.loadPackage("pandas"); } catch(e) {}
+      } else if (/\b(matplotlib|pyplot|plt\.)\b/.test(code)) {
         try { await py.loadPackage(["matplotlib", "numpy"]); } catch(e) {}
-      } else if (/(import\s+numpy|from\s+numpy)/.test(code)) {
+      } else if (/\b(import\s+numpy|from\s+numpy)\b/.test(code)) {
         try { await py.loadPackage("numpy"); } catch(e) {}
       }
       py.globals.set("U_CODE", code);
@@ -225,7 +263,60 @@ RES = _pp_run_capture(U_CODE, U_STDIN, U_POLICY_JSON)
       // plots are big; keep as-is (browser may manage memory)
       if (!Array.isArray(obj.plots)) obj.plots = [];
 
-      postMessage({ type: "RUN_RESULT", result: obj });
+      await syncFileSystem(false);
+      postMessage({ type: "RUN_RESULT", result: obj, files: listProjectFiles() });
+      return;
+    }
+
+    if (msg.type === "FILE_LIST") {
+      await ensurePyodide();
+      postMessage({ type: "FILE_LIST", files: listProjectFiles() });
+      return;
+    }
+
+    if (msg.type === "FILE_UPLOAD") {
+      await ensurePyodide();
+      const files = Array.isArray(msg.files) ? msg.files : [];
+      for (const file of files) {
+        const name = safeFileName(file.name);
+        py.FS.writeFile(`${PROJECT_DIR}/${name}`, new Uint8Array(file.data));
+      }
+      await syncFileSystem(false);
+      postMessage({ type: "FILE_LIST", files: listProjectFiles(), notice: `${files.length} file${files.length === 1 ? "" : "s"} uploaded` });
+      return;
+    }
+
+    if (msg.type === "FILE_GET") {
+      await ensurePyodide();
+      const name = safeFileName(msg.name);
+      const bytes = py.FS.readFile(`${PROJECT_DIR}/${name}`, {encoding:"binary"});
+      const data = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+      postMessage({ type: "FILE_DATA", name, data }, [data]);
+      return;
+    }
+
+    if (msg.type === "FILE_DELETE") {
+      await ensurePyodide();
+      const name = safeFileName(msg.name);
+      py.FS.unlink(`${PROJECT_DIR}/${name}`);
+      await syncFileSystem(false);
+      postMessage({ type: "FILE_LIST", files: listProjectFiles(), notice: `${name} deleted` });
+      return;
+    }
+
+    if (msg.type === "FILE_ZIP") {
+      await ensurePyodide();
+      await py.runPythonAsync(`
+import os, zipfile
+_pp_zip_path = "/tmp/python-project-files.zip"
+with zipfile.ZipFile(_pp_zip_path, "w", zipfile.ZIP_DEFLATED) as _pp_zip:
+    for _pp_name in os.listdir("."):
+        if os.path.isfile(_pp_name) and not _pp_name.startswith("."):
+            _pp_zip.write(_pp_name, arcname=_pp_name)
+`);
+      const bytes = py.FS.readFile("/tmp/python-project-files.zip", {encoding:"binary"});
+      const data = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+      postMessage({ type: "FILE_ZIP_DATA", name: "python-project-files.zip", data }, [data]);
       return;
     }
 
