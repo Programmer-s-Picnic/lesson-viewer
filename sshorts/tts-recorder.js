@@ -1,25 +1,18 @@
 "use strict";
 
 (() => {
-  const TTS_SETTINGS_KEY = "edushorts-tts-recorder-settings-v1";
-  let ttsCapture = null;
+  const SETTINGS_KEY = "edushorts-tts-recorder-settings-v2";
+  let capture = null;
 
-  function el(id) {
-    return document.getElementById(id);
-  }
-
-  function setStatus(message) {
+  const el = id => document.getElementById(id);
+  const sayStatus = message => {
     if (typeof status === "function") status(message);
     else if (el("status")) el("status").textContent = message;
-  }
+  };
 
-  function getSettings() {
+  function settings() {
     try {
-      return {
-        voice: "",
-        rate: 1,
-        ...JSON.parse(localStorage.getItem(TTS_SETTINGS_KEY) || "{}")
-      };
+      return { voice: "", rate: 1, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}") };
     } catch (error) {
       return { voice: "", rate: 1 };
     }
@@ -27,14 +20,14 @@
 
   function saveSettings() {
     try {
-      localStorage.setItem(TTS_SETTINGS_KEY, JSON.stringify({
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify({
         voice: el("ttsNarrationVoice")?.value || "",
         rate: Number(el("ttsNarrationRate")?.value || 1)
       }));
     } catch (error) {}
   }
 
-  function narrationText() {
+  function textForNarration() {
     const typed = el("narrationText")?.value?.trim();
     if (typed) return typed;
     try {
@@ -44,15 +37,15 @@
     }
   }
 
-  function selectedVoice() {
+  function chosenVoice() {
     const name = el("ttsNarrationVoice")?.value || "";
-    return speechSynthesis.getVoices().find(voice => voice.name === name) || null;
+    return speechSynthesis.getVoices().find(v => v.name === name) || null;
   }
 
   function makeUtterance(text) {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = Number(el("ttsNarrationRate")?.value || 1);
-    const voice = selectedVoice();
+    const voice = chosenVoice();
     if (voice) {
       utterance.voice = voice;
       utterance.lang = voice.lang;
@@ -60,19 +53,14 @@
     return utterance;
   }
 
-  function loadTtsVoices() {
+  function loadVoices() {
     const select = el("ttsNarrationVoice");
     if (!select || !("speechSynthesis" in window)) return;
 
-    const settings = getSettings();
-    const previous = select.value || settings.voice || "";
+    const saved = settings();
+    const wanted = select.value || saved.voice || "";
     const voices = speechSynthesis.getVoices();
-
-    select.innerHTML = "";
-    const defaultOption = document.createElement("option");
-    defaultOption.value = "";
-    defaultOption.textContent = "Browser default";
-    select.appendChild(defaultOption);
+    select.innerHTML = '<option value="">Browser default</option>';
 
     voices.forEach(voice => {
       const option = document.createElement("option");
@@ -81,30 +69,38 @@
       select.appendChild(option);
     });
 
-    if ([...select.options].some(option => option.value === previous)) {
-      select.value = previous;
-    }
+    if ([...select.options].some(option => option.value === wanted)) select.value = wanted;
   }
 
-  function stopTtsPreview() {
+  function stopSpeech() {
     if ("speechSynthesis" in window) speechSynthesis.cancel();
   }
 
-  function previewTts() {
-    const text = narrationText();
-    if (!text) return setStatus("Enter narration text first.");
-    if (!("speechSynthesis" in window)) return setStatus("Speech synthesis is unavailable in this browser.");
+  function previewSpeech() {
+    const text = textForNarration();
+    if (!text) return sayStatus("Enter narration text first.");
+    if (!("speechSynthesis" in window)) return sayStatus("Speech synthesis is unavailable in this browser.");
 
     saveSettings();
-    stopTtsPreview();
+    stopSpeech();
     const utterance = makeUtterance(text);
-    utterance.onstart = () => setStatus("Playing synthesized narration…");
-    utterance.onend = () => setStatus("Synthesized narration preview finished.");
-    utterance.onerror = () => setStatus("The selected speech-synthesis voice could not be played.");
+    utterance.onstart = () => sayStatus("Playing synthesized narration…");
+    utterance.onend = () => sayStatus("Synthesized narration preview finished.");
+    utterance.onerror = () => sayStatus("The selected synthesized voice could not be played.");
     speechSynthesis.speak(utterance);
   }
 
-  function fileDataFromBlob(blob) {
+  function bestMime() {
+    if (!window.MediaRecorder) return "";
+    return [
+      "audio/webm;codecs=opus",
+      "audio/webm",
+      "video/webm;codecs=opus",
+      "video/webm"
+    ].find(type => MediaRecorder.isTypeSupported(type)) || "";
+  }
+
+  function blobToDataUrl(blob) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result);
@@ -113,41 +109,30 @@
     });
   }
 
-  function bestAudioMimeType() {
-    if (!window.MediaRecorder) return "";
-    const choices = [
-      "audio/webm;codecs=opus",
-      "audio/webm",
-      "video/webm;codecs=opus",
-      "video/webm"
-    ];
-    return choices.find(type => MediaRecorder.isTypeSupported(type)) || "";
-  }
-
   function writeAscii(view, offset, text) {
     for (let i = 0; i < text.length; i++) view.setUint8(offset + i, text.charCodeAt(i));
   }
 
-  function audioBufferRms(buffer) {
-    let sum = 0;
+  function rms(buffer) {
+    let total = 0;
     let count = 0;
     const stride = Math.max(1, Math.floor(buffer.length / 120000));
     for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
       const data = buffer.getChannelData(channel);
       for (let i = 0; i < data.length; i += stride) {
-        sum += data[i] * data[i];
+        const sample = data[i] || 0;
+        total += sample * sample;
         count++;
       }
     }
-    return count ? Math.sqrt(sum / count) : 0;
+    return count ? Math.sqrt(total / count) : 0;
   }
 
-  function audioBufferToWav(buffer) {
+  function toWav(buffer) {
     const channels = Math.max(1, Math.min(2, buffer.numberOfChannels));
     const sampleRate = buffer.sampleRate;
     const frames = buffer.length;
-    const bytesPerSample = 2;
-    const blockAlign = channels * bytesPerSample;
+    const blockAlign = channels * 2;
     const dataBytes = frames * blockAlign;
     const output = new ArrayBuffer(44 + dataBytes);
     const view = new DataView(output);
@@ -179,150 +164,165 @@
         offset += 2;
       }
     }
-    return output;
+
+    return new Blob([output], { type: "audio/wav" });
   }
 
-  async function makeExportSafeWav(blob) {
+  async function capturedAudioToWav(blob) {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     if (!AudioContextClass) throw new Error("Web Audio is unavailable");
+
     const context = new AudioContextClass();
     try {
       await context.resume();
-      const sourceBytes = await blob.arrayBuffer();
-      const decoded = await context.decodeAudioData(sourceBytes.slice(0));
-      const rms = audioBufferRms(decoded);
-      if (!Number.isFinite(rms) || rms < 0.0005) {
-        throw new Error("The captured tab audio is silent");
-      }
-      const wavBytes = audioBufferToWav(decoded);
-      return new Blob([wavBytes], { type: "audio/wav" });
+      const bytes = await blob.arrayBuffer();
+      const decoded = await context.decodeAudioData(bytes.slice(0));
+      if (rms(decoded) < 0.0005) throw new Error("system audio is silent");
+      return toWav(decoded);
     } finally {
       await context.close().catch(() => {});
     }
   }
 
-  function cleanupCapture() {
-    if (!ttsCapture) return;
-    try { ttsCapture.displayStream?.getTracks().forEach(track => track.stop()); } catch (error) {}
-    ttsCapture = null;
+  function resetButton() {
     const button = el("recordTtsNarrationBtn");
-    if (button) {
-      button.disabled = false;
-      button.textContent = "◆ Record synthesized speech";
-      button.classList.remove("recording");
-    }
+    if (!button) return;
+    button.disabled = false;
+    button.classList.remove("recording");
+    button.textContent = "◆ Record synthesized speech";
   }
 
-  async function recordSynthesizedSpeech() {
-    const text = narrationText();
-    if (!text) return setStatus("Enter narration text first.");
-    if (!("speechSynthesis" in window)) return setStatus("Speech synthesis is unavailable in this browser.");
-    if (!navigator.mediaDevices?.getDisplayMedia || !window.MediaRecorder) {
-      return setStatus("Synthesized-speech recording needs a browser that supports tab-audio capture, such as desktop Chrome or Edge.");
+  function cleanup() {
+    if (capture?.stream) {
+      try { capture.stream.getTracks().forEach(track => track.stop()); } catch (error) {}
     }
-    if (ttsCapture) return;
+    capture = null;
+    resetButton();
+  }
+
+  async function recordSpeech() {
+    const text = textForNarration();
+    if (!text) return sayStatus("Enter narration text first.");
+    if (!("speechSynthesis" in window)) return sayStatus("Speech synthesis is unavailable in this browser.");
+    if (!navigator.mediaDevices?.getDisplayMedia || !window.MediaRecorder) {
+      return sayStatus("System-audio recording is unavailable in this browser. Use desktop Chrome or Edge.");
+    }
+    if (capture) return;
 
     saveSettings();
-    stopTtsPreview();
+    stopSpeech();
 
     const button = el("recordTtsNarrationBtn");
     button.disabled = true;
     button.classList.add("recording");
-    button.textContent = "Preparing tab audio…";
+    button.textContent = "Choose Entire Screen…";
 
-    let displayStream;
+    let stream;
     try {
-      setStatus("Choose this browser tab and enable Share tab audio. The synthesized voice will then be recorded automatically.");
-      displayStream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
+      sayStatus("IMPORTANT: choose Entire Screen, then enable Share system audio. Do not choose This Tab or Window.");
+
+      stream = await navigator.mediaDevices.getDisplayMedia({
+        video: { displaySurface: "monitor" },
         audio: true,
-        preferCurrentTab: true,
+        systemAudio: "include",
+        monitorTypeSurfaces: "include",
+        preferCurrentTab: false,
         selfBrowserSurface: "include",
-        surfaceSwitching: "exclude",
-        systemAudio: "include"
+        surfaceSwitching: "exclude"
       });
 
-      const audioTracks = displayStream.getAudioTracks();
+      const videoTrack = stream.getVideoTracks()[0];
+      const displaySurface = videoTrack?.getSettings?.().displaySurface || "";
+
+      if (displaySurface && displaySurface !== "monitor") {
+        stream.getTracks().forEach(track => track.stop());
+        resetButton();
+        return sayStatus("Wrong share type. Record again and choose Entire Screen — not This Tab or Window — then enable Share system audio.");
+      }
+
+      const audioTracks = stream.getAudioTracks();
       if (!audioTracks.length) {
-        displayStream.getTracks().forEach(track => track.stop());
-        cleanupCapture();
-        return setStatus("No shared audio was received. Try again, choose this tab, and turn on Share tab audio.");
+        stream.getTracks().forEach(track => track.stop());
+        resetButton();
+        return sayStatus("No system-audio track was shared. Record again, choose Entire Screen, and turn on Share system audio.");
       }
 
       const audioStream = new MediaStream(audioTracks);
-      const mimeType = bestAudioMimeType();
-      const recorder = mimeType ? new MediaRecorder(audioStream, { mimeType }) : new MediaRecorder(audioStream);
+      const mime = bestMime();
+      const recorder = mime ? new MediaRecorder(audioStream, { mimeType: mime }) : new MediaRecorder(audioStream);
       const chunks = [];
       const utterance = makeUtterance(text);
-      const voice = selectedVoice();
+      const voice = chosenVoice();
       const voiceName = voice?.name || "browser default voice";
 
-      ttsCapture = { displayStream, recorder, utterance };
-      button.textContent = "◆ Recording synthesized speech…";
+      capture = { stream, recorder, utterance };
+      button.textContent = "◆ Recording system audio…";
 
       recorder.ondataavailable = event => {
         if (event.data?.size) chunks.push(event.data);
       };
 
       recorder.onerror = () => {
-        stopTtsPreview();
-        cleanupCapture();
-        setStatus("The browser could not record the shared tab audio.");
-      };
-
-      recorder.onstop = async () => {
-        try {
-          const type = recorder.mimeType || mimeType || "audio/webm";
-          const capturedBlob = new Blob(chunks, { type });
-          if (!capturedBlob.size) throw new Error("empty recording");
-
-          button.textContent = "Converting speech for export…";
-          setStatus("Preparing synthesized narration for WebM export…");
-          const wavBlob = await makeExportSafeWav(capturedBlob);
-          const data = await fileDataFromBlob(wavBlob);
-
-          if (typeof attachNarration !== "function") throw new Error("narration attachment unavailable");
-          await attachNarration(data, `speech synthesis WAV — ${voiceName}`);
-          setStatus(`Synthesized narration recorded with ${voiceName}, converted to WAV, and attached for WebM export.`);
-        } catch (error) {
-          const message = String(error?.message || "");
-          if (/silent/i.test(message)) {
-            setStatus("The synthesized voice was not present in the shared audio. Record again, choose this tab, and make sure Share tab audio is enabled.");
-          } else {
-            setStatus(`Synthesized speech could not be prepared for export: ${message || "audio conversion failed"}.`);
-          }
-        } finally {
-          cleanupCapture();
-        }
+        stopSpeech();
+        sayStatus("The browser could not record system audio.");
+        cleanup();
       };
 
       const stopRecorder = () => {
         if (recorder.state !== "inactive") recorder.stop();
       };
 
-      displayStream.getTracks().forEach(track => {
+      recorder.onstop = async () => {
+        try {
+          const type = recorder.mimeType || mime || "audio/webm";
+          const capturedBlob = new Blob(chunks, { type });
+          if (!capturedBlob.size) throw new Error("empty system-audio recording");
+
+          button.textContent = "Checking captured speech…";
+          sayStatus("Checking the captured system audio…");
+
+          const wavBlob = await capturedAudioToWav(capturedBlob);
+          const data = await blobToDataUrl(wavBlob);
+          if (typeof attachNarration !== "function") throw new Error("narration attachment is unavailable");
+
+          await attachNarration(data, `speech synthesis system audio — ${voiceName}`);
+          sayStatus(`Synthesized narration captured from system audio with ${voiceName} and attached to this slide.`);
+        } catch (error) {
+          const message = String(error?.message || "");
+          if (/silent/i.test(message)) {
+            sayStatus("System audio was captured but the synthesized voice was still silent. Confirm Entire Screen + Share system audio. If that option is unavailable, this browser/OS cannot capture its speechSynthesis voice; use microphone/uploaded narration instead.");
+          } else {
+            sayStatus(`Synthesized narration could not be attached: ${message || "capture failed"}.`);
+          }
+        } finally {
+          cleanup();
+        }
+      };
+
+      stream.getTracks().forEach(track => {
         track.addEventListener("ended", () => {
-          stopTtsPreview();
+          stopSpeech();
           stopRecorder();
         }, { once: true });
       });
 
-      utterance.onstart = () => setStatus("Recording synthesized narration…");
-      utterance.onend = () => setTimeout(stopRecorder, 300);
+      utterance.onstart = () => sayStatus("Recording synthesized voice from system audio…");
+      utterance.onend = () => setTimeout(stopRecorder, 450);
       utterance.onerror = () => {
-        setStatus("Speech synthesis stopped before the recording finished.");
-        setTimeout(stopRecorder, 120);
+        sayStatus("Speech synthesis stopped before recording finished.");
+        setTimeout(stopRecorder, 150);
       };
 
       recorder.start(100);
-      setTimeout(() => speechSynthesis.speak(utterance), 300);
+      // Give the operating-system audio capture path time to become active.
+      setTimeout(() => speechSynthesis.speak(utterance), 700);
     } catch (error) {
-      try { displayStream?.getTracks().forEach(track => track.stop()); } catch (stopError) {}
-      cleanupCapture();
+      try { stream?.getTracks().forEach(track => track.stop()); } catch (stopError) {}
+      cleanup();
       if (error?.name === "NotAllowedError") {
-        setStatus("Tab sharing was cancelled. To record synthesized speech, share this tab and enable Share tab audio.");
+        sayStatus("Screen sharing was cancelled. Record again and choose Entire Screen with Share system audio enabled.");
       } else {
-        setStatus("Synthesized-speech recording could not start in this browser.");
+        sayStatus(`System-audio capture could not start: ${error?.message || "unsupported browser configuration"}.`);
       }
     }
   }
@@ -334,6 +334,7 @@
     style.textContent = `
       .tts-recorder-box{margin:14px 0;padding:12px;border:1px solid #c7dceb;border-radius:12px;background:#fff}
       .tts-recorder-title{font-weight:900;color:#075985;margin:0 0 4px}
+      .tts-recorder-warning{margin:8px 0;padding:9px 10px;border-radius:9px;background:#fff7ed;color:#9a3412;font-weight:750;line-height:1.35}
       .tts-recorder-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px}
       .tts-recorder-actions button{font-size:12px;padding:9px}
       #recordTtsNarrationBtn{background:#6d28d9}
@@ -349,7 +350,7 @@
     if (!narrationBox || !narrationActions || el("ttsRecorderBox")) return;
 
     addStyles();
-    const settings = getSettings();
+    const saved = settings();
     const box = document.createElement("div");
     box.id = "ttsRecorderBox";
     box.className = "tts-recorder-box";
@@ -359,42 +360,44 @@
         <label>Voice
           <select id="ttsNarrationVoice"><option value="">Browser default</option></select>
         </label>
-        <label>Speed <output id="ttsNarrationRateOut">${Number(settings.rate || 1).toFixed(1).replace(".0", "")}×</output>
-          <input id="ttsNarrationRate" type="range" min=".6" max="1.5" step=".1" value="${Number(settings.rate || 1)}">
+        <label>Speed <output id="ttsNarrationRateOut">${Number(saved.rate || 1).toFixed(1).replace(".0", "")}×</output>
+          <input id="ttsNarrationRate" type="range" min=".6" max="1.5" step=".1" value="${Number(saved.rate || 1)}">
         </label>
       </div>
+      <p class="tts-recorder-warning"><strong>For recording:</strong> choose <strong>Entire Screen</strong> and enable <strong>Share system audio</strong>. Do not choose This Tab.</p>
       <div class="tts-recorder-actions">
         <button type="button" class="secondary" id="previewTtsNarrationBtn">🔊 Test synthesized speech</button>
         <button type="button" id="recordTtsNarrationBtn">◆ Record synthesized speech</button>
       </div>
-      <p class="help">Choose <strong>this tab</strong> and enable <strong>Share tab audio</strong>. The captured speech is converted to WAV before it is attached, so the normal WebM export mixer can include it reliably.</p>
+      <p class="help">Some browser voices are produced by the operating system and are not present in browser-tab audio. System-audio capture is therefore used for synthesized narration.</p>
     `;
 
     narrationBox.insertBefore(box, narrationActions);
-    el("ttsNarrationRate").value = Number(settings.rate || 1);
+
     el("ttsNarrationRate").oninput = () => {
       el("ttsNarrationRateOut").value = `${Number(el("ttsNarrationRate").value).toFixed(1).replace(".0", "")}×`;
       saveSettings();
     };
     el("ttsNarrationVoice").onchange = saveSettings;
-    el("previewTtsNarrationBtn").onclick = previewTts;
-    el("recordTtsNarrationBtn").onclick = recordSynthesizedSpeech;
+    el("previewTtsNarrationBtn").onclick = previewSpeech;
+    el("recordTtsNarrationBtn").onclick = recordSpeech;
 
-    loadTtsVoices();
-    if (settings.voice) el("ttsNarrationVoice").value = settings.voice;
+    loadVoices();
+    if (saved.voice) el("ttsNarrationVoice").value = saved.voice;
   }
 
   addControls();
+
   if ("speechSynthesis" in window) {
     const previous = speechSynthesis.onvoiceschanged;
     speechSynthesis.onvoiceschanged = event => {
       if (typeof previous === "function") previous.call(speechSynthesis, event);
-      loadTtsVoices();
+      loadVoices();
     };
   }
 
   window.addEventListener("beforeunload", () => {
-    stopTtsPreview();
-    cleanupCapture();
+    stopSpeech();
+    cleanup();
   });
 })();
