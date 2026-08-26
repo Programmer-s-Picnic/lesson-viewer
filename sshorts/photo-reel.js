@@ -1,7 +1,8 @@
 "use strict";
 
 (() => {
-  const MAX_PHOTOS = 10;
+  const RECOMMENDED_PHOTOS = 10;
+  const MAX_PHOTOS = 100;
   const PHOTO_DEFAULT_SECONDS = 5;
 
   const entranceOptions = [
@@ -71,9 +72,9 @@
       motions: ["pan-left", "pan-right", "pan-up", "pan-down"]
     },
     dynamic: {
-      entrances: entranceOptions.map(x => x[0]).filter(x => x !== "none"),
-      exits: exitOptions.map(x => x[0]).filter(x => x !== "none"),
-      motions: motionOptions.map(x => x[0]).filter(x => x !== "none")
+      entrances: entranceOptions.map(item => item[0]).filter(value => value !== "none"),
+      exits: exitOptions.map(item => item[0]).filter(value => value !== "none"),
+      motions: motionOptions.map(item => item[0]).filter(value => value !== "none")
     },
     gentle: {
       entrances: ["fade", "zoom", "rise", "wipe-right"],
@@ -108,12 +109,19 @@
       .slice(0, 70);
   }
 
-  async function photoData(file) {
+  function formatTime(seconds) {
+    const total = Math.max(0, Math.round(seconds));
+    const minutes = Math.floor(total / 60);
+    const remainder = total % 60;
+    return minutes ? `${minutes}m ${remainder}s` : `${remainder}s`;
+  }
+
+  async function photoData(file, largeSet = false) {
     if (!file) throw new Error("Missing picture");
     try {
       if ("createImageBitmap" in window) {
         const bitmap = await createImageBitmap(file);
-        const maxDimension = 1920;
+        const maxDimension = largeSet ? 1440 : 1920;
         const ratio = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
         const width = Math.max(1, Math.round(bitmap.width * ratio));
         const height = Math.max(1, Math.round(bitmap.height * ratio));
@@ -123,7 +131,7 @@
         const context = canvas.getContext("2d");
         context.drawImage(bitmap, 0, 0, width, height);
         bitmap.close?.();
-        return canvas.toDataURL("image/jpeg", 0.92);
+        return canvas.toDataURL("image/jpeg", largeSet ? 0.82 : 0.9);
       }
     } catch (error) {}
 
@@ -141,22 +149,18 @@
     slide.exitTransition = randomFrom(preset.exits);
     slide.imageMotion = randomFrom(preset.motions);
 
-    // Avoid the same horizontal direction entering and exiting repeatedly.
     if (slide.transition === "slide" && slide.exitTransition === "slide-right") {
       slide.exitTransition = "slide-left";
     }
     if (slide.transition === "slide-left" && slide.exitTransition === "slide-left") {
       slide.exitTransition = "slide-right";
     }
-
-    // Give neighbouring photos visibly different motion where possible.
     if (index % 2 && slide.imageMotion === "pan-left") slide.imageMotion = "pan-right";
   }
 
   function addPhotoUi() {
-    const setupPanel = document.querySelector(".panel.setup");
     const templateButton = $photo("useTemplateBtn");
-    if (!setupPanel || !templateButton || $photo("photoReelBox")) return;
+    if (!templateButton || $photo("photoReelBox")) return;
 
     const box = document.createElement("section");
     box.id = "photoReelBox";
@@ -165,9 +169,9 @@
       <div class="photo-reel-head">
         <div>
           <strong>Photo Reel</strong>
-          <small>Best with 10 pictures</small>
+          <small>Recommended: ${RECOMMENDED_PHOTOS} pictures · Maximum: ${MAX_PHOTOS}</small>
         </div>
-        <span class="photo-count-badge">10 × 5s ≈ 50s</span>
+        <span class="photo-count-badge">10 recommended · 100 max</span>
       </div>
       <label class="photo-picker">Select pictures
         <input id="photoReelInput" type="file" accept="image/*" multiple>
@@ -195,11 +199,10 @@
       <div class="photo-reel-actions">
         <button type="button" id="randomizePhotoAnimationsBtn" class="secondary">Randomize photo animations</button>
       </div>
-      <p id="photoReelStatus" class="help">Choose up to 10 pictures. They become editable image slides in the selected order.</p>
+      <p id="photoReelStatus" class="help">Choose up to 100 pictures. Ten is recommended for a short reel; larger sets are also supported.</p>
     `;
 
     templateButton.insertAdjacentElement("afterend", box);
-
     $photo("photoReelInput").addEventListener("change", createPhotoReel);
     $photo("randomizePhotoAnimationsBtn").addEventListener("click", randomizePhotoAnimations);
   }
@@ -245,7 +248,6 @@
     const select = $photo("transition");
     if (!select || select.dataset.photoExtended === "1") return;
     select.dataset.photoExtended = "1";
-
     const existing = new Set([...select.options].map(option => option.value));
     entranceOptions.forEach(([value, label]) => {
       if (existing.has(value)) return;
@@ -261,17 +263,40 @@
     const selected = [...(input.files || [])].filter(file => file.type.startsWith("image/"));
     if (!selected.length) return;
 
+    const statusNode = $photo("photoReelStatus");
     const files = selected.slice(0, MAX_PHOTOS);
+    const seconds = Math.max(1, Math.min(15, Number($photo("photoReelSeconds").value || PHOTO_DEFAULT_SECONDS)));
+    const estimatedSeconds = files.length * seconds;
+
+    if (selected.length > MAX_PHOTOS) {
+      statusNode.textContent = `${selected.length} pictures selected. Only the first ${MAX_PHOTOS} can be used.`;
+      alert(`Maximum Photo Reel size is ${MAX_PHOTOS} pictures. The first ${MAX_PHOTOS} pictures will be used.`);
+    }
+
+    if (files.length > RECOMMENDED_PHOTOS) {
+      const proceed = confirm(
+        `${files.length} pictures selected.\n\n` +
+        `Recommended for a short reel: ${RECOMMENDED_PHOTOS}\n` +
+        `Maximum allowed: ${MAX_PHOTOS}\n` +
+        `Estimated duration: ${formatTime(estimatedSeconds)}\n\n` +
+        `Continue with all ${files.length} pictures?`
+      );
+      if (!proceed) {
+        input.value = "";
+        statusNode.textContent = `Photo selection cancelled. ${RECOMMENDED_PHOTOS} pictures are recommended.`;
+        return;
+      }
+    }
+
     if (state.slides.length && !confirm(`Replace the current ${state.slides.length} slide${state.slides.length === 1 ? "" : "s"} with a ${files.length}-picture Photo Reel?`)) {
       input.value = "";
       return;
     }
 
-    const seconds = Math.max(1, Math.min(15, Number($photo("photoReelSeconds").value || PHOTO_DEFAULT_SECONDS)));
     const fit = $photo("photoReelFit").value || "cover";
     const preset = $photo("photoReelPreset").value || "cinematic";
     const captions = $photo("photoFilenameCaption").checked;
-    const statusNode = $photo("photoReelStatus");
+    const largeSet = files.length > 20;
 
     input.disabled = true;
     statusNode.textContent = `Preparing ${files.length} picture${files.length === 1 ? "" : "s"}…`;
@@ -286,7 +311,7 @@
         slide.narrationText = slide.heading;
         slide.duration = seconds;
         slide.imageFit = fit;
-        slide.image = await photoData(files[i]);
+        slide.image = await photoData(files[i], largeSet);
         slide.photoReel = true;
         applyPresetToSlide(slide, preset, i);
         slides.push(slide);
@@ -298,15 +323,12 @@
         state.projectTitle = "Photo Reel";
         $photo("projectTitle").value = "Photo Reel";
       }
-      if ($photo("subject")) {
-        state.subject = "General";
-        $photo("subject").value = "General";
-      }
       $photo("defaultDuration").value = seconds;
 
       renderAll();
-      statusNode.textContent = `${slides.length} photo slides created. Use Preview to watch the entrance, motion and exit animations.`;
-      status(`Photo Reel ready: ${slides.length} pictures × ${seconds}s = ${slides.length * seconds}s.`);
+      const recommendation = slides.length > RECOMMENDED_PHOTOS ? ` Recommended is ${RECOMMENDED_PHOTOS}, but ${slides.length} is supported.` : "";
+      statusNode.textContent = `${slides.length} photo slides created.${recommendation}`;
+      status(`Photo Reel ready: ${slides.length} pictures × ${seconds}s = ${formatTime(slides.length * seconds)}.`);
     } catch (error) {
       statusNode.textContent = `Could not create the Photo Reel: ${error.message || "picture loading failed"}.`;
     } finally {
@@ -335,110 +357,48 @@
   function applyContinuousMotion(ctx, motion, progress) {
     const p = clamp01(progress);
     switch (motion) {
-      case "ken-in":
-        centreTransform(ctx, 1 + p * 0.07, 1 + p * 0.07);
-        break;
-      case "ken-out":
-        centreTransform(ctx, 1.07 - p * 0.07, 1.07 - p * 0.07);
-        break;
-      case "pan-left":
-        centreTransform(ctx, 1.035, 1.035, 0, 55 - p * 110, 0);
-        break;
-      case "pan-right":
-        centreTransform(ctx, 1.035, 1.035, 0, -55 + p * 110, 0);
-        break;
-      case "pan-up":
-        centreTransform(ctx, 1.035, 1.035, 0, 0, 55 - p * 110);
-        break;
-      case "pan-down":
-        centreTransform(ctx, 1.035, 1.035, 0, 0, -55 + p * 110);
-        break;
-      case "drift":
-        centreTransform(ctx, 1.025 + p * 0.025, 1.025 + p * 0.025, 0, 22 * Math.sin(p * Math.PI * 1.5), -18 * Math.cos(p * Math.PI));
-        break;
-      case "float":
-        centreTransform(ctx, 1.02, 1.02, 0, 14 * Math.sin(p * Math.PI * 2), 18 * Math.sin(p * Math.PI));
-        break;
+      case "ken-in": centreTransform(ctx, 1 + p * 0.07, 1 + p * 0.07); break;
+      case "ken-out": centreTransform(ctx, 1.07 - p * 0.07, 1.07 - p * 0.07); break;
+      case "pan-left": centreTransform(ctx, 1.035, 1.035, 0, 55 - p * 110, 0); break;
+      case "pan-right": centreTransform(ctx, 1.035, 1.035, 0, -55 + p * 110, 0); break;
+      case "pan-up": centreTransform(ctx, 1.035, 1.035, 0, 0, 55 - p * 110); break;
+      case "pan-down": centreTransform(ctx, 1.035, 1.035, 0, 0, -55 + p * 110); break;
+      case "drift": centreTransform(ctx, 1.025 + p * 0.025, 1.025 + p * 0.025, 0, 22 * Math.sin(p * Math.PI * 1.5), -18 * Math.cos(p * Math.PI)); break;
+      case "float": centreTransform(ctx, 1.02, 1.02, 0, 14 * Math.sin(p * Math.PI * 2), 18 * Math.sin(p * Math.PI)); break;
     }
   }
 
   function applyIn(ctx, transition, amount) {
     const e = easeOut(amount);
     switch (transition) {
-      case "fade":
-        ctx.globalAlpha *= Math.max(0.01, e);
-        break;
-      case "slide":
-        ctx.translate((1 - e) * W, 0);
-        break;
-      case "slide-left":
-        ctx.translate(-(1 - e) * W, 0);
-        break;
-      case "slide-top":
-        ctx.translate(0, -(1 - e) * H);
-        break;
-      case "slide-bottom":
-        ctx.translate(0, (1 - e) * H);
-        break;
-      case "zoom":
-        centreTransform(ctx, 0.76 + 0.24 * e, 0.76 + 0.24 * e);
-        break;
-      case "zoom-out":
-        centreTransform(ctx, 1.28 - 0.28 * e, 1.28 - 0.28 * e);
-        break;
-      case "rise":
-        centreTransform(ctx, 1, 1, 0, 0, (1 - e) * H * 0.28);
-        break;
-      case "drop":
-        centreTransform(ctx, 1, 1, 0, 0, -(1 - e) * H * 0.28);
-        break;
-      case "rotate":
-        centreTransform(ctx, 0.86 + 0.14 * e, 0.86 + 0.14 * e, (1 - e) * -0.16);
-        break;
-      case "rotate-reverse":
-        centreTransform(ctx, 0.86 + 0.14 * e, 0.86 + 0.14 * e, (1 - e) * 0.16);
-        break;
-      case "diagonal-tl":
-        ctx.translate(-(1 - e) * W * 0.75, -(1 - e) * H * 0.45);
-        break;
-      case "diagonal-br":
-        ctx.translate((1 - e) * W * 0.75, (1 - e) * H * 0.45);
-        break;
-      case "flip-x":
-        centreTransform(ctx, Math.max(0.04, e), 1);
-        break;
-      case "flip-y":
-        centreTransform(ctx, 1, Math.max(0.04, e));
-        break;
+      case "fade": ctx.globalAlpha *= Math.max(0.01, e); break;
+      case "slide": ctx.translate((1 - e) * W, 0); break;
+      case "slide-left": ctx.translate(-(1 - e) * W, 0); break;
+      case "slide-top": ctx.translate(0, -(1 - e) * H); break;
+      case "slide-bottom": ctx.translate(0, (1 - e) * H); break;
+      case "zoom": centreTransform(ctx, 0.76 + 0.24 * e, 0.76 + 0.24 * e); break;
+      case "zoom-out": centreTransform(ctx, 1.28 - 0.28 * e, 1.28 - 0.28 * e); break;
+      case "rise": centreTransform(ctx, 1, 1, 0, 0, (1 - e) * H * 0.28); break;
+      case "drop": centreTransform(ctx, 1, 1, 0, 0, -(1 - e) * H * 0.28); break;
+      case "rotate": centreTransform(ctx, 0.86 + 0.14 * e, 0.86 + 0.14 * e, (1 - e) * -0.16); break;
+      case "rotate-reverse": centreTransform(ctx, 0.86 + 0.14 * e, 0.86 + 0.14 * e, (1 - e) * 0.16); break;
+      case "diagonal-tl": ctx.translate(-(1 - e) * W * 0.75, -(1 - e) * H * 0.45); break;
+      case "diagonal-br": ctx.translate((1 - e) * W * 0.75, (1 - e) * H * 0.45); break;
+      case "flip-x": centreTransform(ctx, Math.max(0.04, e), 1); break;
+      case "flip-y": centreTransform(ctx, 1, Math.max(0.04, e)); break;
       case "reveal":
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(W * e, 0);
-        ctx.lineTo(Math.min(W, W * e + H * 0.35), H);
-        ctx.lineTo(0, H);
-        ctx.closePath();
-        ctx.clip();
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(W * e, 0); ctx.lineTo(Math.min(W, W * e + H * 0.35), H); ctx.lineTo(0, H); ctx.closePath(); ctx.clip();
         break;
-      case "wipe-right":
-        ctx.beginPath();
-        ctx.rect(0, 0, W * e, H);
-        ctx.clip();
-        break;
-      case "wipe-down":
-        ctx.beginPath();
-        ctx.rect(0, 0, W, H * e);
-        ctx.clip();
-        break;
+      case "wipe-right": ctx.beginPath(); ctx.rect(0, 0, W * e, H); ctx.clip(); break;
+      case "wipe-down": ctx.beginPath(); ctx.rect(0, 0, W, H * e); ctx.clip(); break;
       case "pop": {
         const overshoot = e < 0.8 ? 0.72 + e * 0.42 : 1.056 - (e - 0.8) * 0.28;
         centreTransform(ctx, overshoot, overshoot);
         ctx.globalAlpha *= Math.max(0.05, e);
         break;
       }
-      case "none":
-        break;
-      default:
-        ctx.globalAlpha *= Math.max(0.01, e);
+      case "none": break;
+      default: ctx.globalAlpha *= Math.max(0.01, e);
     }
   }
 
@@ -446,74 +406,28 @@
     if (!transition || transition === "none" || amount <= 0) return;
     const e = easeInOut(amount);
     switch (transition) {
-      case "fade":
-        ctx.globalAlpha *= Math.max(0.01, 1 - e);
-        break;
-      case "slide-left":
-        ctx.translate(-e * W, 0);
-        break;
-      case "slide-right":
-        ctx.translate(e * W, 0);
-        break;
-      case "slide-top":
-        ctx.translate(0, -e * H);
-        break;
-      case "slide-bottom":
-        ctx.translate(0, e * H);
-        break;
-      case "zoom":
-        centreTransform(ctx, 1 - e * 0.72, 1 - e * 0.72);
-        ctx.globalAlpha *= 1 - e * 0.7;
-        break;
-      case "zoom-in":
-        centreTransform(ctx, 1 + e * 0.55, 1 + e * 0.55);
-        ctx.globalAlpha *= 1 - e;
-        break;
-      case "rotate":
-        centreTransform(ctx, 1 - e * 0.45, 1 - e * 0.45, e * 0.38);
-        ctx.globalAlpha *= 1 - e * 0.75;
-        break;
-      case "rotate-reverse":
-        centreTransform(ctx, 1 - e * 0.45, 1 - e * 0.45, -e * 0.38);
-        ctx.globalAlpha *= 1 - e * 0.75;
-        break;
-      case "diagonal-tl":
-        ctx.translate(-e * W * 0.8, -e * H * 0.55);
-        break;
-      case "diagonal-br":
-        ctx.translate(e * W * 0.8, e * H * 0.55);
-        break;
-      case "wipe-left":
-        ctx.beginPath();
-        ctx.rect(e * W, 0, W * (1 - e), H);
-        ctx.clip();
-        break;
-      case "wipe-right":
-        ctx.beginPath();
-        ctx.rect(0, 0, W * (1 - e), H);
-        ctx.clip();
-        break;
-      case "wipe-up":
-        ctx.beginPath();
-        ctx.rect(0, e * H, W, H * (1 - e));
-        ctx.clip();
-        break;
-      case "wipe-down":
-        ctx.beginPath();
-        ctx.rect(0, 0, W, H * (1 - e));
-        ctx.clip();
-        break;
-      case "shrink":
-        centreTransform(ctx, 1 - e * 0.82, 1 - e * 0.82);
-        ctx.globalAlpha *= 1 - e;
-        break;
+      case "fade": ctx.globalAlpha *= Math.max(0.01, 1 - e); break;
+      case "slide-left": ctx.translate(-e * W, 0); break;
+      case "slide-right": ctx.translate(e * W, 0); break;
+      case "slide-top": ctx.translate(0, -e * H); break;
+      case "slide-bottom": ctx.translate(0, e * H); break;
+      case "zoom": centreTransform(ctx, 1 - e * 0.72, 1 - e * 0.72); ctx.globalAlpha *= 1 - e * 0.7; break;
+      case "zoom-in": centreTransform(ctx, 1 + e * 0.55, 1 + e * 0.55); ctx.globalAlpha *= 1 - e; break;
+      case "rotate": centreTransform(ctx, 1 - e * 0.45, 1 - e * 0.45, e * 0.38); ctx.globalAlpha *= 1 - e * 0.75; break;
+      case "rotate-reverse": centreTransform(ctx, 1 - e * 0.45, 1 - e * 0.45, -e * 0.38); ctx.globalAlpha *= 1 - e * 0.75; break;
+      case "diagonal-tl": ctx.translate(-e * W * 0.8, -e * H * 0.55); break;
+      case "diagonal-br": ctx.translate(e * W * 0.8, e * H * 0.55); break;
+      case "wipe-left": ctx.beginPath(); ctx.rect(e * W, 0, W * (1 - e), H); ctx.clip(); break;
+      case "wipe-right": ctx.beginPath(); ctx.rect(0, 0, W * (1 - e), H); ctx.clip(); break;
+      case "wipe-up": ctx.beginPath(); ctx.rect(0, e * H, W, H * (1 - e)); ctx.clip(); break;
+      case "wipe-down": ctx.beginPath(); ctx.rect(0, 0, W, H * (1 - e)); ctx.clip(); break;
+      case "shrink": centreTransform(ctx, 1 - e * 0.82, 1 - e * 0.82); ctx.globalAlpha *= 1 - e; break;
     }
   }
 
   function enhancedApplyEntrance(ctx, transition, progress) {
     const entranceAmount = clamp01(progress / 0.18);
     const exitAmount = clamp01((progress - 0.80) / 0.20);
-
     applyContinuousMotion(ctx, activeMotion, progress);
     applyIn(ctx, transition || "fade", entranceAmount);
     applyOut(ctx, activeExit, exitAmount);
@@ -522,7 +436,6 @@
 
   function hookRendering() {
     if (typeof applyEntrance !== "function" || typeof paint !== "function") return;
-
     applyEntrance = enhancedApplyEntrance;
 
     const originalPaint = paint;
@@ -580,8 +493,5 @@
   extendTransitionSelect();
   hookRendering();
   hookEditor();
-
-  // Refresh the editor once so the new image animation controls reflect the
-  // currently selected slide immediately.
   try { loadEditor(); } catch (error) {}
 })();
