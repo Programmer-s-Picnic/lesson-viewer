@@ -13,10 +13,6 @@
     else if (el("status")) el("status").textContent = message;
   }
 
-  function escapeText(value) {
-    return String(value ?? "");
-  }
-
   function getSettings() {
     try {
       return {
@@ -128,6 +124,83 @@
     return choices.find(type => MediaRecorder.isTypeSupported(type)) || "";
   }
 
+  function writeAscii(view, offset, text) {
+    for (let i = 0; i < text.length; i++) view.setUint8(offset + i, text.charCodeAt(i));
+  }
+
+  function audioBufferRms(buffer) {
+    let sum = 0;
+    let count = 0;
+    const stride = Math.max(1, Math.floor(buffer.length / 120000));
+    for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+      const data = buffer.getChannelData(channel);
+      for (let i = 0; i < data.length; i += stride) {
+        sum += data[i] * data[i];
+        count++;
+      }
+    }
+    return count ? Math.sqrt(sum / count) : 0;
+  }
+
+  function audioBufferToWav(buffer) {
+    const channels = Math.max(1, Math.min(2, buffer.numberOfChannels));
+    const sampleRate = buffer.sampleRate;
+    const frames = buffer.length;
+    const bytesPerSample = 2;
+    const blockAlign = channels * bytesPerSample;
+    const dataBytes = frames * blockAlign;
+    const output = new ArrayBuffer(44 + dataBytes);
+    const view = new DataView(output);
+
+    writeAscii(view, 0, "RIFF");
+    view.setUint32(4, 36 + dataBytes, true);
+    writeAscii(view, 8, "WAVE");
+    writeAscii(view, 12, "fmt ");
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, channels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * blockAlign, true);
+    view.setUint16(32, blockAlign, true);
+    view.setUint16(34, 16, true);
+    writeAscii(view, 36, "data");
+    view.setUint32(40, dataBytes, true);
+
+    const channelData = [];
+    for (let channel = 0; channel < channels; channel++) {
+      channelData.push(buffer.getChannelData(Math.min(channel, buffer.numberOfChannels - 1)));
+    }
+
+    let offset = 44;
+    for (let i = 0; i < frames; i++) {
+      for (let channel = 0; channel < channels; channel++) {
+        const sample = Math.max(-1, Math.min(1, channelData[channel][i] || 0));
+        view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+        offset += 2;
+      }
+    }
+    return output;
+  }
+
+  async function makeExportSafeWav(blob) {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) throw new Error("Web Audio is unavailable");
+    const context = new AudioContextClass();
+    try {
+      await context.resume();
+      const sourceBytes = await blob.arrayBuffer();
+      const decoded = await context.decodeAudioData(sourceBytes.slice(0));
+      const rms = audioBufferRms(decoded);
+      if (!Number.isFinite(rms) || rms < 0.0005) {
+        throw new Error("The captured tab audio is silent");
+      }
+      const wavBytes = audioBufferToWav(decoded);
+      return new Blob([wavBytes], { type: "audio/wav" });
+    } finally {
+      await context.close().catch(() => {});
+    }
+  }
+
   function cleanupCapture() {
     if (!ttsCapture) return;
     try { ttsCapture.displayStream?.getTracks().forEach(track => track.stop()); } catch (error) {}
@@ -200,14 +273,24 @@
       recorder.onstop = async () => {
         try {
           const type = recorder.mimeType || mimeType || "audio/webm";
-          const blob = new Blob(chunks, { type });
-          if (!blob.size) throw new Error("empty recording");
-          const data = await fileDataFromBlob(blob);
+          const capturedBlob = new Blob(chunks, { type });
+          if (!capturedBlob.size) throw new Error("empty recording");
+
+          button.textContent = "Converting speech for export…";
+          setStatus("Preparing synthesized narration for WebM export…");
+          const wavBlob = await makeExportSafeWav(capturedBlob);
+          const data = await fileDataFromBlob(wavBlob);
+
           if (typeof attachNarration !== "function") throw new Error("narration attachment unavailable");
-          await attachNarration(data, `speech synthesis — ${voiceName}`);
-          setStatus(`Synthesized narration recorded with ${voiceName} and attached to this slide.`);
+          await attachNarration(data, `speech synthesis WAV — ${voiceName}`);
+          setStatus(`Synthesized narration recorded with ${voiceName}, converted to WAV, and attached for WebM export.`);
         } catch (error) {
-          setStatus("The synthesized speech was captured, but the audio could not be attached to the slide.");
+          const message = String(error?.message || "");
+          if (/silent/i.test(message)) {
+            setStatus("The synthesized voice was not present in the shared audio. Record again, choose this tab, and make sure Share tab audio is enabled.");
+          } else {
+            setStatus(`Synthesized speech could not be prepared for export: ${message || "audio conversion failed"}.`);
+          }
         } finally {
           cleanupCapture();
         }
@@ -225,14 +308,14 @@
       });
 
       utterance.onstart = () => setStatus("Recording synthesized narration…");
-      utterance.onend = () => setTimeout(stopRecorder, 220);
+      utterance.onend = () => setTimeout(stopRecorder, 300);
       utterance.onerror = () => {
         setStatus("Speech synthesis stopped before the recording finished.");
-        setTimeout(stopRecorder, 100);
+        setTimeout(stopRecorder, 120);
       };
 
       recorder.start(100);
-      setTimeout(() => speechSynthesis.speak(utterance), 250);
+      setTimeout(() => speechSynthesis.speak(utterance), 300);
     } catch (error) {
       try { displayStream?.getTracks().forEach(track => track.stop()); } catch (stopError) {}
       cleanupCapture();
@@ -284,7 +367,7 @@
         <button type="button" class="secondary" id="previewTtsNarrationBtn">🔊 Test synthesized speech</button>
         <button type="button" id="recordTtsNarrationBtn">◆ Record synthesized speech</button>
       </div>
-      <p class="help">Recording uses browser tab-audio capture. When asked what to share, choose <strong>this tab</strong> and enable <strong>Share tab audio</strong>. The result is attached as normal narration and is included in video export.</p>
+      <p class="help">Choose <strong>this tab</strong> and enable <strong>Share tab audio</strong>. The captured speech is converted to WAV before it is attached, so the normal WebM export mixer can include it reliably.</p>
     `;
 
     narrationBox.insertBefore(box, narrationActions);
