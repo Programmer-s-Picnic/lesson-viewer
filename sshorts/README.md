@@ -59,3 +59,27 @@ In landscape/full-screen video, spoken-word subtitles now stay in the lower thir
 ## Final caption position in both formats
 
 Spoken/highlighted subtitles now stay in the lower third in both landscape and portrait, just above the footer. Bottom camera/video overlays no longer push the subtitle block upward.
+
+
+## Automatic TTS Export
+
+`Automatic synthesized narration during export` is enabled by default.
+
+Workflow:
+1. Click Export once.
+2. Choose **Entire Screen**.
+3. Enable **Share system audio**.
+4. The exporter processes every slide automatically:
+   - show the slide
+   - wait 3 seconds
+   - synthesize that slide's narration
+   - show/highlight the spoken words
+   - wait for the actual speech `onend`
+   - allow a short audio-drain tail so the final phoneme is not clipped
+   - hold the completed slide for 5 seconds
+   - move to the next slide
+5. One WebM file is downloaded when all slides are complete.
+
+The shared-screen video is not included in the output; only its system-audio track is used. Background music is mixed separately. Keep notification and other system sounds quiet while exporting because system-audio capture can include them.
+
+Uncheck the Automatic TTS option to use the existing manual/pre-recorded narration exporter.
