@@ -25,3 +25,16 @@ Open "Camera / looping video overlay".
 Choose "Looping video file", select an MP4/WebM, and the clip will autoplay muted and repeat continuously through all slides and export.
 
 Note: the uploaded overlay video is intentionally not embedded in project JSON because large video files can make JSON enormous. Re-select the overlay video after reloading/opening a project.
+
+## Spoken-word highlighting
+
+Narration now uses karaoke-style captions:
+- spoken words remain visible while speech/narration is active
+- the current word is highlighted with the accent colour
+- live browser speech synthesis uses word-boundary events when the browser provides them
+- recorded narration, including recorded synthesized speech, is highlighted during preview
+- the same captions and highlighting are rendered into exported WebM video
+
+## File controls
+
+Brand logo and background music now use explicit status indicators. After a file is loaded the UI shows `Loaded: filename` instead of the browser's misleading `No file selected` text. The filename status is also restored when a saved project is opened.

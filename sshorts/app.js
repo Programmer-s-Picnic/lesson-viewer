@@ -25,6 +25,7 @@ const defaults = {
 let state = structuredClone(defaults);
 let musicData = "";
 let musicName = "";
+let logoName = "";
 let playing = false;
 let exporting = false;
 let playToken = 0;
@@ -157,6 +158,30 @@ function current(){ return state.slides[state.current]; }
 function clamp01(v){ return Math.max(0,Math.min(1,v)); }
 function randomFrom(list){ return list[Math.floor(Math.random()*list.length)]; }
 function status(text){ $("status").textContent = text; }
+function updateFileControlStatus(){
+  const logoStatus=$("logoFileStatus");
+  const musicStatus=$("musicFileStatus");
+
+  if(logoStatus){
+    if(state.logo){
+      logoStatus.textContent=logoName ? `Loaded: ${logoName}` : "Logo loaded from project";
+      logoStatus.classList.add("loaded");
+    }else{
+      logoStatus.textContent="No logo loaded";
+      logoStatus.classList.remove("loaded");
+    }
+  }
+
+  if(musicStatus){
+    if(musicData){
+      musicStatus.textContent=musicName ? `Loaded: ${musicName}` : "Background music loaded";
+      musicStatus.classList.add("loaded");
+    }else{
+      musicStatus.textContent="No music loaded";
+      musicStatus.classList.remove("loaded");
+    }
+  }
+}
 function escapeHtml(v){ return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 function download(blob,name){ const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1500); }
 function slug(v){ return String(v||"reel").toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"") || "reel"; }
@@ -872,7 +897,7 @@ function projectPayload(){
   readSetup();
   return {
     format:PROJECT_FORMAT,version:PROJECT_VERSION,savedAt:new Date().toISOString(),
-    state:structuredClone(state),assets:{musicData,musicName},
+    state:structuredClone(state),assets:{musicData,musicName,logoName},
     settings:{musicVolume:Number($("musicVolume").value),exportFormat:$("exportFormat").value}
   };
 }
@@ -912,10 +937,23 @@ $("imageInput").onchange=async e=>{
   if(!current()||!e.target.files[0])return;current().image=await fileToDataUrl(e.target.files[0]);imageCache.delete(current().image);renderAll();e.target.value="";
 };
 $("logoInput").onchange=async e=>{
-  if(!e.target.files[0])return;state.logo=await fileToDataUrl(e.target.files[0]);renderAll();e.target.value="";
+  const file=e.target.files[0];
+  if(!file)return;
+  logoName=file.name||"logo";
+  state.logo=await fileToDataUrl(file);
+  updateFileControlStatus();
+  renderAll();
+  status(`Logo loaded: ${logoName}`);
+  e.target.value="";
 };
 $("musicInput").onchange=async e=>{
-  if(!e.target.files[0])return;musicData=await fileToDataUrl(e.target.files[0]);musicName=e.target.files[0].name;status(`Music loaded: ${musicName}`);e.target.value="";
+  const file=e.target.files[0];
+  if(!file)return;
+  musicData=await fileToDataUrl(file);
+  musicName=file.name||"background music";
+  updateFileControlStatus();
+  status(`Music loaded: ${musicName}`);
+  e.target.value="";
 };
 $("musicVolume").oninput=()=>{$("musicVolumeOut").value=`${Math.round(Number($("musicVolume").value)*100)}%`;};
 
@@ -948,7 +986,10 @@ $("openInput").onchange=async e=>{
     const project=JSON.parse(await file.text());
     if(project.state)state={...structuredClone(defaults),...project.state};
     else state={...structuredClone(defaults),...project};
-    musicData=project.assets?.musicData||"";musicName=project.assets?.musicName||"";
+    musicData=project.assets?.musicData||"";
+    musicName=project.assets?.musicName||"";
+    logoName=project.assets?.logoName||(state.logo?"Saved logo":"");
+    updateFileControlStatus();
     syncSetup();$("musicVolume").value=project.settings?.musicVolume??.2;$("musicVolumeOut").value=`${Math.round(Number($("musicVolume").value)*100)}%`;
     $("exportFormat").value=project.settings?.exportFormat||"vertical";setCanvasFormat();renderAll();status("Project opened.");
   }catch(err){status("Could not open project JSON.");}
@@ -956,7 +997,7 @@ $("openInput").onchange=async e=>{
 };
 $("newBtn").onclick=()=>{
   if(state.slides.length&&!confirm("Start a new project?"))return;
-  state=structuredClone(defaults);musicData="";musicName="";syncSetup();renderAll();status("New project.");
+  state=structuredClone(defaults);musicData="";musicName="";logoName="";updateFileControlStatus();syncSetup();renderAll();status("New project.");
 };
 
 $("guideBtn").onclick=()=>$("guideDialog").showModal();
@@ -970,7 +1011,7 @@ try{
   const saved=JSON.parse(localStorage.getItem(AUTOSAVE)||"null");
   if(saved)state={...structuredClone(defaults),...saved};
 }catch(e){}
-syncSetup();setCanvasFormat();renderAll();updateOverlayMode();
+syncSetup();setCanvasFormat();updateFileControlStatus();renderAll();updateOverlayMode();
 
 window.addEventListener("beforeunload",()=>{
   if(overlayUrl)URL.revokeObjectURL(overlayUrl);
