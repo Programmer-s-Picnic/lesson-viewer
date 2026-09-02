@@ -133,12 +133,11 @@
       const width = sizes[settings.size] || (landscape ? 245 : 300);
       const height = settings.round ? width : Math.round(width * 9 / 16);
 
-      // In landscape the webcam/video overlay sits at the side of the frame,
-      // so do not push the subtitle block upward. Its centered subtitle width
-      // already leaves room for the bottom-right/bottom-left overlay.
-      // Portrait remains vertically protected because the narrower frame can
-      // otherwise cause the caption and overlay to collide.
-      return landscape ? 0 : height + 70;
+      // Keep the subtitle block low in both landscape and portrait.
+      // A bottom camera/video overlay no longer pushes the whole caption area
+      // upward. The subtitle block is centered and narrow enough to coexist
+      // with the side overlay in normal use.
+      return 0;
     } catch (error) {
       return 0;
     }

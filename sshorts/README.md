@@ -55,3 +55,7 @@ Synthesized narration no longer advances based only on WebM metadata duration. P
 ## Final landscape caption position
 
 In landscape/full-screen video, spoken-word subtitles now stay in the lower third just above the footer. A bottom-left or bottom-right webcam/video overlay no longer pushes the entire subtitle block upward; portrait mode still reserves vertical clearance where overlap is more likely.
+
+## Final caption position in both formats
+
+Spoken/highlighted subtitles now stay in the lower third in both landscape and portrait, just above the footer. Bottom camera/video overlays no longer push the subtitle block upward.
