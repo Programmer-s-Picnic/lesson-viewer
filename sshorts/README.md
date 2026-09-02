@@ -51,3 +51,7 @@ Brand logo and background music now use explicit status indicators. After a file
 ## Complete synthesized speech fix
 
 Synthesized narration no longer advances based only on WebM metadata duration. Preview waits for the narration audio element's actual `ended` event, then holds the slide for five seconds. TTS recording also keeps a 1.2-second capture tail after Web Speech `onend`, protecting the final word from clipping. Export decodes narration first and uses the decoded AudioBuffer duration for slide/timeline timing.
+
+## Final landscape caption position
+
+In landscape/full-screen video, spoken-word subtitles now stay in the lower third just above the footer. A bottom-left or bottom-right webcam/video overlay no longer pushes the entire subtitle block upward; portrait mode still reserves vertical clearance where overlap is more likely.

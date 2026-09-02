@@ -133,8 +133,12 @@
       const width = sizes[settings.size] || (landscape ? 245 : 300);
       const height = settings.round ? width : Math.round(width * 9 / 16);
 
-      // Move captions above a bottom camera/video overlay, with breathing room.
-      return height + (landscape ? 55 : 70);
+      // In landscape the webcam/video overlay sits at the side of the frame,
+      // so do not push the subtitle block upward. Its centered subtitle width
+      // already leaves room for the bottom-right/bottom-left overlay.
+      // Portrait remains vertically protected because the narrower frame can
+      // otherwise cause the caption and overlay to collide.
+      return landscape ? 0 : height + 70;
     } catch (error) {
       return 0;
     }
