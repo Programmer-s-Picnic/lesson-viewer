@@ -59,7 +59,29 @@
     if (slide?.narrationAudio && typeof isSynthesizedNarration === "function" && isSynthesizedNarration(slide)) {
       const lead = Number(narrationLeadIn(slide) || 0);
       const speechDuration = Math.max(.001, Number(slide.narrationDuration || 0));
+
       if (elapsed < lead) return { phase: "lead", active: -1 };
+
+      // During live preview, follow the real audio element position. This keeps
+      // word highlighting aligned even when WebM metadata was inaccurate.
+      if (
+        typeof narrationPlayer !== "undefined" &&
+        narrationPlayer &&
+        !narrationPlayer.ended &&
+        Number.isFinite(narrationPlayer.currentTime)
+      ) {
+        const currentAudioTime = Math.max(0, Number(narrationPlayer.currentTime || 0));
+        const realDuration = Math.max(
+          .001,
+          Number.isFinite(narrationPlayer.duration) ? narrationPlayer.duration : speechDuration
+        );
+        const fraction = clamp01(currentAudioTime / realDuration);
+        return {
+          phase: "speaking",
+          active: Math.min(wordCount - 1, Math.floor(fraction * wordCount))
+        };
+      }
+
       if (elapsed >= lead + speechDuration) return { phase: "hold", active: -1 };
       const fraction = clamp01((elapsed - lead) / speechDuration);
       return {

@@ -349,6 +349,23 @@ function audioDuration(data){
     a.onerror=reject;
   });
 }
+async function preciseAudioDuration(data){
+  const AC=window.AudioContext||window.webkitAudioContext;
+  if(AC){
+    let ctx;
+    try{
+      ctx=new AC();
+      const buffer=await decodeAudio(ctx,data);
+      const duration=Number(buffer?.duration||0);
+      if(duration>0)return duration;
+    }catch(e){
+      // Fall through to the HTMLAudio metadata fallback.
+    }finally{
+      try{await ctx?.close();}catch(e){}
+    }
+  }
+  return audioDuration(data);
+}
 async function attachNarration(data,name,options={}){
   const s=current();if(!s)return;
   s.narrationAudio=data;
@@ -360,7 +377,7 @@ async function attachNarration(data,name,options={}){
   s.narrationHoldAfter=s.narrationKind==="synthesized"
     ? Math.max(0,Number(options.holdAfter ?? SYNTH_SPEECH_HOLD_AFTER))
     : 0;
-  try{s.narrationDuration=await audioDuration(data);}catch(e){s.narrationDuration=0;}
+  try{s.narrationDuration=await preciseAudioDuration(data);}catch(e){s.narrationDuration=0;}
 
   if(s.narrationKind==="synthesized"){
     s.narrationLeadIn=Number(options.leadIn ?? SYNTH_SPEECH_LEAD_IN);
@@ -836,8 +853,10 @@ async function recordSynthesizedSpeech(){
     const stopped=new Promise(resolve=>{rec.onstop=resolve;});
     rec.start(100);
     await new Promise(r=>setTimeout(r,120));
-    u.onend=()=>setTimeout(()=>rec.state!=="inactive"&&rec.stop(),400);
-    u.onerror=()=>setTimeout(()=>rec.state!=="inactive"&&rec.stop(),150);
+    // Keep recording long enough after Web Speech reports onend so the
+    // final word/phoneme is never clipped by the system-audio recorder.
+    u.onend=()=>setTimeout(()=>rec.state!=="inactive"&&rec.stop(),1200);
+    u.onerror=()=>setTimeout(()=>rec.state!=="inactive"&&rec.stop(),500);
     speechSynthesis.cancel();speechSynthesis.speak(u);
     await stopped;
     const blob=new Blob(chunks,{type:rec.mimeType||"audio/webm"});
@@ -894,6 +913,8 @@ async function playProject(){
 
       const slideStart=performance.now();
       let audioStarted=false;
+      let recordedAudioEndedAt=0;
+      let recordedAudioFailedAt=0;
       let liveSpeechStarted=false;
       let liveSpeechEndedAt=0;
       let liveUtterance=null;
@@ -912,7 +933,20 @@ async function playProject(){
         if(isSynthRecorded&&!audioStarted&&elapsed>=recordedLead){
           stopNarration();
           narrationPlayer=new Audio(s.narrationAudio);
-          narrationPlayer.play().catch(()=>{});
+          narrationPlayer.preload="auto";
+          narrationPlayer.onended=()=>{
+            // This event, not metadata duration, is the authority for when
+            // synthesized narration has completely finished playing.
+            recordedAudioEndedAt=performance.now();
+          };
+          narrationPlayer.onerror=()=>{
+            recordedAudioFailedAt=performance.now();
+          };
+          try{
+            await narrationPlayer.play();
+          }catch(e){
+            recordedAudioFailedAt=performance.now();
+          }
           audioStarted=true;
         }
 
@@ -943,8 +977,23 @@ async function playProject(){
         let visualDuration;
 
         if(isSynthRecorded){
-          visualDuration=recordedLead+recordedSpeechDuration+recordedHold;
-          finished=elapsed>=visualDuration;
+          // Never advance from a synthesized-narration slide merely because
+          // metadata says its duration has elapsed. Wait for the actual
+          // HTMLAudio ended event, then hold for the requested five seconds.
+          if(recordedAudioEndedAt){
+            finished=(now-recordedAudioEndedAt)>=recordedHold*1000;
+          }else if(recordedAudioFailedAt){
+            // If the browser cannot play the clip at all, avoid an infinite
+            // preview loop. This fallback is used only on genuine playback failure.
+            finished=(now-recordedAudioFailedAt)>=recordedHold*1000;
+          }
+
+          // This value is only for animation/progress scaling. It does not
+          // control when the slide advances.
+          visualDuration=Math.max(
+            recordedLead+recordedSpeechDuration+recordedHold,
+            elapsed+(recordedAudioEndedAt?recordedHold:2)
+          );
         }else if(liveSynth){
           // We do not guess the end of browser TTS. Wait for its actual onend,
           // then hold the completed slide for five full seconds.
@@ -988,29 +1037,86 @@ async function decodeAudio(ctx,data){
 async function buildAudioTimeline(){
   const hasAudio=!!musicData||state.slides.some(s=>!!s.narrationAudio);
   if(!hasAudio)return null;
-  const AC=window.AudioContext||window.webkitAudioContext, OAC=window.OfflineAudioContext||window.webkitOfflineAudioContext;
+
+  const AC=window.AudioContext||window.webkitAudioContext;
+  const OAC=window.OfflineAudioContext||window.webkitOfflineAudioContext;
   if(!AC||!OAC)return null;
-  const decodeCtx=new AC();await decodeCtx.resume();
-  normalizeProjectNarrationTiming();
-  const duration=state.slides.reduce((a,s)=>a+slidePlaybackDuration(s),0);
-  const sampleRate=48000, offline=new OAC(2,Math.max(1,Math.ceil(duration*sampleRate)),sampleRate);
-  const master=offline.createGain();master.connect(offline.destination);
-  if(musicData){
-    const mb=await decodeAudio(decodeCtx,musicData), src=offline.createBufferSource(),gain=offline.createGain();
-    src.buffer=mb;src.loop=true;gain.gain.value=Number($("musicVolume").value||.2);src.connect(gain);gain.connect(master);src.start(0);src.stop(duration);
-  }
-  let offset=0;
-  for(const s of state.slides){
-    normalizeNarrationTiming(s);
-    if(s.narrationAudio){
-      const b=await decodeAudio(decodeCtx,s.narrationAudio),src=offline.createBufferSource();
-      src.buffer=b;
-      src.connect(master);
-      src.start(offset+narrationLeadIn(s));
+
+  const decodeCtx=new AC();
+  await decodeCtx.resume();
+
+  try{
+    const narrationBuffers=new Map();
+    let musicBuffer=null;
+
+    if(musicData){
+      musicBuffer=await decodeAudio(decodeCtx,musicData);
     }
-    offset+=slidePlaybackDuration(s);
+
+    // Decode narration before calculating project length. Decoded AudioBuffer
+    // duration is much more reliable than WebM metadata for system-audio TTS.
+    for(let i=0;i<state.slides.length;i++){
+      const s=state.slides[i];
+      if(!s.narrationAudio)continue;
+      const buffer=await decodeAudio(decodeCtx,s.narrationAudio);
+      narrationBuffers.set(i,buffer);
+
+      const decodedDuration=Number(buffer.duration||0);
+      if(decodedDuration>0){
+        s.narrationDuration=decodedDuration;
+        if(isSynthesizedNarration(s)){
+          s.narrationKind="synthesized";
+          s.narrationLeadIn=SYNTH_SPEECH_LEAD_IN;
+          s.narrationHoldAfter=SYNTH_SPEECH_HOLD_AFTER;
+          s.duration=
+            s.narrationLeadIn+
+            s.narrationDuration+
+            s.narrationHoldAfter;
+        }
+      }
+      normalizeNarrationTiming(s);
+    }
+
+    normalizeProjectNarrationTiming();
+    const duration=state.slides.reduce((sum,s)=>sum+slidePlaybackDuration(s),0);
+    const sampleRate=48000;
+    const offline=new OAC(
+      2,
+      Math.max(1,Math.ceil(duration*sampleRate)),
+      sampleRate
+    );
+    const master=offline.createGain();
+    master.connect(offline.destination);
+
+    if(musicBuffer){
+      const src=offline.createBufferSource();
+      const gain=offline.createGain();
+      src.buffer=musicBuffer;
+      src.loop=true;
+      gain.gain.value=Number($("musicVolume").value||.2);
+      src.connect(gain);
+      gain.connect(master);
+      src.start(0);
+      src.stop(duration);
+    }
+
+    let offset=0;
+    for(let i=0;i<state.slides.length;i++){
+      const s=state.slides[i];
+      const buffer=narrationBuffers.get(i);
+      if(buffer){
+        const src=offline.createBufferSource();
+        src.buffer=buffer;
+        src.connect(master);
+        src.start(offset+narrationLeadIn(s));
+      }
+      offset+=slidePlaybackDuration(s);
+    }
+
+    return await offline.startRendering();
+  }finally{
+    try{await decodeCtx.close();}catch(e){}
   }
-  const rendered=await offline.startRendering();await decodeCtx.close();return rendered;
 }
 async function exportVideo(){
   if(exporting)return status("A video export is already running.");

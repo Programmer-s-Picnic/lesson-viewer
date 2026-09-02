@@ -47,3 +47,7 @@ Brand logo and background music now use explicit status indicators. After a file
 - Export uses the same timing.
 - Karaoke captions use an explicitly left-aligned canvas layout, fixing overlapping words caused by inherited footer alignment.
 - Landscape captions use a centered two-line lower-third block; portrait captions use up to three lines.
+
+## Complete synthesized speech fix
+
+Synthesized narration no longer advances based only on WebM metadata duration. Preview waits for the narration audio element's actual `ended` event, then holds the slide for five seconds. TTS recording also keeps a 1.2-second capture tail after Web Speech `onend`, protecting the final word from clipping. Export decodes narration first and uses the decoded AudioBuffer duration for slide/timeline timing.
