@@ -1,25 +1,29 @@
 "use strict";
 
 /*
- * Karaoke-style narration captions for EduShorts Maker.
+ * Clear karaoke-style spoken captions.
  *
- * - Spoken words are visible while narration is active.
- * - The current word is highlighted.
- * - Browser speechSynthesis uses real word-boundary events when available.
- * - Recorded narration, including recorded synthesized speech, is highlighted
- *   from the audio/slide timing during preview and export.
+ * Important timing for synthesized narration:
+ *   slide appears -> 3 seconds -> speech -> 5 seconds -> next slide.
+ *
+ * The renderer is shared by preview and export, so these captions are burned
+ * into the exported video as well.
  */
-
 (() => {
   let liveSpeechWord = -1;
   let liveSpeechSlideId = "";
   let liveSpeechText = "";
   let liveSpeechUtterance = null;
 
-  function tokensFor(text) {
-    const value = String(text || "").replaceAll("<br/>", " ").replace(/\s+/g, " ").trim();
-    if (!value) return [];
+  function normalizeSpeechText(text) {
+    return String(text || "")
+      .replaceAll("<br/>", " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
 
+  function tokensFor(text) {
+    const value = normalizeSpeechText(text);
     const tokens = [];
     const re = /\S+/g;
     let match;
@@ -36,7 +40,6 @@
   function wordFromChar(text, charIndex) {
     const tokens = tokensFor(text);
     if (!tokens.length) return -1;
-
     const index = Math.max(0, Number(charIndex || 0));
     for (let i = 0; i < tokens.length; i++) {
       if (index >= tokens[i].start && index < tokens[i].end) return i;
@@ -45,51 +48,57 @@
     return tokens.length - 1;
   }
 
-  function approximateWord(slide, progress, wordCount) {
-    if (!wordCount) return -1;
+  function timingState(slide, progress, wordCount) {
+    const total = Math.max(.001, Number(
+      typeof slidePlaybackDuration === "function"
+        ? slidePlaybackDuration(slide)
+        : slide.duration || 1
+    ));
+    const elapsed = clamp01(progress) * total;
 
-    const slideDuration = Math.max(0.001, Number(slide.duration || 1));
-    const spokenDuration = Math.max(
-      0.001,
-      Number(slide.narrationDuration || slideDuration)
-    );
-    const elapsed = clamp01(progress) * slideDuration;
-
-    // Keep the words visible after speech has ended, but stop highlighting.
-    if (slide.narrationAudio && elapsed > spokenDuration + 0.15) return -1;
-
-    const fraction = clamp01(elapsed / spokenDuration);
-    return Math.min(wordCount - 1, Math.floor(fraction * wordCount));
-  }
-
-  function activeWordFor(slide, progress, text, wordCount) {
-    if (
-      slide &&
-      liveSpeechSlideId === slide.id &&
-      liveSpeechText === String(text || "") &&
-      liveSpeechWord >= 0
-    ) {
-      return Math.min(wordCount - 1, liveSpeechWord);
+    if (slide?.narrationAudio && typeof isSynthesizedNarration === "function" && isSynthesizedNarration(slide)) {
+      const lead = Number(narrationLeadIn(slide) || 0);
+      const speechDuration = Math.max(.001, Number(slide.narrationDuration || 0));
+      if (elapsed < lead) return { phase: "lead", active: -1 };
+      if (elapsed >= lead + speechDuration) return { phase: "hold", active: -1 };
+      const fraction = clamp01((elapsed - lead) / speechDuration);
+      return {
+        phase: "speaking",
+        active: Math.min(wordCount - 1, Math.floor(fraction * wordCount))
+      };
     }
 
-    return approximateWord(slide, progress, wordCount);
+    if (
+      liveSpeechSlideId === slide?.id &&
+      liveSpeechText === normalizeSpeechText(slide?.narrationText || slide?.content || "") &&
+      liveSpeechWord >= 0
+    ) {
+      return { phase: "speaking", active: Math.min(wordCount - 1, liveSpeechWord) };
+    }
+
+    if (slide?.narrationAudio) {
+      const speechDuration = Math.max(.001, Number(slide.narrationDuration || total));
+      if (elapsed > speechDuration + .15) return { phase: "hold", active: -1 };
+      const fraction = clamp01(elapsed / speechDuration);
+      return {
+        phase: "speaking",
+        active: Math.min(wordCount - 1, Math.floor(fraction * wordCount))
+      };
+    }
+
+    // Spoken slide before browser TTS starts: do not show a fake highlighted word.
+    if (slide?.type === "spoken") {
+      if (liveSpeechSlideId === slide.id) return { phase: "speaking", active: Math.max(0, liveSpeechWord) };
+      return { phase: "lead", active: -1 };
+    }
+
+    return { phase: "hidden", active: -1 };
   }
 
-  function captionShouldShow(slide, text) {
-    if (!slide || !String(text || "").trim()) return false;
-
-    return (
-      slide.type === "spoken" ||
-      !!slide.narrationAudio ||
-      liveSpeechSlideId === slide.id
-    );
-  }
-
-  function overlayBottomClearance(landscape) {
+  function bottomOverlayClearance(landscape) {
     try {
       const video = typeof activeOverlayVideo === "function" ? activeOverlayVideo() : null;
       if (!video) return 0;
-
       const settings = typeof overlaySettings === "function"
         ? overlaySettings()
         : { position: "bottom-right", size: "medium", round: true };
@@ -99,123 +108,158 @@
       const sizes = landscape
         ? { small: 180, medium: 245, large: 320 }
         : { small: 220, medium: 300, large: 390 };
-
       const width = sizes[settings.size] || (landscape ? 245 : 300);
       const height = settings.round ? width : Math.round(width * 9 / 16);
-      return height + (landscape ? 45 : 60);
+
+      // Move captions above a bottom camera/video overlay, with breathing room.
+      return height + (landscape ? 55 : 70);
     } catch (error) {
       return 0;
     }
   }
 
-  function chooseVisibleWords(tokens, activeIndex, maxWords) {
-    if (tokens.length <= maxWords) return { start: 0, words: tokens };
+  function chooseWindow(tokens, activeIndex, limit) {
+    if (tokens.length <= limit) return { start: 0, words: tokens };
 
-    let start;
     if (activeIndex < 0) {
-      start = Math.max(0, tokens.length - maxWords);
-    } else {
-      start = Math.max(0, activeIndex - Math.floor(maxWords * 0.42));
-      start = Math.min(start, tokens.length - maxWords);
+      return {
+        start: Math.max(0, tokens.length - limit),
+        words: tokens.slice(Math.max(0, tokens.length - limit))
+      };
     }
-    return { start, words: tokens.slice(start, start + maxWords) };
+
+    let start = Math.max(0, activeIndex - Math.floor(limit * .42));
+    start = Math.min(start, tokens.length - limit);
+    return { start, words: tokens.slice(start, start + limit) };
   }
 
-  function layoutCaptionLines(ctx, visible, startIndex, activeIndex, maxWidth) {
+  function makeLines(ctx, words, startIndex, activeIndex, maxWidth, maxLines) {
     const lines = [];
+    const spaceWidth = ctx.measureText(" ").width;
     let line = [];
-    let lineWidth = 0;
-    const space = ctx.measureText(" ").width;
+    let width = 0;
 
-    visible.forEach((token, localIndex) => {
-      const globalIndex = startIndex + localIndex;
-      const width = ctx.measureText(token.text).width;
-      const extra = line.length ? space + width : width;
+    words.forEach((token, localIndex) => {
+      const wordWidth = ctx.measureText(token.text).width;
+      const nextWidth = line.length ? width + spaceWidth + wordWidth : wordWidth;
 
-      if (line.length && lineWidth + extra > maxWidth) {
+      if (line.length && nextWidth > maxWidth) {
         lines.push(line);
+        if (lines.length >= maxLines) return;
         line = [];
-        lineWidth = 0;
+        width = 0;
       }
 
-      line.push({
-        text: token.text,
-        width,
-        globalIndex,
-        active: globalIndex === activeIndex
-      });
-      lineWidth += line.length > 1 ? space + width : width;
+      if (lines.length < maxLines) {
+        const globalIndex = startIndex + localIndex;
+        line.push({
+          text: token.text,
+          width: wordWidth,
+          active: globalIndex === activeIndex
+        });
+        width += (line.length > 1 ? spaceWidth : 0) + wordWidth;
+      }
     });
 
-    if (line.length) lines.push(line);
-    return lines.slice(0, 3);
+    if (line.length && lines.length < maxLines) lines.push(line);
+    return lines;
   }
 
-  function drawNarrationKaraoke(ctx, slide, progress) {
-    const text = String(slide?.narrationText || (slide?.type === "spoken" ? slide.content : "") || "");
-    if (!captionShouldShow(slide, text)) return;
+  function drawKaraoke(ctx, slide, progress) {
+    const text = normalizeSpeechText(slide?.narrationText || (slide?.type === "spoken" ? slide.content : ""));
+    if (!slide || !text) return;
+
+    const shouldShow =
+      slide.type === "spoken" ||
+      !!slide.narrationAudio ||
+      liveSpeechSlideId === slide.id;
+    if (!shouldShow) return;
 
     const tokens = tokensFor(text);
     if (!tokens.length) return;
 
+    const stateNow = timingState(slide, progress, tokens.length);
+
+    // Requested behavior: synthesized speech begins three seconds after the
+    // slide appears. Keep the subtitle area clear during that lead-in.
+    if (stateNow.phase === "lead" || stateNow.phase === "hidden") return;
+
     const landscape = W > H;
-    const activeIndex = activeWordFor(slide, progress, text, tokens.length);
-    const maxWords = landscape ? 14 : 11;
-    const selection = chooseVisibleWords(tokens, activeIndex, maxWords);
+    const maxLines = landscape ? 2 : 3;
+    const maxWords = landscape ? 13 : 11;
+    const windowed = chooseWindow(tokens, stateNow.active, maxWords);
 
     ctx.save();
-    ctx.font = `800 ${landscape ? 32 : 40}px system-ui`;
-    ctx.textBaseline = "alphabetic";
 
-    const maxWidth = landscape ? Math.min(W - 320, 1300) : Math.min(W - 120, 900);
-    const lines = layoutCaptionLines(
+    // CRITICAL FIX: original slide/footer drawing often leaves textAlign=right.
+    // Caption measurement assumes left alignment, so set it explicitly.
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    ctx.font = `800 ${landscape ? 34 : 42}px system-ui`;
+
+    const maxTextWidth = landscape
+      ? Math.min(1120, W * .62)
+      : Math.min(860, W - 160);
+
+    const lines = makeLines(
       ctx,
-      selection.words,
-      selection.start,
-      activeIndex,
-      maxWidth
+      windowed.words,
+      windowed.start,
+      stateNow.active,
+      maxTextWidth,
+      maxLines
     );
     if (!lines.length) {
       ctx.restore();
       return;
     }
 
-    const lineHeight = landscape ? 48 : 58;
-    const padX = landscape ? 28 : 30;
-    const padY = landscape ? 22 : 26;
-    const boxHeight = padY * 2 + lines.length * lineHeight;
+    const lineHeight = landscape ? 52 : 62;
+    const padX = landscape ? 34 : 34;
+    const padTop = landscape ? 25 : 28;
+    const padBottom = landscape ? 25 : 28;
+    const boxWidth = maxTextWidth + padX * 2;
+    const boxHeight = padTop + padBottom + lines.length * lineHeight;
+
     const footerHeight = landscape ? 125 : 190;
-    const clearOverlay = overlayBottomClearance(landscape);
-    const bottom = H - footerHeight - (landscape ? 24 : 28) - clearOverlay;
-    const y = Math.max(landscape ? 185 : 330, bottom - boxHeight);
-    const boxWidth = maxWidth + padX * 2;
+    const overlayClearance = bottomOverlayClearance(landscape);
+    const lowerGap = landscape ? 34 : 42;
+    const desiredBottom = H - footerHeight - overlayClearance - lowerGap;
+
+    // Keep subtitles in the lower-middle area rather than touching content.
+    const minimumY = landscape ? 420 : 930;
+    const y = Math.max(minimumY, desiredBottom - boxHeight);
     const x = (W - boxWidth) / 2;
 
-    // Strong contrast so captions remain readable over photographs and code.
-    ctx.fillStyle = "rgba(3, 24, 39, 0.92)";
+    ctx.fillStyle = "rgba(2, 22, 36, .94)";
     ctx.beginPath();
-    ctx.roundRect(x, y, boxWidth, boxHeight, landscape ? 20 : 24);
+    ctx.roundRect(x, y, boxWidth, boxHeight, landscape ? 22 : 26);
     ctx.fill();
 
-    lines.forEach((line, row) => {
-      const space = ctx.measureText(" ").width;
-      const totalWidth =
-        line.reduce((sum, item) => sum + item.width, 0) +
-        space * Math.max(0, line.length - 1);
+    // Thin accent edge makes the subtitle region visually deliberate.
+    ctx.strokeStyle = "rgba(255,255,255,.13)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
 
-      let cursorX = W / 2 - totalWidth / 2;
-      const baseline = y + padY + (row + 1) * lineHeight - (landscape ? 9 : 10);
+    lines.forEach((line, row) => {
+      const spaceWidth = ctx.measureText(" ").width;
+      const lineWidth =
+        line.reduce((sum, item) => sum + item.width, 0) +
+        spaceWidth * Math.max(0, line.length - 1);
+
+      let cursorX = W / 2 - lineWidth / 2;
+      const baseline = y + padTop + (row + 1) * lineHeight - 10;
 
       line.forEach((item, index) => {
-        if (item.active) {
+        if (item.active && stateNow.phase === "speaking") {
           ctx.fillStyle = state.accentColor || "#f59e0b";
           ctx.beginPath();
           ctx.roundRect(
-            cursorX - 8,
-            baseline - (landscape ? 34 : 42),
-            item.width + 16,
-            landscape ? 43 : 52,
-            9
+            cursorX - 9,
+            baseline - (landscape ? 36 : 45),
+            item.width + 18,
+            landscape ? 46 : 56,
+            10
           );
           ctx.fill();
           ctx.fillStyle = "#082f49";
@@ -224,30 +268,28 @@
         }
 
         ctx.fillText(item.text, cursorX, baseline);
-        cursorX += item.width + (index < line.length - 1 ? space : 0);
+        cursorX += item.width + (index < line.length - 1 ? spaceWidth : 0);
       });
     });
 
     ctx.restore();
   }
 
-  // Wrap the existing renderer. Because export uses the same paint() function,
-  // the captions and highlighted words are burned into exported WebM frames too.
   const originalPaint = paint;
-  paint = async function paintWithNarrationCaptions(ctx, slide, progress = 1) {
+  paint = async function paintWithClearSpokenCaptions(ctx, slide, progress = 1) {
     await originalPaint(ctx, slide, progress);
-    drawNarrationKaraoke(ctx, slide, progress);
+    drawKaraoke(ctx, slide, progress);
   };
 
-  // Replace live browser speech synthesis with a boundary-aware version.
-  // Browsers that expose onboundary give exact word movement; browsers that
-  // don't still get the progress-based fallback in drawNarrationKaraoke().
+  // Boundary-aware speech synthesis. The project preview waits three seconds
+  // before calling this function; once called, real word boundaries drive
+  // highlighting whenever the browser provides them.
   speakText = function speakTextWithHighlight(text, voiceName, rate = 1) {
     if (!("speechSynthesis" in window)) return null;
 
     speechSynthesis.cancel();
 
-    const sourceText = String(text || "").trim();
+    const sourceText = normalizeSpeechText(text);
     if (!sourceText) return null;
 
     const utterance = new SpeechSynthesisUtterance(sourceText);
@@ -266,15 +308,13 @@
     utterance.onboundary = event => {
       if (typeof event.charIndex === "number") {
         liveSpeechWord = wordFromChar(sourceText, event.charIndex);
-        const p = Number($("progress")?.value || 0) / 100;
-        drawPreview(p);
+        drawPreview(Number($("progress")?.value || 0) / 100);
       }
     };
 
     utterance.onstart = () => {
       liveSpeechWord = Math.max(0, liveSpeechWord);
-      const p = Number($("progress")?.value || 0) / 100;
-      drawPreview(p);
+      drawPreview(Number($("progress")?.value || 0) / 100);
     };
 
     const finish = () => {
@@ -282,33 +322,25 @@
       liveSpeechSlideId = "";
       liveSpeechText = "";
       liveSpeechUtterance = null;
-      const p = Number($("progress")?.value || 100) / 100;
-      drawPreview(p);
+      drawPreview(Number($("progress")?.value || 100) / 100);
     };
 
     utterance.onend = finish;
     utterance.onerror = finish;
-
     speechSynthesis.speak(utterance);
     return utterance;
   };
 
-  // Make manual speech-synthesis preview use the boundary-aware implementation.
   const ttsPreviewButton = $("previewTtsNarrationBtn");
   if (ttsPreviewButton) {
     ttsPreviewButton.onclick = () => {
       const slide = current();
       if (!slide) return;
       const text = $("narrationText").value.trim() || slide.narrationText || slide.content || "";
-      speakText(
-        text,
-        $("ttsNarrationVoice").value,
-        Number($("ttsNarrationRate").value || 1)
-      );
+      speakText(text, $("ttsNarrationVoice").value, Number($("ttsNarrationRate").value || 1));
     };
   }
 
-  // Ensure the normal "Test this slide" button also uses highlighted captions.
   const slideSpeechButton = $("testSpeechBtn");
   if (slideSpeechButton) {
     slideSpeechButton.onclick = () => {
@@ -322,7 +354,6 @@
     };
   }
 
-  // Stop live-word state if the browser speech engine is cancelled elsewhere.
   window.addEventListener("beforeunload", () => {
     liveSpeechWord = -1;
     liveSpeechSlideId = "";

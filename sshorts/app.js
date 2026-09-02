@@ -8,6 +8,8 @@ const PROJECT_FORMAT = "edushorts-maker-project";
 const PROJECT_VERSION = 4;
 const RECOMMENDED_PHOTOS = 10;
 const MAX_PHOTOS = 100;
+const SYNTH_SPEECH_LEAD_IN = 3;
+const SYNTH_SPEECH_HOLD_AFTER = 5;
 
 const defaults = {
   projectTitle: "Python in 30 Seconds",
@@ -150,6 +152,9 @@ function makeSlide(type, heading="", content=""){
     narrationAudio:"",
     narrationName:"",
     narrationDuration:0,
+    narrationKind:"",
+    narrationLeadIn:0,
+    narrationHoldAfter:0,
     photoReel:false
   };
 }
@@ -186,6 +191,65 @@ function escapeHtml(v){ return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<"
 function download(blob,name){ const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1500); }
 function slug(v){ return String(v||"reel").toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"") || "reel"; }
 function formatTime(seconds){ const s=Math.round(seconds); return s>=60?`${Math.floor(s/60)}m ${s%60}s`:`${s}s`; }
+function isSynthesizedNarration(slide){
+  if(!slide)return false;
+  return slide.narrationKind==="synthesized" ||
+    /^speech synthesis\b/i.test(String(slide.narrationName||""));
+}
+function narrationLeadIn(slide){
+  if(!slide?.narrationAudio)return 0;
+  if(isSynthesizedNarration(slide)){
+    return Number.isFinite(Number(slide.narrationLeadIn))
+      ? Number(slide.narrationLeadIn)
+      : SYNTH_SPEECH_LEAD_IN;
+  }
+  return Math.max(0,Number(slide.narrationLeadIn||0));
+}
+function narrationHoldAfter(slide){
+  if(!slide?.narrationAudio)return 0;
+  if(isSynthesizedNarration(slide)){
+    return Number.isFinite(Number(slide.narrationHoldAfter))
+      ? Number(slide.narrationHoldAfter)
+      : SYNTH_SPEECH_HOLD_AFTER;
+  }
+  return Math.max(0,Number(slide.narrationHoldAfter||0));
+}
+function normalizeNarrationTiming(slide){
+  if(!slide)return slide;
+  if(isSynthesizedNarration(slide)){
+    slide.narrationKind="synthesized";
+    if(!Number.isFinite(Number(slide.narrationLeadIn)) || Number(slide.narrationLeadIn)<=0){
+      slide.narrationLeadIn=SYNTH_SPEECH_LEAD_IN;
+    }
+    if(!Number.isFinite(Number(slide.narrationHoldAfter)) || Number(slide.narrationHoldAfter)<=0){
+      slide.narrationHoldAfter=SYNTH_SPEECH_HOLD_AFTER;
+    }
+    if(Number(slide.narrationDuration||0)>0){
+      slide.duration=
+        Number(slide.narrationLeadIn)+
+        Number(slide.narrationDuration)+
+        Number(slide.narrationHoldAfter);
+    }
+  }else{
+    slide.narrationKind=slide.narrationKind||"";
+    slide.narrationLeadIn=Math.max(0,Number(slide.narrationLeadIn||0));
+    slide.narrationHoldAfter=Math.max(0,Number(slide.narrationHoldAfter||0));
+  }
+  return slide;
+}
+function normalizeProjectNarrationTiming(){
+  state.slides.forEach(normalizeNarrationTiming);
+}
+function slidePlaybackDuration(slide){
+  if(!slide)return 1;
+  if(slide.narrationAudio && isSynthesizedNarration(slide) && Number(slide.narrationDuration||0)>0){
+    return Math.max(
+      1,
+      narrationLeadIn(slide)+Number(slide.narrationDuration)+narrationHoldAfter(slide)
+    );
+  }
+  return Math.max(1,Number(slide.duration||1));
+}
 
 function syncSetup(){
   ["projectTitle","subject","teacherName","channelName","website","brandColor","accentColor"].forEach(k=>{
@@ -249,7 +313,8 @@ function loadEditor(){
 }
 
 function updateDuration(){
-  const total=state.slides.reduce((sum,s)=>sum+Number(s.duration||0),0);
+  normalizeProjectNarrationTiming();
+  const total=state.slides.reduce((sum,s)=>sum+slidePlaybackDuration(s),0);
   $("durationStatus").textContent=formatTime(total);
   $("durationWarning").hidden=total<=60;
   $("slidePosition").textContent=state.slides.length?`Slide ${state.current+1} of ${state.slides.length}`:"No slides";
@@ -284,14 +349,35 @@ function audioDuration(data){
     a.onerror=reject;
   });
 }
-async function attachNarration(data,name){
-  const s=current(); if(!s) return;
+async function attachNarration(data,name,options={}){
+  const s=current();if(!s)return;
   s.narrationAudio=data;
   s.narrationName=name||"narration";
+  s.narrationKind=options.kind||"recorded";
+  s.narrationLeadIn=s.narrationKind==="synthesized"
+    ? Math.max(0,Number(options.leadIn ?? SYNTH_SPEECH_LEAD_IN))
+    : 0;
+  s.narrationHoldAfter=s.narrationKind==="synthesized"
+    ? Math.max(0,Number(options.holdAfter ?? SYNTH_SPEECH_HOLD_AFTER))
+    : 0;
   try{s.narrationDuration=await audioDuration(data);}catch(e){s.narrationDuration=0;}
-  if(s.narrationDuration) s.duration=Math.max(Number(s.duration||1),Math.ceil(s.narrationDuration+.35));
+
+  if(s.narrationKind==="synthesized"){
+    s.narrationLeadIn=Number(options.leadIn ?? SYNTH_SPEECH_LEAD_IN);
+    s.narrationHoldAfter=Number(options.holdAfter ?? SYNTH_SPEECH_HOLD_AFTER);
+    if(s.narrationDuration){
+      // Exact requested timing:
+      // slide appears -> 3s -> synthesized speech -> 5s -> next slide.
+      s.duration=s.narrationLeadIn+s.narrationDuration+s.narrationHoldAfter;
+    }
+  }else if(s.narrationDuration){
+    s.duration=Math.max(Number(s.duration||1),s.narrationDuration+.35);
+  }
+
   renderAll();
-  status("Narration attached to this slide.");
+  status(s.narrationKind==="synthesized"
+    ? `Synthesized narration ready: starts after ${s.narrationLeadIn}s and holds ${s.narrationHoldAfter}s after speech.`
+    : "Narration attached to this slide.");
 }
 
 function wrap(ctx,text,maxWidth){
@@ -718,11 +804,14 @@ function loadSpeechVoices(){
   }
 }
 function speakText(text,voiceName,rate=1){
-  if(!("speechSynthesis" in window))return;
+  if(!("speechSynthesis" in window))return null;
   speechSynthesis.cancel();
   const u=new SpeechSynthesisUtterance(text);
   const v=speechSynthesis.getVoices().find(x=>x.name===voiceName);
-  if(v){u.voice=v;u.lang=v.lang;}u.rate=Number(rate||1);speechSynthesis.speak(u);
+  if(v){u.voice=v;u.lang=v.lang;}
+  u.rate=Number(rate||1);
+  speechSynthesis.speak(u);
+  return u;
 }
 async function recordSynthesizedSpeech(){
   const text=$("narrationText").value.trim()||current()?.content||"";
@@ -746,14 +835,18 @@ async function recordSynthesizedSpeech(){
     if(voice){u.voice=voice;u.lang=voice.lang;}u.rate=Number(rate||1);
     const stopped=new Promise(resolve=>{rec.onstop=resolve;});
     rec.start(100);
-    await new Promise(r=>setTimeout(r,600));
+    await new Promise(r=>setTimeout(r,120));
     u.onend=()=>setTimeout(()=>rec.state!=="inactive"&&rec.stop(),400);
     u.onerror=()=>setTimeout(()=>rec.state!=="inactive"&&rec.stop(),150);
     speechSynthesis.cancel();speechSynthesis.speak(u);
     await stopped;
     const blob=new Blob(chunks,{type:rec.mimeType||"audio/webm"});
     if(!blob.size)throw new Error("The captured system audio was empty");
-    await attachNarration(await fileToDataUrl(blob),`speech synthesis — ${voice?.name||"default voice"}`);
+    await attachNarration(
+      await fileToDataUrl(blob),
+      `speech synthesis — ${voice?.name||"default voice"}`,
+      {kind:"synthesized",leadIn:SYNTH_SPEECH_LEAD_IN,holdAfter:SYNTH_SPEECH_HOLD_AFTER}
+    );
   }catch(e){
     status(`Synthesized narration capture failed: ${e.message||"capture failed"}.`);
   }finally{
@@ -762,28 +855,130 @@ async function recordSynthesizedSpeech(){
 }
 
 async function playProject(){
-  if(playing){playing=false;playToken++;$("playBtn").textContent="▶ Preview";return;}
+  if(playing){
+    playing=false;
+    playToken++;
+    $("playBtn").textContent="▶ Preview";
+    stopNarration();
+    speechSynthesis?.cancel?.();
+    return;
+  }
   if(!state.slides.length)return;
-  playing=true;$("playBtn").textContent="■ Stop";
+
+  normalizeProjectNarrationTiming();
+  playing=true;
+  $("playBtn").textContent="■ Stop";
   const token=++playToken;
-  const overlay=activeOverlayVideo();if(overlay&&overlay.paused)overlay.play().catch(()=>{});
+  const overlay=activeOverlayVideo();
+  if(overlay&&overlay.paused)overlay.play().catch(()=>{});
+
   try{
     for(let i=0;i<state.slides.length&&playing&&token===playToken;i++){
-      state.current=i;renderList();loadEditor();
-      const s=current(),start=performance.now(),duration=Number(s.duration||1)*1000;
-      if(s.narrationAudio){stopNarration();narrationPlayer=new Audio(s.narrationAudio);narrationPlayer.play().catch(()=>{});}
-      else if(s.type==="spoken")speakText(s.narrationText||s.content,s.speechVoice,s.speechRate);
+      state.current=i;
+      renderList();
+      loadEditor();
+
+      const s=current();
+      normalizeNarrationTiming(s);
+
+      const hasRecorded=!!s.narrationAudio;
+      const isSynthRecorded=hasRecorded&&isSynthesizedNarration(s);
+      const recordedLead=isSynthRecorded?narrationLeadIn(s):0;
+      const recordedHold=isSynthRecorded?narrationHoldAfter(s):0;
+      const recordedSpeechDuration=Math.max(0,Number(s.narrationDuration||0));
+
+      // A spoken slide without recorded narration uses live speech synthesis:
+      // 3 second lead-in, speech to completion, 5 second hold.
+      const liveSynth=!hasRecorded&&s.type==="spoken";
+      const leadSeconds=(isSynthRecorded||liveSynth)?SYNTH_SPEECH_LEAD_IN:0;
+
+      const slideStart=performance.now();
+      let audioStarted=false;
+      let liveSpeechStarted=false;
+      let liveSpeechEndedAt=0;
+      let liveUtterance=null;
+
+      if(hasRecorded&&!isSynthRecorded){
+        stopNarration();
+        narrationPlayer=new Audio(s.narrationAudio);
+        narrationPlayer.play().catch(()=>{});
+        audioStarted=true;
+      }
+
       while(playing&&token===playToken){
-        const p=Math.min(1,(performance.now()-start)/duration);
-        $("progress").value=p*100;await drawPreview(p);
-        if(p>=1)break;
+        const now=performance.now();
+        const elapsed=(now-slideStart)/1000;
+
+        if(isSynthRecorded&&!audioStarted&&elapsed>=recordedLead){
+          stopNarration();
+          narrationPlayer=new Audio(s.narrationAudio);
+          narrationPlayer.play().catch(()=>{});
+          audioStarted=true;
+        }
+
+        if(liveSynth&&!liveSpeechStarted&&elapsed>=leadSeconds){
+          liveSpeechStarted=true;
+          liveUtterance=speakText(
+            s.narrationText||s.content,
+            s.speechVoice,
+            s.speechRate
+          );
+          if(liveUtterance){
+            const oldEnd=liveUtterance.onend;
+            const oldError=liveUtterance.onerror;
+            liveUtterance.onend=event=>{
+              try{oldEnd?.(event);}catch(e){}
+              liveSpeechEndedAt=performance.now();
+            };
+            liveUtterance.onerror=event=>{
+              try{oldError?.(event);}catch(e){}
+              liveSpeechEndedAt=performance.now();
+            };
+          }else{
+            liveSpeechEndedAt=performance.now();
+          }
+        }
+
+        let finished=false;
+        let visualDuration;
+
+        if(isSynthRecorded){
+          visualDuration=recordedLead+recordedSpeechDuration+recordedHold;
+          finished=elapsed>=visualDuration;
+        }else if(liveSynth){
+          // We do not guess the end of browser TTS. Wait for its actual onend,
+          // then hold the completed slide for five full seconds.
+          if(liveSpeechEndedAt){
+            finished=(now-liveSpeechEndedAt)>=SYNTH_SPEECH_HOLD_AFTER*1000;
+          }
+          // Give animations a stable progress scale while actual TTS length is unknown.
+          visualDuration=Math.max(
+            Number(s.duration||1),
+            leadSeconds+5,
+            elapsed+(liveSpeechEndedAt?SYNTH_SPEECH_HOLD_AFTER:2)
+          );
+        }else{
+          visualDuration=Math.max(1,Number(s.duration||1));
+          finished=elapsed>=visualDuration;
+        }
+
+        const p=clamp01(elapsed/Math.max(.001,visualDuration));
+        $("progress").value=p*100;
+        await drawPreview(p);
+
+        if(finished)break;
         await new Promise(r=>requestAnimationFrame(r));
       }
+
       stopNarration();
+      if(liveSynth)speechSynthesis?.cancel?.();
     }
   }finally{
-    playing=false;$("playBtn").textContent="▶ Preview";$("progress").value=100;
-    renderAll();if(activeOverlayVideo())startOverlayPreviewLoop();
+    playing=false;
+    $("playBtn").textContent="▶ Preview";
+    $("progress").value=100;
+    renderAll();
+    if(activeOverlayVideo())startOverlayPreviewLoop();
   }
 }
 
@@ -796,7 +991,8 @@ async function buildAudioTimeline(){
   const AC=window.AudioContext||window.webkitAudioContext, OAC=window.OfflineAudioContext||window.webkitOfflineAudioContext;
   if(!AC||!OAC)return null;
   const decodeCtx=new AC();await decodeCtx.resume();
-  const duration=state.slides.reduce((a,s)=>a+Number(s.duration||0),0);
+  normalizeProjectNarrationTiming();
+  const duration=state.slides.reduce((a,s)=>a+slidePlaybackDuration(s),0);
   const sampleRate=48000, offline=new OAC(2,Math.max(1,Math.ceil(duration*sampleRate)),sampleRate);
   const master=offline.createGain();master.connect(offline.destination);
   if(musicData){
@@ -805,10 +1001,14 @@ async function buildAudioTimeline(){
   }
   let offset=0;
   for(const s of state.slides){
+    normalizeNarrationTiming(s);
     if(s.narrationAudio){
-      const b=await decodeAudio(decodeCtx,s.narrationAudio),src=offline.createBufferSource();src.buffer=b;src.connect(master);src.start(offset);
+      const b=await decodeAudio(decodeCtx,s.narrationAudio),src=offline.createBufferSource();
+      src.buffer=b;
+      src.connect(master);
+      src.start(offset+narrationLeadIn(s));
     }
-    offset+=Number(s.duration||0);
+    offset+=slidePlaybackDuration(s);
   }
   const rendered=await offline.startRendering();await decodeCtx.close();return rendered;
 }
@@ -845,7 +1045,9 @@ async function exportVideo(){
     let elapsed=0;
     for(let i=0;i<state.slides.length;i++){
       state.current=i;renderList();loadEditor();
-      const s=state.slides[i],seconds=Number(s.duration||1),frames=Math.max(1,Math.round(seconds*FPS));
+      const s=state.slides[i];
+      normalizeNarrationTiming(s);
+      const seconds=slidePlaybackDuration(s),frames=Math.max(1,Math.round(seconds*FPS));
       for(let j=0;j<frames;j++){
         const p=frames>1?j/(frames-1):1;
         fctx.clearRect(0,0,W,H);await paint(fctx,s,p);
@@ -967,7 +1169,7 @@ $("removeVideoOverlayBtn").onclick=removeOverlayVideo;
 $("recordNarrationBtn").onclick=()=>recording?stopMicRecording():startMicRecording().catch(e=>status(`Microphone error: ${e.message}`));
 $("narrationInput").onchange=async e=>{if(e.target.files[0])await attachNarration(await fileToDataUrl(e.target.files[0]),e.target.files[0].name);e.target.value="";};
 $("playNarrationBtn").onclick=playNarration;
-$("removeNarrationBtn").onclick=()=>{const s=current();if(!s)return;s.narrationAudio="";s.narrationName="";s.narrationDuration=0;renderAll();};
+$("removeNarrationBtn").onclick=()=>{const s=current();if(!s)return;s.narrationAudio="";s.narrationName="";s.narrationDuration=0;s.narrationKind="";s.narrationLeadIn=0;s.narrationHoldAfter=0;renderAll();};
 $("testSpeechBtn").onclick=()=>{const s=current();if(s)speakText(s.narrationText||s.content,s.speechVoice,s.speechRate);};
 $("previewTtsNarrationBtn").onclick=()=>speakText($("narrationText").value,$("ttsNarrationVoice").value,$("ttsNarrationRate").value);
 $("recordTtsNarrationBtn").onclick=recordSynthesizedSpeech;
@@ -986,6 +1188,7 @@ $("openInput").onchange=async e=>{
     const project=JSON.parse(await file.text());
     if(project.state)state={...structuredClone(defaults),...project.state};
     else state={...structuredClone(defaults),...project};
+    normalizeProjectNarrationTiming();
     musicData=project.assets?.musicData||"";
     musicName=project.assets?.musicName||"";
     logoName=project.assets?.logoName||(state.logo?"Saved logo":"");
@@ -1009,7 +1212,10 @@ if("speechSynthesis" in window)speechSynthesis.onvoiceschanged=loadSpeechVoices;
 
 try{
   const saved=JSON.parse(localStorage.getItem(AUTOSAVE)||"null");
-  if(saved)state={...structuredClone(defaults),...saved};
+  if(saved){
+    state={...structuredClone(defaults),...saved};
+    normalizeProjectNarrationTiming();
+  }
 }catch(e){}
 syncSetup();setCanvasFormat();updateFileControlStatus();renderAll();updateOverlayMode();
 

@@ -38,3 +38,12 @@ Narration now uses karaoke-style captions:
 ## File controls
 
 Brand logo and background music now use explicit status indicators. After a file is loaded the UI shows `Loaded: filename` instead of the browser's misleading `No file selected` text. The filename status is also restored when a saved project is opened.
+
+## Synthesized-speech timing and subtitle layout
+
+- Synthesized narration starts 3 seconds after the slide has appeared.
+- The complete synthesized narration is allowed to finish.
+- The completed slide then remains visible for another 5 seconds before advancing.
+- Export uses the same timing.
+- Karaoke captions use an explicitly left-aligned canvas layout, fixing overlapping words caused by inherited footer alignment.
+- Landscape captions use a centered two-line lower-third block; portrait captions use up to three lines.
