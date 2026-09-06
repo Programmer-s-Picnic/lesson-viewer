@@ -1,62 +1,145 @@
 # Learn With Champak — C# Online Editor
 
-A static, GitHub Pages-friendly browser editor for C#.
+A classroom-ready, GitHub Pages-friendly C# editor using the same VS-style workflow as the Learn With Champak Python editor.
 
-## Features
+## Included
 
-- C# source editor with line numbers
-- Run with `Ctrl+Enter`
-- Standard input for `Console.ReadLine()`
-- Output / compiler error console
-- C# starter examples
-- Autosave using `localStorage`
-- Copy code
-- Download as `Program.cs`
-- Fullscreen mode
-- Mobile-friendly layout
-- SEO and Open Graph metadata
-- Automatic execution backend fallback:
-  1. Wandbox
-  2. Judge0 public preview
+- VS Code-style activity bar, Explorer, editor, bottom panel and status bar
+- Light/dark theme using the same warm light theme + dark IDE layout
+- Multi-file `.cs` tabs
+- Real multi-file C# compilation through Wandbox `codes` support
+- Automatic C# compiler discovery (no hard-coded compiler version)
+- Judge0 C# single-file fallback
+- Standard input / stdout / compiler errors
+- Run / Stop / execution timeout / timer metadata
+- C# syntax highlighting with line numbers
+- Auto-indent, bracket/quote pairing, Tab/Shift+Tab, Ctrl+/ comment, Ctrl+Enter run
+- Font-size control
+- Focused code fullscreen, full application fullscreen and expandable I/O panels
+- Built-in examples: Hello World, input/output, conditions, loops, functions, OOP, formatting, LINQ and async/await
+- Project title, author, description and tags
+- Student name and roll/ID saved locally
+- Shareable URL-hash projects
+- Download active `.cs` file
+- Export complete project ZIP
+- Project asset upload/download using IndexedDB
+- Text/CSV/JSON asset files can be supplied to the Wandbox project when supported by the remote compiler environment
+- NuGet PackageReference metadata
+- `.csproj` export (`net8.0`)
+- Problem bank (`problems.json`)
+- Sample tests and hidden tests
+- Run samples / run all tests
+- Hints, daily problem selector, XP and streak
+- Teacher mode: `?tmode=1`
+- Classroom mode, exam mode, locked problem, attempt limit and NuGet policy
+- Local submission capture + JSON export
+- Voice commands when browser SpeechRecognition is available
+- Optional speech synthesis for stdout / errors
+- Draggable sidebar width and output-panel height
+- Top/bottom learning sections can be hidden and remember their state
+- Remote loaders:
+  - `?problems=URL`
+  - `?codefile=URL`
+  - `?code=URL`
+- `builder.html` for creating C# coding problems and auto-generating expected output from a reference solution
+- SEO, Open Graph image, site header/footer include hooks, analytics and existing Learn With Champak site scripts
 
-## Run locally
+## Execution backend
 
-Because browsers may restrict `fetch()` from `file://`, use a local web server.
+The static site itself can be hosted on GitHub Pages. C# compilation requires a sandboxed execution service.
 
-### Python
+The editor tries:
+
+1. **Wandbox** — current C# compiler list is discovered dynamically. This is the preferred backend because Wandbox supports additional source files.
+2. **Judge0 CE** — fallback for the active/single main source file.
+
+The public services may impose quotas, change availability or be unsuitable for a busy classroom deployment. For production scale, self-host an execution backend and adapt `execute()` in `app.js`.
+
+## NuGet note
+
+NuGet packages entered in the sidebar are **project metadata**. They are written into the exported `.csproj` and project ZIP. The free remote compiler is not guaranteed to perform `dotnet restore` for arbitrary packages.
+
+For packages, use the exported project locally:
 
 ```bash
-python -m http.server 8000
+dotnet restore
+dotnet run
 ```
 
-Open:
+or open the repository in VS Code / GitHub Codespaces.
+
+## GitHub Pages
+
+Upload these files to a repository:
 
 ```text
-http://localhost:8000
+index.html
+style.css
+app.js
+problems.json
+builder.html
+builder.js
+og-csharp-editor.png
+README.md
 ```
 
-### VS Code
+Then enable:
 
-You can also use the Live Server extension.
+**Repository → Settings → Pages → Deploy from a branch → main → /(root)**
 
-## Deploy to GitHub Pages
+## Teacher / Student
 
-1. Create a GitHub repository.
-2. Upload all files from this folder to the repository root.
-3. In GitHub: **Settings → Pages**.
-4. Under **Build and deployment**, select **Deploy from a branch**.
-5. Choose `main` and `/ (root)`.
-6. Save.
+Teacher:
 
-## Production note
+```text
+index.html?tmode=1
+```
 
-The page is static, but C# must be compiled on a server-side sandbox. This package discovers a current C# compiler instead of hard-coding a version.
+Student:
 
-Public compiler services can have limits or downtime. For a large classroom/public product, self-host Judge0 or Wandbox and replace the API URLs in `app.js`.
+```text
+index.html?tmode=0
+```
 
-## Files
+Teacher submissions in this static version are stored in the **same browser's localStorage**. They are not centrally collected from other student devices. A server/worker endpoint is required for centralized classroom submissions.
 
-- `index.html` — page + SEO
-- `styles.css` — responsive UI
-- `app.js` — editor behavior and execution logic
-- `og-csharp-editor.png` — social preview image
+## Problem JSON
+
+Use `builder.html` or follow the structure in `problems.json`.
+
+```json
+{
+  "id": "sum_n",
+  "title": "Sum of First N Numbers",
+  "level": "Easy",
+  "statement": "Given N, print the sum...",
+  "starter": "using System; ...",
+  "examples": [{"input":"5\n","output":"15\n"}],
+  "tests": [{"input":"100\n","output":"5050\n","hidden":true}],
+  "hints": ["Use the formula..."],
+  "tags": ["math", "formula"]
+}
+```
+
+## Remote code JSON
+
+Supported forms:
+
+```json
+{"code":"using System; ..."}
+```
+
+```json
+{
+  "tabs":[{"name":"Program.cs","code":"..."},{"name":"Person.cs","code":"..."}],
+  "currentTab":0,
+  "stdin":"Champak\n",
+  "problem":"sum_n"
+}
+```
+
+or an array of files:
+
+```json
+[{"name":"Program.cs","code":"..."}]
+```

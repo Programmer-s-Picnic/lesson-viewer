@@ -1,481 +1,225 @@
 (() => {
   "use strict";
 
-  const $ = (id) => document.getElementById(id);
-
-  const editor = $("codeEditor");
-  const stdin = $("stdin");
-  const output = $("output");
-  const lineNumbers = $("lineNumbers");
-  const runBtn = $("runBtn");
-  const stopBtn = $("stopBtn");
-  const runStatus = $("runStatus");
-  const saveStatus = $("saveStatus");
-  const backendBadge = $("backendBadge");
-  const exampleSelect = $("exampleSelect");
-
-  const STORAGE_CODE = "lwc-csharp-editor-code-v1";
-  const STORAGE_INPUT = "lwc-csharp-editor-stdin-v1";
-
-  const examples = {
-    hello: `using System;
-
-class Program
-{
-    static void Main()
-    {
-        Console.WriteLine("Hello from Learn With Champak!");
-    }
-}`,
-    input: `using System;
-
-class Program
-{
-    static void Main()
-    {
-        Console.Write("What is your name? ");
-        string name = Console.ReadLine() ?? "";
-
-        Console.Write("Enter your age: ");
-        int age = int.Parse(Console.ReadLine() ?? "0");
-
-        Console.WriteLine($"Hello, {name}! Next year you will be {age + 1}.");
-    }
-}`,
-    conditions: `using System;
-
-class Program
-{
-    static void Main()
-    {
-        Console.Write("Enter marks: ");
-        int marks = int.Parse(Console.ReadLine() ?? "0");
-
-        if (marks >= 80)
-            Console.WriteLine("Excellent");
-        else if (marks >= 60)
-            Console.WriteLine("Good");
-        else if (marks >= 40)
-            Console.WriteLine("Pass");
-        else
-            Console.WriteLine("Try again");
-    }
-}`,
-    loops: `using System;
-
-class Program
-{
-    static void Main()
-    {
-        Console.Write("Enter n: ");
-        int n = int.Parse(Console.ReadLine() ?? "5");
-
-        for (int i = 1; i <= n; i++)
-        {
-            for (int j = 1; j <= i; j++)
-                Console.Write("* ");
-
-            Console.WriteLine();
-        }
-    }
-}`,
-    functions: `using System;
-
-class Program
-{
-    static int Square(int n)
-    {
-        return n * n;
-    }
-
-    static void Main()
-    {
-        Console.Write("Enter a number: ");
-        int number = int.Parse(Console.ReadLine() ?? "0");
-        Console.WriteLine($"Square = {Square(number)}");
-    }
-}`,
-    dateclass: `using System;
-
-class SimpleDate
-{
-    public int Day { get; }
-    public int Month { get; }
-    public int Year { get; }
-
-    public SimpleDate(int day, int month, int year)
-    {
-        Day = day;
-        Month = month;
-        Year = year;
-    }
-
-    public override string ToString()
-    {
-        return $"{Day:00}/{Month:00}/{Year}";
-    }
-}
-
-class Program
-{
-    static void Main()
-    {
-        SimpleDate courseDate = new SimpleDate(6, 9, 2026);
-        Console.WriteLine($"Course date: {courseDate}");
-    }
-}`,
-    currencyclass: `using System;
-
-class Currency
-{
-    public decimal Amount { get; }
-    public string Code { get; }
-
-    public Currency(decimal amount, string code)
-    {
-        Amount = amount;
-        Code = code.ToUpper();
-    }
-
-    public Currency Add(Currency other)
-    {
-        if (Code != other.Code)
-            throw new InvalidOperationException("Currency codes must match.");
-
-        return new Currency(Amount + other.Amount, Code);
-    }
-
-    public override string ToString()
-    {
-        return $"{Code} {Amount:0.00}";
-    }
-}
-
-class Program
-{
-    static void Main()
-    {
-        Currency a = new Currency(250.50m, "INR");
-        Currency b = new Currency(99.50m, "INR");
-        Console.WriteLine(a.Add(b));
-    }
-}`
+  const $ = id => document.getElementById(id);
+  const $$ = sel => Array.from(document.querySelectorAll(sel));
+  const ui = {
+    app: $("appShell"), code: $("ppCode"), highlight: $("ppHighlight"), gutter: $("ppGutter"), activeFile: $("ppActiveFileLabel"),
+    stdin: $("ppStdin"), out: $("ppOut"), err: $("ppErr"), runMeta: $("ppRunMeta"), status: $("ppStatus"), dot: $("ppDot"), bar: $("ppBar"), saveState: $("ppSaveState"), toast: $("ppToast"),
+    run: $("ppRun"), stop: $("ppStop"), tabs: $("ppTabs"), newTab: $("ppNewTab"), delTab: $("ppDelTab"),
+    backend: $("ppBackend"), compiler: $("ppCompiler"), compilerInfo: $("ppCompilerInfo"), compilerDetails: $("ppCompilerDetails"), refreshCompilers: $("ppRefreshCompilers"), runTarget: $("ppRunTarget"),
+    projectTitle: $("ppProjectTitle"), projectAuthor: $("ppProjectAuthor"), projectDescription: $("ppProjectDescription"), projectTags: $("ppProjectTags"),
+    summaryTitle: $("ppProjectSummaryTitle"), summaryAuthor: $("ppProjectSummaryAuthor"), summaryTags: $("ppProjectSummaryTags"), summaryDescription: $("ppProjectSummaryDescription"),
+    stuName: $("ppStuName"), stuRoll: $("ppStuRoll"), example: $("ppExample"), loadExample: $("ppLoadExample"), indent: $("ppIndent"), font: $("ppFontSize"), timer: $("ppTimer"), readOutput: $("ppReadOutput"),
+    copyOut: $("ppCopyOut"), clearOut: $("ppClearOut"), downloadCs: $("ppDownloadCs"), downloadProject: $("ppDownloadProject"), format: $("ppFormat"), save: $("ppSave"), share: $("ppShare"),
+    theme: $("ppThemeToggle"), fullscreen: $("ppFullscreen"), codeFullscreen: $("ppCodeFullscreen"),
+    stdinSample: $("ppStdinSample"), stdinClear: $("ppStdinClear"),
+    problem: $("ppProblem"), today: $("ppToday"), loadStarter: $("ppLoadStarter"), resetStarter: $("ppResetStarter"), hint: $("ppHint"), pTitle: $("ppPTitle"), pLevel: $("ppPLevel"), pDesc: $("ppPDesc"), pTags: $("ppPTags"), pExamples: $("ppPExamples"), runSamples: $("ppRunSamples"), runAll: $("ppRunAll"), judgeSummary: $("ppJudgeSummary"), judgeTable: $("ppJudgeTableWrap"), attemptState: $("ppAttemptState"),
+    modeText: $("ppModeText"), teacherBtn: $("ppTeacherBtn"), teacherPanel: $("ppTeacherPanel"), teacherFocus: $("ppTeacherFocus"), subCount: $("ppSubCount"), studentLink: $("ppStudentLink"),
+    forceClass: $("ppForceClass"), examMode: $("ppExamMode"), lockProblem: $("ppLockProblem"), limitAttemptsOn: $("ppLimitAttemptsOn"), allowNuget: $("ppAllowNuget"), attemptLimit: $("ppAttemptLimit"), exportSubs: $("ppExportSubs"), clearSubs: $("ppClearSubs"),
+    nugetInput: $("ppNugetInput"), nugetAdd: $("ppNugetAdd"), nugetList: $("ppNugetList"), downloadCsproj: $("ppDownloadCsproj"),
+    voiceBtn: $("ppVoiceBtn"), voiceStatus: $("ppVoiceStatus"), voiceLog: $("ppVoiceLog"), voiceClear: $("ppVoiceClear"),
+    xp: $("ppXP"), streak: $("ppStreak"), timeout: $("ppTimeout"),
+    fileInput: $("ppFileInput"), uploadFiles: $("ppUploadFiles"), refreshFiles: $("ppRefreshFiles"), downloadAllFiles: $("ppDownloadAllFiles"), fileList: $("ppFileList"),
+    shareModal: $("ppShareModal"), shareInput: $("ppShareInput"), shareCopy: $("ppShareCopy"), shareOpen: $("ppShareOpen"), shareClose: $("ppShareClose"), shareHint: $("ppShareHint"),
+    topBand: $("ppTopBand"), bottomBand: $("ppBottomBand"), toggleTop: $("ppToggleTopBtn"), toggleBottom: $("ppToggleBottomBtn"), hideTop: $("ppHideTopBtn"), hideBottom: $("ppHideBottomBtn"), sectionsState: $("ppSectionsState"),
+    sidebar: $("vsSidebar"), sidebarResizer: $("ppSidebarResizer"), panel: $("ppPanel"), panelResizer: $("ppPanelResizer")
   };
 
+  const KEY = {
+    project: "lwc_csharp_project_v3", theme: "lwc_csharp_theme_v3", font: "lwc_csharp_font_v3", student: "lwc_csharp_student_v3",
+    teacher: "lwc_csharp_teacher_v3", submissions: "lwc_csharp_submissions_v3", xp: "lwc_csharp_xp_v3", streak: "lwc_csharp_streak_v3", solved: "lwc_csharp_solved_v3", attempts: "lwc_csharp_attempts_v3",
+    backend: "lwc_csharp_backend_v3", compiler: "lwc_csharp_compiler_v3", runTarget: "lwc_csharp_run_target_v3", readOutput: "lwc_csharp_read_output_v3", topHidden: "lwc_csharp_top_hidden_v3", bottomHidden: "lwc_csharp_bottom_hidden_v3",
+    sidebarWidth: "lwc_csharp_sidebar_width_v3", panelHeight: "lwc_csharp_panel_height_v3", timeout: "lwc_csharp_timeout_v3"
+  };
+
+  const helloCode = `using System;\n\nclass Program\n{\n    static void Main()\n    {\n        Console.WriteLine("Hello from Learn With Champak!");\n    }\n}`;
+
+  const examples = {
+    hello: {title:"Hello World", stdin:"", code:helloCode},
+    input: {title:"Input / Output", stdin:"Champak\n25", code:`using System;\n\nclass Program\n{\n    static void Main()\n    {\n        Console.Write("What is your name? ");\n        string name = Console.ReadLine() ?? "";\n\n        Console.Write("Enter your age: ");\n        int age = int.Parse(Console.ReadLine() ?? "0");\n\n        Console.WriteLine($"Hello, {name}! Next year you will be {age + 1}.");\n    }\n}`},
+    conditions: {title:"Conditions", stdin:"72", code:`using System;\n\nclass Program\n{\n    static void Main()\n    {\n        int marks = int.Parse(Console.ReadLine() ?? "0");\n\n        if (marks >= 80)\n            Console.WriteLine("Excellent");\n        else if (marks >= 60)\n            Console.WriteLine("Good");\n        else if (marks >= 40)\n            Console.WriteLine("Pass");\n        else\n            Console.WriteLine("Try again");\n    }\n}`},
+    loops: {title:"Loops / Pattern", stdin:"5", code:`using System;\n\nclass Program\n{\n    static void Main()\n    {\n        int n = int.Parse(Console.ReadLine() ?? "5");\n\n        for (int i = 1; i <= n; i++)\n        {\n            for (int j = 1; j <= i; j++)\n                Console.Write("* ");\n\n            Console.WriteLine();\n        }\n    }\n}`},
+    functions: {title:"Functions", stdin:"8", code:`using System;\n\nclass Program\n{\n    static int Square(int n)\n    {\n        return n * n;\n    }\n\n    static void Main()\n    {\n        int number = int.Parse(Console.ReadLine() ?? "0");\n        Console.WriteLine($"Square = {Square(number)}");\n    }\n}`},
+    oopdate: {title:"OOP: Date", stdin:"", code:`using System;\n\nclass SimpleDate\n{\n    public int Day { get; }\n    public int Month { get; }\n    public int Year { get; }\n\n    public SimpleDate(int day, int month, int year)\n    {\n        Day = day;\n        Month = month;\n        Year = year;\n    }\n\n    public override string ToString() => $"{Day:00}/{Month:00}/{Year}";\n}\n\nclass Program\n{\n    static void Main()\n    {\n        var courseDate = new SimpleDate(6, 9, 2026);\n        Console.WriteLine($"Course date: {courseDate}");\n    }\n}`},
+    currency: {title:"OOP: Currency", stdin:"", code:`using System;\n\nclass Currency\n{\n    public decimal Amount { get; }\n    public string Code { get; }\n\n    public Currency(decimal amount, string code)\n    {\n        Amount = amount;\n        Code = code.ToUpperInvariant();\n    }\n\n    public Currency Add(Currency other)\n    {\n        if (Code != other.Code)\n            throw new InvalidOperationException("Currency codes must match.");\n        return new Currency(Amount + other.Amount, Code);\n    }\n\n    public override string ToString() => $"{Code} {Amount:0.00}";\n}\n\nclass Program\n{\n    static void Main()\n    {\n        var a = new Currency(250.50m, "INR");\n        var b = new Currency(99.50m, "INR");\n        Console.WriteLine(a.Add(b));\n    }\n}`},
+    formatting: {title:"Alignment & Number Formatting", stdin:"", code:`using System;\n\nclass Program\n{\n    static void Main()\n    {\n        Console.WriteLine(new string('=', 38));\n        Console.WriteLine("SALARY BREAKDOWN".PadLeft(27));\n        Console.WriteLine(new string('=', 38));\n        Console.WriteLine($"{"Basic Pay",-18}{25000,18:N2}");\n        Console.WriteLine($"{"HRA",-18}{8500.5,18:N2}");\n        Console.WriteLine($"{"Tax",-18}{-3200,18:N2}");\n        Console.WriteLine(new string('-', 38));\n        Console.WriteLine($"{"Net Salary",-18}{30300.5,18:N2}");\n    }\n}`},
+    linq: {title:"LINQ", stdin:"", code:`using System;\nusing System.Linq;\n\nclass Program\n{\n    static void Main()\n    {\n        int[] values = { 5, 12, 7, 20, 3, 16 };\n        var result = values.Where(x => x >= 10).OrderBy(x => x);\n        Console.WriteLine(string.Join(", ", result));\n    }\n}`},
+    async: {title:"Async / Await", stdin:"", code:`using System;\nusing System.Threading.Tasks;\n\nclass Program\n{\n    static async Task Main()\n    {\n        Console.WriteLine("Starting...");\n        await Task.Delay(250);\n        Console.WriteLine("Finished.");\n    }\n}`}
+  };
+
+  let state = {
+    tabs:[{name:"Program.cs",code:helloCode}], currentTab:0, stdin:"", title:"C# Console Practice", author:"", description:"", tags:"csharp, dotnet",
+    nuget:[], selectedProblem:"", solved:[]
+  };
+  let problems = [];
+  let currentProblem = null;
+  let hintIndex = 0;
+  let compilers = [];
   let controller = null;
-  let wandboxCompiler = null;
-  let judge0LanguageId = null;
+  let running = false;
+  let recognition = null;
+  let assets = [];
+  let isTeacher = new URLSearchParams(location.search).get("tmode") === "1";
 
-  function setOutput(text, isError = false) {
-    output.textContent = text || "(no output)";
-    output.classList.toggle("error", isError);
+  function escapeHtml(s){return String(s ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");}
+  function escapeAttr(s){return escapeHtml(s).replaceAll('"',"&quot;");}
+  function toast(msg){ui.toast.textContent=msg;ui.toast.classList.add("show");clearTimeout(toast.t);toast.t=setTimeout(()=>ui.toast.classList.remove("show"),1800);}
+  function setStatus(msg,kind="",progress=null){ui.status.textContent=msg;ui.dot.className="pp-dot"+(kind?" "+kind:"");if(progress!==null)ui.bar.style.width=`${Math.max(0,Math.min(100,progress))}%`;}
+  function setBusy(flag){running=flag;ui.run.disabled=flag;ui.stop.disabled=!flag;}
+  function formatSize(n){n=Number(n)||0;if(n<1024)return `${n} B`;if(n<1024*1024)return `${(n/1024).toFixed(1)} KB`;return `${(n/(1024*1024)).toFixed(1)} MB`;}
+  function downloadBlob(name,data,type="application/octet-stream"){const blob=data instanceof Blob?data:new Blob([data],{type});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1200);}
+  function base64UrlEncode(text){const bytes=new TextEncoder().encode(text);let bin="";for(const b of bytes)bin+=String.fromCharCode(b);return btoa(bin).replaceAll("+","-").replaceAll("/","_").replaceAll("=","");}
+  function base64UrlDecode(text){let b64=text.replaceAll("-","+").replaceAll("_","/");while(b64.length%4)b64+="=";const bin=atob(b64);const bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));return new TextDecoder().decode(bytes);}
+
+  function currentTab(){return state.tabs[state.currentTab] || state.tabs[0];}
+  function normalizeFileName(name){let s=String(name||"").trim().replaceAll("\\","/").split("/").pop().replace(/[^A-Za-z0-9_.-]/g,"-");if(!s)s="File.cs";if(!s.toLowerCase().endsWith(".cs"))s+=".cs";return s;}
+  function uniqueTabName(base){let name=normalizeFileName(base);if(!state.tabs.some(t=>t.name.toLowerCase()===name.toLowerCase()))return name;const stem=name.replace(/\.cs$/i,"");let i=2;while(state.tabs.some(t=>t.name.toLowerCase()===`${stem}${i}.cs`.toLowerCase()))i++;return `${stem}${i}.cs`;}
+  function syncEditorToState(){const tab=currentTab();if(tab)tab.code=ui.code.value;state.stdin=ui.stdin.value;}
+  function saveProject(){syncEditorToState();state.title=ui.projectTitle.value;state.author=ui.projectAuthor.value;state.description=ui.projectDescription.value;state.tags=ui.projectTags.value;localStorage.setItem(KEY.project,JSON.stringify(state));localStorage.setItem(KEY.student,JSON.stringify({name:ui.stuName.value,roll:ui.stuRoll.value}));ui.saveState.textContent="Saved";clearTimeout(saveProject.t);saveProject.t=setTimeout(()=>ui.saveState.textContent="Autosaved",900);}
+  function loadLocalState(){try{const p=JSON.parse(localStorage.getItem(KEY.project)||"null");if(p&&Array.isArray(p.tabs)&&p.tabs.length){state={...state,...p};state.currentTab=Math.max(0,Math.min(Number(state.currentTab)||0,state.tabs.length-1));}}catch{}try{const s=JSON.parse(localStorage.getItem(KEY.student)||"{}");ui.stuName.value=s.name||"";ui.stuRoll.value=s.roll||"";}catch{}}
+
+  const csKeywords = new Set("abstract as base bool break byte case catch char checked class const continue decimal default delegate do double else enum event explicit extern false finally fixed float for foreach goto if implicit in int interface internal is lock long namespace new null object operator out override params private protected public readonly ref return sbyte sealed short sizeof stackalloc static string struct switch this throw true try typeof uint ulong unchecked unsafe ushort using virtual void volatile while async await record init required file global partial scoped when where yield var dynamic".split(" "));
+  const csTypes = new Set("Console Math DateTime TimeSpan Guid Task List Dictionary HashSet Queue Stack IEnumerable IQueryable StringBuilder HttpClient File Directory Path Stream StreamReader StreamWriter Exception ArgumentException InvalidOperationException Random Regex Convert Array Enumerable".split(" "));
+  const linqWords = new Set("Select Where OrderBy OrderByDescending ThenBy GroupBy Join Any All First FirstOrDefault Single Count Sum Average Min Max ToList ToArray Distinct Skip Take Contains".split(" "));
+  function highlightCSharpLine(line){
+    const token=/(^\s*#\w+[^\n]*|\/\/.*|@?\"(?:\"\"|\\.|[^\"])*\"|'(?:\\.|[^'\\])'|\[(?:[^\]]+)\]|\b(?:0x[\da-fA-F]+|\d+(?:\.\d+)?(?:[mMdDfFlLuU])?)\b|\b[A-Za-z_]\w*\b|=>|\?\?|\?\.|==|!=|<=|>=|&&|\|\||\+\+|--|[+\-*\/%=<>!&|^~?:.,;(){}\[\]])/g;
+    let out="",last=0,m;while((m=token.exec(line))){const raw=m[0];out+=escapeHtml(line.slice(last,m.index));let cls="";if(/^\s*#/.test(raw))cls="tok-pre";else if(raw.startsWith("//"))cls="tok-comment";else if(raw.startsWith('"')||raw.startsWith('@"')||raw.startsWith("'"))cls="tok-string";else if(raw.startsWith("["))cls="tok-attr";else if(/^\d|^0x/i.test(raw))cls="tok-number";else if(csKeywords.has(raw))cls="tok-keyword";else if(csTypes.has(raw))cls="tok-type";else if(linqWords.has(raw))cls="tok-linq";out+=cls?`<span class="${cls}">${escapeHtml(raw)}</span>`:escapeHtml(raw);last=token.lastIndex;}out+=escapeHtml(line.slice(last));return out||"&nbsp;";
+  }
+  function updateHighlight(){const lines=ui.code.value.split("\n");ui.highlight.innerHTML=`<div class="codeHighlightInner">${lines.map(l=>`<div class="codeLine">${highlightCSharpLine(l)}</div>`).join("")}</div>`;syncEditorScroll();}
+  function updateGutter(){const n=ui.code.value.split("\n").length;ui.gutter.textContent=Array.from({length:n},(_,i)=>i+1).join("\n");updateHighlight();}
+  function syncEditorScroll(){const inner=ui.highlight.querySelector(".codeHighlightInner");if(inner)inner.style.transform=`translate(${-ui.code.scrollLeft}px,${-ui.code.scrollTop}px)`;ui.gutter.scrollTop=ui.code.scrollTop;}
+  function applyFont(size){size=Number(size)||16;const lh=Math.round(size*1.5)+"px";document.documentElement.style.setProperty("--editor-line-height",lh);[ui.code,ui.highlight,ui.gutter].forEach(el=>{el.style.fontSize=size+"px";el.style.lineHeight=lh;});localStorage.setItem(KEY.font,String(size));updateHighlight();}
+
+  function renderTabs(){ui.tabs.innerHTML=state.tabs.map((t,i)=>`<button class="pp-tab ${i===state.currentTab?"pp-active":""}" data-tab="${i}" title="${escapeAttr(t.name)}">${escapeHtml(t.name)}</button>`).join("");ui.activeFile.textContent=currentTab()?.name||"Program.cs";}
+  function switchTab(i){syncEditorToState();i=Number(i);if(!Number.isInteger(i)||!state.tabs[i])return;state.currentTab=i;ui.code.value=currentTab().code||"";renderTabs();updateGutter();saveProject();ui.code.focus();}
+  function addTab(name="NewFile.cs",code=""){syncEditorToState();state.tabs.push({name:uniqueTabName(name),code});state.currentTab=state.tabs.length-1;renderTabs();ui.code.value=currentTab().code;updateGutter();saveProject();}
+  function deleteCurrentTab(){if(state.tabs.length<=1)return toast("A project must keep at least one C# file");const name=currentTab().name;if(!confirm(`Delete ${name}?`))return;state.tabs.splice(state.currentTab,1);state.currentTab=Math.max(0,state.currentTab-1);ui.code.value=currentTab().code;renderTabs();updateGutter();saveProject();}
+
+  function getIndentUnit(){return ui.indent.value==="tab"?"\t":" ".repeat(Number(ui.indent.value)||4);}
+  function lineBounds(value,start,end){const a=value.lastIndexOf("\n",Math.max(0,start-1))+1;const x=value.indexOf("\n",end);return[a,x<0?value.length:x];}
+  function indentSelection(outdent=false){const el=ui.code,v=el.value,start=el.selectionStart,end=el.selectionEnd,unit=getIndentUnit();if(start===end&&!outdent){el.setRangeText(unit,start,end,"end");updateGutter();saveProject();return;}const[a,b]=lineBounds(v,start,end),block=v.slice(a,b);const updated=block.split("\n").map(line=>{if(!outdent)return unit+line;if(line.startsWith(unit))return line.slice(unit.length);if(line.startsWith("\t"))return line.slice(1);return line.replace(/^ {1,4}/,"");}).join("\n");el.value=v.slice(0,a)+updated+v.slice(b);el.selectionStart=a;el.selectionEnd=a+updated.length;updateGutter();saveProject();}
+  function toggleComment(){const el=ui.code,v=el.value,start=el.selectionStart,end=el.selectionEnd,[a,b]=lineBounds(v,start,end),lines=v.slice(a,b).split("\n"),useful=lines.filter(x=>x.trim()),uncomment=useful.length&&useful.every(x=>/^\s*\/\/ ?/.test(x));const updated=lines.map(line=>!line.trim()?line:uncomment?line.replace(/^(\s*)\/\/ ?/,"$1"):line.replace(/^(\s*)/,"$1// ")).join("\n");el.value=v.slice(0,a)+updated+v.slice(b);el.selectionStart=a;el.selectionEnd=a+updated.length;updateGutter();saveProject();toast(uncomment?"Uncommented":"Commented");}
+  function wrapPair(open,close){const el=ui.code,s=el.selectionStart,e=el.selectionEnd,selected=el.value.slice(s,e);el.setRangeText(open+selected+close,s,e,selected?"select":"end");if(!selected)el.selectionStart=el.selectionEnd=s+open.length;updateGutter();saveProject();}
+  function smartEnter(e){const el=ui.code,v=el.value,s=el.selectionStart,en=el.selectionEnd,lineStart=v.lastIndexOf("\n",Math.max(0,s-1))+1,before=v.slice(lineStart,s),after=v.slice(s,v.indexOf("\n",s)<0?v.length:v.indexOf("\n",s)),base=(before.match(/^\s*/)||[""])[0],unit=getIndentUnit();let next=base;if(before.trimEnd().endsWith("{"))next+=unit;e.preventDefault();if(/^\s*}/.test(after)&&next.endsWith(unit)){const inner=next.slice(0,-unit.length);el.setRangeText("\n"+next+"\n"+inner,s,en,"end");el.selectionStart=el.selectionEnd=s+1+next.length;}else el.setRangeText("\n"+next,s,en,"end");updateGutter();saveProject();}
+  function typingAid(e){if((e.ctrlKey||e.metaKey)&&e.key==="Enter"){e.preventDefault();runCode();return;}if((e.ctrlKey||e.metaKey)&&e.key==="/"){e.preventDefault();toggleComment();return;}if(e.key==="Tab"){e.preventDefault();indentSelection(e.shiftKey);return;}if(e.key==="Enter"){smartEnter(e);return;}const pairs={"(":")","[":"]","{":"}",'"':'"',"'":"'"};if(!e.ctrlKey&&!e.metaKey&&!e.altKey&&pairs[e.key]){e.preventDefault();wrapPair(e.key,pairs[e.key]);return;}if(Object.values(pairs).includes(e.key)){const el=ui.code;if(el.selectionStart===el.selectionEnd&&el.value[el.selectionStart]===e.key){e.preventDefault();el.selectionStart=el.selectionEnd=el.selectionStart+1;}}}
+  function simpleFormat(){const lines=ui.code.value.replaceAll("\r\n","\n").split("\n"),unit=getIndentUnit();let level=0,inBlock=false;const out=[];for(let raw of lines){let line=raw.trim();if(!line){out.push("");continue;}if(/^}/.test(line))level=Math.max(0,level-1);out.push(unit.repeat(level)+line);let scrub=line.replace(/\"(?:\\.|[^\"])*\"/g,'""').replace(/'[^']*'/g,"''").replace(/\/\/.*$/,"");const opens=(scrub.match(/{/g)||[]).length,closes=(scrub.match(/}/g)||[]).length;level=Math.max(0,level+opens-closes+(line.startsWith("}")?1:0));}ui.code.value=out.join("\n");updateGutter();saveProject();toast("Basic C# formatting applied");}
+
+  function applyTheme(theme){theme=theme==="dark"?"dark":"light";document.body.dataset.theme=theme;ui.theme.textContent=theme==="dark"?"Light":"Dark";localStorage.setItem(KEY.theme,theme);}
+  function updateProjectSummary(){ui.summaryTitle.textContent=ui.projectTitle.value.trim()||"Untitled project";ui.summaryDescription.textContent=ui.projectDescription.value.trim()||"Add title, description, tags and author.";ui.summaryAuthor.textContent="Author: "+(ui.projectAuthor.value.trim()||"—");ui.summaryTags.textContent="Tags: "+(ui.projectTags.value.trim()||"—");}
+
+  function compilerScore(c){const n=String(c.name||"").toLowerCase(),v=String(c.version||"").toLowerCase();let s=0;if(n.includes("dotnet"))s+=100;if(n.includes("mono"))s+=80;if(n.includes("head")||v.includes("head"))s+=20;return s;}
+  async function discoverCompilers(force=false){
+    if(compilers.length&&!force)return compilers;
+    ui.compiler.innerHTML='<option value="">Discovering…</option>';ui.compilerInfo.textContent="Contacting compiler service…";
+    try{const res=await fetch("https://wandbox.org/api/list.json",{cache:"no-store"});if(!res.ok)throw new Error(`HTTP ${res.status}`);const all=await res.json();compilers=all.filter(c=>{const l=String(c.language||"").toLowerCase();return l.includes("c#")||l.includes("csharp")||l.includes("c sharp");}).sort((a,b)=>compilerScore(b)-compilerScore(a));if(!compilers.length)throw new Error("No C# compiler advertised");const saved=localStorage.getItem(KEY.compiler);ui.compiler.innerHTML=compilers.map(c=>`<option value="${escapeAttr(c.name)}">${escapeHtml(c.displayName||c.name)} ${c.version?"("+escapeHtml(c.version)+")":""}</option>`).join("");if(saved&&compilers.some(c=>c.name===saved))ui.compiler.value=saved;else ui.compiler.value=compilers[0].name;localStorage.setItem(KEY.compiler,ui.compiler.value);ui.compilerInfo.textContent=`${compilers.length} C# compiler option${compilers.length===1?"":"s"} found.`;renderCompilerDetails();return compilers;}catch(err){compilers=[];ui.compiler.innerHTML='<option value="">Auto / Judge0 fallback</option>';ui.compilerInfo.textContent="Wandbox discovery failed. Judge0 single-file fallback remains available.";renderCompilerDetails(String(err.message||err));return[];}
+  }
+  function renderCompilerDetails(error=""){const c=compilers.find(x=>x.name===ui.compiler.value);ui.compilerDetails.innerHTML=`<div class="compilerDetailsGrid"><b>Backend</b><span>${escapeHtml(ui.backend.value)}</span><b>Compiler</b><span>${escapeHtml(c?.displayName||c?.name||ui.compiler.value||"Auto")}</span><b>Version</b><span>${escapeHtml(c?.version||"Discovered at runtime")}</span><b>Run target</b><span>${escapeHtml(ui.runTarget.value==="project"?"All C# tabs":"Active file only")}</span>${error?`<b>Last error</b><span>${escapeHtml(error)}</span>`:""}</div>`;}
+  async function discoverJudge0(signal){const res=await fetch("https://ce.judge0.com/languages/",{signal});if(!res.ok)throw new Error(`Judge0 languages HTTP ${res.status}`);const list=await res.json();const lang=list.find(x=>/^c#\s*\(/i.test(String(x.name||"")))||list.find(x=>/c#|csharp|c sharp/i.test(String(x.name||"")));if(!lang)throw new Error("No C# language found on Judge0");return lang;}
+  function projectSourceFiles(){syncEditorToState();return state.tabs.filter(t=>t.name.toLowerCase().endsWith(".cs")).map(t=>({name:t.name,code:t.code||""}));}
+  async function textAssetsForRunner(){const rows=await dbList();return rows.filter(x=>x.text!=null&&x.size<=300000).map(x=>({name:x.name,code:x.text}));}
+  function selectMainFile(files){const active=currentTab();if(ui.runTarget.value==="active")return {main:{name:active.name,code:active.code},extras:[]};const idx=files.findIndex(f=>/\bstatic\s+(?:async\s+)?(?:void|int|Task(?:<int>)?)\s+Main\s*\(/.test(f.code));const main=files[idx>=0?idx:Math.min(state.currentTab,files.length-1)]||files[0];return{main,extras:files.filter(f=>f!==main)};}
+  async function runWandbox(files,stdin,signal){if(!compilers.length)await discoverCompilers();const compiler=ui.compiler.value||compilers[0]?.name;if(!compiler)throw new Error("No Wandbox C# compiler is available");const {main,extras}=selectMainFile(files);const assetsText=ui.runTarget.value==="project"?await textAssetsForRunner():[];const body={code:main.code,compiler,stdin:stdin||"",options:"","compiler-option-raw":"","runtime-option-raw":"",codes:[...extras.map(f=>({file:f.name,code:f.code})),...assetsText.map(f=>({file:f.name,code:f.code}))]};const res=await fetch("https://wandbox.org/api/compile.json",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body),signal});if(!res.ok)throw new Error(`Wandbox HTTP ${res.status}`);const d=await res.json();const compile=[d.compiler_error,d.compiler_output].filter(Boolean).join("\n").trim();const runtimeErr=[d.program_error,d.signal].filter(Boolean).join("\n").trim();const prog=String(d.program_output||"");return{ok:(!d.status||String(d.status)==="0"),stdout:prog,stderr:[compile,runtimeErr].filter(Boolean).join("\n"),backend:"Wandbox",compiler,duration:null};}
+  async function runJudge0(files,stdin,signal){const lang=await discoverJudge0(signal);const active=currentTab();const source=(ui.runTarget.value==="active"?active.code:selectMainFile(files).main.code);const res=await fetch("https://ce.judge0.com/submissions?base64_encoded=false&wait=true",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({source_code:source,language_id:lang.id,stdin:stdin||""}),signal});if(!res.ok)throw new Error(`Judge0 HTTP ${res.status}`);let d=await res.json();if(d.token&&(!d.status||[1,2].includes(d.status.id))){for(let i=0;i<18;i++){await new Promise(r=>setTimeout(r,450));const p=await fetch(`https://ce.judge0.com/submissions/${encodeURIComponent(d.token)}?base64_encoded=false&fields=stdout,stderr,compile_output,message,status,time,memory`,{signal});if(!p.ok)throw new Error(`Judge0 poll HTTP ${p.status}`);d=await p.json();if(![1,2].includes(d.status?.id))break;}}return{ok:d.status?.id===3,stdout:d.stdout||"",stderr:[d.compile_output,d.stderr,d.message].filter(Boolean).join("\n"),backend:"Judge0",compiler:lang.name,duration:d.time||null};}
+  async function execute(files,stdin,signal){const backend=ui.backend.value;if(backend==="wandbox")return await runWandbox(files,stdin,signal);if(backend==="judge0")return await runJudge0(files,stdin,signal);try{return await runWandbox(files,stdin,signal);}catch(wErr){try{const r=await runJudge0(files,stdin,signal);r.fallbackNote=`Wandbox failed: ${wErr.message}`;return r;}catch(jErr){throw new Error(`Wandbox: ${wErr.message}\nJudge0: ${jErr.message}`);}}}
+  function readRunOutput(stdout,stderr){if(!ui.readOutput.checked||!("speechSynthesis" in window))return;window.speechSynthesis.cancel();const text=[stdout?`Standard output. ${stdout}`:"",stderr?`Compiler or standard error. ${stderr}`:""].filter(Boolean).join(" ")||"The program finished with no output.";const u=new SpeechSynthesisUtterance(text);u.lang=document.documentElement.lang||"en";window.speechSynthesis.speak(u);}
+  async function executeWithTimeout(files,stdin){controller?.abort();controller=new AbortController();const timeoutMs=(Number(ui.timeout.value)||8)*1000;let timer;try{const promise=execute(files,stdin,controller.signal);const timeout=new Promise((_,rej)=>{timer=setTimeout(()=>{controller.abort();rej(new Error(`Execution exceeded ${timeoutMs/1000} seconds`));},timeoutMs);});return await Promise.race([promise,timeout]);}finally{clearTimeout(timer);}}
+  async function runCode(){if(running)return toast("Already running");saveProject();setBusy(true);setStatus("Compiling and running…","warn",25);ui.out.textContent="Running…";ui.err.textContent="";ui.runMeta.textContent="";const start=performance.now();try{const r=await executeWithTimeout(projectSourceFiles(),ui.stdin.value);const elapsed=((performance.now()-start)/1000).toFixed(2);ui.out.textContent=r.stdout||"(no stdout)";ui.err.textContent=r.stderr||"";ui.runMeta.textContent=`${r.backend} • ${r.compiler}${ui.timer.checked?` • ${elapsed}s`:""}${r.fallbackNote?" • fallback used":""}`;setStatus(r.ok?"Run complete":"Finished with errors",r.ok?"ok":"bad",100);readRunOutput(r.stdout,r.stderr);}catch(err){if(err.name==="AbortError")ui.err.textContent="Execution stopped.";else ui.err.textContent=String(err.message||err);setStatus("Execution error","bad",100);readRunOutput("",ui.err.textContent);}finally{setBusy(false);controller=null;setTimeout(()=>ui.bar.style.width="0%",700);}}
+  function stopRun(){if(controller)controller.abort();setBusy(false);setStatus("Stopped","bad",0);toast("Stopped");if("speechSynthesis" in window)window.speechSynthesis.cancel();}
+
+  function normalizeOutput(s){return String(s??"").replaceAll("\r\n","\n").replace(/[ \t]+$/gm,"").trimEnd();}
+  function selectedProblem(){return problems.find(p=>p.id===ui.problem.value)||null;}
+  function renderProblem(){currentProblem=selectedProblem();hintIndex=0;if(!currentProblem){ui.pTitle.textContent="No problems loaded";ui.pDesc.textContent="Use problems.json or the ?problems= URL parameter.";return;}state.selectedProblem=currentProblem.id;ui.pTitle.textContent=currentProblem.title;ui.pLevel.textContent=currentProblem.level||"";ui.pDesc.textContent=currentProblem.statement||"";ui.pTags.innerHTML=(currentProblem.tags||[]).map(t=>`<span class="chip">${escapeHtml(t)}</span>`).join("");ui.pExamples.style.display="none";ui.pExamples.textContent=(currentProblem.examples||[]).map((x,i)=>`Example ${i+1}\nInput:\n${x.input}\nExpected:\n${x.output}`).join("\n\n");renderAttemptState();saveProject();}
+  function renderAttemptState(){if(!currentProblem)return;const attempts=getAttempts();const n=attempts[currentProblem.id]||0;const t=getTeacherSettings();ui.attemptState.textContent=t.limitAttemptsOn?`Attempts: ${n}/${t.attemptLimit}`:`Attempts: ${n}`;}
+  async function loadProblems(){const params=new URLSearchParams(location.search),url=params.get("problems")||"problems.json";try{const res=await fetch(url,{cache:"no-store"});if(!res.ok)throw new Error(`HTTP ${res.status}`);const data=await res.json();problems=Array.isArray(data)?data:[];}catch(err){problems=[];ui.judgeSummary.textContent=`Could not load problems: ${err.message}`;}ui.problem.innerHTML=problems.map(p=>`<option value="${escapeAttr(p.id)}">${escapeHtml(p.level||"")} — ${escapeHtml(p.title||p.id)}</option>`).join("");if(state.selectedProblem&&problems.some(p=>p.id===state.selectedProblem))ui.problem.value=state.selectedProblem;renderProblem();}
+  function loadStarter(reset=false){if(!currentProblem)return toast("Choose a problem first");const settings=getTeacherSettings();if(settings.lockProblem&&!isTeacher&&state.selectedProblem&&state.selectedProblem!==currentProblem.id)return toast("Problem is locked by teacher mode");if(!reset&&ui.code.value.trim()&&!confirm("Replace the active file with the problem starter code?"))return;ui.code.value=currentProblem.starter||helloCode;ui.stdin.value=currentProblem.examples?.[0]?.input||"";updateGutter();saveProject();switchPane("out");toast("Starter loaded");}
+  function showHint(){if(!currentProblem)return;const settings=getTeacherSettings();if(settings.examMode&&!isTeacher)return toast("Hints are disabled in Exam Mode");const hints=currentProblem.hints||[];if(!hints.length)return toast("No hint for this problem");toast(hints[hintIndex%hints.length]);hintIndex++;if(currentProblem.examples?.length){ui.pExamples.style.display="block";}}
+  function chooseToday(){if(!problems.length)return;const now=new Date(),day=Math.floor((Date.UTC(now.getFullYear(),now.getMonth(),now.getDate())-Date.UTC(now.getFullYear(),0,0))/86400000);ui.problem.selectedIndex=day%problems.length;renderProblem();toast("Today's problem selected");}
+  function getAttempts(){try{return JSON.parse(localStorage.getItem(KEY.attempts)||"{}");}catch{return{};}}
+  function bumpAttempt(id){const a=getAttempts();a[id]=(a[id]||0)+1;localStorage.setItem(KEY.attempts,JSON.stringify(a));renderAttemptState();return a[id];}
+  function getTeacherSettings(){const defaults={forceClass:false,examMode:false,lockProblem:false,limitAttemptsOn:false,allowNuget:true,attemptLimit:5};try{return{...defaults,...JSON.parse(localStorage.getItem(KEY.teacher)||"{}")} }catch{return defaults;}}
+  function saveTeacherSettings(){const s={forceClass:ui.forceClass.checked,examMode:ui.examMode.checked,lockProblem:ui.lockProblem.checked,limitAttemptsOn:ui.limitAttemptsOn.checked,allowNuget:ui.allowNuget.checked,attemptLimit:Math.max(1,Number(ui.attemptLimit.value)||5)};localStorage.setItem(KEY.teacher,JSON.stringify(s));applyTeacherPolicy();renderAttemptState();}
+  function applyTeacherSettings(){const s=getTeacherSettings();ui.forceClass.checked=s.forceClass;ui.examMode.checked=s.examMode;ui.lockProblem.checked=s.lockProblem;ui.limitAttemptsOn.checked=s.limitAttemptsOn;ui.allowNuget.checked=s.allowNuget;ui.attemptLimit.value=s.attemptLimit;applyTeacherPolicy();}
+  function applyTeacherPolicy(){const s=getTeacherSettings();ui.modeText.textContent=isTeacher?"Teacher":s.examMode?"Exam":s.forceClass?"Classroom":"Student";ui.teacherPanel.style.display=isTeacher?"block":"none";ui.teacherBtn.style.display=isTeacher?"inline-flex":"none";ui.problem.disabled=s.lockProblem&&!isTeacher;ui.today.disabled=s.lockProblem&&!isTeacher;ui.hint.disabled=s.examMode&&!isTeacher;ui.example.disabled=s.examMode&&!isTeacher;ui.loadExample.disabled=s.examMode&&!isTeacher;ui.share.disabled=s.examMode&&!isTeacher;ui.nugetInput.disabled=!s.allowNuget&&!isTeacher;ui.nugetAdd.disabled=!s.allowNuget&&!isTeacher;ui.studentLink.textContent=buildStudentLink();renderSubmissionCount();}
+  function buildStudentLink(){const u=new URL(location.href);u.searchParams.set("tmode","0");u.hash="";return u.toString();}
+  function submissions(){try{return JSON.parse(localStorage.getItem(KEY.submissions)||"[]");}catch{return[];}}
+  function recordSubmission(result){const rows=submissions();rows.push({at:new Date().toISOString(),student:ui.stuName.value,roll:ui.stuRoll.value,problem:currentProblem?.id||"",title:currentProblem?.title||"",passed:result.passed,total:result.total,code:ui.code.value,files:state.tabs.map(t=>({name:t.name,code:t.code}))});localStorage.setItem(KEY.submissions,JSON.stringify(rows));renderSubmissionCount();}
+  function renderSubmissionCount(){ui.subCount.textContent=submissions().length;}
+  function exportSubmissions(){downloadBlob("csharp-submissions.json",JSON.stringify(submissions(),null,2),"application/json");}
+  function clearSubmissions(){if(confirm("Clear locally stored submissions?")){localStorage.removeItem(KEY.submissions);renderSubmissionCount();}}
+  function awardProblem(){if(!currentProblem)return;let solved=[];try{solved=JSON.parse(localStorage.getItem(KEY.solved)||"[]");}catch{}if(solved.includes(currentProblem.id))return;solved.push(currentProblem.id);localStorage.setItem(KEY.solved,JSON.stringify(solved));const points=currentProblem.level==="Hard"?50:currentProblem.level==="Medium"?30:20;const xp=(Number(localStorage.getItem(KEY.xp))||0)+points;const streak=(Number(localStorage.getItem(KEY.streak))||0)+1;localStorage.setItem(KEY.xp,String(xp));localStorage.setItem(KEY.streak,String(streak));ui.xp.textContent=xp;ui.streak.textContent=streak;toast(`All tests passed. +${points} XP`);}
+  async function judgeTests(tests,full){if(!currentProblem||running)return;const settings=getTeacherSettings(),attempts=getAttempts(),used=attempts[currentProblem.id]||0;if(full&&settings.limitAttemptsOn&&!isTeacher&&used>=settings.attemptLimit)return toast("Attempt limit reached");if(full)bumpAttempt(currentProblem.id);setBusy(true);ui.judgeTable.innerHTML="";ui.judgeSummary.textContent="Running tests…";const rows=[];try{for(let i=0;i<tests.length;i++){setStatus(`Test ${i+1} of ${tests.length}…`,"warn",Math.round((i/tests.length)*100));const t=tests[i],r=await executeWithTimeout(projectSourceFiles(),t.input||"");const actual=normalizeOutput(r.stdout),expected=normalizeOutput(t.output),pass=r.ok&&actual===expected;rows.push({index:i+1,pass,hidden:Boolean(t.hidden),input:t.input||"",expected:t.output||"",actual:r.stdout||"",error:r.stderr||""});await new Promise(res=>setTimeout(res,120));}const passed=rows.filter(r=>r.pass).length;ui.judgeSummary.innerHTML=`<b>${passed}/${rows.length}</b> tests passed.`;ui.judgeTable.innerHTML=`<table><thead><tr><th>#</th><th>Result</th><th>Input</th><th>Expected</th><th>Actual / Error</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r.index}</td><td class="${r.pass?"pass":"fail"}">${r.pass?"PASS":"FAIL"}</td><td><pre>${r.hidden?"Hidden":escapeHtml(r.input)}</pre></td><td><pre>${r.hidden?"Hidden":escapeHtml(r.expected)}</pre></td><td><pre>${r.hidden?(r.pass?"Matched":"Did not match"):escapeHtml(r.error||r.actual)}</pre></td></tr>`).join("")}</tbody></table>`;if(full){recordSubmission({passed,total:rows.length});if(passed===rows.length)awardProblem();}setStatus(passed===rows.length?"Tests passed":"Some tests failed",passed===rows.length?"ok":"bad",100);}catch(err){ui.judgeSummary.textContent=String(err.message||err);setStatus("Judge error","bad",100);}finally{setBusy(false);controller=null;setTimeout(()=>ui.bar.style.width="0%",700);renderAttemptState();}}
+
+  function renderNuget(){ui.nugetList.innerHTML=(state.nuget||[]).map((p,i)=>`<span class="chip">${escapeHtml(p.name)}${p.version?" @ "+escapeHtml(p.version):""}<button class="chipX" data-nuget-remove="${i}" title="Remove">×</button></span>`).join("")||'<span class="vs-small">No PackageReferences.</span>';}
+  function addNuget(){const s=ui.nugetInput.value.trim();if(!s)return;const at=s.lastIndexOf("@");const name=(at>0?s.slice(0,at):s).trim(),version=(at>0?s.slice(at+1):"").trim();if(!name)return;if(!state.nuget)state.nuget=[];if(!state.nuget.some(p=>p.name.toLowerCase()===name.toLowerCase()))state.nuget.push({name,version});ui.nugetInput.value="";renderNuget();saveProject();}
+  function projectCsproj(){const title=(state.title||"CSharpProject").replace(/[^A-Za-z0-9_.-]/g,"")||"CSharpProject";const refs=(state.nuget||[]).map(p=>`    <PackageReference Include="${escapeXml(p.name)}"${p.version?` Version="${escapeXml(p.version)}"`:""} />`).join("\n");return `<Project Sdk="Microsoft.NET.Sdk">\n  <PropertyGroup>\n    <OutputType>Exe</OutputType>\n    <TargetFramework>net8.0</TargetFramework>\n    <ImplicitUsings>enable</ImplicitUsings>\n    <Nullable>enable</Nullable>\n    <AssemblyName>${escapeXml(title)}</AssemblyName>\n  </PropertyGroup>${refs?`\n  <ItemGroup>\n${refs}\n  </ItemGroup>`:""}\n</Project>\n`;}
+  function escapeXml(s){return String(s??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");}
+  function downloadCsproj(){downloadBlob(`${(state.title||"CSharpProject").replace(/[^A-Za-z0-9_.-]/g,"-")}.csproj`,projectCsproj(),"application/xml");}
+
+  const DB_NAME="lwc-csharp-assets-v1",STORE="assets";
+  function openDb(){return new Promise((resolve,reject)=>{const req=indexedDB.open(DB_NAME,1);req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains(STORE))req.result.createObjectStore(STORE,{keyPath:"name"});};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
+  async function dbList(){try{const db=await openDb();return await new Promise((resolve,reject)=>{const tx=db.transaction(STORE,"readonly"),req=tx.objectStore(STORE).getAll();req.onsuccess=()=>resolve(req.result||[]);req.onerror=()=>reject(req.error);});}catch{return[];}}
+  async function dbPut(item){const db=await openDb();return await new Promise((resolve,reject)=>{const tx=db.transaction(STORE,"readwrite");tx.objectStore(STORE).put(item);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});}
+  async function dbDelete(name){const db=await openDb();return await new Promise((resolve,reject)=>{const tx=db.transaction(STORE,"readwrite");tx.objectStore(STORE).delete(name);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});}
+  async function refreshAssets(){assets=await dbList();renderAssets();}
+  function renderAssets(){ui.downloadAllFiles.disabled=!assets.length;ui.fileList.innerHTML=assets.length?assets.map(f=>`<div class="fileRow"><span class="fileName" title="${escapeAttr(f.name)}">${escapeHtml(f.name)}</span><span class="fileSize">${formatSize(f.size)}</span><span class="fileButtons"><button class="miniBtn" data-file-download="${escapeAttr(f.name)}">Download</button><button class="miniBtn danger" data-file-delete="${escapeAttr(f.name)}">Delete</button></span></div>`).join(""):'<p class="emptyFiles">No project files yet.</p>';}
+  async function uploadAssets(files){for(const file of files){if(file.size>10*1024*1024){toast(`${file.name} is larger than 10 MB`);continue;}const data=await file.arrayBuffer();const textExt=/\.(txt|csv|json|xml|md|config|ini|log|csproj|props|targets)$/i.test(file.name);let text=null;if(textExt&&file.size<=1000000){try{text=new TextDecoder().decode(data);}catch{}}await dbPut({name:file.name.replaceAll("\\","/").split("/").pop(),size:file.size,type:file.type||"application/octet-stream",data,text});}await refreshAssets();toast("Files uploaded");}
+  async function downloadAsset(name){const row=(await dbList()).find(x=>x.name===name);if(row)downloadBlob(row.name,row.data,row.type);}
+  async function downloadAllAssets(){if(!assets.length)return;if(window.JSZip){const zip=new JSZip();for(const f of assets)zip.file(f.name,f.data);downloadBlob("csharp-project-assets.zip",await zip.generateAsync({type:"blob"}));}else{for(const f of assets)downloadBlob(f.name,f.data,f.type);}}
+  async function downloadProjectZip(){saveProject();const projectName=(state.title||"csharp-project").trim().replace(/[^A-Za-z0-9_.-]+/g,"-")||"csharp-project";if(!window.JSZip){downloadBlob(`${projectName}.json`,JSON.stringify({...state,assets:assets.map(a=>({name:a.name,size:a.size,type:a.type}))},null,2),"application/json");return toast("JSZip unavailable; project JSON downloaded instead");}const zip=new JSZip();state.tabs.forEach(t=>zip.file(t.name,t.code));zip.file(`${projectName}.csproj`,projectCsproj());zip.file("README.md",`# ${state.title||"C# Project"}\n\n${state.description||"Created with Learn With Champak C# Editor."}\n\n## Run locally\n\n\`\`\`bash\ndotnet run\n\`\`\`\n`);const folder=zip.folder("assets");for(const f of await dbList())folder.file(f.name,f.data);zip.file("editor-project.json",JSON.stringify({...state,stdin:ui.stdin.value},null,2));downloadBlob(`${projectName}.zip`,await zip.generateAsync({type:"blob"}));toast("Project ZIP created");}
+
+  function sharePayload(){syncEditorToState();return{v:3,tabs:state.tabs,currentTab:state.currentTab,stdin:ui.stdin.value,title:ui.projectTitle.value,author:ui.projectAuthor.value,description:ui.projectDescription.value,tags:ui.projectTags.value,nuget:state.nuget,problem:ui.problem.value||"",backend:ui.backend.value,runTarget:ui.runTarget.value};}
+  function shareProject(){const settings=getTeacherSettings();if(settings.examMode&&!isTeacher)return toast("Sharing is disabled in Exam Mode");saveProject();const hash=base64UrlEncode(JSON.stringify(sharePayload()));const url=location.origin+location.pathname+location.search+"#"+hash;ui.shareInput.value=url;ui.shareOpen.href=url;ui.shareHint.textContent=url.length>80000?"This project creates a very long URL. ZIP export is recommended.":"Code and project settings are inside the URL hash; asset files are not included.";ui.shareModal.classList.add("show");ui.shareModal.setAttribute("aria-hidden","false");}
+  function closeShare(){ui.shareModal.classList.remove("show");ui.shareModal.setAttribute("aria-hidden","true");}
+  function loadHash(){if(!location.hash)return false;try{const p=JSON.parse(base64UrlDecode(location.hash.slice(1)));if(Array.isArray(p.tabs)&&p.tabs.length){state.tabs=p.tabs.map((t,i)=>({name:normalizeFileName(t.name||`File${i+1}.cs`),code:String(t.code||"")}));state.currentTab=Math.max(0,Math.min(Number(p.currentTab)||0,state.tabs.length-1));}if(typeof p.stdin==="string")state.stdin=p.stdin;if(typeof p.title==="string")state.title=p.title;if(typeof p.author==="string")state.author=p.author;if(typeof p.description==="string")state.description=p.description;if(typeof p.tags==="string")state.tags=p.tags;if(Array.isArray(p.nuget))state.nuget=p.nuget;if(typeof p.problem==="string")state.selectedProblem=p.problem;if(typeof p.backend==="string")localStorage.setItem(KEY.backend,p.backend);if(typeof p.runTarget==="string")localStorage.setItem(KEY.runTarget,p.runTarget);return true;}catch{return false;}}
+  async function loadRemoteCode(){const params=new URLSearchParams(location.search);const codefile=params.get("codefile"),code=params.get("code");try{if(codefile){const r=await fetch(codefile);if(!r.ok)throw new Error(`codefile HTTP ${r.status}`);addTab(new URL(codefile,location.href).pathname.split("/").pop()||"Remote.cs",await r.text());}else if(code){const r=await fetch(code);if(!r.ok)throw new Error(`code JSON HTTP ${r.status}`);const p=await r.json();if(Array.isArray(p))state.tabs=p.map((t,i)=>({name:normalizeFileName(t.name||`File${i+1}.cs`),code:String(t.code||"")}));else if(Array.isArray(p.tabs))state.tabs=p.tabs.map((t,i)=>({name:normalizeFileName(t.name||`File${i+1}.cs`),code:String(t.code||"")}));else if(typeof p.code==="string")state.tabs=[{name:"Program.cs",code:p.code}];if(Number.isInteger(p.currentTab))state.currentTab=Math.max(0,Math.min(p.currentTab,state.tabs.length-1));if(typeof p.stdin==="string")state.stdin=p.stdin;if(typeof p.problem==="string")state.selectedProblem=p.problem;syncStateToUi();saveProject();}}catch(err){toast(`Remote code load failed: ${err.message}`);}}
+
+  function switchPane(name){$$('.vs-ptab').forEach(t=>t.classList.toggle('active',t.dataset.pane===name));$$('.vs-pane').forEach(p=>p.classList.toggle('active',p.dataset.pane===name));}
+  function toggleAppFullscreen(){const on=!ui.app.classList.contains("appFullscreen");ui.app.classList.toggle("appFullscreen",on);document.body.style.overflow=on?"hidden":"";ui.fullscreen.textContent=on?"Exit full screen":"Full screen";}
+  function toggleCodeFullscreen(){const on=!ui.app.querySelector(".codeCard").classList.contains("codeExpanded");closeIoExpanded();ui.app.querySelector(".codeCard").classList.toggle("codeExpanded",on);document.body.classList.toggle("codeEditorFullscreenMode",on);ui.codeFullscreen.textContent=on?"Original size":"Full screen";setTimeout(()=>ui.code.focus(),0);}
+  function closeIoExpanded(){$$('.ioExpanded').forEach(x=>x.classList.remove('ioExpanded'));document.body.classList.remove('ioExpandedMode');$$('.jsToggleBox').forEach(b=>b.textContent='Expand');}
+  function toggleIo(btn){let box=btn.closest('.ioCard')||btn.closest('.vs-pane');if(!box)return;const on=!box.classList.contains('ioExpanded');closeIoExpanded();if(on){box.classList.add('ioExpanded');document.body.classList.add('ioExpandedMode');btn.textContent='Original size';}}
+  function updateSections(){const top=ui.topBand.classList.contains("hidden"),bot=ui.bottomBand.classList.contains("hidden");ui.toggleTop.textContent=top?"Show Top":"Hide Top";ui.toggleBottom.textContent=bot?"Show Bottom":"Hide Bottom";ui.hideTop.textContent=top?"Show top section":"Hide top section";ui.hideBottom.textContent=bot?"Show bottom section":"Hide bottom section";ui.sectionsState.textContent=`Top: ${top?"hidden":"shown"} • Bottom: ${bot?"hidden":"shown"}`;localStorage.setItem(KEY.topHidden,top?"1":"0");localStorage.setItem(KEY.bottomHidden,bot?"1":"0");}
+  function toggleSection(which){const el=which==="top"?ui.topBand:ui.bottomBand;el.classList.toggle("hidden");updateSections();}
+
+  function logVoice(text,ok=true){const div=document.createElement("div");div.className="voiceItem";div.innerHTML=`<div class="voiceMeta">${new Date().toLocaleTimeString()} • ${ok?"understood":"not matched"}</div>${escapeHtml(text)}`;ui.voiceLog.prepend(div);}
+  function handleVoiceCommand(raw){const s=raw.toLowerCase().trim();const match=(...p)=>p.some(x=>s.includes(x));if(match("run","execute")){runCode();logVoice(raw);return;}if(match("stop","cancel")){stopRun();logVoice(raw);return;}if(match("clear output")){ui.out.textContent="Output will appear here.";ui.err.textContent="Errors will appear here.";logVoice(raw);return;}if(match("open problems","show problems")){switchPane("problems");logVoice(raw);return;}if(match("open input","show input","stdin")){switchPane("stdin");logVoice(raw);return;}if(match("dark mode")){applyTheme("dark");logVoice(raw);return;}if(match("light mode")){applyTheme("light");logVoice(raw);return;}if(match("new file")){addTab("NewFile.cs","");logVoice(raw);return;}if(match("share")){shareProject();logVoice(raw);return;}if(match("download project","export project")){downloadProjectZip();logVoice(raw);return;}logVoice(raw,false);toast("Voice command not recognized");}
+  function toggleVoice(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return toast("Voice recognition is not available in this browser");if(recognition){recognition.stop();recognition=null;ui.voiceStatus.textContent="Voice: off";return;}recognition=new SR();recognition.lang="en-IN";recognition.continuous=true;recognition.interimResults=false;recognition.onresult=e=>{for(let i=e.resultIndex;i<e.results.length;i++)if(e.results[i].isFinal)handleVoiceCommand(e.results[i][0].transcript);};recognition.onerror=e=>{ui.voiceStatus.textContent=`Voice: ${e.error}`;};recognition.onend=()=>{if(recognition){try{recognition.start();}catch{}}};recognition.start();ui.voiceStatus.textContent="Voice: listening";}
+
+  function initResizers(){const sw=Number(localStorage.getItem(KEY.sidebarWidth));if(sw)ui.sidebar.style.width=`${sw}px`;const ph=Number(localStorage.getItem(KEY.panelHeight));if(ph)ui.panel.style.height=`${ph}px`;ui.sidebarResizer.addEventListener("pointerdown",e=>{e.preventDefault();const startX=e.clientX,startW=ui.sidebar.getBoundingClientRect().width;const move=ev=>{const w=Math.max(240,Math.min(420,startW+ev.clientX-startX));ui.sidebar.style.width=w+"px";localStorage.setItem(KEY.sidebarWidth,String(w));};const up=()=>{window.removeEventListener("pointermove",move);window.removeEventListener("pointerup",up);};window.addEventListener("pointermove",move);window.addEventListener("pointerup",up);});ui.panelResizer.addEventListener("pointerdown",e=>{e.preventDefault();const startY=e.clientY,startH=ui.panel.getBoundingClientRect().height;const move=ev=>{const h=Math.max(210,Math.min(window.innerHeight*.55,startH-(ev.clientY-startY)));ui.panel.style.height=h+"px";localStorage.setItem(KEY.panelHeight,String(Math.round(h)));};const up=()=>{window.removeEventListener("pointermove",move);window.removeEventListener("pointerup",up);};window.addEventListener("pointermove",move);window.addEventListener("pointerup",up);});}
+
+  function syncStateToUi(){renderTabs();ui.code.value=currentTab()?.code||"";ui.stdin.value=state.stdin||"";ui.projectTitle.value=state.title||"";ui.projectAuthor.value=state.author||"";ui.projectDescription.value=state.description||"";ui.projectTags.value=state.tags||"";renderNuget();updateProjectSummary();updateGutter();}
+  function loadExample(){const ex=examples[ui.example.value];if(!ex)return;ui.code.value=ex.code;ui.stdin.value=ex.stdin;updateGutter();saveProject();toast(`${ex.title} loaded`);}
+  function populateExamples(){ui.example.innerHTML='<option value="">Examples…</option>'+Object.entries(examples).map(([k,v])=>`<option value="${k}">${escapeHtml(v.title)}</option>`).join("");}
+  function initScore(){ui.xp.textContent=Number(localStorage.getItem(KEY.xp))||0;ui.streak.textContent=Number(localStorage.getItem(KEY.streak))||0;}
+
+  async function init(){
+    const fromHash=loadHash();if(!fromHash)loadLocalState();syncStateToUi();populateExamples();
+    applyTheme(localStorage.getItem(KEY.theme)||"light");const font=localStorage.getItem(KEY.font)||"16";ui.font.value=font;applyFont(font);
+    ui.backend.value=localStorage.getItem(KEY.backend)||"auto";ui.runTarget.value=localStorage.getItem(KEY.runTarget)||"project";ui.readOutput.checked=localStorage.getItem(KEY.readOutput)==="true";ui.timeout.value=localStorage.getItem(KEY.timeout)||"8";
+    if(localStorage.getItem(KEY.topHidden)==="1")ui.topBand.classList.add("hidden");if(localStorage.getItem(KEY.bottomHidden)==="1")ui.bottomBand.classList.add("hidden");updateSections();
+    applyTeacherSettings();initScore();initResizers();setBusy(false);await Promise.allSettled([discoverCompilers(),loadProblems(),refreshAssets()]);await loadRemoteCode();renderProblem();renderCompilerDetails();setStatus("Ready","ok",0);
   }
 
-  function updateLineNumbers() {
-    const count = editor.value.split("\n").length;
-    lineNumbers.textContent = Array.from({ length: count }, (_, i) => i + 1).join("\n");
-  }
-
-  function syncScroll() {
-    lineNumbers.scrollTop = editor.scrollTop;
-  }
-
-  function autosave() {
-    localStorage.setItem(STORAGE_CODE, editor.value);
-    localStorage.setItem(STORAGE_INPUT, stdin.value);
-    saveStatus.textContent = "Saved";
-    window.clearTimeout(autosave._timer);
-    autosave._timer = window.setTimeout(() => saveStatus.textContent = "Autosaved", 900);
-  }
-
-  function setBusy(busy) {
-    runBtn.disabled = busy;
-    stopBtn.disabled = !busy;
-    runStatus.textContent = busy ? "Running…" : "Ready";
-  }
-
-  function loadExample(key) {
-    editor.value = examples[key] || examples.hello;
-    stdin.value = key === "input" ? "Champak\n25" : key === "conditions" ? "72" : key === "loops" ? "5" : key === "functions" ? "8" : "";
-    updateLineNumbers();
-    autosave();
-    editor.focus();
-  }
-
-  async function discoverWandboxCompiler(signal) {
-    if (wandboxCompiler) return wandboxCompiler;
-
-    const res = await fetch("https://wandbox.org/api/list.json", { signal });
-    if (!res.ok) throw new Error(`Wandbox compiler list returned HTTP ${res.status}.`);
-
-    const compilers = await res.json();
-    const csharp = compilers.filter(c => {
-      const lang = String(c.language || "").toLowerCase();
-      return lang.includes("c#") || lang.includes("csharp") || lang.includes("c sharp");
-    });
-
-    if (!csharp.length) throw new Error("No C# compiler is currently advertised by Wandbox.");
-
-    function score(c) {
-      const name = String(c.name || "").toLowerCase();
-      const version = String(c.version || "").toLowerCase();
-      let s = 0;
-      if (name.includes("dotnet")) s += 100;
-      if (name.includes("mono")) s += 80;
-      if (name.includes("head")) s += 20;
-      if (version.includes("head")) s += 10;
-      return s;
-    }
-
-    csharp.sort((a, b) => score(b) - score(a));
-    wandboxCompiler = csharp[0].name;
-    return wandboxCompiler;
-  }
-
-  async function runWithWandbox(code, input, signal) {
-    const compiler = await discoverWandboxCompiler(signal);
-    backendBadge.textContent = `Backend: Wandbox / ${compiler}`;
-
-    const res = await fetch("https://wandbox.org/api/compile.json", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      signal,
-      body: JSON.stringify({
-        code,
-        compiler,
-        stdin: input,
-        options: "",
-        "compiler-option-raw": "",
-        "runtime-option-raw": ""
-      })
-    });
-
-    if (!res.ok) throw new Error(`Wandbox returned HTTP ${res.status}.`);
-    const data = await res.json();
-
-    const compilerText = [
-      data.compiler_output,
-      data.compiler_message
-    ].filter(Boolean).join("\n").trim();
-
-    const programText = [
-      data.program_output,
-      data.program_message
-    ].filter(Boolean).join("\n").trim();
-
-    const text = [compilerText, programText].filter(Boolean).join("\n").trim();
-    const failed = Boolean(compilerText) || (data.status && data.status !== "0");
-
-    return {
-      text: text || "(program finished with no output)",
-      failed
-    };
-  }
-
-  async function discoverJudge0Language(signal) {
-    if (judge0LanguageId) return judge0LanguageId;
-
-    const res = await fetch("https://ce.judge0.com/languages/", { signal });
-    if (!res.ok) throw new Error(`Judge0 language list returned HTTP ${res.status}.`);
-    const langs = await res.json();
-
-    const exact = langs.find(x => /^c#\s*\(/i.test(String(x.name || "")));
-    const fallback = langs.find(x => /c#|csharp|c sharp/i.test(String(x.name || "")));
-    const chosen = exact || fallback;
-
-    if (!chosen) throw new Error("No C# language is currently advertised by Judge0.");
-    judge0LanguageId = chosen.id;
-    return judge0LanguageId;
-  }
-
-  async function pollJudge0(token, signal) {
-    for (let i = 0; i < 18; i++) {
-      const res = await fetch(
-        `https://ce.judge0.com/submissions/${encodeURIComponent(token)}?base64_encoded=false&fields=stdout,stderr,compile_output,message,status,time,memory`,
-        { signal }
-      );
-      if (!res.ok) throw new Error(`Judge0 polling returned HTTP ${res.status}.`);
-      const data = await res.json();
-      const id = data.status && data.status.id;
-      if (id !== 1 && id !== 2) return data;
-      await new Promise(r => setTimeout(r, 450));
-    }
-    throw new Error("Judge0 execution timed out while waiting for a result.");
-  }
-
-  async function runWithJudge0(code, input, signal) {
-    const languageId = await discoverJudge0Language(signal);
-    backendBadge.textContent = `Backend: Judge0 / C# (${languageId})`;
-
-    let res = await fetch("https://ce.judge0.com/submissions?base64_encoded=false&wait=true", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      signal,
-      body: JSON.stringify({
-        source_code: code,
-        language_id: languageId,
-        stdin: input
-      })
-    });
-
-    if (!res.ok) throw new Error(`Judge0 returned HTTP ${res.status}.`);
-    let data = await res.json();
-
-    if (data.token && (!data.status || data.status.id === 1 || data.status.id === 2)) {
-      data = await pollJudge0(data.token, signal);
-    }
-
-    const parts = [
-      data.compile_output,
-      data.stderr,
-      data.stdout,
-      data.message
-    ].filter(Boolean);
-
-    const statusId = data.status && data.status.id;
-    return {
-      text: parts.join("\n").trim() || "(program finished with no output)",
-      failed: Boolean(statusId && statusId !== 3)
-    };
-  }
-
-  async function runCode() {
-    if (controller) controller.abort();
-    controller = new AbortController();
-    setBusy(true);
-    setOutput("Compiling and running…");
-    output.classList.remove("error");
-
-    const code = editor.value;
-    const input = stdin.value;
-    const errors = [];
-
-    try {
-      try {
-        const result = await runWithWandbox(code, input, controller.signal);
-        setOutput(result.text, result.failed);
-        runStatus.textContent = result.failed ? "Finished with errors" : "Finished";
-        return;
-      } catch (err) {
-        if (err.name === "AbortError") throw err;
-        errors.push(`Wandbox: ${err.message}`);
-      }
-
-      try {
-        const result = await runWithJudge0(code, input, controller.signal);
-        setOutput(result.text, result.failed);
-        runStatus.textContent = result.failed ? "Finished with errors" : "Finished";
-        return;
-      } catch (err) {
-        if (err.name === "AbortError") throw err;
-        errors.push(`Judge0: ${err.message}`);
-      }
-
-      throw new Error(errors.join("\n"));
-    } catch (err) {
-      if (err.name === "AbortError") {
-        setOutput("Execution cancelled.");
-        runStatus.textContent = "Cancelled";
-      } else {
-        setOutput(
-          "Unable to reach a C# execution backend.\n\n" +
-          err.message +
-          "\n\nThe editor itself is still working. If this is a production classroom site, use your own Judge0/Wandbox-compatible execution service for guaranteed availability.",
-          true
-        );
-        runStatus.textContent = "Backend unavailable";
-        backendBadge.textContent = "Backend: unavailable";
-      }
-    } finally {
-      setBusy(false);
-      controller = null;
-    }
-  }
-
-  function downloadProgram() {
-    const blob = new Blob([editor.value], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "Program.cs";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  }
-
-  async function copyCode() {
-    try {
-      await navigator.clipboard.writeText(editor.value);
-      $("copyBtn").textContent = "Copied";
-      setTimeout(() => $("copyBtn").textContent = "Copy", 900);
-    } catch {
-      editor.select();
-      document.execCommand("copy");
-    }
-  }
-
-  function insertTab(e) {
-    if (e.key !== "Tab") return;
-    e.preventDefault();
-    const start = editor.selectionStart;
-    const end = editor.selectionEnd;
-    editor.setRangeText("    ", start, end, "end");
-    updateLineNumbers();
-    autosave();
-  }
-
-  editor.addEventListener("input", () => {
-    updateLineNumbers();
-    autosave();
-  });
-  editor.addEventListener("scroll", syncScroll);
-  editor.addEventListener("keydown", (e) => {
-    insertTab(e);
-    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-      e.preventDefault();
-      runCode();
-    }
-  });
-
-  stdin.addEventListener("input", autosave);
-
-  $("runBtn").addEventListener("click", runCode);
-  $("stopBtn").addEventListener("click", () => controller && controller.abort());
-  $("loadExampleBtn").addEventListener("click", () => loadExample(exampleSelect.value));
-  $("resetBtn").addEventListener("click", () => {
-    if (confirm("Reset the editor to Hello World?")) loadExample("hello");
-  });
-  $("copyBtn").addEventListener("click", copyCode);
-  $("downloadBtn").addEventListener("click", downloadProgram);
-  $("clearInputBtn").addEventListener("click", () => {
-    stdin.value = "";
-    autosave();
-  });
-  $("clearOutputBtn").addEventListener("click", () => setOutput("Output cleared."));
-  $("fullscreenBtn").addEventListener("click", async () => {
-    try {
-      if (!document.fullscreenElement) {
-        await document.documentElement.requestFullscreen();
-        document.body.classList.add("fullscreen-editor");
-        $("fullscreenBtn").textContent = "Exit Fullscreen";
-      } else {
-        await document.exitFullscreen();
-      }
-    } catch {
-      document.body.classList.toggle("fullscreen-editor");
-    }
-  });
-  document.addEventListener("fullscreenchange", () => {
-    if (!document.fullscreenElement) {
-      document.body.classList.remove("fullscreen-editor");
-      $("fullscreenBtn").textContent = "Fullscreen";
-    }
-  });
-
-  const savedCode = localStorage.getItem(STORAGE_CODE);
-  const savedInput = localStorage.getItem(STORAGE_INPUT);
-  editor.value = savedCode || examples.hello;
-  stdin.value = savedInput || "";
-  updateLineNumbers();
+  ui.code.addEventListener("input",()=>{updateGutter();saveProject();});ui.code.addEventListener("scroll",syncEditorScroll);ui.code.addEventListener("keydown",typingAid);ui.stdin.addEventListener("input",saveProject);
+  ui.tabs.addEventListener("click",e=>{const b=e.target.closest("[data-tab]");if(b)switchTab(b.dataset.tab);});ui.newTab.addEventListener("click",()=>{const name=prompt("New C# file name","Class1.cs");if(name)addTab(name,"");});ui.delTab.addEventListener("click",deleteCurrentTab);
+  ui.run.addEventListener("click",runCode);ui.stop.addEventListener("click",stopRun);ui.copyOut.addEventListener("click",async()=>{try{await navigator.clipboard.writeText(ui.out.textContent);toast("Output copied");}catch{toast("Copy blocked");}});ui.clearOut.addEventListener("click",()=>{ui.out.textContent="Output will appear here.";ui.err.textContent="Errors will appear here.";ui.runMeta.textContent="";});
+  ui.stdinSample.addEventListener("click",()=>{ui.stdin.value=currentProblem?.examples?.[0]?.input||"Champak\n25";saveProject();});ui.stdinClear.addEventListener("click",()=>{ui.stdin.value="";saveProject();});
+  ui.example.addEventListener("change",()=>{});ui.loadExample.addEventListener("click",loadExample);ui.font.addEventListener("change",()=>applyFont(ui.font.value));ui.indent.addEventListener("change",()=>toast(`Indent: ${ui.indent.options[ui.indent.selectedIndex].text}`));ui.timeout.addEventListener("change",()=>localStorage.setItem(KEY.timeout,ui.timeout.value));ui.readOutput.addEventListener("change",()=>{localStorage.setItem(KEY.readOutput,String(ui.readOutput.checked));if(!ui.readOutput.checked&&"speechSynthesis" in window)window.speechSynthesis.cancel();});
+  ui.backend.addEventListener("change",()=>{localStorage.setItem(KEY.backend,ui.backend.value);renderCompilerDetails();});ui.compiler.addEventListener("change",()=>{localStorage.setItem(KEY.compiler,ui.compiler.value);renderCompilerDetails();});ui.runTarget.addEventListener("change",()=>{localStorage.setItem(KEY.runTarget,ui.runTarget.value);renderCompilerDetails();});ui.refreshCompilers.addEventListener("click",()=>discoverCompilers(true));
+  [ui.projectTitle,ui.projectAuthor,ui.projectDescription,ui.projectTags].forEach(el=>el.addEventListener("input",()=>{updateProjectSummary();saveProject();}));[ui.stuName,ui.stuRoll].forEach(el=>el.addEventListener("input",saveProject));
+  ui.theme.addEventListener("click",()=>applyTheme(document.body.dataset.theme==="dark"?"light":"dark"));ui.fullscreen.addEventListener("click",toggleAppFullscreen);ui.codeFullscreen.addEventListener("click",toggleCodeFullscreen);ui.format.addEventListener("click",simpleFormat);ui.save.addEventListener("click",()=>{saveProject();toast("Project saved locally");});ui.downloadCs.addEventListener("click",()=>downloadBlob(currentTab().name,ui.code.value,"text/plain;charset=utf-8"));ui.downloadProject.addEventListener("click",downloadProjectZip);
+  ui.nugetAdd.addEventListener("click",addNuget);ui.nugetInput.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();addNuget();}});ui.nugetList.addEventListener("click",e=>{const b=e.target.closest("[data-nuget-remove]");if(b){state.nuget.splice(Number(b.dataset.nugetRemove),1);renderNuget();saveProject();}});ui.downloadCsproj.addEventListener("click",downloadCsproj);
+  ui.problem.addEventListener("change",renderProblem);ui.today.addEventListener("click",chooseToday);ui.loadStarter.addEventListener("click",()=>loadStarter(false));ui.resetStarter.addEventListener("click",()=>loadStarter(true));ui.hint.addEventListener("click",showHint);ui.runSamples.addEventListener("click",()=>judgeTests(currentProblem?.examples||[],false));ui.runAll.addEventListener("click",()=>judgeTests(currentProblem?.tests||[],true));
+  [ui.forceClass,ui.examMode,ui.lockProblem,ui.limitAttemptsOn,ui.allowNuget,ui.attemptLimit].forEach(el=>el.addEventListener("change",saveTeacherSettings));ui.exportSubs.addEventListener("click",exportSubmissions);ui.clearSubs.addEventListener("click",clearSubmissions);ui.teacherBtn.addEventListener("click",()=>{ui.sidebar.style.display="flex";ui.teacherPanel.scrollIntoView({behavior:"smooth",block:"center"});});ui.teacherFocus.addEventListener("click",()=>{ui.sidebar.style.display="flex";ui.teacherPanel.scrollIntoView({behavior:"smooth",block:"center"});});
+  ui.share.addEventListener("click",shareProject);ui.shareClose.addEventListener("click",closeShare);ui.shareModal.addEventListener("click",e=>{if(e.target.dataset.close)closeShare();});ui.shareCopy.addEventListener("click",async()=>{try{await navigator.clipboard.writeText(ui.shareInput.value);toast("Share link copied");}catch{ui.shareInput.select();document.execCommand("copy");toast("Share link copied");}});
+  ui.voiceBtn.addEventListener("click",toggleVoice);ui.voiceClear.addEventListener("click",()=>ui.voiceLog.innerHTML="");
+  ui.uploadFiles.addEventListener("click",()=>ui.fileInput.click());ui.fileInput.addEventListener("change",async()=>{await uploadAssets(Array.from(ui.fileInput.files||[]));ui.fileInput.value="";});ui.refreshFiles.addEventListener("click",refreshAssets);ui.downloadAllFiles.addEventListener("click",downloadAllAssets);ui.fileList.addEventListener("click",async e=>{const d=e.target.closest("[data-file-download]"),x=e.target.closest("[data-file-delete]");if(d)await downloadAsset(d.dataset.fileDownload);if(x&&confirm(`Delete ${x.dataset.fileDelete}?`)){await dbDelete(x.dataset.fileDelete);await refreshAssets();}});
+  $$('.vs-ptab').forEach(t=>t.addEventListener("click",()=>switchPane(t.dataset.pane)));$$('.jsToggleBox').forEach(b=>b.addEventListener("click",()=>toggleIo(b)));
+  ui.toggleTop.addEventListener("click",()=>toggleSection("top"));ui.hideTop.addEventListener("click",()=>toggleSection("top"));ui.toggleBottom.addEventListener("click",()=>toggleSection("bottom"));ui.hideBottom.addEventListener("click",()=>toggleSection("bottom"));
+  $$('.vs-actbtn').forEach(b=>b.addEventListener("click",()=>{$$('.vs-actbtn').forEach(x=>x.classList.remove('active'));b.classList.add('active');if(window.matchMedia('(max-width:980px)').matches){ui.sidebar.style.display='flex';ui.sidebar.style.position='absolute';ui.sidebar.style.left='46px';ui.sidebar.style.top='42px';ui.sidebar.style.height='calc(100vh - 42px)';ui.sidebar.style.zIndex='70';ui.sidebar.style.boxShadow='0 20px 60px rgba(0,0,0,.45)';}if(b.id==='vsActRun')switchPane('out');if(b.id==='vsActProblems')switchPane('problems');if(b.id==='vsActCompiler')switchPane('compiler');if(b.id==='vsActFiles')switchPane('files');}));
+  document.addEventListener("click",e=>{if(!window.matchMedia('(max-width:980px)').matches)return;if(!ui.sidebar.contains(e.target)&&!e.target.closest('.vs-activity'))ui.sidebar.style.display='none';});
+  document.addEventListener("keydown",e=>{if(e.key!=="Escape")return;if(ui.app.querySelector('.codeCard').classList.contains('codeExpanded')){toggleCodeFullscreen();return;}if(document.querySelector('.ioExpanded')){closeIoExpanded();return;}if(ui.shareModal.classList.contains('show'))closeShare();});
+  window.addEventListener("beforeunload",saveProject);
+  init();
 })();
