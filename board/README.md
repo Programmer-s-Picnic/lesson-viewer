@@ -59,3 +59,10 @@ A beginner-friendly teaching board for simple diagrams.
 - **New Board** clears the board.
 - **Save PNG** downloads the board as an image.
 - **Fullscreen** expands the board for teaching or presentation.
+
+## JSON save / load
+
+- **Save JSON** downloads the complete current board state as `pp-whiteboard.json`.
+- **Load JSON** opens a local `.json` board file and restores the board.
+- Loaded JSON is normalized against the default board state, so hand-edited or older board files remain easier to use.
+- The included `backtracking-maze.json` and `backtracking-8-queens.json` can be loaded directly with **Load JSON**.
