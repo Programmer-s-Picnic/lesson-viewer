@@ -5,7 +5,7 @@ const ui = {
   pkgs: $("ppPkgs"), install: $("ppInstall"), list: $("ppList"), readOutput: $("ppReadOutput"), status: $("ppStatus"), toast: $("ppToast"), copyOut: $("ppCopyOut"), plots: $("ppPlots"),
   plotMode: $("ppPlotMode"), openPlots: $("ppOpenPlots"), plotModal: $("ppPlotModal"), plotModalTitle: $("ppPlotModalTitle"), plotModalImg: $("ppPlotModalImg"), plotModalClose: $("ppPlotModalClose"), plotPrev: $("ppPlotPrev"), plotNext: $("ppPlotNext"), plotDownload: $("ppPlotDownload"),
   fileInput: $("ppFileInput"), uploadFiles: $("ppUploadFiles"), refreshFiles: $("ppRefreshFiles"), downloadAllFiles: $("ppDownloadAllFiles"), fileList: $("ppFileList"),
-  startReel: $("ppStartReel"), pauseReel: $("ppPauseReel"), stopReel: $("ppStopReel"), muteReel: $("ppMuteReel"), reelMic: $("ppReelMic"), reelAspect: $("ppReelAspect"), recordTime: $("ppRecordTime"), recordSize: $("ppRecordSize"), micMeter: $("ppMicMeter"), micLevel: $("ppMicLevel"), reelOverlay: $("ppReelOverlay"), reelOverlayBrand: $("ppReelOverlayBrand"), reelOverlayMain: $("ppReelOverlayMain"), reelOverlaySub: $("ppReelOverlaySub")
+  startReel: $("ppStartReel"), pauseReel: $("ppPauseReel"), stopReel: $("ppStopReel"), muteReel: $("ppMuteReel"), reelMic: $("ppReelMic"), reelAspect: $("ppReelAspect"), recordTime: $("ppRecordTime"), recordSize: $("ppRecordSize"), micMeter: $("ppMicMeter"), micLevel: $("ppMicLevel"), reelOverlay: $("ppReelOverlay"), reelOverlayBrand: $("ppReelOverlayBrand"), reelOverlayMain: $("ppReelOverlayMain"), reelOverlaySub: $("ppReelOverlaySub"), pointerHalo: $("ppPointerHalo"), reelActionLabel: $("ppReelActionLabel")
 };
 const K_CODE = "pp_beginner_code_v1";
 const K_STDIN = "pp_beginner_stdin_v1";
@@ -36,6 +36,7 @@ let reelPausedTotal = 0;
 let reelBytes = 0;
 let reelWarningShown = false;
 let reelClosing = false;
+let typingZoomTimer = null;
 let lastShareSuggestion = -1;
 
 const shareSuggestions = [
@@ -100,6 +101,7 @@ function resetReelControls(){
   ui.pauseReel.textContent="⏸ Pause";ui.muteReel.textContent="🎙 Mute";
   ui.recordTime.hidden=true;ui.recordTime.textContent="REC 00:00";ui.recordSize.hidden=true;ui.recordSize.textContent="0 MB";ui.micMeter.hidden=true;ui.micLevel.style.width="0%";
   hideReelOverlay();document.body.classList.remove("reelMode","reelVertical","reelWide","reelPaused");
+  clearTimeout(typingZoomTimer);ui.codeCard.classList.remove("typingZoom");ui.pointerHalo.hidden=true;ui.pointerHalo.classList.remove("clicking");ui.reelActionLabel.hidden=true;
   reelPausedAt=0;reelPausedTotal=0;reelBytes=0;reelWarningShown=false;reelClosing=false;reelMicStream=null;reelMicAnalyser=null;
 }
 function stopReelTracks(){
@@ -223,6 +225,33 @@ function focusReelArea(element){
   document.querySelectorAll(".reelActive").forEach(item=>item.classList.remove("reelActive"));card.classList.add("reelActive");
   clearTimeout(focusReelArea.t);focusReelArea.t=setTimeout(()=>card.scrollIntoView({behavior:"smooth",block:"center"}),180);
 }
+function activateTypingZoom(){
+  if(!reelRecorder||reelRecorder.state!=="recording")return;
+  ui.codeCard.classList.add("typingZoom");
+  clearTimeout(typingZoomTimer);
+  requestAnimationFrame(()=>{
+    const line=ui.code.value.slice(0,ui.code.selectionStart).split("\n").length-1;
+    const lineHeight=39;
+    ui.code.scrollTop=Math.max(0,line*lineHeight-ui.code.clientHeight/2+lineHeight/2);
+    syncHighlightScroll();
+  });
+  typingZoomTimer=setTimeout(()=>{ui.codeCard.classList.remove("typingZoom");scheduleEditorSync();},1500);
+}
+function showReelPointer(x,y){
+  if(!document.body.classList.contains("reelMode"))return;
+  ui.pointerHalo.hidden=false;ui.pointerHalo.style.transform=`translate(${x}px,${y}px) translate(-50%,-50%)`;
+}
+function pulseReelPointer(){
+  if(ui.pointerHalo.hidden)return;
+  ui.pointerHalo.classList.remove("clicking");void ui.pointerHalo.offsetWidth;ui.pointerHalo.classList.add("clicking");
+}
+function showReelAction(target){
+  if(!reelRecorder||reelRecorder.state!=="recording")return;
+  const control=target.closest("button,label,select,a");if(!control)return;
+  const label=(control.getAttribute("aria-label")||control.textContent||control.title||"").replace(/\s+/g," ").trim().slice(0,55);
+  if(!label)return;
+  ui.reelActionLabel.textContent=label;ui.reelActionLabel.hidden=false;clearTimeout(showReelAction.t);showReelAction.t=setTimeout(()=>ui.reelActionLabel.hidden=true,1100);
+}
 function readRunOutput(stdout, stderr){
   if(!ui.readOutput?.checked || !("speechSynthesis" in window)) return;
   const outText = String(stdout || "").trim();
@@ -314,7 +343,7 @@ function installEditorLayoutWatchers(){
   }
   if("MutationObserver" in window){
     const mo = new MutationObserver(scheduleEditorSync);
-    mo.observe(document.body, {childList:true, subtree:true, attributes:true, attributeFilter:["style", "class"]});
+    mo.observe(document.body, {attributes:true, attributeFilter:["class"]});
   }
   setTimeout(scheduleEditorSync, 250);
   setTimeout(scheduleEditorSync, 1000);
@@ -726,7 +755,7 @@ function loadHash(){
   }catch{return false;}
 }
 
-ui.code.addEventListener("input", ()=>{ if(!autoOutdentControlLine()){ updateGutter(); save(); } focusReelArea(ui.code); });
+ui.code.addEventListener("input", ()=>{ if(!autoOutdentControlLine()){ updateGutter(); save(); } focusReelArea(ui.code); activateTypingZoom(); });
 ui.code.addEventListener("scroll", syncHighlightScroll);
 window.addEventListener("scroll", scheduleEditorSync, true);
 ui.stdin.addEventListener("input", ()=>{save();focusReelArea(ui.stdin);});
@@ -822,6 +851,8 @@ if(ui.startReel) ui.startReel.addEventListener("click",startReelRecording);
 if(ui.pauseReel) ui.pauseReel.addEventListener("click",toggleReelPause);
 if(ui.stopReel) ui.stopReel.addEventListener("click",stopReelRecording);
 if(ui.muteReel) ui.muteReel.addEventListener("click",toggleReelMute);
+document.addEventListener("pointermove",event=>showReelPointer(event.clientX,event.clientY),{passive:true});
+document.addEventListener("pointerdown",event=>{showReelPointer(event.clientX,event.clientY);pulseReelPointer();showReelAction(event.target);},{passive:true});
 if(ui.codeFullscreen) ui.codeFullscreen.addEventListener("click", toggleCodeFullscreen);
 document.querySelectorAll(".jsToggleBox").forEach(btn => btn.addEventListener("click", ()=>toggleIoBox(btn)));
 
