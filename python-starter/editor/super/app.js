@@ -1,7 +1,7 @@
 const $ = (id) => document.getElementById(id);
 const ui = {
   app: $("appShell"), codeCard: document.querySelector(".codeCard"), codeFullscreen: $("ppCodeFullscreen"), code: $("ppCode"), highlight: $("ppHighlight"), gutter: $("ppGutter"), stdin: $("ppStdin"), out: $("ppOut"), err: $("ppErr"),
-  run: $("ppRun"), stop: $("ppStop"), clear: $("ppClear"), font: $("ppFontSize"), fullscreen: $("ppFullscreen"), fullscreenTool: $("ppFullscreenTool"), fullscreenButtons: Array.from(document.querySelectorAll(".jsFullscreen")), share: $("ppShare"), theme: $("ppTheme"),
+  run: $("ppRun"), stop: $("ppStop"), clear: $("ppClear"), font: $("ppFontSize"), fullscreen: $("ppFullscreen"), fullscreenTool: $("ppFullscreenTool"), fullscreenButtons: Array.from(document.querySelectorAll(".jsFullscreen")), share: $("ppShare"), shareDialog: $("ppShareDialog"), shareForm: $("ppShareForm"), shareTitle: $("ppShareTitle"), shareSuggest: $("ppShareSuggest"), shareClose: $("ppShareClose"), shareCancel: $("ppShareCancel"), theme: $("ppTheme"),
   pkgs: $("ppPkgs"), install: $("ppInstall"), list: $("ppList"), readOutput: $("ppReadOutput"), status: $("ppStatus"), toast: $("ppToast"), copyOut: $("ppCopyOut"), plots: $("ppPlots"),
   plotMode: $("ppPlotMode"), openPlots: $("ppOpenPlots"), plotModal: $("ppPlotModal"), plotModalTitle: $("ppPlotModalTitle"), plotModalImg: $("ppPlotModalImg"), plotModalClose: $("ppPlotModalClose"), plotPrev: $("ppPlotPrev"), plotNext: $("ppPlotNext"), plotDownload: $("ppPlotDownload"),
   fileInput: $("ppFileInput"), uploadFiles: $("ppUploadFiles"), refreshFiles: $("ppRefreshFiles"), downloadAllFiles: $("ppDownloadAllFiles"), fileList: $("ppFileList")
@@ -19,6 +19,15 @@ let runTimer = null;
 let currentPlots = [];
 let currentPlotIndex = 0;
 let projectFiles = [];
+let lastShareSuggestion = -1;
+
+const shareSuggestions = [
+  "Try this Python program I created with Learn With Champak.",
+  "I wrote and tested this Python project in the Programmer's Picnic editor.",
+  "Explore this Python code and run it directly in your browser.",
+  "Here is a Python program I would like to share with you.",
+  "Learn Python by opening, running and improving this program."
+];
 
 function toast(msg){ ui.toast.textContent = msg; ui.toast.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(()=>ui.toast.classList.remove("show"), 1600); }
 function setStatus(msg, kind=""){ ui.status.textContent = msg; ui.status.className = "status " + kind; }
@@ -509,14 +518,36 @@ function installModules(){
   setStatus("Installing…");
   worker.postMessage({type:"INSTALL", pkgs, policy:{allow_micropip:true}});
 }
-async function shareProject(){
+function chooseShareSuggestion(){
+  let index = Math.floor(Math.random() * shareSuggestions.length);
+  if(shareSuggestions.length > 1 && index === lastShareSuggestion){
+    index = (index + 1) % shareSuggestions.length;
+  }
+  lastShareSuggestion = index;
+  ui.shareTitle.value = shareSuggestions[index];
+  ui.shareTitle.focus();
+  ui.shareTitle.select();
+}
+function openShareDialog(){
+  if(!ui.shareDialog) return shareProject(document.title);
+  chooseShareSuggestion();
+  if(typeof ui.shareDialog.showModal === "function") ui.shareDialog.showModal();
+  else ui.shareDialog.setAttribute("open", "");
+}
+function closeShareDialog(){
+  if(!ui.shareDialog) return;
+  if(typeof ui.shareDialog.close === "function") ui.shareDialog.close();
+  else ui.shareDialog.removeAttribute("open");
+}
+async function shareProject(shareTitle){
   save();
   const payload = JSON.stringify({code:ui.code.value, stdin:ui.stdin.value});
   const b64 = btoa(unescape(encodeURIComponent(payload))).replaceAll("+","-").replaceAll("/","_").replaceAll("=","");
   const url = location.origin + location.pathname + "#" + b64;
+  const title = String(shareTitle || "").trim() || "My Python Project";
   try{
-    if(navigator.share){ await navigator.share({title:document.title, url}); toast("Shared"); }
-    else{ await navigator.clipboard.writeText(url); toast("Share link copied"); }
+    if(navigator.share){ await navigator.share({title, text:title, url}); toast("Shared"); }
+    else{ await navigator.clipboard.writeText(`${title}\n${url}`); toast("Title and share link copied"); }
   }catch{ toast("Share cancelled"); }
 }
 function loadHash(){
@@ -570,7 +601,20 @@ document.addEventListener("fullscreenchange", ()=>{
   }
   syncFullscreenButtons();
 });
-ui.share.addEventListener("click", shareProject);
+ui.share.addEventListener("click", openShareDialog);
+if(ui.shareSuggest) ui.shareSuggest.addEventListener("click", chooseShareSuggestion);
+if(ui.shareClose) ui.shareClose.addEventListener("click", closeShareDialog);
+if(ui.shareCancel) ui.shareCancel.addEventListener("click", closeShareDialog);
+if(ui.shareForm) ui.shareForm.addEventListener("submit", e=>{
+  e.preventDefault();
+  const title = ui.shareTitle.value.trim();
+  if(!title){ ui.shareTitle.focus(); return; }
+  closeShareDialog();
+  shareProject(title);
+});
+if(ui.shareDialog) ui.shareDialog.addEventListener("click", e=>{
+  if(e.target === ui.shareDialog) closeShareDialog();
+});
 ui.theme.addEventListener("click", ()=>applyTheme((document.body.dataset.theme || "light") === "light" ? "dark" : "light"));
 ui.install.addEventListener("click", installModules);
 ui.list.addEventListener("click", ()=>{ if(!ready) return toast("Python is still loading"); ui.out.textContent="Loading module list…"; worker.postMessage({type:"LIST_PKGS"}); });
