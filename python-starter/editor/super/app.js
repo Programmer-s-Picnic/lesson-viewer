@@ -5,7 +5,7 @@ const ui = {
   pkgs: $("ppPkgs"), install: $("ppInstall"), list: $("ppList"), readOutput: $("ppReadOutput"), status: $("ppStatus"), toast: $("ppToast"), copyOut: $("ppCopyOut"), plots: $("ppPlots"),
   plotMode: $("ppPlotMode"), openPlots: $("ppOpenPlots"), plotModal: $("ppPlotModal"), plotModalTitle: $("ppPlotModalTitle"), plotModalImg: $("ppPlotModalImg"), plotModalClose: $("ppPlotModalClose"), plotPrev: $("ppPlotPrev"), plotNext: $("ppPlotNext"), plotDownload: $("ppPlotDownload"),
   fileInput: $("ppFileInput"), uploadFiles: $("ppUploadFiles"), refreshFiles: $("ppRefreshFiles"), downloadAllFiles: $("ppDownloadAllFiles"), fileList: $("ppFileList"),
-  startReel: $("ppStartReel"), pauseReel: $("ppPauseReel"), stopReel: $("ppStopReel"), muteReel: $("ppMuteReel"), reelMic: $("ppReelMic"), reelAspect: $("ppReelAspect"), recordTime: $("ppRecordTime"), recordSize: $("ppRecordSize"), micMeter: $("ppMicMeter"), micLevel: $("ppMicLevel"), reelOverlay: $("ppReelOverlay"), reelOverlayBrand: $("ppReelOverlayBrand"), reelOverlayMain: $("ppReelOverlayMain"), reelOverlaySub: $("ppReelOverlaySub"), pointerHalo: $("ppPointerHalo"), reelActionLabel: $("ppReelActionLabel")
+  startReel: $("ppStartReel"), pauseReel: $("ppPauseReel"), stopReel: $("ppStopReel"), muteReel: $("ppMuteReel"), reelMic: $("ppReelMic"), reelNarrate: $("ppReelNarrate"), reelNarrateControl: $("ppReelNarrateControl"), recordTime: $("ppRecordTime"), recordSize: $("ppRecordSize"), micMeter: $("ppMicMeter"), micLevel: $("ppMicLevel"), reelOverlay: $("ppReelOverlay"), reelOverlayBrand: $("ppReelOverlayBrand"), reelOverlayMain: $("ppReelOverlayMain"), reelOverlaySub: $("ppReelOverlaySub"), pointerHalo: $("ppPointerHalo"), reelActionLabel: $("ppReelActionLabel")
 };
 const K_CODE = "pp_beginner_code_v1";
 const K_STDIN = "pp_beginner_stdin_v1";
@@ -13,6 +13,7 @@ const K_FONT = "pp_beginner_font_v1";
 const K_THEME = "pp_beginner_theme_v1";
 const K_PLOT_MODE = "pp_beginner_plot_mode_v1";
 const K_READ_OUTPUT = "pp_beginner_read_output_v1";
+const K_REEL_NARRATE = "pp_reel_narrate_v1";
 let worker = null;
 let running = false;
 let ready = false;
@@ -30,13 +31,14 @@ let reelTitle = "Python coding session";
 let reelMicStream = null;
 let reelMicAnalyser = null;
 let reelAnimationFrame = 0;
-let reelCanvasFrame = 0;
 let reelPausedAt = 0;
 let reelPausedTotal = 0;
 let reelBytes = 0;
 let reelWarningShown = false;
 let reelClosing = false;
 let typingZoomTimer = null;
+let codeNarrationTimer = null;
+let stdinNarrationTimer = null;
 let lastShareSuggestion = -1;
 
 const shareSuggestions = [
@@ -96,26 +98,18 @@ function showReelOverlay(main,sub="",brand="Learn With Champak"){
 function hideReelOverlay(){ui.reelOverlay.hidden=true;}
 function resetReelControls(){
   clearInterval(reelTimer);reelTimer=null;
-  cancelAnimationFrame(reelAnimationFrame);cancelAnimationFrame(reelCanvasFrame);
-  ui.startReel.disabled=false;ui.pauseReel.disabled=true;ui.stopReel.disabled=true;ui.muteReel.disabled=true;ui.reelMic.disabled=false;ui.reelAspect.disabled=false;
+  cancelAnimationFrame(reelAnimationFrame);
+  ui.startReel.disabled=false;ui.pauseReel.disabled=true;ui.stopReel.disabled=true;ui.muteReel.disabled=true;ui.reelMic.disabled=false;
   ui.pauseReel.textContent="⏸ Pause";ui.muteReel.textContent="🎙 Mute";
   ui.recordTime.hidden=true;ui.recordTime.textContent="REC 00:00";ui.recordSize.hidden=true;ui.recordSize.textContent="0 MB";ui.micMeter.hidden=true;ui.micLevel.style.width="0%";
-  hideReelOverlay();document.body.classList.remove("reelMode","reelVertical","reelWide","reelPaused");
+  hideReelOverlay();document.body.classList.remove("reelMode","reelPaused","fullscreen");ui.app.classList.remove("fullscreen");syncFullscreenButtons();
   clearTimeout(typingZoomTimer);ui.codeCard.classList.remove("typingZoom");ui.pointerHalo.hidden=true;ui.pointerHalo.classList.remove("clicking");ui.reelActionLabel.hidden=true;
+  clearTimeout(codeNarrationTimer);clearTimeout(stdinNarrationTimer);stopReading();
   reelPausedAt=0;reelPausedTotal=0;reelBytes=0;reelWarningShown=false;reelClosing=false;reelMicStream=null;reelMicAnalyser=null;
 }
 function stopReelTracks(){
   reelStreams.forEach(stream=>stream.getTracks().forEach(track=>track.stop()));reelStreams=[];
   if(reelAudioContext){reelAudioContext.close().catch(()=>{});reelAudioContext=null;}
-}
-function drawCapturedVideo(video,canvas,ctx){
-  if(video.readyState>=2){
-    const scale=Math.max(canvas.width/video.videoWidth,canvas.height/video.videoHeight);
-    const width=video.videoWidth*scale,height=video.videoHeight*scale;
-    ctx.fillStyle="#07111f";ctx.fillRect(0,0,canvas.width,canvas.height);
-    ctx.drawImage(video,(canvas.width-width)/2,(canvas.height-height)/2,width,height);
-  }
-  reelCanvasFrame=requestAnimationFrame(()=>drawCapturedVideo(video,canvas,ctx));
 }
 function updateMicMeter(){
   if(!reelMicAnalyser)return;
@@ -129,13 +123,12 @@ async function runRecordingOpening(){
   showReelOverlay(reelTitle,"Python coding session • Programmer's Picnic");await wait(2200);hideReelOverlay();
 }
 async function startReelRecording(){
-  if(!navigator.mediaDevices?.getDisplayMedia||!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream) return toast("Live recording is not supported in this browser");
+  if(!navigator.mediaDevices?.getDisplayMedia||!window.MediaRecorder) return toast("Live recording is not supported in this browser");
   const suggested=(ui.sharedTitleText?.textContent||"Python coding session").trim();
   const entered=window.prompt("Recording title",suggested);if(entered===null)return;
   reelTitle=entered.trim()||suggested;
-  const aspect=ui.reelAspect.value==="wide"?"wide":"vertical";
-  document.body.classList.add("reelMode",aspect==="vertical"?"reelVertical":"reelWide");
-  ui.startReel.disabled=true;ui.reelAspect.disabled=true;
+  document.body.classList.add("reelMode","fullscreen");ui.app.classList.add("fullscreen");syncFullscreenButtons();
+  ui.startReel.disabled=true;
   try{
     const display=await navigator.mediaDevices.getDisplayMedia({video:{frameRate:30},audio:true,preferCurrentTab:true,selfBrowserSurface:"include"});
     reelStreams=[display];
@@ -144,11 +137,7 @@ async function startReelRecording(){
       try{mic=await navigator.mediaDevices.getUserMedia({audio:true});reelStreams.push(mic);}catch{toast("Microphone unavailable; recording without microphone");}
     }
     reelMicStream=mic;
-    const video=document.createElement("video");video.srcObject=display;video.muted=true;video.playsInline=true;await video.play();
-    const canvas=document.createElement("canvas");
-    if(aspect==="vertical"){canvas.width=720;canvas.height=1280;}else{canvas.width=1280;canvas.height=720;}
-    drawCapturedVideo(video,canvas,canvas.getContext("2d"));
-    const canvasStream=canvas.captureStream(30);const combined=new MediaStream(canvasStream.getVideoTracks());reelStreams.push(canvasStream);
+    const combined=new MediaStream(display.getVideoTracks());
     const audioTracks=[...display.getAudioTracks(),...(mic?mic.getAudioTracks():[])];
     if(audioTracks.length){
       reelAudioContext=new AudioContext();const destination=reelAudioContext.createMediaStreamDestination();
@@ -204,6 +193,40 @@ function stopReelRecording(){
 function stopReading(){
   if("speechSynthesis" in window) window.speechSynthesis.cancel();
 }
+function preferredNarrationVoice(){
+  if(!("speechSynthesis" in window))return null;
+  const voices=window.speechSynthesis.getVoices();
+  return voices.find(voice=>/^en[-_]IN$/i.test(voice.lang))||voices.find(voice=>/india/i.test(`${voice.name} ${voice.lang}`)&&/^en/i.test(voice.lang))||voices.find(voice=>/^en/i.test(voice.lang))||null;
+}
+function reelNarrationEnabled(){
+  return Boolean(ui.reelNarrate?.checked&&reelRecorder&&reelRecorder.state==="recording");
+}
+function prepareNarration(text){
+  return String(text||"").replace(/\t/g," four spaces ").replace(/_/g," underscore ").replace(/\s+/g," ").trim().slice(0,700);
+}
+function speakNarration(text,{cancel=true,onstart=null}={}){
+  if(!("speechSynthesis" in window))return;
+  const clean=prepareNarration(text);if(!clean)return;
+  if(cancel)stopReading();
+  const utterance=new SpeechSynthesisUtterance(clean);utterance.lang="en-IN";utterance.rate=.92;utterance.pitch=1;
+  const voice=preferredNarrationVoice();if(voice)utterance.voice=voice;
+  if(onstart)utterance.addEventListener("start",onstart,{once:true});
+  window.speechSynthesis.speak(utterance);
+}
+function currentTextLine(element){
+  const value=element.value||"",position=element.selectionStart||0,start=value.lastIndexOf("\n",Math.max(0,position-1))+1,endAt=value.indexOf("\n",position),end=endAt===-1?value.length:endAt;
+  return value.slice(start,end).trim();
+}
+function scheduleLineNarration(element,kind){
+  if(!reelNarrationEnabled())return;
+  const timerName=kind==="code"?"codeNarrationTimer":"stdinNarrationTimer";
+  clearTimeout(kind==="code"?codeNarrationTimer:stdinNarrationTimer);
+  const timer=setTimeout(()=>{
+    const line=currentTextLine(element);
+    speakNarration(line?`${kind==="code"?"Code line":"Input line"}. ${line}`:`${kind==="code"?"Blank code line":"Blank input line"}.`);
+  },850);
+  if(timerName==="codeNarrationTimer")codeNarrationTimer=timer;else stdinNarrationTimer=timer;
+}
 function focusOutput(stdout, stderr){
   const hasError = Boolean(String(stderr || "").trim());
   const hasOutput = Boolean(String(stdout || "").trim());
@@ -253,7 +276,7 @@ function showReelAction(target){
   ui.reelActionLabel.textContent=label;ui.reelActionLabel.hidden=false;clearTimeout(showReelAction.t);showReelAction.t=setTimeout(()=>ui.reelActionLabel.hidden=true,1100);
 }
 function readRunOutput(stdout, stderr){
-  if(!ui.readOutput?.checked || !("speechSynthesis" in window)) return;
+  if(!(ui.readOutput?.checked || reelNarrationEnabled()) || !("speechSynthesis" in window)) return;
   const outText = String(stdout || "").trim();
   const errText = String(stderr || "").trim();
   const parts = [];
@@ -263,7 +286,8 @@ function readRunOutput(stdout, stderr){
   stopReading();
   parts.forEach(part => {
     const utterance = new SpeechSynthesisUtterance(part.text);
-    utterance.lang = document.documentElement.lang || "en";
+    utterance.lang = "en-IN"; utterance.rate = .92;
+    const voice=preferredNarrationVoice();if(voice)utterance.voice=voice;
     utterance.addEventListener("start", ()=>{
       const panel = part.target?.closest(".ioToggleCard") || part.target;
       panel?.scrollIntoView({behavior:"smooth", block:"center"});
@@ -688,6 +712,7 @@ function runCode(){
   if(!worker) makeWorker();
   if(!ready) return toast("Python is still loading");
   if(running) return toast("Already running");
+  if(reelNarrationEnabled())speakNarration("Run command. Running the Python program.",{cancel:false});
   running = true;
   ui.out.textContent = "Running…";
   ui.err.textContent = "";
@@ -755,10 +780,10 @@ function loadHash(){
   }catch{return false;}
 }
 
-ui.code.addEventListener("input", ()=>{ if(!autoOutdentControlLine()){ updateGutter(); save(); } focusReelArea(ui.code); activateTypingZoom(); });
+ui.code.addEventListener("input", ()=>{ if(!autoOutdentControlLine()){ updateGutter(); save(); } focusReelArea(ui.code); activateTypingZoom(); scheduleLineNarration(ui.code,"code"); });
 ui.code.addEventListener("scroll", syncHighlightScroll);
 window.addEventListener("scroll", scheduleEditorSync, true);
-ui.stdin.addEventListener("input", ()=>{save();focusReelArea(ui.stdin);});
+ui.stdin.addEventListener("input", ()=>{save();focusReelArea(ui.stdin);scheduleLineNarration(ui.stdin,"stdin");});
 ui.code.addEventListener("keydown", handleTypingAid);
 ui.run.addEventListener("click", runCode);
 ui.stop.addEventListener("click", stopRun);
@@ -817,6 +842,13 @@ if(ui.readOutput){
   ui.readOutput.addEventListener("change", ()=>{
     localStorage.setItem(K_READ_OUTPUT, String(ui.readOutput.checked));
     if(!ui.readOutput.checked) stopReading();
+  });
+}
+if(ui.reelNarrate){
+  ui.reelNarrate.checked=localStorage.getItem(K_REEL_NARRATE)!=="false";
+  ui.reelNarrate.addEventListener("change",()=>{
+    localStorage.setItem(K_REEL_NARRATE,String(ui.reelNarrate.checked));
+    if(!ui.reelNarrate.checked)stopReading();
   });
 }
 ui.copyOut.addEventListener("click", async()=>{ try{ await navigator.clipboard.writeText(ui.out.textContent); toast("stdout copied"); }catch{ toast("Copy blocked"); } });
