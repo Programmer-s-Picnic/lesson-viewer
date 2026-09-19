@@ -5,7 +5,7 @@ const ui = {
   pkgs: $("ppPkgs"), install: $("ppInstall"), list: $("ppList"), readOutput: $("ppReadOutput"), status: $("ppStatus"), toast: $("ppToast"), copyOut: $("ppCopyOut"), plots: $("ppPlots"),
   plotMode: $("ppPlotMode"), openPlots: $("ppOpenPlots"), plotModal: $("ppPlotModal"), plotModalTitle: $("ppPlotModalTitle"), plotModalImg: $("ppPlotModalImg"), plotModalClose: $("ppPlotModalClose"), plotPrev: $("ppPlotPrev"), plotNext: $("ppPlotNext"), plotDownload: $("ppPlotDownload"),
   fileInput: $("ppFileInput"), uploadFiles: $("ppUploadFiles"), refreshFiles: $("ppRefreshFiles"), downloadAllFiles: $("ppDownloadAllFiles"), fileList: $("ppFileList"),
-  startReel: $("ppStartReel"), stopReel: $("ppStopReel"), reelMic: $("ppReelMic"), recordTime: $("ppRecordTime")
+  startReel: $("ppStartReel"), pauseReel: $("ppPauseReel"), stopReel: $("ppStopReel"), muteReel: $("ppMuteReel"), reelMic: $("ppReelMic"), reelAspect: $("ppReelAspect"), recordTime: $("ppRecordTime"), recordSize: $("ppRecordSize"), micMeter: $("ppMicMeter"), micLevel: $("ppMicLevel"), reelOverlay: $("ppReelOverlay"), reelOverlayBrand: $("ppReelOverlayBrand"), reelOverlayMain: $("ppReelOverlayMain"), reelOverlaySub: $("ppReelOverlaySub")
 };
 const K_CODE = "pp_beginner_code_v1";
 const K_STDIN = "pp_beginner_stdin_v1";
@@ -27,6 +27,15 @@ let reelAudioContext = null;
 let reelTimer = null;
 let reelStartedAt = 0;
 let reelTitle = "Python coding session";
+let reelMicStream = null;
+let reelMicAnalyser = null;
+let reelAnimationFrame = 0;
+let reelCanvasFrame = 0;
+let reelPausedAt = 0;
+let reelPausedTotal = 0;
+let reelBytes = 0;
+let reelWarningShown = false;
+let reelClosing = false;
 let lastShareSuggestion = -1;
 
 const shareSuggestions = [
@@ -79,20 +88,52 @@ function formatRecordingTime(ms){
   const total=Math.max(0,Math.floor(ms/1000)),minutes=Math.floor(total/60),seconds=total%60;
   return `${String(minutes).padStart(2,"0")}:${String(seconds).padStart(2,"0")}`;
 }
+function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
+function showReelOverlay(main,sub="",brand="Learn With Champak"){
+  ui.reelOverlayBrand.textContent=brand;ui.reelOverlayMain.textContent=main;ui.reelOverlaySub.textContent=sub;ui.reelOverlay.hidden=false;
+}
+function hideReelOverlay(){ui.reelOverlay.hidden=true;}
 function resetReelControls(){
   clearInterval(reelTimer);reelTimer=null;
-  ui.startReel.disabled=false;ui.stopReel.disabled=true;ui.reelMic.disabled=false;
-  ui.recordTime.hidden=true;ui.recordTime.textContent="REC 00:00";
+  cancelAnimationFrame(reelAnimationFrame);cancelAnimationFrame(reelCanvasFrame);
+  ui.startReel.disabled=false;ui.pauseReel.disabled=true;ui.stopReel.disabled=true;ui.muteReel.disabled=true;ui.reelMic.disabled=false;ui.reelAspect.disabled=false;
+  ui.pauseReel.textContent="⏸ Pause";ui.muteReel.textContent="🎙 Mute";
+  ui.recordTime.hidden=true;ui.recordTime.textContent="REC 00:00";ui.recordSize.hidden=true;ui.recordSize.textContent="0 MB";ui.micMeter.hidden=true;ui.micLevel.style.width="0%";
+  hideReelOverlay();document.body.classList.remove("reelMode","reelVertical","reelWide","reelPaused");
+  reelPausedAt=0;reelPausedTotal=0;reelBytes=0;reelWarningShown=false;reelClosing=false;reelMicStream=null;reelMicAnalyser=null;
 }
 function stopReelTracks(){
   reelStreams.forEach(stream=>stream.getTracks().forEach(track=>track.stop()));reelStreams=[];
   if(reelAudioContext){reelAudioContext.close().catch(()=>{});reelAudioContext=null;}
 }
+function drawCapturedVideo(video,canvas,ctx){
+  if(video.readyState>=2){
+    const scale=Math.max(canvas.width/video.videoWidth,canvas.height/video.videoHeight);
+    const width=video.videoWidth*scale,height=video.videoHeight*scale;
+    ctx.fillStyle="#07111f";ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(video,(canvas.width-width)/2,(canvas.height-height)/2,width,height);
+  }
+  reelCanvasFrame=requestAnimationFrame(()=>drawCapturedVideo(video,canvas,ctx));
+}
+function updateMicMeter(){
+  if(!reelMicAnalyser)return;
+  const values=new Uint8Array(reelMicAnalyser.frequencyBinCount);reelMicAnalyser.getByteFrequencyData(values);
+  const average=values.reduce((sum,value)=>sum+value,0)/Math.max(1,values.length);
+  ui.micLevel.style.width=`${Math.min(100,average*1.8)}%`;
+  reelAnimationFrame=requestAnimationFrame(updateMicMeter);
+}
+async function runRecordingOpening(){
+  for(let number=3;number>=1;number--){showReelOverlay(String(number),"Recording starts shortly");await wait(850);}
+  showReelOverlay(reelTitle,"Python coding session • Programmer's Picnic");await wait(2200);hideReelOverlay();
+}
 async function startReelRecording(){
-  if(!navigator.mediaDevices?.getDisplayMedia||!window.MediaRecorder) return toast("Live recording is not supported in this browser");
+  if(!navigator.mediaDevices?.getDisplayMedia||!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream) return toast("Live recording is not supported in this browser");
   const suggested=(ui.sharedTitleText?.textContent||"Python coding session").trim();
   const entered=window.prompt("Recording title",suggested);if(entered===null)return;
   reelTitle=entered.trim()||suggested;
+  const aspect=ui.reelAspect.value==="wide"?"wide":"vertical";
+  document.body.classList.add("reelMode",aspect==="vertical"?"reelVertical":"reelWide");
+  ui.startReel.disabled=true;ui.reelAspect.disabled=true;
   try{
     const display=await navigator.mediaDevices.getDisplayMedia({video:{frameRate:30},audio:true,preferCurrentTab:true,selfBrowserSurface:"include"});
     reelStreams=[display];
@@ -100,30 +141,63 @@ async function startReelRecording(){
     if(ui.reelMic.checked){
       try{mic=await navigator.mediaDevices.getUserMedia({audio:true});reelStreams.push(mic);}catch{toast("Microphone unavailable; recording without microphone");}
     }
-    const combined=new MediaStream(display.getVideoTracks());
+    reelMicStream=mic;
+    const video=document.createElement("video");video.srcObject=display;video.muted=true;video.playsInline=true;await video.play();
+    const canvas=document.createElement("canvas");
+    if(aspect==="vertical"){canvas.width=720;canvas.height=1280;}else{canvas.width=1280;canvas.height=720;}
+    drawCapturedVideo(video,canvas,canvas.getContext("2d"));
+    const canvasStream=canvas.captureStream(30);const combined=new MediaStream(canvasStream.getVideoTracks());reelStreams.push(canvasStream);
     const audioTracks=[...display.getAudioTracks(),...(mic?mic.getAudioTracks():[])];
     if(audioTracks.length){
       reelAudioContext=new AudioContext();const destination=reelAudioContext.createMediaStreamDestination();
-      for(const track of audioTracks) reelAudioContext.createMediaStreamSource(new MediaStream([track])).connect(destination);
+      for(const track of audioTracks){
+        const source=reelAudioContext.createMediaStreamSource(new MediaStream([track]));source.connect(destination);
+        if(mic&&mic.getAudioTracks().includes(track)){reelMicAnalyser=reelAudioContext.createAnalyser();reelMicAnalyser.fftSize=256;source.connect(reelMicAnalyser);}
+      }
       destination.stream.getAudioTracks().forEach(track=>combined.addTrack(track));
     }
     const mime=["video/webm;codecs=vp9,opus","video/webm;codecs=vp8,opus","video/webm"].find(type=>MediaRecorder.isTypeSupported(type))||"";
-    reelChunks=[];reelRecorder=new MediaRecorder(combined,mime?{mimeType:mime,videoBitsPerSecond:4500000}:undefined);
-    reelRecorder.ondataavailable=event=>{if(event.data.size)reelChunks.push(event.data);};
+    reelChunks=[];reelBytes=0;reelRecorder=new MediaRecorder(combined,mime?{mimeType:mime,videoBitsPerSecond:4500000}:undefined);
+    reelRecorder.ondataavailable=event=>{if(event.data.size){reelChunks.push(event.data);reelBytes+=event.data.size;ui.recordSize.textContent=`${(reelBytes/1048576).toFixed(1)} MB`;}};
     reelRecorder.onstop=()=>{
       const type=reelRecorder.mimeType||mime||"video/webm";
       downloadBytes(reelFileName(reelTitle),new Blob(reelChunks,{type}),type);
       reelChunks=[];reelRecorder=null;stopReelTracks();resetReelControls();setStatus("Recording downloaded","ok");toast("Reel recording downloaded");
     };
-    display.getVideoTracks()[0].addEventListener("ended",stopReelRecording,{once:true});
+    display.getVideoTracks()[0].addEventListener("ended",()=>finishReelRecording(false),{once:true});
     reelRecorder.start(1000);reelStartedAt=Date.now();
-    ui.startReel.disabled=true;ui.stopReel.disabled=false;ui.reelMic.disabled=true;ui.recordTime.hidden=false;
-    reelTimer=setInterval(()=>ui.recordTime.textContent=`REC ${formatRecordingTime(Date.now()-reelStartedAt)}`,500);
-    setStatus("Recording live session…","bad");toast("Recording started—work normally, then press Stop & Download");
+    ui.pauseReel.disabled=false;ui.stopReel.disabled=false;ui.muteReel.disabled=!mic;ui.reelMic.disabled=true;ui.recordTime.hidden=false;ui.recordSize.hidden=false;ui.micMeter.hidden=!reelMicAnalyser;
+    if(reelMicAnalyser)updateMicMeter();
+    reelTimer=setInterval(()=>{
+      const pausedNow=reelPausedAt?Date.now()-reelPausedAt:0,elapsed=Date.now()-reelStartedAt-reelPausedTotal-pausedNow;
+      ui.recordTime.textContent=`REC ${formatRecordingTime(elapsed)}`;
+      if(elapsed>=20*60*1000&&!reelWarningShown){reelWarningShown=true;toast("Recording is over 20 minutes—consider saving soon");}
+    },500);
+    setStatus("Recording live session…","bad");await runRecordingOpening();toast("Work normally; recording follows code, input and output");
   }catch(error){stopReelTracks();resetReelControls();if(error?.name!=="NotAllowedError")toast(error?.message||"Could not start recording");}
 }
+function toggleReelPause(){
+  if(!reelRecorder)return;
+  if(reelRecorder.state==="recording"){
+    reelRecorder.pause();reelPausedAt=Date.now();ui.pauseReel.textContent="▶ Resume";document.body.classList.add("reelPaused");setStatus("Recording paused");
+  }else if(reelRecorder.state==="paused"){
+    reelPausedTotal+=Date.now()-reelPausedAt;reelPausedAt=0;reelRecorder.resume();ui.pauseReel.textContent="⏸ Pause";document.body.classList.remove("reelPaused");setStatus("Recording live session…","bad");
+  }
+}
+function toggleReelMute(){
+  if(!reelMicStream)return;
+  const track=reelMicStream.getAudioTracks()[0];track.enabled=!track.enabled;ui.muteReel.textContent=track.enabled?"🎙 Mute":"🎙 Unmute";toast(track.enabled?"Microphone on":"Microphone muted");
+}
+async function finishReelRecording(withClosing=true){
+  if(!reelRecorder||reelRecorder.state==="inactive"||reelClosing)return;
+  reelClosing=true;
+  if(reelRecorder.state==="paused"){reelPausedTotal+=Date.now()-reelPausedAt;reelPausedAt=0;reelRecorder.resume();}
+  ui.pauseReel.disabled=true;ui.stopReel.disabled=true;setStatus("Finishing recording…");
+  if(withClosing){showReelOverlay("Thank You","Share, subscribe and comment • Full code link in the description");await wait(2600);}
+  if(reelRecorder&&reelRecorder.state!=="inactive")reelRecorder.stop();
+}
 function stopReelRecording(){
-  if(reelRecorder&&reelRecorder.state!=="inactive"){setStatus("Finishing recording…");reelRecorder.stop();}
+  finishReelRecording(true);
 }
 function stopReading(){
   if("speechSynthesis" in window) window.speechSynthesis.cancel();
@@ -134,10 +208,20 @@ function focusOutput(stdout, stderr){
   const target = hasError ? ui.err : hasOutput ? ui.out : null;
   if(!target) return;
   const card = target.closest(".ioToggleCard");
+  if(reelRecorder&&reelRecorder.state==="recording"){
+    document.querySelectorAll(".reelActive").forEach(item=>item.classList.remove("reelActive"));
+    (card||target).classList.add("reelActive");
+  }
   requestAnimationFrame(()=>{
     (card || target).scrollIntoView({behavior:"smooth", block:"center"});
     target.focus({preventScroll:true});
   });
+}
+function focusReelArea(element){
+  if(!reelRecorder||reelRecorder.state!=="recording"||!element)return;
+  const card=element.closest(".card")||element;
+  document.querySelectorAll(".reelActive").forEach(item=>item.classList.remove("reelActive"));card.classList.add("reelActive");
+  clearTimeout(focusReelArea.t);focusReelArea.t=setTimeout(()=>card.scrollIntoView({behavior:"smooth",block:"center"}),180);
 }
 function readRunOutput(stdout, stderr){
   if(!ui.readOutput?.checked || !("speechSynthesis" in window)) return;
@@ -642,10 +726,10 @@ function loadHash(){
   }catch{return false;}
 }
 
-ui.code.addEventListener("input", ()=>{ if(!autoOutdentControlLine()){ updateGutter(); save(); } });
+ui.code.addEventListener("input", ()=>{ if(!autoOutdentControlLine()){ updateGutter(); save(); } focusReelArea(ui.code); });
 ui.code.addEventListener("scroll", syncHighlightScroll);
 window.addEventListener("scroll", scheduleEditorSync, true);
-ui.stdin.addEventListener("input", save);
+ui.stdin.addEventListener("input", ()=>{save();focusReelArea(ui.stdin);});
 ui.code.addEventListener("keydown", handleTypingAid);
 ui.run.addEventListener("click", runCode);
 ui.stop.addEventListener("click", stopRun);
@@ -735,7 +819,9 @@ if(ui.fileList) ui.fileList.addEventListener("click", e=>{
   if(remove && confirm(`Delete ${remove.dataset.fileDelete}?`)) worker.postMessage({type:"FILE_DELETE", name:remove.dataset.fileDelete});
 });
 if(ui.startReel) ui.startReel.addEventListener("click",startReelRecording);
+if(ui.pauseReel) ui.pauseReel.addEventListener("click",toggleReelPause);
 if(ui.stopReel) ui.stopReel.addEventListener("click",stopReelRecording);
+if(ui.muteReel) ui.muteReel.addEventListener("click",toggleReelMute);
 if(ui.codeFullscreen) ui.codeFullscreen.addEventListener("click", toggleCodeFullscreen);
 document.querySelectorAll(".jsToggleBox").forEach(btn => btn.addEventListener("click", ()=>toggleIoBox(btn)));
 
@@ -772,3 +858,6 @@ ui.stdin.value = ui.stdin.value || localStorage.getItem(K_STDIN) || "Champak";
 applyTheme(localStorage.getItem(K_THEME) || "light");
 applyPlotMode(localStorage.getItem(K_PLOT_MODE) || "both");
 const font = localStorage.getItem(K_FONT) || "16"; ui.font.value = font; applyFont(font); updateGutter(); installEditorLayoutWatchers(); makeWorker();
+window.addEventListener("beforeunload",event=>{
+  if(reelRecorder&&reelRecorder.state!=="inactive"){event.preventDefault();event.returnValue="Recording is still active.";}
+});
