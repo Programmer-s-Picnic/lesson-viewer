@@ -1,6 +1,6 @@
 const $ = (id) => document.getElementById(id);
 const ui = {
-  app: $("appShell"), codeCard: document.querySelector(".codeCard"), codeFullscreen: $("ppCodeFullscreen"), code: $("ppCode"), highlight: $("ppHighlight"), gutter: $("ppGutter"), stdin: $("ppStdin"), out: $("ppOut"), err: $("ppErr"),
+  app: $("appShell"), codeCard: document.querySelector(".codeCard"), codeFullscreen: $("ppCodeFullscreen"), code: $("ppCode"), highlight: $("ppHighlight"), gutter: $("ppGutter"), stdin: $("ppStdin"), out: $("ppOut"), err: $("ppErr"), sharedTitle: $("ppSharedTitle"), sharedTitleText: $("ppSharedTitleText"),
   run: $("ppRun"), stop: $("ppStop"), clear: $("ppClear"), font: $("ppFontSize"), fullscreen: $("ppFullscreen"), fullscreenTool: $("ppFullscreenTool"), fullscreenButtons: Array.from(document.querySelectorAll(".jsFullscreen")), share: $("ppShare"), shareDialog: $("ppShareDialog"), shareForm: $("ppShareForm"), shareTitle: $("ppShareTitle"), shareSuggest: $("ppShareSuggest"), shareClose: $("ppShareClose"), shareCancel: $("ppShareCancel"), theme: $("ppTheme"),
   pkgs: $("ppPkgs"), install: $("ppInstall"), list: $("ppList"), readOutput: $("ppReadOutput"), status: $("ppStatus"), toast: $("ppToast"), copyOut: $("ppCopyOut"), plots: $("ppPlots"),
   plotMode: $("ppPlotMode"), openPlots: $("ppOpenPlots"), plotModal: $("ppPlotModal"), plotModalTitle: $("ppPlotModalTitle"), plotModalImg: $("ppPlotModalImg"), plotModalClose: $("ppPlotModalClose"), plotPrev: $("ppPlotPrev"), plotNext: $("ppPlotNext"), plotDownload: $("ppPlotDownload"),
@@ -65,6 +65,17 @@ function downloadBytes(name, data, type="application/octet-stream"){
 }
 function stopReading(){
   if("speechSynthesis" in window) window.speechSynthesis.cancel();
+}
+function focusOutput(stdout, stderr){
+  const hasError = Boolean(String(stderr || "").trim());
+  const hasOutput = Boolean(String(stdout || "").trim());
+  const target = hasError ? ui.err : hasOutput ? ui.out : null;
+  if(!target) return;
+  const card = target.closest(".ioToggleCard");
+  requestAnimationFrame(()=>{
+    (card || target).scrollIntoView({behavior:"smooth", block:"center"});
+    target.focus({preventScroll:true});
+  });
 }
 function readRunOutput(stdout, stderr){
   if(!ui.readOutput?.checked || !("speechSynthesis" in window)) return;
@@ -443,6 +454,7 @@ function makeWorker(){
       const r = msg.result || {};
       ui.out.textContent = r.stdout || "(no stdout)";
       ui.err.textContent = (r.stderr || "") + (r.error || "");
+      focusOutput(r.stdout, (r.stderr || "") + (r.error || ""));
       readRunOutput(r.stdout, (r.stderr || "") + (r.error || ""));
       showPlots(r.plots || []);
       resyncEditorManyTimes();
@@ -470,6 +482,7 @@ function makeWorker(){
       const installed = Array.isArray(msg.pkgs) ? msg.pkgs : [];
       ui.out.textContent = installed.length ? "Installed:\n" + installed.join("\n") : "Already available / nothing new installed.";
       ui.err.textContent = "";
+      focusOutput(ui.out.textContent, "");
       setStatus("Module install complete", "ok");
       resyncEditorManyTimes();
       toast("Install complete");
@@ -478,17 +491,19 @@ function makeWorker(){
     if(msg.type === "PKG_LIST"){
       ui.out.textContent = msg.text || "No packages found.";
       ui.err.textContent = "";
+      focusOutput(ui.out.textContent, "");
       setStatus("Module list ready", "ok");
       return;
     }
     if(msg.type === "ERR"){
       running = false; ui.install.disabled = false; clearTimeout(runTimer);
       ui.err.textContent = msg.message || "Unknown worker error";
+      focusOutput("", ui.err.textContent);
       readRunOutput("", ui.err.textContent);
       setStatus("Error", "bad");
     }
   };
-  worker.onerror = (e) => { running = false; ui.err.textContent = e.message || String(e); readRunOutput("", ui.err.textContent); setStatus("Worker error", "bad"); };
+  worker.onerror = (e) => { running = false; ui.err.textContent = e.message || String(e); focusOutput("", ui.err.textContent); readRunOutput("", ui.err.textContent); setStatus("Worker error", "bad"); };
   worker.postMessage({type:"INIT", policy:{allow_micropip:true}});
 }
 
@@ -505,7 +520,7 @@ function runCode(){
   resyncEditorManyTimes();
   setStatus("Running…");
   worker.postMessage({type:"RUN_ONE", code:ui.code.value, stdin:ui.stdin.value, policy:{allow_micropip:true}});
-  runTimer = setTimeout(()=>{ if(running){ stopRun(); ui.err.textContent = "Stopped: program took too long."; readRunOutput("", ui.err.textContent); setStatus("Stopped", "bad"); } }, 12000);
+  runTimer = setTimeout(()=>{ if(running){ stopRun(); ui.err.textContent = "Stopped: program took too long."; focusOutput("", ui.err.textContent); readRunOutput("", ui.err.textContent); setStatus("Stopped", "bad"); } }, 12000);
 }
 function stopRun(){ running = false; clearTimeout(runTimer); stopReading(); makeWorker(); toast("Stopped"); }
 function installModules(){
@@ -541,10 +556,10 @@ function closeShareDialog(){
 }
 async function shareProject(shareTitle){
   save();
-  const payload = JSON.stringify({code:ui.code.value, stdin:ui.stdin.value});
+  const title = String(shareTitle || "").trim() || "My Python Project";
+  const payload = JSON.stringify({code:ui.code.value, stdin:ui.stdin.value, title});
   const b64 = btoa(unescape(encodeURIComponent(payload))).replaceAll("+","-").replaceAll("/","_").replaceAll("=","");
   const url = location.origin + location.pathname + "#" + b64;
-  const title = String(shareTitle || "").trim() || "My Python Project";
   try{
     if(navigator.share){ await navigator.share({title, text:title, url}); toast("Shared"); }
     else{ await navigator.clipboard.writeText(`${title}\n${url}`); toast("Title and share link copied"); }
@@ -557,6 +572,10 @@ function loadHash(){
     const p = JSON.parse(decodeURIComponent(escape(atob(b64))));
     if(typeof p.code === "string") ui.code.value = p.code;
     if(typeof p.stdin === "string") ui.stdin.value = p.stdin;
+    if(typeof p.title === "string" && p.title.trim() && ui.sharedTitle && ui.sharedTitleText){
+      ui.sharedTitleText.textContent = p.title.trim();
+      ui.sharedTitle.hidden = false;
+    }
     return true;
   }catch{return false;}
 }
