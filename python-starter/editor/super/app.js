@@ -4,7 +4,8 @@ const ui = {
   run: $("ppRun"), stop: $("ppStop"), clear: $("ppClear"), font: $("ppFontSize"), fullscreen: $("ppFullscreen"), fullscreenTool: $("ppFullscreenTool"), fullscreenButtons: Array.from(document.querySelectorAll(".jsFullscreen")), share: $("ppShare"), shareDialog: $("ppShareDialog"), shareForm: $("ppShareForm"), shareTitle: $("ppShareTitle"), shareSuggest: $("ppShareSuggest"), shareClose: $("ppShareClose"), shareCancel: $("ppShareCancel"), theme: $("ppTheme"),
   pkgs: $("ppPkgs"), install: $("ppInstall"), list: $("ppList"), readOutput: $("ppReadOutput"), status: $("ppStatus"), toast: $("ppToast"), copyOut: $("ppCopyOut"), plots: $("ppPlots"),
   plotMode: $("ppPlotMode"), openPlots: $("ppOpenPlots"), plotModal: $("ppPlotModal"), plotModalTitle: $("ppPlotModalTitle"), plotModalImg: $("ppPlotModalImg"), plotModalClose: $("ppPlotModalClose"), plotPrev: $("ppPlotPrev"), plotNext: $("ppPlotNext"), plotDownload: $("ppPlotDownload"),
-  fileInput: $("ppFileInput"), uploadFiles: $("ppUploadFiles"), refreshFiles: $("ppRefreshFiles"), downloadAllFiles: $("ppDownloadAllFiles"), fileList: $("ppFileList")
+  fileInput: $("ppFileInput"), uploadFiles: $("ppUploadFiles"), refreshFiles: $("ppRefreshFiles"), downloadAllFiles: $("ppDownloadAllFiles"), fileList: $("ppFileList"),
+  startReel: $("ppStartReel"), stopReel: $("ppStopReel"), reelMic: $("ppReelMic"), recordTime: $("ppRecordTime")
 };
 const K_CODE = "pp_beginner_code_v1";
 const K_STDIN = "pp_beginner_stdin_v1";
@@ -19,6 +20,13 @@ let runTimer = null;
 let currentPlots = [];
 let currentPlotIndex = 0;
 let projectFiles = [];
+let reelRecorder = null;
+let reelChunks = [];
+let reelStreams = [];
+let reelAudioContext = null;
+let reelTimer = null;
+let reelStartedAt = 0;
+let reelTitle = "Python coding session";
 let lastShareSuggestion = -1;
 
 const shareSuggestions = [
@@ -62,6 +70,60 @@ function downloadBytes(name, data, type="application/octet-stream"){
   const link = document.createElement("a");
   link.href = url; link.download = name; document.body.appendChild(link); link.click(); link.remove();
   setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
+function reelFileName(title){
+  const safe = String(title || "python-project").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,50);
+  return `${safe || "python-project"}-reel.webm`;
+}
+function formatRecordingTime(ms){
+  const total=Math.max(0,Math.floor(ms/1000)),minutes=Math.floor(total/60),seconds=total%60;
+  return `${String(minutes).padStart(2,"0")}:${String(seconds).padStart(2,"0")}`;
+}
+function resetReelControls(){
+  clearInterval(reelTimer);reelTimer=null;
+  ui.startReel.disabled=false;ui.stopReel.disabled=true;ui.reelMic.disabled=false;
+  ui.recordTime.hidden=true;ui.recordTime.textContent="REC 00:00";
+}
+function stopReelTracks(){
+  reelStreams.forEach(stream=>stream.getTracks().forEach(track=>track.stop()));reelStreams=[];
+  if(reelAudioContext){reelAudioContext.close().catch(()=>{});reelAudioContext=null;}
+}
+async function startReelRecording(){
+  if(!navigator.mediaDevices?.getDisplayMedia||!window.MediaRecorder) return toast("Live recording is not supported in this browser");
+  const suggested=(ui.sharedTitleText?.textContent||"Python coding session").trim();
+  const entered=window.prompt("Recording title",suggested);if(entered===null)return;
+  reelTitle=entered.trim()||suggested;
+  try{
+    const display=await navigator.mediaDevices.getDisplayMedia({video:{frameRate:30},audio:true,preferCurrentTab:true,selfBrowserSurface:"include"});
+    reelStreams=[display];
+    let mic=null;
+    if(ui.reelMic.checked){
+      try{mic=await navigator.mediaDevices.getUserMedia({audio:true});reelStreams.push(mic);}catch{toast("Microphone unavailable; recording without microphone");}
+    }
+    const combined=new MediaStream(display.getVideoTracks());
+    const audioTracks=[...display.getAudioTracks(),...(mic?mic.getAudioTracks():[])];
+    if(audioTracks.length){
+      reelAudioContext=new AudioContext();const destination=reelAudioContext.createMediaStreamDestination();
+      for(const track of audioTracks) reelAudioContext.createMediaStreamSource(new MediaStream([track])).connect(destination);
+      destination.stream.getAudioTracks().forEach(track=>combined.addTrack(track));
+    }
+    const mime=["video/webm;codecs=vp9,opus","video/webm;codecs=vp8,opus","video/webm"].find(type=>MediaRecorder.isTypeSupported(type))||"";
+    reelChunks=[];reelRecorder=new MediaRecorder(combined,mime?{mimeType:mime,videoBitsPerSecond:4500000}:undefined);
+    reelRecorder.ondataavailable=event=>{if(event.data.size)reelChunks.push(event.data);};
+    reelRecorder.onstop=()=>{
+      const type=reelRecorder.mimeType||mime||"video/webm";
+      downloadBytes(reelFileName(reelTitle),new Blob(reelChunks,{type}),type);
+      reelChunks=[];reelRecorder=null;stopReelTracks();resetReelControls();setStatus("Recording downloaded","ok");toast("Reel recording downloaded");
+    };
+    display.getVideoTracks()[0].addEventListener("ended",stopReelRecording,{once:true});
+    reelRecorder.start(1000);reelStartedAt=Date.now();
+    ui.startReel.disabled=true;ui.stopReel.disabled=false;ui.reelMic.disabled=true;ui.recordTime.hidden=false;
+    reelTimer=setInterval(()=>ui.recordTime.textContent=`REC ${formatRecordingTime(Date.now()-reelStartedAt)}`,500);
+    setStatus("Recording live session…","bad");toast("Recording started—work normally, then press Stop & Download");
+  }catch(error){stopReelTracks();resetReelControls();if(error?.name!=="NotAllowedError")toast(error?.message||"Could not start recording");}
+}
+function stopReelRecording(){
+  if(reelRecorder&&reelRecorder.state!=="inactive"){setStatus("Finishing recording…");reelRecorder.stop();}
 }
 function stopReading(){
   if("speechSynthesis" in window) window.speechSynthesis.cancel();
@@ -672,6 +734,8 @@ if(ui.fileList) ui.fileList.addEventListener("click", e=>{
   if(download) worker.postMessage({type:"FILE_GET", name:download.dataset.fileDownload});
   if(remove && confirm(`Delete ${remove.dataset.fileDelete}?`)) worker.postMessage({type:"FILE_DELETE", name:remove.dataset.fileDelete});
 });
+if(ui.startReel) ui.startReel.addEventListener("click",startReelRecording);
+if(ui.stopReel) ui.stopReel.addEventListener("click",stopReelRecording);
 if(ui.codeFullscreen) ui.codeFullscreen.addEventListener("click", toggleCodeFullscreen);
 document.querySelectorAll(".jsToggleBox").forEach(btn => btn.addEventListener("click", ()=>toggleIoBox(btn)));
 
