@@ -5,7 +5,7 @@
   const S = {
     code: 'lwc_java_code_v1', stdin: 'lwc_java_stdin_v1', theme: 'lwc_java_theme_v1',
     font: 'lwc_java_font_v1', api: 'lwc_java_api_v1', read: 'lwc_java_read_v1',
-    compiler: 'lwc_java_compiler_v1', args: 'lwc_java_args_v1'
+    compiler: 'lwc_java_compiler_v1', args: 'lwc_java_args_v1', topic: 'lwc_java_share_topic_v1'
   };
   const DEFAULT_API = 'https://ce.judge0.com';
   const DEFAULT_LANGUAGE_ID = 62;
@@ -24,7 +24,7 @@
   const ui = {
     app: $('appShell'), editorEl: $('editor'), fallback: $('fallbackEditor'), stdin: $('stdin'),
     stdout: $('stdout'), stderr: $('stderr'), run: $('runBtn'), stop: $('stopBtn'), clear: $('clearBtn'),
-    theme: $('themeBtn'), share: $('shareBtn'), font: $('fontSelect'), read: $('readOutput'), status: $('status'),
+    theme: $('themeBtn'), share: $('shareBtn'), topic: $('shareTopic'), font: $('fontSelect'), read: $('readOutput'), status: $('status'),
     sample: $('sampleSelect'), newBtn: $('newBtn'), copyCode: $('copyCodeBtn'), download: $('downloadBtn'),
     copyOut: $('copyOutBtn'), codeCard: $('codeCard'), codeFullscreen: $('codeFullscreenBtn'), runMeta: $('runMeta'),
     buildBtn: $('buildBtn'), buildOptions: $('buildOptions'), compilerOptions: $('compilerOptions'), commandArgs: $('commandArgs'),
@@ -54,6 +54,7 @@
     localStorage.setItem(S.stdin, ui.stdin.value);
     localStorage.setItem(S.compiler, ui.compilerOptions.value);
     localStorage.setItem(S.args, ui.commandArgs.value);
+    localStorage.setItem(S.topic, ui.topic.value.trim());
   }
   function queueSave() { clearTimeout(saveTimer); saveTimer = setTimeout(save, 300); }
 
@@ -144,11 +145,12 @@
   }
   async function shareProject() {
     save();
-    const payload = {code:getCode(),stdin:ui.stdin.value,compiler:ui.compilerOptions.value,args:ui.commandArgs.value};
+    const topic=ui.topic.value.trim();
+    const payload = {topic,code:getCode(),stdin:ui.stdin.value,compiler:ui.compilerOptions.value,args:ui.commandArgs.value};
     const url = `${location.origin}${location.pathname}${location.search}#${utf8ToB64Url(JSON.stringify(payload))}`;
     try {
-      if (navigator.share) await navigator.share({title:'Java Browser IDE | Learn With Champak', url});
-      else { await navigator.clipboard.writeText(url); toast('Share link copied'); }
+      if (navigator.share) await navigator.share({title:topic?`${topic} | Java Browser IDE`:'Java Browser IDE | Learn With Champak',text:topic?`Topic: ${topic}`:'Java program',url});
+      else { await navigator.clipboard.writeText(url); toast(topic?'Topic share link copied':'Share link copied'); }
     } catch { toast('Share cancelled'); }
   }
   function loadHash() {
@@ -159,6 +161,7 @@
       if (typeof p.stdin === 'string') ui.stdin.value = p.stdin;
       if (typeof p.compiler === 'string') ui.compilerOptions.value = p.compiler;
       if (typeof p.args === 'string') ui.commandArgs.value = p.args;
+      if (typeof p.topic === 'string') { ui.topic.value = p.topic; localStorage.setItem(S.topic,p.topic); }
       return true;
     } catch { return false; }
   }
@@ -329,7 +332,7 @@
     ui.sample.addEventListener('change',()=>{setCode(samples[ui.sample.value]);save();});
     ui.newBtn.addEventListener('click',()=>{setCode(samples.hello);ui.stdin.value='';clearOutputs();save();});
     ui.copyCode.addEventListener('click',()=>copyText(getCode(),'Code')); ui.download.addEventListener('click',downloadSource); ui.copyOut.addEventListener('click',()=>copyText(ui.stdout.textContent,'stdout'));
-    ui.stdin.addEventListener('input',queueSave); ui.compilerOptions.addEventListener('input',queueSave); ui.commandArgs.addEventListener('input',queueSave);
+    ui.stdin.addEventListener('input',queueSave); ui.compilerOptions.addEventListener('input',queueSave); ui.commandArgs.addEventListener('input',queueSave); ui.topic.addEventListener('input',queueSave);
     ui.buildBtn.addEventListener('click',()=>ui.buildOptions.classList.toggle('show'));
     document.querySelectorAll('.fullscreenBtn').forEach(b=>b.addEventListener('click',toggleAppFullscreen));
     document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement)document.body.classList.remove('appFullscreen');syncFullscreenText();});
@@ -343,7 +346,7 @@
 
   async function boot() {
     const q=new URLSearchParams(location.search); ui.modeBadge.textContent=q.get('tmode')==='1'?'Teacher':'Student';
-    ui.stdin.value=localStorage.getItem(S.stdin)||''; ui.compilerOptions.value=localStorage.getItem(S.compiler)||''; ui.commandArgs.value=localStorage.getItem(S.args)||''; ui.apiUrl.value=getApi();
+    ui.stdin.value=localStorage.getItem(S.stdin)||''; ui.compilerOptions.value=localStorage.getItem(S.compiler)||''; ui.commandArgs.value=localStorage.getItem(S.args)||''; ui.topic.value=localStorage.getItem(S.topic)||''; ui.apiUrl.value=getApi();
     initEditor();
     const hashLoaded=loadHash();
     if(!hashLoaded){setCode(localStorage.getItem(S.code)||samples.hello);await loadRemoteCode();}
