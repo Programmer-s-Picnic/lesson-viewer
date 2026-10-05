@@ -6,7 +6,8 @@
     font: 'lwc_cpp_ide_font_size',
     flags: 'lwc_cpp_ide_compiler_options',
     args: 'lwc_cpp_ide_command_args',
-    read: 'lwc_cpp_ide_read_output'
+    read: 'lwc_cpp_ide_read_output',
+    topic: 'lwc_cpp_ide_share_topic'
   };
   const state = { files: [], aborters: new Set(), lastResult: null };
   const originalFetch = window.fetch.bind(window);
@@ -43,7 +44,8 @@
     toolbar.innerHTML = `
       <button class="btn ghost" id="parityStop" type="button">■ Stop</button>
       <button class="btn ghost" id="parityFullscreen" type="button">⛶ Full screen</button>
-      <button class="btn ghost" id="parityShare" type="button">🔗 Share</button>
+      <button class="btn ghost" id="parityShare" type="button"># Share</button>
+      <label class="parity-topic">Topic <input id="parityShareTopic" type="text" maxlength="120" placeholder="e.g. Arrays / Pointers"></label>
       <button class="btn ghost" id="parityCodeFullscreen" type="button">Code full screen</button>
       <button class="btn ghost" id="parityBuildToggle" type="button">⚙ Build options</button>
       <label>Font <select id="parityFont"><option value="14">Small</option><option value="16">Normal</option><option value="20">Large</option><option value="24">XL</option><option value="30">XXL</option></select></label>
@@ -123,11 +125,14 @@
   }
 
   async function shareProject() {
-    const p = { code:getCode(), stdin:$('stdin')?.value||'', language:$('languageSelect')?.value||'cpp', flags:$('parityFlags')?.value||'', args:$('parityArgs')?.value||'' };
+    const topic=$('parityShareTopic')?.value?.trim()||'';
+    localStorage.setItem(K.topic,topic);
+    const p = { topic, code:getCode(), stdin:$('stdin')?.value||'', language:$('languageSelect')?.value||'cpp', flags:$('parityFlags')?.value||'', args:$('parityArgs')?.value||'' };
     const bytes = new TextEncoder().encode(JSON.stringify(p)); let bin=''; bytes.forEach(b=>bin+=String.fromCharCode(b));
     const hash=btoa(bin).replaceAll('+','-').replaceAll('/','_').replaceAll('=','');
     const url=location.origin+location.pathname+location.search+'#'+hash;
-    try { if(navigator.share) await navigator.share({title:document.title,url}); else { await navigator.clipboard.writeText(url); toast('Share link copied'); } } catch { toast('Share cancelled'); }
+    const shareTitle=topic?`${topic} | C/C++ Browser IDE`:document.title;
+    try { if(navigator.share) await navigator.share({title:shareTitle,text:topic?`Topic: ${topic}`:'C/C++ program',url}); else { await navigator.clipboard.writeText(url); toast(topic?'Topic share link copied':'Share link copied'); } } catch { toast('Share cancelled'); }
   }
   function loadHash(){
     if(!location.hash) return false;
@@ -137,6 +142,7 @@
       if(typeof p.stdin==='string') $('stdin').value=p.stdin;
       if(typeof p.flags==='string') $('parityFlags').value=p.flags;
       if(typeof p.args==='string') $('parityArgs').value=p.args;
+      if(typeof p.topic==='string'){ $('parityShareTopic').value=p.topic; localStorage.setItem(K.topic,p.topic); }
       return true;
     }catch{return false;}
   }
@@ -168,6 +174,8 @@
     $('parityStop')?.addEventListener('click',()=>{ state.aborters.forEach(c=>c.abort()); state.aborters.clear(); stopReading(); $('parityStatus').textContent='Stopped'; $('parityStatus').className='parity-status bad'; toast('Stopped'); });
     $('parityFullscreen')?.addEventListener('click',async()=>{ const on=!document.body.classList.contains('parity-app-fullscreen'); document.body.classList.toggle('parity-app-fullscreen',on); if(on){try{await document.documentElement.requestFullscreen?.();}catch{}}else if(document.fullscreenElement){try{await document.exitFullscreen();}catch{}} $('parityFullscreen').textContent=on?'⛶ Exit full screen':'⛶ Full screen'; resizeAce(); });
     $('parityShare')?.addEventListener('click',shareProject);
+    $('parityShareTopic').value=localStorage.getItem(K.topic)||'';
+    $('parityShareTopic')?.addEventListener('input',e=>localStorage.setItem(K.topic,e.target.value));
     $('parityCodeFullscreen')?.addEventListener('click',()=>{ const p=document.querySelector('.editor-panel'); const on=!p.classList.contains('parity-code-fullscreen'); p.classList.toggle('parity-code-fullscreen',on); document.body.classList.toggle('parity-lock',on); $('parityCodeFullscreen').textContent=on?'Original size':'Code full screen'; resizeAce(); });
     $('parityBuildToggle')?.addEventListener('click',()=> $('parityBuild').classList.toggle('show'));
     $('parityFont')?.addEventListener('change',e=>applyFont(e.target.value));
