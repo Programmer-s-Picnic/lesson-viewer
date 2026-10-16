@@ -1,5 +1,5 @@
-const CACHE = "python-editor-offline-v7";
-const SHELL = ["./", "./index.html", "./style.css?v=20261016-7", "./app.js?v=20261016-7", "./judge-worker.js?v=20261016-7", "./manifest.webmanifest", "./icon.svg"];
+const CACHE = "python-editor-offline-v8";
+const SHELL = ["./", "./index.html", "./style.css?v=20261016-8", "./app.js?v=20261016-8", "./judge-worker.js?v=20261016-8", "./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));
