@@ -2,7 +2,7 @@ const $ = (id) => document.getElementById(id);
 const ui = {
   app: $("appShell"), codeCard: document.querySelector(".codeCard"), codeFullscreen: $("ppCodeFullscreen"), code: $("ppCode"), highlight: $("ppHighlight"), gutter: $("ppGutter"), stdin: $("ppStdin"), out: $("ppOut"), err: $("ppErr"), sharedTitle: $("ppSharedTitle"), sharedTitleText: $("ppSharedTitleText"),
   run: $("ppRun"), stop: $("ppStop"), clear: $("ppClear"), font: $("ppFontSize"), fullscreen: $("ppFullscreen"), fullscreenTool: $("ppFullscreenTool"), fullscreenButtons: Array.from(document.querySelectorAll(".jsFullscreen")), share: $("ppShare"), shareDialog: $("ppShareDialog"), shareForm: $("ppShareForm"), shareTitle: $("ppShareTitle"), shareSuggest: $("ppShareSuggest"), shareClose: $("ppShareClose"), shareCancel: $("ppShareCancel"), theme: $("ppTheme"),
-  pkgs: $("ppPkgs"), install: $("ppInstall"), list: $("ppList"), status: $("ppStatus"), toast: $("ppToast"), copyOut: $("ppCopyOut"), plots: $("ppPlots"),
+  pkgs: $("ppPkgs"), install: $("ppInstall"), list: $("ppList"), offline: $("ppOffline"), status: $("ppStatus"), toast: $("ppToast"), copyOut: $("ppCopyOut"), plots: $("ppPlots"),
   plotMode: $("ppPlotMode"), openPlots: $("ppOpenPlots"), plotModal: $("ppPlotModal"), plotModalTitle: $("ppPlotModalTitle"), plotModalImg: $("ppPlotModalImg"), plotModalClose: $("ppPlotModalClose"), plotPrev: $("ppPlotPrev"), plotNext: $("ppPlotNext"), plotDownload: $("ppPlotDownload"),
   fileInput: $("ppFileInput"), uploadFiles: $("ppUploadFiles"), refreshFiles: $("ppRefreshFiles"), downloadAllFiles: $("ppDownloadAllFiles"), fileList: $("ppFileList"),
   startReel: $("ppStartReel"), pauseReel: $("ppPauseReel"), stopReel: $("ppStopReel"), recordTime: $("ppRecordTime"), recordSize: $("ppRecordSize"), reelOverlay: $("ppReelOverlay"), reelOverlayBrand: $("ppReelOverlayBrand"), reelOverlayMain: $("ppReelOverlayMain"), reelOverlaySub: $("ppReelOverlaySub"), pointerHalo: $("ppPointerHalo"), reelActionLabel: $("ppReelActionLabel")
@@ -32,6 +32,7 @@ let reelWarningShown = false;
 let reelClosing = false;
 let typingZoomTimer = null;
 let lastShareSuggestion = -1;
+let offlinePreparing = false;
 
 const shareSuggestions = [
   "Try this Python program I created with Learn With Champak.",
@@ -549,11 +550,21 @@ function handleTypingAid(e){
 function makeWorker(){
   if(worker) worker.terminate();
   ready = false;
-  worker = new Worker("judge-worker.js?v=20260919-5");
+  worker = new Worker("judge-worker.js?v=20261016-7");
   setStatus("Loading Python…");
   worker.onmessage = (ev) => {
     const msg = ev.data || {};
     if(msg.type === "READY"){ ready = true; setStatus("Ready", "ok"); worker.postMessage({type:"FILE_LIST"}); return; }
+    if(msg.type === "OFFLINE_READY"){
+      offlinePreparing = false;
+      if(ui.offline){ ui.offline.disabled = false; ui.offline.textContent = "✓ Offline Ready"; }
+      localStorage.setItem("pp_offline_ready_v7", "1");
+      setStatus("Offline ready", "ok");
+      ui.out.textContent = "Offline preparation complete. Python, NumPy, pandas, Matplotlib and scikit-learn are available without internet on this device.";
+      focusOutput(ui.out.textContent, "");
+      toast("Offline mode is ready");
+      return;
+    }
     if(msg.type === "RUN_RESULT"){
       running = false; clearTimeout(runTimer);
       const r = msg.result || {};
@@ -608,6 +619,29 @@ function makeWorker(){
   };
   worker.onerror = (e) => { running = false; ui.err.textContent = e.message || String(e); focusOutput("", ui.err.textContent); setStatus("Worker error", "bad"); };
   worker.postMessage({type:"INIT", policy:{allow_micropip:true}});
+}
+
+async function prepareOffline(){
+  if(offlinePreparing) return;
+  if(!("serviceWorker" in navigator)) return toast("Offline mode is not supported in this browser");
+  if(!ready) return toast("Wait until Python is ready");
+  if(!confirm("Download Python and common data-science libraries for offline use? This may use more than 100 MB of storage.")) return;
+  offlinePreparing = true;
+  ui.offline.disabled = true;
+  ui.offline.textContent = "Preparing…";
+  ui.out.textContent = "Preparing offline mode…\nKeep this page open and stay connected until it finishes.";
+  ui.err.textContent = "";
+  setStatus("Downloading offline files…");
+  worker.postMessage({type:"PREPARE_OFFLINE"});
+}
+
+async function registerOfflineSupport(){
+  if(!("serviceWorker" in navigator) || !window.isSecureContext) return;
+  try{
+    await navigator.serviceWorker.register("service-worker.js?v=20261016-7", {scope:"./"});
+    await navigator.serviceWorker.ready;
+    if(ui.offline && localStorage.getItem("pp_offline_ready_v7") === "1") ui.offline.textContent = "✓ Offline Ready";
+  }catch(error){ console.warn("Offline support unavailable", error); }
 }
 
 function runCode(){
@@ -739,6 +773,7 @@ if(ui.shareDialog) ui.shareDialog.addEventListener("click", e=>{
 ui.theme.addEventListener("click", ()=>applyTheme((document.body.dataset.theme || "light") === "light" ? "dark" : "light"));
 ui.install.addEventListener("click", installModules);
 ui.list.addEventListener("click", ()=>{ if(!ready) return toast("Python is still loading"); ui.out.textContent="Loading module list…"; worker.postMessage({type:"LIST_PKGS"}); });
+if(ui.offline) ui.offline.addEventListener("click", prepareOffline);
 ui.copyOut.addEventListener("click", async()=>{ try{ await navigator.clipboard.writeText(ui.out.textContent); toast("stdout copied"); }catch{ toast("Copy blocked"); } });
 if(ui.uploadFiles && ui.fileInput){
   ui.uploadFiles.addEventListener("click", ()=>{
@@ -807,7 +842,7 @@ else if(!location.hash && localStorage.getItem(K_CODE)) ui.code.value = localSto
 ui.stdin.value = ui.stdin.value || localStorage.getItem(K_STDIN) || "Champak";
 applyTheme(localStorage.getItem(K_THEME) || "light");
 applyPlotMode(localStorage.getItem(K_PLOT_MODE) || "both");
-const font = localStorage.getItem(K_FONT) || "16"; ui.font.value = font; applyFont(font); updateGutter(); installEditorLayoutWatchers(); makeWorker();
+const font = localStorage.getItem(K_FONT) || "16"; ui.font.value = font; applyFont(font); updateGutter(); installEditorLayoutWatchers(); registerOfflineSupport(); makeWorker();
 window.addEventListener("beforeunload",event=>{
   if(reelRecorder&&reelRecorder.state!=="inactive"){event.preventDefault();event.returnValue="Recording is still active.";}
 });
