@@ -268,6 +268,13 @@ RES = _pp_run_capture(U_CODE, U_STDIN, U_POLICY_JSON)
       return;
     }
 
+    if (msg.type === "PREPARE_OFFLINE") {
+      await ensurePyodide();
+      await py.loadPackage(["micropip", "numpy", "pandas", "matplotlib", "scikit-learn"]);
+      postMessage({ type: "OFFLINE_READY" });
+      return;
+    }
+
     if (msg.type === "FILE_LIST") {
       await ensurePyodide();
       postMessage({ type: "FILE_LIST", files: listProjectFiles() });
