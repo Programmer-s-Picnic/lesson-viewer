@@ -289,6 +289,28 @@
       new MutationObserver(mirror).observe(actualRun,{attributes:true,attributeFilter:["disabled"]});
     }
   }
+  let quickRunActive=false;
+  const runtimeStatus=$("ppStatus");
+  if(runtimeStatus){
+    new MutationObserver(()=>{
+      if(!quickRunActive)return;
+      const message=runtimeStatus.textContent.trim();
+      if(message==="Run complete"){
+        quickRunActive=false;
+        stateLabel.textContent="Run complete";stateLabel.dataset.status="finished";
+        hint.textContent="Program finished. Choose Output to hear the result.";
+      }else if(message==="Error found"||message==="Error"||message==="Worker error"||message==="Stopped"){
+        quickRunActive=false;
+        stateLabel.textContent="Run error";stateLabel.dataset.status="error";
+        hint.textContent="Python reported an error. Choose Error to hear an explanation.";
+      }else if(message==="Running…"){
+        stateLabel.textContent="Running";stateLabel.dataset.status="running";
+      }else if(message==="Loading Python…"){
+        quickRunActive=false;
+        stateLabel.textContent="Loading Python";stateLabel.dataset.status="loading";
+      }
+    }).observe(runtimeStatus,{childList:true,characterData:true,subtree:true});
+  }
   // Drag the menu from its title bar without covering other controls.
   if(handle){
     let pointer=null;
@@ -344,6 +366,7 @@
     else if (button.dataset.speakerAction === "run"){
       const run=$("ppRun");
       if(run && !run.disabled){
+        quickRunActive=true;
         stateLabel.textContent="Running";stateLabel.dataset.status="running";
         hint.textContent="Executing Python program…";
         run.click();
