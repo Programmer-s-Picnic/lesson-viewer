@@ -1,27 +1,72 @@
-/* Lightweight Cartoon Teacher dock; existing Python editor layout remains unchanged. */
-.speakerPanel[hidden]{display:none!important}
-.speakerPanel{display:block;min-width:0;margin:14px 0 18px;padding:16px;background:#f4faff;border:1px solid #b7d9f3;border-radius:16px;box-shadow:0 12px 28px rgba(43,104,166,.09)}
-.speakerHead{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
-.speakerHead h2{margin:0;color:#174974;font-size:20px}
-.speakerHead p{margin:5px 0 0;font-size:13px;color:#557590}
-.speakerActions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0}
-.speakerActions .btn{min-width:120px}
-.speakerLanguage{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#315f87;margin-left:auto}
-.speakerLanguage select{border:1px solid #a9cce5;border-radius:9px;padding:8px 10px;background:#fff;color:#1b4e79;max-width:150px}
-.speakerHint{margin:10px 0;padding:9px 12px;border:1px solid #cfdfef;border-radius:10px;background:#fff;color:#365d7c;font-size:13px;line-height:1.5}
-.speakerFrame{display:block;width:100%;height:610px;border:1px solid #c9deef;border-radius:12px;background:#fff}
-.speakerFinePrint{font-size:12px;color:#65839d;line-height:1.5;margin:10px 0 0}
-.speakerFinePrint a{color:#2469a8;text-decoration:underline}
-@media(max-width:720px){
- .speakerPanel{padding:10px;margin:10px 0;border-radius:12px}
- .speakerHead h2{font-size:18px}
- .speakerActions .btn{flex:1 1 120px;min-width:0;padding:9px 7px}
- .speakerLanguage{flex:1 1 100%;justify-content:space-between;margin-left:0}
- .speakerFrame{height:720px}
+/* Persistent, responsive, modal-style teacher command palette. Never blocks the editor. */
+.speakerPanel[hidden]{display:block!important}
+.speakerPanel{
+  position:fixed;z-index:500;right:calc(14px + env(safe-area-inset-right,0px));
+  bottom:calc(14px + env(safe-area-inset-bottom,0px) + var(--speaker-vv-bottom,0px));
+  width:min(390px,calc(100vw - 22px));max-height:calc(100dvh - 24px);
+  margin:0;box-sizing:border-box;overflow:auto;
+  background:rgba(247,251,255,.98);color:#183c5e;
+  border:1px solid #a9cde8;border-radius:17px;
+  box-shadow:0 16px 48px rgba(19,61,101,.25),0 2px 8px rgba(19,61,101,.09);
+  padding:11px 12px;isolation:isolate;
+  overscroll-behavior:contain;
 }
-
-/* Spoken Python comment instructions and dialogue examples. */
-.speakerCommentGuide{margin:8px 0 12px;border:1px solid #c5def2;border-radius:11px;background:#f7fbff;color:#375f80;overflow:hidden}
-.speakerCommentGuide summary{cursor:pointer;padding:11px 13px;font-size:12px;font-weight:750;color:#2c679a}
-.speakerCommentGuide pre{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;background:#edf5fd;padding:10px;margin:0 10px;border-radius:8px;color:#264e72}
-.speakerCommentGuide p{font-size:11px;line-height:1.55;padding:2px 12px 11px;margin:6px 0 0}
+.speakerPanel:focus{outline:none}
+.speakerPanel:focus-visible{outline:3px solid #2887d0;outline-offset:3px}
+.speakerHead{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:3px 1px 10px;touch-action:none;cursor:grab;user-select:none;
+}
+.speakerHead:active{cursor:grabbing}
+.speakerHeading{display:flex;align-items:center;gap:7px;white-space:nowrap;font-size:14px;color:#144a75}
+.speakerAvatarIcon{font-size:17px}
+.speakerState{border:1px solid #c6ddec;border-radius:20px;background:#ebf5fd;color:#335d7a;
+  padding:3px 9px;font-size:10px;font-weight:800;max-width:155px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.speakerState[data-status="speaking"]{background:#e4f9ee;border-color:#b4e4cc;color:#177950}
+.speakerState[data-status="error"]{background:#fff0ef;border-color:#efc5c5;color:#ac3741}
+.speakerActions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:0}
+.speakerActionBtn{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;
+  border:1px solid #b9d6ed;border-radius:11px;background:white;color:#20557e;
+  font-family:inherit;font-size:12px;font-weight:800;min-height:57px;padding:8px 3px;
+  cursor:pointer;box-shadow:0 2px 5px #2a6a9b10;line-height:1.1}
+.speakerActionBtn>span:first-child{font-size:19px;line-height:1.1}
+.speakerActionBtn:hover{background:#eaf5ff;border-color:#72b7e8}
+.speakerActionBtn:focus-visible{outline:3px solid #238ed7;outline-offset:2px}
+.speakerActionBtn:active{transform:translateY(1px)}
+.speakerRunBtn{background:#287dc4;color:white;border-color:#287dc4}
+.speakerRunBtn:hover{background:#1b69ad;color:white}
+.speakerActionBtn[disabled]{opacity:.5;cursor:not-allowed}
+.speakerSummary{margin-top:8px;color:#486781;background:#edf6fc;border-radius:8px;
+  padding:6px 9px;font-size:11px;line-height:1.35;max-height:45px;overflow:auto}
+.speakerSettings{font-size:11px;margin-top:5px;color:#426b8b}
+.speakerSettings summary{cursor:pointer;padding:7px 2px 3px;font-weight:750;list-style-position:inside}
+.speakerSettings summary:focus-visible{outline:2px solid #2b88c9;border-radius:4px}
+.speakerSettingsRow{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:7px 2px}
+.speakerLanguage{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700}
+.speakerLanguage select{background:white;color:#1a4f78;border:1px solid #bad9ef;border-radius:8px;
+  padding:5px;font-size:12px;width:auto;min-width:85px}
+.speakerSettingsRow .speakerWalkControl{padding:5px 8px;min-height:32px;flex:none;font-size:11px}
+.speakerFrame{position:absolute;left:0;bottom:0;width:1px;height:1px;opacity:0;
+  clip-path:inset(50%);pointer-events:none;border:0}
+.speakerSettings[open] ~ .speakerFrame{position:relative;left:auto;bottom:auto;display:block;
+  clip-path:none;opacity:1;width:100%;height:min(410px,50dvh);pointer-events:auto;
+  border:1px solid #d5e4f3;border-radius:10px;background:white;margin-top:9px}
+.speakerFinePrint{font-size:11px;line-height:1.4;margin:7px 2px;color:#557b9a}
+.speakerFinePrint a{color:#146fb3;text-decoration:underline}
+.speakerPanel.speaker-dragged{right:auto!important;bottom:auto!important}
+@media(max-width:570px){
+ .speakerPanel{right:calc(7px + env(safe-area-inset-right,0px));
+  bottom:calc(7px + env(safe-area-inset-bottom,0px) + var(--speaker-vv-bottom,0px));
+  width:min(355px,calc(100vw - 14px));padding:8px 9px;border-radius:13px;max-height:min(60dvh,340px)}
+ .speakerHead{padding-bottom:6px}.speakerHeading{font-size:12px}
+ .speakerActionBtn{min-height:51px;padding:6px 2px;font-size:11px}
+ .speakerActionBtn>span:first-child{font-size:17px}
+ .speakerActions{gap:5px}.speakerSummary{font-size:10px;max-height:34px}
+ .speakerSettings[open] ~ .speakerFrame{height:min(240px,35dvh)}
+}
+@media(max-height:500px){
+ .speakerPanel{max-height:calc(100dvh - 12px)}
+ .speakerSummary{max-height:25px}
+ .speakerActionBtn{min-height:44px;padding:3px}
+}
+@media(prefers-reduced-motion:reduce){.speakerActionBtn:active{transform:none}}
