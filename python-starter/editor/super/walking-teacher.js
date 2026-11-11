@@ -243,6 +243,8 @@ requestAnimationFrame(loop);
 async function walkToRun(){
  if(!enabled)return;
  scannerActive=false;
+ // Reveal the toolbar first even when the previous scene was far below.
+ targets.run?.scrollIntoView({behavior:reducedMotion.matches?"auto":"smooth",block:"center",inline:"nearest"});
  if(!init){
    // Enter near the code, then walk to the actual Run button.
    currentZone="code";stageZone="left";
@@ -256,8 +258,9 @@ async function walkToRun(){
    const begun=performance.now();
    function next(){
      const target=geometry();
-     if(!enabled||!target.onScreen||Math.hypot(px-target.x,py-target.y)<11 ||
-        performance.now()-begun>2500){resolve();return;}
+     if(!enabled||performance.now()-begun>2800){resolve();return;}
+     // A toolbar outside the viewport takes time to scroll into place.
+     if(target.onScreen&&Math.hypot(px-target.x,py-target.y)<11){resolve();return;}
      requestAnimationFrame(next);
    }
    requestAnimationFrame(next);
@@ -269,7 +272,9 @@ async function scanCode(){
  const scanId=++scanCancel;scannerActive=true;
  updateLocation({mode:"code",zone:"left",lookAt:"code",gesture:"point-left",
    caption:"Scanning the Python program"});
- scrollToTarget(targets.code);
+ targets.code?.scrollIntoView({behavior:"auto",block:"start",inline:"nearest"});
+ editor.scrollTop=0;
+ await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
  const rows=editor.value.split(/\r?\n/).length;
  const style=getComputedStyle(editor);
  const rowHeight=parseFloat(style.lineHeight)||parseFloat(style.fontSize||"16")*1.5;
@@ -284,7 +289,9 @@ async function scanCode(){
      const eased=t*t*(3-2*t);
      editor.scrollTop=total*eased;
      // Visually select/highlight a line as the viewport scans through the file.
-     line=Math.max(1,Math.min(rows,Math.ceil((total*eased+editor.clientHeight*.32-topPad)/rowHeight)));
+     line=Math.max(1,Math.min(rows,total>4?
+       Math.ceil((total*eased+editor.clientHeight*.32-topPad)/rowHeight):
+       Math.ceil(1+eased*(rows-1))));
      highlightLine();
      if(t>=1){resolve();return;}
      requestAnimationFrame(advance);
