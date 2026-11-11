@@ -56,7 +56,7 @@
     }else if(data.kind==="state"&&data.state==="stopped"){
       stateLabel.textContent="Ready";stateLabel.dataset.status="ready";
     }
-    if(walkOnPage?.checked)walker?.scene(data);
+    walker?.scene(data);
   });
   if(walkOnPage)walkOnPage.addEventListener("change",()=>{
     walker?.enable(walkOnPage.checked);
@@ -233,12 +233,12 @@
       return;
     }
     const hindi = inHindi(), lang = language.value;
-    const parts = output.split(/\r?\n/).filter(line => line.trim()).slice(0, 25);
+    const parts = output.split(/\r?\n/).map((text,index)=>({text,line:index+1})).filter(row=>row.text.trim()).slice(0,25);
     const lines=[cue("happy","welcome",lang,hindi?"अब प्रोग्राम का आउटपुट सुनिए।":"Here is the program output.")];
     const scenes=[{mode:"output",zone:"center",lookAt:"audience"}];
-    parts.forEach((line,idx)=>{
-      lines.push(cue("explaining","point-right",lang,(hindi?`आउटपुट लाइन ${idx+1}: `:`Output line ${idx+1}: `)+safeLine(line)));
-      scenes.push({mode:"output",zone:"right",lookAt:"output",resultLine:idx+1});
+    parts.forEach((item,idx)=>{
+      lines.push(cue("explaining","point-right",lang,(hindi?`आउटपुट लाइन ${item.line}: `:`Output line ${item.line}: `)+safeLine(item.text)));
+      scenes.push({mode:"output",zone:"right",lookAt:"output",resultLine:item.line});
     });
     if(output.split(/\r?\n/).length>25){
       lines.push(cue("thinking","think",lang,hindi?"बाकी आउटपुट स्क्रीन पर देखिए।":"The remaining output is visible on screen."));
@@ -301,11 +301,11 @@
   const runtimeStatus=$("ppStatus");
   function narrateFinishedRun(detail={}){
     const hindi=inHindi(),lang=language.value;
-    const stdout=String(detail.stdout||"").trim();
-    const stderr=String(detail.stderr||"").trim();
-    const outRows=stdout&&stdout!=="(no stdout)"?
-      stdout.split(/\r?\n/).filter(Boolean).slice(0,20):[];
-    const errorRows=stderr.split(/\r?\n/).filter(Boolean);
+    const stdout=String(detail.stdout||"");
+    const stderr=String(detail.stderr||"");
+    const outRows=stdout.trim()&&stdout.trim()!=="(no stdout)"?
+      stdout.split(/\r?\n/).map((text,index)=>({text,line:index+1})).filter(row=>row.text.trim()).slice(0,20):[];
+    const errorRows=stderr.split(/\r?\n/).map((text,index)=>({text,line:index+1})).filter(row=>row.text.trim());
     const lines=[],scenes=[];
     const push=(emotion,gesture,text,mode,zone,lookAt,sourceLine=null,resultLine=null)=>{
       lines.push(cue(emotion,gesture,lang,text));
@@ -315,10 +315,10 @@
       hindi?"अब प्रोग्राम का आउटपुट देखते हैं।":"The program has finished. Let us look at the output.",
       "output","right","output");
     if(outRows.length){
-      outRows.forEach((row,i)=>{
+      outRows.forEach(item=>{
         push("explaining","point-right",
-          (hindi?"आउटपुट "+(i+1)+": ":"Output "+(i+1)+": ")+safeLine(row),
-          "output","right","output",null,i+1);
+          (hindi?"आउटपुट "+item.line+": ":"Output "+item.line+": ")+safeLine(item.text),
+          "output","right","output",null,item.line);
       });
       if(stdout.split(/\r?\n/).length>20)push("thinking","think",
         hindi?"बाकी आउटपुट स्क्रीन पर देखिए।":"Additional output remains visible on screen.",
@@ -328,8 +328,8 @@
         hindi?"इस प्रोग्राम ने कोई प्रिंटेड आउटपुट नहीं दिया।":"This program produced no printed output.",
         "output","right","output");
     }
-    if(stderr){
-      const details=errorRows.at(-1)||"Python error";
+    if(stderr.trim()){
+      const last=errorRows.at(-1)||{text:"Python error",line:1};
       const match=[...stderr.matchAll(/\b([A-Za-z]+(?:Error|Exception))\b/g)].pop();
       const name=match?.[1]||"Python error";
       const lineMatch=[...stderr.matchAll(/File [^\n]*?, line (\d+)/g)].pop();
@@ -344,14 +344,24 @@
       }
       push("concerned","think",
         (hindi?"अब एरर पैनल देखते हैं। ":"Now let us inspect the error panel. ")+name+".",
-        "error","right","error",sourceLine);
-      push("explaining","point-right",
-        (hindi?"एरर विवरण: ":"Error details: ")+safeLine(details),
-        "error","right","error",sourceLine,Math.max(1,errorRows.length));
+        "error","right","error",sourceLine,last.line);
+      // Select each actual traceback row at the instant it is spoken.
+      const chosen=errorRows.length<=14?errorRows:[
+        ...errorRows.slice(0,5),...errorRows.slice(-9)
+      ];
+      chosen.forEach(item=>{
+        push("explaining","point-right",
+          (hindi?"एरर लाइन "+item.line+": ":"Error line "+item.line+": ")+safeLine(item.text),
+          "error","right","error",sourceLine,item.line);
+      });
+      if(errorRows.length>14)
+        push("thinking","think",
+          hindi?"बाकी एरर विवरण स्क्रीन पर मौजूद हैं।":"Additional traceback lines remain visible.",
+          "error","right","error",sourceLine,last.line);
       push("encouraging","explain",
         hindi?"इस एरर को ठीक करने के लिए उस लाइन और उसके वेरिएबल देखें।":
           "Check the indicated line, its variables and the traceback to fix this error.",
-        "error","right","error",sourceLine);
+        "error","right","error",sourceLine,last.line);
     }else{
       push("happy","celebrate",
         hindi?"एरर पैनल खाली है। प्रोग्राम बिना एरर के चला।":
