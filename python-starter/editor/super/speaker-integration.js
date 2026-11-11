@@ -15,7 +15,7 @@
   if (!panel || !frame || !hint || !language || !stateLabel) return;
 
   const SPEAKER_ORIGIN = "https://dsa.learnwithchampak.live";
-  const SPEAKER_URL = SPEAKER_ORIGIN + "/tools/cartoon-speaker/?embed=1&roaming=1&studioVersion=scan15-select-results-1";
+  const SPEAKER_URL = SPEAKER_ORIGIN + "/tools/cartoon-speaker/?embed=1&roaming=1&studioVersion=two-second-lines-1";
   let frameReady = false;
   let pending = null;
   function syncDisplay(){
