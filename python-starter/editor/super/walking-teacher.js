@@ -65,6 +65,24 @@ function seekLine(){
    editor.scrollTop=Math.max(0,y-editor.clientHeight*.35);
  }
 }
+function revealLineOnScreen(){
+ if(!editor||!line||currentZone!=="code"||scannerActive)return;
+ const st=getComputedStyle(editor);
+ const h=parseFloat(st.lineHeight)||parseFloat(st.fontSize||"16")*1.5;
+ const lineY=editor.getBoundingClientRect().top+(parseFloat(st.paddingTop)||14)
+   +(line-.5)*h-editor.scrollTop;
+ const vp=viewBounds();
+ const upper=vp.top+Math.min(85,vp.height*.18),lower=vp.bottom-Math.min(105,vp.height*.20);
+ if(lineY>=upper&&lineY<=lower)return;
+ const desired=vp.top+vp.height*.38;
+ const delta=lineY-desired;
+ const app=document.querySelector(".app.fullscreen");
+ if(app&&app.scrollHeight>app.clientHeight+5){
+   app.scrollBy({top:delta,behavior:reducedMotion.matches?"auto":"smooth"});
+ }else{
+   window.scrollBy({top:delta,behavior:reducedMotion.matches?"auto":"smooth"});
+ }
+}
 function seekResultLine(){
  if(resultLine<1||!["output","error"].includes(currentZone))return;
  const el=document.getElementById(currentZone==="output"?"ppOut":"ppErr");
@@ -156,10 +174,10 @@ function updateLocation(data={}){
  lastTarget=target;
  requestAnimationFrame(()=>{
    scrollToTarget(target);
-   if(line&&zone==="code"){seekLine();highlightLine();}
+   if(line&&zone==="code"){seekLine();revealLineOnScreen();highlightLine();}
    if(resultLine&&["output","error"].includes(zone))seekResultLine();
  });
- seekLine();seekResultLine();note(data.caption||"");highlightLine();
+ seekLine();seekResultLine();revealLineOnScreen();note(data.caption||"");highlightLine();
 }
 
 function setMood(){
