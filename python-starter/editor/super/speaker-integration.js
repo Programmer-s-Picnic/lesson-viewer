@@ -490,18 +490,16 @@
   // then display only the bounded DataFrame snapshots returned by the worker.
   window.addEventListener("lwc-python:run-finished",event=>{
     const detail=event.detail||{};
-    visualizer?.setData(detail.visuals||[],detail.code||$("ppCode")?.value||"");
+    visualizer?.setData(detail.visuals||[],detail.code||$("ppCode")?.value||"",detail);
     if(!visualizeRequested)return;
     visualizeRequested=false;
     visualizer?.open();
     // Start the visual teaching tour immediately when speech permission allows.
     // A visible Tour & Talk button can restart narration with a user gesture.
     visualizer?.startTour?.({autoplay:true});
-    stateLabel.textContent=(detail.visuals||[]).length+" DataFrames";
+    stateLabel.textContent="Visualization ready";
     stateLabel.dataset.status="finished";
-    hint.textContent=(detail.visuals||[]).length?
-      "Automatic chart dashboard is ready. Select a DataFrame tab to explore.":
-      "Visualize opened. No DataFrames were found in this run.";
+    hint.textContent="Champuter is explaining the Python code, execution, variables, results and charts.";
   });
   function visualizeRun(){
     if(runPreparation||quickRunActive){
@@ -516,12 +514,13 @@
       return;
     }
     visualizeRequested=true;
+    window.LWCVisualizeRequested=true;
     visualizer?.close?.();
     // Avoid overlapping a previous lesson's speech with Champuter's visual tour.
     if(frameReady&&frame.contentWindow)
       frame.contentWindow.postMessage({type:"lwc-speaker:stop",version:2},SPEAKER_ORIGIN);
     stateLabel.textContent="Visualizing…";stateLabel.dataset.status="running";
-    hint.textContent="Running Python and examining Pandas DataFrames for automatic charts…";
+    hint.textContent="Running Python to visualize code, execution, variables, output and charts…";
     run.click();
   }
   // Drag the menu from its title bar without covering other controls.
