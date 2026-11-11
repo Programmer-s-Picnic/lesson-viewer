@@ -24,6 +24,7 @@
   }
   const walkOnPage = $("ppWalkOnPage");
   const walker = window.LWCWalkingTeacher;
+  const presentation = window.LWCTeachingPresentation;
   let lastTargetedPanel = null;
   function markTeachingPanel(mode) {
     if(lastTargetedPanel)lastTargetedPanel.classList.remove("lwc-teacher-targeted");
@@ -56,6 +57,7 @@
     }else if(data.kind==="state"&&data.state==="stopped"){
       stateLabel.textContent="Ready";stateLabel.dataset.status="ready";
     }
+    presentation?.scene(data);
     walker?.scene(data);
   });
   if(walkOnPage)walkOnPage.addEventListener("change",()=>{
@@ -379,6 +381,8 @@
     const detail=event.detail||{};
     stateLabel.textContent=detail.ok?"Run complete":"Run error";
     stateLabel.dataset.status=detail.ok?"finished":"error";
+    presentation?.fullResults(detail.stdout,detail.stderr);
+    if(presentation?.isActive())walker?.stage?.("output","Showing program output");
     narrateFinishedRun(detail);
   });
   async function guidedRun(){
@@ -407,33 +411,49 @@
       }else run.scrollIntoView({behavior:"auto",block:"nearest"});
       if(id!==runToken)return;
       stateLabel.textContent="Scan 15s";stateLabel.dataset.status="running";
-      hint.textContent="Scanning every part of the Python program for 15 seconds…";
+      hint.textContent="Presenting the entire Python program on screen for 15 seconds…";
+      const code=$("ppCode");
+      let modalScan=false;
+      if(presentation){
+        presentation.open(code?.value||"",()=>{
+          runToken++;
+          quickRunActive=false;
+          if(frameReady&&frame.contentWindow)
+            frame.contentWindow.postMessage({type:"lwc-speaker:stop",version:2},SPEAKER_ORIGIN);
+          walker?.reset?.();
+          stateLabel.textContent="Presentation closed";
+          stateLabel.dataset.status="ready";
+          hint.textContent="Presentation closed. The editor and its files are unchanged.";
+        });
+        walker?.stage?.("code","Presenting the complete Python program");
+        modalScan=true;
+      }
       const showRemaining=remaining=>{
         if(id!==runToken)return;
         stateLabel.textContent="Scan "+remaining+"s";
-        hint.textContent="Scanning Python code — "+remaining+" seconds remaining.";
+        hint.textContent="The whole program is scrolling over the page — "+remaining+" seconds left.";
       };
-      if(walkOnPage?.checked&&walker?.scanCode){
-        const complete=await walker.scanCode(showRemaining);
+      if(modalScan){
+        const complete=await presentation.scanCode(15000,showRemaining);
         if(!complete){
           stateLabel.textContent="Scan stopped";stateLabel.dataset.status="paused";
-          hint.textContent="The code scan was interrupted; Python was not run.";
+          hint.textContent="Presentation cancelled before Python execution.";
           return;
         }
+      }else if(walkOnPage?.checked&&walker?.scanCode){
+        const complete=await walker.scanCode(showRemaining);
+        if(!complete)return;
       }else{
-        // Walking can be disabled without shortening the required scan duration.
-        const code=$("ppCode");
+        // Graceful 15-second fallback if the presentation module is unavailable.
         code?.scrollIntoView({behavior:"auto",block:"nearest"});
         if(code)code.scrollTop=0;
         const started=performance.now();
-        let previous=16;
         await new Promise(resolve=>{
           function step(now){
             const t=Math.min(1,(now-started)/15000);
             const eased=t*t*(3-2*t);
             if(code)code.scrollTop=Math.max(0,code.scrollHeight-code.clientHeight)*eased;
-            const remaining=Math.max(0,Math.ceil((15000-(now-started))/1000));
-            if(remaining!==previous){previous=remaining;showRemaining(remaining);}
+            showRemaining(Math.max(0,Math.ceil((15000-(now-started))/1000)));
             if(t<1&&id===runToken)requestAnimationFrame(step);
             else resolve();
           }
@@ -443,7 +463,8 @@
       if(id!==runToken)return;
       quickRunActive=true;
       stateLabel.textContent="Running";stateLabel.dataset.status="running";
-      hint.textContent="Executing Python; reading stdout and errors after completion…";
+      hint.textContent="Executing Python; the results will appear in the same full-page presentation…";
+      presentation?.running();
       run.click();
     }catch(error){
       quickRunActive=false;
