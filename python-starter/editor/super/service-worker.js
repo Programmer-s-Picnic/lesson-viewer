@@ -1,5 +1,5 @@
-const CACHE = "python-editor-offline-v29-stable-mouth";
-const SHELL = ["./", "./index.html", "./style.css?v=20261016-8", "./speaker-integration.css?v=20261111-18", "./speaker-integration.js?v=20261111-21", "./comment-dialogues.js?v=20261111-3", "./teaching-presentation.js?v=20261111-16", "./teaching-presentation.css?v=20261111-13", "./walking-teacher.js?v=20261111-20", "./walking-teacher.css?v=20261111-20", "./app.js?v=20261111-22", "./pandas-visualizer.js?v=20261111-22", "./pandas-visualizer.css?v=20261111-22", "./judge-worker.js?v=20261111-17", "./manifest.webmanifest", "./icon.svg"];
+const CACHE = "python-editor-offline-v30-universal-champuter";
+const SHELL = ["./", "./index.html", "./style.css?v=20261016-8", "./speaker-integration.css?v=20261111-18", "./speaker-integration.js?v=20261111-23", "./comment-dialogues.js?v=20261111-3", "./teaching-presentation.js?v=20261111-16", "./teaching-presentation.css?v=20261111-13", "./walking-teacher.js?v=20261111-20", "./walking-teacher.css?v=20261111-20", "./app.js?v=20261111-23", "./pandas-visualizer.js?v=20261111-23", "./pandas-visualizer.css?v=20261111-23", "./judge-worker.js?v=20261111-23", "./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));
