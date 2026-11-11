@@ -1,5 +1,5 @@
-const CACHE = "python-editor-offline-v10-roaming-teacher";
-const SHELL = ["./", "./index.html", "./style.css?v=20261016-8", "./speaker-integration.css?v=20261111", "./speaker-integration.js?v=20261111-2", "./walking-teacher.js?v=20261111-2", "./walking-teacher.css?v=20261111-2", "./app.js?v=20261111-2", "./judge-worker.js?v=20261016-8", "./manifest.webmanifest", "./icon.svg"];
+const CACHE = "python-editor-offline-v11-comment-dialogues";
+const SHELL = ["./", "./index.html", "./style.css?v=20261016-8", "./speaker-integration.css?v=20261111", "./speaker-integration.js?v=20261111-3", "./comment-dialogues.js?v=20261111-3", "./walking-teacher.js?v=20261111-2", "./walking-teacher.css?v=20261111-2", "./app.js?v=20261111-2", "./judge-worker.js?v=20261016-8", "./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));
