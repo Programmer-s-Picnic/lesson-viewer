@@ -289,27 +289,123 @@
       new MutationObserver(mirror).observe(actualRun,{attributes:true,attributeFilter:["disabled"]});
     }
   }
+
+  // Guided Run: approach Run, scan source lines, execute with the existing worker,
+  // then travel to stdout and stderr and narrate their actual returned content.
   let quickRunActive=false;
+  let runPreparation=false;
+  let runToken=0;
   const runtimeStatus=$("ppStatus");
-  if(runtimeStatus){
-    new MutationObserver(()=>{
-      if(!quickRunActive)return;
-      const message=runtimeStatus.textContent.trim();
-      if(message==="Run complete"){
-        quickRunActive=false;
-        stateLabel.textContent="Run complete";stateLabel.dataset.status="finished";
-        hint.textContent="Program finished. Choose Output to hear the result.";
-      }else if(message==="Error found"||message==="Error"||message==="Worker error"||message==="Stopped"){
-        quickRunActive=false;
-        stateLabel.textContent="Run error";stateLabel.dataset.status="error";
-        hint.textContent="Python reported an error. Choose Error to hear an explanation.";
-      }else if(message==="Running…"){
-        stateLabel.textContent="Running";stateLabel.dataset.status="running";
-      }else if(message==="Loading Python…"){
-        quickRunActive=false;
-        stateLabel.textContent="Loading Python";stateLabel.dataset.status="loading";
+  function narrateFinishedRun(detail={}){
+    const hindi=inHindi(),lang=language.value;
+    const stdout=String(detail.stdout||"").trim();
+    const stderr=String(detail.stderr||"").trim();
+    const outRows=stdout&&stdout!=="(no stdout)"?
+      stdout.split(/\r?\n/).filter(Boolean).slice(0,20):[];
+    const errorRows=stderr.split(/\r?\n/).filter(Boolean);
+    const lines=[],scenes=[];
+    const push=(emotion,gesture,text,mode,zone,lookAt,sourceLine=null)=>{
+      lines.push(cue(emotion,gesture,lang,text));
+      scenes.push({mode,zone,lookAt,sourceLine});
+    };
+    push("explaining","point-right",
+      hindi?"अब प्रोग्राम का आउटपुट देखते हैं।":"The program has finished. Let us look at the output.",
+      "output","right","output");
+    if(outRows.length){
+      outRows.forEach((row,i)=>{
+        push("explaining","point-right",
+          (hindi?"आउटपुट "+(i+1)+": ":"Output "+(i+1)+": ")+safeLine(row),
+          "output","right","output");
+      });
+      if(stdout.split(/\r?\n/).length>20)push("thinking","think",
+        hindi?"बाकी आउटपुट स्क्रीन पर देखिए।":"Additional output remains visible on screen.",
+        "output","right","output");
+    }else{
+      push("thinking","explain",
+        hindi?"इस प्रोग्राम ने कोई प्रिंटेड आउटपुट नहीं दिया।":"This program produced no printed output.",
+        "output","right","output");
+    }
+    if(stderr){
+      const details=errorRows.at(-1)||"Python error";
+      const match=[...stderr.matchAll(/\b([A-Za-z]+(?:Error|Exception))\b/g)].pop();
+      const name=match?.[1]||"Python error";
+      const lineMatch=[...stderr.matchAll(/File [^\n]*?, line (\d+)/g)].pop();
+      const sourceLine=lineMatch?Number(lineMatch[1]):null;
+      push("concerned","think",
+        (hindi?"अब एरर पैनल देखते हैं। ":"Now let us inspect the error panel. ")+name+".",
+        "error","right","error",sourceLine);
+      push("explaining","point-right",
+        (hindi?"एरर विवरण: ":"Error details: ")+safeLine(details),
+        "error","right","error",sourceLine);
+      push("encouraging","explain",
+        hindi?"इस एरर को ठीक करने के लिए उस लाइन और उसके वेरिएबल देखें।":
+          "Check the indicated line, its variables and the traceback to fix this error.",
+        "error","right","error",sourceLine);
+    }else{
+      push("happy","celebrate",
+        hindi?"एरर पैनल खाली है। प्रोग्राम बिना एरर के चला।":
+          "The error panel is clear. No Python errors were reported.",
+        "error","right","error");
+    }
+    queueNarration(lines,"Walking through the actual output and error results","output",scenes);
+  }
+  window.addEventListener("lwc-python:run-finished",event=>{
+    if(!quickRunActive)return;
+    quickRunActive=false;
+    const detail=event.detail||{};
+    stateLabel.textContent=detail.ok?"Run complete":"Run error";
+    stateLabel.dataset.status=detail.ok?"finished":"error";
+    narrateFinishedRun(detail);
+  });
+  async function guidedRun(){
+    if(runPreparation||quickRunActive){
+      hint.textContent="The program is already running.";
+      return;
+    }
+    const run=$("ppRun");
+    if(!run){hint.textContent="Python Run button is unavailable.";return;}
+    const status=runtimeStatus?.textContent?.trim()||"";
+    if(status==="Loading Python…"||status==="Running…"){
+      hint.textContent="Python is not ready. Try again when it says Ready.";
+      stateLabel.textContent="Not ready";stateLabel.dataset.status="error";
+      return;
+    }
+    const id=++runToken;
+    runPreparation=true;
+    runButton.disabled=true;
+    stateLabel.textContent="Walking to Run";stateLabel.dataset.status="walking";
+    hint.textContent="Teacher walking to the Run button…";
+    if(frameReady&&frame.contentWindow)
+      frame.contentWindow.postMessage({type:"lwc-speaker:stop",version:2},SPEAKER_ORIGIN);
+    try{
+      if(walkOnPage?.checked){
+        await walker?.walkToRun?.();
+      }else run.scrollIntoView({behavior:"auto",block:"nearest"});
+      if(id!==runToken)return;
+      stateLabel.textContent="Scanning code";stateLabel.dataset.status="running";
+      hint.textContent="Rapidly scrolling through the Python program…";
+      if(walkOnPage?.checked){
+        await walker?.scanCode?.();
+      }else{
+        const code=$("ppCode");
+        if(code){
+          code.scrollIntoView({behavior:"auto",block:"nearest"});
+          code.scrollTop=Math.max(0,code.scrollHeight-code.clientHeight);
+        }
       }
-    }).observe(runtimeStatus,{childList:true,characterData:true,subtree:true});
+      if(id!==runToken)return;
+      quickRunActive=true;
+      stateLabel.textContent="Running";stateLabel.dataset.status="running";
+      hint.textContent="Executing Python; reading stdout and errors after completion…";
+      run.click();
+    }catch(error){
+      quickRunActive=false;
+      stateLabel.textContent="Run problem";stateLabel.dataset.status="error";
+      hint.textContent="Guided Run could not start. The editor Run button remains available.";
+    }finally{
+      runPreparation=false;
+      runButton.disabled=run.disabled;
+    }
   }
   // Drag the menu from its title bar without covering other controls.
   if(handle){
@@ -363,17 +459,6 @@
     else if (button.dataset.speakerAction === "code") explainCode();
     else if (button.dataset.speakerAction === "output") readOutput();
     else if (button.dataset.speakerAction === "error") explainError();
-    else if (button.dataset.speakerAction === "run"){
-      const run=$("ppRun");
-      if(run && !run.disabled){
-        quickRunActive=true;
-        stateLabel.textContent="Running";stateLabel.dataset.status="running";
-        hint.textContent="Executing Python program…";
-        run.click();
-      }else{
-        stateLabel.textContent="Not ready";stateLabel.dataset.status="error";
-        hint.textContent="Python is loading. Run will be available when ready.";
-      }
-    }
+    else if (button.dataset.speakerAction === "run") guidedRun();
   }));
 })();
