@@ -115,6 +115,7 @@ function open(code=codeEditor.value,closeHandler=null){
  showStage("code",{reset:true});
  setStatus("Ready");
  foot.textContent="The full Python program is presented above the editor.";
+ closeButton.focus({preventScroll:true});
  return true;
 }
 function close(){
