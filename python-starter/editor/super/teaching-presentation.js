@@ -218,6 +218,7 @@ function showLine(stage,lineNumber){
  const target=cache[stage]?.list?.[lineNumber-1];
  if(!target)return false;
  target.classList.add("active");
+ setProgress(lineNumber/cache[stage].list.length*100);
  const paneRect=viewport.getBoundingClientRect(),rowRect=target.getBoundingClientRect();
  const desired=paneRect.top+viewport.clientHeight*.43;
  const next=viewport.scrollTop+(rowRect.top+rowRect.height*.5-desired);
@@ -236,8 +237,12 @@ function scene(data){
    const number=data.mode==="code"?data.sourceLine:data.resultLine;
    if(Number.isInteger(number)&&number>0)showLine(data.mode,number);
  }else if(data.kind==="finish"){
-   setStatus("Narration complete");
-   foot.textContent="The complete content remains available to review or close.";
+   setStatus("Reviewing complete results");
+   foot.textContent="Narration finished. Now scrolling all remaining output and error text.";
+   // The teacher may narrate a shortened sample of very long results.
+   // A final full sweep guarantees every stdout/stderr line crosses the stage.
+   spoken=false;
+   if(source.output||source.error)fallbackScrollResults();
  }else if(data.kind==="error"||data.kind==="state"&&data.state==="error"){
    setStatus("Voice not available");
    foot.textContent="Read the visible output and errors, or open Voice controls to speak manually.";
