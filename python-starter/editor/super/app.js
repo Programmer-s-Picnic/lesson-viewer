@@ -550,7 +550,7 @@ function handleTypingAid(e){
 function makeWorker(){
   if(worker) worker.terminate();
   ready = false;
-  worker = new Worker("judge-worker.js?v=20261016-8");
+  worker = new Worker("judge-worker.js?v=20261111-17");
   setStatus("Loading Python…");
   worker.onmessage = (ev) => {
     const msg = ev.data || {};
