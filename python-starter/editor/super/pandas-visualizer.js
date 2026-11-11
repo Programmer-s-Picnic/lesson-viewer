@@ -14,7 +14,7 @@ host.innerHTML=
  '<div class="lwc-viz-shell">'+
  '<div class="lwc-viz-header"><div class="lwc-viz-brand"><span aria-hidden="true">📊</span><div>'+
  '<span class="lwc-viz-eyebrow">A PROGRAMMER’S PICNIC · RUNTIME VISUALIZATION</span>'+
- '<h2 id="lwcVizTitle">Pandas Data Explorer</h2></div></div>'+
+ '<h2 id="lwcVizTitle">Python Visual Explorer</h2></div></div>'+
  '<div class="lwc-viz-header-controls"><button type="button" id="lwcVizTour" title="Walk through charts with spoken explanations">▶ Tour &amp; Talk</button>'+
  '<button type="button" id="lwcVizStop" title="Stop spoken tour">■ Stop</button>'+
  '<button type="button" id="lwcVizClose" aria-label="Close visualization">✕ Close</button></div></div>'+
@@ -24,7 +24,7 @@ host.innerHTML=
  '</aside>'+
  '<div class="lwc-viz-tabs" id="lwcVizTabs" role="tablist" aria-label="DataFrames"></div>'+
  '<div class="lwc-viz-scroll" id="lwcVizScroll"></div>'+
- '<footer class="lwc-viz-footer">Auto-generated from DataFrames created by the current Python run. Samples may omit some rows. No data is uploaded.</footer></div>';
+ '<footer class="lwc-viz-footer">From this Python run: real values, sampled execution and visual summaries. Large collections and traces are bounded. No data is uploaded.</footer></div>';
 app.appendChild(host);
 const $=id=>host.querySelector("#"+id);
 const tabs=$("lwcVizTabs"),content=$("lwcVizScroll"),closer=$("lwcVizClose");
@@ -506,10 +506,10 @@ function render(){
  }
  if(selected===-1&&programData){renderProgram();return;}
  if(!frames.length){
-   guideText("Run a Pandas program and I'll introduce its tables, statistics and charts.");
+   guideText("Run a Python program and I will show its code, variables, output and charts.");
    const box=make("section","lwc-viz-empty");
-   box.append(make("h3","","No Pandas DataFrames found"),
-     make("p","","Run a Python program that creates a DataFrame variable such as df, passed or grouped. Then select Visualize again."),
+   box.append(make("h3","","No DataFrames or program trace found"),
+     make("p","","Click Visualize to run Python and inspect its source, variables, output and charts. DataFrames also get their own tabs."),
      make("code","","import pandas as pd\ndf = pd.DataFrame({'Subject':['Physics','Maths'], 'Marks':[78,84]})"));
    content.append(box);return;
  }
