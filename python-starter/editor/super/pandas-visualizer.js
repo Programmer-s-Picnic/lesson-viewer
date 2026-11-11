@@ -537,15 +537,6 @@ function render(){
    });
    tabs.append(tab);
  }
- if(selected===-1&&programData){renderProgram();return;}
- if(!frames.length){
-   guideText("Run a Python program and I will show its code, variables, output and charts.");
-   const box=make("section","lwc-viz-empty");
-   box.append(make("h3","","No DataFrames or program trace found"),
-     make("p","","Click Visualize to run Python and inspect its source, variables, output and charts. DataFrames also get their own tabs."),
-     make("code","","import pandas as pd\ndf = pd.DataFrame({'Subject':['Physics','Maths'], 'Marks':[78,84]})"));
-   content.append(box);return;
- }
  frames.forEach((frame,i)=>{
    const tab=make("button","lwc-viz-tab"+(i===selected?" selected":""),frame.name||"DataFrame "+(i+1));
    tab.type="button";tab.setAttribute("role","tab");tab.setAttribute("aria-selected",i===selected?"true":"false");
@@ -559,6 +550,15 @@ function render(){
    });
    tabs.append(tab);
  });
+ if(selected===-1&&programData){renderProgram();return;}
+ if(!frames.length){
+   guideText("Run a Python program and I will show its code, variables, output and charts.");
+   const box=make("section","lwc-viz-empty");
+   box.append(make("h3","","No DataFrames or program trace found"),
+     make("p","","Click Visualize to run Python and inspect its source, variables, output and charts. DataFrames also get their own tabs."),
+     make("code","","import pandas as pd\ndf = pd.DataFrame({'Subject':['Physics','Maths'], 'Marks':[78,84]})"));
+   content.append(box);return;
+ }
  const frame=frames[selected]||frames[0],cols=frame.columns||[],charts=frame.charts||[];
  guideText("Let's examine "+(frame.name||"this DataFrame")+
    ": "+Number(frame.rows||0).toLocaleString("en-IN")+" rows, "+
