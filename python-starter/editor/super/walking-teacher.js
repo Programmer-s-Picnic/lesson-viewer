@@ -30,7 +30,7 @@ focusLine.className="lwc-roaming-code-focus";focusLine.hidden=true;
 wrapper?.appendChild(focusLine);
 const reducedMotion=matchMedia("(prefers-reduced-motion: reduce)");
 let enabled=true,visible=false,speaking=false,paused=false,finished=false;
-let currentZone="code",stageZone="left",line=0,gesture="welcome",emotion="happy";
+let currentZone="code",stageZone="left",line=0,resultLine=0,gesture="welcome",emotion="happy";
 let px=0,py=0,init=false,last=performance.now(),blinkUntil=0,nextBlink=0;
 let lastTarget=null,lookAt="audience",walking=false;
 let volumeEnergy=.7,snapNext=false;
@@ -63,6 +63,19 @@ function seekLine(){
  if(y<minVisible||y+h>maxVisible){
    // Follow the selected source line, even when it is far from the previous line.
    editor.scrollTop=Math.max(0,y-editor.clientHeight*.35);
+ }
+}
+function seekResultLine(){
+ if(resultLine<1||!["output","error"].includes(currentZone))return;
+ const el=document.getElementById(currentZone==="output"?"ppOut":"ppErr");
+ if(!el)return;
+ const st=getComputedStyle(el),font=parseFloat(st.fontSize)||15;
+ const lh=parseFloat(st.lineHeight)||font*1.55;
+ const pad=parseFloat(st.paddingTop)||14;
+ const y=pad+(resultLine-1)*lh;
+ const lower=el.scrollTop+pad,upper=el.scrollTop+el.clientHeight-pad;
+ if(y<lower||y+lh>upper){
+   el.scrollTop=Math.max(0,y-el.clientHeight*.40);
  }
 }
 function geometry(){
@@ -134,6 +147,7 @@ function updateLocation(data={}){
  stageZone=["left","center","right"].includes(data.zone)?data.zone:(zone==="code"?"left":"right");
  lookAt=data.lookAt||zone;
  line=Number.isInteger(data.sourceLine)&&data.sourceLine>0?data.sourceLine:0;
+ resultLine=Number.isInteger(data.resultLine)&&data.resultLine>0?data.resultLine:0;
  gesture=data.gesture||"explain";emotion=data.emotion||"explaining";
  if(!visible){visible=true;overlay.hidden=false;overlay.classList.add("lwc-visible");}
  resolveExpanded(zone);
@@ -143,8 +157,9 @@ function updateLocation(data={}){
  requestAnimationFrame(()=>{
    scrollToTarget(target);
    if(line&&zone==="code"){seekLine();highlightLine();}
+   if(resultLine&&["output","error"].includes(zone))seekResultLine();
  });
- seekLine();note(data.caption||"");highlightLine();
+ seekLine();seekResultLine();note(data.caption||"");highlightLine();
 }
 
 function setMood(){
@@ -318,6 +333,6 @@ window.LWCWalkingTeacher={
   },
   scene:receiveScene,
   reset(){scanCancel++;scannerActive=false;stop();visible=false;overlay.hidden=true;init=false;overlay.classList.remove("lwc-visible");},
-  debug(){return {enabled,visible,speaking,paused,currentZone,stageZone,line,gesture,x:px,y:py,viewport:viewBounds(),target:geometry(),fullscreen:!!document.fullscreenElement||root.classList.contains("fullscreen"),expanded:!!document.querySelector(".codeExpanded,.ioExpanded")};}
+  debug(){return {enabled,visible,speaking,paused,currentZone,stageZone,line,resultLine,gesture,x:px,y:py,viewport:viewBounds(),target:geometry(),fullscreen:!!document.fullscreenElement||root.classList.contains("fullscreen"),expanded:!!document.querySelector(".codeExpanded,.ioExpanded")};}
 };
 })();
