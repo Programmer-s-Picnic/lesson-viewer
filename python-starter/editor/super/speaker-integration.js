@@ -90,7 +90,8 @@
     if (!code) return;
     const selected = code.value.slice(code.selectionStart, code.selectionEnd).trim();
     const source = selected || code.value;
-    const rows = source.split(/\r?\n/).map((line, index) => ({line: line.trim(), number: index + 1}))
+    const firstLine = selected ? code.value.slice(0, code.selectionStart).split(/\r?\n/).length : 1;
+    const rows = source.split(/\r?\n/).map((line, index) => ({line: line.trim(), number: firstLine + index}))
       .filter(item => item.line.length);
     if (!rows.length) { hint.textContent = "Write some Python code first."; return; }
     const hindi = inHindi(), lang = language.value;
