@@ -227,8 +227,8 @@
   }
 
   function readOutput() {
-    const output = $("ppOut")?.textContent?.trim() || "";
-    if (!output || ["Output will appear here.", "(no stdout)", "Running…"].includes(output)) {
+    const output = $("ppOut")?.textContent || "";
+    if (!output.trim() || ["Output will appear here.", "(no stdout)", "Running…"].includes(output.trim())) {
       hint.textContent = "Run the program first to produce output.";
       return;
     }
@@ -248,7 +248,8 @@
   }
 
   function explainError() {
-    const error = $("ppErr")?.textContent?.trim() || "";
+    const rawError = $("ppErr")?.textContent || "";
+    const error = rawError.trim();
     if (!error || error === "Errors will appear here.") {
       hint.textContent = "No error is displayed. Run your program to check for errors.";
       return;
@@ -271,14 +272,16 @@
     const fix = fixes[name] || ["Inspect the traceback for the failing line and statement.",
       "ट्रेसबैक में दिखाई गई लाइन और स्टेटमेंट की जाँच कीजिए।"];
     const tracebackLine=Number((error.match(/File .*?, line (\d+)/)||[])[1])||null;
+    const errorLines=rawError.split(/\r?\n/).map((text,index)=>({text,line:index+1})).filter(item=>item.text.trim());
+    const selectedErrorLine=errorLines.at(-1)?.line||1;
     queueNarration([
       cue("concerned","think",lang,hindi?`प्रोग्राम में ${name} आया है।`:`The program reports ${name}.`),
       cue("explaining","point-right",lang,(hindi?"एरर संदेश: ":"Error message: ")+detail),
       cue("encouraging","explain",lang,hindi?fix[1]:fix[0])
     ],"Error explanation prepared","error",[
-      {mode:"error",zone:"center",lookAt:"audience",sourceLine:tracebackLine},
-      {mode:"error",zone:"right",lookAt:"error",sourceLine:tracebackLine},
-      {mode:"error",zone:"right",lookAt:"error",sourceLine:tracebackLine}
+      {mode:"error",zone:"center",lookAt:"audience",sourceLine:tracebackLine,resultLine:selectedErrorLine},
+      {mode:"error",zone:"right",lookAt:"error",sourceLine:tracebackLine,resultLine:selectedErrorLine},
+      {mode:"error",zone:"right",lookAt:"error",sourceLine:tracebackLine,resultLine:selectedErrorLine}
     ]);
   }
 
