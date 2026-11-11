@@ -1,5 +1,5 @@
-const CACHE = "python-editor-offline-v23-two-seconds-per-line";
-const SHELL = ["./", "./index.html", "./style.css?v=20261016-8", "./speaker-integration.css?v=20261111-9", "./speaker-integration.js?v=20261111-15", "./comment-dialogues.js?v=20261111-3", "./teaching-presentation.js?v=20261111-15", "./teaching-presentation.css?v=20261111-13", "./walking-teacher.js?v=20261111-15", "./walking-teacher.css?v=20261111-13", "./app.js?v=20261111-15", "./judge-worker.js?v=20261016-8", "./manifest.webmanifest", "./icon.svg"];
+const CACHE = "python-editor-offline-v24-two-seconds-per-line";
+const SHELL = ["./", "./index.html", "./style.css?v=20261016-8", "./speaker-integration.css?v=20261111-9", "./speaker-integration.js?v=20261111-15", "./comment-dialogues.js?v=20261111-3", "./teaching-presentation.js?v=20261111-16", "./teaching-presentation.css?v=20261111-13", "./walking-teacher.js?v=20261111-15", "./walking-teacher.css?v=20261111-13", "./app.js?v=20261111-16", "./judge-worker.js?v=20261016-8", "./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));
