@@ -13,9 +13,35 @@
   if (!panel || !frame || !toggle || !hint || !language) return;
 
   const SPEAKER_ORIGIN = "https://dsa.learnwithchampak.live";
-  const SPEAKER_URL = SPEAKER_ORIGIN + "/tools/cartoon-speaker/?embed=1";
+  const SPEAKER_URL = SPEAKER_ORIGIN + "/tools/cartoon-speaker/?embed=1&roaming=1";
   let frameReady = false;
   let pending = null;
+  const walkOnPage = $("ppWalkOnPage");
+  const walker = window.LWCWalkingTeacher;
+  let lastTargetedPanel = null;
+  function markTeachingPanel(mode) {
+    if(lastTargetedPanel)lastTargetedPanel.classList.remove("lwc-teacher-targeted");
+    lastTargetedPanel=mode==="error" ? $("ppErr")?.closest(".card") :
+      mode==="output" ? $("ppOut")?.closest(".card") : document.querySelector(".codeCard");
+    lastTargetedPanel?.classList.add("lwc-teacher-targeted");
+  }
+  window.addEventListener("message",event=>{
+    if(event.origin!==SPEAKER_ORIGIN||event.source!==frame.contentWindow)return;
+    const data=event.data;
+    if(!data||data.type!=="lwc-speaker:scene"||data.version!==2)return;
+    if(data.kind==="line")markTeachingPanel(data.mode||"code");
+    if(["finish","error"].includes(data.kind)||data.kind==="state"&&["stopped","error"].includes(data.state)){
+      lastTargetedPanel?.classList.remove("lwc-teacher-targeted");
+    }
+    if(walkOnPage?.checked)walker?.scene(data);
+  });
+  if(walkOnPage)walkOnPage.addEventListener("change",()=>{
+    walker?.enable(walkOnPage.checked);
+    try{localStorage.setItem("lwc_editor_roaming_v1",walkOnPage.checked?"1":"0")}catch(_){}
+  });
+  if(walkOnPage){try{
+    walkOnPage.checked=localStorage.getItem("lwc_editor_roaming_v1")!=="0";
+  }catch(_){}walker?.enable(walkOnPage.checked);}
 
   const safeLine = value => String(value || "").replace(/\s+/g, " ").trim().slice(0, 130);
   const cue = (emotion, gesture, lang, text) => `[${emotion}|${gesture}|${lang}] ${text}`;
@@ -30,10 +56,10 @@
     toggle.setAttribute("aria-expanded", "false");
     // Keep the iframe alive, preserving its voice settings and script.
   }
-  function queueNarration(lines, description) {
+  function queueNarration(lines, description, mode="code", scenes=[]) {
     const script = lines.join("\n").slice(0, 15990);
     if (!script.trim()) { hint.textContent = "Nothing is available to narrate."; return; }
-    pending = {type: "lwc-speaker:load", version: 1, script, autoplay: true};
+    pending = {type: "lwc-speaker:load", version: 1, script, autoplay: true, mode, scenes:scenes.slice(0,100)};
     showPanel();
     hint.textContent = `${description} — the cartoon should begin speaking automatically. If your browser blocks audio, press “Speak script” in the panel.`;
     if (frameReady && frame.contentWindow) {
@@ -98,14 +124,18 @@
     const lines = [
       cue("happy", "welcome", lang, hindi ? "आइए इस Python प्रोग्राम को समझते हैं।" : "Let us walk through this Python program.")
     ];
+    const scenes=[{mode:"code",zone:"center",lookAt:"audience"}];
     rows.slice(0, 35).forEach((item, idx) => {
       const prefix = hindi ? `लाइन ${item.number}। ` : `Line ${item.number}. `;
       const body = describeLine(item.line, hindi);
       lines.push(cue("explaining", idx % 3 === 0 ? "count" : "explain", lang, prefix + body));
+      scenes.push({mode:"code",zone:"left",lookAt:"code",sourceLine:item.number});
     });
-    if (rows.length > 35) lines.push(cue("thinking", "think", lang,
-      hindi ? "अभी पहली पैंतीस सक्रिय लाइनों को समझाया गया है।" : "This walkthrough covers the first thirty five nonempty lines."));
-    queueNarration(lines, selected ? "Selected code explained" : "Code walkthrough prepared");
+    if(rows.length>35){
+      lines.push(cue("thinking","think",lang,hindi?"अभी पहली पैंतीस सक्रिय लाइनों को समझाया गया है।":"This walkthrough covers the first thirty five nonempty lines."));
+      scenes.push({mode:"code",zone:"center",lookAt:"audience"});
+    }
+    queueNarration(lines,selected?"Selected code explained":"Code walkthrough prepared","code",scenes);
   }
 
   function readOutput() {
@@ -116,12 +146,17 @@
     }
     const hindi = inHindi(), lang = language.value;
     const parts = output.split(/\r?\n/).filter(line => line.trim()).slice(0, 25);
-    const lines = [cue("happy", "welcome", lang, hindi ? "अब प्रोग्राम का आउटपुट सुनिए।" : "Here is the program output.")];
-    parts.forEach((line, idx) => lines.push(cue("explaining", "explain", lang,
-      (hindi ? `आउटपुट लाइन ${idx + 1}: ` : `Output line ${idx + 1}: `) + safeLine(line))));
-    if (output.split(/\r?\n/).length > 25) lines.push(cue("thinking", "think", lang,
-      hindi ? "बाकी आउटपुट स्क्रीन पर देखिए।" : "The remaining output is visible on screen."));
-    queueNarration(lines, "Output narration prepared");
+    const lines=[cue("happy","welcome",lang,hindi?"अब प्रोग्राम का आउटपुट सुनिए।":"Here is the program output.")];
+    const scenes=[{mode:"output",zone:"center",lookAt:"audience"}];
+    parts.forEach((line,idx)=>{
+      lines.push(cue("explaining","point-right",lang,(hindi?`आउटपुट लाइन ${idx+1}: `:`Output line ${idx+1}: `)+safeLine(line)));
+      scenes.push({mode:"output",zone:"right",lookAt:"output"});
+    });
+    if(output.split(/\r?\n/).length>25){
+      lines.push(cue("thinking","think",lang,hindi?"बाकी आउटपुट स्क्रीन पर देखिए।":"The remaining output is visible on screen."));
+      scenes.push({mode:"output",zone:"right",lookAt:"output"});
+    }
+    queueNarration(lines,"Output narration prepared","output",scenes);
   }
 
   function explainError() {
@@ -147,11 +182,16 @@
     };
     const fix = fixes[name] || ["Inspect the traceback for the failing line and statement.",
       "ट्रेसबैक में दिखाई गई लाइन और स्टेटमेंट की जाँच कीजिए।"];
+    const tracebackLine=Number((error.match(/File .*?, line (\d+)/)||[])[1])||null;
     queueNarration([
-      cue("concerned", "think", lang, hindi ? `प्रोग्राम में ${name} आया है।` : `The program reports ${name}.`),
-      cue("explaining", "emphasize", lang, (hindi ? "एरर संदेश: " : "Error message: ") + detail),
-      cue("encouraging", "explain", lang, hindi ? fix[1] : fix[0])
-    ], "Error explanation prepared");
+      cue("concerned","think",lang,hindi?`प्रोग्राम में ${name} आया है।`:`The program reports ${name}.`),
+      cue("explaining","point-right",lang,(hindi?"एरर संदेश: ":"Error message: ")+detail),
+      cue("encouraging","explain",lang,hindi?fix[1]:fix[0])
+    ],"Error explanation prepared","error",[
+      {mode:"error",zone:"center",lookAt:"audience",sourceLine:tracebackLine},
+      {mode:"error",zone:"right",lookAt:"error",sourceLine:tracebackLine},
+      {mode:"error",zone:"right",lookAt:"error",sourceLine:tracebackLine}
+    ]);
   }
 
   toggle.addEventListener("click", () => panel.hidden ? showPanel() : hidePanel());
