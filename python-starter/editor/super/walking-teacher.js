@@ -83,18 +83,72 @@ function revealLineOnScreen(){
    window.scrollBy({top:delta,behavior:reducedMotion.matches?"auto":"smooth"});
  }
 }
+// Native text selection highlights the exact stdout/stderr line while it is spoken.
+// A DOM Range also gives accurate positions for wrapped, multiline or wide output.
+let selectedResultElement=null;
+function clearResultSelection(){
+ if(!selectedResultElement)return;
+ const selected=window.getSelection?.();
+ if(selected?.anchorNode&&selectedResultElement.contains(selected.anchorNode))
+   selected.removeAllRanges();
+ selectedResultElement.classList.remove("lwc-result-reading");
+ selectedResultElement=null;
+}
+function selectResultLine(mode,selectedLine){
+ if(!["output","error"].includes(mode)||!Number.isInteger(selectedLine)||selectedLine<1){
+   clearResultSelection();return false;
+ }
+ const el=document.getElementById(mode==="output"?"ppOut":"ppErr");
+ if(!el)return false;
+ // Output is assigned with textContent by app.js after execution.
+ const content=el.textContent||"";
+ let offset=0;
+ for(let row=1;row<selectedLine;row++){
+   const separator=/\r\n|\n|\r/.exec(content.slice(offset));
+   if(!separator){clearResultSelection();return false;}
+   offset+=separator.index+separator[0].length;
+ }
+ const separator=/\r\n|\n|\r/.exec(content.slice(offset));
+ const finish=offset+(separator?separator.index:content.length-offset);
+ if(finish<=offset){clearResultSelection();return false;}
+ let node=el.firstChild;
+ if(!node||node.nodeType!==3){
+   // Do not assume child markup; flatten to plain text, preserving what is copied.
+   el.textContent=content;
+   node=el.firstChild;
+ }
+ if(!node||node.nodeType!==3||finish>node.textContent.length)return false;
+ clearResultSelection();
+ const range=document.createRange();
+ range.setStart(node,offset);
+ range.setEnd(node,finish);
+ const selection=window.getSelection?.();
+ if(selection){
+   selection.removeAllRanges();
+   selection.addRange(range);
+ }
+ el.classList.add("lwc-result-reading");
+ selectedResultElement=el;
+ const visual=range.getClientRects()[0]||range.getBoundingClientRect();
+ const elRect=el.getBoundingClientRect();
+ if(visual&&visual.height){
+   // Scroll the output/error element itself so the selected text is centered.
+   const center=elRect.top+el.clientHeight*.40;
+   const delta=visual.top+visual.height*.5-center;
+   if(Math.abs(delta)>Math.max(10,el.clientHeight*.22))
+     el.scrollTop+=delta;
+ }else{
+   const lineHeight=parseFloat(getComputedStyle(el).lineHeight)||22;
+   el.scrollTop=Math.max(0,(selectedLine-1)*lineHeight-el.clientHeight*.40);
+ }
+ // Also reveal the result panel when the whole editor or page is scrolled.
+ const card=el.closest(".ioToggleCard")||el;
+ scrollToTarget(card);
+ return true;
+}
 function seekResultLine(){
  if(resultLine<1||!["output","error"].includes(currentZone))return;
- const el=document.getElementById(currentZone==="output"?"ppOut":"ppErr");
- if(!el)return;
- const st=getComputedStyle(el),font=parseFloat(st.fontSize)||15;
- const lh=parseFloat(st.lineHeight)||font*1.55;
- const pad=parseFloat(st.paddingTop)||14;
- const y=pad+(resultLine-1)*lh;
- const lower=el.scrollTop+pad,upper=el.scrollTop+el.clientHeight-pad;
- if(y<lower||y+lh>upper){
-   el.scrollTop=Math.max(0,y-el.clientHeight*.40);
- }
+ selectResultLine(currentZone,resultLine);
 }
 function geometry(){
  const vp=viewBounds(),el=targets[currentZone]||targets.code;
@@ -194,6 +248,12 @@ function stop(){
  note("Lesson complete ✓");
 }
 function receiveScene(data){
+ if(!data)return;
+ // Text highlighting and scrolling work in both walking and stationary modes.
+ if(data.kind==="line")selectResultLine(data.mode,data.resultLine);
+ if(["finish","error"].includes(data.kind) ||
+    data.kind==="state"&&["stopped","error"].includes(data.state))
+   clearResultSelection();
  if(!enabled)return;
  if(data.kind==="line"){
    speaking=true;paused=false;finished=false;
@@ -361,7 +421,7 @@ window.LWCWalkingTeacher={
     else if(visible){overlay.classList.add("lwc-visible");highlightLine();}
   },
   scene:receiveScene,
-  reset(){scanCancel++;scannerActive=false;stop();visible=false;overlay.hidden=true;init=false;overlay.classList.remove("lwc-visible");},
+  reset(){scanCancel++;scannerActive=false;clearResultSelection();stop();visible=false;overlay.hidden=true;init=false;overlay.classList.remove("lwc-visible");},
   debug(){return {enabled,visible,speaking,paused,currentZone,stageZone,line,resultLine,gesture,x:px,y:py,viewport:viewBounds(),target:geometry(),fullscreen:!!document.fullscreenElement||root.classList.contains("fullscreen"),expanded:!!document.querySelector(".codeExpanded,.ioExpanded")};}
 };
 })();
