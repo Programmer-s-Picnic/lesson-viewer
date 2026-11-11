@@ -589,8 +589,8 @@ function setData(next,code,detail={}){
  selected=programData?-1:0;
  if(!host.hidden)render();
 }
-function open(next,code){
- if(next!==undefined)setData(next,code);
+function open(next,code,detail={}){
+ if(next!==undefined)setData(next,code,detail);
  previousFocus=document.activeElement;
  mountChamputer();
  host.hidden=false;
