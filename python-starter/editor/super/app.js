@@ -579,6 +579,8 @@ function makeWorker(){
         ok:Boolean(r.ok),stdout:String(r.stdout||""),
         stderr:String(r.stderr||"")+String(r.error||""),
         visuals:Array.isArray(r.visuals)?r.visuals:[],
+        program:r.program&&typeof r.program==="object"?r.program:null,
+        plots:Array.isArray(r.plots)?r.plots.slice(0,4):[],
         code:ui.code.value
       }}));
       return;
@@ -672,7 +674,10 @@ function runCode(){
   showPlots([]);
   resyncEditorManyTimes();
   setStatus("Running…");
-  worker.postMessage({type:"RUN_ONE", code:ui.code.value, stdin:ui.stdin.value, policy:{allow_micropip:true}});
+  const visualize=window.LWCVisualizeRequested===true;
+  window.LWCVisualizeRequested=false;
+  worker.postMessage({type:"RUN_ONE", code:ui.code.value, stdin:ui.stdin.value,
+    visualize,policy:{allow_micropip:true}});
   runTimer = setTimeout(()=>{ if(running){
     stopRun();ui.err.textContent = "Stopped: program took too long.";
     focusOutput("", ui.err.textContent);setStatus("Stopped", "bad");
