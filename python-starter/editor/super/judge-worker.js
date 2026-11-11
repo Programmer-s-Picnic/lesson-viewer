@@ -122,6 +122,134 @@ def _pp_collect_matplotlib_plots():
         pass
     return plots
 
+def _pp_collect_dataframes(scope):
+    """Bounded, read-only Pandas inspection for the visual teaching mode."""
+    result = []
+    pd = sys.modules.get("pandas")
+    if pd is None:
+        return result
+
+    def as_number(value):
+        try:
+            val = float(value)
+            return round(val, 5) if math.isfinite(val) else None
+        except Exception:
+            return None
+
+    def as_text(value):
+        try:
+            if pd.isna(value):
+                return "—"
+        except Exception:
+            pass
+        try:
+            return str(value)[:90]
+        except Exception:
+            return "[value]"
+
+    try:
+        import math
+        for name, value in list(scope.items()):
+            if len(result) >= 6:
+                break
+            if not isinstance(value, pd.DataFrame) or name.startswith("_"):
+                continue
+            try:
+                df = value
+                rows, ncols = df.shape
+                if ncols == 0:
+                    result.append({"name": str(name)[:48], "rows": int(rows), "cols": 0,
+                                   "columns": [], "preview": [], "charts": []})
+                    continue
+                # Unique presentation names for duplicate column labels.
+                cols = [str(label)[:48] for label in list(df.columns[:12])]
+                sample = df.iloc[:min(int(rows), 1000), :12]
+                preview = [[as_text(cell) for cell in record]
+                           for record in df.iloc[:12, :12].itertuples(index=False, name=None)]
+                columns = []
+                numeric = []
+                categoricals = []
+                for index, col in enumerate(cols):
+                    series = sample.iloc[:, index]
+                    try:
+                        missing = int(df.iloc[:, index].isna().sum())
+                    except Exception:
+                        missing = 0
+                    try:
+                        dtype = str(df.dtypes.iloc[index])[:35]
+                    except Exception:
+                        dtype = "unknown"
+                    kind = bool(pd.api.types.is_numeric_dtype(series.dtype)
+                                and not pd.api.types.is_bool_dtype(series.dtype))
+                    desc = {"name": col, "dtype": dtype, "missing": missing, "numeric": kind}
+                    if kind:
+                        values = [as_number(item) for item in series.iloc[:1000].tolist()]
+                        numbers = [number for number in values if number is not None]
+                        if numbers:
+                            desc["min"] = min(numbers)
+                            desc["max"] = max(numbers)
+                            desc["mean"] = round(sum(numbers)/len(numbers), 4)
+                            numeric.append((col, numbers, index))
+                    else:
+                        categoricals.append((col, series, index))
+                    columns.append(desc)
+
+                charts = []
+                # Count chart for the first useful category.
+                for col, series, index in categoricals[:4]:
+                    try:
+                        counts = series.fillna("(missing)").astype(str).value_counts().head(8)
+                        if len(counts) > 1:
+                            charts.append({"kind": "bar", "title": col + " · category counts",
+                                "x": [str(key)[:42] for key in counts.index],
+                                "y": [int(v) for v in counts.tolist()]})
+                            break
+                    except Exception:
+                        continue
+                # Histogram and ordered-value chart from first numeric column.
+                if numeric:
+                    col, nums, index = numeric[0]
+                    low, high = min(nums), max(nums)
+                    if high > low:
+                        count_bins = 8
+                        bins = [0]*count_bins
+                        for val in nums:
+                            pos = min(count_bins-1, int((val-low)/(high-low)*count_bins))
+                            bins[pos] += 1
+                        ranges = []
+                        for j in range(count_bins):
+                            left = low+(high-low)*j/count_bins
+                            right = low+(high-low)*(j+1)/count_bins
+                            ranges.append(format(left, ".3g")+"–"+format(right, ".3g"))
+                        charts.append({"kind": "histogram",
+                            "title": col + " · distribution", "x": ranges, "y": bins})
+                    ordered = [as_number(v) for v in sample.iloc[:30,index].tolist()]
+                    clean = [(j+1,v) for j,v in enumerate(ordered) if v is not None]
+                    if len(clean) > 1:
+                        charts.append({"kind": "line", "title": col + " · row trend",
+                            "x": [str(k) for k,v in clean],
+                            "y": [v for k,v in clean]})
+                if len(numeric) > 1:
+                    xa = [as_number(v) for v in sample.iloc[:120,numeric[0][2]].tolist()]
+                    ya = [as_number(v) for v in sample.iloc[:120,numeric[1][2]].tolist()]
+                    points = [(x,y) for x,y in zip(xa,ya) if x is not None and y is not None]
+                    if len(points) > 2:
+                        charts.append({"kind": "scatter",
+                            "title": numeric[0][0] + " vs " + numeric[1][0],
+                            "x": [x for x,y in points],
+                            "y": [y for x,y in points]})
+
+                result.append({"name": str(name)[:48], "rows": int(rows), "cols": int(ncols),
+                    "columns": columns, "preview": preview,
+                    "previewLimit": 12, "sampleSize": min(int(rows), 1000),
+                    "charts": charts[:4]})
+            except Exception:
+                # A malformed frame must never interrupt the student's program.
+                continue
+    except Exception:
+        pass
+    return result
+
 def _pp_run_capture(user_code: str, stdin_text: str, policy_json: str):
     try:
         policy = json.loads(policy_json or "{}")
@@ -188,14 +316,14 @@ def _pp_run_capture(user_code: str, stdin_text: str, policy_json: str):
     try:
         exec(user_code, g, g)
         plots = _pp_collect_matplotlib_plots()
-        return {"ok": True, "stdout": out.getvalue(), "stderr": err.getvalue(), "error": "", "plots": plots}
+        return {"ok": True, "stdout": out.getvalue(), "stderr": err.getvalue(), "error": "", "plots": plots, "visuals": _pp_collect_dataframes(g)}
     except SystemExit:
         plots = _pp_collect_matplotlib_plots()
-        return {"ok": True, "stdout": out.getvalue(), "stderr": err.getvalue(), "error": "", "plots": plots}
+        return {"ok": True, "stdout": out.getvalue(), "stderr": err.getvalue(), "error": "", "plots": plots, "visuals": _pp_collect_dataframes(g)}
     except Exception:
         tb = traceback.format_exc()
         plots = _pp_collect_matplotlib_plots()
-        return {"ok": False, "stdout": out.getvalue(), "stderr": err.getvalue(), "error": tb, "plots": plots}
+        return {"ok": False, "stdout": out.getvalue(), "stderr": err.getvalue(), "error": tb, "plots": plots, "visuals": _pp_collect_dataframes(g)}
     finally:
         sys.stdout, sys.stderr = old_stdout, old_stderr
         if _orig_input is not None: builtins.input = _orig_input
@@ -262,6 +390,8 @@ RES = _pp_run_capture(U_CODE, U_STDIN, U_POLICY_JSON)
 
       // plots are big; keep as-is (browser may manage memory)
       if (!Array.isArray(obj.plots)) obj.plots = [];
+      if (!Array.isArray(obj.visuals)) obj.visuals = [];
+      obj.visuals = obj.visuals.slice(0, 6);
 
       await syncFileSystem(false);
       postMessage({ type: "RUN_RESULT", result: obj, files: listProjectFiles() });
