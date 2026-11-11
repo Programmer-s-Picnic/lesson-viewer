@@ -152,7 +152,7 @@ function scanCode(msPerLine=2000,onProgress){
  foot.textContent="Each Python code line is highlighted for two seconds before the next line.";
  // Highlight the first line immediately: every line, including the first,
  // receives the full two-second hold before execution advances.
- showLine("code",codeLines[0].number);
+ showLine("code",codeLines[0].number,{instant:true});
  setStatus("Code line "+codeLines[0].number+" · 1/"+codeLines.length);
  foot.textContent="Source line "+codeLines[0].number+" — highlighted for "+(secondsPerLine/1000)+" seconds.";
  if(typeof onProgress==="function")onProgress(1,codeLines.length,codeLines[0].number);
@@ -164,7 +164,7 @@ function scanCode(msPerLine=2000,onProgress){
      if(index!==currentIndex){
        currentIndex=index;
        const item=codeLines[index];
-       showLine("code",item.number);
+       showLine("code",item.number,{instant:true});
        setStatus("Code line "+item.number+" · "+(index+1)+"/"+codeLines.length);
        foot.textContent="Source line "+item.number+" — highlighted for "+(secondsPerLine/1000)+" seconds.";
        if(typeof onProgress==="function")
@@ -229,7 +229,7 @@ async function fallbackScrollResults(){
  await autoScroll("error",Math.min(12000,Math.max(4200,errorRows*220)));
  if(!spoken&&active)setStatus("Results ready");
 }
-function showLine(stage,lineNumber){
+function showLine(stage,lineNumber,{instant=false}={}){
  if(!active||!["code","output","error"].includes(stage))return false;
  if(mode!==stage)showStage(stage,{reset:true});
  rows.querySelectorAll(".lwc-presentation-row.active").forEach(el=>el.classList.remove("active"));
@@ -240,7 +240,7 @@ function showLine(stage,lineNumber){
  const paneRect=viewport.getBoundingClientRect(),rowRect=target.getBoundingClientRect();
  const desired=paneRect.top+viewport.clientHeight*.43;
  const next=viewport.scrollTop+(rowRect.top+rowRect.height*.5-desired);
- viewport.scrollTo({top:Math.max(0,next),behavior:reduced.matches?"auto":"smooth"});
+ viewport.scrollTo({top:Math.max(0,next),behavior:instant||reduced.matches?"auto":"smooth"});
  count.textContent="Line "+lineNumber+" / "+cache[stage].list.length;
  return true;
 }
