@@ -250,7 +250,99 @@ def _pp_collect_dataframes(scope):
         pass
     return result
 
-def _pp_run_capture(user_code: str, stdin_text: str, policy_json: str):
+# Only basic values are inspected. Avoid calling user-defined repr/str methods.
+def _pp_program_snapshot(scope):
+    import math, types
+    def safe_value(value,depth=0):
+        t=type(value)
+        if t in (str,int,float,bool,type(None)):
+            label=str(value)[:110]
+            if t is float and not math.isfinite(value):label="non-finite number"
+            num=value if t in (int,float) and math.isfinite(value) and abs(value)<1e12 else None
+            return {"type":t.__name__,"text":label,"number":num}
+        if depth<1 and t in (list,tuple,set,dict):
+            values=list(value.items())[:10] if t is dict else list(value)[:10]
+            items=[]
+            for v in values:
+                if t is dict:items.append([safe_value(v[0],1)["text"],safe_value(v[1],1)["text"]])
+                else:items.append(safe_value(v,1)["text"])
+            return {"type":t.__name__,"text":t.__name__+" ("+str(len(value))+" items)",
+                    "length":len(value),"items":items}
+        if t is range:
+            return {"type":"range","text":"range ("+str(len(value))+" items)",
+                    "length":len(value),"items":[str(x) for x in value[:10]]}
+        if isinstance(value,types.FunctionType):
+            return {"type":"function","text":value.__name__[:70]}
+        if isinstance(value,type):
+            return {"type":"class","text":value.__name__[:70]}
+        if isinstance(value,types.ModuleType):return None
+        return {"type":t.__name__[:40],"text":"("+t.__name__[:40]+" object)"}
+    result=[]
+    for name,value in list(scope.items()):
+        if len(result)>=30:break
+        if type(name) is not str or name.startswith("_"):continue
+        try:
+            entry=safe_value(value)
+            if entry is not None:result.append({"name":name[:50],**entry})
+        except Exception:pass
+    return result
+
+def _pp_program_analysis(code):
+    import ast
+    kinds={"assignment":0,"loop":0,"condition":0,"function":0,
+           "class":0,"import":0,"output":0,"exception":0}
+    sources=[]
+    try:root=ast.parse(code)
+    except (SyntaxError,ValueError):return {"categories":kinds,"highlights":[]}
+    mapping={"Assign":"assignment","AnnAssign":"assignment","AugAssign":"assignment",
+             "For":"loop","AsyncFor":"loop","While":"loop",
+             "If":"condition","IfExp":"condition",
+             "FunctionDef":"function","AsyncFunctionDef":"function",
+             "ClassDef":"class","Import":"import","ImportFrom":"import",
+             "Try":"exception","Raise":"exception"}
+    for node in ast.walk(root):
+        kind=mapping.get(type(node).__name__)
+        if isinstance(node,ast.Call) and isinstance(node.func,ast.Name) and node.func.id=="print":
+            kind="output"
+        if kind is not None:
+            kinds[kind]+=1
+            if len(sources)<70:sources.append({"line":getattr(node,"lineno",0),"kind":kind})
+    sources.sort(key=lambda row:row["line"])
+    return {"categories":kinds,"highlights":sources}
+
+def _pp_program_report(scope,code,events):
+    import math
+    variables=_pp_program_snapshot(scope)
+    charts=[]
+    for entry in variables:
+        if len(charts)>=4:break
+        try:
+            name=entry["name"]
+            value=scope[name]
+            if type(value) in (list,tuple,range):
+                sample=list(value[:24])
+                if len(sample)<2:continue
+                if any(type(x) not in (int,float) or not math.isfinite(x) or abs(x)>1e12 for x in sample):
+                    continue
+                values=[round(float(x),5) for x in sample]
+                charts.append({"kind":"bar","title":name+" · values",
+                               "x":[str(i+1) for i in range(len(values))],"y":values})
+                if len(charts)<4:
+                    charts.append({"kind":"line","title":name+" · sequence trend",
+                                   "x":[str(i+1) for i in range(len(values))],"y":values})
+            elif type(value) is dict:
+                pairs=list(value.items())[:12]
+                if len(pairs)>1 and all(type(k) in (str,int) and type(v) in (int,float)
+                    and math.isfinite(v) and abs(v)<1e12 for k,v in pairs):
+                    charts.append({"kind":"bar","title":name+" · dictionary values",
+                                   "x":[str(k)[:30] for k,v in pairs],
+                                   "y":[round(float(v),5) for k,v in pairs]})
+        except Exception:continue
+    return {"variables":variables,"trace":events[:100],
+            "analysis":_pp_program_analysis(code),"charts":charts[:4],
+            "traceLimited":len(events)>=100}
+
+def _pp_run_capture(user_code: str, stdin_text: str, policy_json: str, visualize=False):
     try:
         policy = json.loads(policy_json or "{}")
     except Exception:
@@ -312,19 +404,39 @@ def _pp_run_capture(user_code: str, stdin_text: str, policy_json: str):
     sys.stdout, sys.stderr = out, err
     builtins.input = _input
 
-    plots = []
+    plots=[]
+    traced=[]
+    old_trace=sys.gettrace()
+    def _pp_trace(frame,event,arg):
+        if frame.f_code.co_filename!="<string>":return None
+        if event=="line" and len(traced)<100:
+            try:
+                traced.append({"line":int(frame.f_lineno),
+                               "variables":_pp_program_snapshot(frame.f_locals)[:12]})
+            except Exception:pass
+        if len(traced)>=100:
+            sys.settrace(None)
+            return None
+        return _pp_trace
+    def make_result(ok,error=""):
+        sys.settrace(old_trace)
+        try:plots.extend(_pp_collect_matplotlib_plots())
+        except Exception:pass
+        program=_pp_program_report(g,user_code,traced) if visualize else None
+        return {"ok":ok,"stdout":out.getvalue(),"stderr":err.getvalue(),
+                "error":error,"plots":plots,"visuals":_pp_collect_dataframes(g),
+                "program":program}
     try:
-        exec(user_code, g, g)
-        plots = _pp_collect_matplotlib_plots()
-        return {"ok": True, "stdout": out.getvalue(), "stderr": err.getvalue(), "error": "", "plots": plots, "visuals": _pp_collect_dataframes(g)}
+        if visualize:sys.settrace(_pp_trace)
+        exec(user_code,g,g)
+        return make_result(True)
     except SystemExit:
-        plots = _pp_collect_matplotlib_plots()
-        return {"ok": True, "stdout": out.getvalue(), "stderr": err.getvalue(), "error": "", "plots": plots, "visuals": _pp_collect_dataframes(g)}
+        return make_result(True)
     except Exception:
-        tb = traceback.format_exc()
-        plots = _pp_collect_matplotlib_plots()
-        return {"ok": False, "stdout": out.getvalue(), "stderr": err.getvalue(), "error": tb, "plots": plots, "visuals": _pp_collect_dataframes(g)}
+        tb=traceback.format_exc()
+        return make_result(False,tb)
     finally:
+        sys.settrace(old_trace)
         sys.stdout, sys.stderr = old_stdout, old_stderr
         if _orig_input is not None: builtins.input = _orig_input
         if _orig_import is not None: builtins.__import__ = _orig_import
@@ -370,10 +482,11 @@ self.onmessage = async (ev) => {
       py.globals.set("U_CODE", code);
       py.globals.set("U_STDIN", stdin);
       py.globals.set("U_POLICY_JSON", policy_json);
+      py.globals.set("U_VISUALIZE", msg.visualize===true);
 
       await py.runPythonAsync(`
 from __main__ import _pp_run_capture
-RES = _pp_run_capture(U_CODE, U_STDIN, U_POLICY_JSON)
+RES = _pp_run_capture(U_CODE, U_STDIN, U_POLICY_JSON, U_VISUALIZE)
 `);
       const res = py.globals.get("RES");
       const obj = res.toJs({ dict_converter: Object.fromEntries });
@@ -381,7 +494,7 @@ RES = _pp_run_capture(U_CODE, U_STDIN, U_POLICY_JSON)
 
       // best-effort cleanup
       try {
-        await py.runPythonAsync(`del RES, U_CODE, U_STDIN, U_POLICY_JSON`);
+        await py.runPythonAsync(`del RES, U_CODE, U_STDIN, U_POLICY_JSON, U_VISUALIZE`);
       } catch {}
 
       obj.stdout = clampOut(obj.stdout);
@@ -392,6 +505,7 @@ RES = _pp_run_capture(U_CODE, U_STDIN, U_POLICY_JSON)
       if (!Array.isArray(obj.plots)) obj.plots = [];
       if (!Array.isArray(obj.visuals)) obj.visuals = [];
       obj.visuals = obj.visuals.slice(0, 6);
+      if (!obj.program || typeof obj.program !== "object") obj.program=null;
 
       await syncFileSystem(false);
       postMessage({ type: "RUN_RESULT", result: obj, files: listProjectFiles() });
