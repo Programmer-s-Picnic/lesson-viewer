@@ -24,6 +24,8 @@
   }
   const walkOnPage = $("ppWalkOnPage");
   const walker = window.LWCWalkingTeacher;
+  const visualizer = window.LWCPandasVisualizer;
+  let visualizeRequested=false;
   const presentation = window.LWCTeachingPresentation;
   let lastTargetedPanel = null;
   function markTeachingPanel(mode) {
@@ -484,6 +486,38 @@
       runButton.disabled=run.disabled;
     }
   }
+  // Visualize is separate from Guided Run: execute the current Python once,
+  // then display only the bounded DataFrame snapshots returned by the worker.
+  window.addEventListener("lwc-python:run-finished",event=>{
+    const detail=event.detail||{};
+    visualizer?.setData(detail.visuals||[],detail.code||$("ppCode")?.value||"");
+    if(!visualizeRequested)return;
+    visualizeRequested=false;
+    visualizer?.open();
+    stateLabel.textContent=(detail.visuals||[]).length+" DataFrames";
+    stateLabel.dataset.status="finished";
+    hint.textContent=(detail.visuals||[]).length?
+      "Automatic chart dashboard is ready. Select a DataFrame tab to explore.":
+      "Visualize opened. No DataFrames were found in this run.";
+  });
+  function visualizeRun(){
+    if(runPreparation||quickRunActive){
+      hint.textContent="Another guided run is in progress.";
+      return;
+    }
+    const run=$("ppRun");
+    const status=runtimeStatus?.textContent?.trim()||"";
+    if(!run||run.disabled||status==="Loading Python…"||status==="Running…"){
+      hint.textContent="Python is busy or not ready. Try Visualize after it becomes Ready.";
+      stateLabel.textContent="Not ready";stateLabel.dataset.status="error";
+      return;
+    }
+    visualizeRequested=true;
+    visualizer?.close?.();
+    stateLabel.textContent="Visualizing…";stateLabel.dataset.status="running";
+    hint.textContent="Running Python and examining Pandas DataFrames for automatic charts…";
+    run.click();
+  }
   // Drag the menu from its title bar without covering other controls.
   if(handle){
     let pointer=null;
@@ -537,5 +571,6 @@
     else if (button.dataset.speakerAction === "output") readOutput();
     else if (button.dataset.speakerAction === "error") explainError();
     else if (button.dataset.speakerAction === "run") guidedRun();
+    else if (button.dataset.speakerAction === "visualize") visualizeRun();
   }));
 })();
