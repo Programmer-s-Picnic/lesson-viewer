@@ -5,12 +5,14 @@
   const $ = id => document.getElementById(id);
   const panel = $("ppSpeakerPanel");
   const frame = $("ppSpeakerFrame");
-  const toggle = $("ppSpeakerToggle");
-  const close = $("ppSpeakerClose");
+  const handle = $("ppSpeakerDragHandle");
+  const settings = $("ppSpeakerSettings");
+  const stateLabel = $("ppSpeakerState");
+  const runButton = document.querySelector('[data-speaker-action="run"]');
   const hint = $("ppSpeakerHint");
   const language = $("ppSpeakerLanguage");
   const actions = document.querySelectorAll("[data-speaker-action]");
-  if (!panel || !frame || !toggle || !hint || !language) return;
+  if (!panel || !frame || !hint || !language || !stateLabel) return;
 
   const SPEAKER_ORIGIN = "https://dsa.learnwithchampak.live";
   const SPEAKER_URL = SPEAKER_ORIGIN + "/tools/cartoon-speaker/?embed=1&roaming=1";
@@ -33,9 +35,26 @@
     if(event.origin!==SPEAKER_ORIGIN||event.source!==frame.contentWindow)return;
     const data=event.data;
     if(!data||data.type!=="lwc-speaker:scene"||data.version!==2)return;
-    if(data.kind==="line")markTeachingPanel(data.mode||"code");
+    if(data.kind==="line"){
+      markTeachingPanel(data.mode||"code");
+      stateLabel.textContent="Speaking";
+      stateLabel.dataset.status="speaking";
+      hint.textContent=String(data.caption||"Speaking").slice(0,130);
+    }
     if(["finish","error"].includes(data.kind)||data.kind==="state"&&["stopped","error"].includes(data.state)){
       lastTargetedPanel?.classList.remove("lwc-teacher-targeted");
+    }
+    if(data.kind==="finish"){
+      stateLabel.textContent="Finished";stateLabel.dataset.status="finished";
+      hint.textContent="Narration complete. Choose another action.";
+    }else if(data.kind==="error"||data.kind==="state"&&data.state==="error"){
+      stateLabel.textContent="Speech error";stateLabel.dataset.status="error";
+      hint.textContent="Voice could not start. Open speech controls below and press Speak script.";
+      if(settings)settings.open=true;
+    }else if(data.kind==="state"&&data.state==="paused"){
+      stateLabel.textContent="Paused";stateLabel.dataset.status="paused";
+    }else if(data.kind==="state"&&data.state==="stopped"){
+      stateLabel.textContent="Ready";stateLabel.dataset.status="ready";
     }
     if(walkOnPage?.checked)walker?.scene(data);
   });
@@ -52,21 +71,18 @@
   const cue = (emotion, gesture, lang, text) => `[${emotion}|${gesture}|${lang}] ${text}`;
   const inHindi = () => language.value === "hi-IN";
   function showPanel() {
-    panel.hidden = false;
-    toggle.setAttribute("aria-expanded", "true");
-    if (!frame.getAttribute("src")) frame.setAttribute("src", SPEAKER_URL);
-  }
-  function hidePanel() {
-    panel.hidden = true;
-    toggle.setAttribute("aria-expanded", "false");
-    // Keep the iframe alive, preserving its voice settings and script.
+    // Menu remains present in every editor view, and speech engine stays loaded.
+    panel.hidden=false;
+    if(!frame.getAttribute("src"))frame.setAttribute("src",SPEAKER_URL);
   }
   function queueNarration(lines, description, mode="code", scenes=[]) {
     const script = lines.join("\n").slice(0, 15990);
     if (!script.trim()) { hint.textContent = "Nothing is available to narrate."; return; }
     pending = {type: "lwc-speaker:load", version: 1, script, autoplay: true, mode, scenes:scenes.slice(0,100)};
     showPanel();
-    hint.textContent = `${description} — the cartoon should begin speaking automatically. If your browser blocks audio, press “Speak script” in the panel.`;
+    stateLabel.textContent=frameReady?"Starting…":"Loading voice…";
+    stateLabel.dataset.status="loading";
+    hint.textContent=description+". If audio is blocked, open voice controls below.";
     if (frameReady && frame.contentWindow) {
       frame.contentWindow.postMessage(pending, SPEAKER_ORIGIN);
       pending = null;
@@ -74,6 +90,9 @@
   }
   frame.addEventListener("load", () => {
     frameReady = true;
+    if(stateLabel.dataset.status==="loading"&&!pending){
+      stateLabel.textContent="Ready";stateLabel.dataset.status="ready";
+    }
     syncDisplay();
     if (pending && frame.contentWindow) {
       frame.contentWindow.postMessage(pending, SPEAKER_ORIGIN);
@@ -260,13 +279,78 @@
     ]);
   }
 
-  toggle.addEventListener("click", () => panel.hidden ? showPanel() : hidePanel());
-  if (close) close.addEventListener("click", hidePanel);
+  // Always-visible floating menu: unlike the old inline section, it cannot be closed.
+  showPanel();
+  if(runButton){
+    const actualRun=$("ppRun");
+    if(actualRun){
+      const mirror=()=>{runButton.disabled=actualRun.disabled;};
+      mirror();
+      new MutationObserver(mirror).observe(actualRun,{attributes:true,attributeFilter:["disabled"]});
+    }
+  }
+  // Drag the menu from its title bar without covering other controls.
+  if(handle){
+    let pointer=null;
+    const bounds=()=>{const v=window.visualViewport;
+      return {left:v?.offsetLeft||0,top:v?.offsetTop||0,
+        width:v?.width||innerWidth,height:v?.height||innerHeight};};
+    const clamp=(x,min,max)=>Math.min(Math.max(min,x),Math.max(min,max));
+    const place=(left,top)=>{
+      const v=bounds(),r=panel.getBoundingClientRect();
+      const x=clamp(left,v.left+4,v.left+v.width-r.width-4);
+      const y=clamp(top,v.top+4,v.top+v.height-r.height-4);
+      panel.classList.add("speaker-dragged");
+      panel.style.left=x+"px";panel.style.top=y+"px";
+    };
+    handle.addEventListener("pointerdown",event=>{
+      if(event.button!==0)return;
+      const rect=panel.getBoundingClientRect();
+      pointer={id:event.pointerId,x:event.clientX,y:event.clientY,left:rect.left,top:rect.top,moved:false};
+      try{handle.setPointerCapture(event.pointerId)}catch(_){}
+    });
+    handle.addEventListener("pointermove",event=>{
+      if(!pointer||event.pointerId!==pointer.id)return;
+      const dx=event.clientX-pointer.x,dy=event.clientY-pointer.y;
+      if(Math.abs(dx)+Math.abs(dy)>5)pointer.moved=true;
+      if(pointer.moved)place(pointer.left+dx,pointer.top+dy);
+    });
+    const finish=event=>{
+      if(pointer&&event.pointerId===pointer.id)pointer=null;
+    };
+    handle.addEventListener("pointerup",finish);
+    handle.addEventListener("pointercancel",finish);
+    const updateViewport=()=>{
+      const v=bounds();
+      const bottom=Math.max(0,innerHeight-(v.top+v.height));
+      panel.style.setProperty("--speaker-vv-bottom",bottom+"px");
+      if(panel.classList.contains("speaker-dragged")){
+        const r=panel.getBoundingClientRect();place(r.left,r.top);
+      }
+    };
+    window.addEventListener("resize",updateViewport,{passive:true});
+    window.addEventListener("orientationchange",updateViewport,{passive:true});
+    window.visualViewport?.addEventListener("resize",updateViewport,{passive:true});
+    window.visualViewport?.addEventListener("scroll",updateViewport,{passive:true});
+    settings?.addEventListener("toggle",updateViewport);
+    updateViewport();
+  }
   actions.forEach(button => button.addEventListener("click", () => {
     if (button.dataset.speakerAction === "comments") speakProgramComments(true);
     else if (button.dataset.speakerAction === "walk-demo") demoWalkAndTalk();
     else if (button.dataset.speakerAction === "code") explainCode();
     else if (button.dataset.speakerAction === "output") readOutput();
     else if (button.dataset.speakerAction === "error") explainError();
+    else if (button.dataset.speakerAction === "run"){
+      const run=$("ppRun");
+      if(run && !run.disabled){
+        stateLabel.textContent="Running";stateLabel.dataset.status="running";
+        hint.textContent="Executing Python program…";
+        run.click();
+      }else{
+        stateLabel.textContent="Not ready";stateLabel.dataset.status="error";
+        hint.textContent="Python is loading. Run will be available when ready.";
+      }
+    }
   }));
 })();
