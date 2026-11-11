@@ -33,9 +33,9 @@
   function queueNarration(lines, description) {
     const script = lines.join("\n").slice(0, 15990);
     if (!script.trim()) { hint.textContent = "Nothing is available to narrate."; return; }
-    pending = {type: "lwc-speaker:load", version: 1, script};
+    pending = {type: "lwc-speaker:load", version: 1, script, autoplay: true};
     showPanel();
-    hint.textContent = `${description} — press “Speak script” inside the cartoon panel to hear it.`;
+    hint.textContent = `${description} — the cartoon should begin speaking automatically. If your browser blocks audio, press “Speak script” in the panel.`;
     if (frameReady && frame.contentWindow) {
       frame.contentWindow.postMessage(pending, SPEAKER_ORIGIN);
       pending = null;
