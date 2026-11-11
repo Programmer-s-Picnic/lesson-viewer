@@ -365,48 +365,42 @@ async function walkToRun(){
 }
 async function scanCode(onProgress){
  if(!editor)return false;
- // Interrupt the previous scan, without changing program contents or selections.
- const scanId=++scanCancel;scannerActive=true;
+ const scanId=++scanCancel;
+ scannerActive=true;
  updateLocation({mode:"code",zone:"left",lookAt:"code",gesture:"point-left",
-   caption:"Scanning the Python program"});
+   caption:"Highlighting each Python line for two seconds"});
  targets.code?.scrollIntoView({behavior:"auto",block:"start",inline:"nearest"});
  editor.scrollTop=0;
- await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
- const rows=editor.value.split(/\r?\n/).length;
+ const sourceLines=editor.value.split(/\r?\n/)
+   .map((text,index)=>({text,sourceLine:index+1}))
+   .filter(item=>item.text.trim());
+ if(!sourceLines.length)sourceLines.push({text:"",sourceLine:1});
  const style=getComputedStyle(editor);
  const rowHeight=parseFloat(style.lineHeight)||parseFloat(style.fontSize||"16")*1.5;
  const topPad=parseFloat(style.paddingTop)||14;
- const total=Math.max(0,editor.scrollHeight-editor.clientHeight);
- // Exactly fifteen seconds of source-code scanning, independent of code length.
- const duration=15000;
- const stamp=performance.now();
- let lastRemaining=16;
- const report=remaining=>{
-   if(remaining===lastRemaining)return;
-   lastRemaining=remaining;
-   if(typeof onProgress==="function")onProgress(remaining,15);
- };
+ const holdMs=2000;
+ const started=performance.now();
+ let prev=-1;
  await new Promise(resolve=>{
    function advance(now){
      if(scanId!==scanCancel||!enabled){resolve();return;}
-     const t=Math.min(1,(now-stamp)/duration);
-     const eased=t*t*(3-2*t);
-     report(Math.max(0,Math.ceil((duration-(now-stamp))/1000)));
-     // Honour reduced-motion preferences while retaining the 15-second duration.
-     if(!reducedMotion.matches)editor.scrollTop=total*eased;
-     else if(t>=1)editor.scrollTop=total;
-     // Sweep the selected line even when all code fits without scrolling.
-     line=Math.max(1,Math.min(rows,total>4?
-       Math.ceil((total*eased+editor.clientHeight*.32-topPad)/rowHeight):
-       Math.ceil(1+eased*(rows-1))));
-     highlightLine();
-     if(t>=1){resolve();return;}
+     const elapsed=Math.max(0,now-started);
+     const index=Math.min(sourceLines.length-1,Math.floor(elapsed/holdMs));
+     if(index!==prev){
+       prev=index;
+       line=sourceLines[index].sourceLine;
+       editor.scrollTop=Math.max(0,topPad+(line-1)*rowHeight-editor.clientHeight*.38);
+       highlightLine();
+       if(typeof onProgress==="function")onProgress(index+1,sourceLines.length,line);
+     }
+     if(elapsed>=sourceLines.length*holdMs){resolve();return;}
      requestAnimationFrame(advance);
    }
    requestAnimationFrame(advance);
  });
  scannerActive=false;
- line=0;highlightLine();
+ line=0;
+ highlightLine();
  return scanId===scanCancel && enabled;
 }
 window.LWCWalkingTeacher={
