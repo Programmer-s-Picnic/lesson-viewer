@@ -16,12 +16,41 @@ host.innerHTML=
  '<span class="lwc-viz-eyebrow">A PROGRAMMER’S PICNIC · RUNTIME VISUALIZATION</span>'+
  '<h2 id="lwcVizTitle">Pandas Data Explorer</h2></div></div>'+
  '<button type="button" id="lwcVizClose" aria-label="Close visualization">✕ Close</button></div>'+
+ '<aside class="lwc-viz-presenter" id="lwcVizPresenter" aria-label="Champuter teaching guide">'+
+   '<div class="lwc-viz-portrait" id="lwcVizPortrait" aria-hidden="true"></div>'+
+   '<div class="lwc-viz-voice"><strong>Champuter</strong><p id="lwcVizGuide" aria-live="polite">Welcome! Let’s visualize your Python data.</p></div>'+
+ '</aside>'+
  '<div class="lwc-viz-tabs" id="lwcVizTabs" role="tablist" aria-label="DataFrames"></div>'+
  '<div class="lwc-viz-scroll" id="lwcVizScroll"></div>'+
  '<footer class="lwc-viz-footer">Auto-generated from DataFrames created by the current Python run. Samples may omit some rows. No data is uploaded.</footer></div>';
 app.appendChild(host);
 const $=id=>host.querySelector("#"+id);
 const tabs=$("lwcVizTabs"),content=$("lwcVizScroll"),closer=$("lwcVizClose");
+const portrait=$("lwcVizPortrait"),guide=$("lwcVizGuide");
+function guideText(value){if(guide)guide.textContent=String(value||"").slice(0,230)}
+function mountChamputer(){
+ if(!portrait||portrait.firstChild)return;
+ const original=document.getElementById("lwcRoamingRig");
+ if(!original){
+   // The Dashboard remains usable if the walking teacher script is unavailable.
+   portrait.textContent="🎓";
+   return;
+ }
+ const clone=original.cloneNode(true);
+ clone.id="lwcVizChamputerRig";
+ clone.classList.add("lwc-viz-svg");
+ // Keep component-local SVG references unique while retaining identical artwork.
+ const prefix="lwcViz-";
+ clone.querySelectorAll("[id]").forEach(node=>{node.id=prefix+node.id});
+ clone.querySelectorAll("*").forEach(node=>{
+   for(const attr of Array.from(node.attributes||[])){
+     if(attr.value.includes("url(#"))
+       node.setAttribute(attr.name,attr.value.replace(/url\(#([\w-]+)\)/g,(_m,id)=>"url(#"+prefix+id+")"));
+   }
+ });
+ portrait.appendChild(clone);
+}
+
 const palette=["#3183c7","#2cab97","#e6a74f","#8966ca","#d46584","#7eb5dd","#537b97","#b08c59"];
 let frames=[],selected=0,sourceCode="",previousFocus=null;
 const compact=(n)=>Number(n).toLocaleString("en-IN");
@@ -117,8 +146,10 @@ function tableFor(frame){
  return wrap;
 }
 function render(){
+ mountChamputer();
  tabs.replaceChildren();content.replaceChildren();
  if(!frames.length){
+   guideText("Run a Pandas program and I'll introduce its tables, statistics and charts.");
    const box=make("section","lwc-viz-empty");
    box.append(make("h3","","No Pandas DataFrames found"),
      make("p","","Run a Python program that creates a DataFrame variable such as df, passed or grouped. Then select Visualize again."),
@@ -132,6 +163,10 @@ function render(){
    tabs.append(tab);
  });
  const frame=frames[selected]||frames[0],cols=frame.columns||[],charts=frame.charts||[];
+ guideText("Let's examine "+(frame.name||"this DataFrame")+
+   ": "+Number(frame.rows||0).toLocaleString("en-IN")+" rows, "+
+   Number(frame.cols||0).toLocaleString("en-IN")+" columns and "+
+   charts.length+" suggested charts.");
  const header=make("section","lwc-viz-intro");
  header.append(make("h3","","DataFrame: "+frame.name),
    make("p","","Showing the first "+Math.min(frame.rows||0,12)+" rows and up to 12 columns. Charts are generated from at most "+Math.min(frame.rows||0,1000)+" sampled rows."));
@@ -157,7 +192,15 @@ function render(){
  const section=make("section","lwc-viz-section");
  section.append(make("h3","","Automatically generated charts"));
  const chartGrid=make("div","lwc-viz-charts");
- if(charts.length)charts.forEach(c=>chartGrid.append(drawChart(c)));
+ if(charts.length)charts.forEach(c=>{
+   const card=drawChart(c);
+   card.tabIndex=0;
+   const focusChart=()=>guideText("Look at "+(c.title||"this chart")+
+     ". This "+(c.kind||"chart")+" is based on a sample of the DataFrame.");
+   card.addEventListener("focus",focusChart);
+   card.addEventListener("mouseenter",focusChart);
+   chartGrid.append(card);
+ });
  else chartGrid.append(make("p","lwc-viz-help","This DataFrame has insufficient varied numeric or categorical data for automatic charts."));
  section.append(chartGrid);content.append(section);
 }
@@ -170,6 +213,7 @@ function setData(next,code){
 function open(next,code){
  if(next!==undefined)setData(next,code);
  previousFocus=document.activeElement;
+ mountChamputer();
  host.hidden=false;
  document.body.classList.add("lwc-viz-active");
  render();
