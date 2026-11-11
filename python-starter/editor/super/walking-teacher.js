@@ -15,67 +15,98 @@ root.appendChild(overlay);
 const rig=overlay.querySelector("#lwcRoamingRig");
 const nodes={};
 for(const name of ["left-arm","right-arm","left-forearm","right-forearm","left-leg","right-leg","head-rig","left-eye","right-eye","left-brow","right-brow","mouth-line","mouth-open","mouth-tongue","left-pupil","right-pupil"]){nodes[name]=rig.querySelector("#"+name);}
+
 const targets={
-code:document.querySelector(".codeCard"),
-output:document.getElementById("ppOut")?.closest(".card"),
-error:document.getElementById("ppErr")?.closest(".card")
+ code:document.querySelector(".codeCard"),
+ output:document.getElementById("ppOut")?.closest(".ioToggleCard"),
+ error:document.getElementById("ppErr")?.closest(".ioToggleCard")
 };
+const editor=document.getElementById("ppCode");
 const caption=overlay.querySelector("#lwcRoamingCaption");
-const focusLine=document.createElement("div");focusLine.className="lwc-roaming-code-focus";focusLine.hidden=true;
-const wrapper=document.querySelector(".editorWrap");if(wrapper)wrapper.appendChild(focusLine);
+const wrapper=document.querySelector(".editorWrap");
+const focusLine=document.createElement("div");
+focusLine.className="lwc-roaming-code-focus";focusLine.hidden=true;
+wrapper?.appendChild(focusLine);
+const reducedMotion=matchMedia("(prefers-reduced-motion: reduce)");
 let enabled=true,visible=false,speaking=false,paused=false,finished=false;
 let currentZone="code",line=0,gesture="welcome",emotion="happy";
 let px=0,py=0,init=false,last=performance.now(),blinkUntil=0,nextBlink=0;
 let lastTarget=null,lookAt="audience",walking=false;
-let volumeEnergy=.7;
-function scrollToTarget(element){
- if(!element)return;
- const r=element.getBoundingClientRect();
- if(r.top<35||r.bottom>innerHeight-55){
-   element.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"nearest",inline:"nearest"});
+let volumeEnergy=.7,snapNext=false;
+function viewBounds(){
+ const v=window.visualViewport;
+ const left=v?.offsetLeft||0,top=v?.offsetTop||0;
+ const width=v?.width||innerWidth,height=v?.height||innerHeight;
+ return {left,top,right:left+width,bottom:top+height,width,height};
+}
+function resolveExpanded(zone){
+ const el=targets[zone], expandedCode=document.querySelector(".codeCard.codeExpanded");
+ const expandedIO=document.querySelector(".ioToggleCard.ioExpanded");
+ if(expandedCode&&expandedCode!==el)document.getElementById("ppCodeFullscreen")?.click();
+ if(expandedIO&&expandedIO!==el)expandedIO.querySelector(".jsToggleBox")?.click();
+}
+function scrollToTarget(el){
+ if(!el)return;
+ const vp=viewBounds(),r=el.getBoundingClientRect(),m=35;
+ if(r.bottom<vp.top+m||r.top>vp.bottom-m||(r.height<vp.height*.7&&(r.top<vp.top+m||r.bottom>vp.bottom-m))){
+   el.scrollIntoView({behavior:reducedMotion.matches?"auto":"smooth",block:r.height>vp.height*.75?"start":"center",inline:"nearest"});
  }
 }
+function seekLine(){
+ if(!editor||!line||currentZone!=="code")return;
+ const st=getComputedStyle(editor),h=parseFloat(st.lineHeight)||parseFloat(st.fontSize||"16")*1.5;
+ const pad=parseFloat(st.paddingTop)||14,y=pad+(line-1)*h;
+ if(y<editor.scrollTop+pad||y+h>editor.scrollTop+editor.clientHeight-pad)
+   editor.scrollTop=Math.max(0,y-editor.clientHeight*.35);
+}
 function geometry(){
- const element=targets[currentZone]||targets.code;
- if(!element)return {x:32,y:Math.max(20,innerHeight-230)};
- const rect=element.getBoundingClientRect();
- const width=overlay.offsetWidth||136,height=overlay.offsetHeight||224;
- const mobile=innerWidth<720;
- const x=mobile?innerWidth-width-14:
-   currentZone==="code"?rect.right-width*.7:
-   currentZone==="output"?rect.left-width*.34:
-   rect.right-width*.9;
- const y=mobile?innerHeight-height-72:rect.top+Math.min(110,Math.max(20,rect.height*.20));
- return {x:safe(x,8,Math.max(8,innerWidth-width-8)),y:safe(y,8,Math.max(8,innerHeight-height-10))};
+ const vp=viewBounds(),el=targets[currentZone]||targets.code;
+ const w=overlay.offsetWidth||138,h=overlay.offsetHeight||260;
+ const m=vp.width<720?6:12,minX=vp.left+m,maxX=Math.max(minX,vp.right-w-m);
+ const minY=vp.top+m,maxY=Math.max(minY,vp.bottom-h-m);
+ if(!el)return {x:minX,y:minY,onScreen:false};
+ const r=el.getBoundingClientRect();
+ const t=Math.max(r.top,vp.top+m),b=Math.min(r.bottom,vp.bottom-m);
+ const onScreen=b>t+24&&r.right>vp.left+24&&r.left<vp.right-24;
+ const expanded=el.classList.contains("codeExpanded")||el.classList.contains("ioExpanded");
+ const x=vp.width<=720||expanded||r.width>vp.width*.82?
+   r.right-w-(vp.width<=720?5:24):
+   currentZone==="code"?r.right-w*.76:r.left-w*.22;
+ let anchor=t+Math.max(22,(b-t)*.42);
+ if(currentZone==="code"&&line&&editor){
+   const st=getComputedStyle(editor),lh=parseFloat(st.lineHeight)||parseFloat(st.fontSize||"16")*1.5;
+   const y=editor.getBoundingClientRect().top+(parseFloat(st.paddingTop)||14)+(line-.5)*lh-editor.scrollTop;
+   if(y>=t&&y<=b)anchor=y;
+ }
+ return {x:safe(x,minX,maxX),y:safe(anchor-h*.46,minY,maxY),onScreen};
 }
 function highlightLine(){
- if(!wrapper||!targets.code||!line||currentZone!=="code"){focusLine.hidden=true;return;}
- const editor=document.getElementById("ppCode");
- if(!editor){focusLine.hidden=true;return;}
- const style=getComputedStyle(editor);
- const lineHeight=parseFloat(style.lineHeight)||Math.round(parseFloat(style.fontSize||"16")*1.5);
- const y=editor.offsetTop+(parseFloat(style.paddingTop)||0)+(line-1)*lineHeight-editor.scrollTop;
- if(y<editor.offsetTop||y+lineHeight>editor.offsetTop+editor.clientHeight){focusLine.hidden=true;return;}
+ if(!wrapper||!editor||!line||currentZone!=="code"||!visible||!enabled){focusLine.hidden=true;return;}
+ const st=getComputedStyle(editor),lh=parseFloat(st.lineHeight)||parseFloat(st.fontSize||"16")*1.5;
+ const pt=parseFloat(st.paddingTop)||14,pb=parseFloat(st.paddingBottom)||14;
+ const y=editor.offsetTop+pt+(line-1)*lh-editor.scrollTop;
+ if(y<editor.offsetTop+pt-1||y+lh>editor.offsetTop+editor.clientHeight-pb+1){focusLine.hidden=true;return;}
  focusLine.hidden=false;
  focusLine.style.left=editor.offsetLeft+"px";
  focusLine.style.top=y+"px";
  focusLine.style.width=editor.clientWidth+"px";
- focusLine.style.height=lineHeight+"px";
+ focusLine.style.height=lh+"px";
 }
+
 function note(text){caption.textContent=String(text||"").slice(0,155);}
+
 function updateLocation(data={}){
- let zone=data.mode==="output"?"output":data.mode==="error"?"error":"code";
- if(data.zone==="right"&&zone==="code")zone="output";
- if(data.zone==="center"&&data.mode==="code"&&data.index===0)zone="code";
- const target=targets[zone];currentZone=target?zone:"code";
+ const zone=data.mode==="output"?"output":data.mode==="error"?"error":"code";
+ const target=targets[zone]||targets.code;currentZone=zone;
  lookAt=data.lookAt||zone;
- if(!visible){visible=true;overlay.hidden=false;overlay.classList.add("lwc-visible");}
- if(lastTarget!==target){lastTarget=target;scrollToTarget(target);}
  line=Number.isInteger(data.sourceLine)&&data.sourceLine>0?data.sourceLine:0;
  gesture=data.gesture||"explain";emotion=data.emotion||"explaining";
- note((line?"Line "+line+": ":"")+(data.caption||""));
- highlightLine();
+ if(!visible){visible=true;overlay.hidden=false;overlay.classList.add("lwc-visible");}
+ resolveExpanded(zone);
+ if(lastTarget!==target){lastTarget=target;requestAnimationFrame(()=>scrollToTarget(target));}
+ seekLine();note(data.caption||"");highlightLine();
 }
+
 function setMood(){
  const excited=emotion==="excited"||emotion==="encouraging";
  const concerned=emotion==="concerned";
@@ -105,10 +136,11 @@ function loop(now){
  const dt=Math.min(.055,Math.max(.001,(now-last)/1000));last=now;
  if(!visible||!enabled){requestAnimationFrame(loop);return;}
  const loc=geometry();
- if(!init){px=12;py=loc.y;init=true;}
+ overlay.classList.toggle("lwc-target-offscreen",!loc.onScreen);
+ if(!init||snapNext){px=loc.x;py=loc.y;init=true;snapNext=false;}
  const dx=loc.x-px,dy=loc.y-py;
- const moving=!paused&&!matchMedia("(prefers-reduced-motion: reduce)").matches&&(Math.hypot(dx,dy)>4);
- const speed=235;
+ const moving=!paused&&!reducedMotion.matches&&loc.onScreen&&(Math.hypot(dx,dy)>4);
+ const speed=300;
  if(moving){const distance=Math.hypot(dx,dy)||1;const step=Math.min(speed*dt,distance);px+=dx/distance*step;py+=dy/distance*step;}
  else {px+=(loc.x-px)*Math.min(1,dt*10);py+=(loc.y-py)*Math.min(1,dt*10);}
  const phase=now*.011;
@@ -143,20 +175,41 @@ function loop(now){
  overlay.style.transform="translate3d("+px.toFixed(1)+"px,"+py.toFixed(1)+"px,0)";
  requestAnimationFrame(loop);
 }
-window.addEventListener("resize",()=>{highlightLine();});
-document.getElementById("ppCode")?.addEventListener("scroll",highlightLine,{passive:true});
-document.getElementById("ppCode")?.addEventListener("input",highlightLine);
-document.addEventListener("scroll",highlightLine,true);
+
+function realign(snap=false,scroll=false){
+ if(snap)snapNext=true;
+ highlightLine();
+ if(scroll&&visible&&enabled)requestAnimationFrame(()=>scrollToTarget(targets[currentZone]||targets.code));
+}
+window.addEventListener("resize",()=>realign(true,true),{passive:true});
+window.addEventListener("orientationchange",()=>realign(true,true),{passive:true});
+document.addEventListener("fullscreenchange",()=>realign(true,true));
+document.addEventListener("scroll",()=>realign(),{capture:true,passive:true});
+editor?.addEventListener("scroll",highlightLine,{passive:true});
+editor?.addEventListener("input",()=>realign());
+window.visualViewport?.addEventListener("resize",()=>realign(true,true),{passive:true});
+window.visualViewport?.addEventListener("scroll",()=>realign(true),{passive:true});
+if(typeof ResizeObserver!=="undefined"){
+ const ro=new ResizeObserver(()=>realign());
+ [root,targets.code,targets.output,targets.error,wrapper].filter(Boolean).forEach(el=>ro.observe(el));
+}
+if(typeof MutationObserver!=="undefined"){
+ const observer=new MutationObserver(()=>realign(true,true));
+ [root,document.body,targets.code,targets.output,targets.error].filter(Boolean)
+   .forEach(el=>observer.observe(el,{attributes:true,attributeFilter:["class"]}));
+}
+
 requestAnimationFrame(loop);
 window.LWCWalkingTeacher={
   enable(value){
     enabled=Boolean(value);
     overlay.hidden=!enabled||!visible;
+    if(enabled&&visible)realign(true,true);
     if(!enabled){focusLine.hidden=true;overlay.classList.remove("lwc-visible");}
     else if(visible){overlay.classList.add("lwc-visible");highlightLine();}
   },
   scene:receiveScene,
-  reset(){stop();visible=false;overlay.hidden=true;overlay.classList.remove("lwc-visible");},
-  debug(){return {enabled,visible,speaking,paused,currentZone,line,gesture,x:px,y:py};}
+  reset(){stop();visible=false;overlay.hidden=true;init=false;overlay.classList.remove("lwc-visible");},
+  debug(){return {enabled,visible,speaking,paused,currentZone,line,gesture,x:px,y:py,viewport:viewBounds(),target:geometry(),fullscreen:!!document.fullscreenElement||root.classList.contains("fullscreen"),expanded:!!document.querySelector(".codeExpanded,.ioExpanded")};}
 };
 })();
