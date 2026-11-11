@@ -154,7 +154,14 @@ function tableFor(frame){
 function describeChart(chart,frame){
  const title=String(chart.title||"this chart");
  const type=String(chart.kind||"chart");
- const count=Math.min(Array.isArray(chart.y)?chart.y.length:0,60);
+ const hindi=document.getElementById("ppSpeakerLanguage")?.value==="hi-IN";
+ if(hindi){
+   if(type==="bar")return "यह "+title+" है। प्रत्येक बार यह दिखाता है कि नमूने में कोई श्रेणी कितनी बार आती है।";
+   if(type==="histogram")return "यह "+title+" है। यह चार्ट संख्यात्मक मानों का वितरण दिखाता है।";
+   if(type==="line")return "यह "+title+" है। यह रेखा पंक्तियों के मानों में परिवर्तन दिखाती है।";
+   if(type==="scatter")return "यह "+title+" है। प्रत्येक बिंदु दो संख्यात्मक मानों की तुलना करता है।";
+   return "आइए इस चार्ट को समझें।";
+ }
  if(type==="bar")return "Here is "+title+". Each bar shows how often a category appears in the sampled data.";
  if(type==="histogram")return "Let's inspect "+title+". These bars show the distribution of sampled numeric values.";
  if(type==="line")return "Here is "+title+". The line connects values across the sampled row positions.";
@@ -163,15 +170,19 @@ function describeChart(chart,frame){
 }
 function buildTour(){
  const steps=[];
+ const hindi=document.getElementById("ppSpeakerLanguage")?.value==="hi-IN";
  frames.slice(0,4).forEach((frame,index)=>{
    const name=String(frame.name||"DataFrame "+(index+1));
    const cols=Array.isArray(frame.columns)?frame.columns:[];
    const missing=cols.reduce((total,col)=>total+(Number(col.missing)||0),0);
-   steps.push({frameIndex:index,target:"intro",kind:"overview",text:
+   steps.push({frameIndex:index,target:"intro",kind:"overview",text:hindi?
+     "अब "+name+" डेटा फ्रेम देखते हैं। इसमें "+(frame.rows||0)+" पंक्तियाँ और "+(frame.cols||0)+" कॉलम हैं।":
      "Now let's look at "+name+". It contains "+(frame.rows||0)+" rows and "+(frame.cols||0)+" columns."});
-   steps.push({frameIndex:index,target:"preview",kind:"table",text:
+   steps.push({frameIndex:index,target:"preview",kind:"table",text:hindi?
+     "यह डेटा फ्रेम का प्रारंभिक दृश्य है। यहाँ कुछ पंक्तियाँ और कॉलम दिख रहे हैं।":
      "Here is the DataFrame preview. We can examine a sample of its rows and columns."});
-   steps.push({frameIndex:index,target:"statistics",kind:"statistics",text:
+   steps.push({frameIndex:index,target:"statistics",kind:"statistics",text:hindi?
+     "ये कॉलम के प्रकार और सांख्यिकीय सारांश हैं। दिखाई गई श्रेणियों में कुल "+missing+" मान अनुपस्थित हैं।":
      "Here are the column types and numeric summaries. The displayed columns have "+missing+
      " missing values in total."});
    (frame.charts||[]).slice(0,4).forEach((chart,chartIndex)=>{
@@ -180,7 +191,8 @@ function buildTour(){
    });
  });
  if(!steps.length)steps.push({frameIndex:0,target:"intro",kind:"empty",
-   text:"There are no Pandas DataFrames available yet. Create a DataFrame and run Visualize again."});
+   text:hindi?"अभी कोई पांडास डेटा फ्रेम उपलब्ध नहीं है। पहले डेटा फ्रेम बनाकर विज़ुअलाइज़ चलाइए।":
+     "There are no Pandas DataFrames available yet. Create a DataFrame and run Visualize again."});
  return steps;
 }
 function closeButtonState(){
@@ -336,7 +348,14 @@ function render(){
  frames.forEach((frame,i)=>{
    const tab=make("button","lwc-viz-tab"+(i===selected?" selected":""),frame.name||"DataFrame "+(i+1));
    tab.type="button";tab.setAttribute("role","tab");tab.setAttribute("aria-selected",i===selected?"true":"false");
-   tab.addEventListener("click",()=>{selected=i;render();});
+   tab.addEventListener("click",()=>{
+     stopTour(true);
+     selected=i;render();
+     requestAnimationFrame(()=>focusStep({
+       frameIndex:i,target:"intro",
+       text:"Let us explore "+(frame.name||"DataFrame "+(i+1))+"."
+     }));
+   });
    tabs.append(tab);
  });
  const frame=frames[selected]||frames[0],cols=frame.columns||[],charts=frame.charts||[];
