@@ -19,7 +19,8 @@ for(const name of ["left-arm","right-arm","left-forearm","right-forearm","left-l
 const targets={
  code:document.querySelector(".codeCard"),
  output:document.getElementById("ppOut")?.closest(".ioToggleCard"),
- error:document.getElementById("ppErr")?.closest(".ioToggleCard")
+ error:document.getElementById("ppErr")?.closest(".ioToggleCard"),
+ run:document.getElementById("ppRun")
 };
 const editor=document.getElementById("ppCode");
 const caption=overlay.querySelector("#lwcRoamingCaption");
@@ -33,6 +34,7 @@ let currentZone="code",stageZone="left",line=0,gesture="welcome",emotion="happy"
 let px=0,py=0,init=false,last=performance.now(),blinkUntil=0,nextBlink=0;
 let lastTarget=null,lookAt="audience",walking=false;
 let volumeEnergy=.7,snapNext=false;
+let scannerActive=false,scanCancel=0;
 function viewBounds(){
  const v=window.visualViewport;
  const left=v?.offsetLeft||0,top=v?.offsetTop||0;
@@ -53,11 +55,15 @@ function scrollToTarget(el){
  }
 }
 function seekLine(){
- if(!editor||!line||currentZone!=="code")return;
+ if(!editor||!line||currentZone!=="code"||scannerActive)return;
  const st=getComputedStyle(editor),h=parseFloat(st.lineHeight)||parseFloat(st.fontSize||"16")*1.5;
- const pad=parseFloat(st.paddingTop)||14,y=pad+(line-1)*h;
- if(y<editor.scrollTop+pad||y+h>editor.scrollTop+editor.clientHeight-pad)
+ const pad=parseFloat(st.paddingTop)||14;
+ const y=pad+(line-1)*h;
+ const minVisible=editor.scrollTop+pad,maxVisible=editor.scrollTop+editor.clientHeight-pad;
+ if(y<minVisible||y+h>maxVisible){
+   // Follow the selected source line, even when it is far from the previous line.
    editor.scrollTop=Math.max(0,y-editor.clientHeight*.35);
+ }
 }
 function geometry(){
  const vp=viewBounds(),el=targets[currentZone]||targets.code;
@@ -74,11 +80,13 @@ function geometry(){
  const t=Math.max(r.top,vp.top+m),b=Math.min(r.bottom,vp.bottom-m);
  const onScreen=vp.height>=h+2*m&&b>t+24&&r.right>vp.left+24&&r.left<vp.right-24;
  const expanded=el.classList.contains("codeExpanded")||el.classList.contains("ioExpanded");
- const x=stageZone==="center" ? vp.left+(vp.width-w)/2 :
+ const x=currentZone==="run" ?
+   (r.right+w+18<vp.right ? r.right+12 : r.left-w-12) :
+   stageZone==="center" ? vp.left+(vp.width-w)/2 :
    vp.width<=720||expanded||r.width>vp.width*.82?
    r.right-w-(vp.width<=720?5:24):
    currentZone==="code"?r.right-w*.76:r.left-w*.22;
- let anchor=t+Math.max(22,(b-t)*.42);
+ let anchor=currentZone==="run" ? r.top+r.height*.5 : t+Math.max(22,(b-t)*.42);
  if(currentZone==="code"&&line&&editor){
    const st=getComputedStyle(editor),lh=parseFloat(st.lineHeight)||parseFloat(st.fontSize||"16")*1.5;
    const y=editor.getBoundingClientRect().top+(parseFloat(st.paddingTop)||14)+(line-.5)*lh-editor.scrollTop;
@@ -121,7 +129,7 @@ function highlightLine(){
 function note(text){caption.textContent=String(text||"").slice(0,155);}
 
 function updateLocation(data={}){
- const zone=data.mode==="output"?"output":data.mode==="error"?"error":"code";
+ const zone=["output","error","run"].includes(data.mode)?data.mode:"code";
  const target=targets[zone]||targets.code;currentZone=zone;
  stageZone=["left","center","right"].includes(data.zone)?data.zone:(zone==="code"?"left":"right");
  lookAt=data.lookAt||zone;
@@ -129,7 +137,13 @@ function updateLocation(data={}){
  gesture=data.gesture||"explain";emotion=data.emotion||"explaining";
  if(!visible){visible=true;overlay.hidden=false;overlay.classList.add("lwc-visible");}
  resolveExpanded(zone);
- if(lastTarget!==target){lastTarget=target;requestAnimationFrame(()=>scrollToTarget(target));}
+ // Always reveal the relevant panel, even when successive dialogue lines stay
+ // in the same panel but the reader has scrolled somewhere else.
+ lastTarget=target;
+ requestAnimationFrame(()=>{
+   scrollToTarget(target);
+   if(line&&zone==="code"){seekLine();highlightLine();}
+ });
  seekLine();note(data.caption||"");highlightLine();
 }
 
@@ -226,7 +240,68 @@ if(typeof MutationObserver!=="undefined"){
 }
 
 requestAnimationFrame(loop);
+async function walkToRun(){
+ if(!enabled)return;
+ scannerActive=false;
+ if(!init){
+   // Enter near the code, then walk to the actual Run button.
+   currentZone="code";stageZone="left";
+   const start=geometry();px=start.x;py=start.y;init=true;
+ }
+ updateLocation({mode:"run",zone:"left",lookAt:"audience",gesture:"welcome",
+   caption:"Going to the Run button"});
+ speaking=false;overlay.classList.remove("lwc-speaking");
+ if(reducedMotion.matches)return;
+ await new Promise(resolve=>{
+   const begun=performance.now();
+   function next(){
+     const target=geometry();
+     if(!enabled||!target.onScreen||Math.hypot(px-target.x,py-target.y)<11 ||
+        performance.now()-begun>2500){resolve();return;}
+     requestAnimationFrame(next);
+   }
+   requestAnimationFrame(next);
+ });
+}
+async function scanCode(){
+ if(!editor)return;
+ // Interrupt the previous scan, without changing program contents or selections.
+ const scanId=++scanCancel;scannerActive=true;
+ updateLocation({mode:"code",zone:"left",lookAt:"code",gesture:"point-left",
+   caption:"Scanning the Python program"});
+ scrollToTarget(targets.code);
+ const rows=editor.value.split(/\r?\n/).length;
+ const style=getComputedStyle(editor);
+ const rowHeight=parseFloat(style.lineHeight)||parseFloat(style.fontSize||"16")*1.5;
+ const topPad=parseFloat(style.paddingTop)||14;
+ const total=Math.max(0,editor.scrollHeight-editor.clientHeight);
+ const duration=reducedMotion.matches?0:Math.max(520,Math.min(1500,rows*28));
+ const stamp=performance.now();
+ await new Promise(resolve=>{
+   function advance(now){
+     if(scanId!==scanCancel||!enabled){resolve();return;}
+     const t=duration?Math.min(1,(now-stamp)/duration):1;
+     const eased=t*t*(3-2*t);
+     editor.scrollTop=total*eased;
+     // Visually select/highlight a line as the viewport scans through the file.
+     line=Math.max(1,Math.min(rows,Math.ceil((total*eased+editor.clientHeight*.32-topPad)/rowHeight)));
+     highlightLine();
+     if(t>=1){resolve();return;}
+     requestAnimationFrame(advance);
+   }
+   requestAnimationFrame(advance);
+ });
+ scannerActive=false;
+ line=0;highlightLine();
+}
 window.LWCWalkingTeacher={
+  walkToRun,scanCode,
+  revealLine(sourceLine){
+    if(!Number.isInteger(sourceLine)||sourceLine<1||!editor)return;
+    line=sourceLine;
+    updateLocation({mode:"code",zone:"left",lookAt:"code",sourceLine,
+      caption:"Explaining this line"});
+  },
   enable(value){
     enabled=Boolean(value);
     overlay.hidden=!enabled||!visible;
@@ -235,7 +310,7 @@ window.LWCWalkingTeacher={
     else if(visible){overlay.classList.add("lwc-visible");highlightLine();}
   },
   scene:receiveScene,
-  reset(){stop();visible=false;overlay.hidden=true;init=false;overlay.classList.remove("lwc-visible");},
+  reset(){scanCancel++;scannerActive=false;stop();visible=false;overlay.hidden=true;init=false;overlay.classList.remove("lwc-visible");},
   debug(){return {enabled,visible,speaking,paused,currentZone,stageZone,line,gesture,x:px,y:py,viewport:viewBounds(),target:geometry(),fullscreen:!!document.fullscreenElement||root.classList.contains("fullscreen"),expanded:!!document.querySelector(".codeExpanded,.ioExpanded")};}
 };
 })();
