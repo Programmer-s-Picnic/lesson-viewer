@@ -410,8 +410,8 @@
         await walker?.walkToRun?.();
       }else run.scrollIntoView({behavior:"auto",block:"nearest"});
       if(id!==runToken)return;
-      stateLabel.textContent="Scan 15s";stateLabel.dataset.status="running";
-      hint.textContent="Presenting the entire Python program on screen for 15 seconds…";
+      stateLabel.textContent="Code walkthrough";stateLabel.dataset.status="running";
+      hint.textContent="Each nonempty Python code line is highlighted for 2 seconds before execution.";
       const code=$("ppCode");
       let modalScan=false;
       if(presentation){
@@ -425,36 +425,45 @@
           stateLabel.dataset.status="ready";
           hint.textContent="Presentation closed. The editor and its files are unchanged.";
         });
-        walker?.stage?.("code","Presenting the complete Python program");
+        walker?.stage?.("code","Presenting Python, line by line");
         modalScan=true;
       }
-      const showRemaining=remaining=>{
+      const showLineProgress=(position,total,sourceLine)=>{
         if(id!==runToken)return;
-        stateLabel.textContent="Scan "+remaining+"s";
-        hint.textContent="The whole program is scrolling over the page — "+remaining+" seconds left.";
+        stateLabel.textContent="Line "+position+"/"+total;
+        hint.textContent="Source line "+(sourceLine||position)+" is highlighted for 2 seconds.";
       };
       if(modalScan){
-        const complete=await presentation.scanCode(15000,showRemaining);
+        const complete=await presentation.scanCode(2000,showLineProgress);
         if(!complete){
-          stateLabel.textContent="Scan stopped";stateLabel.dataset.status="paused";
+          stateLabel.textContent="Walkthrough stopped";stateLabel.dataset.status="paused";
           hint.textContent="Presentation cancelled before Python execution.";
           return;
         }
       }else if(walkOnPage?.checked&&walker?.scanCode){
-        const complete=await walker.scanCode(showRemaining);
+        const complete=await walker.scanCode(showLineProgress);
         if(!complete)return;
       }else{
-        // Graceful 15-second fallback if the presentation module is unavailable.
+        // Graceful fallback: hold each visible source line for two seconds.
         code?.scrollIntoView({behavior:"auto",block:"nearest"});
-        if(code)code.scrollTop=0;
+        const lines=(code?.value||"").split(/\r?\n/).map((text,index)=>({text,line:index+1}))
+          .filter(item=>item.text.trim());
+        if(!lines.length)lines.push({text:"",line:1});
+        const lineHeight=code?(parseFloat(getComputedStyle(code).lineHeight)||24):24;
+        const padding=code?(parseFloat(getComputedStyle(code).paddingTop)||14):14;
         const started=performance.now();
+        let previous=-1;
         await new Promise(resolve=>{
           function step(now){
-            const t=Math.min(1,(now-started)/15000);
-            const eased=t*t*(3-2*t);
-            if(code)code.scrollTop=Math.max(0,code.scrollHeight-code.clientHeight)*eased;
-            showRemaining(Math.max(0,Math.ceil((15000-(now-started))/1000)));
-            if(t<1&&id===runToken)requestAnimationFrame(step);
+            const elapsed=Math.max(0,now-started);
+            const position=Math.min(lines.length-1,Math.floor(elapsed/2000));
+            if(position!==previous){
+              previous=position;
+              const item=lines[position];
+              if(code)code.scrollTop=Math.max(0,padding+(item.line-1)*lineHeight-code.clientHeight*.4);
+              showLineProgress(position+1,lines.length,item.line);
+            }
+            if(elapsed<lines.length*2000 && id===runToken)requestAnimationFrame(step);
             else resolve();
           }
           requestAnimationFrame(step);
