@@ -252,7 +252,7 @@ def _pp_collect_dataframes(scope):
 
 # Only basic values are inspected. Avoid calling user-defined repr/str methods.
 def _pp_program_snapshot(scope):
-    import math, types
+    import math, types, itertools
     def safe_value(value,depth=0):
         t=type(value)
         if t in (str,int,float,bool,type(None)):
@@ -261,7 +261,7 @@ def _pp_program_snapshot(scope):
             num=value if t in (int,float) and math.isfinite(value) and abs(value)<1e12 else None
             return {"type":t.__name__,"text":label,"number":num}
         if depth<1 and t in (list,tuple,set,dict):
-            values=list(value.items())[:10] if t is dict else list(value)[:10]
+            values=list(itertools.islice(value.items(),10)) if t is dict else list(itertools.islice(value,10))
             items=[]
             for v in values:
                 if t is dict:items.append([safe_value(v[0],1)["text"],safe_value(v[1],1)["text"]])
@@ -331,7 +331,8 @@ def _pp_program_report(scope,code,events):
                     charts.append({"kind":"line","title":name+" · sequence trend",
                                    "x":[str(i+1) for i in range(len(values))],"y":values})
             elif type(value) is dict:
-                pairs=list(value.items())[:12]
+                import itertools
+                pairs=list(itertools.islice(value.items(),12))
                 if len(pairs)>1 and all(type(k) in (str,int) and type(v) in (int,float)
                     and math.isfinite(v) and abs(v)<1e12 for k,v in pairs):
                     charts.append({"kind":"bar","title":name+" · dictionary values",
@@ -427,7 +428,9 @@ def _pp_run_capture(user_code: str, stdin_text: str, policy_json: str, visualize
                 "error":error,"plots":plots,"visuals":_pp_collect_dataframes(g),
                 "program":program}
     try:
-        if visualize:sys.settrace(_pp_trace)
+        if visualize:
+            try:sys.settrace(_pp_trace)
+            except Exception:pass
         exec(user_code,g,g)
         return make_result(True)
     except SystemExit:
