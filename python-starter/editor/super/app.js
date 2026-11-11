@@ -575,6 +575,10 @@ function makeWorker(){
       resyncEditorManyTimes();
       setStatus(r.ok ? "Run complete" : "Error found", r.ok ? "ok" : "bad");
       renderFiles(msg.files || []);
+      window.dispatchEvent(new CustomEvent("lwc-python:run-finished",{detail:{
+        ok:Boolean(r.ok),stdout:String(r.stdout||""),
+        stderr:String(r.stderr||"")+String(r.error||"")
+      }}));
       return;
     }
     if(msg.type === "FILE_LIST"){
@@ -615,9 +619,19 @@ function makeWorker(){
       ui.err.textContent = msg.message || "Unknown worker error";
       focusOutput("", ui.err.textContent);
       setStatus("Error", "bad");
+      window.dispatchEvent(new CustomEvent("lwc-python:run-finished",{detail:{
+        ok:false,stdout:"",stderr:String(ui.err.textContent||"")
+      }}));
     }
   };
-  worker.onerror = (e) => { running = false; ui.err.textContent = e.message || String(e); focusOutput("", ui.err.textContent); setStatus("Worker error", "bad"); };
+  worker.onerror = (e) => {
+    running = false;clearTimeout(runTimer);
+    ui.err.textContent = e.message || String(e);
+    focusOutput("", ui.err.textContent);setStatus("Worker error", "bad");
+    window.dispatchEvent(new CustomEvent("lwc-python:run-finished",{detail:{
+      ok:false,stdout:"",stderr:String(ui.err.textContent||"")
+    }}));
+  };
   worker.postMessage({type:"INIT", policy:{allow_micropip:true}});
 }
 
@@ -650,13 +664,20 @@ function runCode(){
   if(!ready) return toast("Python is still loading");
   if(running) return toast("Already running");
   running = true;
+  window.dispatchEvent(new CustomEvent("lwc-python:run-start"));
   ui.out.textContent = "Running…";
   ui.err.textContent = "";
   showPlots([]);
   resyncEditorManyTimes();
   setStatus("Running…");
   worker.postMessage({type:"RUN_ONE", code:ui.code.value, stdin:ui.stdin.value, policy:{allow_micropip:true}});
-  runTimer = setTimeout(()=>{ if(running){ stopRun(); ui.err.textContent = "Stopped: program took too long."; focusOutput("", ui.err.textContent); setStatus("Stopped", "bad"); } }, 12000);
+  runTimer = setTimeout(()=>{ if(running){
+    stopRun();ui.err.textContent = "Stopped: program took too long.";
+    focusOutput("", ui.err.textContent);setStatus("Stopped", "bad");
+    window.dispatchEvent(new CustomEvent("lwc-python:run-finished",{detail:{
+      ok:false,stdout:"",stderr:String(ui.err.textContent||"")
+    }}));
+  } }, 12000);
 }
 function stopRun(){ running = false; clearTimeout(runTimer); makeWorker(); toast("Stopped"); }
 function installModules(){
