@@ -638,7 +638,7 @@ async function prepareOffline(){
 async function registerOfflineSupport(){
   if(!("serviceWorker" in navigator) || !window.isSecureContext) return;
   try{
-    await navigator.serviceWorker.register("service-worker.js?v=20261111-7", {scope:"./"});
+    await navigator.serviceWorker.register("service-worker.js?v=20261111-8", {scope:"./"});
     await navigator.serviceWorker.ready;
     if(ui.offline && localStorage.getItem("pp_offline_ready_v7") === "1") ui.offline.textContent = "✓ Offline Ready";
   }catch(error){ console.warn("Offline support unavailable", error); }
