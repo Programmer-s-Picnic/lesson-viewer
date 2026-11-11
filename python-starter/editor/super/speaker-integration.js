@@ -134,7 +134,33 @@
       {mode:"code",zone:"center",lookAt:"audience"}
     ]);
   }
+  function speakProgramComments(reportIfEmpty=true) {
+    const code=$("ppCode"), parser=window.LWCPythonCommentDialogues;
+    if(!code||!parser){hint.textContent="The comment narration module did not load. Refresh the editor.";return false;}
+    const selected=code.value.slice(code.selectionStart,code.selectionEnd);
+    const source=selected.trim()?selected:code.value;
+    const firstLine=selected.trim()?code.value.slice(0,code.selectionStart).split(/\r?\n/).length:1;
+    const dialogues=parser.extract(source,firstLine,language.value);
+    if(!dialogues.length){
+      if(reportIfEmpty)hint.textContent="No spoken Python comments were found. Add # Your dialogue to the code, or use Explain Code for a generated walkthrough.";
+      return false;
+    }
+    const lines=[],scenes=[];
+    let chars=0;
+    for(const item of dialogues.slice(0,75)){
+      if(chars+item.script.length+1>14500)break;
+      lines.push(item.script);
+      scenes.push(item.scene);
+      chars+=item.script.length+1;
+    }
+    if(!lines.length){hint.textContent="The comments are too long to narrate in one session.";return false;}
+    queueNarration(lines,"Speaking "+lines.length+" Python comment"+(lines.length===1?"":"s")+" in source order","code",scenes);
+    return true;
+  }
+
   function explainCode() {
+    // Program comments are the author-written dialogue; use them before generated descriptions.
+    if(speakProgramComments(false))return;
     const code = $("ppCode");
     if (!code) return;
     const selected = code.value.slice(code.selectionStart, code.selectionEnd).trim();
@@ -237,7 +263,8 @@
   toggle.addEventListener("click", () => panel.hidden ? showPanel() : hidePanel());
   if (close) close.addEventListener("click", hidePanel);
   actions.forEach(button => button.addEventListener("click", () => {
-    if (button.dataset.speakerAction === "walk-demo") demoWalkAndTalk();
+    if (button.dataset.speakerAction === "comments") speakProgramComments(true);
+    else if (button.dataset.speakerAction === "walk-demo") demoWalkAndTalk();
     else if (button.dataset.speakerAction === "code") explainCode();
     else if (button.dataset.speakerAction === "output") readOutput();
     else if (button.dataset.speakerAction === "error") explainError();
