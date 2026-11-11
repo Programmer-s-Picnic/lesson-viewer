@@ -29,7 +29,7 @@ focusLine.className="lwc-roaming-code-focus";focusLine.hidden=true;
 wrapper?.appendChild(focusLine);
 const reducedMotion=matchMedia("(prefers-reduced-motion: reduce)");
 let enabled=true,visible=false,speaking=false,paused=false,finished=false;
-let currentZone="code",line=0,gesture="welcome",emotion="happy";
+let currentZone="code",stageZone="left",line=0,gesture="welcome",emotion="happy";
 let px=0,py=0,init=false,last=performance.now(),blinkUntil=0,nextBlink=0;
 let lastTarget=null,lookAt="audience",walking=false;
 let volumeEnergy=.7,snapNext=false;
@@ -61,6 +61,7 @@ function seekLine(){
 }
 function geometry(){
  const vp=viewBounds(),el=targets[currentZone]||targets.code;
+ overlay.classList.toggle("lwc-compact",vp.height<460||vp.width<350);
  const w=overlay.offsetWidth||138,h=overlay.offsetHeight||260;
  const m=vp.width<720?6:12,minX=vp.left+m,maxX=Math.max(minX,vp.right-w-m);
  const minY=vp.top+m,maxY=Math.max(minY,vp.bottom-h-m);
@@ -69,7 +70,8 @@ function geometry(){
  const t=Math.max(r.top,vp.top+m),b=Math.min(r.bottom,vp.bottom-m);
  const onScreen=b>t+24&&r.right>vp.left+24&&r.left<vp.right-24;
  const expanded=el.classList.contains("codeExpanded")||el.classList.contains("ioExpanded");
- const x=vp.width<=720||expanded||r.width>vp.width*.82?
+ const x=stageZone==="center" ? vp.left+(vp.width-w)/2 :
+   vp.width<=720||expanded||r.width>vp.width*.82?
    r.right-w-(vp.width<=720?5:24):
    currentZone==="code"?r.right-w*.76:r.left-w*.22;
  let anchor=t+Math.max(22,(b-t)*.42);
@@ -98,6 +100,7 @@ function note(text){caption.textContent=String(text||"").slice(0,155);}
 function updateLocation(data={}){
  const zone=data.mode==="output"?"output":data.mode==="error"?"error":"code";
  const target=targets[zone]||targets.code;currentZone=zone;
+ stageZone=["left","center","right"].includes(data.zone)?data.zone:(zone==="code"?"left":"right");
  lookAt=data.lookAt||zone;
  line=Number.isInteger(data.sourceLine)&&data.sourceLine>0?data.sourceLine:0;
  gesture=data.gesture||"explain";emotion=data.emotion||"explaining";
@@ -187,7 +190,7 @@ document.addEventListener("fullscreenchange",()=>realign(true,true));
 document.addEventListener("scroll",()=>realign(),{capture:true,passive:true});
 editor?.addEventListener("scroll",highlightLine,{passive:true});
 editor?.addEventListener("input",()=>realign());
-window.visualViewport?.addEventListener("resize",()=>realign(true,true),{passive:true});
+window.visualViewport?.addEventListener("resize",()=>realign(true,false),{passive:true});
 window.visualViewport?.addEventListener("scroll",()=>realign(true),{passive:true});
 if(typeof ResizeObserver!=="undefined"){
  const ro=new ResizeObserver(()=>realign());
@@ -210,6 +213,6 @@ window.LWCWalkingTeacher={
   },
   scene:receiveScene,
   reset(){stop();visible=false;overlay.hidden=true;init=false;overlay.classList.remove("lwc-visible");},
-  debug(){return {enabled,visible,speaking,paused,currentZone,line,gesture,x:px,y:py,viewport:viewBounds(),target:geometry(),fullscreen:!!document.fullscreenElement||root.classList.contains("fullscreen"),expanded:!!document.querySelector(".codeExpanded,.ioExpanded")};}
+  debug(){return {enabled,visible,speaking,paused,currentZone,stageZone,line,gesture,x:px,y:py,viewport:viewBounds(),target:geometry(),fullscreen:!!document.fullscreenElement||root.classList.contains("fullscreen"),expanded:!!document.querySelector(".codeExpanded,.ioExpanded")};}
 };
 })();
