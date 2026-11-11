@@ -147,9 +147,15 @@ function scanCode(msPerLine=2000,onProgress){
  const secondsPerLine=Math.max(1,Number(msPerLine)||2000);
  const duration=codeLines.length*secondsPerLine;
  const started=performance.now();
- let currentIndex=-1;
+ let currentIndex=0;
  setStatus("Line-by-line walkthrough");
  foot.textContent="Each Python code line is highlighted for two seconds before the next line.";
+ // Highlight the first line immediately: every line, including the first,
+ // receives the full two-second hold before execution advances.
+ showLine("code",codeLines[0].number);
+ setStatus("Code line "+codeLines[0].number+" · 1/"+codeLines.length);
+ foot.textContent="Source line "+codeLines[0].number+" — highlighted for "+(secondsPerLine/1000)+" seconds.";
+ if(typeof onProgress==="function")onProgress(1,codeLines.length,codeLines[0].number);
  return new Promise(resolve=>{
    function tick(now){
      if(!active||token!==scanToken){resolve(false);return;}
