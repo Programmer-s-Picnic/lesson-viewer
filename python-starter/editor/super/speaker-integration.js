@@ -16,6 +16,10 @@
   const SPEAKER_URL = SPEAKER_ORIGIN + "/tools/cartoon-speaker/?embed=1&roaming=1";
   let frameReady = false;
   let pending = null;
+  function syncDisplay(){
+    if(!frameReady || !frame.contentWindow)return;
+    frame.contentWindow.postMessage({type:"lwc-speaker:display",version:2,roaming:$("ppWalkOnPage")?.checked===true},SPEAKER_ORIGIN);
+  }
   const walkOnPage = $("ppWalkOnPage");
   const walker = window.LWCWalkingTeacher;
   let lastTargetedPanel = null;
@@ -37,6 +41,7 @@
   });
   if(walkOnPage)walkOnPage.addEventListener("change",()=>{
     walker?.enable(walkOnPage.checked);
+    syncDisplay();
     try{localStorage.setItem("lwc_editor_roaming_v1",walkOnPage.checked?"1":"0")}catch(_){}
   });
   if(walkOnPage){try{
@@ -69,6 +74,7 @@
   }
   frame.addEventListener("load", () => {
     frameReady = true;
+    syncDisplay();
     if (pending && frame.contentWindow) {
       frame.contentWindow.postMessage(pending, SPEAKER_ORIGIN);
       pending = null;
@@ -111,6 +117,23 @@
                "इस लाइन में Python का यह स्टेटमेंट है: " + line);
   }
 
+  function demoWalkAndTalk(){
+    const lang=language.value,hindi=inHindi();
+    const lines=[
+      cue("happy","welcome",lang,hindi?"नमस्ते! मैं आपके Python editor पर आ गया हूँ।":"Hello! I am walking right on your Python editor."),
+      cue("explaining","point-left",lang,hindi?"यहाँ आप Python कोड लिखते हैं।":"Here is where you write your Python code."),
+      cue("explaining","point-right",lang,hindi?"अब मैं output panel की ओर जा रहा हूँ।":"Now I am walking across to the output panel."),
+      cue("concerned","think",lang,hindi?"इस जगह पर error messages दिखाई देते हैं।":"Any Python errors appear in this panel."),
+      cue("encouraging","celebrate",lang,hindi?"बहुत बढ़िया! अब मैं फिर से कोड समझाने के लिए तैयार हूँ।":"Excellent! Now I am ready to teach you more Python.")
+    ];
+    queueNarration(lines,"Walking teacher demo prepared","code",[
+      {mode:"code",zone:"center",lookAt:"audience"},
+      {mode:"code",zone:"left",lookAt:"code",sourceLine:1},
+      {mode:"output",zone:"right",lookAt:"output"},
+      {mode:"error",zone:"right",lookAt:"error"},
+      {mode:"code",zone:"center",lookAt:"audience"}
+    ]);
+  }
   function explainCode() {
     const code = $("ppCode");
     if (!code) return;
@@ -135,6 +158,23 @@
       lines.push(cue("thinking","think",lang,hindi?"अभी पहली पैंतीस सक्रिय लाइनों को समझाया गया है।":"This walkthrough covers the first thirty five nonempty lines."));
       scenes.push({mode:"code",zone:"center",lookAt:"audience"});
     }
+    // A full walkthrough visits the visible output and error panels too.
+    const shownOut=$("ppOut")?.textContent?.trim()||"";
+    if(shownOut && !["Output will appear here.","(no stdout)","Running…"].includes(shownOut)){
+      lines.push(cue("explaining","point-right",lang,hindi?"अब हम output panel में दिख रहे परिणाम देखेंगे।":"Let us visit the output panel and examine its currently displayed results."));
+      scenes.push({mode:"output",zone:"right",lookAt:"output"});
+      shownOut.split(/\r?\n/).filter(Boolean).slice(0,3).forEach((value,i)=>{
+        lines.push(cue("explaining","point-right",lang,(hindi?`आउटपुट लाइन ${i+1}: `:`Output line ${i+1}: `)+safeLine(value)));
+        scenes.push({mode:"output",zone:"right",lookAt:"output"});
+      });
+    }
+    const shownError=$("ppErr")?.textContent?.trim()||"";
+    if(shownError && shownError!=="Errors will appear here."){
+      lines.push(cue("concerned","think",lang,hindi?"अब error panel की जाँच करते हैं।":"Now let us inspect the error panel."));
+      scenes.push({mode:"error",zone:"right",lookAt:"error"});
+    }
+    lines.push(cue("encouraging","welcome",lang,hindi?"अब आप अपना Python प्रोग्राम आगे बढ़ा सकते हैं।":"You can now continue developing your Python program."));
+    scenes.push({mode:"code",zone:"center",lookAt:"audience"});
     queueNarration(lines,selected?"Selected code explained":"Code walkthrough prepared","code",scenes);
   }
 
@@ -197,7 +237,8 @@
   toggle.addEventListener("click", () => panel.hidden ? showPanel() : hidePanel());
   if (close) close.addEventListener("click", hidePanel);
   actions.forEach(button => button.addEventListener("click", () => {
-    if (button.dataset.speakerAction === "code") explainCode();
+    if (button.dataset.speakerAction === "walk-demo") demoWalkAndTalk();
+    else if (button.dataset.speakerAction === "code") explainCode();
     else if (button.dataset.speakerAction === "output") readOutput();
     else if (button.dataset.speakerAction === "error") explainError();
   }));
