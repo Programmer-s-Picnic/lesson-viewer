@@ -577,7 +577,9 @@ function makeWorker(){
       renderFiles(msg.files || []);
       window.dispatchEvent(new CustomEvent("lwc-python:run-finished",{detail:{
         ok:Boolean(r.ok),stdout:String(r.stdout||""),
-        stderr:String(r.stderr||"")+String(r.error||"")
+        stderr:String(r.stderr||"")+String(r.error||""),
+        visuals:Array.isArray(r.visuals)?r.visuals:[],
+        code:ui.code.value
       }}));
       return;
     }
