@@ -173,6 +173,8 @@
       chars+=item.script.length+1;
     }
     if(!lines.length){hint.textContent="The comments are too long to narrate in one session.";return false;}
+    if(walkOnPage?.checked&&dialogues[0]?.scene?.mode==="code")
+      walker?.revealLine?.(dialogues[0].sourceLine);
     queueNarration(lines,"Speaking "+lines.length+" Python comment"+(lines.length===1?"":"s")+" in source order","code",scenes);
     return true;
   }
@@ -188,6 +190,7 @@
     const rows = source.split(/\r?\n/).map((line, index) => ({line: line.trim(), number: firstLine + index}))
       .filter(item => item.line.length);
     if (!rows.length) { hint.textContent = "Write some Python code first."; return; }
+    if(walkOnPage?.checked)walker?.revealLine?.(rows[0].number);
     const hindi = inHindi(), lang = language.value;
     const lines = [
       cue("happy", "welcome", lang, hindi ? "आइए इस Python प्रोग्राम को समझते हैं।" : "Let us walk through this Python program.")
