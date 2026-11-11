@@ -23,6 +23,9 @@ const targets={
  run:document.getElementById("ppRun")
 };
 const editor=document.getElementById("ppCode");
+const presentation=window.LWCTeachingPresentation;
+const presenting=()=>presentation?.isActive?.()===true;
+const targetFor=zone=>presenting()&&zone!=="run"?presentation.currentTarget():(targets[zone]||targets.code);
 const caption=overlay.querySelector("#lwcRoamingCaption");
 const wrapper=document.querySelector(".editorWrap");
 const focusLine=document.createElement("div");
@@ -55,7 +58,7 @@ function scrollToTarget(el){
  }
 }
 function seekLine(){
- if(!editor||!line||currentZone!=="code"||scannerActive)return;
+ if(presenting()||!editor||!line||currentZone!=="code"||scannerActive)return;
  const st=getComputedStyle(editor),h=parseFloat(st.lineHeight)||parseFloat(st.fontSize||"16")*1.5;
  const pad=parseFloat(st.paddingTop)||14;
  const y=pad+(line-1)*h;
@@ -66,7 +69,7 @@ function seekLine(){
  }
 }
 function revealLineOnScreen(){
- if(!editor||!line||currentZone!=="code"||scannerActive)return;
+ if(presenting()||!editor||!line||currentZone!=="code"||scannerActive)return;
  const st=getComputedStyle(editor);
  const h=parseFloat(st.lineHeight)||parseFloat(st.fontSize||"16")*1.5;
  const lineY=editor.getBoundingClientRect().top+(parseFloat(st.paddingTop)||14)
@@ -95,6 +98,7 @@ function clearResultSelection(){
  selectedResultElement=null;
 }
 function selectResultLine(mode,selectedLine){
+ if(presenting()){clearResultSelection();return true;}
  if(!["output","error"].includes(mode)||!Number.isInteger(selectedLine)||selectedLine<1){
    clearResultSelection();return false;
  }
@@ -147,11 +151,11 @@ function selectResultLine(mode,selectedLine){
  return true;
 }
 function seekResultLine(){
- if(resultLine<1||!["output","error"].includes(currentZone))return;
+ if(presenting()||resultLine<1||!["output","error"].includes(currentZone))return;
  selectResultLine(currentZone,resultLine);
 }
 function geometry(){
- const vp=viewBounds(),el=targets[currentZone]||targets.code;
+ const vp=viewBounds(),el=targetFor(currentZone);
  overlay.classList.toggle("lwc-compact",vp.height<460||vp.width<350);
  const w=overlay.offsetWidth||138,h=overlay.offsetHeight||260;
  const m=vp.width<720?6:12;
@@ -215,19 +219,19 @@ function note(text){caption.textContent=String(text||"").slice(0,155);}
 
 function updateLocation(data={}){
  const zone=["output","error","run"].includes(data.mode)?data.mode:"code";
- const target=targets[zone]||targets.code;currentZone=zone;
+ const target=targetFor(zone);currentZone=zone;
  stageZone=["left","center","right"].includes(data.zone)?data.zone:(zone==="code"?"left":"right");
  lookAt=data.lookAt||zone;
  line=Number.isInteger(data.sourceLine)&&data.sourceLine>0?data.sourceLine:0;
  resultLine=Number.isInteger(data.resultLine)&&data.resultLine>0?data.resultLine:0;
  gesture=data.gesture||"explain";emotion=data.emotion||"explaining";
  if(!visible){visible=true;overlay.hidden=false;overlay.classList.add("lwc-visible");}
- resolveExpanded(zone);
+ if(!presenting())resolveExpanded(zone);
  // Always reveal the relevant panel, even when successive dialogue lines stay
  // in the same panel but the reader has scrolled somewhere else.
  lastTarget=target;
  requestAnimationFrame(()=>{
-   scrollToTarget(target);
+   if(!presenting())scrollToTarget(target);
    if(line&&zone==="code"){seekLine();revealLineOnScreen();highlightLine();}
    if(resultLine&&["output","error"].includes(zone))seekResultLine();
  });
@@ -250,7 +254,7 @@ function stop(){
 function receiveScene(data){
  if(!data)return;
  // Text highlighting and scrolling work in both walking and stationary modes.
- if(data.kind==="line")selectResultLine(data.mode,data.resultLine);
+ if(data.kind==="line"&&!presenting())selectResultLine(data.mode,data.resultLine);
  if(["finish","error"].includes(data.kind) ||
     data.kind==="state"&&["stopped","error"].includes(data.state))
    clearResultSelection();
@@ -407,6 +411,14 @@ async function scanCode(onProgress){
 }
 window.LWCWalkingTeacher={
   walkToRun,scanCode,
+  stage(stageName,caption){
+    updateLocation({mode:stageName==="error"?"error":stageName==="output"?"output":"code",
+      zone:stageName==="code"?"left":"right",
+      lookAt:stageName==="code"?"code":stageName==="output"?"output":"error",
+      gesture:stageName==="code"?"point-left":"point-right",caption:caption||""});
+    speaking=false;paused=false;
+    overlay.classList.remove("lwc-speaking");
+  },
   revealLine(sourceLine){
     if(!Number.isInteger(sourceLine)||sourceLine<1||!editor)return;
     line=sourceLine;
