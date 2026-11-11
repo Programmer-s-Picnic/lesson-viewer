@@ -194,7 +194,7 @@ if(typeof ResizeObserver!=="undefined"){
  [root,targets.code,targets.output,targets.error,wrapper].filter(Boolean).forEach(el=>ro.observe(el));
 }
 if(typeof MutationObserver!=="undefined"){
- const observer=new MutationObserver(()=>realign(true,true));
+ const observer=new MutationObserver(()=>realign(false,true));
  [root,document.body,targets.code,targets.output,targets.error].filter(Boolean)
    .forEach(el=>observer.observe(el,{attributes:true,attributeFilter:["class"]}));
 }
