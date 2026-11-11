@@ -299,8 +299,8 @@ async function walkToRun(){
    requestAnimationFrame(next);
  });
 }
-async function scanCode(){
- if(!editor)return;
+async function scanCode(onProgress){
+ if(!editor)return false;
  // Interrupt the previous scan, without changing program contents or selections.
  const scanId=++scanCancel;scannerActive=true;
  updateLocation({mode:"code",zone:"left",lookAt:"code",gesture:"point-left",
@@ -313,15 +313,25 @@ async function scanCode(){
  const rowHeight=parseFloat(style.lineHeight)||parseFloat(style.fontSize||"16")*1.5;
  const topPad=parseFloat(style.paddingTop)||14;
  const total=Math.max(0,editor.scrollHeight-editor.clientHeight);
- const duration=reducedMotion.matches?0:Math.max(520,Math.min(1500,rows*28));
+ // Exactly fifteen seconds of source-code scanning, independent of code length.
+ const duration=15000;
  const stamp=performance.now();
+ let lastRemaining=16;
+ const report=remaining=>{
+   if(remaining===lastRemaining)return;
+   lastRemaining=remaining;
+   if(typeof onProgress==="function")onProgress(remaining,15);
+ };
  await new Promise(resolve=>{
    function advance(now){
      if(scanId!==scanCancel||!enabled){resolve();return;}
-     const t=duration?Math.min(1,(now-stamp)/duration):1;
+     const t=Math.min(1,(now-stamp)/duration);
      const eased=t*t*(3-2*t);
-     editor.scrollTop=total*eased;
-     // Visually select/highlight a line as the viewport scans through the file.
+     report(Math.max(0,Math.ceil((duration-(now-stamp))/1000)));
+     // Honour reduced-motion preferences while retaining the 15-second duration.
+     if(!reducedMotion.matches)editor.scrollTop=total*eased;
+     else if(t>=1)editor.scrollTop=total;
+     // Sweep the selected line even when all code fits without scrolling.
      line=Math.max(1,Math.min(rows,total>4?
        Math.ceil((total*eased+editor.clientHeight*.32-topPad)/rowHeight):
        Math.ceil(1+eased*(rows-1))));
@@ -333,6 +343,7 @@ async function scanCode(){
  });
  scannerActive=false;
  line=0;highlightLine();
+ return scanId===scanCancel && enabled;
 }
 window.LWCWalkingTeacher={
   walkToRun,scanCode,
