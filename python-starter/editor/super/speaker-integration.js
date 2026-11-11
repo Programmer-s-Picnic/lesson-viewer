@@ -403,16 +403,39 @@
         await walker?.walkToRun?.();
       }else run.scrollIntoView({behavior:"auto",block:"nearest"});
       if(id!==runToken)return;
-      stateLabel.textContent="Scanning code";stateLabel.dataset.status="running";
-      hint.textContent="Rapidly scrolling through the Python program…";
-      if(walkOnPage?.checked){
-        await walker?.scanCode?.();
-      }else{
-        const code=$("ppCode");
-        if(code){
-          code.scrollIntoView({behavior:"auto",block:"nearest"});
-          code.scrollTop=Math.max(0,code.scrollHeight-code.clientHeight);
+      stateLabel.textContent="Scan 15s";stateLabel.dataset.status="running";
+      hint.textContent="Scanning every part of the Python program for 15 seconds…";
+      const showRemaining=remaining=>{
+        if(id!==runToken)return;
+        stateLabel.textContent="Scan "+remaining+"s";
+        hint.textContent="Scanning Python code — "+remaining+" seconds remaining.";
+      };
+      if(walkOnPage?.checked&&walker?.scanCode){
+        const complete=await walker.scanCode(showRemaining);
+        if(!complete){
+          stateLabel.textContent="Scan stopped";stateLabel.dataset.status="paused";
+          hint.textContent="The code scan was interrupted; Python was not run.";
+          return;
         }
+      }else{
+        // Walking can be disabled without shortening the required scan duration.
+        const code=$("ppCode");
+        code?.scrollIntoView({behavior:"auto",block:"nearest"});
+        if(code)code.scrollTop=0;
+        const started=performance.now();
+        let previous=16;
+        await new Promise(resolve=>{
+          function step(now){
+            const t=Math.min(1,(now-started)/15000);
+            const eased=t*t*(3-2*t);
+            if(code)code.scrollTop=Math.max(0,code.scrollHeight-code.clientHeight)*eased;
+            const remaining=Math.max(0,Math.ceil((15000-(now-started))/1000));
+            if(remaining!==previous){previous=remaining;showRemaining(remaining);}
+            if(t<1&&id===runToken)requestAnimationFrame(step);
+            else resolve();
+          }
+          requestAnimationFrame(step);
+        });
       }
       if(id!==runToken)return;
       quickRunActive=true;
