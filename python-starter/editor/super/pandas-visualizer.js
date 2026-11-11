@@ -58,6 +58,7 @@ const palette=["#3183c7","#2cab97","#e6a74f","#8966ca","#d46584","#7eb5dd","#537
 let frames=[],selected=0,sourceCode="",previousFocus=null;
 let tourToken=0,tourActive=false,currentUtterance=null,currentTarget=null,moveTimer=null;
 let focusedElement=null,activeVoice=null;
+let mouthTimer=null;
 const compact=(n)=>Number(n).toLocaleString("en-IN");
 const text=(element,value)=>{element.textContent=value==null?"":String(value);return element};
 const make=(tag,cls,value)=>{
@@ -199,10 +200,33 @@ function closeButtonState(){
  tourButton.disabled=tourActive;
  stopButton.disabled=!tourActive;
 }
+// Change the ellipse radii while preserving its original SVG center (301, 197).
+// This avoids transform-origin differences between browsers that made the mouth jump.
+function stopMouth(){
+ if(mouthTimer!==null){clearInterval(mouthTimer);mouthTimer=null;}
+ const ellipse=portrait?.querySelector("#lwcViz-mouth-open");
+ if(ellipse){ellipse.setAttribute("rx","13");ellipse.setAttribute("ry","11");}
+}
+function startMouth(){
+ stopMouth();
+ const ellipse=portrait?.querySelector("#lwcViz-mouth-open");
+ if(!ellipse)return;
+ const shapes=[[10,7],[13,12],[12,9],[15,13],[11,8]];
+ let index=0;
+ const update=()=>{
+   if(!tourActive||!presenter?.classList.contains("is-speaking"))return;
+   const [rx,ry]=shapes[index++%shapes.length];
+   ellipse.setAttribute("rx",String(rx));
+   ellipse.setAttribute("ry",String(ry));
+ };
+ update();
+ mouthTimer=setInterval(update,135);
+}
 function stopTour(silent=false){
  ++tourToken;
  const wasTour=tourActive;
  tourActive=false;
+ stopMouth();
  if(moveTimer!==null){clearTimeout(moveTimer);moveTimer=null;}
  if(currentUtterance && window.speechSynthesis){
    try{window.speechSynthesis.cancel()}catch(_e){}
@@ -283,6 +307,7 @@ function startTour({startWith,autoplay=false}={}){
    if(token!==tourToken||host.hidden)return;
    if(index>=steps.length){
      tourActive=false;currentUtterance=null;
+     stopMouth();
      presenter.classList.remove("is-speaking","is-pointing");
      closeButtonState();
      guideText("That completes our visual tour. Select a chart or replay Tour & Talk.");
@@ -305,11 +330,12 @@ function startTour({startWith,autoplay=false}={}){
      done=true;
      clearTimeout(watchdog);
      presenter.classList.remove("is-speaking");
+     stopMouth();
      if(token===tourToken)setTimeout(()=>next(index+1),320);
    }
    utterance.onstart=()=>{
      hasStarted=true;
-     if(token===tourToken)presenter.classList.add("is-speaking");
+     if(token===tourToken){presenter.classList.add("is-speaking");startMouth();}
    };
    utterance.onend=advance;
    utterance.onerror=()=>{
