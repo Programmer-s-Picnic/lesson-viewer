@@ -86,7 +86,7 @@
     const say = (en, hi) => hindi ? hi : en;
     let match;
     if ((match = line.match(/^#\s*(.*)$/)))
-      return say("This is a comment: " + match[1], "यह एक टिप्पणी है: " + match[1]);
+      return match[1].trim();
     if ((match = line.match(/^from\s+([\w.]+)\s+import\s+(.+)/)))
       return say(`It imports ${match[2]} from the ${match[1]} module.`, `यह ${match[1]} मॉड्यूल से ${match[2]} इम्पोर्ट करता है।`);
     if ((match = line.match(/^import\s+(.+)/)))
@@ -175,7 +175,7 @@
     ];
     const scenes=[{mode:"code",zone:"center",lookAt:"audience"}];
     rows.slice(0, 35).forEach((item, idx) => {
-      const prefix = hindi ? `लाइन ${item.number}। ` : `Line ${item.number}. `;
+      const prefix = item.line.startsWith("#") ? "" : (hindi ? `लाइन ${item.number}। ` : `Line ${item.number}. `);
       const body = describeLine(item.line, hindi);
       lines.push(cue("explaining", idx % 3 === 0 ? "count" : "explain", lang, prefix + body));
       scenes.push({mode:"code",zone:"left",lookAt:"code",sourceLine:item.number});
