@@ -63,12 +63,16 @@ function geometry(){
  const vp=viewBounds(),el=targets[currentZone]||targets.code;
  overlay.classList.toggle("lwc-compact",vp.height<460||vp.width<350);
  const w=overlay.offsetWidth||138,h=overlay.offsetHeight||260;
- const m=vp.width<720?6:12,minX=vp.left+m,maxX=Math.max(minX,vp.right-w-m);
+ const m=vp.width<720?6:12;
+ // The speech bubble may be wider than the character: reserve its overhang.
+ const bubbleWidth=overlay.classList.contains("lwc-compact")?115:vp.width<=720?132:190;
+ const overhang=Math.max(0,(bubbleWidth-w)/2);
+ const minX=vp.left+m+overhang,maxX=Math.max(minX,vp.right-w-m-overhang);
  const minY=vp.top+m,maxY=Math.max(minY,vp.bottom-h-m);
  if(!el)return {x:minX,y:minY,onScreen:false};
  const r=el.getBoundingClientRect();
  const t=Math.max(r.top,vp.top+m),b=Math.min(r.bottom,vp.bottom-m);
- const onScreen=b>t+24&&r.right>vp.left+24&&r.left<vp.right-24;
+ const onScreen=vp.height>=h+2*m&&b>t+24&&r.right>vp.left+24&&r.left<vp.right-24;
  const expanded=el.classList.contains("codeExpanded")||el.classList.contains("ioExpanded");
  const x=stageZone==="center" ? vp.left+(vp.width-w)/2 :
    vp.width<=720||expanded||r.width>vp.width*.82?
