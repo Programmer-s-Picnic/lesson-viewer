@@ -132,34 +132,45 @@ function close(){
 function setStatus(value){
  status.textContent=String(value).slice(0,100);
 }
-function scanCode(duration=15000,onProgress){
+function scanCode(msPerLine=2000,onProgress){
  if(!active)return Promise.resolve(false);
  source.code=codeEditor.value;
  showStage("code",{reset:true});
  const token=++scanToken;
  ++rollToken;
- const runTime=Math.max(0,Number(duration)||0);
+ // Include spoken comments and instructions; skip empty spacer lines while
+ // keeping original source line numbers intact for selection and scrolling.
+ const codeLines=source.code.split(/\r?\n/)
+   .map((value,index)=>({value,number:index+1}))
+   .filter(item=>item.value.trim().length>0);
+ if(!codeLines.length)codeLines.push({value:"",number:1});
+ const secondsPerLine=Math.max(1,Number(msPerLine)||2000);
+ const duration=codeLines.length*secondsPerLine;
  const started=performance.now();
- setStatus("Scanning program · "+Math.ceil(runTime/1000)+"s");
- foot.textContent="All Python code is scrolling across the page before execution.";
- let lastRemaining=-1;
+ let currentIndex=-1;
+ setStatus("Line-by-line walkthrough");
+ foot.textContent="Each Python code line is highlighted for two seconds before the next line.";
  return new Promise(resolve=>{
    function tick(now){
      if(!active||token!==scanToken){resolve(false);return;}
-     const t=runTime?Math.min(1,Math.max(0,(now-started)/runTime)):1;
-     const ease=t*t*(3-2*t);
-     // Spacer rows make even a two-line program visibly cross the whole stage.
-     const bottom=Math.max(0,viewport.scrollHeight-viewport.clientHeight);
-     viewport.scrollTop=reduced.matches? (t===1?bottom:0) : bottom*ease;
-     const remaining=Math.max(0,Math.ceil((runTime-(now-started))/1000));
-     if(remaining!==lastRemaining){
-       lastRemaining=remaining;
-       setStatus("Scanning program · "+remaining+"s");
-       if(typeof onProgress==="function")onProgress(remaining,Math.ceil(runTime/1000));
+     const elapsed=Math.max(0,now-started);
+     const index=Math.min(codeLines.length-1,Math.floor(elapsed/secondsPerLine));
+     if(index!==currentIndex){
+       currentIndex=index;
+       const item=codeLines[index];
+       showLine("code",item.number);
+       setStatus("Code line "+item.number+" · "+(index+1)+"/"+codeLines.length);
+       foot.textContent="Source line "+item.number+" — highlighted for "+(secondsPerLine/1000)+" seconds.";
+       if(typeof onProgress==="function")
+         onProgress(index+1,codeLines.length,item.number);
      }
-     setProgress(t*100);
-     if(t>=1){setStatus("Scan complete");resolve(true);}
-     else raf(tick);
+     // Progress reflects elapsed hold time, including the last two-second hold.
+     setProgress(Math.min(100,elapsed/duration*100));
+     if(elapsed>=duration){
+       setProgress(100);
+       setStatus("Code walkthrough complete");
+       resolve(true);
+     }else raf(tick);
    }
    raf(tick);
  });
