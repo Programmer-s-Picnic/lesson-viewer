@@ -333,7 +333,15 @@
       const match=[...stderr.matchAll(/\b([A-Za-z]+(?:Error|Exception))\b/g)].pop();
       const name=match?.[1]||"Python error";
       const lineMatch=[...stderr.matchAll(/File [^\n]*?, line (\d+)/g)].pop();
-      const sourceLine=lineMatch?Number(lineMatch[1]):null;
+      const candidate=lineMatch?Number(lineMatch[1]):null;
+      const codeRows=($("ppCode")?.value||"").split(/\r?\n/).length;
+      const sourceLine=candidate&&candidate<=codeRows?candidate:null;
+      if(sourceLine){
+        push("thinking","point-left",
+          (hindi?"प्रोग्राम की लाइन ":"Let us check source line ")+sourceLine+
+            (hindi?" पर लौटकर देखते हैं।":"."),
+          "code","left","code",sourceLine);
+      }
       push("concerned","think",
         (hindi?"अब एरर पैनल देखते हैं। ":"Now let us inspect the error panel. ")+name+".",
         "error","right","error",sourceLine);
