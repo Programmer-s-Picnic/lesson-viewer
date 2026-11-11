@@ -571,6 +571,9 @@
     updateViewport();
   }
   actions.forEach(button => button.addEventListener("click", () => {
+    // Switching back to code/output/error must stop the visual tour's voice.
+    if(button.dataset.speakerAction!=="visualize"&&visualizer?.isOpen?.())
+      visualizer.close();
     if (button.dataset.speakerAction === "comments") speakProgramComments(true);
     else if (button.dataset.speakerAction === "walk-demo") demoWalkAndTalk();
     else if (button.dataset.speakerAction === "code") explainCode();
