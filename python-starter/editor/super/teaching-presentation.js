@@ -29,7 +29,9 @@ overlay.innerHTML=
     '<footer class="lwc-presentation-foot"><span id="lwcPresentationFoot">The complete content is shown here. Scroll or use the teacher controls.</span>'+
        '<span id="lwcPresentationCount"></span></footer>'+
   '</div>';
-document.body.appendChild(overlay);
+// Keep the presentation in the same stacking context as the floating teacher
+// and toolbar, including the editor's own fixed-position fullscreen mode.
+(document.getElementById("appShell")||document.body).appendChild(overlay);
 const title=overlay.querySelector("#lwcPresentationTitle");
 const status=overlay.querySelector("#lwcPresentationStatus");
 const viewport=overlay.querySelector("#lwcPresentationViewport");
