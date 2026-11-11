@@ -15,7 +15,9 @@ host.innerHTML=
  '<div class="lwc-viz-header"><div class="lwc-viz-brand"><span aria-hidden="true">📊</span><div>'+
  '<span class="lwc-viz-eyebrow">A PROGRAMMER’S PICNIC · RUNTIME VISUALIZATION</span>'+
  '<h2 id="lwcVizTitle">Pandas Data Explorer</h2></div></div>'+
- '<button type="button" id="lwcVizClose" aria-label="Close visualization">✕ Close</button></div>'+
+ '<div class="lwc-viz-header-controls"><button type="button" id="lwcVizTour" title="Walk through charts with spoken explanations">▶ Tour &amp; Talk</button>'+
+ '<button type="button" id="lwcVizStop" title="Stop spoken tour">■ Stop</button>'+
+ '<button type="button" id="lwcVizClose" aria-label="Close visualization">✕ Close</button></div></div>'+
  '<aside class="lwc-viz-presenter" id="lwcVizPresenter" aria-label="Champuter teaching guide">'+
    '<div class="lwc-viz-portrait" id="lwcVizPortrait" aria-hidden="true"></div>'+
    '<div class="lwc-viz-voice"><strong>Champuter</strong><p id="lwcVizGuide" aria-live="polite">Welcome! Let’s visualize your Python data.</p></div>'+
@@ -26,7 +28,8 @@ host.innerHTML=
 app.appendChild(host);
 const $=id=>host.querySelector("#"+id);
 const tabs=$("lwcVizTabs"),content=$("lwcVizScroll"),closer=$("lwcVizClose");
-const portrait=$("lwcVizPortrait"),guide=$("lwcVizGuide");
+const portrait=$("lwcVizPortrait"),guide=$("lwcVizGuide"),presenter=$("lwcVizPresenter");
+const tourButton=$("lwcVizTour"),stopButton=$("lwcVizStop");
 function guideText(value){if(guide)guide.textContent=String(value||"").slice(0,230)}
 function mountChamputer(){
  if(!portrait||portrait.firstChild)return;
@@ -53,6 +56,8 @@ function mountChamputer(){
 
 const palette=["#3183c7","#2cab97","#e6a74f","#8966ca","#d46584","#7eb5dd","#537b97","#b08c59"];
 let frames=[],selected=0,sourceCode="",previousFocus=null;
+let tourToken=0,tourActive=false,currentUtterance=null,currentTarget=null,moveTimer=null;
+let focusedElement=null,activeVoice=null;
 const compact=(n)=>Number(n).toLocaleString("en-IN");
 const text=(element,value)=>{element.textContent=value==null?"":String(value);return element};
 const make=(tag,cls,value)=>{
@@ -145,6 +150,178 @@ function tableFor(frame){
  table.append(body);wrap.append(table);
  return wrap;
 }
+
+function describeChart(chart,frame){
+ const title=String(chart.title||"this chart");
+ const type=String(chart.kind||"chart");
+ const count=Math.min(Array.isArray(chart.y)?chart.y.length:0,60);
+ if(type==="bar")return "Here is "+title+". Each bar shows how often a category appears in the sampled data.";
+ if(type==="histogram")return "Let's inspect "+title+". These bars show the distribution of sampled numeric values.";
+ if(type==="line")return "Here is "+title+". The line connects values across the sampled row positions.";
+ if(type==="scatter")return "Look at "+title+". Each point compares two numeric values from the same sampled row.";
+ return "Let's examine "+title+". This visualization is based on sampled values from "+(frame.name||"the DataFrame")+".";
+}
+function buildTour(){
+ const steps=[];
+ frames.slice(0,4).forEach((frame,index)=>{
+   const name=String(frame.name||"DataFrame "+(index+1));
+   const cols=Array.isArray(frame.columns)?frame.columns:[];
+   const missing=cols.reduce((total,col)=>total+(Number(col.missing)||0),0);
+   steps.push({frameIndex:index,target:"intro",kind:"overview",text:
+     "Now let's look at "+name+". It contains "+(frame.rows||0)+" rows and "+(frame.cols||0)+" columns."});
+   steps.push({frameIndex:index,target:"preview",kind:"table",text:
+     "Here is the DataFrame preview. We can examine a sample of its rows and columns."});
+   steps.push({frameIndex:index,target:"statistics",kind:"statistics",text:
+     "Here are the column types and numeric summaries. The displayed columns have "+missing+
+     " missing values in total."});
+   (frame.charts||[]).slice(0,4).forEach((chart,chartIndex)=>{
+     steps.push({frameIndex:index,target:"chart-"+chartIndex,kind:"chart",
+       text:describeChart(chart,frame)});
+   });
+ });
+ if(!steps.length)steps.push({frameIndex:0,target:"intro",kind:"empty",
+   text:"There are no Pandas DataFrames available yet. Create a DataFrame and run Visualize again."});
+ return steps;
+}
+function closeButtonState(){
+ tourButton.disabled=tourActive;
+ stopButton.disabled=!tourActive;
+}
+function stopTour(silent=false){
+ ++tourToken;
+ const wasTour=tourActive;
+ tourActive=false;
+ if(moveTimer!==null){clearTimeout(moveTimer);moveTimer=null;}
+ if(currentUtterance && window.speechSynthesis){
+   try{window.speechSynthesis.cancel()}catch(_e){}
+ }
+ currentUtterance=null;
+ presenter?.classList.remove("is-walking","is-speaking","is-pointing");
+ focusedElement?.classList.remove("lwc-viz-highlight");
+ focusedElement=null;
+ closeButtonState();
+ if(!silent&&wasTour)guideText("Tour stopped. Press Tour & Talk to start again.");
+}
+function movePresenterTo(target){
+ if(!target||!presenter||host.hidden)return;
+ const shell=host.querySelector(".lwc-viz-shell");
+ if(!shell)return;
+ const shellRect=shell.getBoundingClientRect();
+ const paneRect=content.getBoundingClientRect();
+ const rect=target.getBoundingClientRect();
+ const sizeW=presenter.offsetWidth||156,sizeH=presenter.offsetHeight||210;
+ const minX=Math.max(3,paneRect.left-shellRect.left+3);
+ const maxX=Math.max(minX,paneRect.right-shellRect.left-sizeW-6);
+ const minY=Math.max(3,paneRect.top-shellRect.top+4);
+ const maxY=Math.max(minY,paneRect.bottom-shellRect.top-sizeH-5);
+ const mobile=paneRect.width<680;
+ let posX=mobile?rect.right-shellRect.left-sizeW*.87:rect.right-shellRect.left+10;
+ // Vary the travel lane with the selected chart to show purposeful sideways movement.
+ if(!mobile && target.dataset.vizFocus?.startsWith("chart-") &&
+    Number(target.dataset.vizFocus.slice(6))%2===1)posX=rect.left-shellRect.left-sizeW*.20;
+ posX=Math.max(minX,Math.min(maxX,posX));
+ const posY=Math.max(minY,Math.min(maxY,
+   rect.top-shellRect.top+Math.min(rect.height*.50,70)-sizeH*.40));
+ presenter.classList.add("is-walking","is-pointing");
+ presenter.style.transform="translate3d("+posX.toFixed(1)+"px,"+posY.toFixed(1)+"px,0)";
+ if(moveTimer!==null)clearTimeout(moveTimer);
+ moveTimer=setTimeout(()=>{presenter.classList.remove("is-walking");moveTimer=null;},1100);
+}
+function focusStep(step,scroll=true){
+ if(host.hidden||!step)return false;
+ const frameIndex=Math.max(0,Math.min(frames.length-1,Number(step.frameIndex)||0));
+ if(frames.length&&selected!==frameIndex){selected=frameIndex;render();}
+ const targetName=/^(intro|preview|statistics|chart-[0-3])$/.test(step.target||"")?step.target:"intro";
+ const target=Array.from(content.querySelectorAll("[data-viz-focus]"))
+   .find(el=>el.dataset.vizFocus===targetName);
+ if(!target){
+   guideText(step.text||"Let's explore the data.");
+   return false;
+ }
+ currentTarget={frame:frameIndex,target:targetName};
+ if(focusedElement!==target)focusedElement?.classList.remove("lwc-viz-highlight");
+ focusedElement=target;
+ target.classList.add("lwc-viz-highlight");
+ guideText(step.text||"Let's look at this visualization.");
+ if(scroll){
+   const pane=content.getBoundingClientRect(),r=target.getBoundingClientRect();
+   const shift=r.top+(r.height*.5)-(pane.top+pane.height*.44);
+   if(Math.abs(shift)>Math.min(60,pane.height*.15))
+     content.scrollTo({top:Math.max(0,content.scrollTop+shift),
+       behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
+ }
+ movePresenterTo(target);
+ return true;
+}
+function startTour({startWith,autoplay=false}={}){
+ if(host.hidden)return false;
+ stopTour(true);
+ const steps=startWith?[startWith]:buildTour();
+ const supported=typeof window.SpeechSynthesisUtterance==="function"&&!!window.speechSynthesis;
+ if(!supported){
+   focusStep(steps[0]);
+   guideText("Browser speech is unavailable. Champuter can still point to the highlighted data.");
+   return false;
+ }
+ tourActive=true;closeButtonState();
+ const token=++tourToken;
+ const synth=window.speechSynthesis;
+ try{synth.cancel()}catch(_e){}
+ function next(index){
+   if(token!==tourToken||host.hidden)return;
+   if(index>=steps.length){
+     tourActive=false;currentUtterance=null;
+     presenter.classList.remove("is-speaking","is-pointing");
+     closeButtonState();
+     guideText("That completes our visual tour. Select a chart or replay Tour & Talk.");
+     return;
+   }
+   const step=steps[index];
+   focusStep(step,true);
+   const utterance=new window.SpeechSynthesisUtterance(step.text);
+   const lang=document.getElementById("ppSpeakerLanguage")?.value||"en-IN";
+   utterance.lang=lang;utterance.rate=.95;utterance.pitch=1.02;utterance.volume=1;
+   const voice=synth.getVoices().find(v=>
+     v.lang.toLowerCase()===lang.toLowerCase())||
+     synth.getVoices().find(v=>v.lang.toLowerCase().startsWith(lang.slice(0,2).toLowerCase()));
+   if(voice)utterance.voice=voice;
+   currentUtterance=utterance;
+   let done=false,hasStarted=false;
+   let watchdog=null;
+   function advance(){
+     if(done)return;
+     done=true;
+     clearTimeout(watchdog);
+     presenter.classList.remove("is-speaking");
+     if(token===tourToken)setTimeout(()=>next(index+1),320);
+   }
+   utterance.onstart=()=>{
+     hasStarted=true;
+     if(token===tourToken)presenter.classList.add("is-speaking");
+   };
+   utterance.onend=advance;
+   utterance.onerror=()=>{
+     if(token!==tourToken)return;
+     stopTour(true);
+     guideText("Audio was blocked or unavailable. Tap Tour & Talk to try speaking again.");
+   };
+   // Avoid a permanently locked tour when the speech engine never starts.
+   watchdog=setTimeout(()=>{
+     if(token!==tourToken||done)return;
+     if(!hasStarted){
+       stopTour(true);
+       guideText("Speech did not start automatically. Tap Tour & Talk to retry.");
+     }else advance();
+   },Math.max(8000,step.text.length*160));
+   try{synth.speak(utterance)}catch(_e){
+     stopTour(true);
+     guideText("Speech is unavailable. Use Tour & Talk with a supported browser.");
+   }
+ }
+ next(0);
+ return true;
+}
+
 function render(){
  mountChamputer();
  tabs.replaceChildren();content.replaceChildren();
@@ -168,6 +345,7 @@ function render(){
    Number(frame.cols||0).toLocaleString("en-IN")+" columns and "+
    charts.length+" suggested charts.");
  const header=make("section","lwc-viz-intro");
+ header.dataset.vizFocus="intro";
  header.append(make("h3","","DataFrame: "+frame.name),
    make("p","","Showing the first "+Math.min(frame.rows||0,12)+" rows and up to 12 columns. Charts are generated from at most "+Math.min(frame.rows||0,1000)+" sampled rows."));
  const metrics=make("div","lwc-viz-metrics");
@@ -176,8 +354,10 @@ function render(){
    smallStat("Suggested charts",charts.length));
  header.append(metrics);content.append(header);
  const preview=make("section","lwc-viz-section");
+ preview.dataset.vizFocus="preview";
  preview.append(make("h3","","Data preview"),tableFor(frame));content.append(preview);
  const details=make("section","lwc-viz-section");
+ details.dataset.vizFocus="statistics";
  details.append(make("h3","","Column details"));
  const grid=make("div","lwc-viz-columns");
  cols.forEach(col=>{
@@ -192,19 +372,27 @@ function render(){
  const section=make("section","lwc-viz-section");
  section.append(make("h3","","Automatically generated charts"));
  const chartGrid=make("div","lwc-viz-charts");
- if(charts.length)charts.forEach(c=>{
+ if(charts.length)charts.forEach((c,index)=>{
    const card=drawChart(c);
+   card.dataset.vizFocus="chart-"+index;
    card.tabIndex=0;
-   const focusChart=()=>guideText("Look at "+(c.title||"this chart")+
-     ". This "+(c.kind||"chart")+" is based on a sample of the DataFrame.");
+   const focusChart=()=>{
+     if(tourActive)return;
+     focusStep({frameIndex:selected,target:"chart-"+index,
+       text:describeChart(c,frame),kind:"chart"},false);
+   };
    card.addEventListener("focus",focusChart);
    card.addEventListener("mouseenter",focusChart);
+   card.addEventListener("click",()=>{
+     if(!tourActive)startTour({startWith:{frameIndex:selected,target:"chart-"+index,text:describeChart(c,frame),kind:"chart"}});
+   });
    chartGrid.append(card);
  });
  else chartGrid.append(make("p","lwc-viz-help","This DataFrame has insufficient varied numeric or categorical data for automatic charts."));
  section.append(chartGrid);content.append(section);
 }
 function setData(next,code){
+ stopTour(true);
  frames=Array.isArray(next)?next.slice(0,6):[];
  if(typeof code==="string")sourceCode=code;
  selected=0;
@@ -217,15 +405,24 @@ function open(next,code){
  host.hidden=false;
  document.body.classList.add("lwc-viz-active");
  render();
+ closeButtonState();
+ requestAnimationFrame(()=>focusStep({frameIndex:selected,target:"intro",text:guide.textContent},false));
  closer.focus({preventScroll:true});
 }
 function close(){
+ stopTour(true);
  host.hidden=true;
  document.body.classList.remove("lwc-viz-active");
  previousFocus?.focus?.({preventScroll:true});
 }
 function isOpen(){return !host.hidden;}
+tourButton.addEventListener("click",()=>startTour());
+stopButton.addEventListener("click",()=>stopTour());
+content.addEventListener("scroll",()=>{if(focusedElement)movePresenterTo(focusedElement)},{passive:true});
+window.addEventListener("resize",()=>{if(focusedElement)movePresenterTo(focusedElement)},{passive:true});
 closer.addEventListener("click",close);
 window.addEventListener("keydown",event=>{if(!host.hidden&&event.key==="Escape"){event.preventDefault();close();}});
-window.LWCPandasVisualizer={open,close,setData,isOpen,getData:()=>frames,sourceCode:()=>sourceCode};
+window.LWCPandasVisualizer={open,close,setData,isOpen,startTour,stopTour,
+  focusStep,buildTour,getData:()=>frames,sourceCode:()=>sourceCode,
+  debug:()=>({open:isOpen(),tourActive,target:currentTarget,position:presenter.style.transform,guide:guide.textContent})};
 })();
