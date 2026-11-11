@@ -235,7 +235,7 @@
     const scenes=[{mode:"output",zone:"center",lookAt:"audience"}];
     parts.forEach((line,idx)=>{
       lines.push(cue("explaining","point-right",lang,(hindi?`आउटपुट लाइन ${idx+1}: `:`Output line ${idx+1}: `)+safeLine(line)));
-      scenes.push({mode:"output",zone:"right",lookAt:"output"});
+      scenes.push({mode:"output",zone:"right",lookAt:"output",resultLine:idx+1});
     });
     if(output.split(/\r?\n/).length>25){
       lines.push(cue("thinking","think",lang,hindi?"बाकी आउटपुट स्क्रीन पर देखिए।":"The remaining output is visible on screen."));
@@ -304,9 +304,9 @@
       stdout.split(/\r?\n/).filter(Boolean).slice(0,20):[];
     const errorRows=stderr.split(/\r?\n/).filter(Boolean);
     const lines=[],scenes=[];
-    const push=(emotion,gesture,text,mode,zone,lookAt,sourceLine=null)=>{
+    const push=(emotion,gesture,text,mode,zone,lookAt,sourceLine=null,resultLine=null)=>{
       lines.push(cue(emotion,gesture,lang,text));
-      scenes.push({mode,zone,lookAt,sourceLine});
+      scenes.push({mode,zone,lookAt,sourceLine,resultLine});
     };
     push("explaining","point-right",
       hindi?"अब प्रोग्राम का आउटपुट देखते हैं।":"The program has finished. Let us look at the output.",
@@ -315,7 +315,7 @@
       outRows.forEach((row,i)=>{
         push("explaining","point-right",
           (hindi?"आउटपुट "+(i+1)+": ":"Output "+(i+1)+": ")+safeLine(row),
-          "output","right","output");
+          "output","right","output",null,i+1);
       });
       if(stdout.split(/\r?\n/).length>20)push("thinking","think",
         hindi?"बाकी आउटपुट स्क्रीन पर देखिए।":"Additional output remains visible on screen.",
@@ -336,7 +336,7 @@
         "error","right","error",sourceLine);
       push("explaining","point-right",
         (hindi?"एरर विवरण: ":"Error details: ")+safeLine(details),
-        "error","right","error",sourceLine);
+        "error","right","error",sourceLine,Math.max(1,errorRows.length));
       push("encouraging","explain",
         hindi?"इस एरर को ठीक करने के लिए उस लाइन और उसके वेरिएबल देखें।":
           "Check the indicated line, its variables and the traceback to fix this error.",
