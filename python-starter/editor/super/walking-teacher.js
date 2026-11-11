@@ -84,7 +84,26 @@ function geometry(){
    const y=editor.getBoundingClientRect().top+(parseFloat(st.paddingTop)||14)+(line-.5)*lh-editor.scrollTop;
    if(y>=t&&y<=b)anchor=y;
  }
- return {x:safe(x,minX,maxX),y:safe(anchor-h*.46,minY,maxY),onScreen};
+ let candidateX=safe(x,minX,maxX),candidateY=safe(anchor-h*.46,minY,maxY);
+ let canShow=onScreen;
+ // Keep the walking teacher clear of the always-visible command menu.
+ const menu=document.getElementById("ppSpeakerPanel");
+ if(menu && menu.getClientRects().length){
+   const d=menu.getBoundingClientRect();
+   const intersects=(xx,yy)=>xx+w>d.left-8&&xx<d.right+8&&yy+h>d.top-8&&yy<d.bottom+8;
+   if(intersects(candidateX,candidateY)){
+     const options=[
+       {x:candidateX,y:d.top-h-12},
+       {x:d.left-w-12,y:candidateY},
+       {x:d.right+12,y:candidateY},
+       {x:candidateX,y:d.bottom+12}
+     ].filter(pos=>pos.x>=minX&&pos.x<=maxX&&pos.y>=minY&&pos.y<=maxY&&!intersects(pos.x,pos.y));
+     options.sort((a,b)=>Math.hypot(a.x-candidateX,a.y-candidateY)-Math.hypot(b.x-candidateX,b.y-candidateY));
+     if(options.length){candidateX=options[0].x;candidateY=options[0].y;}
+     else canShow=false; // Tiny screens: preserve unobstructed controls.
+   }
+ }
+ return {x:candidateX,y:candidateY,onScreen:canShow};
 }
 function highlightLine(){
  if(!wrapper||!editor||!line||currentZone!=="code"||!visible||!enabled){focusLine.hidden=true;return;}
