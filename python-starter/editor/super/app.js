@@ -550,7 +550,7 @@ function handleTypingAid(e){
 function makeWorker(){
   if(worker) worker.terminate();
   ready = false;
-  worker = new Worker("judge-worker.js?v=20261111-17");
+  worker = new Worker("judge-worker.js?v=20261111-23");
   setStatus("Loading Python…");
   worker.onmessage = (ev) => {
     const msg = ev.data || {};
@@ -656,7 +656,7 @@ async function prepareOffline(){
 async function registerOfflineSupport(){
   if(!("serviceWorker" in navigator) || !window.isSecureContext) return;
   try{
-    await navigator.serviceWorker.register("service-worker.js?v=20261111-22", {scope:"./"});
+    await navigator.serviceWorker.register("service-worker.js?v=20261111-23", {scope:"./"});
     await navigator.serviceWorker.ready;
     if(ui.offline && localStorage.getItem("pp_offline_ready_v7") === "1") ui.offline.textContent = "✓ Offline Ready";
   }catch(error){ console.warn("Offline support unavailable", error); }
