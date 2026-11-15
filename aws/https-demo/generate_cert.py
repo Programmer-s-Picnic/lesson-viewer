@@ -24,7 +24,8 @@ def main():
     if lan_ip.version != 4:
         raise SystemExit("For this lab, use the laptop's IPv4 address shown by ipconfig.")
 
-    if Path("key.pem").exists() or Path("cert.pem").exists():
+    root = Path(__file__).resolve().parent
+    if (root / "key.pem").exists() or (root / "cert.pem").exists():
         raise SystemExit("key.pem or cert.pem already exists. Move/delete both before generating a replacement.")
 
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
@@ -47,12 +48,12 @@ def main():
         .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
         .sign(key, hashes.SHA256())
     )
-    Path("key.pem").write_bytes(key.private_bytes(
+    (root / "key.pem").write_bytes(key.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.TraditionalOpenSSL,
         encryption_algorithm=serialization.NoEncryption(),
     ))
-    Path("cert.pem").write_bytes(certificate.public_bytes(serialization.Encoding.PEM))
+    (root / "cert.pem").write_bytes(certificate.public_bytes(serialization.Encoding.PEM))
     print("Generated cert.pem and key.pem (SELF-SIGNED, UNTRUSTED, development only).")
     print("Certificate names: localhost, 127.0.0.1, " + str(lan_ip))
     print("Keep key.pem PRIVATE. Never commit or upload it.")
