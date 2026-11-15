@@ -1,27 +1,37 @@
 # HTTPS server lab — AWS Day 1
 
-This is a **classroom-only** HTTPS demo. It is not production hosting and should not be exposed to the Internet.
+A classroom-only HTTPS demonstration. **Not production hosting**; do not expose it to the Internet.
 
-## Requirements
-- Windows laptop with Python installed and connected to the same Wi-Fi as the phone.
-- Python package `cryptography`: `py -m pip install cryptography`.
+## Folder layout (important)
 
-## Procedure
-1. Create an HTML file named `index.html` in this folder.
-2. Run `ipconfig` and copy the **IPv4 Address** under the active Wi-Fi adapter (not **Default Gateway**, which is usually the router).
-3. From this folder, run `py generate_cert.py 192.168.1.5` using your own IPv4 address.
-4. Run `py https_server.py` and leave the Command Prompt window open.
-5. On the laptop, open `https://localhost:8443/`. The self-signed certificate generates a browser trust warning.
-6. On a phone connected to the same trusted Wi-Fi, try `https://192.168.1.5:8443/`, replacing the example with the laptop's IP. The phone will likewise not trust the certificate automatically.
-7. For a trustworthy **programmatic** local test without disabling verification, from the same folder use:
-   `py -c "import ssl,urllib.request; c=ssl.create_default_context(cafile='cert.pem'); print(urllib.request.urlopen('https://localhost:8443/',context=c).status)"`
-8. In Chrome DevTools (F12) → Network, compare the request scheme `https://` with the earlier `http://` request, and inspect Security to explain why the certificate is untrusted.
-9. Stop the HTTPS server with Ctrl+C. Remove any temporary Windows Firewall exception.
+```text
+aws-day1/
+  generate_cert.py
+  https_server.py
+  cert.pem             # generated locally; never uploaded
+  key.pem              # generated locally; NEVER uploaded or served
+  site/
+    index.html          # only this folder is served
+```
 
-**Important:** A self-signed certificate can encrypt the connection but is not automatically trusted by Chrome or Android. Do not disable certificate checking globally, do not install unknown root CA certificates, and never bypass browser certificate warnings on unrelated websites.
+Keeping `site/` separate prevents the private key from being downloaded via the demonstration server.
 
-On a controlled classroom laptop, the instructor may choose to proceed past a warning **only** for this self-generated local test certificate, if the browser permits. For a real website, obtain a certificate from a trusted CA for a domain. Keep `key.pem` secret: it contains the private key. If your Wi-Fi IP changes, safely regenerate both local certificate/key files for the new address.
+## Requirements and steps
 
-Source scripts:
-- [generate_cert.py](./generate_cert.py)
-- [https_server.py](./https_server.py)
+1. Download `generate_cert.py` and `https_server.py` into `aws-day1/`. Create `aws-day1/site/index.html`.
+2. In Command Prompt: `cd aws-day1`; run `py -m pip install cryptography`.
+3. Run `ipconfig`. Find the laptop's **Wi-Fi IPv4 Address**, not Default Gateway.
+4. Run `py generate_cert.py 192.168.1.5` (replace the example IP with your actual address).
+5. Optionally run HTTP on the same site in one terminal:
+   `py -m http.server 8000 --bind 0.0.0.0 --directory site`
+6. Run `py https_server.py` in a second terminal.
+7. Open `https://localhost:8443/` on the laptop. The certificate is self-signed; Chrome will show an untrusted-certificate warning.
+8. On a phone connected to the same trusted Wi-Fi, try `https://192.168.1.5:8443/`, substituting the laptop IP. Certificate warnings are expected.
+9. In desktop Chrome, compare HTTP `http://localhost:8000/` with HTTPS `https://localhost:8443/` under F12 → Network and Security.
+10. Optionally verify the exact certificate in Python without disabling verification:
+    `py -c "import ssl,urllib.request; c=ssl.create_default_context(cafile='cert.pem'); print(urllib.request.urlopen('https://localhost:8443/',context=c).status)"`
+11. Stop both servers with Ctrl+C and remove temporary firewall exceptions.
+
+The self-signed certificate enables TLS encryption but is **not automatically trusted by browsers**. Do not disable certificate validation globally, install unknown root CA certificates, or bypass warnings on unrelated sites. For production HTTPS use an appropriate trusted certificate and a production web server.
+
+The scripts use **Python's standard library** for serving HTTPS, with `cryptography` solely for generating a test certificate. If the laptop's Wi-Fi IP changes, regenerate the local key/certificate pair with the new IP; never share `key.pem`.
