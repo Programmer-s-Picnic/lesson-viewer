@@ -52,20 +52,21 @@ h1{font-size:clamp(1.65rem,3vw,2.6rem);line-height:1.2;margin:.45rem 0}.hero p{m
  </div></nav><div class="main">
 <section class="lesson" id="day-1" aria-labelledby="h-1" data-day="1">
  <div class="lesson-top"><span class="day-pill">Day 1 · Mon, 16 Nov 2026</span><span class="teaching-tag">Teaching</span></div>
- <h2 id="h-1">Run Your First HTTP Server — Localhost, Wi-Fi &amp; Chrome Network</h2>
- <p class="objective"><strong>Learning objective:</strong> Run a Python HTTP server immediately, reach it through localhost and from another device on the same Wi-Fi, then identify a GET request and response in Chrome DevTools → Network.</p>
+ <h2 id="h-1">Run HTTP and HTTPS Servers — Localhost, Wi-Fi &amp; Chrome Network</h2>
+ <p class="objective"><strong>Learning objective:</strong> Start HTTP on localhost and Wi-Fi, inspect requests in Chrome DevTools, then create a local TLS certificate, run HTTPS on port 8443 and compare both protocols.</p>
  <div class="panel"><h3>90-minute practical-first sequence</h3>
- <ol class="timeplan"><li><strong>0–15 min</strong><span>Start a Python HTTP server and load localhost</span></li><li><strong>15–30 min</strong><span>Find the Wi-Fi IPv4 address and open the site on a phone</span></li><li><strong>30–50 min</strong><span>Inspect Chrome DevTools Network requests and responses</span></li><li><strong>50–65 min</strong><span>Explain client, server, localhost, LAN IP, port and HTTP</span></li><li><strong>65–80 min</strong><span>Create and modify index.html; watch the browser reload</span></li><li><strong>80–90 min</strong><span>Troubleshoot, answer questions and shut down the server</span></li></ol></div>
+ <ol class="timeplan"><li><strong>0–10 min</strong><span>Run the HTTP server on localhost:8000</span></li><li><strong>10–20 min</strong><span>Open the HTTP site on a phone through Wi-Fi</span></li><li><strong>20–30 min</strong><span>Inspect HTTP GET in Chrome Network</span></li><li><strong>30–40 min</strong><span>Understand HTTPS, TLS, certificates and trust</span></li><li><strong>40–60 min</strong><span>Generate certificate and run HTTPS:8443</span></li><li><strong>60–75 min</strong><span>Inspect HTTPS using Chrome Network and Security</span></li><li><strong>75–85 min</strong><span>Create index.html and compare HTTP/HTTPS</span></li><li><strong>85–90 min</strong><span>Answer questions, stop servers and clean up</span></li></ol></div>
  <h3>Instructor opening script (begin with action, not theory)</h3>
- <blockquote class="script">Welcome to the AWS course. Before defining the word “server”, we will run one. Open Command Prompt.<br>We will first view our server from the SAME computer using localhost. Then we will open exactly the same website on a PHONE through Wi-Fi.<br>Finally, we will look inside Chrome's Network panel and watch the actual HTTP requests.<br>Today's question is simple: what changes when another device asks our computer for a page?</blockquote>
- <h3>Step 1 — Start an HTTP server on localhost (0–15 minutes)</h3>
- <p>Open Command Prompt on a Windows laptop with Python installed. Create a new empty folder and start the server <strong>before</strong> creating any HTML file. Python will show a directory listing until you add <code>index.html</code>.</p>
- <div class="code-head"><strong>Windows Command Prompt — first command</strong><button class="copy" type="button" data-copy="mkdir aws-day1&#10;cd aws-day1&#10;py -m http.server 8000 --bind 127.0.0.1">Copy</button></div><pre><code>mkdir aws-day1
+ <blockquote class="script">Welcome to the AWS course. Before defining the word “server”, we will run one. Open Command Prompt.<br>We will first view our server from the SAME computer using localhost. Then we will open exactly the same website on a PHONE through Wi-Fi.<br>Finally, we will inspect HTTP and HTTPS in Chrome Network and explain what TLS does.<br>Today's question: how can the same laptop serve both protocols, and why does the browser warn about a self-signed certificate?</blockquote>
+ <h3>Step 1 — Run HTTP on localhost (0–10 minutes)</h3>
+ <p>Open Command Prompt on a Windows computer with Python. Make an <code>aws-day1</code> folder and a <strong>site</strong> subfolder. We will serve only the <code>site/</code> folder, keeping certificates and private keys outside the web document root.</p>
+ <div class="code-head"><strong>Windows Command Prompt — first command</strong><button class="copy" type="button" data-copy="mkdir aws-day1&#10;cd aws-day1&#10;py -m http.server 8000 --bind 127.0.0.1 --directory site">Copy</button></div><pre><code>mkdir aws-day1
 cd aws-day1
+mkdir site
 py -m http.server 8000 --bind 127.0.0.1</code></pre>
- <p>If <code>py</code> is not available but Python is installed, use <code>python -m http.server 8000 --bind 127.0.0.1</code>. Leave the terminal open. Open Chrome on this computer and visit <strong>http://localhost:8000/</strong> (or <strong>http://127.0.0.1:8000/</strong>). The directory listing demonstrates that a server is already answering requests.</p>
+ <p>If <code>py</code> is not available but Python is installed, use <code>python -m http.server 8000 --bind 127.0.0.1 --directory site</code>. Leave the terminal open. Open Chrome on this computer and visit <strong>http://localhost:8000/</strong> (or <strong>http://127.0.0.1:8000/</strong>). The directory listing demonstrates that a server is already answering requests.</p>
  <p><strong>Ask:</strong> Does Chrome display a local file URL (<code>file://</code>) or an HTTP URL? Why is a process listening on port 8000?</p>
- <h3>Step 2 — Make the server reachable over Wi-Fi (15–30 minutes)</h3>
+ <h3>Step 2 — Run HTTP over Wi-Fi (10–20 minutes)</h3>
  <p>First stop the localhost-only server with <code>Ctrl+C</code>. In another Command Prompt window, run <code>ipconfig</code> and find the <strong>IPv4 Address</strong> under the active Wi-Fi adapter. Do <strong>not</strong> use the <strong>Default Gateway</strong>: that commonly belongs to the router.</p>
  <div class="code-head"><strong>Find your Windows computer's Wi-Fi address</strong><button class="copy" type="button" data-copy="ipconfig&#10;&#10;# Example ONLY:&#10;# IPv4 Address   : 192.168.1.5   ← laptop&#10;# Default Gateway: 192.168.1.1   ← router, NOT the website">Copy</button></div><pre><code>ipconfig
 
@@ -73,18 +74,57 @@ py -m http.server 8000 --bind 127.0.0.1</code></pre>
 # IPv4 Address   : 192.168.1.5   ← laptop
 # Default Gateway: 192.168.1.1   ← router, NOT the website</code></pre>
  <p>Return to the website folder and restart Python, now listening on all IPv4 interfaces. Use this only on a trusted classroom or home network.</p>
- <div class="code-head"><strong>Restart server for LAN/Wi-Fi access</strong><button class="copy" type="button" data-copy="py -m http.server 8000 --bind 0.0.0.0&#10;# Or: python -m http.server 8000 --bind 0.0.0.0">Copy</button></div><pre><code>py -m http.server 8000 --bind 0.0.0.0
-# Or: python -m http.server 8000 --bind 0.0.0.0</code></pre>
+ <div class="code-head"><strong>Restart server for LAN/Wi-Fi access</strong><button class="copy" type="button" data-copy="py -m http.server 8000 --bind 0.0.0.0 --directory site&#10;# Or: python -m http.server 8000 --bind 0.0.0.0 --directory site">Copy</button></div><pre><code>py -m http.server 8000 --bind 0.0.0.0 --directory site
+# Or: python -m http.server 8000 --bind 0.0.0.0 --directory site</code></pre>
  <p>On the <strong>phone connected to the same Wi-Fi</strong>, open Chrome and enter <code>http://192.168.1.5:8000/</code>, replacing <code>192.168.1.5</code> with the laptop's actual Wi-Fi IPv4 address. Keep the Python server terminal open and watch the GET request appear in its output.</p>
  <div class="prompt"><h3>If the phone says “connection refused”</h3><ul><li>Check whether the laptop opens http://localhost:8000 first.</li><li>Confirm the Python server is still running and bound to 0.0.0.0, not 127.0.0.1.</li><li>Use the laptop Wi-Fi IPv4 address, NOT the Default Gateway (router) and NOT localhost on the phone.</li><li>Check that the phone and computer are on the same LAN; guest Wi-Fi, VPNs or access-point client isolation can interfere.</li><li>If Windows Firewall blocks TCP port 8000, allow access for the trusted Private network only; avoid exposing it on Public networks.</li><li>Use http://, not https://. The basic Python demonstration server does not provide HTTPS.</li></ul></div>
- <h3>Step 3 — Check the HTTP transaction in Chrome Network (30–50 minutes)</h3>
+ <h3>Step 3 — Inspect HTTP in Chrome Network (20–30 minutes)</h3>
  <ol class="steps"><li>On the Windows computer, open http://localhost:8000/ in Google Chrome.</li><li>Press F12 (or Ctrl+Shift+I), select the Network tab, and choose All or Doc.</li><li>Keep the Network tab open and reload the page (Ctrl+R).</li><li>Click the document request (usually localhost or /). In Headers, find Request URL, Request Method GET, Status Code (normally 200) and Response Headers.</li><li>Open Response to inspect returned HTML or the directory listing. Compare with what Chrome renders in the browser.</li><li>Open the website again on the phone; the Python terminal should log its GET request. Chrome on Android does not ordinarily expose desktop DevTools, so use the Windows Chrome Network panel for detailed inspection.</li></ol>
  <div class="panel"><h3>What students should observe in DevTools</h3><dl class="concepts"><div><dt>Request URL</dt><dd>http://localhost:8000/ on the Windows browser (or the LAN IPv4 address if tested from Windows).</dd></div><div><dt>Request Method</dt><dd>GET: the browser requests a resource.</dd></div><div><dt>Status Code</dt><dd>200 OK when the server returned the page successfully; other requests such as favicon may have different statuses.</dd></div><div><dt>Remote Address</dt><dd>The endpoint/port used for this connection, as displayed by Chrome.</dd></div><div><dt>Response</dt><dd>HTML content or a directory listing returned by the server.</dd></div><div><dt>Timing</dt><dd>The time Chrome records for phases of the request.</dd></div></dl></div>
- <h3>Step 4 — Understand what just happened (50–65 minutes)</h3>
+ <h3>
+<h3>Step 4 — Explain HTTPS, TLS and certificates (30–40 minutes)</h3>
+<p><strong>HTTP</strong> sends requests and responses without transport encryption. <strong>HTTPS</strong> is HTTP protected by <strong>TLS (Transport Layer Security)</strong>. TLS encrypts data in transit and helps prevent tampering. A trusted certificate also helps a browser authenticate the server. We will create a <strong>self-signed</strong> certificate for local learning: the connection can be encrypted, but Chrome and Android will <strong>not automatically trust the certificate</strong>.</p>
+<div class="panel"><h3>What will students compare?</h3>
+<ul><li><code>http://localhost:8000/</code> — HTTP, no TLS encryption</li><li><code>https://localhost:8443/</code> — HTTPS, TLS encryption with an untrusted local certificate</li><li><code>http://LAPTOP_IP:8000/</code> and <code>https://LAPTOP_IP:8443/</code> — same website accessed over Wi-Fi on separate ports</li></ul></div>
+<h3>Step 5 — Create and run the local HTTPS server (40–60 minutes)</h3>
+<p><strong>First, download two Python files</strong> from the <a href="https://github.com/Programmer-s-Picnic/lesson-viewer/tree/main/aws/https-demo" target="_blank" rel="noopener noreferrer">AWS HTTPS demo folder</a>:
+<a href="https://raw.githubusercontent.com/Programmer-s-Picnic/lesson-viewer/main/aws/https-demo/generate_cert.py">generate_cert.py</a> and
+<a href="https://raw.githubusercontent.com/Programmer-s-Picnic/lesson-viewer/main/aws/https-demo/https_server.py">https_server.py</a>.
+Place them in <code>aws-day1/</code>. Put the sample <a href="https://github.com/Programmer-s-Picnic/lesson-viewer/blob/main/aws/https-demo/site/index.html">index.html</a> in <code>aws-day1/site/</code>. <strong>Never place key.pem inside site/</strong>. Both web servers will expose only <code>site/</code>, protecting the private key from accidental file downloads.</p>
+<div class="code-head"><strong>Install certificate-generation library</strong><button type="button" class="copy" data-copy="py -m pip install cryptography">Copy</button></div><pre><code>py -m pip install cryptography</code></pre>
+<div class="code-head"><strong>Generate a self-signed certificate for localhost and Wi-Fi</strong><button type="button" class="copy" data-copy="ipconfig&#10;# Replace 192.168.1.5 with laptop's Wi-Fi IPv4 Address (not Default Gateway).&#10;py generate_cert.py 192.168.1.5&#10;# Creates cert.pem and key.pem beside the scripts, NOT in site/.">Copy</button></div><pre><code>ipconfig
+# Replace 192.168.1.5 with laptop's Wi-Fi IPv4 Address (not Default Gateway).
+py generate_cert.py 192.168.1.5
+# Creates cert.pem and key.pem beside the scripts, NOT in site/.</code></pre>
+<div class="code-head"><strong>Start HTTPS in a SECOND Command Prompt window</strong><button type="button" class="copy" data-copy="cd aws-day1&#10;py https_server.py&#10;# HTTPS: https://localhost:8443/&#10;# Wi-Fi: https://192.168.1.5:8443/  (use your own laptop IP)">Copy</button></div><pre><code>cd aws-day1
+py https_server.py
+# HTTPS: https://localhost:8443/
+# Wi-Fi: https://192.168.1.5:8443/  (use your own laptop IP)</code></pre>
+<p>Use <code>python</code> instead of <code>py</code> where appropriate. Keep the HTTP terminal running on port 8000, and run HTTPS separately on port 8443. The example server uses Python's <code>ssl.SSLContext</code> and serves only the <code>site</code> folder. <strong>Never share or publish key.pem</strong>. This is not a production server.</p>
+<h3>Step 6 — Test HTTPS and examine Chrome (60–75 minutes)</h3>
+<ol class="steps">
+<li>On the laptop, open <strong>https://localhost:8443/</strong>. Chrome will warn that the <strong>self-signed certificate is not trusted</strong>. That is expected, not a connection refusal.</li>
+<li>For your own teacher-created local certificate only, examine the warning; an instructor may choose a local exception if the browser allows. Never bypass warnings on unrelated websites.</li>
+<li>From a phone on the same Wi-Fi, attempt <strong>https://192.168.1.5:8443/</strong> with the laptop's actual Wi-Fi IP. Android also will not automatically trust this certificate. Do not install unknown root certificates or disable TLS verification globally.</li>
+<li>On desktop Chrome press <strong>F12 → Network</strong>, reload the HTTPS page if accessible and inspect <strong>Request URL</strong>, <strong>GET</strong>, <strong>Status Code</strong>, and <strong>Response</strong>. Compare the URL scheme and port to the HTTP page.</li>
+<li>Inspect Chrome's <strong>Security</strong> panel (if available). Explain that an encrypted connection and a publicly trusted identity are separate concepts.</li>
+</ol>
+<div class="code-head"><strong>Verify this specific self-signed cert using Python (without disabling verification)</strong><button type="button" class="copy" data-copy="py -c &quot;import ssl,urllib.request; c=ssl.create_default_context(cafile='cert.pem'); print(urllib.request.urlopen('https://localhost:8443/',context=c).status)&quot;">Copy</button></div><pre><code>py -c &quot;import ssl,urllib.request; c=ssl.create_default_context(cafile='cert.pem'); print(urllib.request.urlopen('https://localhost:8443/',context=c).status)&quot;</code></pre>
+<div class="prompt"><h3>When HTTPS does not open</h3>
+<ul>
+<li><strong>ERR_CONNECTION_REFUSED:</strong> HTTPS server is not running on port 8443, or access is blocked.</li>
+<li><strong>Certificate warning:</strong> HTTPS is running, but this certificate is not trusted by the browser.</li>
+<li><strong>Wrong IP:</strong> Use the laptop's Wi-Fi IPv4 Address, not the router's Default Gateway.</li>
+<li><strong>Certificate hostname mismatch:</strong> Regenerate your own local certificate if your Wi-Fi IPv4 address changes.</li>
+<li><strong>Firewall:</strong> Permit incoming 8443 on a trusted Private network if necessary; never disable the entire firewall.</li>
+<li><strong>Wrong protocol:</strong> Use <code>http://</code> on 8000 and <code>https://</code> on 8443.</li>
+<li><strong>Real deployments:</strong> Use an appropriate trusted certificate authority and production-grade hosting.</li>
+</ul></div>
+<h3>Step 7 — Explain the request and response (75–80 minutes)</h3>
  <dl class="concepts"><div><dt>Client</dt><dd>Chrome is the program asking for a web page.</dd></div><div><dt>Server</dt><dd>Python http.server listens for HTTP requests and serves files from the current directory.</dd></div><div><dt>localhost / 127.0.0.1</dt><dd>Loopback access to a service on the same machine; it is not another device's IP address.</dd></div><div><dt>Wi-Fi IPv4 address</dt><dd>The laptop's reachable address within its local network, such as 192.168.1.5.</dd></div><div><dt>0.0.0.0 bind</dt><dd>The server listens on all IPv4 interfaces; visitors still use a real reachable IP address.</dd></div><div><dt>Port 8000</dt><dd>Identifies the listening service at that network address.</dd></div><div><dt>HTTP</dt><dd>The request/response protocol observed in Chrome DevTools; this demo is not encrypted.</dd></div></dl>
  <p><strong>Draw:</strong> Chrome on laptop → Python server (localhost), and Chrome on phone → Wi-Fi/router → Python server (laptop LAN IP). Both request the same content, but use different network paths.</p>
- <h3>Step 5 — Add a page and watch it update (65–80 minutes)</h3>
- <p>While the server is running, create <code>index.html</code> inside <code>aws-day1</code> with the code below. Reload Chrome on the laptop and the phone. Then change the heading, save, and reload both again. Observe the document request in the Network tab after every reload.</p>
+ <h3>Step 8 — Create index.html and compare both protocols (80–85 minutes)</h3>
+ <p>While the server is running, create <code>index.html</code> inside <code>aws-day1/site</code> with the code below. Reload Chrome on the laptop and the phone. Then change the heading, save, and reload both again. Observe the document request in the Network tab after every reload.</p>
  <div class="code-head"><strong>aws-day1/index.html</strong><button class="copy" type="button" data-copy="&lt;!DOCTYPE html&gt;&#10;&lt;html lang=&quot;en&quot;&gt;&#10;&lt;head&gt;&#10;  &lt;meta charset=&quot;UTF-8&quot;&gt;&#10;  &lt;title&gt;My First HTTP Server&lt;/title&gt;&#10;&lt;/head&gt;&#10;&lt;body&gt;&#10;  &lt;h1&gt;Hello from Learn With Champak!&lt;/h1&gt;&#10;  &lt;p&gt;My first website over localhost and Wi-Fi.&lt;/p&gt;&#10;&lt;/body&gt;&#10;&lt;/html&gt;">Copy</button></div><pre><code>&lt;!DOCTYPE html&gt;
 &lt;html lang=&quot;en&quot;&gt;
 &lt;head&gt;
@@ -96,10 +136,10 @@ py -m http.server 8000 --bind 127.0.0.1</code></pre>
   &lt;p&gt;My first website over localhost and Wi-Fi.&lt;/p&gt;
 &lt;/body&gt;
 &lt;/html&gt;</code></pre>
- <h3>Step 6 — Test, troubleshoot and close (80–90 minutes)</h3>
- <ul><li>Close neither Chrome nor the Python server until both devices have displayed the page.</li><li>Show one GET request in Chrome DevTools → Network and one request in the Python terminal.</li><li>Stop Python with Ctrl+C; refreshing the HTTP URL should now fail if nothing else uses the port.</li><li>Do not port-forward from the router or leave the demonstration server running unattended. Revert any temporary firewall exception when finished.</li></ul>
+ <h3>Step 9 — Recap and close both servers (85–90 minutes)</h3>
+ <ul><li>Close neither Chrome nor the Python server until both devices have displayed the page.</li><li>Show one GET request in Chrome DevTools → Network and one request in the Python terminal.</li><li>Stop both HTTP and HTTPS Python servers with Ctrl+C; their respective URLs should then stop responding.</li><li>Do not port-forward from the router or leave the demonstration server running unattended. Revert any temporary firewall exception when finished.</li></ul>
  <div class="prompt"><h3>Exit questions</h3><ul><li>Why does localhost work on the laptop but not identify the laptop from the phone?</li><li>What is the difference between 127.0.0.1, 0.0.0.0 and the Wi-Fi IPv4 address?</li><li>What does Chrome show under Request Method and Status Code?</li><li>What happens when the server is stopped?</li><li>Why is 192.168.1.1 often the wrong address to use?</li></ul></div>
- <div class="assignment"><strong>Homework</strong><p>Submit: your index.html file, a screenshot of http://localhost:8000, a screenshot of the site on your phone using the laptop's LAN IPv4 address, and one screenshot of the Chrome Network Headers showing the GET request and response status. Mask private network details before sharing publicly.</p></div>
+ <div class="assignment"><strong>Homework</strong><p>Submit site/index.html, screenshots of HTTP on localhost and Wi-Fi, one Chrome Network GET inspection, and notes/screenshot about your HTTPS connection and the expected self-signed certificate warning. Never share key.pem.</p></div>
  <div class="footer-nav"><button class="secondary prev-btn" disabled type="button" data-go="0">Previous day</button><button class="primary next-btn" type="button" data-go="2">Next day</button></div>
 </section>
 
