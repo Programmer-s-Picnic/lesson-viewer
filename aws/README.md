@@ -8,7 +8,7 @@ https://programmer-s-picnic.github.io/lesson-viewer/aws/
 ## Published content
 - Week 1, 16–22 November 2026: five teaching sessions and two supervised practical labs, all on the landing page.
 - Each day has a 90-minute plan, instructor narration, concepts, activity steps, review questions and homework.
-- Day 1 includes a Python localhost web-server demonstration; Days 3 and 6 have checklists; Day 7 has an interactive mini-quiz.
+- Day 1 starts immediately with a Python HTTP server on localhost, then access from a phone over the same Wi-Fi using the laptop's IPv4 address, and Chrome DevTools Network inspection. Day 3 repeats this as a supervised lab; Days 3 and 6 have checklists; Day 7 has an interactive mini-quiz.
 
 ## Page password guard
 The HTML loads the existing public JavaScript password gate at
