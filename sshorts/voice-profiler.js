@@ -334,8 +334,8 @@ window.VoiceProfiler=(()=>{
     setStatus("Voice settings downloaded. This file contains settings and measurements, not your original audio.");
   }
   function importSettings(file){
+    if(file.size>100000)return Promise.reject(Error("Voice settings JSON must be smaller than 100 KB."));
     return file.text().then(text=>{
-      if(file.size>100000)throw Error("Voice settings JSON must be smaller than 100 KB.");
       const data=JSON.parse(text);
       if(data.format!==PROFILE_FORMAT||data.version!==1||!data.profile)
         throw Error("Not a supported EduShorts voice-style JSON.");
