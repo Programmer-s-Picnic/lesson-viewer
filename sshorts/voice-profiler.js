@@ -9,6 +9,7 @@ window.VoiceProfiler=(()=>{
   const round=(n,d=0)=>Number(n.toFixed(d));
   const SAMPLE_MAX=20*1024*1024, EMBED_MAX=1250000, MAX_SECONDS=90;
   const labels={classroom:"Classroom Teaching",story:"Storytelling",quiz:"Quiz Presenter"};
+  const PROFILE_FORMAT="edushorts-voice-style";
   const scripts={
     classroom:"Good morning everyone. Today we will learn selection sort. First, look at these numbers. Which one is the smallest? Excellent! Remember, we swap the smallest value with the current position. Now, try the next pass yourself.",
     story:"Imagine standing in a classroom on your first day. Everything feels unfamiliar. Then, a surprising idea changes the way you think! What happens next? Let me tell you.",
@@ -160,6 +161,7 @@ window.VoiceProfiler=(()=>{
         "RMS signal level: "+metrics.rms+"; energy dynamics: "+metrics.dynamicsDb+" dB"
       ].join("\n");
       $v("voiceProfileSaveBtn").disabled=false;
+      refresh();
       setStatus("Analysis complete. The estimated settings are active. Save the profile to reuse it.");
     }finally{busy=false;$v("voiceProfileAnalyzeBtn").disabled=false;}
   }
@@ -182,7 +184,8 @@ window.VoiceProfiler=(()=>{
     const audioData=keepAudio?await asDataUrl(sampleBlob):"";
     const profile={
       id:old?.id||crypto.randomUUID(),kind,name:labels[kind],createdAt:new Date().toISOString(),
-      script:analysis.script,metrics:analysis.metrics,settings:analysis.settings,
+      script:analysis.script,metrics:analysis.metrics,settings:{...VoiceDirector.config(),...analysis.settings},
+      baseVoiceName:$v("ttsNarrationVoice")?.value||"",baseRate:Number($v("ttsNarrationRate")?.value||1),
       referenceAudio:audioData,referenceMime:audioData?(sampleBlob.type||"audio/webm"):"",
       schemaVersion:1
     };
@@ -204,7 +207,7 @@ window.VoiceProfiler=(()=>{
       const opt=document.createElement("option");opt.value=p.id;opt.textContent=p.name;select.append(opt);
     }
     select.value=log().some(p=>p.id===selected)?selected:"";
-    const profile=getActive();
+    const profile=getActive()||null;
     if(profile!==shownProfile){
       shownProfile=profile||null;
       analysis=null;sampleBlob=null;
@@ -219,6 +222,11 @@ window.VoiceProfiler=(()=>{
       }
     }
     $v("voiceProfileUpdateBtn").disabled=!profile;
+    $v("voiceProfileExportBtn").disabled=!profile;
+    $v("voiceProfileUseStyleBtn").disabled=!profile;
+    const audioAvailable=!!sampleBlob||!!profile?.referenceAudio;
+    $v("voiceProfileDownloadAudioBtn").disabled=!audioAvailable;
+    $v("voiceProfileUseAudioBtn").disabled=!audioAvailable||!current();
     if(profile&&!analysis){
       $v("voiceProfileMetrics").textContent=
         "Saved "+profile.name+" — "+profile.metrics.duration+" s, pitch "+
@@ -231,6 +239,17 @@ window.VoiceProfiler=(()=>{
     if(!profile)return;
     state.activeVoiceProfile=id;
     state.voiceStudio={...VoiceDirector.defaults,...(state.voiceStudio||{}),...profile.settings};
+    if(profile.baseVoiceName){
+      const select=$v("ttsNarrationVoice");
+      if([...select.options].some(opt=>opt.value===profile.baseVoiceName)){
+        select.value=profile.baseVoiceName;state.ttsVoiceName=profile.baseVoiceName;
+      }
+    }
+    if(Number.isFinite(Number(profile.baseRate))&&Number(profile.baseRate)>0){
+      const rate=clamp(Number(profile.baseRate),.6,1.5);
+      $v("ttsNarrationRate").value=rate;state.ttsNarrationRate=rate;
+      $v("ttsNarrationRateOut").value=rate.toFixed(1).replace(".0","")+"×";
+    }
     $v("voiceProfileKind").value=profile.kind;
     $v("voiceProfileScript").value=profile.script||scripts[profile.kind];
     analysis=null;sampleBlob=null;
@@ -243,12 +262,118 @@ window.VoiceProfiler=(()=>{
     const profile=getActive();
     if(!profile)return setStatus("Choose a saved voice profile before updating settings.");
     const currentSettings={...VoiceDirector.config()};
-    const keys=["style","smart","pitch","volume","speed","expression","variation","pauses"];
+    const keys=["style","smart","pitch","volume","speed","expression","variation","pauses","dictionary"];
     profile.settings={...profile.settings,...Object.fromEntries(keys.map(key=>[key,currentSettings[key]]))};
+    profile.baseVoiceName=$v("ttsNarrationVoice")?.value||"";
+    profile.baseRate=Number($v("ttsNarrationRate")?.value||1);
     profile.modifiedAt=new Date().toISOString();
     saveLocal();refresh();
     setStatus("Saved manual adjustments to "+profile.name+". Original measured characteristics are preserved.");
   }
+  // Download a recording as audio, independently of the optional
+  // embedded copy in a project or voice-style JSON file.
+  function saveRecording(){
+    const profile=getActive();
+    const source=sampleBlob||profile?.referenceAudio;
+    if(!source)return setStatus("Record a voice sample or select a saved profile with embedded audio.");
+    const mime=sampleBlob?.type||profile?.referenceMime||"audio/webm";
+    const ext=/mp4|aac/.test(mime)?"m4a":/wav/.test(mime)?"wav":/mpeg|mp3/.test(mime)?"mp3":/ogg/.test(mime)?"ogg":"webm";
+    const name=(profile?.kind||$v("voiceProfileKind").value||"voice")+"-reference-"+Date.now()+"."+ext;
+    const a=document.createElement("a");
+    const temporary=typeof source!=="string";
+    const url=temporary?URL.createObjectURL(source):source;
+    a.href=url;a.download=name;a.style.display="none";
+    document.body.append(a);
+    a.click();
+    a.remove();
+    if(temporary)setTimeout(()=>URL.revokeObjectURL(url),30000);
+    setStatus("Recording download started: "+name+". This is the original sound, not synthesized audio.");
+  }
+  async function useRecordingOnSlide(){
+    const slide=current();
+    if(!slide)return setStatus("Add or select a slide first.");
+    const profile=getActive();
+    const source=sampleBlob||profile?.referenceAudio;
+    if(!source)return setStatus("Record or load an embedded voice sample first.");
+    if(sampleBlob?.size>8*1024*1024)
+      return setStatus("Recording is over 8 MB. Please attach it through Upload narration rather than embedding it here.");
+    if(!confirm("Use the exact recorded voice on this slide? Its words will not be generated from the slide text, and existing slide narration will be replaced."))return;
+    const transcript=$v("voiceProfileScript").value.trim()||profile?.script||"";
+    const audio=typeof source==="string"?source:await asDataUrl(source);
+    slide.narrationText=transcript;
+    await attachNarration(audio,profile?.name||"Recorded reference voice",{kind:"recorded"});
+    setStatus("Original voice recording attached to this slide. The narration text now matches its transcript.");
+    refresh();
+  }
+  function useStyle(){
+    const chosen=$v("voiceProfileSaved").value||state.activeVoiceProfile;
+    const profile=log().find(p=>p.id===chosen);
+    if(!profile)return setStatus("Select or save a voice profile first.");
+    loadProfile(profile.id);
+    if(current()?.narrationAudio){
+      setStatus("Saved style applied to new synthetic speech. This slide already has attached audio; remove the existing narration to hear regenerated speech.");
+    }else{
+      setStatus(profile.name+" applied to synthetic narration. Enter narration and click Test speech; this style also applies to automatic TTS export.");
+    }
+  }
+  function saveStyleFile(){
+    const profile=getActive();
+    if(!profile)return setStatus("Select a saved voice profile first.");
+    const data={
+      format:PROFILE_FORMAT,version:1,exportedAt:new Date().toISOString(),
+      profile:{
+        kind:profile.kind,name:profile.name,
+        script:profile.script,metrics:profile.metrics,
+        settings:profile.settings,
+        baseVoiceName:profile.baseVoiceName||"",
+        baseRate:profile.baseRate||1
+      }
+    };
+    download(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),
+      (profile.kind||"voice")+"-style.json");
+    setStatus("Voice settings downloaded. This file contains settings and measurements, not your original audio.");
+  }
+  function importSettings(file){
+    return file.text().then(text=>{
+      if(file.size>100000)throw Error("Voice settings JSON must be smaller than 100 KB.");
+      const data=JSON.parse(text);
+      if(data.format!==PROFILE_FORMAT||data.version!==1||!data.profile)
+        throw Error("Not a supported EduShorts voice-style JSON.");
+      const src=data.profile;
+      if(!Object.prototype.hasOwnProperty.call(labels,src.kind))throw Error("Unknown voice profile type.");
+      if(!src.settings||typeof src.settings!=="object"||Array.isArray(src.settings))throw Error("Profile settings are missing.");
+      const defaults=VoiceDirector.defaults;
+      const safeSettings={...defaults};
+      for(const [key,min,max] of [["pitch",80,120],["volume",50,100],["speed",70,130],["expression",0,100],["variation",0,100],["pauses",0,100]]){
+        const n=Number(src.settings[key]);
+        if(Number.isFinite(n))safeSettings[key]=clamp(n,min,max);
+      }
+      if(["natural","warm","energetic","calm"].includes(src.settings.style))safeSettings.style=src.settings.style;
+      if(typeof src.settings.smart==="boolean")safeSettings.smart=src.settings.smart;
+      if(typeof src.settings.dictionary==="string")safeSettings.dictionary=src.settings.dictionary.slice(0,5000);
+      const existing=log().find(p=>p.kind===src.kind);
+      if(existing&&!confirm("Replace the existing "+labels[src.kind]+" profile with this imported voice style?"))return;
+      const numericMetrics={};
+      for(const key of ["duration","meanPitchHz","pitchIqrHz","pitchIqrSemitones","pitchFrames","rms","peakRms","dynamicsDb","pauseCount","meanPauseMs","speechSeconds","scriptWords","estimatedWordsPerMinute"]){
+        const n=Number(src.metrics?.[key]);
+        numericMetrics[key]=src.metrics?.[key]===null||src.metrics?.[key]===undefined||!Number.isFinite(n)?null:n;
+      }
+      const profile={
+        id:existing?.id||crypto.randomUUID(),kind:src.kind,name:labels[src.kind],
+        createdAt:new Date().toISOString(),script:String(src.script||"").slice(0,5000),
+        metrics:numericMetrics,settings:safeSettings,
+        baseVoiceName:String(src.baseVoiceName||"").slice(0,100),
+        baseRate:clamp(Number(src.baseRate)||1,.6,1.5),
+        referenceAudio:"",referenceMime:"",schemaVersion:1
+      };
+      if(existing)log().splice(log().indexOf(existing),1,profile);else log().push(profile);
+      state.activeVoiceProfile=profile.id;
+      analysis=null;sampleBlob=null;shownProfile=null;
+      loadProfile(profile.id);
+      setStatus(profile.name+" voice settings imported and applied. New synthesized narration will use this speaking style.");
+    });
+  }
+
   function deleteProfile(){
     const id=$v("voiceProfileSaved").value;
     if(!id)return;
@@ -272,7 +397,7 @@ window.VoiceProfiler=(()=>{
       const blob=new Blob(chunks,{type:recorder.mimeType||"audio/webm"});
       stream?.getTracks().forEach(track=>track.stop());stream=null;recorder=null;
       $v("voiceProfileRecordBtn").textContent="Start voice recording";
-      try{updateAudio(URL.createObjectURL(blob));await analyze(blob);}
+      try{sampleBlob=blob;updateAudio(URL.createObjectURL(blob));refresh();await analyze(blob);}
       catch(error){setStatus("Analysis failed: "+error.message);}
     };
     recorder.start(200);
@@ -311,7 +436,7 @@ window.VoiceProfiler=(()=>{
       if(!file)return;
       try{
         if(file.size>SAMPLE_MAX)throw Error("Audio exceeds 20 MB.");
-        updateAudio(URL.createObjectURL(file));await analyze(file);
+        sampleBlob=file;updateAudio(URL.createObjectURL(file));refresh();await analyze(file);
       }catch(error){setStatus(error.message);}
     };
     $v("voiceProfileAnalyzeBtn").onclick=async()=>{
@@ -322,6 +447,15 @@ window.VoiceProfiler=(()=>{
     $v("voiceProfileUpdateBtn").onclick=updateProfile;
     $v("voiceProfileDeleteBtn").onclick=deleteProfile;
     $v("voiceProfileCompareBtn").onclick=compareSynthesized;
+    $v("voiceProfileUseStyleBtn").onclick=useStyle;
+    $v("voiceProfileDownloadAudioBtn").onclick=saveRecording;
+    $v("voiceProfileUseAudioBtn").onclick=()=>useRecordingOnSlide().catch(e=>setStatus("Could not attach recording: "+e.message));
+    $v("voiceProfileExportBtn").onclick=saveStyleFile;
+    $v("voiceProfileImportInput").onchange=async e=>{
+      const file=e.target.files?.[0];e.target.value="";
+      if(!file)return;
+      try{await importSettings(file);}catch(error){setStatus("Could not import voice settings: "+error.message);}
+    };
     const oldLoadEditor=loadEditor;
     loadEditor=function(){oldLoadEditor();refresh();};
     const originalNew=$v("newBtn").onclick;
