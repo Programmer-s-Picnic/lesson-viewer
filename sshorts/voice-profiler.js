@@ -14,7 +14,7 @@ window.VoiceProfiler=(()=>{
     story:"Imagine standing in a classroom on your first day. Everything feels unfamiliar. Then, a surprising idea changes the way you think! What happens next? Let me tell you.",
     quiz:"Welcome to the quick coding challenge! Are you ready? Look carefully at this program. What output do you expect? Three, two, one. Great job! Let's explain the answer."
   };
-  let recorder=null,stream=null,chunks=[],busy=false,sampleBlob=null,sampleUrl="",analysis=null,recordTimeout=0;
+  let recorder=null,stream=null,chunks=[],busy=false,sampleBlob=null,sampleUrl="",analysis=null,recordTimeout=0,shownProfile=null;
   const setStatus=t=>{if($v("voiceProfileStatus"))$v("voiceProfileStatus").textContent=t;};
   const log=()=>{state.voiceProfiles||=[];return state.voiceProfiles;};
   const getActive=()=>log().find(p=>p.id===state.activeVoiceProfile);
@@ -202,6 +202,19 @@ window.VoiceProfiler=(()=>{
     }
     select.value=log().some(p=>p.id===selected)?selected:"";
     const profile=getActive();
+    if(profile!==shownProfile){
+      shownProfile=profile||null;
+      analysis=null;sampleBlob=null;
+      $v("voiceProfileSaveBtn").disabled=true;
+      if(profile){
+        $v("voiceProfileKind").value=profile.kind;
+        $v("voiceProfileScript").value=profile.script||scripts[profile.kind];
+        updateAudio(profile.referenceAudio||"");
+      }else{
+        updateAudio("");
+        $v("voiceProfileMetrics").textContent="";
+      }
+    }
     $v("voiceProfileUpdateBtn").disabled=!profile;
     if(profile&&!analysis){
       $v("voiceProfileMetrics").textContent=
@@ -320,7 +333,6 @@ window.VoiceProfiler=(()=>{
       refresh();
     };
     refresh();
-    if(getActive())loadProfile(state.activeVoiceProfile);
   }
   window.addEventListener("beforeunload",()=>{
     clearTimeout(recordTimeout);
