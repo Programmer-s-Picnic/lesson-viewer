@@ -1246,10 +1246,11 @@ async function createProjectScreenshots(){
 }
 function projectPayload(){
   readSetup();
+  state.voiceStudio={...VoiceDirector.defaults,...(state.voiceStudio||{})};
   return {
     format:PROJECT_FORMAT,version:PROJECT_VERSION,savedAt:new Date().toISOString(),
     state:structuredClone(state),assets:{musicData,musicName,logoName},
-    settings:{musicVolume:Number($("musicVolume").value),exportFormat:$("exportFormat").value}
+    settings:{musicVolume:Number($("musicVolume").value),exportFormat:$("exportFormat").value,voiceStudio:structuredClone(state.voiceStudio),screenshotsEmbedded:true}
   };
 }
 
@@ -1350,6 +1351,8 @@ $("openInput").onchange=async e=>{
     const project=JSON.parse(await file.text());
     if(project.state)state={...structuredClone(defaults),...project.state};
     else state={...structuredClone(defaults),...project};
+    if(!state.voiceStudio&&project.settings?.voiceStudio)state.voiceStudio=project.settings.voiceStudio;
+    state.voiceStudio={...VoiceDirector.defaults,...(state.voiceStudio||{})};
     normalizeProjectNarrationTiming();
     musicData=project.assets?.musicData||"";
     musicName=project.assets?.musicName||"";
@@ -1362,7 +1365,7 @@ $("openInput").onchange=async e=>{
 };
 $("newBtn").onclick=()=>{
   if(state.slides.length&&!confirm("Start a new project?"))return;
-  state=structuredClone(defaults);musicData="";musicName="";logoName="";updateFileControlStatus();syncSetup();renderAll();status("New project.");
+  state=structuredClone(defaults);state.voiceStudio={...VoiceDirector.defaults};musicData="";musicName="";logoName="";updateFileControlStatus();syncSetup();renderAll();status("New project.");
 };
 
 $("guideBtn").onclick=()=>$("guideDialog").showModal();
