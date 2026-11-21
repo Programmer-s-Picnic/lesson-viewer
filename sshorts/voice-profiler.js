@@ -189,6 +189,9 @@ window.VoiceProfiler=(()=>{
     if(old)profiles.splice(profiles.indexOf(old),1,profile);
     else profiles.push(profile);
     state.activeVoiceProfile=profile.id;
+    // Keep the just-recorded local sample playable even when its size
+    // exceeds the optional JSON embedding limit.
+    shownProfile=profile;
     saveLocal();refresh();
     setStatus("Saved "+profile.name+" with measurements and settings"+(keepAudio?" and reference audio.":". Reference audio not embedded."));
   }
