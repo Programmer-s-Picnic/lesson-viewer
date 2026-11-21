@@ -1,85 +1,43 @@
-# EduShorts Maker — Complete Replacement Package
+# EduShorts Maker — Learn With Champak
 
-Files:
-- index.html
-- styles.css
-- app.js
+Browser-based educational short-video editor. Open `index.html` through an HTTP(S) static web server in a recent Chromium browser.
 
-Main features:
-- Educational slide templates
-- Typeable subject field
-- Photo Reel: 10 recommended, 100 maximum
-- Entrance, continuous image-motion and exit animations
-- Webcam overlay
-- Looping uploaded video overlay instead of webcam
-- Overlay position, size, round/rectangle and mirror controls
-- Microphone narration
-- Uploaded narration
-- Browser speech synthesis preview and system-audio recording option
-- Background music
-- Vertical 1080×1920 and landscape 1920×1080 WebM export
-- Project save/open JSON
+## Active files
 
-## Looping video overlay
-Open "Camera / looping video overlay".
-Choose "Looping video file", select an MP4/WebM, and the clip will autoplay muted and repeat continuously through all slides and export.
+- `index.html` — application interface and controls
+- `styles.css` — responsive light-blue theme
+- `app.js` — project data, editor, photo reels, camera/video overlays, audio, and standard WebM export
+- `speech-captions.js` — captions and highlighted speech words
+- `auto-tts-export.js` — optional experimental browser TTS screen-audio capture
 
-Note: the uploaded overlay video is intentionally not embedded in project JSON because large video files can make JSON enormous. Re-select the overlay video after reloading/opening a project.
+The superseded `photo-reel.js`, `tts-recorder.js` and `audio-export-fix.js` are intentionally not loaded. Their active functionality is in `app.js`.
 
-## Spoken-word highlighting
+## Features
 
-Narration now uses karaoke-style captions:
-- spoken words remain visible while speech/narration is active
-- the current word is highlighted with the accent colour
-- live browser speech synthesis uses word-boundary events when the browser provides them
-- recorded narration, including recorded synthesized speech, is highlighted during preview
-- the same captions and highlighting are rendered into exported WebM video
+Lesson templates, portrait and landscape video, up to 100 photos per reel, image transitions and movement, webcam or looping video overlay, microphone and uploaded narration, browser speech preview/recording, background music, captions, image cover export, and JSON save/open.
 
-## File controls
+## Export
 
-Brand logo and background music now use explicit status indicators. After a file is loaded the UI shows `Loaded: filename` instead of the browser's misleading `No file selected` text. The filename status is also restored when a saved project is opened.
+**Recommended:** Record or upload narration, leave **Automatic synthesized narration during export** unchecked, and click Export. The standard exporter mixes attached audio and background music.
 
-## Synthesized-speech timing and subtitle layout
+**Experimental automatic TTS:** The optional mode requires an entire-screen share with system audio enabled. System-audio support differs by browser and OS. Unrelated system sounds may be included, and an audio track is not proof that speech was captured. Verify the resulting video before publishing.
 
-- Synthesized narration starts 3 seconds after the slide has appeared.
-- The complete synthesized narration is allowed to finish.
-- The completed slide then remains visible for another 5 seconds before advancing.
-- Export uses the same timing.
-- Karaoke captions use an explicitly left-aligned canvas layout, fixing overlapping words caused by inherited footer alignment.
-- Landscape captions use a centered two-line lower-third block; portrait captions use up to three lines.
+Export uses WebM, not MP4. Large projects can consume significant memory; export or save the project JSON regularly. Local autosave is best-effort and can fail if browser storage is full. Uploaded looping overlay videos must be selected again after reopening a project.
 
-## Complete synthesized speech fix
+## Known limits
 
-Synthesized narration no longer advances based only on WebM metadata duration. Preview waits for the narration audio element's actual `ended` event, then holds the slide for five seconds. TTS recording also keeps a 1.2-second capture tail after Web Speech `onend`, protecting the final word from clipping. Export decodes narration first and uses the decoded AudioBuffer duration for slide/timeline timing.
+- Recorded-audio word highlighting is estimated by timing; it is not a forced-alignment transcript.
+- Browser-based real-time canvas recording can drop frames under load; avoid backgrounding the export tab.
+- Captions near bottom-positioned video overlays may overlap.
+- Web Speech voices and system-audio capture vary between browsers.
+- No automated cross-browser end-to-end export suite is included yet.
 
-## Final landscape caption position
+## Acceptance checks
 
-In landscape/full-screen video, spoken-word subtitles now stay in the lower third just above the footer. A bottom-left or bottom-right webcam/video overlay no longer pushes the entire subtitle block upward; portrait mode still reserves vertical clearance where overlap is more likely.
-
-## Final caption position in both formats
-
-Spoken/highlighted subtitles now stay in the lower third in both landscape and portrait, just above the footer. Bottom camera/video overlays no longer push the subtitle block upward.
-
-
-## Automatic TTS Export
-
-`Automatic synthesized narration during export` is enabled by default.
-
-Workflow:
-1. Click Export once.
-2. Choose **Entire Screen**.
-3. Enable **Share system audio**.
-4. The exporter processes every slide automatically:
-   - show the slide
-   - wait 3 seconds
-   - synthesize that slide's narration
-   - show/highlight the spoken words
-   - wait for the actual speech `onend`
-   - allow a short audio-drain tail so the final phoneme is not clipped
-   - hold the completed slide for 5 seconds
-   - move to the next slide
-5. One WebM file is downloaded when all slides are complete.
-
-The shared-screen video is not included in the output; only its system-audio track is used. Background music is mixed separately. Keep notification and other system sounds quiet while exporting because system-audio capture can include them.
-
-Uncheck the Automatic TTS option to use the existing manual/pre-recorded narration exporter.
+1. Create a simple slide project; preview and export it with and without audio.
+2. Record or upload narration, mix music, and verify the complete export.
+3. Test automatic TTS only after checking browser system-audio permissions.
+4. Preview portrait and landscape format, captions, and camera overlay.
+5. Create a photo reel and verify each photo and transition.
+6. Save/open a project and verify the media content.
+7. Confirm an unavailable image causes a visible export error.
