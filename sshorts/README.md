@@ -53,6 +53,18 @@ The proposed browser-TTS controls are automatically applied. Click **Save / repl
 
 **Limitations:** A recorded voice cannot be reproduced by ordinary browser TTS. Pitch and dynamics depend on microphone, environment, accent, and the installed synthetic voice. Emotion, timbre, phoneme timing and identity are not cloned. Word-rate accuracy depends on a correct transcript. Noise, music, very short or very quiet recordings can yield weak estimates. Audio samples are restricted to 2–90 seconds and up to 20 MB.
 
+## Save recorded voice and reuse learned narration settings
+
+Open **Narration → Learn voice settings from my recording** to record or upload a voice sample. The expanded **How to use saved voice settings as the synthesized voice** guide provides step-by-step instructions inside the editor.
+
+**Use the actual recording:** After capturing audio, click **Save recorded voice (audio file)** to download the original microphone sound as an audio file. Alternatively choose **Use this recording on current slide** to attach the exact recording to the selected slide as its narration; this replaces existing slide narration and uses the supplied reference script for captions. It does **not** speak the slide's arbitrary new text.
+
+**Use its speaking style for new synthetic words:** Analyze a recording, click **Save / replace this voice profile**, then select it and click **Use settings for synthesized narration**. The browser voice will use the saved pitch/speed/expression/pause controls globally for the project. Choose a compatible browser voice in **Voice**, enter the text to synthesize, and click **Test speech**, **Record synthesized speech**, or use the experimental automatic TTS export. Existing embedded narration clips are unaffected; remove or replace them if you want regenerated synthetic audio.
+
+**Reuse settings in another project:** Click **Save voice settings (.json)** to download a standalone Edushorts voice-style JSON containing settings, measured characteristics, preferred base voice and sample transcript, but **not the reference audio**. In another project click **Load voice settings (.json)**, then **Use settings for synthesized narration**. The import validates the file and offers to replace a profile of the same type. Full project JSON still stores its saved profiles and optionally an embedded reference audio clip.
+
+**Privacy and limits:** A separately downloaded recording contains the person's actual voice and should be shared carefully. A voice settings file cannot clone that voice or play back the original recording. Browser TTS only approximates delivery patterns, and some available voice engines ignore pitch/volume adjustments. Recording playback on a slide and synthesized voice generation are two different operations.
+
 ## Portable JSON projects and automatically generated screenshots
 
 Choose **Save project + screenshots** to generate a full-slide preview image for every slide before downloading the JSON. Each slide receives a JPEG data URL in `screenshot` and a `screenshotFormat` (vertical/landscape). Pre-existing `image` data URLs, embedded logo, attached audio data, narration text, sentence overrides and the full `state.voiceStudio` configuration remain inside the project. The complete voice configuration also appears in `settings.voiceStudio` to help other tools inspect the project.
