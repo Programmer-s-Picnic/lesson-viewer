@@ -20,6 +20,10 @@ const defaults = {
   brandColor: "#075985",
   accentColor: "#f59e0b",
   logo: "",
+  voiceProfiles: [],
+  activeVoiceProfile: "",
+  ttsVoiceName: "",
+  ttsNarrationRate: 1,
   slides: [],
   current: 0
 };
@@ -817,7 +821,7 @@ function loadSpeechVoices(){
   const voices=speechSynthesis?.getVoices?.()||[];
   for(const id of ["speechVoice","ttsNarrationVoice"]){
     const select=$(id);if(!select)continue;
-    const chosen=select.value;
+    const chosen=(id==="ttsNarrationVoice"?state.ttsVoiceName:"")||select.value;
     select.innerHTML='<option value="">Browser default</option>';
     voices.forEach(v=>{const o=document.createElement("option");o.value=v.name;o.textContent=`${v.name} (${v.lang})`;select.appendChild(o);});
     if([...select.options].some(o=>o.value===chosen))select.value=chosen;
@@ -1250,7 +1254,7 @@ function projectPayload(){
   return {
     format:PROJECT_FORMAT,version:PROJECT_VERSION,savedAt:new Date().toISOString(),
     state:structuredClone(state),assets:{musicData,musicName,logoName},
-    settings:{musicVolume:Number($("musicVolume").value),exportFormat:$("exportFormat").value,voiceStudio:structuredClone(state.voiceStudio),screenshotsEmbedded:true}
+    settings:{musicVolume:Number($("musicVolume").value),exportFormat:$("exportFormat").value,voiceStudio:structuredClone(state.voiceStudio),ttsVoiceName:state.ttsVoiceName||"",ttsNarrationRate:Number(state.ttsNarrationRate||1),profileCount:(state.voiceProfiles||[]).length,screenshotsEmbedded:true}
   };
 }
 
@@ -1323,7 +1327,8 @@ $("removeNarrationBtn").onclick=()=>{const s=current();if(!s)return;s.narrationA
 $("testSpeechBtn").onclick=()=>{const s=current();if(s)speakText(s.narrationText||s.content,s.speechVoice,s.speechRate);};
 $("previewTtsNarrationBtn").onclick=()=>speakText($("narrationText").value,$("ttsNarrationVoice").value,$("ttsNarrationRate").value);
 $("recordTtsNarrationBtn").onclick=recordSynthesizedSpeech;
-$("ttsNarrationRate").oninput=()=>{$("ttsNarrationRateOut").value=`${Number($("ttsNarrationRate").value).toFixed(1).replace(".0","")}×`;};
+$("ttsNarrationRate").oninput=()=>{state.ttsNarrationRate=Number($("ttsNarrationRate").value)||1;$("ttsNarrationRateOut").value=`${state.ttsNarrationRate.toFixed(1).replace(".0","")}×`;saveLocal();};
+$("ttsNarrationVoice").onchange=()=>{state.ttsVoiceName=$("ttsNarrationVoice").value;saveLocal();};
 
 $("exportFormat").onchange=()=>{setCanvasFormat();drawPreview(1);};
 $("coverBtn").onclick=async()=>{
@@ -1353,6 +1358,12 @@ $("openInput").onchange=async e=>{
     else state={...structuredClone(defaults),...project};
     if(!state.voiceStudio&&project.settings?.voiceStudio)state.voiceStudio=project.settings.voiceStudio;
     state.voiceStudio={...VoiceDirector.defaults,...(state.voiceStudio||{})};
+    state.voiceProfiles=Array.isArray(state.voiceProfiles)?state.voiceProfiles:[];
+    state.ttsVoiceName=state.ttsVoiceName||project.settings?.ttsVoiceName||"";
+    state.ttsNarrationRate=Number(state.ttsNarrationRate||project.settings?.ttsNarrationRate||1);
+    $("ttsNarrationRate").value=state.ttsNarrationRate;
+    $("ttsNarrationRateOut").value=`${Number(state.ttsNarrationRate).toFixed(1).replace(".0","")}×`;
+    loadSpeechVoices();
     normalizeProjectNarrationTiming();
     musicData=project.assets?.musicData||"";
     musicName=project.assets?.musicName||"";
@@ -1382,6 +1393,9 @@ try{
     normalizeProjectNarrationTiming();
   }
 }catch(e){}
+$("ttsNarrationRate").value=state.ttsNarrationRate||1;
+$("ttsNarrationRateOut").value=`${Number($("ttsNarrationRate").value).toFixed(1).replace(".0","")}×`;
+loadSpeechVoices();
 syncSetup();setCanvasFormat();updateFileControlStatus();renderAll();updateOverlayMode();
 
 window.addEventListener("beforeunload",()=>{
