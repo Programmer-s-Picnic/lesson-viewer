@@ -306,125 +306,78 @@
     drawKaraoke(ctx, slide, progress);
   };
 
-  // Boundary-aware speech synthesis. The project preview waits three seconds
-  // before calling this function; once called, real word boundaries drive
-  // highlighting whenever the browser provides them.
-  // Speak one sentence/clause at a time. Web Speech only supports
-  // per-utterance rate/pitch/volume, so vary these gently between phrases.
-  // The controller exposes the same onend/onerror contract as an utterance.
-  function speechSegments(source) {
-    const parts = [];
-    const re = /[^.!?;:\n]+(?:[.!?;:\n]+|$)/g;
-    let match;
-    while ((match = re.exec(source))) {
-      const raw = match[0];
-      const value = raw.trim();
-      if (!value) continue;
-      const leading = raw.indexOf(value);
-      parts.push({ text: value, start: match.index + leading });
-    }
-    // Avoid a robotic pause after every short fragment.
-    const joined = [];
-    for (const item of parts) {
-      const last = joined[joined.length - 1];
-      if (last && last.text.length < 36 && last.text.length + item.text.length < 125) {
-        last.text = source.slice(last.start, item.start + item.text.length).trim();
-      } else {
-        joined.push({ ...item });
-      }
-    }
-    return joined.length ? joined : [{ text: source, start: 0 }];
-  }
-
-  speakText = function speakTextWithNaturalDelivery(text, voiceName, rate = 1) {
-    if (!("speechSynthesis" in window)) return null;
-    const sourceText = normalizeSpeechText(text);
-    if (!sourceText) return null;
-
+  // One authoritative speaking engine for preview, capture and automatic export.
+  // All prosody plans are deterministic and editable in Natural Voice Studio.
+  let activeController=null;
+  speakText=function speakTextWithNaturalDirector(text,voiceName,rate=1,slide=current()){
+    if(!("speechSynthesis" in window))return null;
+    const sourceText=normalizeSpeechText(text);
+    if(!sourceText)return null;
+    if(activeController)activeController.cancel();
     speechSynthesis.cancel();
-    const style = $("speechStyle")?.value || "natural";
-    const profiles = {
-      natural:  { pitch: 1, rate: 1, volume: .92, variance: .045, pause: 120 },
-      warm:     { pitch: 1.035, rate: .94, volume: .9, variance: .035, pause: 180 },
-      energetic:{ pitch: 1.075, rate: 1.06, volume: .96, variance: .065, pause: 90 },
-      calm:     { pitch: .965, rate: .88, volume: .86, variance: .025, pause: 230 }
+    const entries=VoiceDirector.plan(sourceText,slide);
+    if(!entries.length)return null;
+    const voice=speechSynthesis.getVoices().find(v=>v.name===voiceName);
+    const controller={onend:null,onerror:null,onstart:null,onboundary:null,cancel:null};
+    let index=0,stopped=false,timer=0,started=false;
+    activeController=controller;
+    liveSpeechSlideId=slide?.id||current()?.id||"";
+    liveSpeechText=sourceText;
+    liveSpeechWord=-1;
+    const clear=()=>{
+      liveSpeechWord=-1;
+      liveSpeechSlideId="";
+      liveSpeechText="";
+      liveSpeechUtterance=null;
+      drawPreview(Number($("progress")?.value||100)/100);
     };
-    const profile = profiles[style] || profiles.natural;
-    const segments = speechSegments(sourceText);
-    const voice = speechSynthesis.getVoices().find(v => v.name === voiceName);
-    const baseRate = Math.max(.6, Math.min(1.5, Number(rate) || 1));
-    const controller = { onend: null, onerror: null, onstart: null, onboundary: null, cancel: null };
-    let index = 0;
-    let stopped = false;
-    let pauseTimer = 0;
-    let activeUtterance = null;
-
-    liveSpeechSlideId = current()?.id || "";
-    liveSpeechText = sourceText;
-    liveSpeechWord = -1;
-
-    const clear = () => {
-      liveSpeechWord = -1;
-      liveSpeechSlideId = "";
-      liveSpeechText = "";
-      liveSpeechUtterance = null;
-      drawPreview(Number($("progress")?.value || 100) / 100);
-    };
-    const finish = (error) => {
-      if (stopped) return;
-      stopped = true;
-      clearTimeout(pauseTimer);
+    function finish(error){
+      if(stopped)return;
+      stopped=true;
+      clearTimeout(timer);
+      if(activeController===controller)activeController=null;
       clear();
-      if (error) controller.onerror?.({ error });
-      else controller.onend?.({ type: "end" });
-    };
-    controller.cancel = () => {
-      if (stopped) return;
-      stopped = true;
-      clearTimeout(pauseTimer);
-      speechSynthesis.cancel();
-      clear();
-    };
-
-    function next() {
-      if (stopped) return;
-      if (index >= segments.length) return finish();
-      const segment = segments[index];
-      const i = index++;
-      const u = new SpeechSynthesisUtterance(segment.text);
-      activeUtterance = u;
-      liveSpeechUtterance = u;
-      if (voice) { u.voice = voice; u.lang = voice.lang; }
-      const punctuation = /[?!]$/.test(segment.text);
-      const emphasis = punctuation || /\b(important|remember|notice|key|warning|why|how)\b/i.test(segment.text);
-      const contour = Math.sin(i * 1.75) * profile.variance;
-      u.pitch = Math.max(.75, Math.min(1.3, profile.pitch + contour + (emphasis ? .035 : 0)));
-      u.rate = Math.max(.6, Math.min(1.5, baseRate * profile.rate * (emphasis ? .96 : 1) * (1 - contour * .25)));
-      u.volume = Math.max(.45, Math.min(1, profile.volume + contour * .6 + (emphasis ? .035 : 0)));
-      u.onstart = event => {
-        if (stopped) return;
-        liveSpeechWord = wordFromChar(sourceText, segment.start);
-        controller.onstart?.(event);
-        drawPreview(Number($("progress")?.value || 0) / 100);
-      };
-      u.onboundary = event => {
-        if (stopped || !Number.isFinite(event.charIndex)) return;
-        const charIndex = segment.start + event.charIndex;
-        liveSpeechWord = wordFromChar(sourceText, charIndex);
-        controller.onboundary?.({ ...event, charIndex });
-        drawPreview(Number($("progress")?.value || 0) / 100);
-      };
-      u.onend = () => {
-        if (stopped) return;
-        const pause = i + 1 < segments.length ? profile.pause + (punctuation ? 110 : 0) : 0;
-        if (pause) pauseTimer = setTimeout(next, pause);
-        else next();
-      };
-      u.onerror = event => finish(event?.error || "synthesis failed");
-      try { speechSynthesis.speak(u); }
-      catch (error) { finish(error?.message || "synthesis failed"); }
+      if(error)controller.onerror?.({error});
+      else controller.onend?.({type:"end"});
     }
-    next();
+    controller.cancel=()=>{
+      if(stopped)return;
+      stopped=true;clearTimeout(timer);
+      if(activeController===controller)activeController=null;
+      speechSynthesis.cancel();clear();
+    };
+    function next(){
+      if(stopped)return;
+      if(index>=entries.length)return finish();
+      const entry=entries[index++];
+      const u=new SpeechSynthesisUtterance(entry.spoken);
+      liveSpeechUtterance=u;
+      if(voice){u.voice=voice;u.lang=voice.lang;}
+      u.pitch=entry.pitch;
+      u.rate=entry.rate;
+      u.volume=entry.volume;
+      u.onstart=event=>{
+        if(stopped)return;
+        liveSpeechWord=wordFromChar(sourceText,entry.start);
+        if(!started){started=true;controller.onstart?.(event);}
+        drawPreview(Number($("progress")?.value||0)/100);
+      };
+      u.onboundary=event=>{
+        if(stopped||!Number.isFinite(event.charIndex))return;
+        // Dictionary replacements can change the spoken text length.
+        // Map the spoken boundary proportionally onto the source sentence.
+        const fraction=Math.max(0,Math.min(1,event.charIndex/Math.max(1,entry.spoken.length)));
+        const mapped=entry.start+Math.floor(fraction*entry.text.length);
+        liveSpeechWord=wordFromChar(sourceText,mapped);
+        controller.onboundary?.({charIndex:mapped,name:event.name});
+        drawPreview(Number($("progress")?.value||0)/100);
+      };
+      u.onend=()=>{if(stopped)return;timer=setTimeout(next,index<entries.length?entry.pause:0);};
+      u.onerror=event=>finish(event?.error||"speech synthesis failed");
+      try{speechSynthesis.speak(u);}catch(error){finish(error?.message||"speech synthesis failed");}
+    }
+    // Defer start to allow onend/onerror handlers to be installed by the caller.
+    timer=setTimeout(next,0);
     return controller;
   };
 
