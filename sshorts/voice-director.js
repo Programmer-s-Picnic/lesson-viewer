@@ -108,6 +108,6 @@ window.VoiceDirector=(()=>{
    });
    render();
  }
- return {defaults,config,clauses,plan,render,initialize};
+ return {defaults,config,clauses,plan,render,syncControls,initialize};
 })();
 window.VoiceDirector.initialize();
