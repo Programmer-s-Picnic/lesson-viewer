@@ -8,6 +8,7 @@ Browser-based educational short-video editor. Open `index.html` through an HTTP(
 - `styles.css` — responsive light-blue theme
 - `app.js` — project data, editor, photo reels, camera/video overlays, audio, and standard WebM export
 - `speech-captions.js` — captions and highlighted speech words
+- `voice-director.js` — expressive voice settings, speech planning and sentence controls
 - `auto-tts-export.js` — optional experimental browser TTS screen-audio capture
 
 The superseded `photo-reel.js`, `tts-recorder.js` and `audio-export-fix.js` are intentionally not loaded. Their active functionality is in `app.js`.
@@ -16,9 +17,21 @@ The superseded `photo-reel.js`, `tts-recorder.js` and `audio-export-fix.js` are 
 
 Lesson templates, portrait and landscape video, up to 100 photos per reel, image transitions and movement, webcam or looping video overlay, microphone and uploaded narration, browser speech preview/recording, background music, captions, image cover export, and JSON save/open.
 
-## Expressive browser narration
+## Natural Voice Studio (Phase 1 + Phase 2)
 
-The speech controls offer **Natural**, **Warm**, **Energetic** and **Calm** delivery. Narration is divided into natural punctuation-delimited phrases; small adjustments to pitch, loudness, speaking rate and pauses give the voice more variation. The same speech engine is used for slide preview, speech recording, and experimental automatic TTS export. The browser's installed voice still determines the quality of pronunciation and intonation: this is not a neural text-to-speech model, and the Web Speech API cannot continuously modulate pitch within an utterance. Word highlighting uses word boundaries when the voice supplies them.
+Speech preview, recorded synthesized narration and optional automatic TTS export now use one rule-based speech director.
+
+- **Speaking styles:** Natural, Warm, Energetic and Calm
+- **Advanced settings:** base pitch, voice volume, overall speed, expressiveness, pitch variation and natural pauses
+- **Smart narration director:** detects questions, excited statements, cautions, emphasis, invitations and explanations
+- **Per-sentence editing:** select a delivery category and an additional post-sentence pause in milliseconds. Use *Reset sentence directions* to return to automatic detection
+- **Pronunciation dictionary:** `term = spoken words`, one entry per line, with defaults for common coding terms. It affects audio only, not slide text
+- **Persistence:** studio configuration is stored in project JSON and browser autosave; per-sentence overrides are saved on each slide
+- **Shared engine:** narration preview, system-audio speech recording and automatic WebM TTS export follow the same rule set
+
+Open **Narration → Natural Voice Studio — advanced settings** to adjust global controls, then **Sentence direction — current slide** for individual sentences.
+
+Browser limitations: Web Speech varies by voice and operating system; pitch, rate and volume can only change between utterances. Word boundaries supplied by the browser are used for caption highlighting; when pronunciation replacements change utterance text length, positions are approximated. The rule-based director does not provide neural emotion synthesis, actual breathing, phoneme-level timing or guaranteed human-quality speech. The experimental automatic export still requires system-audio screen sharing.
 
 ## Export
 
