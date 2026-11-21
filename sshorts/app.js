@@ -850,18 +850,22 @@ async function recordSynthesizedSpeech(){
     rec.ondataavailable=e=>e.data.size&&chunks.push(e.data);
     const voiceName=$("ttsNarrationVoice").value;
     const rate=$("ttsNarrationRate").value;
-    const u=new SpeechSynthesisUtterance(text);
     const voice=speechSynthesis.getVoices().find(v=>v.name===voiceName);
-    if(voice){u.voice=voice;u.lang=voice.lang;}u.rate=Number(rate||1);
     const stopped=new Promise(resolve=>{rec.onstop=resolve;});
     rec.start(100);
     await new Promise(r=>setTimeout(r,120));
-    // Keep recording long enough after Web Speech reports onend so the
-    // final word/phoneme is never clipped by the system-audio recorder.
-    u.onend=()=>setTimeout(()=>rec.state!=="inactive"&&rec.stop(),1200);
-    u.onerror=()=>setTimeout(()=>rec.state!=="inactive"&&rec.stop(),500);
-    speechSynthesis.cancel();speechSynthesis.speak(u);
+    // Use the same expressive synthesizer as preview and automatic export.
+    // Stop only after every phrase has finished, retaining the audio tail.
+    const spoken=await new Promise(resolve=>{
+      const controller=speakText(text,voiceName,rate);
+      if(!controller)return resolve({ok:false,reason:"speech synthesis unavailable"});
+      controller.onend=()=>resolve({ok:true});
+      controller.onerror=event=>resolve({ok:false,reason:event?.error||"speech synthesis error"});
+    });
+    await new Promise(r=>setTimeout(r,spoken.ok?1200:500));
+    if(rec.state!=="inactive")rec.stop();
     await stopped;
+    if(!spoken.ok)throw new Error(spoken.reason);
     const blob=new Blob(chunks,{type:rec.mimeType||"audio/webm"});
     if(!blob.size)throw new Error("The captured system audio was empty");
     await attachNarration(
