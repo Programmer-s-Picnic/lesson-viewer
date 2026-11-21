@@ -315,7 +315,7 @@
     if(!sourceText)return null;
     if(activeController)activeController.cancel();
     speechSynthesis.cancel();
-    const entries=VoiceDirector.plan(sourceText,slide);
+    const entries=VoiceDirector.plan(sourceText,slide,{rate});
     if(!entries.length)return null;
     const voice=speechSynthesis.getVoices().find(v=>v.name===voiceName);
     const controller={onend:null,onerror:null,onstart:null,onboundary:null,cancel:null};
