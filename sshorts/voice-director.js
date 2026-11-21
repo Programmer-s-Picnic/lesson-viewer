@@ -110,4 +110,4 @@ window.VoiceDirector=(()=>{
  }
  return {defaults,config,clauses,plan,render,initialize};
 })();
-VoiceDirector.initialize();
+window.VoiceDirector.initialize();
