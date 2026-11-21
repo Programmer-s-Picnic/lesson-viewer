@@ -16,6 +16,10 @@ The superseded `photo-reel.js`, `tts-recorder.js` and `audio-export-fix.js` are 
 
 Lesson templates, portrait and landscape video, up to 100 photos per reel, image transitions and movement, webcam or looping video overlay, microphone and uploaded narration, browser speech preview/recording, background music, captions, image cover export, and JSON save/open.
 
+## Expressive browser narration
+
+The speech controls offer **Natural**, **Warm**, **Energetic** and **Calm** delivery. Narration is divided into natural punctuation-delimited phrases; small adjustments to pitch, loudness, speaking rate and pauses give the voice more variation. The same speech engine is used for slide preview, speech recording, and experimental automatic TTS export. The browser's installed voice still determines the quality of pronunciation and intonation: this is not a neural text-to-speech model, and the Web Speech API cannot continuously modulate pitch within an utterance. Word highlighting uses word boundaries when the voice supplies them.
+
 ## Export
 
 **Recommended:** Record or upload narration, leave **Automatic synthesized narration during export** unchecked, and click Export. The standard exporter mixes attached audio and background music.
