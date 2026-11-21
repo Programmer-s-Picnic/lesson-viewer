@@ -32,10 +32,10 @@ window.VoiceDirector=(()=>{
    if(/\b(try|practice|your turn|can you)\b/i.test(text))return "invitation";
    return "explain";
  }
- function plan(text,slide){
+ function plan(text,slide,options={}){
    const cfg=config(),style=styles[cfg.style]||styles.natural;
    const override=slide?.voiceDirections||{};
-   const baseRate=clamp(Number(slide?.speechRate||document.getElementById("ttsNarrationRate")?.value||1),.6,1.5);
+   const baseRate=clamp(Number(options.rate||slide?.speechRate||document.getElementById("ttsNarrationRate")?.value||1),.6,1.5);
    return clauses(text).map((piece,i)=>{
      const manual=override[i]||{};
      const mode=manual.mode&&manual.mode!=="auto"?manual.mode:(cfg.smart?detect(piece.text):"explain");
@@ -77,10 +77,19 @@ window.VoiceDirector=(()=>{
      controls.append(sel,pause);label.append(summary,controls);box.append(label);
    }
  }
+ function syncControls(){
+   const cfg=config();
+   for(const key of ["style","pitch","volume","speed","expression","variation","pauses","dictionary","smart"]){
+     const el=document.getElementById(key==="style"?"speechStyle":"voice-"+key);if(!el)continue;
+     if(el.type==="checkbox")el.checked=!!cfg[key];else el.value=cfg[key];
+     const out=document.getElementById("voice-"+key+"-out");
+     if(out)out.textContent=el.value+(["pitch","volume","speed"].includes(key)?"%":"");
+   }
+ }
  function initialize(){
    const cfg=config();
    for(const key of ["style","pitch","volume","speed","expression","variation","pauses","dictionary","smart"]){
-     const el=document.getElementById("voice-"+key);if(!el)continue;
+     const el=document.getElementById(key==="style"?"speechStyle":"voice-"+key);if(!el)continue;
      if(el.type==="checkbox")el.checked=!!cfg[key];else el.value=cfg[key];
      const output=document.getElementById("voice-"+key+"-out");
      const show=()=>{if(output)output.textContent=el.value+(["pitch","volume","speed"].includes(key)?"%":"");};
@@ -92,7 +101,7 @@ window.VoiceDirector=(()=>{
      });
    }
    const original=loadEditor;
-   loadEditor=function(){original();render();};
+   loadEditor=function(){original();syncControls();render();};
    document.getElementById("narrationText")?.addEventListener("input",render);
    document.getElementById("voiceDirectionReset")?.addEventListener("click",()=>{
      const slide=current();if(!slide)return;slide.voiceDirections={};saveLocal();render();
