@@ -44,17 +44,28 @@ window.VoiceProfiler=(()=>{
     let power=0;for(let i=0;i<size;i++)power+=samples[i]*samples[i];
     if(power/size<.00002)return 0;
     let cumulative=0,best=0,bestScore=Infinity;
+    const normalized=new Float32Array(maxLag+1);
     for(let lag=1;lag<=maxLag;lag++){
       let diff=0;
       for(let i=0;i<size-lag;i++){
         const d=samples[i]-samples[i+lag];diff+=d*d;
       }
       cumulative+=diff;
-      const norm=diff*lag/Math.max(1e-12,cumulative);
-      if(lag>=minLag&&norm<bestScore){bestScore=norm;best=lag;}
-      if(lag>=minLag&&norm<.12)return sr/lag;
+      normalized[lag]=diff*lag/Math.max(1e-12,cumulative);
+      if(lag>=minLag&&normalized[lag]<bestScore){bestScore=normalized[lag];best=lag;}
     }
-    return bestScore<.2?sr/best:0;
+    // Detect the first true local minimum, not an early threshold crossing.
+    let chosen=0;
+    for(let lag=minLag+1;lag<maxLag;lag++){
+      const a=normalized[lag-1],b=normalized[lag],d=normalized[lag+1];
+      if(b<.14&&b<=a&&b<=d){chosen=lag;break;}
+    }
+    if(!chosen){if(bestScore>.2)return 0;chosen=best;}
+    const left=normalized[chosen-1]||normalized[chosen];
+    const mid=normalized[chosen],right=normalized[Math.min(maxLag,chosen+1)];
+    const denom=left-2*mid+right;
+    const refined=Math.abs(denom)>1e-9?clamp(.5*(left-right)/denom,-.5,.5):0;
+    return sr/(chosen+refined);
   }
   function detectPauses(energy,hop,threshold){
     let start=-1,pauses=[],speaking=0,active=false;
@@ -191,6 +202,7 @@ window.VoiceProfiler=(()=>{
     }
     select.value=log().some(p=>p.id===selected)?selected:"";
     const profile=getActive();
+    $v("voiceProfileUpdateBtn").disabled=!profile;
     if(profile&&!analysis){
       $v("voiceProfileMetrics").textContent=
         "Saved "+profile.name+" — "+profile.metrics.duration+" s, pitch "+
@@ -210,6 +222,16 @@ window.VoiceProfiler=(()=>{
     updateAudio(profile.referenceAudio||"");
     VoiceDirector.syncControls();saveLocal();refresh();
     setStatus("Applied "+profile.name+(profile.referenceAudio?". Compare with its reference audio.":". Original audio was not embedded."));
+  }
+  function updateProfile(){
+    const profile=getActive();
+    if(!profile)return setStatus("Choose a saved voice profile before updating settings.");
+    const currentSettings={...VoiceDirector.config()};
+    const keys=["style","smart","pitch","volume","speed","expression","variation","pauses"];
+    profile.settings={...profile.settings,...Object.fromEntries(keys.map(key=>[key,currentSettings[key]]))};
+    profile.modifiedAt=new Date().toISOString();
+    saveLocal();refresh();
+    setStatus("Saved manual adjustments to "+profile.name+". Original measured characteristics are preserved.");
   }
   function deleteProfile(){
     const id=$v("voiceProfileSaved").value;
@@ -275,15 +297,20 @@ window.VoiceProfiler=(()=>{
     };
     $v("voiceProfileSaveBtn").onclick=()=>saveProfile().catch(e=>setStatus("Save failed: "+e.message));
     $v("voiceProfileSaved").onchange=e=>loadProfile(e.target.value);
+    $v("voiceProfileUpdateBtn").onclick=updateProfile;
     $v("voiceProfileDeleteBtn").onclick=deleteProfile;
     $v("voiceProfileCompareBtn").onclick=compareSynthesized;
     const oldLoadEditor=loadEditor;
     loadEditor=function(){oldLoadEditor();refresh();};
     const originalNew=$v("newBtn").onclick;
     $v("newBtn").onclick=()=>{
+      const before=state;
       originalNew();
+      if(state===before)return;
       analysis=null;sampleBlob=null;
-      if(!getActive())updateAudio("");
+      updateAudio("");
+      $v("voiceProfileMetrics").textContent="";
+      $v("voiceProfileSaveBtn").disabled=true;
       refresh();
     };
     refresh();
