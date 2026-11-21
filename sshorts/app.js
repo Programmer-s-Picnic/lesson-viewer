@@ -265,7 +265,10 @@ function saveLocal(){
   readSetup();
   try{
     localStorage.setItem(AUTOSAVE,JSON.stringify({...state,musicData:""}));
-  }catch(e){}
+  }catch(e){
+    console.warn("EduShorts autosave failed:", e);
+    status("Autosave unavailable (storage full or blocked). Use Save project to keep your work.");
+  }
 }
 function renderAll(){
   renderList();
@@ -334,7 +337,7 @@ async function imageFrom(src){
 }
 async function preloadProjectImages(){
   const sources=[state.logo,...state.slides.map(s=>s.image)].filter(Boolean);
-  await Promise.allSettled([...new Set(sources)].map(imageFrom));
+  await Promise.all([...new Set(sources)].map(imageFrom));
 }
 function fileToDataUrl(file){
   return new Promise((resolve,reject)=>{
@@ -1108,7 +1111,9 @@ async function buildAudioTimeline(){
         const src=offline.createBufferSource();
         src.buffer=buffer;
         src.connect(master);
-        src.start(offset+narrationLeadIn(s));
+        const start=offset+narrationLeadIn(s);
+        const available=Math.max(0,slidePlaybackDuration(s)-narrationLeadIn(s));
+        if(available>0)src.start(start,0,Math.min(buffer.duration,available));
       }
       offset+=slidePlaybackDuration(s);
     }
