@@ -9,6 +9,7 @@ Browser-based educational short-video editor. Open `index.html` through an HTTP(
 - `app.js` — project data, editor, photo reels, camera/video overlays, audio, and standard WebM export
 - `speech-captions.js` — captions and highlighted speech words
 - `voice-director.js` — expressive voice settings, speech planning and sentence controls
+- `voice-profiler.js` — local voice-sample analysis, comparison and reusable profiles
 - `auto-tts-export.js` — optional experimental browser TTS screen-audio capture
 
 The superseded `photo-reel.js`, `tts-recorder.js` and `audio-export-fix.js` are intentionally not loaded. Their active functionality is in `app.js`.
@@ -32,6 +33,25 @@ Speech preview, recorded synthesized narration and optional automatic TTS export
 Open **Narration → Natural Voice Studio — advanced settings** to adjust global controls, then **Sentence direction — current slide** for individual sentences.
 
 Browser limitations: Web Speech varies by voice and operating system; pitch, rate and volume can only change between utterances. Word boundaries supplied by the browser are used for caption highlighting; when pronunciation replacements change utterance text length, positions are approximated. The rule-based director does not provide neural emotion synthesis, actual breathing, phoneme-level timing or guaranteed human-quality speech. The experimental automatic export still requires system-audio screen sharing.
+
+## Learn voice settings from a recorded sample
+
+Open **Narration → Learn voice settings from my recording**. Choose Classroom Teaching, Storytelling or Quiz Presenter. Read the displayed script aloud for approximately 20–60 seconds, or upload an audio file containing the same words. If uploading an existing recording, replace the script with the exact words spoken. Microphone permissions require HTTPS and user consent.
+
+After stopping the microphone recording or uploading a file, the application decodes and analyzes it **locally in your browser**. The analysis estimates:
+
+- Fundamental frequency (median pitch and interquartile variation, Hertz and semitones) from voiced frames using a YIN-like difference estimator
+- Overall RMS and approximate loudness dynamics
+- Number and duration of pauses from a relative energy threshold
+- Approximate words per minute from the supplied script and detected speech duration (the audio is **not** transcribed or verified)
+
+The proposed browser-TTS controls are automatically applied. Click **Save / replace this voice profile** to store named reusable settings and original measurements in the project, or edit Natural Voice Studio sliders and choose **Update saved profile with edited settings**. Choose a profile later from the Saved profiles dropdown. You can listen to the original recording in its player and then choose **Compare synthesized voice** with the same script.
+
+**JSON persistence:** `state.voiceProfiles` stores the name, class, acoustic measurements, synthesized voice settings, and script for up to three named profiles (one per class). The active profile is `state.activeVoiceProfile`. When **Include the original recording in project JSON** is enabled, audio clips up to 1.25 MB are embedded as data URLs. Larger recordings or unchecked audio-embedding save the measurements and settings only; the reference clip must be selected again for listening after reopening. The selected browser voice and TTS speed are stored in project settings.
+
+**Privacy:** Analysis is browser-local and never sends your recording to a service. Embedded recordings are personal voice data; anyone receiving the JSON can play them. Uncheck the audio embedding option when sharing your lesson.
+
+**Limitations:** A recorded voice cannot be reproduced by ordinary browser TTS. Pitch and dynamics depend on microphone, environment, accent, and the installed synthetic voice. Emotion, timbre, phoneme timing and identity are not cloned. Word-rate accuracy depends on a correct transcript. Noise, music, very short or very quiet recordings can yield weak estimates. Audio samples are restricted to 2–90 seconds and up to 20 MB.
 
 ## Portable JSON projects and automatically generated screenshots
 
