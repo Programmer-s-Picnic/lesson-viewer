@@ -1210,6 +1210,40 @@ function bindEditor(){
   });
 }
 
+// Render a self-contained screenshot for every slide before project export.
+// The screenshot is a JPEG data URL embedded in the JSON (no external files).
+// Originals, including slide.image and narration data, remain unchanged.
+async function createProjectScreenshots(){
+  if(!state.slides.length)return 0;
+  const previousW=W, previousH=H, active=state.current;
+  const target=$("exportFormat").value;
+  const portrait=target!=="landscape";
+  const sw=portrait?540:960, sh=portrait?960:540;
+  try{
+    setCanvasFormat();
+    const frame=document.createElement("canvas");
+    frame.width=W;frame.height=H;
+    const ctx=frame.getContext("2d");
+    const thumb=document.createElement("canvas");
+    thumb.width=sw;thumb.height=sh;
+    const small=thumb.getContext("2d");
+    let count=0;
+    for(let i=0;i<state.slides.length;i++){
+      const slide=state.slides[i];
+      ctx.clearRect(0,0,W,H);
+      // Capture a fully arrived slide before its exit transition.
+      await paint(ctx,slide,.65);
+      small.clearRect(0,0,sw,sh);
+      small.drawImage(frame,0,0,sw,sh);
+      slide.screenshot=thumb.toDataURL("image/jpeg",.83);
+      slide.screenshotFormat=target;
+      count++;
+    }
+    return count;
+  }finally{
+    W=previousW;H=previousH;state.current=active;
+  }
+}
 function projectPayload(){
   readSetup();
   return {
@@ -1296,7 +1330,20 @@ $("coverBtn").onclick=async()=>{
 };
 $("videoBtn").onclick=exportVideo;
 
-$("saveBtn").onclick=()=>download(new Blob([JSON.stringify(projectPayload(),null,2)],{type:"application/json"}),`${slug(state.projectTitle)}.json`);
+$("saveBtn").onclick=async()=>{
+  const button=$("saveBtn");if(button.disabled)return;
+  button.disabled=true;
+  try{
+    status("Creating and embedding slide screenshots…");
+    const count=await createProjectScreenshots();
+    const blob=new Blob([JSON.stringify(projectPayload(),null,2)],{type:"application/json"});
+    download(blob,`${slug(state.projectTitle)}.json`);
+    saveLocal();
+    status(`Project saved with ${count} embedded screenshots and voice settings.`);
+  }catch(error){
+    status(`Project save failed: ${error.message||error}`);
+  }finally{button.disabled=false;}
+};
 $("openInput").onchange=async e=>{
   const file=e.target.files[0];if(!file)return;
   try{
