@@ -14,7 +14,7 @@ window.VoiceProfiler=(()=>{
     story:"Imagine standing in a classroom on your first day. Everything feels unfamiliar. Then, a surprising idea changes the way you think! What happens next? Let me tell you.",
     quiz:"Welcome to the quick coding challenge! Are you ready? Look carefully at this program. What output do you expect? Three, two, one. Great job! Let's explain the answer."
   };
-  let recorder=null,stream=null,chunks=[],busy=false,sampleBlob=null,sampleUrl="",analysis=null;
+  let recorder=null,stream=null,chunks=[],busy=false,sampleBlob=null,sampleUrl="",analysis=null,recordTimeout=0;
   const setStatus=t=>{if($v("voiceProfileStatus"))$v("voiceProfileStatus").textContent=t;};
   const log=()=>{state.voiceProfiles||=[];return state.voiceProfiles;};
   const getActive=()=>log().find(p=>p.id===state.activeVoiceProfile);
@@ -132,7 +132,7 @@ window.VoiceProfiler=(()=>{
     if(!blob||blob.size===0)throw Error("Select or record a voice sample first.");
     if(blob.size>SAMPLE_MAX)throw Error("Audio exceeds 20 MB; use a shorter sample.");
     if(busy)return;
-    busy=true;$v("voiceProfileAnalyzeBtn").disabled=true;
+    busy=true;analysis=null;$v("voiceProfileSaveBtn").disabled=true;$v("voiceProfileAnalyzeBtn").disabled=true;
     try{
       const AC=window.AudioContext||window.webkitAudioContext;
       if(!AC)throw Error("Web Audio is not supported in this browser.");
@@ -252,6 +252,7 @@ window.VoiceProfiler=(()=>{
     chunks=[];
     recorder.ondataavailable=e=>{if(e.data?.size)chunks.push(e.data);};
     recorder.onstop=async()=>{
+      clearTimeout(recordTimeout);recordTimeout=0;
       const blob=new Blob(chunks,{type:recorder.mimeType||"audio/webm"});
       stream?.getTracks().forEach(track=>track.stop());stream=null;recorder=null;
       $v("voiceProfileRecordBtn").textContent="Start voice recording";
@@ -259,6 +260,7 @@ window.VoiceProfiler=(()=>{
       catch(error){setStatus("Analysis failed: "+error.message);}
     };
     recorder.start(200);
+    recordTimeout=setTimeout(()=>{if(recorder?.state==="recording")recorder.stop();},MAX_SECONDS*1000);
     $v("voiceProfileRecordBtn").textContent="Stop & analyze";
     setStatus("Recording. Read the displayed script naturally, then stop.");
   }
@@ -276,6 +278,10 @@ window.VoiceProfiler=(()=>{
   function init(){
     if(!$v("voiceProfileRecordBtn"))return;
     $v("voiceProfileScript").value=scripts.classroom;
+    $v("voiceProfileScript").addEventListener("input",()=>{
+      if(analysis){analysis=null;$v("voiceProfileSaveBtn").disabled=true;
+        setStatus("Script changed. Choose Analyze again to recalculate speaking speed.");}
+    });
     $v("voiceProfileKind").onchange=()=>{
       $v("voiceProfileScript").value=scripts[$v("voiceProfileKind").value]||scripts.classroom;
       analysis=null;$v("voiceProfileSaveBtn").disabled=true;
@@ -317,6 +323,7 @@ window.VoiceProfiler=(()=>{
     if(getActive())loadProfile(state.activeVoiceProfile);
   }
   window.addEventListener("beforeunload",()=>{
+    clearTimeout(recordTimeout);
     if(recorder?.state==="recording")recorder.stop();
     stream?.getTracks().forEach(t=>t.stop());
     if(sampleUrl.startsWith("blob:"))URL.revokeObjectURL(sampleUrl);
